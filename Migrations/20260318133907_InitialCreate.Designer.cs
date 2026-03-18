@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260318125235_InitialCreate")]
+    [Migration("20260318133907_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -30,11 +30,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
                 {
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CusId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -61,7 +61,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.HasKey("CusId");
+                    b.HasKey("CustomerId");
 
                     b.HasIndex("Email")
                         .IsUnique();
@@ -71,44 +71,44 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerAddress", b =>
                 {
-                    b.Property<int>("CusAId")
+                    b.Property<int>("CustomerAddressId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CusAId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerAddressId"));
 
                     b.Property<string>("Address")
                         .IsRequired()
                         .HasMaxLength(300)
                         .HasColumnType("nvarchar(300)");
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<int?>("WarId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("WardWarId")
+                    b.Property<int?>("WardId")
                         .HasColumnType("int");
 
-                    b.HasKey("CusAId");
+                    b.HasKey("CustomerAddressId");
 
-                    b.HasIndex("CusId");
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("WarId");
 
-                    b.HasIndex("WardWarId");
+                    b.HasIndex("WardId");
 
                     b.ToTable("CustomerAddresses", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerBank", b =>
                 {
-                    b.Property<int>("CusBId")
+                    b.Property<int>("CustomerBankId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CusBId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerBankId"));
 
                     b.Property<string>("AccountNumber")
                         .IsRequired()
@@ -120,12 +120,12 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.HasKey("CusBId");
+                    b.HasKey("CustomerBankId");
 
-                    b.HasIndex("CusId");
+                    b.HasIndex("CustomerId");
 
                     b.HasIndex("BankName", "AccountNumber")
                         .IsUnique();
@@ -135,13 +135,13 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerPhone", b =>
                 {
-                    b.Property<int>("CusPId")
+                    b.Property<int>("CustomerPhoneId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CusPId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerPhoneId"));
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<string>("Phone")
@@ -149,9 +149,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
-                    b.HasKey("CusPId");
+                    b.HasKey("CustomerPhoneId");
 
-                    b.HasIndex("CusId", "Phone")
+                    b.HasIndex("CustomerId", "Phone")
                         .IsUnique();
 
                     b.ToTable("CustomerPhones", (string)null);
@@ -159,13 +159,13 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerPoint", b =>
                 {
-                    b.Property<int>("CusPoId")
+                    b.Property<int>("CustomerPointId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CusPoId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerPointId"));
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<int>("Points")
@@ -173,9 +173,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.HasKey("CusPoId");
+                    b.HasKey("CustomerPointId");
 
-                    b.HasIndex("CusId")
+                    b.HasIndex("CustomerId")
                         .IsUnique();
 
                     b.ToTable("CustomerPoints", (string)null);
@@ -183,11 +183,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Customers.Rating", b =>
                 {
-                    b.Property<int>("RatId")
+                    b.Property<int>("RatingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RatId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RatingId"));
 
                     b.Property<string>("Comment")
                         .HasMaxLength(1000)
@@ -198,27 +198,27 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int?>("CusId")
+                    b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DriId")
+                    b.Property<int?>("DrinkId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DrinkDriId")
+                    b.Property<int?>("DrinkId1")
                         .HasColumnType("int");
 
                     b.Property<int>("Stars")
                         .HasColumnType("int");
 
-                    b.HasKey("RatId");
+                    b.HasKey("RatingId");
 
-                    b.HasIndex("DriId");
+                    b.HasIndex("DrinkId");
 
-                    b.HasIndex("DrinkDriId");
+                    b.HasIndex("DrinkId1");
 
-                    b.HasIndex("CusId", "DriId")
+                    b.HasIndex("CustomerId", "DrinkId")
                         .IsUnique()
-                        .HasFilter("[CusId] IS NOT NULL AND [DriId] IS NOT NULL");
+                        .HasFilter("[CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
 
                     b.ToTable("Ratings", null, t =>
                         {
@@ -228,18 +228,18 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
                 {
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DriId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<int?>("CatId")
+                    b.Property<int?>("CategoryId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
@@ -257,9 +257,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.HasKey("DriId");
+                    b.HasKey("DrinkId");
 
-                    b.HasIndex("CatId");
+                    b.HasIndex("CategoryId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -269,11 +269,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkCategory", b =>
                 {
-                    b.Property<int>("CatId")
+                    b.Property<int>("CategoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CatId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -285,7 +285,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.HasKey("CatId");
+                    b.HasKey("CategoryId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -295,13 +295,13 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkImage", b =>
                 {
-                    b.Property<int>("DriIId")
+                    b.Property<int>("DrinkImageId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DriIId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkImageId"));
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
@@ -309,40 +309,40 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.HasKey("DriIId");
+                    b.HasKey("DrinkImageId");
 
-                    b.HasIndex("DriId");
+                    b.HasIndex("DrinkId");
 
                     b.ToTable("DrinkImages", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSize", b =>
                 {
-                    b.Property<int>("DriSId")
+                    b.Property<int>("DrinkSizeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DriSId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkSizeId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("SizId")
+                    b.Property<int>("SizeId")
                         .HasColumnType("int");
 
-                    b.HasKey("DriSId");
+                    b.HasKey("DrinkSizeId");
 
-                    b.HasIndex("SizId");
+                    b.HasIndex("SizeId");
 
-                    b.HasIndex("DriId", "SizId")
+                    b.HasIndex("DrinkId", "SizeId")
                         .IsUnique();
 
                     b.ToTable("DrinkSizes", (string)null);
@@ -350,23 +350,23 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkTopping", b =>
                 {
-                    b.Property<int>("DriTId")
+                    b.Property<int>("DrinkToppingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DriTId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkToppingId"));
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TopId")
+                    b.Property<int>("ToppingId")
                         .HasColumnType("int");
 
-                    b.HasKey("DriTId");
+                    b.HasKey("DrinkToppingId");
 
-                    b.HasIndex("TopId");
+                    b.HasIndex("ToppingId");
 
-                    b.HasIndex("DriId", "TopId")
+                    b.HasIndex("DrinkId", "ToppingId")
                         .IsUnique();
 
                     b.ToTable("DrinkToppings", (string)null);
@@ -374,18 +374,18 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
                 {
-                    b.Property<int>("RecId")
+                    b.Property<int>("RecipeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecipeId"));
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
-                    b.HasKey("RecId");
+                    b.HasKey("RecipeId");
 
-                    b.HasIndex("DriId")
+                    b.HasIndex("DrinkId")
                         .IsUnique();
 
                     b.ToTable("Recipes", (string)null);
@@ -393,31 +393,31 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.RecipeDetail", b =>
                 {
-                    b.Property<int>("RecDId")
+                    b.Property<int>("RecipeDetailId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecDId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecipeDetailId"));
 
-                    b.Property<int>("IngId")
+                    b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("IngredientIngId")
+                    b.Property<int?>("IngredientId1")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<int>("RecId")
+                    b.Property<int>("RecipeId")
                         .HasColumnType("int");
 
-                    b.HasKey("RecDId");
+                    b.HasKey("RecipeDetailId");
 
-                    b.HasIndex("IngId");
+                    b.HasIndex("IngredientId");
 
-                    b.HasIndex("IngredientIngId");
+                    b.HasIndex("IngredientId1");
 
-                    b.HasIndex("RecId", "IngId")
+                    b.HasIndex("RecipeId", "IngredientId")
                         .IsUnique();
 
                     b.ToTable("RecipeDetails", (string)null);
@@ -425,11 +425,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Size", b =>
                 {
-                    b.Property<int>("SizId")
+                    b.Property<int>("SizeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SizId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SizeId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -446,7 +446,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("SizId");
+                    b.HasKey("SizeId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -456,11 +456,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Topping", b =>
                 {
-                    b.Property<int>("TopId")
+                    b.Property<int>("ToppingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TopId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ToppingId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -475,7 +475,7 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("TopId");
+                    b.HasKey("ToppingId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -485,11 +485,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Ingredient", b =>
                 {
-                    b.Property<int>("IngId")
+                    b.Property<int>("IngredientId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IngId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IngredientId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -506,7 +506,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("IngId");
+                    b.HasKey("IngredientId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -516,11 +516,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransaction", b =>
                 {
-                    b.Property<int>("InvTId")
+                    b.Property<int>("InventoryTransactionId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InvTId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransactionId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -541,14 +541,14 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("StoIId")
+                    b.Property<int>("StockImportId")
                         .HasColumnType("int");
 
-                    b.HasKey("InvTId");
+                    b.HasKey("InventoryTransactionId");
 
                     b.HasIndex("InventoryTransactionTypeId");
 
-                    b.HasIndex("StoIId");
+                    b.HasIndex("StockImportId");
 
                     b.ToTable("InventoryTransactions", null, t =>
                         {
@@ -558,11 +558,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("InventoryTransactionTypeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransactionTypeId"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -574,7 +574,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.HasKey("Id");
+                    b.HasKey("InventoryTransactionTypeId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -584,11 +584,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.StockImport", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("StockImportId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockImportId"));
 
                     b.Property<DateTime>("ImportDate")
                         .ValueGeneratedOnAdd()
@@ -603,17 +603,17 @@ namespace CafeChain.Migrations
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StaffStaId")
+                    b.Property<int?>("StaffId1")
                         .HasColumnType("int");
 
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("StockImportId");
 
                     b.HasIndex("StaffId");
 
-                    b.HasIndex("StaffStaId");
+                    b.HasIndex("StaffId1");
 
                     b.HasIndex("StoreId");
 
@@ -622,11 +622,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.StockImportDetail", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("StockImportDetailId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockImportDetailId"));
 
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
@@ -640,7 +640,7 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("Id");
+                    b.HasKey("StockImportDetailId");
 
                     b.HasIndex("IngredientId");
 
@@ -657,18 +657,18 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Locations.Country", b =>
                 {
-                    b.Property<int>("CouId")
+                    b.Property<int>("CountryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CouId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CountryId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.HasKey("CouId");
+                    b.HasKey("CountryId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -678,13 +678,13 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
-                    b.Property<int>("ProId")
+                    b.Property<int>("ProvinceId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProvinceId"));
 
-                    b.Property<int?>("CouId")
+                    b.Property<int?>("CountryId")
                         .HasColumnType("int");
 
                     b.Property<string>("Name")
@@ -692,47 +692,47 @@ namespace CafeChain.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.HasKey("ProId");
+                    b.HasKey("ProvinceId");
 
-                    b.HasIndex("CouId", "Name")
+                    b.HasIndex("CountryId", "Name")
                         .IsUnique()
-                        .HasFilter("[CouId] IS NOT NULL");
+                        .HasFilter("[CountryId] IS NOT NULL");
 
                     b.ToTable("Provinces", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>
                 {
-                    b.Property<int>("WarId")
+                    b.Property<int>("WardId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WarId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WardId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<int?>("ProId")
+                    b.Property<int?>("ProvinceId")
                         .HasColumnType("int");
 
-                    b.HasKey("WarId");
+                    b.HasKey("WardId");
 
-                    b.HasIndex("ProId", "Name")
+                    b.HasIndex("ProvinceId", "Name")
                         .IsUnique()
-                        .HasFilter("[ProId] IS NOT NULL");
+                        .HasFilter("[ProvinceId] IS NOT NULL");
 
                     b.ToTable("Wards", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.MemberLevel", b =>
                 {
-                    b.Property<int>("MemId")
+                    b.Property<int>("MemberId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberId"));
 
                     b.Property<int?>("MaxPoints")
                         .HasColumnType("int");
@@ -745,7 +745,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("MemId");
+                    b.HasKey("MemberId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -755,11 +755,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransaction", b =>
                 {
-                    b.Property<int>("PoiTId")
+                    b.Property<int>("PointTransactionId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PoiTId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PointTransactionId"));
 
                     b.Property<int>("BalanceAfter")
                         .HasColumnType("int");
@@ -769,16 +769,16 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CustomerCusId")
+                    b.Property<int?>("CustomerId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("ExpiredAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int?>("OrdId")
+                    b.Property<int?>("OrderId")
                         .HasColumnType("int");
 
                     b.Property<int>("PointTransactionTypeId")
@@ -787,13 +787,13 @@ namespace CafeChain.Migrations
                     b.Property<int>("Points")
                         .HasColumnType("int");
 
-                    b.HasKey("PoiTId");
+                    b.HasKey("PointTransactionId");
 
-                    b.HasIndex("CusId");
+                    b.HasIndex("CustomerId");
 
-                    b.HasIndex("CustomerCusId");
+                    b.HasIndex("CustomerId1");
 
-                    b.HasIndex("OrdId");
+                    b.HasIndex("OrderId");
 
                     b.HasIndex("PointTransactionTypeId");
 
@@ -802,11 +802,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransactionType", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("PointTransactionTypeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PointTransactionTypeId"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -818,7 +818,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("Id");
+                    b.HasKey("PointTransactionTypeId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -828,11 +828,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Orders.DiningTable", b =>
                 {
-                    b.Property<int>("TabId")
+                    b.Property<int>("TableId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TabId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TableId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -844,20 +844,20 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreStoId")
+                    b.Property<int?>("StoreId1")
                         .HasColumnType("int");
 
                     b.Property<int>("TableNumber")
                         .HasColumnType("int");
 
-                    b.HasKey("TabId");
+                    b.HasKey("TableId");
 
-                    b.HasIndex("StoreStoId");
+                    b.HasIndex("StoreId1");
 
-                    b.HasIndex("StoId", "TableNumber")
+                    b.HasIndex("StoreId", "TableNumber")
                         .IsUnique();
 
                     b.ToTable("DiningTables", (string)null);
@@ -865,11 +865,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Orders.KitchenOrder", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("KitchenOrderId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("KitchenOrderId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -884,7 +884,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("Id");
+                    b.HasKey("KitchenOrderId");
 
                     b.HasIndex("OrderId");
 
@@ -893,18 +893,18 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
-                    b.Property<int>("OrdId")
+                    b.Property<int>("OrderId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrdId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int?>("CusId")
+                    b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
                     b.Property<string>("Note")
@@ -912,10 +912,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int>("OrSId")
+                    b.Property<int>("OrderStatusId")
                         .HasColumnType("int");
 
-                    b.Property<int>("OrTId")
+                    b.Property<int>("OrderToppingId")
                         .HasColumnType("int");
 
                     b.Property<string>("Source")
@@ -923,51 +923,51 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("StaId")
+                    b.Property<int?>("StaffId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreStoId")
+                    b.Property<int?>("StoreId1")
                         .HasColumnType("int");
 
-                    b.Property<int?>("TabId")
+                    b.Property<int?>("TableId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
 
-                    b.HasKey("OrdId");
+                    b.HasKey("OrderId");
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("CusId");
+                    b.HasIndex("CustomerId");
 
-                    b.HasIndex("OrSId");
+                    b.HasIndex("OrderStatusId");
 
-                    b.HasIndex("OrTId");
+                    b.HasIndex("OrderToppingId");
 
-                    b.HasIndex("StaId");
+                    b.HasIndex("StaffId");
 
-                    b.HasIndex("StoId");
+                    b.HasIndex("StoreId");
 
-                    b.HasIndex("StoreStoId");
+                    b.HasIndex("StoreId1");
 
-                    b.HasIndex("TabId");
+                    b.HasIndex("TableId");
 
                     b.ToTable("Orders", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderDetail", b =>
                 {
-                    b.Property<int>("OrDId")
+                    b.Property<int>("OrderDetailId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrDId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderDetailId"));
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
                     b.Property<string>("DrinkName")
@@ -989,38 +989,38 @@ namespace CafeChain.Migrations
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SizId")
+                    b.Property<int?>("SizeId")
                         .HasColumnType("int");
 
                     b.Property<string>("SizeName")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("OrDId");
+                    b.HasKey("OrderDetailId");
 
-                    b.HasIndex("DriId");
+                    b.HasIndex("DrinkId");
 
                     b.HasIndex("OrderId");
 
-                    b.HasIndex("SizId");
+                    b.HasIndex("SizeId");
 
                     b.ToTable("OrderDetails", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderStatus", b =>
                 {
-                    b.Property<int>("OrSId")
+                    b.Property<int>("OrderStatusId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrSId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("OrSId");
+                    b.HasKey("OrderStatusId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1030,19 +1030,22 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderTopping", b =>
                 {
-                    b.Property<int>("OrTgId")
+                    b.Property<int>("OrderToppingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrTgId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderToppingId"));
 
-                    b.Property<int>("OrDId")
+                    b.Property<int>("OrderDetailId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("TopId")
+                    b.Property<int>("ToppingId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ToppingId1")
                         .HasColumnType("int");
 
                     b.Property<string>("ToppingName")
@@ -1050,16 +1053,13 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int?>("ToppingTopId")
-                        .HasColumnType("int");
+                    b.HasKey("OrderToppingId");
 
-                    b.HasKey("OrTgId");
+                    b.HasIndex("ToppingId");
 
-                    b.HasIndex("TopId");
+                    b.HasIndex("ToppingId1");
 
-                    b.HasIndex("ToppingTopId");
-
-                    b.HasIndex("OrDId", "TopId")
+                    b.HasIndex("OrderDetailId", "ToppingId")
                         .IsUnique();
 
                     b.ToTable("OrderToppings", (string)null);
@@ -1067,18 +1067,18 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderType", b =>
                 {
-                    b.Property<int>("OrTId")
+                    b.Property<int>("OrderTypeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrTId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderTypeId"));
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("OrTId");
+                    b.HasKey("OrderTypeId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1088,11 +1088,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Payments.CashSession", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("CashSessionId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CashSessionId"));
 
                     b.Property<DateTime?>("CloseTime")
                         .HasColumnType("datetime2");
@@ -1113,7 +1113,7 @@ namespace CafeChain.Migrations
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StaffStaId")
+                    b.Property<int?>("StaffId1")
                         .HasColumnType("int");
 
                     b.Property<decimal?>("StartCash")
@@ -1122,11 +1122,11 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("CashSessionId");
 
                     b.HasIndex("StaffId");
 
-                    b.HasIndex("StaffStaId");
+                    b.HasIndex("StaffId1");
 
                     b.HasIndex("StoreId");
 
@@ -1135,11 +1135,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Payments.Payment", b =>
                 {
-                    b.Property<int>("PayId")
+                    b.Property<int>("PaymentId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PayId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentId"));
 
                     b.Property<decimal>("Amount")
                         .HasColumnType("decimal(18,2)");
@@ -1147,42 +1147,42 @@ namespace CafeChain.Migrations
                     b.Property<int?>("CashSessionId")
                         .HasColumnType("int");
 
-                    b.Property<int>("OrdId")
+                    b.Property<int>("OrderId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PayMId")
+                    b.Property<int>("PaymentMethodId")
                         .HasColumnType("int");
 
-                    b.Property<int>("PaySId")
+                    b.Property<int>("PaymentStatusId")
                         .HasColumnType("int");
 
                     b.Property<string>("TransactionCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("PayId");
+                    b.HasKey("PaymentId");
 
                     b.HasIndex("CashSessionId");
 
-                    b.HasIndex("OrdId");
+                    b.HasIndex("OrderId");
 
-                    b.HasIndex("PayMId");
+                    b.HasIndex("PaymentMethodId");
 
-                    b.HasIndex("PaySId");
+                    b.HasIndex("PaymentStatusId");
 
                     b.ToTable("Payments", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Payments.PaymentMethod", b =>
                 {
-                    b.Property<int>("PayMId")
+                    b.Property<int>("PaymentMethodId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PayMId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentMethodId"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1194,7 +1194,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("PayMId");
+                    b.HasKey("PaymentMethodId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1204,11 +1204,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Payments.PaymentStatus", b =>
                 {
-                    b.Property<int>("PaySId")
+                    b.Property<int>("PaymentStatusId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaySId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentStatusId"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1220,7 +1220,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("PaySId");
+                    b.HasKey("PaymentStatusId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1230,11 +1230,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("RoleId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RoleId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -1251,7 +1251,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("Id");
+                    b.HasKey("RoleId");
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1261,11 +1261,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.ScopeType", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("ScopeTypeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ScopeTypeId"));
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -1277,7 +1277,7 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.HasKey("Id");
+                    b.HasKey("ScopeTypeId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1290,11 +1290,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
                 {
-                    b.Property<int>("ShiId")
+                    b.Property<int>("ShiftId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -1320,7 +1320,7 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoId")
                         .HasColumnType("int");
 
-                    b.HasKey("ShiId");
+                    b.HasKey("ShiftId");
 
                     b.HasIndex("StoId");
 
@@ -1329,11 +1329,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Staff", b =>
                 {
-                    b.Property<int>("StaId")
+                    b.Property<int>("StaffId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -1366,10 +1366,10 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("Salary")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreStoId")
+                    b.Property<int?>("StoreId1")
                         .HasColumnType("int");
 
                     b.Property<string>("TaxCode")
@@ -1377,27 +1377,27 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.HasKey("StaId");
+                    b.HasKey("StaffId");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("StoId");
+                    b.HasIndex("StoreId");
 
-                    b.HasIndex("StoreStoId");
+                    b.HasIndex("StoreId1");
 
                     b.ToTable("Staffs", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
                 {
-                    b.Property<int>("StaBId")
+                    b.Property<int>("StaffBankId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaBId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffBankId"));
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(50)
@@ -1407,12 +1407,12 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<int?>("StaId")
+                    b.Property<int?>("StaffId")
                         .HasColumnType("int");
 
-                    b.HasKey("StaBId");
+                    b.HasKey("StaffBankId");
 
-                    b.HasIndex("StaId");
+                    b.HasIndex("StaffId");
 
                     b.HasIndex("BankName", "AccountNumber")
                         .IsUnique()
@@ -1423,11 +1423,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffRole", b =>
                 {
-                    b.Property<int>("StaRId")
+                    b.Property<int>("StaffRoleId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaRId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffRoleId"));
 
                     b.Property<DateTime>("AssignedAt")
                         .ValueGeneratedOnAdd()
@@ -1437,14 +1437,14 @@ namespace CafeChain.Migrations
                     b.Property<int>("RoleId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StaId")
+                    b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.HasKey("StaRId");
+                    b.HasKey("StaffRoleId");
 
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("StaId", "RoleId")
+                    b.HasIndex("StaffId", "RoleId")
                         .IsUnique();
 
                     b.ToTable("StaffRoles", (string)null);
@@ -1452,11 +1452,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffScope", b =>
                 {
-                    b.Property<int>("StaSId")
+                    b.Property<int>("StaffScopeId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaSId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffScopeId"));
 
                     b.Property<int>("ScopeRefId")
                         .HasColumnType("int");
@@ -1464,16 +1464,16 @@ namespace CafeChain.Migrations
                     b.Property<int>("ScopeTypeId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StaId")
+                    b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.HasKey("StaSId");
+                    b.HasKey("StaffScopeId");
 
                     b.HasIndex("ScopeTypeId");
 
-                    b.HasIndex("StaId");
+                    b.HasIndex("StaffId");
 
-                    b.HasIndex("StaId", "ScopeTypeId", "ScopeRefId")
+                    b.HasIndex("StaffId", "ScopeTypeId", "ScopeRefId")
                         .IsUnique();
 
                     b.ToTable("StaffScopes", (string)null);
@@ -1481,28 +1481,28 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffShift", b =>
                 {
-                    b.Property<int>("StaSId")
+                    b.Property<int>("StaffShiftId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaSId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffShiftId"));
 
-                    b.Property<int>("ShiId")
+                    b.Property<int>("ShiftId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StaId")
+                    b.Property<int>("StaffId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("WorkDate")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("StaSId");
+                    b.HasKey("StaffShiftId");
 
-                    b.HasIndex("ShiId");
+                    b.HasIndex("ShiftId");
 
                     b.HasIndex("WorkDate");
 
-                    b.HasIndex("StaId", "ShiId", "WorkDate")
+                    b.HasIndex("StaffId", "ShiftId", "WorkDate")
                         .IsUnique();
 
                     b.ToTable("StaffShifts", (string)null);
@@ -1510,11 +1510,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -1541,45 +1541,45 @@ namespace CafeChain.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
-                    b.Property<int?>("WarId")
+                    b.Property<int?>("WardId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("WardWarId")
+                    b.Property<int?>("WardId1")
                         .HasColumnType("int");
 
-                    b.HasKey("StoId");
+                    b.HasKey("StoreId");
 
-                    b.HasIndex("WarId");
+                    b.HasIndex("WardId");
 
-                    b.HasIndex("WardWarId");
+                    b.HasIndex("WardId1");
 
                     b.ToTable("Stores", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.StoreDrink", b =>
                 {
-                    b.Property<int>("StoDId")
+                    b.Property<int>("StoreDrinkId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoDId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreDrinkId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<int>("DriId")
+                    b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("StoDId");
+                    b.HasKey("StoreDrinkId");
 
-                    b.HasIndex("DriId");
+                    b.HasIndex("DrinkId");
 
-                    b.HasIndex("StoId", "DriId")
+                    b.HasIndex("StoreId", "DrinkId")
                         .IsUnique();
 
                     b.ToTable("StoreDrinks", (string)null);
@@ -1587,21 +1587,21 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.StoreInventory", b =>
                 {
-                    b.Property<int>("StoIId")
+                    b.Property<int>("StoreInventoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoIId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreInventoryId"));
 
                     b.Property<decimal>("AvailableQty")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,3)")
                         .HasDefaultValue(0m);
 
-                    b.Property<int>("IngId")
+                    b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("IngredientIngId")
+                    b.Property<int?>("IngredientId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("LastUpdated")
@@ -1614,16 +1614,16 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasDefaultValue(0m);
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.HasKey("StoIId");
+                    b.HasKey("StoreInventoryId");
 
-                    b.HasIndex("IngId");
+                    b.HasIndex("IngredientId");
 
-                    b.HasIndex("IngredientIngId");
+                    b.HasIndex("IngredientId1");
 
-                    b.HasIndex("StoId", "IngId")
+                    b.HasIndex("StoreId", "IngredientId")
                         .IsUnique();
 
                     b.ToTable("StoreInventories", null, t =>
@@ -1634,66 +1634,66 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.StoreTopping", b =>
                 {
-                    b.Property<int>("StoTId")
+                    b.Property<int>("StoreToppingId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoTId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreToppingId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TopId")
+                    b.Property<int>("ToppingId")
                         .HasColumnType("int");
 
-                    b.HasKey("StoTId");
+                    b.HasKey("StoreToppingId");
 
-                    b.HasIndex("StoId");
+                    b.HasIndex("StoreId");
 
-                    b.HasIndex("TopId");
+                    b.HasIndex("ToppingId");
 
                     b.ToTable("StoreToppings", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
-                    b.Property<int>("OrVId")
+                    b.Property<int>("OrderVoucherId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrVId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderVoucherId"));
 
                     b.Property<decimal>("DiscountValue")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int>("OrdId")
+                    b.Property<int>("OrderId")
                         .HasColumnType("int");
 
-                    b.Property<int>("VouId")
+                    b.Property<int>("VoucherId")
                         .HasColumnType("int");
 
-                    b.HasKey("OrVId");
+                    b.HasKey("OrderVoucherId");
 
-                    b.HasIndex("OrdId")
+                    b.HasIndex("OrderId")
                         .IsUnique();
 
-                    b.HasIndex("VouId");
+                    b.HasIndex("VoucherId");
 
                     b.ToTable("OrderVouchers", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Vouchers.Voucher", b =>
                 {
-                    b.Property<int>("VouId")
+                    b.Property<int>("VoucherId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VouId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoucherId"));
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -1729,7 +1729,7 @@ namespace CafeChain.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("VouId");
+                    b.HasKey("VoucherId");
 
                     b.HasIndex("Code")
                         .IsUnique();
@@ -1742,16 +1742,16 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Vouchers.VoucherUsage", b =>
                 {
-                    b.Property<int>("VouUId")
+                    b.Property<int>("VoucherUsageId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VouUId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("VoucherUsageId"));
 
-                    b.Property<int>("CusId")
+                    b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CustomerCusId")
+                    b.Property<int?>("CustomerId1")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UsedAt")
@@ -1759,16 +1759,16 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int>("VouId")
+                    b.Property<int>("VoucherId")
                         .HasColumnType("int");
 
-                    b.HasKey("VouUId");
+                    b.HasKey("VoucherUsageId");
 
-                    b.HasIndex("CusId");
+                    b.HasIndex("CustomerId");
 
-                    b.HasIndex("CustomerCusId");
+                    b.HasIndex("CustomerId1");
 
-                    b.HasIndex("VouId", "CusId")
+                    b.HasIndex("VoucherId", "CustomerId")
                         .IsUnique();
 
                     b.ToTable("VoucherUsages", (string)null);
@@ -1778,7 +1778,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("CustomerAddresses")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1789,7 +1789,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Locations.Ward", null)
                         .WithMany("CustomerAddresses")
-                        .HasForeignKey("WardWarId");
+                        .HasForeignKey("WardId");
 
                     b.Navigation("Customer");
 
@@ -1800,7 +1800,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("CustomerBanks")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1811,7 +1811,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("CustomerPhones")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1822,7 +1822,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("CustomerPoints")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1833,17 +1833,17 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("Ratings")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany()
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("CafeChain.Models.Drinks.Drink", null)
                         .WithMany("Ratings")
-                        .HasForeignKey("DrinkDriId");
+                        .HasForeignKey("DrinkId1");
 
                     b.Navigation("Customer");
 
@@ -1854,7 +1854,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.DrinkCategory", "Category")
                         .WithMany("Drinks")
-                        .HasForeignKey("CatId")
+                        .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Category");
@@ -1864,7 +1864,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany("DrinkImages")
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1875,13 +1875,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany("DrinkSizes")
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Size", "Size")
                         .WithMany("DrinkSizes")
-                        .HasForeignKey("SizId")
+                        .HasForeignKey("SizeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1894,13 +1894,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany("DrinkToppings")
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
                         .WithMany("DrinkToppings")
-                        .HasForeignKey("TopId")
+                        .HasForeignKey("ToppingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -1913,7 +1913,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany("Recipes")
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1924,17 +1924,17 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
                         .WithMany()
-                        .HasForeignKey("IngId")
+                        .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", null)
                         .WithMany("RecipeDetails")
-                        .HasForeignKey("IngredientIngId");
+                        .HasForeignKey("IngredientId1");
 
                     b.HasOne("CafeChain.Models.Drinks.Recipe", "Recipe")
                         .WithMany("RecipeDetails")
-                        .HasForeignKey("RecId")
+                        .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1953,7 +1953,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
                         .WithMany("InventoryTransactions")
-                        .HasForeignKey("StoIId")
+                        .HasForeignKey("StockImportId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1972,7 +1972,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", null)
                         .WithMany("StockImports")
-                        .HasForeignKey("StaffStaId");
+                        .HasForeignKey("StaffId1");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
@@ -2008,7 +2008,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Locations.Country", "Country")
                         .WithMany("Provinces")
-                        .HasForeignKey("CouId")
+                        .HasForeignKey("CountryId")
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Country");
@@ -2018,7 +2018,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Locations.Province", "Province")
                         .WithMany("Wards")
-                        .HasForeignKey("ProId")
+                        .HasForeignKey("ProvinceId")
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Province");
@@ -2028,17 +2028,17 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany()
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Customers.Customer", null)
                         .WithMany("PointTransactions")
-                        .HasForeignKey("CustomerCusId");
+                        .HasForeignKey("CustomerId1");
 
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany()
-                        .HasForeignKey("OrdId")
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Loyalties.PointTransactionType", "Type")
@@ -2058,13 +2058,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Stores.Store", null)
                         .WithMany("DiningTables")
-                        .HasForeignKey("StoreStoId");
+                        .HasForeignKey("StoreId1");
 
                     b.Navigation("Store");
                 });
@@ -2084,39 +2084,39 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("Orders")
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Orders.OrderStatus", "OrderStatus")
                         .WithMany("Orders")
-                        .HasForeignKey("OrSId")
+                        .HasForeignKey("OrderStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Orders.OrderType", "OrderType")
                         .WithMany("Orders")
-                        .HasForeignKey("OrTId")
+                        .HasForeignKey("OrderToppingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany()
-                        .HasForeignKey("StaId")
+                        .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Stores.Store", null)
                         .WithMany("Orders")
-                        .HasForeignKey("StoreStoId");
+                        .HasForeignKey("StoreId1");
 
                     b.HasOne("CafeChain.Models.Orders.DiningTable", "DiningTable")
                         .WithMany("Orders")
-                        .HasForeignKey("TabId")
+                        .HasForeignKey("TableId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Customer");
@@ -2136,7 +2136,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany()
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2148,7 +2148,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Drinks.Size", "Size")
                         .WithMany()
-                        .HasForeignKey("SizId")
+                        .HasForeignKey("SizeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Drink");
@@ -2162,19 +2162,19 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Orders.OrderDetail", "OrderDetail")
                         .WithMany("OrderToppings")
-                        .HasForeignKey("OrDId")
+                        .HasForeignKey("OrderDetailId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
                         .WithMany()
-                        .HasForeignKey("TopId")
+                        .HasForeignKey("ToppingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Topping", null)
                         .WithMany("OrderToppings")
-                        .HasForeignKey("ToppingTopId");
+                        .HasForeignKey("ToppingId1");
 
                     b.Navigation("OrderDetail");
 
@@ -2191,7 +2191,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", null)
                         .WithMany("CashSessions")
-                        .HasForeignKey("StaffStaId");
+                        .HasForeignKey("StaffId1");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("CashSessions")
@@ -2213,19 +2213,19 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany("Payments")
-                        .HasForeignKey("OrdId")
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Payments.PaymentMethod", "PaymentMethod")
                         .WithMany("Payments")
-                        .HasForeignKey("PayMId")
+                        .HasForeignKey("PaymentMethodId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Payments.PaymentStatus", "PaymentStatus")
                         .WithMany("Payments")
-                        .HasForeignKey("PaySId")
+                        .HasForeignKey("PaymentStatusId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2257,13 +2257,13 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Stores.Store", null)
                         .WithMany("Staffs")
-                        .HasForeignKey("StoreStoId");
+                        .HasForeignKey("StoreId1");
 
                     b.Navigation("Store");
                 });
@@ -2272,7 +2272,7 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffBanks")
-                        .HasForeignKey("StaId")
+                        .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Staff");
@@ -2288,7 +2288,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffRoles")
-                        .HasForeignKey("StaId")
+                        .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2307,7 +2307,7 @@ namespace CafeChain.Migrations
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffScopes")
-                        .HasForeignKey("StaId")
+                        .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2320,13 +2320,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Staffs.Shift", "Shift")
                         .WithMany("StaffShifts")
-                        .HasForeignKey("ShiId")
+                        .HasForeignKey("ShiftId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffShifts")
-                        .HasForeignKey("StaId")
+                        .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2339,12 +2339,12 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
                         .WithMany()
-                        .HasForeignKey("WarId")
+                        .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Locations.Ward", null)
                         .WithMany("Stores")
-                        .HasForeignKey("WardWarId");
+                        .HasForeignKey("WardId1");
 
                     b.Navigation("Ward");
                 });
@@ -2353,13 +2353,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
                         .WithMany()
-                        .HasForeignKey("DriId")
+                        .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("StoreDrinks")
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2372,17 +2372,17 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
                         .WithMany()
-                        .HasForeignKey("IngId")
+                        .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", null)
                         .WithMany("StoreInventories")
-                        .HasForeignKey("IngredientIngId");
+                        .HasForeignKey("IngredientId1");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("StoreInventories")
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2395,13 +2395,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("StoreToppings")
-                        .HasForeignKey("StoId")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
                         .WithMany("StoreToppings")
-                        .HasForeignKey("TopId")
+                        .HasForeignKey("ToppingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2414,13 +2414,13 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany("OrderVouchers")
-                        .HasForeignKey("OrdId")
+                        .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Vouchers.Voucher", "Voucher")
                         .WithMany("OrderVouchers")
-                        .HasForeignKey("VouId")
+                        .HasForeignKey("VoucherId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
@@ -2433,17 +2433,17 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany()
-                        .HasForeignKey("CusId")
+                        .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Customers.Customer", null)
                         .WithMany("VoucherUsages")
-                        .HasForeignKey("CustomerCusId");
+                        .HasForeignKey("CustomerId1");
 
                     b.HasOne("CafeChain.Models.Vouchers.Voucher", "Voucher")
                         .WithMany("VoucherUsages")
-                        .HasForeignKey("VouId")
+                        .HasForeignKey("VoucherId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

@@ -173,7 +173,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.CustomerId, x.DrinkId })
                 .IsUnique()
-                .HasFilter("[CusId] IS NOT NULL AND [DriId] IS NOT NULL");
+                .HasFilter("[CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
         }
     }
 }
