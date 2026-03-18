@@ -4,9 +4,9 @@ namespace CafeChain.Models.Stores
 {
     public class StoreDrink
     {
-        public int StoDId { get; set; }
-        public int StoId { get; set; }
-        public int DriId { get; set; }
+        public int StoreDrinkId { get; set; }
+        public int StoreId { get; set; }
+        public int DrinkId { get; set; }
         public bool Active { get; set; }
 
         public virtual Store Store { get; set; }

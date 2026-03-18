@@ -2,7 +2,7 @@
 {
     public class InventoryTransactionType
     {
-        public int Id { get; set; }
+        public int InventoryTransactionTypeId { get; set; }
         public string Code { get; set; } // IMPORT, EXPORT, ADJUST
         public string Name { get; set; }
 

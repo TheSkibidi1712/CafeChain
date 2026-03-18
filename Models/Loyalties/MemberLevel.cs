@@ -2,7 +2,7 @@
 {
     public class MemberLevel
     {
-        public int MemId { get; set; }
+        public int MemberId { get; set; }
         public string Name { get; set; }
 
         public int MinPoints { get; set; }

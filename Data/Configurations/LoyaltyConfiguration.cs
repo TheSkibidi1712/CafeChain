@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("PointTransactions");
 
-            entity.HasKey(x => x.PoiTId);
+            entity.HasKey(x => x.PointTransactionId);
 
             entity.Property(x => x.Points)
                 .IsRequired();
@@ -25,12 +25,12 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Customer)
                 .WithMany()
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Order)
                 .WithMany()
-                .HasForeignKey(x => x.OrdId)
+                .HasForeignKey(x => x.OrderId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Type)
@@ -38,7 +38,7 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.PointTransactionTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.CusId);
+            entity.HasIndex(x => x.CustomerId);
         }
     }
 
@@ -48,7 +48,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("MemberLevels");
 
-            entity.HasKey(x => x.MemId);
+            entity.HasKey(x => x.MemberId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -65,7 +65,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("PointTransactionTypes");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.PointTransactionTypeId);
 
             entity.Property(x => x.Code)
                 .IsRequired()

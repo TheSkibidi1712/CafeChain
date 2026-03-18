@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Orders");
 
-            entity.HasKey(x => x.OrdId);
+            entity.HasKey(x => x.OrderId);
 
             entity.Property(x => x.Source)
                 .HasMaxLength(50);
@@ -29,39 +29,39 @@ namespace CafeChain.Data.Configurations
             // RELATION
             entity.HasOne(x => x.Customer)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Store)
                 .WithMany()
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.DiningTable)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.TabId)
+                .HasForeignKey(x => x.TableId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Staff)
                 .WithMany()
-                .HasForeignKey(x => x.StaId)
+                .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.OrderStatus)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.OrSId)
+                .HasForeignKey(x => x.OrderStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.OrderType)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.OrTId)
+                .HasForeignKey(x => x.OrderToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // INDEX
             entity.HasIndex(x => x.CreatedAt);
-            entity.HasIndex(x => x.CusId);
-            entity.HasIndex(x => x.StoId);
-            entity.HasIndex(x => x.StaId);
+            entity.HasIndex(x => x.CustomerId);
+            entity.HasIndex(x => x.StoreId);
+            entity.HasIndex(x => x.StaffId);
         }
     }
 
@@ -72,7 +72,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("OrderDetails");
 
-            entity.HasKey(x => x.OrDId);
+            entity.HasKey(x => x.OrderDetailId);
 
             entity.Property(x => x.DrinkName)
                 .IsRequired()
@@ -98,18 +98,18 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Drink)
                 .WithMany()
-                .HasForeignKey(x => x.DriId)
+                .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Size)
                 .WithMany()
-                .HasForeignKey(x => x.SizId)
+                .HasForeignKey(x => x.SizeId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             // INDEX
             entity.HasIndex(x => x.OrderId);
-            entity.HasIndex(x => x.DriId);
-            entity.HasIndex(x => x.SizId);
+            entity.HasIndex(x => x.DrinkId);
+            entity.HasIndex(x => x.SizeId);
         }
     }
 
@@ -120,7 +120,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("OrderToppings");
 
-            entity.HasKey(x => x.OrTgId);
+            entity.HasKey(x => x.OrderToppingId);
 
             entity.Property(x => x.ToppingName)
                 .IsRequired()
@@ -131,15 +131,15 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.OrderDetail)
                 .WithMany(x => x.OrderToppings)
-                .HasForeignKey(x => x.OrDId)
+                .HasForeignKey(x => x.OrderDetailId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Topping)
                 .WithMany()
-                .HasForeignKey(x => x.TopId)
+                .HasForeignKey(x => x.ToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new { x.OrDId, x.TopId })
+            entity.HasIndex(x => new { x.OrderDetailId, x.ToppingId })
                 .IsUnique();
         }
     }
@@ -151,7 +151,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("OrderStatuses");
 
-            entity.HasKey(x => x.OrSId);
+            entity.HasKey(x => x.OrderStatusId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -169,7 +169,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("OrderTypes");
 
-            entity.HasKey(x => x.OrTId);
+            entity.HasKey(x => x.OrderTypeId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -187,7 +187,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("DiningTables");
 
-            entity.HasKey(x => x.TabId);
+            entity.HasKey(x => x.TableId);
 
             entity.Property(x => x.TableNumber)
                 .IsRequired();
@@ -200,10 +200,10 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Store)
                 .WithMany()
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(x => new { x.StoId, x.TableNumber })
+            entity.HasIndex(x => new { x.StoreId, x.TableNumber })
                 .IsUnique();
         }
     }
@@ -215,7 +215,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("KitchenOrders");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.KitchenOrderId);
 
             entity.Property(x => x.Status)
                 .HasMaxLength(50);

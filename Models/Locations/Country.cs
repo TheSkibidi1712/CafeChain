@@ -2,7 +2,7 @@
 {
     public class Country
     {
-        public int CouId { get; set; }
+        public int CountryId { get; set; }
         public string Name { get; set; }
 
         public virtual ICollection<Province> Provinces { get; set; }

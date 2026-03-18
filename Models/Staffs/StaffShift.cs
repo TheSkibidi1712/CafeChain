@@ -2,9 +2,9 @@
 {
     public class StaffShift
     {
-        public int StaSId { get; set; }
-        public int StaId { get; set; }
-        public int ShiId { get; set; }
+        public int StaffShiftId { get; set; }
+        public int StaffId { get; set; }
+        public int ShiftId { get; set; }
         public DateTime WorkDate { get; set; }
 
         public virtual Staff Staff { get; set; }

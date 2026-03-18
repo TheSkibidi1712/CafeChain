@@ -4,10 +4,10 @@ namespace CafeChain.Models.Vouchers
 {
     public class OrderVoucher
     {
-        public int OrVId { get; set; }
+        public int OrderVoucherId { get; set; }
 
-        public int OrdId { get; set; }
-        public int VouId { get; set; }
+        public int OrderId { get; set; }
+        public int VoucherId { get; set; }
 
         public decimal DiscountValue { get; set; } // 🔥 snapshot
 

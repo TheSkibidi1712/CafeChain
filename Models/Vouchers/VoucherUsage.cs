@@ -3,10 +3,10 @@ namespace CafeChain.Models.Vouchers
 {
     public class VoucherUsage
     {
-        public int VouUId { get; set; }
+        public int VoucherUsageId { get; set; }
 
-        public int VouId { get; set; }
-        public int CusId { get; set; }
+        public int VoucherId { get; set; }
+        public int CustomerId { get; set; }
 
         public DateTime UsedAt { get; set; } // 🔥 thêm
 

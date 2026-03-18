@@ -2,7 +2,7 @@
 {
     public class OrderType
     {
-        public int OrTId { get; set; }
+        public int OrderTypeId { get; set; }
         public string Name { get; set; }
 
         public virtual ICollection<Order> Orders { get; set; }

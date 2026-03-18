@@ -4,10 +4,10 @@ namespace CafeChain.Models.Loyalties
 {
     public class PointTransaction
     {
-        public int PoiTId { get; set; }
+        public int PointTransactionId { get; set; }
 
-        public int CusId { get; set; }
-        public int? OrdId { get; set; }
+        public int CustomerId { get; set; }
+        public int? OrderId { get; set; }
 
         public int Points { get; set; } // luôn dương
 

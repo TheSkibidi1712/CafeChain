@@ -2,7 +2,7 @@
 {
     public class PaymentStatus
     {
-        public int PaySId { get; set; }
+        public int PaymentStatusId { get; set; }
         public string Name { get; set; }
         public string Code { get; set; } // 🔥 PENDING, SUCCESS, FAILED
 

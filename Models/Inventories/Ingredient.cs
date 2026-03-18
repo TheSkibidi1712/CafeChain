@@ -5,7 +5,7 @@ namespace CafeChain.Models.Inventories
 {
     public class Ingredient
     {
-        public int IngId { get; set; }
+        public int IngredientId { get; set; }
         public string Name { get; set; }
         public string Unit { get; set; }
         public bool Active { get; set; }

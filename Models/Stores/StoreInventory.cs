@@ -4,9 +4,9 @@ namespace CafeChain.Models.Stores
 {
     public class StoreInventory
     {
-        public int StoIId { get; set; }
-        public int StoId { get; set; }
-        public int IngId { get; set; }
+        public int StoreInventoryId { get; set; }
+        public int StoreId { get; set; }
+        public int IngredientId { get; set; }
         public decimal AvailableQty { get; set; }
         public decimal ReservedQty { get; set; }
         public DateTime LastUpdated { get; set; }

@@ -4,8 +4,8 @@ namespace CafeChain.Models.Customers
 {
     public class CustomerAddress
     {
-        public int CusAId { get; set; }
-        public int CusId { get; set; }
+        public int CustomerAddressId { get; set; }
+        public int CustomerId { get; set; }
         public string Address { get; set; }
         public int? WarId { get; set; }
 

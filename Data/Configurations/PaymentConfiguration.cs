@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Payments");
 
-            entity.HasKey(x => x.PayId);
+            entity.HasKey(x => x.PaymentId);
 
             entity.Property(x => x.Amount)
                 .HasColumnType("decimal(18,2)");
@@ -26,17 +26,17 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Order)
                 .WithMany(x => x.Payments)
-                .HasForeignKey(x => x.OrdId)
+                .HasForeignKey(x => x.OrderId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.PaymentMethod)
                 .WithMany(x => x.Payments)
-                .HasForeignKey(x => x.PayMId)
+                .HasForeignKey(x => x.PaymentMethodId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.PaymentStatus)
                 .WithMany(x => x.Payments)
-                .HasForeignKey(x => x.PaySId)
+                .HasForeignKey(x => x.PaymentStatusId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.CashSession)
@@ -46,8 +46,8 @@ namespace CafeChain.Data.Configurations
 
             // INDEX
 
-            entity.HasIndex(x => x.OrdId);
-            entity.HasIndex(x => x.PaySId);
+            entity.HasIndex(x => x.OrderId);
+            entity.HasIndex(x => x.PaymentStatusId);
         }
     }
 
@@ -57,7 +57,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("PaymentStatuses");
 
-            entity.HasKey(x => x.PaySId);
+            entity.HasKey(x => x.PaymentStatusId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -77,7 +77,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("PaymentMethods");
 
-            entity.HasKey(x => x.PayMId);
+            entity.HasKey(x => x.PaymentMethodId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -97,7 +97,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("CashSessions");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.CashSessionId);
 
             entity.Property(x => x.StartCash)
                 .HasColumnType("decimal(18,2)");

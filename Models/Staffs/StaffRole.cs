@@ -2,8 +2,8 @@
 {
     public class StaffRole
     {
-        public int StaRId { get; set; }
-        public int StaId { get; set; }
+        public int StaffRoleId { get; set; }
+        public int StaffId { get; set; }
         public int RoleId { get; set; }
         public DateTime AssignedAt { get; set; }
 

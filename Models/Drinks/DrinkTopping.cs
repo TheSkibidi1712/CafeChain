@@ -2,9 +2,9 @@
 {
     public class DrinkTopping
     {
-        public int DriTId { get; set; }
-        public int DriId { get; set; }
-        public int TopId { get; set; }
+        public int DrinkToppingId { get; set; }
+        public int DrinkId { get; set; }
+        public int ToppingId { get; set; }
 
         public virtual Drink Drink { get; set; }
         public virtual Topping Topping { get; set; }

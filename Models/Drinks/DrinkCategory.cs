@@ -2,7 +2,7 @@
 {
     public class DrinkCategory
     {
-        public int CatId { get; set; }
+        public int CategoryId { get; set; }
         public string Name { get; set; }
         public bool Active { get; set; }
 

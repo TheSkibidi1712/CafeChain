@@ -2,8 +2,8 @@
 {
     public class CustomerBank
     {
-        public int CusBId { get; set; }
-        public int CusId { get; set; }
+        public int CustomerBankId { get; set; }
+        public int CustomerId { get; set; }
         public string BankName { get; set; }
         public string AccountNumber { get; set; }
 

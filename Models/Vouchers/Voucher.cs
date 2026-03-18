@@ -2,7 +2,7 @@
 {
     public class Voucher
     {
-        public int VouId { get; set; }
+        public int VoucherId { get; set; }
 
         public string Code { get; set; }
 

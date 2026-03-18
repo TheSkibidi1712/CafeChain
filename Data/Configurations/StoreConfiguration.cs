@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Stores");
 
-            entity.HasKey(x => x.StoId);
+            entity.HasKey(x => x.StoreId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -32,7 +32,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Ward)
                 .WithMany()
-                .HasForeignKey(x => x.WarId)
+                .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.SetNull);
         }
     }
@@ -43,23 +43,23 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StoreDrinks");
 
-            entity.HasKey(x => x.StoDId);
+            entity.HasKey(x => x.StoreDrinkId);
 
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.StoreDrinks)
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Drink)
                 .WithMany()
-                .HasForeignKey(x => x.DriId)
+                .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ❗ tránh trùng drink trong 1 store
-            entity.HasIndex(x => new { x.StoId, x.DriId })
+            entity.HasIndex(x => new { x.StoreId, x.DrinkId })
                 .IsUnique();
         }
     }
@@ -70,19 +70,19 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StoreToppings");
 
-            entity.HasKey(x => x.StoTId);
+            entity.HasKey(x => x.StoreToppingId);
 
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.StoreToppings)
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Topping)
                 .WithMany(x => x.StoreToppings)
-                .HasForeignKey(x => x.TopId)
+                .HasForeignKey(x => x.ToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
@@ -98,7 +98,7 @@ namespace CafeChain.Data.Configurations
                     "[AvailableQty] >= 0 AND [ReservedQty] >= 0");
             });
 
-            entity.HasKey(x => x.StoIId);
+            entity.HasKey(x => x.StoreInventoryId);
 
             entity.Property(x => x.AvailableQty)
                 .HasColumnType("decimal(18,3)")
@@ -113,16 +113,16 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.StoreInventories)
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Ingredient)
                 .WithMany()
-                .HasForeignKey(x => x.IngId)
+                .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // ❗ mỗi store chỉ có 1 record cho 1 nguyên liệu
-            entity.HasIndex(x => new { x.StoId, x.IngId })
+            entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique();
         }
     }

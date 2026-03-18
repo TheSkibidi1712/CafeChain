@@ -7,11 +7,11 @@ namespace CafeChain.Models.Stores
 {
     public class Store
     {
-        public int StoId { get; set; }
+        public int StoreId { get; set; }
         public string Name { get; set; }
         public string Address { get; set; }
         public string Phone { get; set; }
-        public int? WarId { get; set; }
+        public int? WardId { get; set; }
         public bool Active { get; set; }
         public DateTime CreatedAt { get; set; }
 

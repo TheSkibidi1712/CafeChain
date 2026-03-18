@@ -2,7 +2,7 @@
 {
     public class PaymentMethod
     {
-        public int PayMId { get; set; }
+        public int PaymentMethodId { get; set; }
         public string Name { get; set; }
         public string Code { get; set; } // 🔥 CASH, MOMO, BANK
 

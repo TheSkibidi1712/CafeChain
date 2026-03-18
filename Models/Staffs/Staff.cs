@@ -6,14 +6,14 @@ namespace CafeChain.Models.Staffs
 {
     public class Staff
     {
-        public int StaId { get; set; }
+        public int StaffId { get; set; }
         public string Email { get; set; }
         public string PasswordHash { get; set; }
         public string FullName { get; set; }
         public string TaxCode { get; set; }
         public decimal? Salary { get; set; }
 
-        public int StoId { get; set; }
+        public int StoreId { get; set; }
 
         public bool Active { get; set; }
         public DateTime CreatedAt { get; set; }

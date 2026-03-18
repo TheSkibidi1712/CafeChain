@@ -7,14 +7,14 @@ namespace CafeChain.Models.Orders
 {
     public class Order
     {
-        public int OrdId { get; set; }
+        public int OrderId { get; set; }
 
-        public int? CusId { get; set; }
-        public int StoId { get; set; }
-        public int OrSId { get; set; }
-        public int OrTId { get; set; }
-        public int? TabId { get; set; }
-        public int? StaId { get; set; }
+        public int? CustomerId { get; set; }
+        public int StoreId { get; set; }
+        public int OrderStatusId { get; set; }
+        public int OrderToppingId { get; set; }
+        public int? TableId { get; set; }
+        public int? StaffId { get; set; }
 
         public string Source { get; set; }
         public string Note { get; set; }

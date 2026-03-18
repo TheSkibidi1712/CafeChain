@@ -5,7 +5,7 @@ namespace CafeChain.Models.Customers
 {
     public class Customer
     {
-        public int CusId { get; set; }
+        public int CustomerId { get; set; }
         public string Email { get; set; }
         public string PasswordHash { get; set; }
         public string FullName { get; set; }

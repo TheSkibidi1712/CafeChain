@@ -2,8 +2,8 @@
 {
     public class Recipe
     {
-        public int RecId { get; set; }
-        public int DriId { get; set; }
+        public int RecipeId { get; set; }
+        public int DrinkId { get; set; }
 
         public virtual Drink Drink { get; set; }
         public virtual ICollection<RecipeDetail> RecipeDetails { get; set; }

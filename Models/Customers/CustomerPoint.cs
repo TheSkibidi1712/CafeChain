@@ -2,8 +2,8 @@
 {
     public class CustomerPoint
     {
-        public int CusPoId { get; set; }
-        public int CusId { get; set; }
+        public int CustomerPointId { get; set; }
+        public int CustomerId { get; set; }
         public int Points { get; set; }
 
         public virtual Customer Customer { get; set; }

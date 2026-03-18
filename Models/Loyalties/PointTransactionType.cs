@@ -2,7 +2,7 @@
 {
     public class PointTransactionType
     {
-        public int Id { get; set; }
+        public int PointTransactionTypeId { get; set; }
         public string Code { get; set; } // EARN, SPEND, EXPIRE
         public string Name { get; set; }
 

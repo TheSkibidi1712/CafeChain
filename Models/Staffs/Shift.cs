@@ -4,7 +4,7 @@ namespace CafeChain.Models.Staffs
 {
     public class Shift
     {
-        public int ShiId { get; set; }
+        public int ShiftId { get; set; }
 
         public string Name { get; set; }
 

@@ -5,9 +5,9 @@ namespace CafeChain.Models.Locations
 {
     public class Ward
     {
-        public int WarId { get; set; }
+        public int WardId { get; set; }
         public string Name { get; set; }
-        public int? ProId { get; set; }
+        public int? ProvinceId { get; set; }
 
         public virtual Province Province { get; set; }
         public virtual ICollection<Store> Stores { get; set; }

@@ -2,9 +2,9 @@
 {
     public class DrinkSize
     {
-        public int DriSId { get; set; }
-        public int DriId { get; set; }
-        public int SizId { get; set; }
+        public int DrinkSizeId { get; set; }
+        public int DrinkId { get; set; }
+        public int SizeId { get; set; }
         public decimal Price { get; set; }
         public bool Active { get; set; }
 

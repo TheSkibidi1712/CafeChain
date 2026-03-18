@@ -16,7 +16,7 @@ namespace CafeChain.Data.Configurations
                 t.HasCheckConstraint("CK_InventoryTransaction_Qty", "[Quantity] > 0");
             });
 
-            entity.HasKey(x => x.InvTId);
+            entity.HasKey(x => x.InventoryTransactionId);
 
             entity.Property(x => x.Quantity)
                 .HasColumnType("decimal(18,3)");
@@ -31,7 +31,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.StoreInventory)
                 .WithMany(x => x.InventoryTransactions)
-                .HasForeignKey(x => x.StoIId)
+                .HasForeignKey(x => x.StockImportId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.TransactionType)
@@ -41,7 +41,7 @@ namespace CafeChain.Data.Configurations
 
             // ================= INDEX =================
 
-            entity.HasIndex(x => x.StoIId);
+            entity.HasIndex(x => x.StockImportId);
             entity.HasIndex(x => x.InventoryTransactionTypeId);
         }
     }
@@ -52,7 +52,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("InventoryTransactionTypes");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.InventoryTransactionTypeId);
 
             entity.Property(x => x.Code)
                 .IsRequired()
@@ -73,7 +73,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StockImports");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.StockImportId);
 
             entity.Property(x => x.ImportDate)
                 .HasDefaultValueSql("GETDATE()");
@@ -106,7 +106,7 @@ namespace CafeChain.Data.Configurations
                 t.HasCheckConstraint("CK_StockImportDetail_Price", "[UnitPrice] >= 0");
             });
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.StockImportDetailId);
 
             entity.Property(x => x.Quantity)
                 .HasColumnType("decimal(18,3)");
@@ -136,7 +136,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Ingredients");
 
-            entity.HasKey(x => x.IngId);
+            entity.HasKey(x => x.IngredientId);
 
             entity.Property(x => x.Name)
                 .IsRequired()

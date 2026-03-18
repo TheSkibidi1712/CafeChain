@@ -2,8 +2,8 @@
 {
     public class StaffScope
     {
-        public int StaSId { get; set; }
-        public int StaId { get; set; }
+        public int StaffScopeId { get; set; }
+        public int StaffId { get; set; }
 
         public int ScopeTypeId { get; set; } // 🔥 thêm
         public int ScopeRefId { get; set; }  // 🔥 generic id

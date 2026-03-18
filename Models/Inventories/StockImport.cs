@@ -5,7 +5,7 @@ namespace CafeChain.Models.Inventories
 {
     public class StockImport
     {
-        public int Id { get; set; }
+        public int StockImportId { get; set; }
         public int StoreId { get; set; }
         public int StaffId { get; set; }
         public DateTime ImportDate { get; set; }

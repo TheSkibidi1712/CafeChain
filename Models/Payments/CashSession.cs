@@ -4,7 +4,7 @@ namespace CafeChain.Models.Payments
 {
     public class CashSession
     {
-        public int Id { get; set; }
+        public int CashSessionId { get; set; }
         public int StaffId { get; set; }
         public int StoreId { get; set; }
         public decimal? StartCash { get; set; }

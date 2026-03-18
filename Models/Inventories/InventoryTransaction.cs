@@ -4,8 +4,8 @@ namespace CafeChain.Models.Inventories
 {
     public class InventoryTransaction
     {
-        public int InvTId { get; set; }
-        public int StoIId { get; set; }
+        public int InventoryTransactionId { get; set; }
+        public int StockImportId { get; set; }
         public int InventoryTransactionTypeId { get; set; }
         public decimal Quantity { get; set; }
         public string RefType { get; set; }

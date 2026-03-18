@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Customers");
 
-            entity.HasKey(x => x.CusId);
+            entity.HasKey(x => x.CustomerId);
 
             entity.Property(x => x.Email)
                 .IsRequired()
@@ -38,27 +38,27 @@ namespace CafeChain.Data.Configurations
             // RELATIONSHIPS
             entity.HasMany(x => x.CustomerPhones)
                 .WithOne(x => x.Customer)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(x => x.CustomerAddresses)
                 .WithOne(x => x.Customer)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(x => x.CustomerBanks)
                 .WithOne(x => x.Customer)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(x => x.CustomerPoints)
                 .WithOne(x => x.Customer)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasMany(x => x.Ratings)
                 .WithOne(x => x.Customer)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
         }
     }
@@ -70,13 +70,13 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("CustomerPhones");
 
-            entity.HasKey(x => x.CusPId);
+            entity.HasKey(x => x.CustomerPhoneId);
 
             entity.Property(x => x.Phone)
                 .IsRequired()
                 .HasMaxLength(15);
 
-            entity.HasIndex(x => new { x.CusId, x.Phone })
+            entity.HasIndex(x => new { x.CustomerId, x.Phone })
                 .IsUnique();
         }
     }
@@ -88,7 +88,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("CustomerAddresses");
 
-            entity.HasKey(x => x.CusAId);
+            entity.HasKey(x => x.CustomerAddressId);
 
             entity.Property(x => x.Address)
                 .IsRequired()
@@ -108,7 +108,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("CustomerBanks");
 
-            entity.HasKey(x => x.CusBId);
+            entity.HasKey(x => x.CustomerBankId);
 
             entity.Property(x => x.BankName)
                 .IsRequired()
@@ -130,12 +130,12 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("CustomerPoints");
 
-            entity.HasKey(x => x.CusPoId);
+            entity.HasKey(x => x.CustomerPointId);
 
             entity.Property(x => x.Points)
                 .HasDefaultValue(0);
 
-            entity.HasIndex(x => x.CusId)
+            entity.HasIndex(x => x.CustomerId)
                 .IsUnique();
         }
     }
@@ -150,7 +150,7 @@ namespace CafeChain.Data.Configurations
                 t.HasCheckConstraint("CK_Rating_Stars", "[Stars] BETWEEN 1 AND 5");
             });
 
-            entity.HasKey(x => x.RatId);
+            entity.HasKey(x => x.RatingId);
 
             entity.Property(x => x.Stars)
                 .IsRequired();
@@ -163,15 +163,15 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Customer)
                 .WithMany(x => x.Ratings)
-                .HasForeignKey(x => x.CusId)
+                .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Drink)
                 .WithMany()
-                .HasForeignKey(x => x.DriId)
+                .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(x => new { x.CusId, x.DriId })
+            entity.HasIndex(x => new { x.CustomerId, x.DrinkId })
                 .IsUnique()
                 .HasFilter("[CusId] IS NOT NULL AND [DriId] IS NOT NULL");
         }

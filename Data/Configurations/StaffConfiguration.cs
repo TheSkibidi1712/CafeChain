@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Staffs");
 
-            entity.HasKey(x => x.StaId);
+            entity.HasKey(x => x.StaffId);
 
             entity.Property(x => x.Email)
                 .IsRequired()
@@ -43,7 +43,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Store)
                 .WithMany()
-                .HasForeignKey(x => x.StoId)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }
@@ -55,7 +55,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StaffBanks");
 
-            entity.HasKey(x => x.StaBId);
+            entity.HasKey(x => x.StaffBankId);
 
             entity.Property(x => x.BankName)
                 .HasMaxLength(100);
@@ -65,7 +65,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffBanks)
-                .HasForeignKey(x => x.StaId)
+                .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasIndex(x => new { x.BankName, x.AccountNumber })
@@ -81,14 +81,14 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StaffRoles");
 
-            entity.HasKey(x => x.StaRId);
+            entity.HasKey(x => x.StaffRoleId);
 
             entity.Property(x => x.AssignedAt)
                 .HasDefaultValueSql("GETDATE()");
 
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffRoles)
-                .HasForeignKey(x => x.StaId)
+                .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Role)
@@ -96,7 +96,7 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(x => new { x.StaId, x.RoleId })
+            entity.HasIndex(x => new { x.StaffId, x.RoleId })
                 .IsUnique();
         }
     }
@@ -108,14 +108,14 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StaffScopes");
 
-            entity.HasKey(x => x.StaSId);
+            entity.HasKey(x => x.StaffScopeId);
 
             entity.Property(x => x.ScopeRefId)
                 .IsRequired();
 
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffScopes)
-                .HasForeignKey(x => x.StaId)
+                .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.ScopeType)
@@ -123,9 +123,9 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.ScopeTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.StaId);
+            entity.HasIndex(x => x.StaffId);
 
-            entity.HasIndex(x => new { x.StaId, x.ScopeTypeId, x.ScopeRefId })
+            entity.HasIndex(x => new { x.StaffId, x.ScopeTypeId, x.ScopeRefId })
                 .IsUnique();
         }
     }
@@ -137,7 +137,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("ScopeTypes");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.ScopeTypeId);
 
             entity.Property(x => x.Code)
                 .IsRequired()
@@ -162,7 +162,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Shifts");
 
-            entity.HasKey(x => x.ShiId);
+            entity.HasKey(x => x.ShiftId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -196,22 +196,22 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StaffShifts");
 
-            entity.HasKey(x => x.StaSId);
+            entity.HasKey(x => x.StaffShiftId);
 
             entity.Property(x => x.WorkDate)
                 .IsRequired();
 
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffShifts)
-                .HasForeignKey(x => x.StaId)
+                .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Shift)
                 .WithMany(x => x.StaffShifts)
-                .HasForeignKey(x => x.ShiId)
+                .HasForeignKey(x => x.ShiftId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new { x.StaId, x.ShiId, x.WorkDate })
+            entity.HasIndex(x => new { x.StaffId, x.ShiftId, x.WorkDate })
                 .IsUnique();
 
             entity.HasIndex(x => x.WorkDate);
@@ -225,7 +225,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Roles");
 
-            entity.HasKey(x => x.Id);
+            entity.HasKey(x => x.RoleId);
 
             entity.Property(x => x.Name)
                 .IsRequired()

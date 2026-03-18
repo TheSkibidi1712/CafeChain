@@ -12,7 +12,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Countries");
 
-            entity.HasKey(x => x.CouId);
+            entity.HasKey(x => x.CountryId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -29,7 +29,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Provinces");
 
-            entity.HasKey(x => x.ProId);
+            entity.HasKey(x => x.ProvinceId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -37,11 +37,11 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Country)
                 .WithMany(x => x.Provinces)
-                .HasForeignKey(x => x.CouId)
+                .HasForeignKey(x => x.CountryId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // 🔥 tránh trùng tỉnh trong cùng quốc gia
-            entity.HasIndex(x => new { x.CouId, x.Name })
+            entity.HasIndex(x => new { x.CountryId, x.Name })
                 .IsUnique();
         }
     }
@@ -52,7 +52,7 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("Wards");
 
-            entity.HasKey(x => x.WarId);
+            entity.HasKey(x => x.WardId);
 
             entity.Property(x => x.Name)
                 .IsRequired()
@@ -60,11 +60,11 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.Province)
                 .WithMany(x => x.Wards)
-                .HasForeignKey(x => x.ProId)
+                .HasForeignKey(x => x.ProvinceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // 🔥 tránh trùng phường trong cùng tỉnh
-            entity.HasIndex(x => new { x.ProId, x.Name })
+            entity.HasIndex(x => new { x.ProvinceId, x.Name })
                 .IsUnique();
         }
     }

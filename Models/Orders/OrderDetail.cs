@@ -4,12 +4,12 @@ namespace CafeChain.Models.Orders
 {
     public class OrderDetail
     {
-        public int OrDId { get; set; }
+        public int OrderDetailId { get; set; }
 
         public int OrderId { get; set; } 
 
-        public int DriId { get; set; }
-        public int? SizId { get; set; }
+        public int DrinkId { get; set; }
+        public int? SizeId { get; set; }
         public string DrinkName { get; set; }
         public string? SizeName { get; set; }
 
