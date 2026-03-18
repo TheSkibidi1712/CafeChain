@@ -1,0 +1,30 @@
+﻿using CafeChain.Models.Inventories;
+using CafeChain.Models.Payments;
+using CafeChain.Models.Stores;
+
+namespace CafeChain.Models.Staffs
+{
+    public class Staff
+    {
+        public int StaId { get; set; }
+        public string Email { get; set; }
+        public string PasswordHash { get; set; }
+        public string FullName { get; set; }
+        public string TaxCode { get; set; }
+        public decimal? Salary { get; set; }
+
+        public int StoId { get; set; }
+
+        public bool Active { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        public virtual Store Store { get; set; }
+
+        public virtual ICollection<StaffRole> StaffRoles { get; set; }
+        public virtual ICollection<StaffBank> StaffBanks { get; set; }
+        public virtual ICollection<StaffScope> StaffScopes { get; set; }
+        public virtual ICollection<StaffShift> StaffShifts { get; set; }
+        public virtual ICollection<CashSession> CashSessions { get; set; }
+        public virtual ICollection<StockImport> StockImports { get; set; }
+    }
+}
