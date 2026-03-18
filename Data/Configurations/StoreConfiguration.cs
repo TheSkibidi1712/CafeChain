@@ -31,7 +31,7 @@ namespace CafeChain.Data.Configurations
                 .HasDefaultValueSql("GETDATE()");
 
             entity.HasOne(x => x.Ward)
-                .WithMany()
+                .WithMany(w => w.Stores)
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.SetNull);
         }
@@ -117,7 +117,7 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Ingredient)
-                .WithMany()
+                .WithMany(s => s.StoreInventories)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 

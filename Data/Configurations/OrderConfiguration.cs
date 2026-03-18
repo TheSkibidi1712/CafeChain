@@ -135,7 +135,7 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Topping)
-                .WithMany()
+                .WithMany(o => o.OrderToppings)
                 .HasForeignKey(x => x.ToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
 
@@ -199,7 +199,7 @@ namespace CafeChain.Data.Configurations
                 .HasDefaultValue(true);
 
             entity.HasOne(x => x.Store)
-                .WithMany()
+                .WithMany(d => d.DiningTables)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 

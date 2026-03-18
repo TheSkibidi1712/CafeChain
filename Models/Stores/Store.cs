@@ -1,7 +1,8 @@
-﻿using CafeChain.Models.Locations;
+﻿using CafeChain.Models.Inventories;
+using CafeChain.Models.Locations;
+using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
-using CafeChain.Models.Orders;
 
 namespace CafeChain.Models.Stores
 {
@@ -22,6 +23,8 @@ namespace CafeChain.Models.Stores
         public virtual ICollection<StoreDrink> StoreDrinks { get; set; }
         public virtual ICollection<StoreTopping> StoreToppings { get; set; }
         public virtual ICollection<StoreInventory> StoreInventories { get; set; }
+        public virtual ICollection<StockImport> StockImports { get; set; }
+        public virtual ICollection<Shift> Shifts { get; set; }
         public virtual ICollection<CashSession> CashSessions { get; set; }
         public virtual ICollection<Order> Orders { get; set; }
     }

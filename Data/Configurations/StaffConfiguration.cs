@@ -42,7 +42,7 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasOne(x => x.Store)
-                .WithMany()
+                .WithMany(s => s.Staffs)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
@@ -181,11 +181,11 @@ namespace CafeChain.Data.Configurations
                 .HasDefaultValue(false);
 
             entity.HasOne(x => x.Store)
-                .WithMany()
-                .HasForeignKey(x => x.StoId)
+                .WithMany(s => s.Shifts)
+                .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasIndex(x => x.StoId);
+            entity.HasIndex(x => x.StoreId);
         }
     }
 

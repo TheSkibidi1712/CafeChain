@@ -82,12 +82,12 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(500);
 
             entity.HasOne(x => x.Store)
-                .WithMany()
+                .WithMany(s => s.StockImports)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Staff)
-                .WithMany()
+                .WithMany(d => d.StockImports)
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 

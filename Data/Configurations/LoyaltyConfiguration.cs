@@ -29,7 +29,7 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Order)
-                .WithMany()
+                .WithMany(p => p.PointTransactions)
                 .HasForeignKey(x => x.OrderId)
                 .OnDelete(DeleteBehavior.SetNull);
 

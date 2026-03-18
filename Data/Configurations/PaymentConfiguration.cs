@@ -112,7 +112,7 @@ namespace CafeChain.Data.Configurations
                 .HasDefaultValue(false);
 
             entity.HasOne(x => x.Staff)
-                .WithMany()
+                .WithMany(c => c.CashSessions)
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 

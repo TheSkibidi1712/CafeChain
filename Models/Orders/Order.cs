@@ -3,6 +3,7 @@ using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
+using CafeChain.Models.Loyalties;
 namespace CafeChain.Models.Orders
 {
     public class Order
@@ -33,5 +34,6 @@ namespace CafeChain.Models.Orders
         public virtual ICollection<Payment> Payments { get; set; }
         public virtual ICollection<OrderVoucher> OrderVouchers { get; set; }
         public virtual ICollection<KitchenOrder> KitchenOrders { get; set; }
+        public virtual ICollection<PointTransaction> PointTransactions { get; set; }
     }
 }

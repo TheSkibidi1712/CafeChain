@@ -95,8 +95,8 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(300);
 
             entity.HasOne(x => x.Ward)
-                .WithMany()
-                .HasForeignKey(x => x.WarId)
+                .WithMany(w => w.CustomerAddresses)
+                .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.SetNull);
         }
     }
@@ -167,7 +167,7 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Drink)
-                .WithMany()
+                .WithMany(d => d.Ratings)
                 .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Cascade);
 

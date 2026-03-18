@@ -7,7 +7,7 @@ namespace CafeChain.Models.Customers
         public int CustomerAddressId { get; set; }
         public int CustomerId { get; set; }
         public string Address { get; set; }
-        public int? WarId { get; set; }
+        public int? WardId { get; set; }
 
         public virtual Customer Customer { get; set; }
         public virtual Ward Ward { get; set; }

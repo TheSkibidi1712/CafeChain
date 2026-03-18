@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260318133907_InitialCreate")]
+    [Migration("20260318143707_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -85,17 +85,12 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("WarId")
-                        .HasColumnType("int");
-
                     b.Property<int?>("WardId")
                         .HasColumnType("int");
 
                     b.HasKey("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("WarId");
 
                     b.HasIndex("WardId");
 
@@ -204,17 +199,12 @@ namespace CafeChain.Migrations
                     b.Property<int?>("DrinkId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DrinkId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("Stars")
                         .HasColumnType("int");
 
                     b.HasKey("RatingId");
 
                     b.HasIndex("DrinkId");
-
-                    b.HasIndex("DrinkId1");
 
                     b.HasIndex("CustomerId", "DrinkId")
                         .IsUnique()
@@ -402,9 +392,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("IngredientId1")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
@@ -414,8 +401,6 @@ namespace CafeChain.Migrations
                     b.HasKey("RecipeDetailId");
 
                     b.HasIndex("IngredientId");
-
-                    b.HasIndex("IngredientId1");
 
                     b.HasIndex("RecipeId", "IngredientId")
                         .IsUnique();
@@ -603,17 +588,12 @@ namespace CafeChain.Migrations
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StaffId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
                     b.HasKey("StockImportId");
 
                     b.HasIndex("StaffId");
-
-                    b.HasIndex("StaffId1");
 
                     b.HasIndex("StoreId");
 
@@ -847,15 +827,10 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreId1")
-                        .HasColumnType("int");
-
                     b.Property<int>("TableNumber")
                         .HasColumnType("int");
 
                     b.HasKey("TableId");
-
-                    b.HasIndex("StoreId1");
 
                     b.HasIndex("StoreId", "TableNumber")
                         .IsUnique();
@@ -1045,9 +1020,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("ToppingId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("ToppingId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("ToppingName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1056,8 +1028,6 @@ namespace CafeChain.Migrations
                     b.HasKey("OrderToppingId");
 
                     b.HasIndex("ToppingId");
-
-                    b.HasIndex("ToppingId1");
 
                     b.HasIndex("OrderDetailId", "ToppingId")
                         .IsUnique();
@@ -1113,9 +1083,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StaffId1")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("StartCash")
                         .HasColumnType("decimal(18,2)");
 
@@ -1125,8 +1092,6 @@ namespace CafeChain.Migrations
                     b.HasKey("CashSessionId");
 
                     b.HasIndex("StaffId");
-
-                    b.HasIndex("StaffId1");
 
                     b.HasIndex("StoreId");
 
@@ -1317,12 +1282,12 @@ namespace CafeChain.Migrations
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
 
-                    b.Property<int>("StoId")
+                    b.Property<int>("StoreId")
                         .HasColumnType("int");
 
                     b.HasKey("ShiftId");
 
-                    b.HasIndex("StoId");
+                    b.HasIndex("StoreId");
 
                     b.ToTable("Shifts", (string)null);
                 });
@@ -1369,9 +1334,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("TaxCode")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -1385,8 +1347,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("RoleId");
 
                     b.HasIndex("StoreId");
-
-                    b.HasIndex("StoreId1");
 
                     b.ToTable("Staffs", (string)null);
                 });
@@ -1544,14 +1504,9 @@ namespace CafeChain.Migrations
                     b.Property<int?>("WardId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("WardId1")
-                        .HasColumnType("int");
-
                     b.HasKey("StoreId");
 
                     b.HasIndex("WardId");
-
-                    b.HasIndex("WardId1");
 
                     b.ToTable("Stores", (string)null);
                 });
@@ -1601,9 +1556,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("IngredientId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("LastUpdated")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1620,8 +1572,6 @@ namespace CafeChain.Migrations
                     b.HasKey("StoreInventoryId");
 
                     b.HasIndex("IngredientId");
-
-                    b.HasIndex("IngredientId1");
 
                     b.HasIndex("StoreId", "IngredientId")
                         .IsUnique();
@@ -1751,9 +1701,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("CustomerId1")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("UsedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -1765,8 +1712,6 @@ namespace CafeChain.Migrations
                     b.HasKey("VoucherUsageId");
 
                     b.HasIndex("CustomerId");
-
-                    b.HasIndex("CustomerId1");
 
                     b.HasIndex("VoucherId", "CustomerId")
                         .IsUnique();
@@ -1783,13 +1728,9 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
-                        .WithMany()
-                        .HasForeignKey("WarId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CafeChain.Models.Locations.Ward", null)
                         .WithMany("CustomerAddresses")
-                        .HasForeignKey("WardId");
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Customer");
 
@@ -1837,13 +1778,9 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
-                        .WithMany()
+                        .WithMany("Ratings")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade);
-
-                    b.HasOne("CafeChain.Models.Drinks.Drink", null)
-                        .WithMany("Ratings")
-                        .HasForeignKey("DrinkId1");
 
                     b.Navigation("Customer");
 
@@ -1923,14 +1860,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Drinks.RecipeDetail", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
-                        .WithMany()
+                        .WithMany("RecipeDetails")
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Inventories.Ingredient", null)
-                        .WithMany("RecipeDetails")
-                        .HasForeignKey("IngredientId1");
 
                     b.HasOne("CafeChain.Models.Drinks.Recipe", "Recipe")
                         .WithMany("RecipeDetails")
@@ -1965,17 +1898,13 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Inventories.StockImport", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany()
+                        .WithMany("StockImports")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Staffs.Staff", null)
-                        .WithMany("StockImports")
-                        .HasForeignKey("StaffId1");
-
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
+                        .WithMany("StockImports")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -2037,7 +1966,7 @@ namespace CafeChain.Migrations
                         .HasForeignKey("CustomerId1");
 
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
-                        .WithMany()
+                        .WithMany("PointTransactions")
                         .HasForeignKey("OrderId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -2057,14 +1986,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Orders.DiningTable", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
+                        .WithMany("DiningTables")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Stores.Store", null)
-                        .WithMany("DiningTables")
-                        .HasForeignKey("StoreId1");
 
                     b.Navigation("Store");
                 });
@@ -2167,14 +2092,10 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
-                        .WithMany()
+                        .WithMany("OrderToppings")
                         .HasForeignKey("ToppingId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Drinks.Topping", null)
-                        .WithMany("OrderToppings")
-                        .HasForeignKey("ToppingId1");
 
                     b.Navigation("OrderDetail");
 
@@ -2184,14 +2105,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Payments.CashSession", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany()
+                        .WithMany("CashSessions")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", null)
-                        .WithMany("CashSessions")
-                        .HasForeignKey("StaffId1");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("CashSessions")
@@ -2241,8 +2158,8 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoId")
+                        .WithMany("Shifts")
+                        .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -2256,14 +2173,10 @@ namespace CafeChain.Migrations
                         .HasForeignKey("RoleId");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
+                        .WithMany("Staffs")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Stores.Store", null)
-                        .WithMany("Staffs")
-                        .HasForeignKey("StoreId1");
 
                     b.Navigation("Store");
                 });
@@ -2338,13 +2251,9 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
                     b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
-                        .WithMany()
+                        .WithMany("Stores")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("CafeChain.Models.Locations.Ward", null)
-                        .WithMany("Stores")
-                        .HasForeignKey("WardId1");
 
                     b.Navigation("Ward");
                 });
@@ -2371,14 +2280,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.StoreInventory", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
-                        .WithMany()
+                        .WithMany("StoreInventories")
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Inventories.Ingredient", null)
-                        .WithMany("StoreInventories")
-                        .HasForeignKey("IngredientId1");
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("StoreInventories")
@@ -2432,14 +2337,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Vouchers.VoucherUsage", b =>
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
-                        .WithMany()
+                        .WithMany("VoucherUsages")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Customers.Customer", null)
-                        .WithMany("VoucherUsages")
-                        .HasForeignKey("CustomerId1");
 
                     b.HasOne("CafeChain.Models.Vouchers.Voucher", "Voucher")
                         .WithMany("VoucherUsages")
@@ -2563,6 +2464,8 @@ namespace CafeChain.Migrations
                     b.Navigation("OrderVouchers");
 
                     b.Navigation("Payments");
+
+                    b.Navigation("PointTransactions");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderDetail", b =>
@@ -2630,7 +2533,11 @@ namespace CafeChain.Migrations
 
                     b.Navigation("Orders");
 
+                    b.Navigation("Shifts");
+
                     b.Navigation("Staffs");
+
+                    b.Navigation("StockImports");
 
                     b.Navigation("StoreDrinks");
 

@@ -15,7 +15,7 @@ namespace CafeChain.Models.Staffs
 
         public bool Active { get; set; }
 
-        public int StoId { get; set; } // 🔥 thuộc store nào
+        public int StoreId { get; set; } // 🔥 thuộc store nào
 
         public virtual Store Store { get; set; }
 
