@@ -11,6 +11,5 @@ namespace CafeChain.Models.Locations
 
         public virtual Province Province { get; set; }
         public virtual ICollection<Store> Stores { get; set; }
-        public virtual ICollection<CustomerAddress> CustomerAddresses { get; set; }
     }
 }

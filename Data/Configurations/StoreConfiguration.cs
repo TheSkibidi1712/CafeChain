@@ -34,6 +34,39 @@ namespace CafeChain.Data.Configurations
                 .WithMany(w => w.Stores)
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasData(
+                new Store
+                {
+                    StoreId = 1,
+                    Name = "CafeChain Thủ Dầu Một",
+                    Address = "123 Đại lộ Bình Dương",
+                    Phone = "0900000001",
+                    WardId = 1,
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Store
+                {
+                    StoreId = 2,
+                    Name = "CafeChain Thuận An",
+                    Address = "456 Nguyễn Trãi",
+                    Phone = "0900000002",
+                    WardId = 2,
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Store
+                {
+                    StoreId = 3,
+                    Name = "CafeChain Dĩ An",
+                    Address = "789 Lê Hồng Phong",
+                    Phone = "0900000003",
+                    WardId = 3,
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                }
+            );
         }
     }
 
@@ -61,6 +94,20 @@ namespace CafeChain.Data.Configurations
             // ❗ tránh trùng drink trong 1 store
             entity.HasIndex(x => new { x.StoreId, x.DrinkId })
                 .IsUnique();
+
+            entity.HasData(
+                // Store 1
+                new StoreDrink { StoreDrinkId = 1, StoreId = 1, DrinkId = 1, Active = true },
+                new StoreDrink { StoreDrinkId = 2, StoreId = 1, DrinkId = 2, Active = true },
+
+                // Store 2
+                new StoreDrink { StoreDrinkId = 3, StoreId = 2, DrinkId = 1, Active = true },
+                new StoreDrink { StoreDrinkId = 4, StoreId = 2, DrinkId = 3, Active = true },
+
+                // Store 3
+                new StoreDrink { StoreDrinkId = 5, StoreId = 3, DrinkId = 2, Active = true },
+                new StoreDrink { StoreDrinkId = 6, StoreId = 3, DrinkId = 4, Active = true }
+            );
         }
     }
 
@@ -84,6 +131,14 @@ namespace CafeChain.Data.Configurations
                 .WithMany(x => x.StoreToppings)
                 .HasForeignKey(x => x.ToppingId)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasData(
+                new StoreTopping { StoreToppingId = 1, StoreId = 1, ToppingId = 1, Active = true },
+                new StoreTopping { StoreToppingId = 2, StoreId = 1, ToppingId = 2, Active = true },
+
+                new StoreTopping { StoreToppingId = 3, StoreId = 2, ToppingId = 1, Active = true },
+
+                new StoreTopping { StoreToppingId = 4, StoreId = 3, ToppingId = 2, Active = true }
+            );
         }
     }
 
@@ -124,6 +179,50 @@ namespace CafeChain.Data.Configurations
             // ❗ mỗi store chỉ có 1 record cho 1 nguyên liệu
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique();
+
+            entity.HasData(
+                // Store 1
+                new StoreInventory
+                {
+                    StoreInventoryId = 1,
+                    StoreId = 1,
+                    IngredientId = 1,
+                    AvailableQty = 100,
+                    ReservedQty = 0,
+                    LastUpdated = new DateTime(2025, 1, 1)
+                },
+                new StoreInventory
+                {
+                    StoreInventoryId = 2,
+                    StoreId = 1,
+                    IngredientId = 2,
+                    AvailableQty = 50,
+                    ReservedQty = 0,
+                    LastUpdated = new DateTime(2025, 1, 1)
+                },
+
+                // Store 2
+                new StoreInventory
+                {
+                    StoreInventoryId = 3,
+                    StoreId = 2,
+                    IngredientId = 1,
+                    AvailableQty = 80,
+                    ReservedQty = 0,
+                    LastUpdated = new DateTime(2025, 1, 1)
+                },
+
+                // Store 3
+                new StoreInventory
+                {
+                    StoreInventoryId = 4,
+                    StoreId = 3,
+                    IngredientId = 2,
+                    AvailableQty = 60,
+                    ReservedQty = 0,
+                    LastUpdated = new DateTime(2025, 1, 1)
+                }
+            );
         }
     }
 }

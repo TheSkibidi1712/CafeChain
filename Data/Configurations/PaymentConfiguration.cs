@@ -48,6 +48,58 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.PaymentStatusId);
+
+            entity.HasData(
+                new Payment
+                {
+                    PaymentId = 1,
+                    OrderId = 1,
+                    Amount = 30000m,
+                    PaymentMethodId = 1,
+                    PaymentStatusId = 2,
+                    CashSessionId = 1,
+                    PaidAt = new DateTime(2025, 1, 1, 8, 10, 0)
+                },
+                new Payment
+                {
+                    PaymentId = 2,
+                    OrderId = 2,
+                    Amount = 50000m,
+                    PaymentMethodId = 3,
+                    PaymentStatusId = 2,
+                    TransactionCode = "MOMO_001",
+                    PaidAt = new DateTime(2025, 1, 1, 9, 10, 0)
+                },
+                new Payment
+                {
+                    PaymentId = 3,
+                    OrderId = 3,
+                    Amount = 45000m,
+                    PaymentMethodId = 2,
+                    PaymentStatusId = 1
+                },
+
+                // ✅ FIX: dùng lại OrderId hợp lệ
+                new Payment
+                {
+                    PaymentId = 4,
+                    OrderId = 1,
+                    Amount = 60000m,
+                    PaymentMethodId = 5,
+                    PaymentStatusId = 3,
+                    TransactionCode = "VNPAY_FAIL_01"
+                },
+                new Payment
+                {
+                    PaymentId = 5,
+                    OrderId = 2,
+                    Amount = 40000m,
+                    PaymentMethodId = 1,
+                    PaymentStatusId = 4,
+                    CashSessionId = 2,
+                    PaidAt = new DateTime(2025, 1, 1, 7, 0, 0)
+                }
+            );
         }
     }
 
@@ -68,6 +120,13 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(50);
 
             entity.HasIndex(x => x.Code).IsUnique();
+
+            entity.HasData(
+                new PaymentStatus { PaymentStatusId = 1, Name = "Đang chờ", Code = "PENDING" },
+                new PaymentStatus { PaymentStatusId = 2, Name = "Thành công", Code = "SUCCESS" },
+                new PaymentStatus { PaymentStatusId = 3, Name = "Thất bại", Code = "FAILED" },
+                new PaymentStatus { PaymentStatusId = 4, Name = "Đã hoàn tiền", Code = "REFUND" }
+            );
         }
     }
 
@@ -88,6 +147,14 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(50);
 
             entity.HasIndex(x => x.Code).IsUnique();
+
+            entity.HasData(
+                new PaymentMethod { PaymentMethodId = 1, Name = "Tiền mặt", Code = "CASH" },
+                new PaymentMethod { PaymentMethodId = 2, Name = "Chuyển khoản", Code = "BANK" },
+                new PaymentMethod { PaymentMethodId = 3, Name = "Momo", Code = "MOMO" },
+                new PaymentMethod { PaymentMethodId = 4, Name = "ZaloPay", Code = "ZALOPAY" },
+                new PaymentMethod { PaymentMethodId = 5, Name = "VNPay", Code = "VNPAY" }
+            );
         }
     }
 
@@ -123,6 +190,30 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
+
+            entity.HasData(
+                new CashSession
+                {
+                    CashSessionId = 1,
+                    StaffId = 1,
+                    StoreId = 1,
+                    StartCash = 1000000,
+                    EndCash = null,
+                    OpenTime = new DateTime(2025, 1, 1, 8, 0, 0), // ❗ FIX
+                    IsClosed = false
+                },
+                new CashSession
+                {
+                    CashSessionId = 2,
+                    StaffId = 2,
+                    StoreId = 1,
+                    StartCash = 500000,
+                    EndCash = 800000,
+                    OpenTime = new DateTime(2025, 1, 1, 0, 0, 0),  // ❗ FIX (thay AddHours)
+                    CloseTime = new DateTime(2025, 1, 1, 8, 0, 0), // ❗ FIX
+                    IsClosed = true
+                }
+            );
         }
     }
 }

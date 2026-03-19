@@ -39,6 +39,61 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.CustomerId);
+
+            entity.HasData(
+                new PointTransaction
+                {
+                    PointTransactionId = 1,
+                    CustomerId = 1,
+                    OrderId = 1,
+                    Points = 50,
+                    PointTransactionTypeId = 1, // EARN
+                    BalanceAfter = 50,
+                    CreatedAt = new DateTime(2025, 5, 1),
+                    ExpiredAt = new DateTime(2025, 11, 1)
+                },
+                new PointTransaction
+                {
+                    PointTransactionId = 2,
+                    CustomerId = 1,
+                    OrderId = 2,
+                    Points = 30,
+                    PointTransactionTypeId = 1, // EARN
+                    BalanceAfter = 80,
+                    CreatedAt = new DateTime(2025, 5, 1),
+                    ExpiredAt = new DateTime(2025, 11, 1)
+                },
+                new PointTransaction
+                {
+                    PointTransactionId = 3,
+                    CustomerId = 1,
+                    OrderId = 2,
+                    Points = 20,
+                    PointTransactionTypeId = 2, // SPEND
+                    BalanceAfter = 60,
+                    CreatedAt = new DateTime(2025, 5, 1)
+                },
+                new PointTransaction
+                {
+                    PointTransactionId = 4,
+                    CustomerId = 2,
+                    OrderId = 3,
+                    Points = 100,
+                    PointTransactionTypeId = 1,
+                    BalanceAfter = 100,
+                    CreatedAt = new DateTime(2025, 5, 1),
+                    ExpiredAt = new DateTime(2025, 11, 1)
+                },
+                new PointTransaction
+                {
+                    PointTransactionId = 5,
+                    CustomerId = 2,
+                    Points = 50,
+                    PointTransactionTypeId = 3, // EXPIRE
+                    BalanceAfter = 50,
+                    CreatedAt = new DateTime(2025, 5, 1)
+                }
+            );
         }
     }
 
@@ -56,6 +111,13 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new MemberLevel { MemberId = 1, Name = "Bronze", MinPoints = 0, MaxPoints = 999 },
+                new MemberLevel { MemberId = 2, Name = "Silver", MinPoints = 1000, MaxPoints = 4999 },
+                new MemberLevel { MemberId = 3, Name = "Gold", MinPoints = 5000, MaxPoints = 9999 },
+                new MemberLevel { MemberId = 4, Name = "Platinum", MinPoints = 10000, MaxPoints = null }
+            );
         }
     }
 
@@ -77,6 +139,13 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Code)
                 .IsUnique();
+
+            entity.HasData(
+                new PointTransactionType { PointTransactionTypeId = 1, Code = "EARN", Name = "Tích điểm" },
+                new PointTransactionType { PointTransactionTypeId = 2, Code = "SPEND", Name = "Sử dụng điểm" },
+                new PointTransactionType { PointTransactionTypeId = 3, Code = "EXPIRE", Name = "Hết hạn điểm" },
+                new PointTransactionType { PointTransactionTypeId = 4, Code = "ADJUST", Name = "Điều chỉnh điểm" }
+            );
         }
     }
 }

@@ -34,6 +34,63 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new Drink 
+                { 
+                    DrinkId = 1, 
+                    CategoryId = 1, 
+                    Name = "Cà phê sữa", 
+                    Description = "Cà phê pha với sữa đặc.", 
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Drink
+                {
+                    DrinkId = 2,
+                    CategoryId = 1,
+                    Name = "Cà phê đen",
+                    Description = "Cà phê pha với nước sôi, không có sữa.",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Drink 
+                { 
+                    DrinkId = 3, 
+                    CategoryId = 2, 
+                    Name = "Trà sữa trân châu", 
+                    Description = "Trà sữa pha với trân châu đen và đá viên.", 
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Drink 
+                { 
+                    DrinkId = 4, 
+                    CategoryId = 2, 
+                    Name = "Trà sữa socola full topping", 
+                    Description = "Trà sữa socola pha với nhiều topping.", 
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Drink 
+                { 
+                    DrinkId = 5, 
+                    CategoryId = 3, 
+                    Name = "Sting", 
+                    Description = "Sting mát lạnh", 
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Drink 
+                { 
+                    DrinkId = 6, 
+                    CategoryId = 3, 
+                    Name = "Coca-cola", 
+                    Description = "Coca-cola mát lạnh", 
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                }
+            );
         }
     }
 
@@ -55,6 +112,12 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new DrinkCategory { CategoryId = 1, Name = "Coffee", Active = true },
+                new DrinkCategory { CategoryId = 2, Name = "Trà sữa", Active = true },
+                new DrinkCategory { CategoryId = 3, Name = "Nước ngọt", Active = true }
+            );
         }
     }
 
@@ -75,6 +138,33 @@ namespace CafeChain.Data.Configurations
                 .WithMany(x => x.DrinkImages)
                 .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new DrinkImage { DrinkImageId = 1, DrinkId = 1, ImageUrl = "/Images/DrinkImages/cps1.jpg" },
+                new DrinkImage { DrinkImageId = 2, DrinkId = 1, ImageUrl = "/Images/DrinkImages/cps2.jpg" },
+                new DrinkImage { DrinkImageId = 3, DrinkId = 1, ImageUrl = "/Images/DrinkImages/cps3.jpg" },
+                new DrinkImage { DrinkImageId = 4, DrinkId = 1, ImageUrl = "/Images/DrinkImages/cps4.jpg" },
+                new DrinkImage { DrinkImageId = 5, DrinkId = 2, ImageUrl = "/Images/DrinkImages/cpd1.jpg" },
+                new DrinkImage { DrinkImageId = 6, DrinkId = 2, ImageUrl = "/Images/DrinkImages/cpd2.jpg" },
+                new DrinkImage { DrinkImageId = 7, DrinkId = 2, ImageUrl = "/Images/DrinkImages/cpd3.jpg" },
+                new DrinkImage { DrinkImageId = 8, DrinkId = 2, ImageUrl = "/Images/DrinkImages/cpd4.jpg" },
+                new DrinkImage { DrinkImageId = 9, DrinkId = 3, ImageUrl = "/Images/DrinkImages/trasuatranchauden1.jpg" },
+                new DrinkImage { DrinkImageId = 10, DrinkId = 3, ImageUrl = "/Images/DrinkImages/trasuatranchauden2.jpg" },
+                new DrinkImage { DrinkImageId = 11, DrinkId = 3, ImageUrl = "/Images/DrinkImages/trasuatranchauden3.jpg" },
+                new DrinkImage { DrinkImageId = 12, DrinkId = 3, ImageUrl = "/Images/DrinkImages/trasuatranchauden4.jpg" },
+                new DrinkImage { DrinkImageId = 13, DrinkId = 4, ImageUrl = "/Images/DrinkImages/trasuasocola1.jpg" },
+                new DrinkImage { DrinkImageId = 14, DrinkId = 4, ImageUrl = "/Images/DrinkImages/trasuasocola2.jpg" },
+                new DrinkImage { DrinkImageId = 15, DrinkId = 4, ImageUrl = "/Images/DrinkImages/trasuasocola3.jpg" },
+                new DrinkImage { DrinkImageId = 16, DrinkId = 4, ImageUrl = "/Images/DrinkImages/trasuasocola4.jpg" },
+                new DrinkImage { DrinkImageId = 17, DrinkId = 5, ImageUrl = "/Images/DrinkImages/sting1.jpg" },
+                new DrinkImage { DrinkImageId = 18, DrinkId = 5, ImageUrl = "/Images/DrinkImages/sting2.jpg" },
+                new DrinkImage { DrinkImageId = 19, DrinkId = 5, ImageUrl = "/Images/DrinkImages/sting3.jpg" },
+                new DrinkImage { DrinkImageId = 20, DrinkId = 5, ImageUrl = "/Images/DrinkImages/sting4.jpg" },
+                new DrinkImage { DrinkImageId = 21, DrinkId = 6, ImageUrl = "/Images/DrinkImages/coca1.jpg" },
+                new DrinkImage { DrinkImageId = 22, DrinkId = 6, ImageUrl = "/Images/DrinkImages/coca2.jpg" },
+                new DrinkImage { DrinkImageId = 23, DrinkId = 6, ImageUrl = "/Images/DrinkImages/coca3.jpg" },
+                new DrinkImage { DrinkImageId = 24, DrinkId = 6, ImageUrl = "/Images/DrinkImages/coca4.jpg" }
+            );
         }
     }
 
@@ -105,6 +195,51 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.DrinkId, x.SizeId })
                 .IsUnique();
+
+            entity.HasData(
+                new DrinkSize { DrinkSizeId = 1, DrinkId = 1, SizeId = 1, Price = 30000m, Active = true },
+                new DrinkSize { DrinkSizeId = 3, DrinkId = 2, SizeId = 1, Price = 22000m, Active = true },
+                new DrinkSize { DrinkSizeId = 5, DrinkId = 3, SizeId = 1, Price = 22000m, Active = true },
+                new DrinkSize { DrinkSizeId = 6, DrinkId = 3, SizeId = 2, Price = 27000m, Active = true },
+                new DrinkSize { DrinkSizeId = 7, DrinkId = 3, SizeId = 3, Price = 32000m, Active = true },
+                new DrinkSize { DrinkSizeId = 8, DrinkId = 4, SizeId = 1, Price = 25000m, Active = true },
+                new DrinkSize { DrinkSizeId = 9, DrinkId = 4, SizeId = 2, Price = 30000m, Active = true },
+                new DrinkSize { DrinkSizeId = 10, DrinkId = 4, SizeId = 3, Price = 35000m, Active = true },
+                new DrinkSize { DrinkSizeId = 11, DrinkId = 5, SizeId = 1, Price = 15000m, Active = true },
+                new DrinkSize { DrinkSizeId = 12, DrinkId = 6, SizeId = 1, Price = 15000m, Active = true }
+            );
+        }
+    }
+
+
+    // ========================== SIZE ==========================
+    public class SizeConfiguration : IEntityTypeConfiguration<Size>
+    {
+        public void Configure(EntityTypeBuilder<Size> entity)
+        {
+            entity.ToTable("Sizes");
+
+            entity.HasKey(x => x.SizeId);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Description)
+                .HasMaxLength(300);
+
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Name)
+                .IsUnique();
+
+            entity.HasData(
+                new Size { SizeId = 1, Name = "S", Description = "Kích thước nhỏ", Active = true },
+                new Size { SizeId = 2, Name = "M", Description = "Kích thước trung bình", Active = true },
+                new Size { SizeId = 3, Name = "L", Description = "Kích thước lớn", Active = true },
+                new Size { SizeId = 4, Name = "XL", Description = "Kích thước rất lớn", Active = true }
+            );
         }
     }
 
@@ -129,30 +264,62 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.DrinkId, x.ToppingId })
                 .IsUnique();
+
+            entity.HasData(
+                new DrinkTopping { DrinkToppingId = 1, DrinkId = 3 , ToppingId = 1},
+                new DrinkTopping { DrinkToppingId = 2, DrinkId = 3 , ToppingId = 2},
+                new DrinkTopping { DrinkToppingId = 3, DrinkId = 3 , ToppingId = 3},
+                new DrinkTopping { DrinkToppingId = 4, DrinkId = 3 , ToppingId = 4},
+                new DrinkTopping { DrinkToppingId = 5, DrinkId = 3 , ToppingId = 5},
+                new DrinkTopping { DrinkToppingId = 6, DrinkId = 3 , ToppingId = 6},
+
+                new DrinkTopping { DrinkToppingId = 7, DrinkId = 4 , ToppingId = 1},
+                new DrinkTopping { DrinkToppingId = 8, DrinkId = 4 , ToppingId = 2},
+                new DrinkTopping { DrinkToppingId = 9, DrinkId = 4 , ToppingId = 3},
+                new DrinkTopping { DrinkToppingId = 10, DrinkId = 4 , ToppingId = 4},
+                new DrinkTopping { DrinkToppingId = 11, DrinkId = 4 , ToppingId = 5},
+                new DrinkTopping { DrinkToppingId = 12, DrinkId = 4 , ToppingId = 6}
+            );
         }
     }
 
-    // ========================== SIZE ==========================
-    public class SizeConfiguration : IEntityTypeConfiguration<Size>
+    // ========================== DRINK DEFAULT TOPPING ==========================
+    public class DrinkDefaultToppingConfiguration : IEntityTypeConfiguration<DrinkDefaultTopping>
     {
-        public void Configure(EntityTypeBuilder<Size> entity)
+        public void Configure(EntityTypeBuilder<DrinkDefaultTopping> entity)
         {
-            entity.ToTable("Sizes");
+            entity.ToTable("DrinkDefaultToppings");
 
-            entity.HasKey(x => x.SizeId);
+            // ================= KEY =================
+            entity.HasKey(x => x.DrinkDefaultToppingId);
 
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(50);
+            // ================= RELATIONSHIPS =================
 
-            entity.Property(x => x.Description)
-                .HasMaxLength(300);
+            entity.HasOne(x => x.Drink)
+                .WithMany() // 👈 nếu chưa add navigation bên Drink
+                .HasForeignKey(x => x.DrinkId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            entity.Property(x => x.Active)
-                .HasDefaultValue(true);
+            entity.HasOne(x => x.Topping)
+                .WithMany() // 👈 nếu chưa add navigation bên Topping
+                .HasForeignKey(x => x.ToppingId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => x.Name)
+            // ================= INDEX =================
+
+            entity.HasIndex(x => new { x.DrinkId, x.ToppingId })
                 .IsUnique();
+
+            // ================= SEED DATA =================
+
+            entity.HasData(
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 1, DrinkId = 4, ToppingId = 1 },
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 2, DrinkId = 4, ToppingId = 2 },
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 3, DrinkId = 4, ToppingId = 3 },
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 4, DrinkId = 4, ToppingId = 4 },
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 5, DrinkId = 4, ToppingId = 5 },
+                new DrinkDefaultTopping { DrinkDefaultToppingId = 6, DrinkId = 4, ToppingId = 6 }
+            );
         }
     }
 
@@ -165,18 +332,52 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.ToppingId);
 
+            // ================= PROPERTIES =================
+
             entity.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(150);
 
             entity.Property(x => x.Price)
-                .HasColumnType("decimal(18,2)");
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            entity.Property(x => x.ImageUrl)
+                .HasMaxLength(500); // 👈 thêm mới
 
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            // ================= INDEX =================
+
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            // ================= RELATIONSHIPS =================
+
+            entity.HasMany(x => x.DrinkToppings)
+                .WithOne(x => x.Topping)
+                .HasForeignKey(x => x.ToppingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.StoreToppings)
+                .WithOne(x => x.Topping)
+                .HasForeignKey(x => x.ToppingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.OrderToppings)
+                .WithOne(x => x.Topping)
+                .HasForeignKey(x => x.ToppingId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new Topping { ToppingId = 1, Name = "Trân châu đen", Price = 5000m, ImageUrl = "/Images/ToppingImages/tranchauden.jpg", Active = true },
+                new Topping { ToppingId = 2, Name = "Trân châu trắng", Price = 5000m, ImageUrl = "/Images/ToppingImages/tranchautrang.jpg", Active = true },
+                new Topping { ToppingId = 3, Name = "Phô mai viên", Price = 7000m, ImageUrl = "/Images/ToppingImages/phomaivien.jpg", Active = true },
+                new Topping { ToppingId = 4, Name = "Khúc bạch chân mèo", Price = 7000m, ImageUrl = "/Images/ToppingImages/khucbachchanmeo.jpg", Active = true },
+                new Topping { ToppingId = 5, Name = "Thạch khoai môn", Price = 6000m, ImageUrl = "/Images/ToppingImages/thachkhoaimon.jpg", Active = true },
+                new Topping { ToppingId = 6, Name = "Bánh flan", Price = 6000m, ImageUrl = "/Images/ToppingImages/banhflan.jpg", Active = true }
+            );
         }
     }
 
@@ -196,6 +397,13 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.DrinkId)
                 .IsUnique();
+
+            entity.HasData(
+                new Recipe { RecipeId = 1, DrinkId = 1 },
+                new Recipe { RecipeId = 2, DrinkId = 2 },
+                new Recipe { RecipeId = 3, DrinkId = 3 },
+                new Recipe { RecipeId = 4, DrinkId = 4 }
+            );
         }
     }
 
@@ -223,6 +431,23 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.RecipeId, x.IngredientId })
                 .IsUnique();
+
+            entity.HasData(
+                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m }, // cà phê
+                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m }, // sữa
+                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m }, // đá
+                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m },
+                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m },
+                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m }, // trà
+                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m }, // bột sữa
+                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m }, // đường
+                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m }, // đá
+                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m },
+                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m },
+                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m }, // socola
+                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m },
+                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m }
+            );
         }
     }
 }

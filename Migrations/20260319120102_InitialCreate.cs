@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace CafeChain.Migrations
 {
     /// <inheritdoc />
@@ -11,6 +13,20 @@ namespace CafeChain.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "AccountTypes",
+                columns: table => new
+                {
+                    AccountTypeId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AccountTypes", x => x.AccountTypeId);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Countries",
                 columns: table => new
@@ -30,10 +46,10 @@ namespace CafeChain.Migrations
                 {
                     CustomerId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -219,6 +235,7 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -266,6 +283,26 @@ namespace CafeChain.Migrations
                         column: x => x.CountryId,
                         principalTable: "Countries",
                         principalColumn: "CountryId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "CustomerAddresses",
+                columns: table => new
+                {
+                    CustomerAddressId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CustomerId = table.Column<int>(type: "int", nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_CustomerAddresses", x => x.CustomerAddressId);
+                    table.ForeignKey(
+                        name: "FK_CustomerAddresses_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -401,6 +438,32 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DrinkDefaultToppings",
+                columns: table => new
+                {
+                    DrinkDefaultToppingId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DrinkId = table.Column<int>(type: "int", nullable: false),
+                    ToppingId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DrinkDefaultToppings", x => x.DrinkDefaultToppingId);
+                    table.ForeignKey(
+                        name: "FK_DrinkDefaultToppings_Drinks_DrinkId",
+                        column: x => x.DrinkId,
+                        principalTable: "Drinks",
+                        principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DrinkDefaultToppings_Toppings_ToppingId",
+                        column: x => x.ToppingId,
+                        principalTable: "Toppings",
+                        principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DrinkImages",
                 columns: table => new
                 {
@@ -471,7 +534,7 @@ namespace CafeChain.Migrations
                         column: x => x.ToppingId,
                         principalTable: "Toppings",
                         principalColumn: "ToppingId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -521,33 +584,6 @@ namespace CafeChain.Migrations
                         principalTable: "Drinks",
                         principalColumn: "DrinkId",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CustomerAddresses",
-                columns: table => new
-                {
-                    CustomerAddressId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
-                    WardId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CustomerAddresses", x => x.CustomerAddressId);
-                    table.ForeignKey(
-                        name: "FK_CustomerAddresses_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "CustomerId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_CustomerAddresses_Wards_WardId",
-                        column: x => x.WardId,
-                        principalTable: "Wards",
-                        principalColumn: "WardId",
-                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -653,13 +689,13 @@ namespace CafeChain.Migrations
                 {
                     StaffId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Salary = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     RoleId = table.Column<int>(type: "int", nullable: true)
                 },
@@ -760,7 +796,44 @@ namespace CafeChain.Migrations
                         column: x => x.ToppingId,
                         principalTable: "Toppings",
                         principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Accounts",
+                columns: table => new
+                {
+                    AccountId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    AccountTypeId = table.Column<int>(type: "int", nullable: false),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    CustomerId = table.Column<int>(type: "int", nullable: true),
+                    StaffId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Accounts", x => x.AccountId);
+                    table.ForeignKey(
+                        name: "FK_Accounts_AccountTypes_AccountTypeId",
+                        column: x => x.AccountTypeId,
+                        principalTable: "AccountTypes",
+                        principalColumn: "AccountTypeId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Accounts_Customers_CustomerId",
+                        column: x => x.CustomerId,
+                        principalTable: "Customers",
+                        principalColumn: "CustomerId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Accounts_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -803,7 +876,7 @@ namespace CafeChain.Migrations
                     CustomerId = table.Column<int>(type: "int", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     OrderStatusId = table.Column<int>(type: "int", nullable: false),
-                    OrderToppingId = table.Column<int>(type: "int", nullable: false),
+                    OrderTypeId = table.Column<int>(type: "int", nullable: false),
                     TableId = table.Column<int>(type: "int", nullable: true),
                     StaffId = table.Column<int>(type: "int", nullable: true),
                     Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
@@ -834,8 +907,8 @@ namespace CafeChain.Migrations
                         principalColumn: "OrderStatusId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_Orders_OrderTypes_OrderToppingId",
-                        column: x => x.OrderToppingId,
+                        name: "FK_Orders_OrderTypes_OrderTypeId",
+                        column: x => x.OrderTypeId,
                         principalTable: "OrderTypes",
                         principalColumn: "OrderTypeId",
                         onDelete: ReferentialAction.Restrict);
@@ -986,37 +1059,6 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InventoryTransactions",
-                columns: table => new
-                {
-                    InventoryTransactionId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    StockImportId = table.Column<int>(type: "int", nullable: false),
-                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    RefType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    RefId = table.Column<int>(type: "int", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryTransactions", x => x.InventoryTransactionId);
-                    table.CheckConstraint("CK_InventoryTransaction_Qty", "[Quantity] > 0");
-                    table.ForeignKey(
-                        name: "FK_InventoryTransactions_InventoryTransactionTypes_InventoryTransactionTypeId",
-                        column: x => x.InventoryTransactionTypeId,
-                        principalTable: "InventoryTransactionTypes",
-                        principalColumn: "InventoryTransactionTypeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryTransactions_StoreInventories_StockImportId",
-                        column: x => x.StockImportId,
-                        principalTable: "StoreInventories",
-                        principalColumn: "StoreInventoryId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1192,6 +1234,44 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InventoryTransactions",
+                columns: table => new
+                {
+                    InventoryTransactionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreInventoryId = table.Column<int>(type: "int", nullable: false),
+                    StockImportId = table.Column<int>(type: "int", nullable: true),
+                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    RefType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    RefId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTransactions", x => x.InventoryTransactionId);
+                    table.CheckConstraint("CK_InventoryTransaction_Qty", "[Quantity] > 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryTransactions_InventoryTransactionTypes_InventoryTransactionTypeId",
+                        column: x => x.InventoryTransactionTypeId,
+                        principalTable: "InventoryTransactionTypes",
+                        principalColumn: "InventoryTransactionTypeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransactions_StockImports_StockImportId",
+                        column: x => x.StockImportId,
+                        principalTable: "StockImports",
+                        principalColumn: "StockImportId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransactions_StoreInventories_StoreInventoryId",
+                        column: x => x.StoreInventoryId,
+                        principalTable: "StoreInventories",
+                        principalColumn: "StoreInventoryId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StockImportDetails",
                 columns: table => new
                 {
@@ -1246,8 +1326,674 @@ namespace CafeChain.Migrations
                         column: x => x.ToppingId,
                         principalTable: "Toppings",
                         principalColumn: "ToppingId",
-                        onDelete: ReferentialAction.Restrict);
+                        onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.InsertData(
+                table: "AccountTypes",
+                columns: new[] { "AccountTypeId", "Active", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, "Customer" },
+                    { 2, true, "Staff" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Countries",
+                columns: new[] { "CountryId", "Name" },
+                values: new object[] { 1, "Vietnam" });
+
+            migrationBuilder.InsertData(
+                table: "Customers",
+                columns: new[] { "CustomerId", "Active", "AvatarUrl", "CreatedAt", "DateOfBirth", "FullName" },
+                values: new object[,]
+                {
+                    { 1, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 12, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn A" },
+                    { 2, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn B" },
+                    { 3, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn C" },
+                    { 4, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 4, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn D" },
+                    { 5, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 2, 26, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn E" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkCategories",
+                columns: new[] { "CategoryId", "Active", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, "Coffee" },
+                    { 2, true, "Trà sữa" },
+                    { 3, true, "Nước ngọt" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Ingredients",
+                columns: new[] { "IngredientId", "Active", "Name", "Unit" },
+                values: new object[,]
+                {
+                    { 1, true, "Cà phê", "ml" },
+                    { 2, true, "Sữa đặc", "ml" },
+                    { 3, true, "Trà đen", "ml" },
+                    { 4, true, "Bột sữa", "g" },
+                    { 5, true, "Bột socola", "g" },
+                    { 6, true, "Đường", "g" },
+                    { 7, true, "Đá", "g" },
+                    { 8, true, "Nước lọc", "ml" },
+                    { 9, true, "Trân châu đen", "g" },
+                    { 10, true, "Thạch", "g" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "InventoryTransactionTypes",
+                columns: new[] { "InventoryTransactionTypeId", "Code", "Name" },
+                values: new object[,]
+                {
+                    { 1, "IMPORT", "Nhập kho" },
+                    { 2, "EXPORT", "Xuất kho" },
+                    { 3, "ADJUST", "Điều chỉnh" },
+                    { 4, "WASTE", "Hao hụt" },
+                    { 5, "RETURN", "Trả hàng" },
+                    { 6, "TRANSFER", "Chuyển kho" },
+                    { 7, "SALE", "Bán hàng" },
+                    { 8, "CANCEL", "Hủy giao dịch" },
+                    { 9, "CHECK", "Kiểm kho" },
+                    { 10, "LOSS", "Thất thoát" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "MemberLevels",
+                columns: new[] { "MemberId", "MaxPoints", "MinPoints", "Name" },
+                values: new object[,]
+                {
+                    { 1, 999, 0, "Bronze" },
+                    { 2, 4999, 1000, "Silver" },
+                    { 3, 9999, 5000, "Gold" },
+                    { 4, null, 10000, "Platinum" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "OrderStatuses",
+                columns: new[] { "OrderStatusId", "Name" },
+                values: new object[,]
+                {
+                    { 1, "Pending" },
+                    { 2, "Confirmed" },
+                    { 3, "Preparing" },
+                    { 4, "Ready" },
+                    { 5, "Completed" },
+                    { 6, "Cancelled" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "OrderTypes",
+                columns: new[] { "OrderTypeId", "Name" },
+                values: new object[,]
+                {
+                    { 1, "Dine In" },
+                    { 2, "Take Away" },
+                    { 3, "Delivery" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "PaymentMethods",
+                columns: new[] { "PaymentMethodId", "Code", "Name" },
+                values: new object[,]
+                {
+                    { 1, "CASH", "Tiền mặt" },
+                    { 2, "BANK", "Chuyển khoản" },
+                    { 3, "MOMO", "Momo" },
+                    { 4, "ZALOPAY", "ZaloPay" },
+                    { 5, "VNPAY", "VNPay" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "PaymentStatuses",
+                columns: new[] { "PaymentStatusId", "Code", "Name" },
+                values: new object[,]
+                {
+                    { 1, "PENDING", "Đang chờ" },
+                    { 2, "SUCCESS", "Thành công" },
+                    { 3, "FAILED", "Thất bại" },
+                    { 4, "REFUND", "Đã hoàn tiền" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "PointTransactionTypes",
+                columns: new[] { "PointTransactionTypeId", "Code", "Name" },
+                values: new object[,]
+                {
+                    { 1, "EARN", "Tích điểm" },
+                    { 2, "SPEND", "Sử dụng điểm" },
+                    { 3, "EXPIRE", "Hết hạn điểm" },
+                    { 4, "ADJUST", "Điều chỉnh điểm" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Roles",
+                columns: new[] { "RoleId", "Active", "CreatedAt", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cashier" },
+                    { 2, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Barista" },
+                    { 3, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Store Manager" },
+                    { 4, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Ward Manager" },
+                    { 5, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Province Manager" },
+                    { 6, true, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Admin System" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "ScopeTypes",
+                columns: new[] { "ScopeTypeId", "Code", "Name" },
+                values: new object[,]
+                {
+                    { 1, "COUNTRY", "Country" },
+                    { 2, "PROVINCE", "Province" },
+                    { 3, "WARD", "Ward" },
+                    { 4, "STORE", "Store" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Sizes",
+                columns: new[] { "SizeId", "Active", "Description", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, "Kích thước nhỏ", "S" },
+                    { 2, true, "Kích thước trung bình", "M" },
+                    { 3, true, "Kích thước lớn", "L" },
+                    { 4, true, "Kích thước rất lớn", "XL" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Toppings",
+                columns: new[] { "ToppingId", "Active", "ImageUrl", "Name", "Price" },
+                values: new object[,]
+                {
+                    { 1, true, "/Images/ToppingImages/tranchauden.jpg", "Trân châu đen", 5000m },
+                    { 2, true, "/Images/ToppingImages/tranchautrang.jpg", "Trân châu trắng", 5000m },
+                    { 3, true, "/Images/ToppingImages/phomaivien.jpg", "Phô mai viên", 7000m },
+                    { 4, true, "/Images/ToppingImages/khucbachchanmeo.jpg", "Khúc bạch chân mèo", 7000m },
+                    { 5, true, "/Images/ToppingImages/thachkhoaimon.jpg", "Thạch khoai môn", 6000m },
+                    { 6, true, "/Images/ToppingImages/banhflan.jpg", "Bánh flan", 6000m }
+                });
+
+            migrationBuilder.InsertData(
+                table: "CustomerAddresses",
+                columns: new[] { "CustomerAddressId", "Address", "CustomerId" },
+                values: new object[,]
+                {
+                    { 1, "123 Đường A, Phường Long Bình, Đồng Nai", 1 },
+                    { 2, "456 Đường D, Phường Trảng Dài, Đồng Nai", 2 },
+                    { 3, "789 Đường G, Phường H, Quận I, TP. HCM", 3 },
+                    { 4, "321 Đường J, Phường K, Quận L, TP. HCM", 4 },
+                    { 5, "654 Đường M, Phường N, Quận O, Hà Nội", 5 },
+                    { 6, "987 Đường P, Phường Q, Quận R, Hà Nội", 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "CustomerBanks",
+                columns: new[] { "CustomerBankId", "AccountNumber", "BankName", "CustomerId" },
+                values: new object[,]
+                {
+                    { 1, "123456789", "Vietcombank", 1 },
+                    { 2, "987654321", "Techcombank", 2 },
+                    { 3, "111222333", "BIDV", 3 },
+                    { 4, "444555666", "Vietinbank", 4 },
+                    { 5, "777888999", "Agribank", 5 },
+                    { 6, "222333444", "Sacombank", 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "CustomerPhones",
+                columns: new[] { "CustomerPhoneId", "CustomerId", "Phone" },
+                values: new object[,]
+                {
+                    { 1, 1, "0123456789" },
+                    { 2, 2, "0987654321" },
+                    { 3, 3, "0112233445" },
+                    { 4, 4, "0223344556" },
+                    { 5, 5, "0334455667" },
+                    { 6, 1, "0445566778" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Drinks",
+                columns: new[] { "DrinkId", "Active", "CategoryId", "CreatedAt", "Description", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với sữa đặc.", "Cà phê sữa" },
+                    { 2, true, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với nước sôi, không có sữa.", "Cà phê đen" },
+                    { 3, true, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa pha với trân châu đen và đá viên.", "Trà sữa trân châu" },
+                    { 4, true, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa socola pha với nhiều topping.", "Trà sữa socola full topping" },
+                    { 5, true, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Sting mát lạnh", "Sting" },
+                    { 6, true, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Coca-cola mát lạnh", "Coca-cola" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "PointTransactions",
+                columns: new[] { "PointTransactionId", "BalanceAfter", "CreatedAt", "CustomerId", "CustomerId1", "ExpiredAt", "OrderId", "PointTransactionTypeId", "Points" },
+                values: new object[] { 5, 50, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, null, null, null, 3, 50 });
+
+            migrationBuilder.InsertData(
+                table: "Provinces",
+                columns: new[] { "ProvinceId", "CountryId", "Name" },
+                values: new object[,]
+                {
+                    { 1, 1, "Bình Dương" },
+                    { 2, 1, "Hồ Chí Minh" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkDefaultToppings",
+                columns: new[] { "DrinkDefaultToppingId", "DrinkId", "ToppingId" },
+                values: new object[,]
+                {
+                    { 1, 4, 1 },
+                    { 2, 4, 2 },
+                    { 3, 4, 3 },
+                    { 4, 4, 4 },
+                    { 5, 4, 5 },
+                    { 6, 4, 6 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
+                    { 1, 1, "/Images/DrinkImages/cps1.jpg" },
+                    { 2, 1, "/Images/DrinkImages/cps2.jpg" },
+                    { 3, 1, "/Images/DrinkImages/cps3.jpg" },
+                    { 4, 1, "/Images/DrinkImages/cps4.jpg" },
+                    { 5, 2, "/Images/DrinkImages/cpd1.jpg" },
+                    { 6, 2, "/Images/DrinkImages/cpd2.jpg" },
+                    { 7, 2, "/Images/DrinkImages/cpd3.jpg" },
+                    { 8, 2, "/Images/DrinkImages/cpd4.jpg" },
+                    { 9, 3, "/Images/DrinkImages/trasuatranchauden1.jpg" },
+                    { 10, 3, "/Images/DrinkImages/trasuatranchauden2.jpg" },
+                    { 11, 3, "/Images/DrinkImages/trasuatranchauden3.jpg" },
+                    { 12, 3, "/Images/DrinkImages/trasuatranchauden4.jpg" },
+                    { 13, 4, "/Images/DrinkImages/trasuasocola1.jpg" },
+                    { 14, 4, "/Images/DrinkImages/trasuasocola2.jpg" },
+                    { 15, 4, "/Images/DrinkImages/trasuasocola3.jpg" },
+                    { 16, 4, "/Images/DrinkImages/trasuasocola4.jpg" },
+                    { 17, 5, "/Images/DrinkImages/sting1.jpg" },
+                    { 18, 5, "/Images/DrinkImages/sting2.jpg" },
+                    { 19, 5, "/Images/DrinkImages/sting3.jpg" },
+                    { 20, 5, "/Images/DrinkImages/sting4.jpg" },
+                    { 21, 6, "/Images/DrinkImages/coca1.jpg" },
+                    { 22, 6, "/Images/DrinkImages/coca2.jpg" },
+                    { 23, 6, "/Images/DrinkImages/coca3.jpg" },
+                    { 24, 6, "/Images/DrinkImages/coca4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkSizes",
+                columns: new[] { "DrinkSizeId", "Active", "DrinkId", "Price", "SizeId" },
+                values: new object[,]
+                {
+                    { 1, true, 1, 30000m, 1 },
+                    { 3, true, 2, 22000m, 1 },
+                    { 5, true, 3, 22000m, 1 },
+                    { 6, true, 3, 27000m, 2 },
+                    { 7, true, 3, 32000m, 3 },
+                    { 8, true, 4, 25000m, 1 },
+                    { 9, true, 4, 30000m, 2 },
+                    { 10, true, 4, 35000m, 3 },
+                    { 11, true, 5, 15000m, 1 },
+                    { 12, true, 6, 15000m, 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkToppings",
+                columns: new[] { "DrinkToppingId", "DrinkId", "ToppingId" },
+                values: new object[,]
+                {
+                    { 1, 3, 1 },
+                    { 2, 3, 2 },
+                    { 3, 3, 3 },
+                    { 4, 3, 4 },
+                    { 5, 3, 5 },
+                    { 6, 3, 6 },
+                    { 7, 4, 1 },
+                    { 8, 4, 2 },
+                    { 9, 4, 3 },
+                    { 10, 4, 4 },
+                    { 11, 4, 5 },
+                    { 12, 4, 6 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Recipes",
+                columns: new[] { "RecipeId", "DrinkId" },
+                values: new object[,]
+                {
+                    { 1, 1 },
+                    { 2, 2 },
+                    { 3, 3 },
+                    { 4, 4 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Wards",
+                columns: new[] { "WardId", "Name", "ProvinceId" },
+                values: new object[,]
+                {
+                    { 1, "Phú Lợi", 1 },
+                    { 2, "Lái Thiêu", 1 },
+                    { 3, "Dĩ An", 1 },
+                    { 4, "Phường 1", 2 },
+                    { 5, "Phường 2", 2 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "RecipeDetails",
+                columns: new[] { "RecipeDetailId", "IngredientId", "Quantity", "RecipeId" },
+                values: new object[,]
+                {
+                    { 1, 1, 50m, 1 },
+                    { 2, 2, 30m, 1 },
+                    { 3, 7, 100m, 1 },
+                    { 4, 1, 60m, 2 },
+                    { 5, 7, 100m, 2 },
+                    { 6, 3, 80m, 3 },
+                    { 7, 4, 40m, 3 },
+                    { 8, 6, 20m, 3 },
+                    { 9, 7, 100m, 3 },
+                    { 10, 3, 70m, 4 },
+                    { 11, 4, 40m, 4 },
+                    { 12, 5, 20m, 4 },
+                    { 13, 6, 20m, 4 },
+                    { 14, 7, 100m, 4 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Stores",
+                columns: new[] { "StoreId", "Active", "Address", "CreatedAt", "Name", "Phone", "WardId" },
+                values: new object[,]
+                {
+                    { 1, true, "123 Đại lộ Bình Dương", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CafeChain Thủ Dầu Một", "0900000001", 1 },
+                    { 2, true, "456 Nguyễn Trãi", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CafeChain Thuận An", "0900000002", 2 },
+                    { 3, true, "789 Lê Hồng Phong", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CafeChain Dĩ An", "0900000003", 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DiningTables",
+                columns: new[] { "TableId", "Active", "Status", "StoreId", "TableNumber" },
+                values: new object[,]
+                {
+                    { 1, true, "Available", 1, 1 },
+                    { 2, true, "Available", 1, 2 },
+                    { 3, true, "Available", 2, 1 },
+                    { 4, true, "Available", 3, 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Shifts",
+                columns: new[] { "ShiftId", "EndTime", "Name", "StartTime", "StoreId" },
+                values: new object[,]
+                {
+                    { 1, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", new TimeSpan(0, 6, 0, 0, 0), 1 },
+                    { 2, new TimeSpan(0, 18, 0, 0, 0), "Ca chiều", new TimeSpan(0, 12, 0, 0, 0), 1 },
+                    { 3, new TimeSpan(0, 23, 0, 0, 0), "Ca tối", new TimeSpan(0, 18, 0, 0, 0), 1 },
+                    { 4, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", new TimeSpan(0, 6, 0, 0, 0), 2 },
+                    { 5, new TimeSpan(0, 18, 0, 0, 0), "Ca chiều", new TimeSpan(0, 12, 0, 0, 0), 2 },
+                    { 6, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", new TimeSpan(0, 6, 0, 0, 0), 3 },
+                    { 7, new TimeSpan(0, 23, 0, 0, 0), "Ca tối", new TimeSpan(0, 18, 0, 0, 0), 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Staffs",
+                columns: new[] { "StaffId", "Active", "AvatarUrl", "CreatedAt", "DateOfBirth", "FullName", "RoleId", "Salary", "StoreId", "TaxCode" },
+                values: new object[,]
+                {
+                    { 1, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Nguyễn Văn A", null, 8000000m, 1, "TAX001" },
+                    { 2, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Trần Thị B", null, 10000000m, 1, "TAX002" },
+                    { 3, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Lê Văn C", null, 12000000m, 2, "TAX003" },
+                    { 4, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Phạm Thị D", null, 14000000m, 2, "TAX004" },
+                    { 5, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Hoàng Văn E", null, 9000000m, 3, "TAX005" },
+                    { 6, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Đỗ Thị F", null, 7000000m, 3, "TAX006" },
+                    { 7, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Nguyễn Văn G", null, 8500000m, 1, "TAX007" },
+                    { 8, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Trần Văn H", null, 9500000m, 2, "TAX008" },
+                    { 9, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Lý Thị I", null, 6000000m, 3, "TAX009" },
+                    { 10, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Tổng", null, 16000000m, 1, "TAX010" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StoreDrinks",
+                columns: new[] { "StoreDrinkId", "Active", "DrinkId", "StoreId" },
+                values: new object[,]
+                {
+                    { 1, true, 1, 1 },
+                    { 2, true, 2, 1 },
+                    { 3, true, 1, 2 },
+                    { 4, true, 3, 2 },
+                    { 5, true, 2, 3 },
+                    { 6, true, 4, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StoreInventories",
+                columns: new[] { "StoreInventoryId", "AvailableQty", "IngredientId", "LastUpdated", "StoreId" },
+                values: new object[,]
+                {
+                    { 1, 100m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1 },
+                    { 2, 50m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1 },
+                    { 3, 80m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2 },
+                    { 4, 60m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StoreToppings",
+                columns: new[] { "StoreToppingId", "Active", "StoreId", "ToppingId" },
+                values: new object[,]
+                {
+                    { 1, true, 1, 1 },
+                    { 2, true, 1, 2 },
+                    { 3, true, 2, 1 },
+                    { 4, true, 3, 2 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "CashSessions",
+                columns: new[] { "CashSessionId", "CloseTime", "EndCash", "OpenTime", "StaffId", "StartCash", "StoreId" },
+                values: new object[] { 1, null, null, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 1, 1000000m, 1 });
+
+            migrationBuilder.InsertData(
+                table: "CashSessions",
+                columns: new[] { "CashSessionId", "CloseTime", "EndCash", "IsClosed", "OpenTime", "StaffId", "StartCash", "StoreId" },
+                values: new object[] { 2, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 800000m, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, 500000m, 1 });
+
+            migrationBuilder.InsertData(
+                table: "Orders",
+                columns: new[] { "OrderId", "CreatedAt", "CustomerId", "Note", "OrderStatusId", "OrderTypeId", "Source", "StaffId", "StoreId", "StoreId1", "TableId", "Total" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 1, "", 3, 1, "POS", 1, 1, null, 1, 45000m },
+                    { 2, new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), 2, "Ít đá", 2, 2, "APP", 2, 1, null, null, 60000m },
+                    { 3, new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified), 3, "", 1, 3, "POS", 3, 2, null, 3, 70000m }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffBanks",
+                columns: new[] { "StaffBankId", "AccountNumber", "BankName", "StaffId" },
+                values: new object[,]
+                {
+                    { 1, "123456789", "Vietcombank", 1 },
+                    { 2, "987654321", "ACB", 2 },
+                    { 3, "456123789", "Techcombank", 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffRoles",
+                columns: new[] { "StaffRoleId", "RoleId", "StaffId" },
+                values: new object[,]
+                {
+                    { 1, 1, 1 },
+                    { 2, 1, 2 },
+                    { 3, 2, 3 },
+                    { 4, 2, 4 },
+                    { 5, 3, 5 },
+                    { 6, 3, 6 },
+                    { 7, 1, 7 },
+                    { 8, 2, 8 },
+                    { 9, 5, 9 },
+                    { 10, 6, 10 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffScopes",
+                columns: new[] { "StaffScopeId", "ScopeRefId", "ScopeTypeId", "StaffId" },
+                values: new object[,]
+                {
+                    { 1, 1, 4, 1 },
+                    { 2, 1, 4, 2 },
+                    { 3, 1, 4, 7 },
+                    { 4, 2, 4, 3 },
+                    { 5, 2, 4, 4 },
+                    { 6, 2, 4, 8 },
+                    { 7, 3, 4, 5 },
+                    { 8, 3, 4, 6 },
+                    { 9, 1, 2, 9 },
+                    { 10, 1, 1, 10 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffShifts",
+                columns: new[] { "StaffShiftId", "ShiftId", "StaffId", "WorkDate" },
+                values: new object[,]
+                {
+                    { 1, 1, 1, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, 2, 2, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, 4, 3, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 4, 5, 4, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 5, 6, 5, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 6, 7, 6, new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StockImports",
+                columns: new[] { "StockImportId", "ImportDate", "Note", "StaffId", "StoreId" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập đầu ngày", 1, 1 },
+                    { 2, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập bổ sung", 2, 1 },
+                    { 3, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập nguyên liệu", 1, 2 },
+                    { 4, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập kho", 3, 2 },
+                    { 5, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập định kỳ", 2, 3 },
+                    { 6, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập thêm", 1, 1 },
+                    { 7, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập hàng", 2, 2 },
+                    { 8, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập tuần", 3, 3 },
+                    { 9, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập khẩn", 3, 1 },
+                    { 10, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhập cuối ngày", 1, 2 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "InventoryTransactions",
+                columns: new[] { "InventoryTransactionId", "CreatedAt", "InventoryTransactionTypeId", "Quantity", "RefId", "RefType", "StockImportId", "StoreInventoryId" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, 1000m, null, "IMPORT", 1, 1 },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, 800m, null, "IMPORT", 2, 2 },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, 200m, null, "EXPORT", 3, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "KitchenOrders",
+                columns: new[] { "KitchenOrderId", "CreatedAt", "OrderId", "Status" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 1, 1, 8, 5, 0, 0, DateTimeKind.Unspecified), 1, "Done" },
+                    { 2, new DateTime(2025, 1, 1, 9, 5, 0, 0, DateTimeKind.Unspecified), 2, "Processing" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "OrderDetails",
+                columns: new[] { "OrderDetailId", "DrinkId", "DrinkName", "Note", "OrderId", "Price", "Quantity", "SizeId", "SizeName" },
+                values: new object[,]
+                {
+                    { 1, 1, "Cà phê sữa", "", 1, 25000m, 1, 2, "M" },
+                    { 2, 2, "Cà phê đen", "", 1, 20000m, 1, 2, "M" },
+                    { 3, 3, "Trà sữa trân châu", "Ít đá", 2, 60000m, 1, 3, "L" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Payments",
+                columns: new[] { "PaymentId", "Amount", "CashSessionId", "OrderId", "PaidAt", "PaymentMethodId", "PaymentStatusId", "TransactionCode" },
+                values: new object[,]
+                {
+                    { 1, 30000m, 1, 1, new DateTime(2025, 1, 1, 8, 10, 0, 0, DateTimeKind.Unspecified), 1, 2, null },
+                    { 2, 50000m, null, 2, new DateTime(2025, 1, 1, 9, 10, 0, 0, DateTimeKind.Unspecified), 3, 2, "MOMO_001" },
+                    { 3, 45000m, null, 3, null, 2, 1, null },
+                    { 4, 60000m, null, 1, null, 5, 3, "VNPAY_FAIL_01" },
+                    { 5, 40000m, 2, 2, new DateTime(2025, 1, 1, 7, 0, 0, 0, DateTimeKind.Unspecified), 1, 4, null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "PointTransactions",
+                columns: new[] { "PointTransactionId", "BalanceAfter", "CreatedAt", "CustomerId", "CustomerId1", "ExpiredAt", "OrderId", "PointTransactionTypeId", "Points" },
+                values: new object[,]
+                {
+                    { 1, 50, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, 1, 50 },
+                    { 2, 80, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, 1, 30 },
+                    { 3, 60, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, null, null, 2, 2, 20 },
+                    { 4, 100, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, 1, 100 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StockImportDetails",
+                columns: new[] { "StockImportDetailId", "IngredientId", "Quantity", "StockImportId", "UnitPrice" },
+                values: new object[,]
+                {
+                    { 1, 1, 1000m, 1, 200000m },
+                    { 2, 2, 500m, 1, 15000m },
+                    { 3, 3, 800m, 2, 12000m },
+                    { 4, 4, 600m, 3, 18000m },
+                    { 5, 5, 700m, 4, 25000m },
+                    { 6, 6, 1000m, 5, 8000m },
+                    { 7, 7, 2000m, 6, 2000m },
+                    { 8, 8, 300m, 7, 30000m },
+                    { 9, 9, 400m, 8, 35000m },
+                    { 10, 10, 500m, 9, 22000m }
+                });
+
+            migrationBuilder.InsertData(
+                table: "OrderToppings",
+                columns: new[] { "OrderToppingId", "OrderDetailId", "Price", "ToppingId", "ToppingName" },
+                values: new object[,]
+                {
+                    { 1, 3, 5000m, 1, "Trân châu đen" },
+                    { 2, 3, 5000m, 2, "Trân châu trắng" }
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Accounts_AccountTypeId",
+                table: "Accounts",
+                column: "AccountTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Accounts_CustomerId",
+                table: "Accounts",
+                column: "CustomerId",
+                unique: true,
+                filter: "[CustomerId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Accounts_Email",
+                table: "Accounts",
+                column: "Email",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Accounts_StaffId",
+                table: "Accounts",
+                column: "StaffId",
+                unique: true,
+                filter: "[StaffId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AccountTypes_Name",
+                table: "AccountTypes",
+                column: "Name",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_CashSessions_StaffId",
@@ -1269,11 +2015,6 @@ namespace CafeChain.Migrations
                 name: "IX_CustomerAddresses_CustomerId",
                 table: "CustomerAddresses",
                 column: "CustomerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_CustomerAddresses_WardId",
-                table: "CustomerAddresses",
-                column: "WardId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CustomerBanks_BankName_AccountNumber",
@@ -1299,12 +2040,6 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Customers_Email",
-                table: "Customers",
-                column: "Email",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_DiningTables_StoreId_TableNumber",
                 table: "DiningTables",
                 columns: new[] { "StoreId", "TableNumber" },
@@ -1315,6 +2050,17 @@ namespace CafeChain.Migrations
                 table: "DrinkCategories",
                 column: "Name",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DrinkDefaultToppings_DrinkId_ToppingId",
+                table: "DrinkDefaultToppings",
+                columns: new[] { "DrinkId", "ToppingId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DrinkDefaultToppings_ToppingId",
+                table: "DrinkDefaultToppings",
+                column: "ToppingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_DrinkImages_DrinkId",
@@ -1371,6 +2117,11 @@ namespace CafeChain.Migrations
                 column: "StockImportId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransactions_StoreInventoryId",
+                table: "InventoryTransactions",
+                column: "StoreInventoryId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactionTypes_Code",
                 table: "InventoryTransactionTypes",
                 column: "Code",
@@ -1418,9 +2169,9 @@ namespace CafeChain.Migrations
                 column: "OrderStatusId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Orders_OrderToppingId",
+                name: "IX_Orders_OrderTypeId",
                 table: "Orders",
-                column: "OrderToppingId");
+                column: "OrderTypeId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_StaffId",
@@ -1623,12 +2374,6 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Staffs_Email",
-                table: "Staffs",
-                column: "Email",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Staffs_RoleId",
                 table: "Staffs",
                 column: "RoleId");
@@ -1637,6 +2382,12 @@ namespace CafeChain.Migrations
                 name: "IX_Staffs_StoreId",
                 table: "Staffs",
                 column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Staffs_TaxCode",
+                table: "Staffs",
+                column: "TaxCode",
+                filter: "[TaxCode] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StaffScopes_ScopeTypeId",
@@ -1680,6 +2431,11 @@ namespace CafeChain.Migrations
                 table: "StockImportDetails",
                 columns: new[] { "StockImportId", "IngredientId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockImports_ImportDate",
+                table: "StockImports",
+                column: "ImportDate");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockImports_StaffId",
@@ -1763,6 +2519,9 @@ namespace CafeChain.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Accounts");
+
+            migrationBuilder.DropTable(
                 name: "CustomerAddresses");
 
             migrationBuilder.DropTable(
@@ -1773,6 +2532,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "CustomerPoints");
+
+            migrationBuilder.DropTable(
+                name: "DrinkDefaultToppings");
 
             migrationBuilder.DropTable(
                 name: "DrinkImages");
@@ -1833,6 +2595,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "VoucherUsages");
+
+            migrationBuilder.DropTable(
+                name: "AccountTypes");
 
             migrationBuilder.DropTable(
                 name: "InventoryTransactionTypes");

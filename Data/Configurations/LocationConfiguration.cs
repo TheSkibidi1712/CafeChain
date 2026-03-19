@@ -20,6 +20,10 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new Country { CountryId = 1, Name = "Vietnam" }
+            );
         }
     }
 
@@ -43,6 +47,11 @@ namespace CafeChain.Data.Configurations
             // 🔥 tránh trùng tỉnh trong cùng quốc gia
             entity.HasIndex(x => new { x.CountryId, x.Name })
                 .IsUnique();
+
+            entity.HasData(
+                new Province { ProvinceId = 1, CountryId = 1, Name = "Bình Dương" },
+                new Province { ProvinceId = 2, CountryId = 1, Name = "Hồ Chí Minh" }
+            );
         }
     }
 
@@ -66,6 +75,17 @@ namespace CafeChain.Data.Configurations
             // 🔥 tránh trùng phường trong cùng tỉnh
             entity.HasIndex(x => new { x.ProvinceId, x.Name })
                 .IsUnique();
+
+            entity.HasData(
+                // Bình Dương
+                new Ward { WardId = 1, ProvinceId = 1, Name = "Phú Lợi" },      // Thủ Dầu Một
+                new Ward { WardId = 2, ProvinceId = 1, Name = "Lái Thiêu" },    // Thuận An
+                new Ward { WardId = 3, ProvinceId = 1, Name = "Dĩ An" },        // Dĩ An
+
+                // TP.HCM
+                new Ward { WardId = 4, ProvinceId = 2, Name = "Phường 1" },
+                new Ward { WardId = 5, ProvinceId = 2, Name = "Phường 2" }
+            );
         }
     }
 }

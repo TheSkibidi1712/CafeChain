@@ -24,6 +24,8 @@ namespace CafeChain.Data
         public DbSet<CustomerPoint> CustomerPoints { get; set; }
         public DbSet<CustomerPhone> CustomerPhones { get; set; }
         public DbSet<Rating> Ratings { get; set; }
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<AccountType> AccountTypes { get; set; }
 
         // ========================= STAFF =========================
         public DbSet<Staff> Staffs { get; set; }
@@ -50,6 +52,7 @@ namespace CafeChain.Data
         public DbSet<DrinkImage> DrinkImages { get; set; }
         public DbSet<DrinkSize> DrinkSizes { get; set; }
         public DbSet<DrinkTopping> DrinkToppings { get; set; }
+        public DbSet<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
         public DbSet<Size> Sizes { get; set; }
         public DbSet<Topping> Toppings { get; set; }
         public DbSet<Recipe> Recipes { get; set; }

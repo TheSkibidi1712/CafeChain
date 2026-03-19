@@ -54,7 +54,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasOne(x => x.OrderType)
                 .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.OrderToppingId)
+                .HasForeignKey(x => x.OrderTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // INDEX
@@ -62,6 +62,51 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.CustomerId);
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
+
+            entity.HasData(
+                new Order
+                {
+                    OrderId = 1,
+                    CustomerId = 1,
+                    StoreId = 1,
+                    OrderStatusId = 3,
+                    OrderTypeId = 1,
+                    TableId = 1,
+                    StaffId = 1,
+                    Source = "POS",
+                    Note = "",
+                    Total = 45000,
+                    CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0)
+                },
+                new Order
+                {
+                    OrderId = 2,
+                    CustomerId = 2,
+                    StoreId = 1,
+                    OrderStatusId = 2,
+                    OrderTypeId = 2,
+                    TableId = null,
+                    StaffId = 2,
+                    Source = "APP",
+                    Note = "Ít đá",
+                    Total = 60000,
+                    CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0)
+                },
+                new Order
+                {
+                    OrderId = 3,
+                    CustomerId = 3,
+                    StoreId = 2,
+                    OrderStatusId = 1,
+                    OrderTypeId = 3,
+                    TableId = 3,
+                    StaffId = 3,
+                    Source = "POS",
+                    Note = "",
+                    Total = 70000,
+                    CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0)
+                }
+            );
         }
     }
 
@@ -110,6 +155,46 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.DrinkId);
             entity.HasIndex(x => x.SizeId);
+
+            entity.HasData(
+                new OrderDetail
+                {
+                    OrderDetailId = 1,
+                    OrderId = 1,
+                    DrinkId = 1,
+                    SizeId = 2,
+                    DrinkName = "Cà phê sữa",
+                    SizeName = "M",
+                    Price = 25000,
+                    Quantity = 1,
+                    Note = ""
+                },
+                new OrderDetail
+                {
+                    OrderDetailId = 2,
+                    OrderId = 1,
+                    DrinkId = 2,
+                    SizeId = 2,
+                    DrinkName = "Cà phê đen",
+                    SizeName = "M",
+                    Price = 20000,
+                    Quantity = 1,
+                    Note = ""
+                },
+                new OrderDetail
+                {
+                    OrderDetailId = 3,
+                    OrderId = 2,
+                    DrinkId = 3,
+                    SizeId = 3,
+                    DrinkName = "Trà sữa trân châu",
+                    SizeName = "L",
+                    Price = 60000,
+                    Quantity = 1,
+                    Note = "Ít đá"
+                }
+            );
+
         }
     }
 
@@ -141,6 +226,25 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.OrderDetailId, x.ToppingId })
                 .IsUnique();
+
+            entity.HasData(
+                new OrderTopping
+                {
+                    OrderToppingId = 1,
+                    OrderDetailId = 3,
+                    ToppingId = 1,
+                    ToppingName = "Trân châu đen",
+                    Price = 5000
+                },
+                new OrderTopping
+                {
+                    OrderToppingId = 2,
+                    OrderDetailId = 3,
+                    ToppingId = 2,
+                    ToppingName = "Trân châu trắng",
+                    Price = 5000
+                }
+            );
         }
     }
 
@@ -159,6 +263,15 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new OrderStatus { OrderStatusId = 1, Name = "Pending" },        // mới tạo
+                new OrderStatus { OrderStatusId = 2, Name = "Confirmed" },      // đã xác nhận
+                new OrderStatus { OrderStatusId = 3, Name = "Preparing" },      // đang pha chế
+                new OrderStatus { OrderStatusId = 4, Name = "Ready" },          // đã xong, chờ lấy
+                new OrderStatus { OrderStatusId = 5, Name = "Completed" },      // hoàn tất
+                new OrderStatus { OrderStatusId = 6, Name = "Cancelled" }       // hủy
+            );
         }
     }
 
@@ -177,6 +290,12 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Name)
                 .IsUnique();
+
+            entity.HasData(
+                new OrderType { OrderTypeId = 1, Name = "Dine In" },
+                new OrderType { OrderTypeId = 2, Name = "Take Away" },
+                new OrderType { OrderTypeId = 3, Name = "Delivery" }
+            );
         }
     }
 
@@ -205,6 +324,18 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.StoreId, x.TableNumber })
                 .IsUnique();
+
+            entity.HasData(
+                // Store 1
+                new DiningTable { TableId = 1, StoreId = 1, TableNumber = 1, Status = "Available", Active = true },
+                new DiningTable { TableId = 2, StoreId = 1, TableNumber = 2, Status = "Available", Active = true },
+
+                // Store 2
+                new DiningTable { TableId = 3, StoreId = 2, TableNumber = 1, Status = "Available", Active = true },
+
+                // Store 3
+                new DiningTable { TableId = 4, StoreId = 3, TableNumber = 1, Status = "Available", Active = true }
+            );
         }
     }
 
@@ -229,6 +360,23 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasIndex(x => x.OrderId);
+
+            entity.HasData(
+                new KitchenOrder
+                {
+                    KitchenOrderId = 1,
+                    OrderId = 1,
+                    Status = "Done",
+                    CreatedAt = new DateTime(2025, 1, 1, 8, 5, 0)
+                },
+                new KitchenOrder
+                {
+                    KitchenOrderId = 2,
+                    OrderId = 2,
+                    Status = "Processing",
+                    CreatedAt = new DateTime(2025, 1, 1, 9, 5, 0)
+                }
+            );
         }
     }
 }

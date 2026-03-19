@@ -13,7 +13,7 @@ namespace CafeChain.Models.Orders
         public int? CustomerId { get; set; }
         public int StoreId { get; set; }
         public int OrderStatusId { get; set; }
-        public int OrderToppingId { get; set; }
+        public int OrderTypeId { get; set; }
         public int? TableId { get; set; }
         public int? StaffId { get; set; }
 

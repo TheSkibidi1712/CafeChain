@@ -15,5 +15,7 @@ namespace CafeChain.Models.Inventories
         public virtual Staff Staff { get; set; }
 
         public virtual ICollection<StockImportDetail> Details { get; set; }
+        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; }
+
     }
 }
