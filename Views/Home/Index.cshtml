@@ -1,8 +1,93 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@model CafeChain.ViewModels.HomeViewModel
+
+@{
+    ViewData["Title"] = "Trang chủ";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="container mt-4 mb-5">
+    <div class="hero-banner d-flex align-items-center justify-content-center text-center text-white" style="height: 400px;">
+        <div class="hero-overlay"></div>
+        <div class="position-relative z-1 px-3">
+            <h1 class="display-4 fw-bold mb-3">Đánh thức đam mê<br />cùng <span class="text-orange">CafeChain</span></h1>
+            <p class="lead mb-4 fs-6 text-light" style="max-width: 600px; margin: 0 auto;"> Hương vị cà phê nguyên bản...</p>
+            <div>
+                <button class="btn btn-orange rounded-pill px-4 py-2 fw-semibold me-2 shadow-sm">Đặt hàng ngay</button>
+                <a asp-controller="Drink" asp-action="Menu" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold border-2 text-white shadow-sm">Xem thực đơn</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
+        <div>
+            <h4 class="fw-bold mb-1">Món bán chạy nhất</h4>
+            <p class="text-muted small mb-0">Những hương vị được yêu thích nhất trong tuần qua</p>
+        </div>
+    </div>
+
+    <div class="product-slider-container mb-5">
+        <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+
+        <div class="product-slider">
+            @* Lấy 8 món (hiện có 6 món trong DB sẽ hiện cả 6) *@
+            @foreach (var drink in Model.Drinks.Take(8))
+            {
+                <div class="slider-item">
+                    @* Nhớ kiểm tra lại tên file có dấu _ hay không nhé *@
+                    <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
+                </div>
+            }
+        </div>
+
+        <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+    </div>
+
+    @foreach (var cat in Model.Categories)
+    {
+        var categoryDrinks = Model.Drinks.Where(d => d.CategoryId == cat.CategoryId).ToList();
+        if (categoryDrinks.Any())
+        {
+            <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
+                <div>
+                    <h4 class="fw-bold mb-1">@cat.Name</h4>
+                    <p class="text-muted small mb-0">Những lựa chọn tuyệt vời dành cho bạn</p>
+                </div>
+            </div>
+
+            <div class="product-slider-container mb-5">
+                @if (categoryDrinks.Count > 4)
+                {
+                    <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                }
+
+                <div class="product-slider">
+                    @foreach (var drink in categoryDrinks)
+                    {
+                        <div class="slider-item">
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
+                        </div>
+                    }
+                </div>
+
+                @if (categoryDrinks.Count > 4)
+                {
+                    <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
+            </div>
+        }
+    }
 </div>
+
+@section Scripts {
+    <script>
+        console.log("Kiểm tra: Hàm scrollSlider đã tồn tại chưa?");
+        console.log(typeof scrollSlider);
+    </script>
+}

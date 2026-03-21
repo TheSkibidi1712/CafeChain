@@ -1,0 +1,186 @@
+﻿@model CafeChain.ViewModels.MenuViewModel
+
+@{
+    ViewData["Title"] = "Thực đơn";
+}
+
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/" class="text-muted text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item active text-orange fw-semibold" aria-current="page">Thực đơn</li>
+        </ol>
+    </nav>
+
+    <div class="row mt-4">
+        <div class="col-lg-3">
+            <form id="filterForm" asp-controller="Drink" asp-action="Menu" method="get">
+                <input type="hidden" name="page" id="pageInput" value="1" />
+                <input type="hidden" name="categoryId" id="categoryInput" value="@Model.SelectedCategoryId" />
+
+                <div class="mb-5">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-stack text-orange"></i> Danh mục
+                    </h6>
+                    <ul class="list-unstyled">
+                        <li class="mb-2">
+                            <a href="javascript:void(0)" onclick="selectCategory('')"
+                               class="text-decoration-none px-3 py-2 d-block rounded-3 @(!Model.SelectedCategoryId.HasValue ? "bg-orange text-white" : "text-muted")">
+                                <i class="bi bi-cup me-2"></i> Tất cả
+                            </a>
+                        </li>
+                        @foreach (var cat in Model.Categories)
+                        {
+                            <li class="mb-2">
+                                <a href="javascript:void(0)" onclick="selectCategory('@cat.CategoryId')"
+                                   class="text-decoration-none px-3 py-2 d-block rounded-3 @(Model.SelectedCategoryId == cat.CategoryId ? "bg-orange text-white" : "text-muted")">
+                                    <i class="bi bi-cup-hot me-2"></i> @cat.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+
+                <div class="mb-5">
+                    <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                        <i class="bi bi-cash-stack text-orange"></i> Khoảng giá (VNE)
+                    </h6>
+
+                    <div class="d-flex justify-content-between small text-muted mb-2 fw-semibold">
+                        <span id="minPriceDisplay">@Model.MinPrice.ToString("N0")đ</span>
+                        <span id="maxPriceDisplay">@Model.MaxPrice.ToString("N0")đ</span>
+                    </div>
+
+                    <div class="range-slider-wrapper">
+                        <div class="range-slider-track"></div>
+                        <div class="range-slider-fill" id="sliderFill"></div>
+
+                        <input type="range" name="minPrice" id="minPriceInput" min="0" max="150000" step="5000" value="@Model.MinPrice" oninput="updatePriceSlider()">
+
+                        <input type="range" name="maxPrice" id="maxPriceInput" min="0" max="150000" step="5000" value="@Model.MaxPrice" onchange="this.form.submit()" oninput="updatePriceSlider()">
+                    </div>
+                </div>
+
+                <div class="card border-0 rounded-4 overflow-hidden text-white" style="height: 250px; background: url('/Images/Upload/banner-home.jpg') center/cover;">
+                    <div class="card-body d-flex flex-column justify-content-end" style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                        <span class="badge bg-orange mb-2" style="width: fit-content;">VỪA RA MẮT</span>
+                        <h5 class="fw-bold mb-1">Giảm 20% cho dòng Cold Brew</h5>
+                        <a href="#" class="text-white small">Khám phá ngay</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <div class="col-lg-9 mt-4 mt-lg-0">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h4 class="fw-bold mb-0">
+                    @(Model.SelectedCategoryId.HasValue? Model.Categories.FirstOrDefault(c => c.CategoryId == Model.SelectedCategoryId)?.Name : "Tất cả sản phẩm")
+                </h4>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="text-muted small text-nowrap">Sắp xếp:</span>
+                    <select name="sortBy" form="filterForm" class="form-select form-select-sm border-0 bg-light fw-semibold" onchange="document.getElementById('filterForm').submit();" style="width: auto;">
+                        <option value="popular" selected="@(Model.SortBy == "popular")">Phổ biến nhất</option>
+                        <option value="price_asc" selected="@(Model.SortBy == "price_asc")">Giá tăng dần</option>
+                        <option value="price_desc" selected="@(Model.SortBy == "price_desc")">Giá giảm dần</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                @if (Model.Drinks.Any())
+                {
+                    @foreach (var drink in Model.Drinks)
+                    {
+                        <div class="col-6 col-md-4 col-lg-4">
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
+                        </div>
+                    }
+                }
+                else
+                {
+                    <div class="col-12 text-center py-5 text-muted">
+                        <i class="bi bi-emoji-frown fs-1 mb-3"></i>
+                        <h5>Không tìm thấy sản phẩm nào phù hợp!</h5>
+                    </div>
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <nav class="mt-5 d-flex justify-content-center">
+                    <ul class="pagination pagination-sm gap-2">
+                        <li class="page-item @(Model.CurrentPage == 1 ? "disabled" : "")">
+                            <a class="page-link rounded-3 text-dark border-0 shadow-sm" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage - 1))"><i class="bi bi-chevron-left"></i></a>
+                        </li>
+
+                        @for (int i = 1; i <= Model.TotalPages; i++)
+                        {
+                            <li class="page-item @(Model.CurrentPage == i ? "active" : "")">
+                                <a class="page-link rounded-3 border-0 shadow-sm @(Model.CurrentPage == i ? "bg-orange text-white" : "text-dark")" href="javascript:void(0)" onclick="goToPage(@i)">@i</a>
+                            </li>
+                        }
+
+                        <li class="page-item @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")">
+                            <a class="page-link rounded-3 text-dark border-0 shadow-sm" href="javascript:void(0)" onclick="goToPage(@(Model.CurrentPage + 1))"><i class="bi bi-chevron-right"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // JS điều khiển Thanh trượt kép
+        const minInput = document.getElementById("minPriceInput");
+        const maxInput = document.getElementById("maxPriceInput");
+        const sliderFill = document.getElementById("sliderFill");
+        const minDisplay = document.getElementById("minPriceDisplay");
+        const maxDisplay = document.getElementById("maxPriceDisplay");
+        const maxLimit = 150000; // Khớp với max="150000" trong HTML
+
+        function updatePriceSlider() {
+            let minVal = parseInt(minInput.value);
+            let maxVal = parseInt(maxInput.value);
+
+            // Chống trượt Min vượt Max
+            if (minVal > maxVal) {
+                let tmp = minVal;
+                minVal = maxVal;
+                maxVal = tmp;
+                // Cập nhật lại giá trị input nếu người dùng kéo quá trớn
+                if(this.id === "minPriceInput") minInput.value = maxVal;
+                else maxInput.value = minVal;
+            }
+
+            // Cập nhật text hiển thị (Thêm format tiền)
+            minDisplay.innerText = minVal.toLocaleString('vi-VN') + "đ";
+            maxDisplay.innerText = maxVal.toLocaleString('vi-VN') + "đ";
+
+            // Cập nhật dải màu cam ở giữa
+            let minPercent = (minVal / maxLimit) * 100;
+            let maxPercent = (maxVal / maxLimit) * 100;
+
+            sliderFill.style.left = minPercent + "%";
+            sliderFill.style.width = (maxPercent - minPercent) + "%";
+        }
+
+        // Khởi chạy khi load trang
+        updatePriceSlider();
+
+        // JS đổi Category
+        function selectCategory(id) {
+            document.getElementById("categoryInput").value = id;
+            document.getElementById("pageInput").value = 1; // Reset về trang 1
+            document.getElementById("filterForm").submit();
+        }
+
+        // JS chuyển trang
+        function goToPage(pageIndex) {
+            document.getElementById("pageInput").value = pageIndex;
+            document.getElementById("filterForm").submit();
+        }
+    </script>
+}
