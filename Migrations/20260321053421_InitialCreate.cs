@@ -638,28 +638,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "DiningTables",
-                columns: table => new
-                {
-                    TableId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    TableNumber = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DiningTables", x => x.TableId);
-                    table.ForeignKey(
-                        name: "FK_DiningTables_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Shifts",
                 columns: table => new
                 {
@@ -895,12 +873,6 @@ namespace CafeChain.Migrations
                         principalColumn: "CustomerId",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_Orders_DiningTables_TableId",
-                        column: x => x.TableId,
-                        principalTable: "DiningTables",
-                        principalColumn: "TableId",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
                         name: "FK_Orders_OrderStatuses_OrderStatusId",
                         column: x => x.OrderStatusId,
                         principalTable: "OrderStatuses",
@@ -1059,27 +1031,6 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "KitchenOrders",
-                columns: table => new
-                {
-                    KitchenOrderId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    OrderId = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_KitchenOrders", x => x.KitchenOrderId);
-                    table.ForeignKey(
-                        name: "FK_KitchenOrders_Orders_OrderId",
-                        column: x => x.OrderId,
-                        principalTable: "Orders",
-                        principalColumn: "OrderId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1717,17 +1668,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "DiningTables",
-                columns: new[] { "TableId", "Active", "Status", "StoreId", "TableNumber" },
-                values: new object[,]
-                {
-                    { 1, true, "Available", 1, 1 },
-                    { 2, true, "Available", 1, 2 },
-                    { 3, true, "Available", 2, 1 },
-                    { 4, true, "Available", 3, 1 }
-                });
-
-            migrationBuilder.InsertData(
                 table: "Shifts",
                 columns: new[] { "ShiftId", "EndTime", "Name", "StartTime", "StoreId" },
                 values: new object[,]
@@ -1898,15 +1838,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "KitchenOrders",
-                columns: new[] { "KitchenOrderId", "CreatedAt", "OrderId", "Status" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2025, 1, 1, 8, 5, 0, 0, DateTimeKind.Unspecified), 1, "Done" },
-                    { 2, new DateTime(2025, 1, 1, 9, 5, 0, 0, DateTimeKind.Unspecified), 2, "Processing" }
-                });
-
-            migrationBuilder.InsertData(
                 table: "OrderDetails",
                 columns: new[] { "OrderDetailId", "DrinkId", "DrinkName", "Note", "OrderId", "Price", "Quantity", "SizeId", "SizeName" },
                 values: new object[,]
@@ -2046,12 +1977,6 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_DiningTables_StoreId_TableNumber",
-                table: "DiningTables",
-                columns: new[] { "StoreId", "TableNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_DrinkCategories_Name",
                 table: "DrinkCategories",
                 column: "Name",
@@ -2134,11 +2059,6 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_KitchenOrders_OrderId",
-                table: "KitchenOrders",
-                column: "OrderId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_MemberLevels_Name",
                 table: "MemberLevels",
                 column: "Name",
@@ -2193,11 +2113,6 @@ namespace CafeChain.Migrations
                 name: "IX_Orders_StoreId1",
                 table: "Orders",
                 column: "StoreId1");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_TableId",
-                table: "Orders",
-                column: "TableId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderStatuses_Name",
@@ -2555,9 +2470,6 @@ namespace CafeChain.Migrations
                 name: "InventoryTransactions");
 
             migrationBuilder.DropTable(
-                name: "KitchenOrders");
-
-            migrationBuilder.DropTable(
                 name: "MemberLevels");
 
             migrationBuilder.DropTable(
@@ -2658,9 +2570,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Customers");
-
-            migrationBuilder.DropTable(
-                name: "DiningTables");
 
             migrationBuilder.DropTable(
                 name: "OrderStatuses");

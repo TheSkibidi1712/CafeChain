@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321020004_InitialCreate")]
+    [Migration("20260321053421_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2212,116 +2212,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Orders.DiningTable", b =>
-                {
-                    b.Property<int>("TableId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TableId"));
-
-                    b.Property<bool>("Active")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TableNumber")
-                        .HasColumnType("int");
-
-                    b.HasKey("TableId");
-
-                    b.HasIndex("StoreId", "TableNumber")
-                        .IsUnique();
-
-                    b.ToTable("DiningTables", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            TableId = 1,
-                            Active = true,
-                            Status = "Available",
-                            StoreId = 1,
-                            TableNumber = 1
-                        },
-                        new
-                        {
-                            TableId = 2,
-                            Active = true,
-                            Status = "Available",
-                            StoreId = 1,
-                            TableNumber = 2
-                        },
-                        new
-                        {
-                            TableId = 3,
-                            Active = true,
-                            Status = "Available",
-                            StoreId = 2,
-                            TableNumber = 1
-                        },
-                        new
-                        {
-                            TableId = 4,
-                            Active = true,
-                            Status = "Available",
-                            StoreId = 3,
-                            TableNumber = 1
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Orders.KitchenOrder", b =>
-                {
-                    b.Property<int>("KitchenOrderId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("KitchenOrderId"));
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("KitchenOrderId");
-
-                    b.HasIndex("OrderId");
-
-                    b.ToTable("KitchenOrders", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            KitchenOrderId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 8, 5, 0, 0, DateTimeKind.Unspecified),
-                            OrderId = 1,
-                            Status = "Done"
-                        },
-                        new
-                        {
-                            KitchenOrderId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 9, 5, 0, 0, DateTimeKind.Unspecified),
-                            OrderId = 2,
-                            Status = "Processing"
-                        });
-                });
-
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
                     b.Property<int>("OrderId")
@@ -2384,8 +2274,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreId");
 
                     b.HasIndex("StoreId1");
-
-                    b.HasIndex("TableId");
 
                     b.ToTable("Orders", (string)null);
 
@@ -4367,28 +4255,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Type");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Orders.DiningTable", b =>
-                {
-                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany("DiningTables")
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Store");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Orders.KitchenOrder", b =>
-                {
-                    b.HasOne("CafeChain.Models.Orders.Order", "Order")
-                        .WithMany("KitchenOrders")
-                        .HasForeignKey("OrderId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Order");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
@@ -4423,14 +4289,7 @@ namespace CafeChain.Migrations
                         .WithMany("Orders")
                         .HasForeignKey("StoreId1");
 
-                    b.HasOne("CafeChain.Models.Orders.DiningTable", "DiningTable")
-                        .WithMany("Orders")
-                        .HasForeignKey("TableId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Customer");
-
-                    b.Navigation("DiningTable");
 
                     b.Navigation("OrderStatus");
 
@@ -4846,15 +4705,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Transactions");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Orders.DiningTable", b =>
-                {
-                    b.Navigation("Orders");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
-                    b.Navigation("KitchenOrders");
-
                     b.Navigation("OrderDetails");
 
                     b.Navigation("OrderVouchers");
@@ -4927,8 +4779,6 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
                     b.Navigation("CashSessions");
-
-                    b.Navigation("DiningTables");
 
                     b.Navigation("Orders");
 

@@ -37,11 +37,6 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.DiningTable)
-                .WithMany(x => x.Orders)
-                .HasForeignKey(x => x.TableId)
-                .OnDelete(DeleteBehavior.SetNull);
-
             entity.HasOne(x => x.Staff)
                 .WithMany()
                 .HasForeignKey(x => x.StaffId)
@@ -295,87 +290,6 @@ namespace CafeChain.Data.Configurations
                 new OrderType { OrderTypeId = 1, Name = "Dine In" },
                 new OrderType { OrderTypeId = 2, Name = "Take Away" },
                 new OrderType { OrderTypeId = 3, Name = "Delivery" }
-            );
-        }
-    }
-
-    // ========================== DINING TABLE ==========================
-    public class DiningTableConfiguration : IEntityTypeConfiguration<DiningTable>
-    {
-        public void Configure(EntityTypeBuilder<DiningTable> entity)
-        {
-            entity.ToTable("DiningTables");
-
-            entity.HasKey(x => x.TableId);
-
-            entity.Property(x => x.TableNumber)
-                .IsRequired();
-
-            entity.Property(x => x.Status)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.Active)
-                .HasDefaultValue(true);
-
-            entity.HasOne(x => x.Store)
-                .WithMany(d => d.DiningTables)
-                .HasForeignKey(x => x.StoreId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(x => new { x.StoreId, x.TableNumber })
-                .IsUnique();
-
-            entity.HasData(
-                // Store 1
-                new DiningTable { TableId = 1, StoreId = 1, TableNumber = 1, Status = "Available", Active = true },
-                new DiningTable { TableId = 2, StoreId = 1, TableNumber = 2, Status = "Available", Active = true },
-
-                // Store 2
-                new DiningTable { TableId = 3, StoreId = 2, TableNumber = 1, Status = "Available", Active = true },
-
-                // Store 3
-                new DiningTable { TableId = 4, StoreId = 3, TableNumber = 1, Status = "Available", Active = true }
-            );
-        }
-    }
-
-    // ========================== KITCHEN ORDER ==========================
-    public class KitchenOrderConfiguration : IEntityTypeConfiguration<KitchenOrder>
-    {
-        public void Configure(EntityTypeBuilder<KitchenOrder> entity)
-        {
-            entity.ToTable("KitchenOrders");
-
-            entity.HasKey(x => x.KitchenOrderId);
-
-            entity.Property(x => x.Status)
-                .HasMaxLength(50);
-
-            entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
-
-            entity.HasOne(x => x.Order)
-                .WithMany(x => x.KitchenOrders)
-                .HasForeignKey(x => x.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(x => x.OrderId);
-
-            entity.HasData(
-                new KitchenOrder
-                {
-                    KitchenOrderId = 1,
-                    OrderId = 1,
-                    Status = "Done",
-                    CreatedAt = new DateTime(2025, 1, 1, 8, 5, 0)
-                },
-                new KitchenOrder
-                {
-                    KitchenOrderId = 2,
-                    OrderId = 2,
-                    Status = "Processing",
-                    CreatedAt = new DateTime(2025, 1, 1, 9, 5, 0)
-                }
             );
         }
     }

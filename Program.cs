@@ -1,15 +1,12 @@
 ﻿using CafeChain.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Services.Accounts;
 using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
-=======
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Services;
->>>>>>> feature/TrangChu
 
 var builder = WebApplication.CreateBuilder(args);
 

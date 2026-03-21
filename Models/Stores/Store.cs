@@ -19,7 +19,6 @@ namespace CafeChain.Models.Stores
         public virtual Ward Ward { get; set; }
 
         public virtual ICollection<Staff> Staffs { get; set; }
-        public virtual ICollection<DiningTable> DiningTables { get; set; }
         public virtual ICollection<StoreDrink> StoreDrinks { get; set; }
         public virtual ICollection<StoreTopping> StoreToppings { get; set; }
         public virtual ICollection<StoreInventory> StoreInventories { get; set; }

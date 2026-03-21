@@ -25,7 +25,6 @@ namespace CafeChain.Models.Orders
 
         public virtual Customer Customer { get; set; }
         public virtual Store Store { get; set; }
-        public virtual DiningTable DiningTable { get; set; }
         public virtual Staff Staff { get; set; }
         public virtual OrderStatus OrderStatus { get; set; }
         public virtual OrderType OrderType { get; set; }
@@ -33,7 +32,6 @@ namespace CafeChain.Models.Orders
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
         public virtual ICollection<Payment> Payments { get; set; }
         public virtual ICollection<OrderVoucher> OrderVouchers { get; set; }
-        public virtual ICollection<KitchenOrder> KitchenOrders { get; set; }
         public virtual ICollection<PointTransaction> PointTransactions { get; set; }
     }
 }
