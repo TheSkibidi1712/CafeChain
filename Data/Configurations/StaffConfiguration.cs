@@ -435,11 +435,10 @@ namespace CafeChain.Data.Configurations
 
             entity.HasData(
                 new Role { RoleId = 1, Name = "Cashier", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 2, Name = "Barista", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 3, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 4, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 5, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 6, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
+                new Role { RoleId = 2, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 3, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 4, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 5, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
             );
         }
     }

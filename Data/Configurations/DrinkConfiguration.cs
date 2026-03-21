@@ -205,8 +205,14 @@ namespace CafeChain.Data.Configurations
                 new DrinkSize { DrinkSizeId = 8, DrinkId = 4, SizeId = 1, Price = 25000m, Active = true },
                 new DrinkSize { DrinkSizeId = 9, DrinkId = 4, SizeId = 2, Price = 30000m, Active = true },
                 new DrinkSize { DrinkSizeId = 10, DrinkId = 4, SizeId = 3, Price = 35000m, Active = true },
-                new DrinkSize { DrinkSizeId = 11, DrinkId = 5, SizeId = 1, Price = 15000m, Active = true },
-                new DrinkSize { DrinkSizeId = 12, DrinkId = 6, SizeId = 1, Price = 15000m, Active = true }
+                new DrinkSize { DrinkSizeId = 11, DrinkId = 5, SizeId = 5, Price = 15000m, Active = true },
+                new DrinkSize { DrinkSizeId = 12, DrinkId = 5, SizeId = 6, Price = 20000m, Active = true },
+                new DrinkSize { DrinkSizeId = 13, DrinkId = 5, SizeId = 7, Price = 15000m, Active = true },
+                new DrinkSize { DrinkSizeId = 14, DrinkId = 6, SizeId = 5, Price = 15000m, Active = true },
+                new DrinkSize { DrinkSizeId = 15, DrinkId = 6, SizeId = 6, Price = 20000m, Active = true },
+                new DrinkSize { DrinkSizeId = 16, DrinkId = 6, SizeId = 7, Price = 25000m, Active = true },
+                new DrinkSize { DrinkSizeId = 17, DrinkId = 6, SizeId = 8, Price = 30000m, Active = true }
+
             );
         }
     }
@@ -238,7 +244,11 @@ namespace CafeChain.Data.Configurations
                 new Size { SizeId = 1, Name = "S", Description = "Kích thước nhỏ", Active = true },
                 new Size { SizeId = 2, Name = "M", Description = "Kích thước trung bình", Active = true },
                 new Size { SizeId = 3, Name = "L", Description = "Kích thước lớn", Active = true },
-                new Size { SizeId = 4, Name = "XL", Description = "Kích thước rất lớn", Active = true }
+                new Size { SizeId = 4, Name = "XL", Description = "Kích thước rất lớn", Active = true },
+                new Size { SizeId = 5, Name = "150ml", Description = "Kích thước 150ml", Active = true },
+                new Size { SizeId = 6, Name = "200ml", Description = "Kích thước 200ml", Active = true },
+                new Size { SizeId = 7, Name = "250ml", Description = "Kích thước 250ml", Active = true },
+                new Size { SizeId = 8, Name = "300ml", Description = "Kích thước 300ml", Active = true }
             );
         }
     }
