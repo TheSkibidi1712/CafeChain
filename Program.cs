@@ -1,6 +1,8 @@
-using CafeChain.Data;
+﻿using CafeChain.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Application.Interfaces;
+using CafeChain.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +48,12 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // =======================
 builder.Services.AddHttpContextAccessor();
 
+
+// =======================
+// 6. Application Services
+// =======================
+builder.Services.AddScoped<IDrinkService, DrinkService>();
+builder.Services.AddScoped<ICartService, CartService>();
 
 var app = builder.Build();
 

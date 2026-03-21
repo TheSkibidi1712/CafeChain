@@ -1,0 +1,366 @@
+﻿@model CafeChain.ViewModels.DrinkDetailViewModel
+
+@{
+    ViewData["Title"] = Model.Drink.Name;
+    // Lấy giá trị size thấp nhất làm giá gốc mặc định
+    var defaultBasePrice = Model.Drink.DrinkSizes.Any() ? Model.Drink.DrinkSizes.Min(s => s.Price) : 0;
+}
+
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/" class="text-muted text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item"><a href="/Drink/Menu" class="text-muted text-decoration-none">Thực đơn</a></li>
+            <li class="breadcrumb-item active text-orange fw-semibold" aria-current="page">@Model.Drink.Name</li>
+        </ol>
+    </nav>
+
+    <div class="row mt-4">
+        <div class="col-md-6 mb-4">
+            <div class="mb-3">
+                <img id="mainImage" src="@(Model.Drink.DrinkImages.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg")"
+                     class="img-fluid rounded-4 w-100 object-fit-cover shadow-sm" style="aspect-ratio: 1/1;" alt="@Model.Drink.Name">
+            </div>
+            @if (Model.Drink.DrinkImages.Count > 1)
+            {
+                <div class="d-flex gap-3">
+                    @foreach (var img in Model.Drink.DrinkImages)
+                    {
+                        <img src="@img.ImageUrl" class="rounded-3 object-fit-cover cursor-pointer border thumbnail-img"
+                             style="width: 80px; height: 80px;" onclick="changeMainImage('@img.ImageUrl')" />
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="col-md-6 ps-md-5">
+            <h1 class="fw-bold mb-3">@Model.Drink.Name</h1>
+            <p class="text-muted mb-4" style="line-height: 1.8;">@Model.Drink.Description</p>
+
+            <h2 class="fw-bold text-orange mb-4" id="displayTotalPrice">@defaultBasePrice.ToString("N0")đ</h2>
+
+            <form id="addToCartForm">
+                <input type="hidden" id="drinkId" value="@Model.Drink.DrinkId" />
+
+                @if (Model.Drink.DrinkSizes.Any())
+                {
+                    <div class="mb-4">
+                        <label class="fw-bold mb-2">Chọn Size</label>
+                        <div class="d-flex gap-2">
+                            @foreach (var ds in Model.Drink.DrinkSizes.OrderBy(s => s.Price))
+                            {
+                                <button type="button" class="btn btn-outline-custom size-btn flex-fill @(ds.Price == defaultBasePrice ? "active" : "")"
+                                        data-price="@ds.Price" data-size-id="@ds.SizeId" onclick="selectSize(this)">
+                                    @ds.Size.Name
+                                </button>
+                            }
+                        </div>
+                    </div>
+                }
+
+                <div class="row mb-4">
+                    @if (Model.OptionalToppings != null && Model.OptionalToppings.Any())
+                    {
+                        <div class="col-6">
+                            <label class="fw-bold mb-2">Chọn Topping</label>
+                            <select class="form-select shadow-none border rounded-3 py-2" id="toppingSelector" onchange="addOptionalTopping(this)">
+                                <option value="">Chọn Topping</option>
+                                @foreach (var dt in Model.OptionalToppings)
+                                {
+                                    // 💡 LOGIC KIỂM TRA: Nếu topping này ĐÃ CÓ trong danh sách mặc định rồi
+                                    bool isAlsoDefault = Model.DefaultToppings != null && Model.DefaultToppings.Any(d => d.ToppingId == dt.ToppingId);
+
+                                    // Thì mình gán thêm chữ "Thêm " ở đằng trước cho khách hiểu là mua "Double"
+                                    string prefixName = isAlsoDefault ? "Thêm " : "";
+
+                                    <option value="@dt.ToppingId" data-price="@dt.Topping.Price">
+                                        @prefixName@dt.Topping.Name (+@dt.Topping.Price.ToString("N0")đ)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    @if (Model.DefaultToppings != null && Model.DefaultToppings.Any())
+                    {
+                        <div class="col-6 @(!Model.OptionalToppings.Any() ? "offset-6" : "")">
+                            <label class="text-muted small mb-2">Topping mặc định</label>
+                            <div class="d-flex flex-wrap gap-2" id="defaultToppingsContainer">
+                                @foreach (var ddt in Model.DefaultToppings)
+                                {
+                                    <div class="topping-tag default-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border text-muted small"
+                                         data-topping-id="@ddt.ToppingId">
+                                        @ddt.Topping.Name
+                                        <button type="button" class="btn btn-link text-muted p-0 ms-2 shadow-none" onclick="removeTag(this, 'default')">
+                                            <i class="bi bi-x fs-6"></i>
+                                        </button>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="d-flex flex-wrap gap-2 mb-4" id="optionalToppingsTagsContainer"></div>
+
+
+                <div class="d-flex gap-3 mb-4 mt-5">
+                    <div class="d-flex align-items-center border rounded-3 px-1 bg-light" style="width: 140px; height: 50px;">
+                        <button type="button" class="btn text-muted shadow-none" onclick="updateQty(-1)">-</button>
+                        <input type="text" id="quantity" class="form-control border-0 text-center fw-bold shadow-none p-0 bg-transparent" value="1" readonly>
+                        <button type="button" class="btn text-muted shadow-none" onclick="updateQty(1)">+</button>
+                    </div>
+
+                    <button type="button" class="btn btn-orange flex-grow-1 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center h-50px" style="height: 50px;" onclick="addToCartDetail()">
+                        <i class="bi bi-cart-plus me-2 fs-5"></i> Thêm vào giỏ hàng
+                    </button>
+                </div>
+
+                <div class="text-muted small">
+                    <i class="bi bi-shield-check text-orange me-1"></i> Đảm bảo chất lượng
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (Model.RelatedDrinks.Any())
+    {
+        <div class="mt-5 pt-5 border-top">
+            <h4 class="fw-bold mb-4">Gợi ý dành cho bạn</h4>
+
+            <div class="product-slider-container position-relative mb-5">
+                @if (Model.RelatedDrinks.Count > 4)
+                {
+                    <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                }
+
+                <div class="product-slider">
+                    @foreach (var item in Model.RelatedDrinks)
+                    {
+                        <div class="slider-item">
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="item" />
+                        </div>
+                    }
+                </div>
+
+                @if (Model.RelatedDrinks.Count > 4)
+                {
+                    <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <style>
+        /* CSS cho nút Size xịn như ảnh mới */
+        .btn-outline-custom {
+            color: #555;
+            background-color: #f8f9fa;
+            border-color: #ddd;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+            .btn-outline-custom:hover {
+                background-color: #f1f3f5;
+            }
+
+            .btn-outline-custom.active {
+                background-color: #fdebd0;
+                color: #d35400;
+                border-color: #d35400;
+            }
+
+        /* CSS cho Tag Topping */
+        .topping-tag {
+            transition: all 0.2s;
+            border-color: #eee !important;
+        }
+
+        .optional-tag {
+            color: #d35400;
+            font-weight: 600;
+            background-color: #fdebd0 !important;
+            border-color: #d35400 !important;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .thumbnail-img:hover {
+            border-color: #d35400 !important;
+        }
+
+        .h-50px {
+            height: 50px;
+        }
+    </style>
+
+ 
+    <style>
+        /* CSS cho nút Size xịn như ảnh mới */
+        .btn-outline-custom { color: #555; background-color: #f8f9fa; border-color: #ddd; font-weight: 600; font-size: 0.9rem; }
+        .btn-outline-custom:hover { background-color: #f1f3f5; }
+        .btn-outline-custom.active { background-color: #fdebd0; color: #d35400; border-color: #d35400; }
+        /* CSS cho Tag Topping */
+        .topping-tag { transition: all 0.2s; border-color: #eee !important; }
+        .optional-tag { color: #d35400; font-weight: 600; background-color: #fdebd0 !important; border-color: #d35400 !important; }
+        .cursor-pointer { cursor: pointer; }
+        .thumbnail-img:hover { border-color: #d35400 !important; }
+        .h-50px { height: 50px; }
+    </style>
+
+    <script>
+        // 1. JS Đổi ảnh chính
+        function changeMainImage(src) { 
+            document.getElementById('mainImage').src = src; 
+        }
+
+        // 2. TẠO STATE (Dùng .ToString("0") để C# tuyệt đối không sinh ra dấu phẩy làm chết JS)
+        let state = {
+            basePrice: @defaultBasePrice.ToString("0"), 
+            optionalToppings: [], 
+            removedDefaultToppings: [] 
+        };
+
+        // Hàm cập nhật tổng giá hiển thị
+        function updateDisplayTotal() {
+            let toppingsTotal = state.optionalToppings.reduce((sum, t) => sum + t.price, 0);
+            let grandTotal = state.basePrice + toppingsTotal;
+            document.getElementById('displayTotalPrice').innerText = grandTotal.toLocaleString('vi-VN') + 'đ';
+        }
+
+        // 3. Chọn Size
+        function selectSize(btn) {
+            document.querySelectorAll('.size-btn').forEach(el => el.classList.remove('active'));
+            btn.classList.add('active');
+            state.basePrice = parseInt(btn.getAttribute('data-price'));
+            updateDisplayTotal(); 
+        }
+
+        // 4. Thêm Topping mua thêm
+        function addOptionalTopping(select) {
+            let option = select.options[select.selectedIndex];
+            let id = option.value;
+            if (id === "") return; 
+
+            let price = parseInt(option.getAttribute('data-price'));
+            let name = option.text.split(' (+')[0]; 
+
+            if (state.optionalToppings.some(t => t.id === id)) {
+                alert("Bạn đã chọn Topping này rồi!");
+                select.selectedIndex = 0; 
+                return;
+            }
+
+            state.optionalToppings.push({ id, price });
+
+            let container = document.getElementById('optionalToppingsTagsContainer');
+            let tagHtml = `
+                <div class="topping-tag optional-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border small"
+                     data-topping-id="${id}" data-price="${price}">
+                    ${name} (+${price.toLocaleString('vi-VN')}đ)
+                    <button type="button" class="btn btn-link text-orange p-0 ms-2 shadow-none" onclick="removeTag(this, 'optional', '${id}')">
+                        <i class="bi bi-x fs-6 fw-bold"></i>
+                    </button>
+                </div>
+            `;
+            container.insertAdjacentHTML('beforeend', tagHtml);
+
+            select.selectedIndex = 0; 
+            updateDisplayTotal(); 
+        }
+
+        // 5. Xóa Tag
+        function removeTag(button, type, optionalId) {
+            let tag = button.closest('.topping-tag');
+            let id = tag.getAttribute('data-topping-id');
+
+            if (type === 'default') {
+                tag.style.opacity = '0.4'; 
+                state.removedDefaultToppings.push(id);
+                button.setAttribute('onclick', "restoreTag(this, 'default')");
+                button.innerHTML = '<i class="bi bi-plus fs-6"></i>';
+            } else if (type === 'optional') {
+                tag.remove();
+                state.optionalToppings = state.optionalToppings.filter(t => t.id !== optionalId);
+                updateDisplayTotal(); 
+            }
+        }
+
+        // 6. Phục hồi Tag mặc định
+        function restoreTag(button, type) {
+             let tag = button.closest('.topping-tag');
+             let id = tag.getAttribute('data-topping-id');
+             tag.style.opacity = '1';
+             state.removedDefaultToppings = state.removedDefaultToppings.filter(removedId => removedId !== id);
+             button.setAttribute('onclick', "removeTag(this, 'default')");
+             button.innerHTML = '<i class="bi bi-x fs-6"></i>';
+        }
+
+        // 7. Số lượng
+        function updateQty(change) {
+            let input = document.getElementById('quantity');
+            let current = parseInt(input.value);
+            if (current + change >= 1) { input.value = current + change; }
+        }
+
+        // 8. Thêm vào Giỏ hàng (Có thêm lớp bảo vệ chống lỗi)
+        function addToCartDetail() {
+            let activeSizeBtn = document.querySelector('.size-btn.active');
+            
+            // Lớp bảo vệ: Nếu chưa chọn Size thì báo lỗi nhẹ nhàng chứ không làm sập web
+            if (!activeSizeBtn) {
+                alert("Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!");
+                return;
+            }
+
+            let payload = {
+                drinkId: parseInt(document.getElementById('drinkId').value),
+                sizeId: parseInt(activeSizeBtn.getAttribute('data-size-id')),
+                quantity: parseInt(document.getElementById('quantity').value),
+                optionalToppingIds: state.optionalToppings.map(t => parseInt(t.id)), 
+                removedDefaultToppingIds: state.removedDefaultToppings.map(id => parseInt(id)) 
+            };
+
+            let btn = document.querySelector('button[onclick="addToCartDetail()"]');
+            let originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang thêm...';
+            btn.disabled = true;
+
+            fetch('/Cart/AddToCartAdvance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(payload)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    const badge = document.getElementById('cart-badge');
+                    if(badge) {
+                        badge.innerText = data.totalCount;
+                        badge.classList.remove('d-none');
+                    }
+                    alert("Đã thêm món vào giỏ hàng thành công!");
+                } else {
+                    alert("Lỗi: " + data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error))
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+    </script>
+}
+}
