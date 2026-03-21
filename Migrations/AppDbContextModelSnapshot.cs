@@ -117,6 +117,12 @@ namespace CafeChain.Migrations
                             AccountTypeId = 2,
                             Active = true,
                             Name = "Staff"
+                        },
+                        new
+                        {
+                            AccountTypeId = 3,
+                            Active = true,
+                            Name = "Admin"
                         });
                 });
 
@@ -357,7 +363,9 @@ namespace CafeChain.Migrations
 
                     b.HasKey("CustomerPhoneId");
 
-                    b.HasIndex("CustomerId", "Phone")
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Phone")
                         .IsUnique();
 
                     b.ToTable("CustomerPhones", (string)null);

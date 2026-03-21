@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321012754_InitialCreate")]
+    [Migration("20260321020004_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -120,6 +120,12 @@ namespace CafeChain.Migrations
                             AccountTypeId = 2,
                             Active = true,
                             Name = "Staff"
+                        },
+                        new
+                        {
+                            AccountTypeId = 3,
+                            Active = true,
+                            Name = "Admin"
                         });
                 });
 
@@ -360,7 +366,9 @@ namespace CafeChain.Migrations
 
                     b.HasKey("CustomerPhoneId");
 
-                    b.HasIndex("CustomerId", "Phone")
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("Phone")
                         .IsUnique();
 
                     b.ToTable("CustomerPhones", (string)null);

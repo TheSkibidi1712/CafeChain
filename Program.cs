@@ -1,6 +1,10 @@
 using CafeChain.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Services.Accounts;
+using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,14 +41,28 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
+
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
+
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // 🔥 HTTPS only
+        options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
 // =======================
 // 5. HttpContextAccessor
 // =======================
 builder.Services.AddHttpContextAccessor();
+
+// =======================
+// 6. Dependency Injection for Services and Repositories
+// =======================
+
+// Account
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+
 
 
 var app = builder.Build();

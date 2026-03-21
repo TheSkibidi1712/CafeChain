@@ -1335,7 +1335,8 @@ namespace CafeChain.Migrations
                 values: new object[,]
                 {
                     { 1, true, "Customer" },
-                    { 2, true, "Staff" }
+                    { 2, true, "Staff" },
+                    { 3, true, "Admin" }
                 });
 
             migrationBuilder.InsertData(
@@ -2028,9 +2029,14 @@ namespace CafeChain.Migrations
                 column: "CustomerId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerPhones_CustomerId_Phone",
+                name: "IX_CustomerPhones_CustomerId",
                 table: "CustomerPhones",
-                columns: new[] { "CustomerId", "Phone" },
+                column: "CustomerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CustomerPhones_Phone",
+                table: "CustomerPhones",
+                column: "Phone",
                 unique: true);
 
             migrationBuilder.CreateIndex(
