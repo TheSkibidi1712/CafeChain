@@ -296,7 +296,7 @@ namespace CafeChain.Data.Configurations
             // ================= RELATIONSHIPS =================
 
             entity.HasOne(x => x.Drink)
-                .WithMany() // 👈 nếu chưa add navigation bên Drink
+                .WithMany(d => d.DrinkDefaultToppings) // 👈 nếu chưa add navigation bên Drink
                 .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Cascade);
 

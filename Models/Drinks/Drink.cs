@@ -16,6 +16,7 @@ namespace CafeChain.Models.Drinks
         public virtual ICollection<DrinkImage> DrinkImages { get; set; }
         public virtual ICollection<DrinkSize> DrinkSizes { get; set; }
         public virtual ICollection<DrinkTopping> DrinkToppings { get; set; }
+        public virtual ICollection<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
         public virtual ICollection<Recipe> Recipes { get; set; }
         public virtual ICollection<Rating> Ratings { get; set; }
     }

@@ -4147,7 +4147,7 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkDefaultTopping", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
-                        .WithMany()
+                        .WithMany("DrinkDefaultToppings")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -4755,6 +4755,8 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
                 {
+                    b.Navigation("DrinkDefaultToppings");
+
                     b.Navigation("DrinkImages");
 
                     b.Navigation("DrinkSizes");
