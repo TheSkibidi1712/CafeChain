@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321005718_InitialCreate")]
+    [Migration("20260321012754_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -4637,7 +4637,7 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.StoreDrink", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
-                        .WithMany()
+                        .WithMany("StoreDrinks")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -4769,6 +4769,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Ratings");
 
                     b.Navigation("Recipes");
+
+                    b.Navigation("StoreDrinks");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkCategory", b =>

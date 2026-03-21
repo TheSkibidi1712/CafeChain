@@ -1,4 +1,5 @@
 ﻿using CafeChain.Models.Customers;
+using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Drinks
 {
@@ -17,6 +18,7 @@ namespace CafeChain.Models.Drinks
         public virtual ICollection<DrinkSize> DrinkSizes { get; set; }
         public virtual ICollection<DrinkTopping> DrinkToppings { get; set; }
         public virtual ICollection<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
+        public virtual ICollection<StoreDrink> StoreDrinks { get; set; }
         public virtual ICollection<Recipe> Recipes { get; set; }
         public virtual ICollection<Rating> Ratings { get; set; }
     }

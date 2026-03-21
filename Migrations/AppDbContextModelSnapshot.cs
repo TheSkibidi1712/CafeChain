@@ -4634,7 +4634,7 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.StoreDrink", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
-                        .WithMany()
+                        .WithMany("StoreDrinks")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -4766,6 +4766,8 @@ namespace CafeChain.Migrations
                     b.Navigation("Ratings");
 
                     b.Navigation("Recipes");
+
+                    b.Navigation("StoreDrinks");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkCategory", b =>
