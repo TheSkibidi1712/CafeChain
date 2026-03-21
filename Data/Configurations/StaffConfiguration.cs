@@ -240,8 +240,8 @@ namespace CafeChain.Data.Configurations
                 new StaffRole { StaffRoleId = 6, StaffId = 6, RoleId = 3 },
                 new StaffRole { StaffRoleId = 7, StaffId = 7, RoleId = 1 },
                 new StaffRole { StaffRoleId = 8, StaffId = 8, RoleId = 2 },
-                new StaffRole { StaffRoleId = 9, StaffId = 9, RoleId = 5 }, // Province Manager
-                new StaffRole { StaffRoleId = 10, StaffId = 10, RoleId = 6 } // Admin
+                new StaffRole { StaffRoleId = 9, StaffId = 9, RoleId = 4 }, // Province Manager
+                new StaffRole { StaffRoleId = 10, StaffId = 10, RoleId = 5 } // Admin
             );
         }
     }
