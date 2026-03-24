@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321061739_InitialCreate")]
+    [Migration("20260324104600_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -436,6 +436,53 @@ namespace CafeChain.Migrations
                     b.ToTable("CustomerPoints", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Customers.PasswordResetOtp", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime>("ExpiredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("FailedAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("Email");
+
+                    b.HasIndex("Email", "Code", "IsUsed");
+
+                    b.ToTable("PasswordResetOtps", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Customers.Rating", b =>
                 {
                     b.Property<int>("RatingId")
@@ -474,6 +521,29 @@ namespace CafeChain.Migrations
                         {
                             t.HasCheckConstraint("CK_Rating_Stars", "[Stars] BETWEEN 1 AND 5");
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.RatingImage", b =>
+                {
+                    b.Property<int>("RatingImageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RatingImageId"));
+
+                    b.Property<string>("ImageUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("RatingId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RatingImageId");
+
+                    b.HasIndex("RatingId");
+
+                    b.ToTable("RatingImages", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
@@ -4094,6 +4164,17 @@ namespace CafeChain.Migrations
                     b.Navigation("Drink");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Customers.RatingImage", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Rating", "Rating")
+                        .WithMany("Images")
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Rating");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.DrinkCategory", "Category")
@@ -4682,6 +4763,11 @@ namespace CafeChain.Migrations
                     b.Navigation("Ratings");
 
                     b.Navigation("VoucherUsages");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.Rating", b =>
+                {
+                    b.Navigation("Images");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>

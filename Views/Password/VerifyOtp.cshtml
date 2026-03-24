@@ -1,0 +1,152 @@
+﻿@model CafeChain.ViewModels.Accounts.VerifyOtpViewModel
+
+@{
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <title>Xác minh OTP</title>
+    <link rel="stylesheet" href="~/css/otp.css" />
+</head>
+<body>
+
+    <div class="otp-container">
+        <h2>Xác minh OTP</h2>
+        <p>Nhập mã 6 ký tự đã gửi đến email của bạn</p>
+
+        <form asp-action="VerifyOtp" method="post" id="otpForm">
+            <input type="hidden" asp-for="Email" />
+            <input type="hidden" asp-for="OtpCode" id="OtpCode" />
+
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="otp-box">
+                <input maxlength="1" class="otp-input" autofocus />
+                <input maxlength="1" class="otp-input" />
+                <input maxlength="1" class="otp-input" />
+                <input maxlength="1" class="otp-input" />
+                <input maxlength="1" class="otp-input" />
+                <input maxlength="1" class="otp-input" />
+            </div>
+            <div class="error-message">
+                @Html.ValidationSummary()
+            </div>
+
+            <button type="submit">Xác nhận</button>
+        </form>
+
+        <!-- 🔥 RESEND -->
+        <div class="resend">
+            <span id="countdown">05:00</span>
+            <button id="resendBtn" disabled>Gửi lại OTP</button>
+        </div>
+    </div>
+
+    <script>
+            const inputs = document.querySelectorAll(".otp-input");
+            const hiddenInput = document.getElementById("OtpCode");
+            const form = document.getElementById("otpForm");
+
+            // ================= OTP INPUT =================
+            inputs.forEach((input, index) => {
+
+                input.addEventListener("input", (e) => {
+                    let value = e.target.value;
+
+                    // chỉ cho chữ + số
+                    if (!/^[a-zA-Z0-9]$/.test(value)) {
+                        input.value = "";
+                        return;
+                    }
+
+                    // 🔥 FORCE UPPERCASE
+                    value = value.toUpperCase();
+                    input.value = value;
+
+                    // auto next
+                    if (value && index < inputs.length - 1) {
+                        inputs[index + 1].focus();
+                    }
+
+                    updateOtp();
+                });
+
+                input.addEventListener("keydown", (e) => {
+                    if (e.key === "Backspace" && !input.value && index > 0) {
+                        inputs[index - 1].focus();
+                    }
+                });
+            });
+
+            function updateOtp() {
+                let otp = "";
+                inputs.forEach(i => otp += i.value);
+
+                hiddenInput.value = otp;
+            }
+
+            // ================= CLIENT VALIDATE =================
+            form.addEventListener("submit", function (e) {
+                if (hiddenInput.value.length !== 6) {
+                    e.preventDefault();
+                    alert("Vui lòng nhập đủ 6 ký tự OTP");
+                }
+            });
+
+            // ================= COUNTDOWN (FIX KHÔNG RESET) =================
+
+            // key theo email để tránh conflict
+            const storageKey = "otp_expire_" + '@Model.Email';
+
+            // nếu chưa có thì set thời gian hết hạn
+            if (!localStorage.getItem(storageKey)) {
+                const expireTime = new Date().getTime() + 5 * 60 * 1000;
+                localStorage.setItem(storageKey, expireTime);
+            }
+
+            const countdownEl = document.getElementById("countdown");
+            const resendBtn = document.getElementById("resendBtn");
+
+            const timer = setInterval(() => {
+
+                const now = new Date().getTime();
+                const expireTime = parseInt(localStorage.getItem(storageKey));
+
+                let timeLeft = Math.floor((expireTime - now) / 1000);
+
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    countdownEl.innerText = "00:00";
+                    resendBtn.disabled = false;
+
+                    // hết hạn thì xoá luôn
+                    localStorage.removeItem(storageKey);
+                    return;
+                }
+
+                let minutes = Math.floor(timeLeft / 60);
+                let seconds = timeLeft % 60;
+
+                countdownEl.innerText =
+                    String(minutes).padStart(2, '0') + ":" +
+                    String(seconds).padStart(2, '0');
+
+            }, 1000);
+
+            // ================= RESEND =================
+            resendBtn.addEventListener("click", () => {
+
+                // reset timer mới
+                const newExpire = new Date().getTime() + 5 * 60 * 1000;
+                localStorage.setItem(storageKey, newExpire);
+
+                window.location.href = '/Password/ForgotPassword?email=' + '@Model.Email';
+            });
+
+    </script>
+
+</body>
+</html>

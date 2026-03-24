@@ -142,6 +142,24 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PasswordResetOtps",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
+                    ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IsUsed = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    FailedAttempts = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PasswordResetOtps", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PaymentMethods",
                 columns: table => new
                 {
@@ -608,6 +626,26 @@ namespace CafeChain.Migrations
                         principalTable: "Wards",
                         principalColumn: "WardId",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RatingImages",
+                columns: table => new
+                {
+                    RatingImageId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RatingId = table.Column<int>(type: "int", nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RatingImages", x => x.RatingImageId);
+                    table.ForeignKey(
+                        name: "FK_RatingImages_Ratings_RatingId",
+                        column: x => x.RatingId,
+                        principalTable: "Ratings",
+                        principalColumn: "RatingId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -2157,6 +2195,21 @@ namespace CafeChain.Migrations
                 column: "VoucherId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetOtps_CreatedAt",
+                table: "PasswordResetOtps",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetOtps_Email",
+                table: "PasswordResetOtps",
+                column: "Email");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PasswordResetOtps_Email_Code_IsUsed",
+                table: "PasswordResetOtps",
+                columns: new[] { "Email", "Code", "IsUsed" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PaymentMethods_Code",
                 table: "PaymentMethods",
                 column: "Code",
@@ -2220,6 +2273,11 @@ namespace CafeChain.Migrations
                 columns: new[] { "CountryId", "Name" },
                 unique: true,
                 filter: "[CountryId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RatingImages_RatingId",
+                table: "RatingImages",
+                column: "RatingId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Ratings_CustomerId_DrinkId",
@@ -2487,13 +2545,16 @@ namespace CafeChain.Migrations
                 name: "OrderVouchers");
 
             migrationBuilder.DropTable(
+                name: "PasswordResetOtps");
+
+            migrationBuilder.DropTable(
                 name: "Payments");
 
             migrationBuilder.DropTable(
                 name: "PointTransactions");
 
             migrationBuilder.DropTable(
-                name: "Ratings");
+                name: "RatingImages");
 
             migrationBuilder.DropTable(
                 name: "RecipeDetails");
@@ -2545,6 +2606,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PointTransactionTypes");
+
+            migrationBuilder.DropTable(
+                name: "Ratings");
 
             migrationBuilder.DropTable(
                 name: "Recipes");

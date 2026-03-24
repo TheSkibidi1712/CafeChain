@@ -14,5 +14,7 @@ namespace CafeChain.Models.Customers
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public virtual Customer? Customer { get; set; }
         public virtual Drink? Drink { get; set; }
+        public virtual ICollection<RatingImage> Images { get; set; } // 🔥 NEW
+
     }
 }

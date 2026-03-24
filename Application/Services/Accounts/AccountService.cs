@@ -46,7 +46,9 @@ namespace CafeChain.Application.Services.Accounts
                 errors.Add("SĐT đã tồn tại");
 
             if (errors.Any())
+            {
                 return ServiceResult.Failure("Đăng ký thất bại", errors);
+            }
 
             // ===== CREATE ACCOUNT =====
             var account = new Account

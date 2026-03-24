@@ -263,7 +263,7 @@
                     <input type="checkbox" asp-for="RememberMe" id="rememberMe" />
                     <label for="rememberMe">Ghi nhớ đăng nhập</label>
                 </div>
-                <a href="#" class="forgot-password">Quên mật khẩu?</a>
+                <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">Quên mật khẩu?</a>
             </div>
 
             <button type="submit" class="submit-btn">Đăng nhập</button>
