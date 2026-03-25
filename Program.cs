@@ -11,7 +11,6 @@ using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Services;
->>>>>>> f22e99af403c1b4fc2bb0c693e3c8c4e8757567f
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,7 +83,6 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // =======================
 builder.Services.AddScoped<IDrinkService, DrinkService>();
 builder.Services.AddScoped<ICartService, CartService>();
->>>>>>> f22e99af403c1b4fc2bb0c693e3c8c4e8757567f
 
 var app = builder.Build();
 
