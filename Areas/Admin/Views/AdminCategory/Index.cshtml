@@ -1,0 +1,146 @@
+@model CafeChain.ViewModels.Shared.PaginatedListViewModel<CafeChain.ViewModels.Admin.AdminCategoryViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý danh mục";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-1">
+    <div>
+        <h2 style="font-weight: 700; color: #343a40;">Quản lý danh mục</h2>
+        <p class="text-muted" style="font-size: 14px;">Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain</p>
+    </div>
+    <button type="button" class="btn text-white" style="background-color: #d93d20; border-radius: 8px; padding: 10px 20px; font-weight: 500;" data-bs-toggle="modal" data-bs-target="#createCategoryModal">
+        <i class="fas fa-plus"></i> Thêm danh mục mới
+    </button>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" style="font-size: 14px; vertical-align: middle;">
+            <thead class="bg-light text-muted" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">
+                <tr>
+                    <th class="border-0 py-3">Tên danh mục</th>
+                    <th class="border-0 py-3">Trạng thái</th>
+                    <th class="border-0 text-end px-4 py-3">Hành động</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Items.Any())
+                {
+                    <tr>
+                        <td colspan="3" class="text-center py-4 text-muted">Chưa có danh mục nào.</td>
+                    </tr>
+                }
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td class="py-3" style="font-weight: 600; color: #212529;">
+                            @item.Name
+                        </td>
+                        <td class="py-3">
+                            @if (item.Active)
+                            {
+                                <span class="badge" style="background-color: #e6fcf5; color: #0ca678; padding: 6px 10px; border-radius: 6px; font-weight: 500;">Hiển thị</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-muted" style="padding: 6px 10px; border-radius: 6px; font-weight: 500;">Ẩn</span>
+                            }
+                        </td>
+                        <td class="text-end px-4 py-3">
+                            <form asp-action="ToggleStatus" asp-route-id="@item.CategoryId" method="post" style="display:inline-block;" class="m-0 p-0">
+                                <button type="submit" class="btn btn-sm text-@(item.Active ? "warning" : "success") px-1" title="@(item.Active ? "Khóa" : "Mở khóa")">
+                                    <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+                                </button>
+                            </form>
+                            <a asp-action="Edit" asp-route-id="@item.CategoryId" class="btn btn-sm text-primary px-1"><i class="fas fa-pen"></i></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-white border-top-0 py-3 px-4 d-flex justify-content-between align-items-center" style="font-size: 13px;">
+        <span class="text-muted">Hiển thị @Model.TotalCount danh mục</span>
+        <div class="pagination mb-0 d-flex gap-1">
+            <a asp-action="Index" asp-route-page="@(Model.PageIndex - 1)" class="btn btn-sm btn-light border @(Model.HasPreviousPage ? "" : "disabled")"><i class="fas fa-chevron-left text-muted"></i></a>
+            
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <a asp-action="Index" asp-route-page="@i" class="btn btn-sm @(i == Model.PageIndex ? "text-white" : "btn-light border")" style="@(i == Model.PageIndex ? "background-color: #d93d20;" : "")">@i</a>
+            }
+
+            <a asp-action="Index" asp-route-page="@(Model.PageIndex + 1)" class="btn btn-sm btn-light border @(Model.HasNextPage ? "" : "disabled")"><i class="fas fa-chevron-right text-muted"></i></a>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm danh mục mới -->
+<div class="modal fade" id="createCategoryModal" tabindex="-1" aria-labelledby="createCategoryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 550px;">
+        <div class="modal-content" style="border-radius: 12px; border: none; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <div class="modal-header border-0 pb-0" style="padding: 24px 24px 10px 24px;">
+                <h5 class="modal-title" id="createCategoryModalLabel" style="font-weight: 700; color: #212529; font-size: 18px;">Thêm danh mục mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" style="padding: 0 24px 24px 24px;">
+                <form asp-action="Create" method="post" enctype="multipart/form-data">
+                    
+                    @if (TempData["CreateError"] != null)
+                    {
+                        <div class="alert alert-danger" style="font-size: 14px; padding: 10px; border-radius: 8px;">
+                            <i class="fas fa-exclamation-circle"></i> @TempData["CreateError"]
+                        </div>
+                    }
+
+                    <div class="mb-12 mt-2">
+                        <label class="form-label" style="font-weight: 600; font-size: 13px; color: #212529;">Tên danh mục <span style="color: #d93d20;">*</span></label>
+                        <input type="text" name="Name" class="form-control" placeholder="Ví dụ: Cà phê đặc sản, Trà trái cây..." required style="padding: 10px 15px; border-radius: 8px; font-size: 14px;" />
+                    </div>
+
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <button type="button" class="btn" data-bs-dismiss="modal" style="font-weight: 600; font-size: 14px; color: #495057;">Hủy bỏ</button>
+                        <button type="submit" class="btn text-white px-5 py-2" style="background-color: #d93d20; border-radius: 8px; font-weight: 500; font-size: 14px;">Lưu danh mục</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('categoryImageInput').addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = document.getElementById('imagePreview');
+                    img.src = e.target.result;
+                    img.style.display = 'block';
+                    
+                    document.querySelector('#imagePreviewBox .placeholder-icon').style.display = 'none';
+                    document.querySelector('#imagePreviewBox .placeholder-text').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            } else {
+                const img = document.getElementById('imagePreview');
+                img.src = '';
+                img.style.display = 'none';
+                document.querySelector('#imagePreviewBox .placeholder-icon').style.display = 'block';
+                document.querySelector('#imagePreviewBox .placeholder-text').style.display = 'block';
+            }
+        });
+
+        @if (TempData["CreateError"] != null)
+        {
+            <text>
+            document.addEventListener("DOMContentLoaded", function () {
+                var myModal = new bootstrap.Modal(document.getElementById('createCategoryModal'));
+                myModal.show();
+            });
+            </text>
+        }
+    </script>
+}

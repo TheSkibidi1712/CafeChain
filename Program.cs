@@ -1,6 +1,10 @@
 using CafeChain.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
+using CafeChain.Infrastrusture.Repositories.Admin.Categories;
+using CafeChain.Application.Interfaces.Admin.Categories;
+using CafeChain.Application.Services.Admin.Categories;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +50,11 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // =======================
 builder.Services.AddHttpContextAccessor();
 
+// =======================
+// 6. Admin Area Services
+// =======================
+builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
+builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 
 var app = builder.Build();
 
