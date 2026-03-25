@@ -1,32 +1,38 @@
-using CafeChain.Models;
+﻿using CafeChain.Data;
+using CafeChain.Models.Drinks;
+using CafeChain.ViewModels;
 using Microsoft.AspNetCore.Mvc;
-using System.Diagnostics;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private readonly AppDbContext _context;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(AppDbContext context)
         {
-            _logger = logger;
+            _context = context;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
-            return View();
-        }
+            var viewModel = new HomeViewModel
+            {
+                Categories = await _context.DrinkCategories
+                    .Where(c => c.Active)
+                    .ToListAsync(),
 
-        public IActionResult Privacy()
-        {
-            return View();
-        }
+                Drinks = await _context.Drinks
+                    .Include(d => d.DrinkImages)
+                    .Include(d => d.DrinkSizes)
+                    //.Include(d => d.Category) // Nạp thêm Category để render theo từng cụm (Nước, Bánh...)
+                    .Where(d => d.Active)
+                    .Take(6)
+                    .ToListAsync()
+            };
 
-        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
-        {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return View(viewModel);
         }
     }
 }

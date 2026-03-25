@@ -1,0 +1,12 @@
+using CafeChain.Application.DTOs.Accounts;
+using CafeChain.Application.Results;
+using System.Threading.Tasks;
+
+namespace CafeChain.Application.Interfaces.Accounts
+{
+    public interface IAccountService
+    {
+        Task<ServiceResult> RegisterCustomerAsync(RegisterDto dto);
+        Task<ServiceResult<LoginResponseDto>> LoginAsync(LoginDto dto);
+    }
+}

@@ -27,7 +27,8 @@ namespace CafeChain.Data.Configurations
             // seed
             entity.HasData(
                 new AccountType { AccountTypeId = 1, Name = "Customer", Active = true },
-                new AccountType { AccountTypeId = 2, Name = "Staff", Active = true }
+                new AccountType { AccountTypeId = 2, Name = "Staff", Active = true },
+                new AccountType { AccountTypeId = 3, Name = "Admin", Active = true }
             );
         }
     }
@@ -55,29 +56,36 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
-            // unique email
+            // ✅ UNIQUE EMAIL (case insensitive)
             entity.HasIndex(x => x.Email)
                 .IsUnique();
 
             // ================= RELATIONSHIPS =================
 
-            // Account - AccountType
             entity.HasOne(x => x.AccountType)
                 .WithMany(t => t.Accounts)
                 .HasForeignKey(x => x.AccountTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Account - Customer (1-1)
+            // ✅ 1-1 Customer
             entity.HasOne(x => x.Customer)
                 .WithOne(c => c.Account)
                 .HasForeignKey<Account>(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Account - Staff (1-1)
+            entity.HasIndex(x => x.CustomerId)
+                .IsUnique()
+                .HasFilter("[CustomerId] IS NOT NULL");
+
+            // ✅ 1-1 Staff
             entity.HasOne(x => x.Staff)
                 .WithOne(s => s.Account)
                 .HasForeignKey<Account>(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.StaffId)
+                .IsUnique()
+                .HasFilter("[StaffId] IS NOT NULL");
         }
     }
 
@@ -157,7 +165,7 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(15);
 
-            entity.HasIndex(x => new { x.CustomerId, x.Phone })
+            entity.HasIndex(x => new {x.Phone })
                 .IsUnique();
 
             entity.HasData(
@@ -277,8 +285,64 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => new { x.CustomerId, x.DrinkId })
                 .IsUnique()
                 .HasFilter("[CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
+        }
+    }
 
+    public class RatingImageConfiguration : IEntityTypeConfiguration<RatingImage>
+    {
+        public void Configure(EntityTypeBuilder<RatingImage> entity)
+        {
+            entity.ToTable("RatingImages");
 
+            entity.HasKey(x => x.RatingImageId);
+
+            entity.Property(x => x.ImageUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.HasOne(x => x.Rating)
+                .WithMany(r => r.Images)
+                .HasForeignKey(x => x.RatingId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    // ========================== PASSWORD RESET OTP ==========================
+    public class PasswordResetOtpConfiguration : IEntityTypeConfiguration<PasswordResetOtp>
+    {
+        public void Configure(EntityTypeBuilder<PasswordResetOtp> entity)
+        {
+            entity.ToTable("PasswordResetOtps");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(10);
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.Property(x => x.ExpiredAt)
+                .IsRequired();
+
+            entity.Property(x => x.IsUsed)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.FailedAttempts)
+                .HasDefaultValue(0); // 🔥 QUAN TRỌNG
+
+             // ================= INDEX =================
+
+             entity.HasIndex(x => new { x.Email, x.Code, x.IsUsed });
+
+             entity.HasIndex(x => x.Email);
+
+             entity.HasIndex(x => x.CreatedAt);
         }
     }
 }

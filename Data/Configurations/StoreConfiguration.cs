@@ -87,7 +87,7 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Drink)
-                .WithMany()
+                .WithMany(s => s.StoreDrinks)
                 .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Restrict);
 

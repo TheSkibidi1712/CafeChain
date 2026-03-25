@@ -1,10 +1,17 @@
-using CafeChain.Data;
+﻿using CafeChain.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
 using CafeChain.Application.Services.Admin.Categories;
+using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Services.Accounts;
+using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
+using CafeChain.Application.Interfaces;
+using CafeChain.Application.Services;
+>>>>>>> f22e99af403c1b4fc2bb0c693e3c8c4e8757567f
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -41,8 +48,13 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
     {
         options.LoginPath = "/Account/Login";
         options.AccessDeniedPath = "/Account/AccessDenied";
+
         options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
         options.SlidingExpiration = true;
+
+        options.Cookie.HttpOnly = true;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // 🔥 HTTPS only
+        options.Cookie.SameSite = SameSiteMode.Lax;
     });
 
 // =======================
@@ -50,11 +62,29 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // =======================
 builder.Services.AddHttpContextAccessor();
 
+
 // =======================
-// 6. Admin Area Services
+// 6. Dependency Injection for Services and Repositories
 // =======================
+
 builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
 builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
+
+// Account
+builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
+
+
+
+// =======================
+// 6. Application Services
+// =======================
+builder.Services.AddScoped<IDrinkService, DrinkService>();
+builder.Services.AddScoped<ICartService, CartService>();
+>>>>>>> f22e99af403c1b4fc2bb0c693e3c8c4e8757567f
 
 var app = builder.Build();
 

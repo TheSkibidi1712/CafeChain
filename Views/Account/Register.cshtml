@@ -1,0 +1,433 @@
+@model CafeChain.ViewModels.Accounts.RegisterViewModel
+@{
+    ViewData["Title"] = "Đăng ký thành viên";
+    Layout = null; // We'll use a custom layout for this page to match the image
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafeChain</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --primary-orange: #d34817;
+            --bg-color: #f9f9f9;
+            --text-color: #1a1a1a;
+            --border-color: #eeeeee;
+            --placeholder-color: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        .header {
+            background-color: white;
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: white;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+
+        .logo-icon {
+            background-color: var(--primary-orange);
+            color: white;
+            padding: 0.5rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .logo-text {
+            color: #333;
+        }
+
+        .back-button {
+            color: var(--primary-orange);
+            background-color: #fff1ed;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+
+        .back-button:hover {
+            background-color: #ffe4db;
+        }
+
+        .register-container {
+            max-width: 850px;
+            margin: 4rem auto;
+            background-color: transparent;
+        }
+
+        .banner {
+            position: relative;
+            height: 320px;
+            background-image: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url('/Images/register/Dangki.jpg');
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            padding: 3rem;
+            color: white;
+            border-radius: 24px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.15);
+            margin-bottom: 3rem;
+        }
+
+        .banner h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+        }
+
+        .banner p {
+            font-size: 1.25rem;
+            opacity: 0.95;
+        }
+
+        .form-content {
+            padding: 0;
+        }
+
+        .form-title {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 2.5rem;
+            color: #0c1221;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #555;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--placeholder-color);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 1rem 1.25rem 1rem 3.2rem;
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            font-size: 1.05rem;
+            background-color: #ffffff;
+            transition: all 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-orange);
+            box-shadow: 0 0 0 3px rgba(211, 72, 23, 0.1);
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: var(--placeholder-color);
+            transition: color 0.2s;
+            font-size: 1.1rem;
+            z-index: 10;
+        }
+
+        .toggle-password:hover {
+            color: var(--primary-orange);
+        }
+
+        .row {
+            display: flex;
+            gap: 1.5rem;
+        }
+
+        .row .form-group {
+            flex: 1;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .checkbox-group input {
+            margin-top: 0.25rem;
+            width: 18px;
+            height: 18px;
+            accent-color: var(--primary-orange);
+        }
+
+        .checkbox-label {
+            font-size: 1rem;
+            color: #555;
+            line-height: 1.6;
+            cursor: pointer;
+        }
+
+        .checkbox-label span {
+            color: var(--primary-orange);
+            font-weight: 600;
+        }
+
+        .submit-btn {
+            width: 100%;
+            background-color: var(--primary-orange);
+            color: white;
+            border: none;
+            padding: 1.25rem;
+            border-radius: 18px;
+            font-size: 1.25rem;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            transition: all 0.2s;
+            box-shadow: 0 12px 24px rgba(211, 72, 23, 0.25);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(211, 72, 23, 0.4);
+            filter: brightness(1.1);
+        }
+
+        .login-link {
+            text-align: center;
+            margin-top: 2rem;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .login-link a {
+            color: var(--primary-orange);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .footer {
+            margin-top: 5rem;
+            padding: 3rem;
+            text-align: center;
+            font-size: 0.95rem;
+            color: #777;
+            background-color: #f1efed;
+            border-top: 1px solid #eeeeee;
+        }
+
+        .text-danger {
+            color: #dc2626;
+            font-size: 0.8rem;
+            margin-top: 0.25rem;
+            display: block;
+        }
+
+        .validation-summary {
+            background-color: #fee2e2;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            color: #b91c1c;
+            font-size: 0.9rem;
+        }
+
+        .validation-summary ul {
+            list-style-position: inside;
+        }
+
+        @@media (max-width: 640px) {
+            .register-container {
+                margin: 0;
+                border-radius: 0;
+            }
+            .row {
+                flex-direction: column;
+                gap: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="logo-container">
+            <div class="logo-icon">
+                <i class="fas fa-coffee"></i>
+            </div>
+            <div class="logo-text">CafeChain</div>
+        </div>
+        <a href="/" class="back-button">
+            <i class="fas fa-arrow-left"></i>
+        </a>
+    </header>
+
+    <div class="register-container">
+        <div class="banner">
+            <h1>Tham gia CafeChain</h1>
+            <p>Hương vị cà phê nguyên bản, kết nối cộng đồng.</p>
+        </div>
+
+        <div class="form-content">
+            <h2 class="form-title">Đăng ký tài khoản</h2>
+
+            <form asp-action="Register" method="post">
+                @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                {
+                    <div class="validation-summary">
+                        <div asp-validation-summary="ModelOnly"></div>
+                    </div>
+                }
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="FullName"></label>
+                    <div class="input-wrapper">
+                        <i class="far fa-user input-icon"></i>
+                        <input asp-for="FullName" class="form-input" placeholder="Nhập họ và tên của bạn" maxlength="100" />
+                    </div>
+                    <span asp-validation-for="FullName" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="DateOfBirth">Ngày sinh</label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-calendar input-icon"></i>
+                        <input asp-for="DateOfBirth" type="date" class="form-input" />
+                    </div>
+                    <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="PhoneNumber">Số điện thoại <span>(để tích điểm)</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-mobile-alt input-icon"></i>
+                        <input asp-for="PhoneNumber" class="form-input" placeholder="0xxx xxx xxx" maxlength="11" minlength="10" />
+                    </div>
+                    <span asp-validation-for="PhoneNumber" class="text-danger"></span>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" asp-for="Email"></label>
+                    <div class="input-wrapper">
+                        <i class="far fa-envelope input-icon"></i>
+                        <input asp-for="Email" class="form-input" placeholder="example@gmail.com" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger"></span>
+                </div>
+
+                <div class="row">
+                    <div class="form-group">
+                        <label class="form-label" asp-for="Password"></label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-lock input-icon"></i>
+                            <input asp-for="Password" class="form-input" placeholder="••••••••" id="passwordInput" />
+                            <i class="far fa-eye toggle-password" onclick="togglePasswordVisibility('passwordInput')"></i>
+                        </div>
+                        <span asp-validation-for="Password" class="text-danger"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" asp-for="ConfirmPassword"></label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-undo-alt input-icon"></i>
+                            <input asp-for="ConfirmPassword" class="form-input" placeholder="••••••••" id="confirmPasswordInput" />
+                            <i class="far fa-eye toggle-password" onclick="togglePasswordVisibility('confirmPasswordInput')"></i>
+                        </div>
+                        <span asp-validation-for="ConfirmPassword" class="text-danger"></span>
+                    </div>
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" asp-for="AcceptTerms" id="terms" value="true" />
+                    <label for="terms" class="checkbox-label">
+                        Tôi đồng ý với <span>điều khoản thành viên</span> và chính sách bảo mật của CafeChain.
+                    </label>
+                </div>
+                <span asp-validation-for="AcceptTerms" class="text-danger"></span>
+
+                <button type="submit" class="submit-btn">
+                    Tạo tài khoản <i class="fas fa-arrow-right"></i>
+                </button>
+
+                <p class="login-link">
+                    Đã có tài khoản? <a asp-action="Login">Đăng nhập ngay</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2026 CafeChain Corporation. Tất cả quyền được bảo lưu.</p>
+        <p>Cà phê sạch cho tâm hồn thanh thản.</p>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
+
+    <script>
+        function togglePasswordVisibility(inputId) {
+            const input = document.getElementById(inputId);
+            const icon = input.nextElementSibling;
+            
+            if (input.type === "password") {
+                input.type = "text";
+                icon.classList.remove("fa-eye");
+                icon.classList.add("fa-eye-slash");
+            } else {
+                input.type = "password";
+                icon.classList.remove("fa-eye-slash");
+                icon.classList.add("fa-eye");
+            }
+        }
+    </script>
+</body>
+</html>

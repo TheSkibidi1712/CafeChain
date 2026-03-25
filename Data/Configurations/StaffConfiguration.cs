@@ -240,8 +240,8 @@ namespace CafeChain.Data.Configurations
                 new StaffRole { StaffRoleId = 6, StaffId = 6, RoleId = 3 },
                 new StaffRole { StaffRoleId = 7, StaffId = 7, RoleId = 1 },
                 new StaffRole { StaffRoleId = 8, StaffId = 8, RoleId = 2 },
-                new StaffRole { StaffRoleId = 9, StaffId = 9, RoleId = 5 }, // Province Manager
-                new StaffRole { StaffRoleId = 10, StaffId = 10, RoleId = 6 } // Admin
+                new StaffRole { StaffRoleId = 9, StaffId = 9, RoleId = 4 }, // Province Manager
+                new StaffRole { StaffRoleId = 10, StaffId = 10, RoleId = 5 } // Admin
             );
         }
     }
@@ -435,11 +435,10 @@ namespace CafeChain.Data.Configurations
 
             entity.HasData(
                 new Role { RoleId = 1, Name = "Cashier", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 2, Name = "Barista", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 3, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 4, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 5, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 6, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
+                new Role { RoleId = 2, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 3, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 4, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 5, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
             );
         }
     }
