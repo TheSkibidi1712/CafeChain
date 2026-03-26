@@ -9,8 +9,6 @@ using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Infrastrusture.Repositories.Accounts;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-<<<<<<< HEAD
-=======
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
@@ -21,7 +19,6 @@ using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Services;
->>>>>>> de67feeaf88dea133e60895926b9f2905a680a77
 
 var builder = WebApplication.CreateBuilder(args);
 
