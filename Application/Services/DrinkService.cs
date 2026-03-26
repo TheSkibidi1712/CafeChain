@@ -1,5 +1,6 @@
 ﻿using CafeChain.Application.Interfaces;
 using CafeChain.Data;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.ViewModels;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +26,7 @@ namespace CafeChain.Application.Services
             var query = _context.Drinks
                 .Include(d => d.DrinkImages)
                 .Include(d => d.DrinkSizes)
+                .Include(d => d.Ratings)
                 .Where(d => d.Active)
                 .AsQueryable();
 
@@ -64,55 +66,37 @@ namespace CafeChain.Application.Services
         }
         public async Task<DrinkDetailViewModel> GetDrinkDetailAsync(int drinkId)
         {
-            // 1. Lấy thông tin Drink (Chỉ include những gì có sẵn trong Model)
+            // 1. Kéo sản phẩm lên, KÉO LUÔN CẢ RATINGS VÀ CUSTOMER
             var drink = await _context.Drinks
                 .Include(d => d.DrinkImages)
                 .Include(d => d.DrinkSizes).ThenInclude(ds => ds.Size)
                 .Include(d => d.Category)
+                // THÊM DÒNG NÀY MỚI CÓ DATA REVIEW
+                .Include(d => d.Ratings).ThenInclude(r => r.Customer)
                 .FirstOrDefaultAsync(d => d.DrinkId == drinkId && d.Active);
 
             if (drink == null) return null;
 
-            // 2. TỰ ĐI LẤY TOPPING MẶC ĐỊNH (Truy vấn thẳng vào bảng DrinkDefaultTopping)
-            var defaultToppings = await _context.DrinkDefaultToppings // Tên model đúng của ní nè
-                .Include(dt => dt.Topping)
-                .Where(dt => dt.DrinkId == drinkId)
-                .ToListAsync();
+            var defaultToppings = await _context.DrinkDefaultToppings
+                .Include(dt => dt.Topping).Where(dt => dt.DrinkId == drinkId).ToListAsync();
 
-            // 3. TỰ ĐI LẤY TOPPING MUA THÊM (Truy vấn thẳng vào bảng DrinkTopping)
             var optionalToppings = await _context.DrinkToppings
-                .Include(dt => dt.Topping)
-                .Where(dt => dt.DrinkId == drinkId)
-                .ToListAsync();
+                .Include(dt => dt.Topping).Where(dt => dt.DrinkId == drinkId).ToListAsync();
 
-            //// 4. Lấy món gợi ý (giữ nguyên)
-            //var relatedDrinks = await _context.Drinks
-            //    .Include(d => d.DrinkImages)
-            //    .Include(d => d.DrinkSizes)
-            //    .Where(d => d.CategoryId == drink.CategoryId && d.DrinkId != drinkId && d.Active)
-            //    .Take(4)
-            //    .ToListAsync();
-
-
-            // LẤY MÓN GỢI Ý (Đã chỉnh sửa tạm để test Slider)
             var relatedDrinks = await _context.Drinks
                 .Include(d => d.DrinkImages)
                 .Include(d => d.DrinkSizes)
-                // Tạm thời BỎ điều kiện CategoryId để nó lấy tất cả các món (trừ món đang xem)
-                .Where(d => d.DrinkId != drinkId && d.Active)
-
-                // NẾU SAU NÀY MUỐN LẤY THEO DANH MỤC LẠI, BÁC CHỈ CẦN MỞ COMMENT DÒNG DƯỚI VÀ XÓA DÒNG TRÊN:
-                // .Where(d => d.CategoryId == drink.CategoryId && d.DrinkId != drinkId && d.Active)
-
-                .Take(6) // Lấy ra tối đa 10 món để Slider có thể cuộn được
+                .Where(d => d.DrinkId != drinkId && d.Active) // Lấy hết trừ món đang xem
                 .ToListAsync();
 
             return new DrinkDetailViewModel
             {
                 Drink = drink,
                 RelatedDrinks = relatedDrinks,
-                DefaultToppings = defaultToppings, // Đổ dữ liệu vào đây
-                OptionalToppings = optionalToppings // Đổ dữ liệu vào đây
+                DefaultToppings = defaultToppings,
+                OptionalToppings = optionalToppings,
+                // THÊM DÒNG NÀY ĐỂ GÁN LIST REVIEW VÀO VIEWMODEL
+                Ratings = drink.Ratings != null ? drink.Ratings.OrderByDescending(r => r.CreatedAt).ToList() : new List<Rating>()
             };
         }
     }

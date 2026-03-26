@@ -2,11 +2,13 @@
 using CafeChain.Application.Interfaces;
 using CafeChain.Data;
 using CafeChain.ViewModels;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
+    [Authorize] // 🔥 CHẶN ĐỨNG MỌI HÀNH VI VÀO GIỎ HÀNG KHI CHƯA LOGIN 🔥
     public class CartController : Controller
     {
         private readonly ICartService _cartService;
@@ -53,14 +55,14 @@ namespace CafeChain.Controllers
             return Json(new { success = true, totalCount = _cartService.GetTotalCount() });
         }
         [HttpPost]
-        public IActionResult UpdateQuantity(int id, int quantity)
+        public IActionResult UpdateQuantity(string id, int quantity) // Đổi int thành string
         {
             _cartService.UpdateQuantity(id, quantity);
             return Json(new { success = true });
         }
 
         [HttpPost]
-        public IActionResult RemoveItem(int id)
+        public IActionResult RemoveItem(string id) // Đổi int thành string
         {
             _cartService.RemoveFromCart(id);
             return Json(new { success = true });

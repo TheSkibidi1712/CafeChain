@@ -7,8 +7,8 @@ namespace CafeChain.Application.Interfaces
         // Hàm mới: Nhận ID đồ uống, tự tìm trong DB và thêm vào giỏ Session
         Task<bool> AddDrinkToCartAsync(int drinkId);
         List<CartItem> GetCart();
-        void UpdateQuantity(int drinkId, int quantity);
-        void RemoveFromCart(int drinkId);
+        void UpdateQuantity(string cartItemId, int quantity);
+        void RemoveFromCart(string cartItemId);
         void AddToCart(CartItem item);
         void ClearCart();
         int GetTotalCount();

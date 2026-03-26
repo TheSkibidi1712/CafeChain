@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260321061739_InitialCreate")]
+    [Migration("20260326020423_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -228,6 +228,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
                     b.HasKey("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
@@ -239,37 +242,43 @@ namespace CafeChain.Migrations
                         {
                             CustomerAddressId = 1,
                             Address = "123 Đường A, Phường Long Bình, Đồng Nai",
-                            CustomerId = 1
+                            CustomerId = 1,
+                            IsDefault = false
                         },
                         new
                         {
                             CustomerAddressId = 2,
                             Address = "456 Đường D, Phường Trảng Dài, Đồng Nai",
-                            CustomerId = 2
+                            CustomerId = 2,
+                            IsDefault = false
                         },
                         new
                         {
                             CustomerAddressId = 3,
                             Address = "789 Đường G, Phường H, Quận I, TP. HCM",
-                            CustomerId = 3
+                            CustomerId = 3,
+                            IsDefault = false
                         },
                         new
                         {
                             CustomerAddressId = 4,
                             Address = "321 Đường J, Phường K, Quận L, TP. HCM",
-                            CustomerId = 4
+                            CustomerId = 4,
+                            IsDefault = false
                         },
                         new
                         {
                             CustomerAddressId = 5,
                             Address = "654 Đường M, Phường N, Quận O, Hà Nội",
-                            CustomerId = 5
+                            CustomerId = 5,
+                            IsDefault = false
                         },
                         new
                         {
                             CustomerAddressId = 6,
                             Address = "987 Đường P, Phường Q, Quận R, Hà Nội",
-                            CustomerId = 1
+                            CustomerId = 1,
+                            IsDefault = false
                         });
                 });
 
@@ -359,6 +368,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(15)
@@ -378,36 +390,42 @@ namespace CafeChain.Migrations
                         {
                             CustomerPhoneId = 1,
                             CustomerId = 1,
+                            IsDefault = false,
                             Phone = "0123456789"
                         },
                         new
                         {
                             CustomerPhoneId = 2,
                             CustomerId = 2,
+                            IsDefault = false,
                             Phone = "0987654321"
                         },
                         new
                         {
                             CustomerPhoneId = 3,
                             CustomerId = 3,
+                            IsDefault = false,
                             Phone = "0112233445"
                         },
                         new
                         {
                             CustomerPhoneId = 4,
                             CustomerId = 4,
+                            IsDefault = false,
                             Phone = "0223344556"
                         },
                         new
                         {
                             CustomerPhoneId = 5,
                             CustomerId = 5,
+                            IsDefault = false,
                             Phone = "0334455667"
                         },
                         new
                         {
                             CustomerPhoneId = 6,
                             CustomerId = 1,
+                            IsDefault = false,
                             Phone = "0445566778"
                         });
                 });

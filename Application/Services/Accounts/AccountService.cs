@@ -99,7 +99,9 @@ namespace CafeChain.Application.Services.Accounts
                 Role = account.AccountType?.Name ?? (account.AccountTypeId == 1 ? "Customer" : "Staff"),
                 AccountId = account.AccountId,
                 CustomerId = account.CustomerId,
-                StaffId = account.StaffId
+                StaffId = account.StaffId,
+                // 🔥 THÊM DÒNG NÀY ĐỂ LẤY LINK ẢNH TỪ DATABASE NHÉT VÀO HỘP 🔥
+                AvatarUrl = account.Customer?.AvatarUrl
             };
 
             // Set a default name if both are null

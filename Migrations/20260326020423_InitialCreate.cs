@@ -293,7 +293,8 @@ namespace CafeChain.Migrations
                     CustomerAddressId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false)
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -334,7 +335,8 @@ namespace CafeChain.Migrations
                     CustomerPhoneId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false)
+                    Phone = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1472,15 +1474,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "CustomerAddresses",
-                columns: new[] { "CustomerAddressId", "Address", "CustomerId" },
+                columns: new[] { "CustomerAddressId", "Address", "CustomerId", "IsDefault" },
                 values: new object[,]
                 {
-                    { 1, "123 Đường A, Phường Long Bình, Đồng Nai", 1 },
-                    { 2, "456 Đường D, Phường Trảng Dài, Đồng Nai", 2 },
-                    { 3, "789 Đường G, Phường H, Quận I, TP. HCM", 3 },
-                    { 4, "321 Đường J, Phường K, Quận L, TP. HCM", 4 },
-                    { 5, "654 Đường M, Phường N, Quận O, Hà Nội", 5 },
-                    { 6, "987 Đường P, Phường Q, Quận R, Hà Nội", 1 }
+                    { 1, "123 Đường A, Phường Long Bình, Đồng Nai", 1, false },
+                    { 2, "456 Đường D, Phường Trảng Dài, Đồng Nai", 2, false },
+                    { 3, "789 Đường G, Phường H, Quận I, TP. HCM", 3, false },
+                    { 4, "321 Đường J, Phường K, Quận L, TP. HCM", 4, false },
+                    { 5, "654 Đường M, Phường N, Quận O, Hà Nội", 5, false },
+                    { 6, "987 Đường P, Phường Q, Quận R, Hà Nội", 1, false }
                 });
 
             migrationBuilder.InsertData(
@@ -1498,15 +1500,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "CustomerPhones",
-                columns: new[] { "CustomerPhoneId", "CustomerId", "Phone" },
+                columns: new[] { "CustomerPhoneId", "CustomerId", "IsDefault", "Phone" },
                 values: new object[,]
                 {
-                    { 1, 1, "0123456789" },
-                    { 2, 2, "0987654321" },
-                    { 3, 3, "0112233445" },
-                    { 4, 4, "0223344556" },
-                    { 5, 5, "0334455667" },
-                    { 6, 1, "0445566778" }
+                    { 1, 1, false, "0123456789" },
+                    { 2, 2, false, "0987654321" },
+                    { 3, 3, false, "0112233445" },
+                    { 4, 4, false, "0223344556" },
+                    { 5, 5, false, "0334455667" },
+                    { 6, 1, false, "0445566778" }
                 });
 
             migrationBuilder.InsertData(

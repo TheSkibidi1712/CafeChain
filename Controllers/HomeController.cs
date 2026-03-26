@@ -26,6 +26,7 @@ namespace CafeChain.Controllers
                 Drinks = await _context.Drinks
                     .Include(d => d.DrinkImages)
                     .Include(d => d.DrinkSizes)
+                    .Include(d => d.Ratings)
                     //.Include(d => d.Category) // Nạp thêm Category để render theo từng cụm (Nước, Bánh...)
                     .Where(d => d.Active)
                     .Take(6)

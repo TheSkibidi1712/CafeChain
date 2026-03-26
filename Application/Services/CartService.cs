@@ -44,19 +44,20 @@ namespace CafeChain.Application.Services
         public int GetTotalCount() => GetCart().Sum(c => c.Quantity);
 
         // Các hàm Remove và Clear cài đặt tương tự...
-        public void RemoveFromCart(int drinkId) {
+        public void RemoveFromCart(string cartItemId)
+        {
             var cart = GetCart();
-            var item = cart.FirstOrDefault(c => c.DrinkId == drinkId);
+            var item = cart.FirstOrDefault(c => c.CartItemId == cartItemId); // Tìm bằng CartItemId
             if (item != null)
             {
                 cart.Remove(item);
                 Session.SetString(CartSessionKey, JsonSerializer.Serialize(cart));
             }
         }
-        public void UpdateQuantity(int drinkId, int quantity)
+        public void UpdateQuantity(string cartItemId, int quantity)
         {
             var cart = GetCart();
-            var item = cart.FirstOrDefault(c => c.DrinkId == drinkId);
+            var item = cart.FirstOrDefault(c => c.CartItemId == cartItemId); // Tìm bằng CartItemId
             if (item != null)
             {
                 if (quantity > 0)
@@ -66,7 +67,7 @@ namespace CafeChain.Application.Services
                 }
                 else
                 {
-                    RemoveFromCart(drinkId); // Nếu tụt xuống 0 thì xóa luôn
+                    RemoveFromCart(cartItemId);
                 }
             }
         }
@@ -105,9 +106,24 @@ namespace CafeChain.Application.Services
                                      .FirstOrDefaultAsync(s => s.DrinkId == request.DrinkId && s.SizeId == request.SizeId);
             if (size == null) return false;
 
-            // 2. Bắt đầu tính giá và tạo chuỗi mô tả
+            // 2. Bắt đầu tính giá
             decimal unitPrice = size.Price;
-            List<string> toppingDescList = new List<string>();
+
+            // Khởi tạo Item (Thay vì dùng ToppingsDescription, ta dùng 2 List mới)
+            var item = new CartItem
+            {
+                CartItemId = Guid.NewGuid().ToString(),
+                DrinkId = drink.DrinkId,
+                Name = drink.Name,
+                ImageUrl = drink.DrinkImages.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg",
+                Quantity = request.Quantity,
+                SizeName = size.Size.Name,
+                // Khởi tạo 2 List rỗng
+                AddedToppings = new List<string>(),
+                RemovedToppings = new List<string>(),
+                // 🔥 1. CHUẨN HÓA GHI CHÚ: Cắt khoảng trắng dư thừa, nếu null thì gán chuỗi rỗng để dễ so sánh
+                Note = string.IsNullOrWhiteSpace(request.Note) ? "" : request.Note.Trim()
+            };
 
             // Tính tiền Topping MUA THÊM
             if (request.OptionalToppingIds != null && request.OptionalToppingIds.Any())
@@ -117,12 +133,16 @@ namespace CafeChain.Application.Services
                                         .ToListAsync();
                 foreach (var t in extraToppings)
                 {
+                    if (t.Topping == null)
+                    {
+                        continue;
+                    }
                     unitPrice += t.Topping.Price; // Cộng tiền
-                    toppingDescList.Add($"+ {t.Topping.Name}"); // Ghi chú lại
+                    item.AddedToppings.Add($"{t.Topping.Name} (+{t.Topping.Price.ToString("N0")}đ)"); // Nhét vào mảng Added
                 }
             }
 
-            // Xử lý Topping MẶC ĐỊNH BỊ BỎ ĐI (Giá 0đ nên không trừ tiền, chỉ ghi chú cho Barista biết)
+            // Xử lý Topping MẶC ĐỊNH BỊ BỎ ĐI
             if (request.RemovedDefaultToppingIds != null && request.RemovedDefaultToppingIds.Any())
             {
                 var removedToppings = await _context.DrinkDefaultToppings.Include(dt => dt.Topping)
@@ -130,38 +150,35 @@ namespace CafeChain.Application.Services
                                         .ToListAsync();
                 foreach (var r in removedToppings)
                 {
-                    toppingDescList.Add($"- Không lấy {r.Topping.Name}"); // Ghi chú lại
+                    item.RemovedToppings.Add(r.Topping.Name); // Nhét vào mảng Removed
                 }
             }
 
-            // 3. Đóng gói vào CartItem
-            var item = new CartItem
-            {
-                CartItemId = Guid.NewGuid().ToString(),
-                DrinkId = drink.DrinkId,
-                Name = drink.Name,
-                ImageUrl = drink.DrinkImages.FirstOrDefault()?.ImageUrl,
-                Price = unitPrice,
-                Quantity = request.Quantity,
-                SizeName = size.Size.Name,
-                ToppingsDescription = string.Join(", ", toppingDescList)
-            };
+            // Chốt giá cuối cùng cho ly nước (Size + Topping mua thêm)
+            item.Price = unitPrice;
 
-            // 4. Lưu vào Giỏ hàng
+            // 3. Lưu vào Giỏ hàng
             var cart = GetCart();
 
-            // Gộp chung nếu khách bấm 2 lần y hệt nhau (Cùng món, cùng size, cùng topping)
-            var existingItem = cart.FirstOrDefault(c => c.DrinkId == item.DrinkId && c.SizeName == item.SizeName && c.ToppingsDescription == item.ToppingsDescription);
+            // Gộp chung nếu khách bấm 2 lần y hệt nhau (Dùng string.Join để so sánh 2 mảng)
+            var existingItem = cart.FirstOrDefault(c =>
+                c.DrinkId == item.DrinkId &&
+                c.SizeName == item.SizeName &&
+                string.Join(",", c.AddedToppings.OrderBy(x => x)) == string.Join(",", item.AddedToppings.OrderBy(x => x)) &&
+                string.Join(",", c.RemovedToppings.OrderBy(x => x)) == string.Join(",", item.RemovedToppings.OrderBy(x => x)) &&
+                (c.Note ?? "") == item.Note // Thêm dòng này để ép check Ghi chú
+            );
+
             if (existingItem != null)
             {
-                existingItem.Quantity += item.Quantity;
+                existingItem.Quantity += item.Quantity; // Gộp số lượng
             }
             else
             {
-                cart.Add(item);
+                cart.Add(item); // Tạo dòng mới
             }
 
-            // Cập nhật lại Session (Dùng dòng code tương tự hàm AddToCart cũ của bác)
+            // 4. Cập nhật lại Session
             _httpContextAccessor.HttpContext.Session.SetString(CartSessionKey, JsonSerializer.Serialize(cart));
 
             return true;

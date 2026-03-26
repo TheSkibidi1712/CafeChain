@@ -100,11 +100,24 @@ namespace CafeChain.Controllers
                 new Claim(ClaimTypes.Role, result.Data.Role ?? "Customer"),
             };
 
+
             if (result.Data.CustomerId.HasValue)
                 claims.Add(new Claim("CustomerId", result.Data.CustomerId.ToString()));
 
             if (result.Data.StaffId.HasValue)
                 claims.Add(new Claim("StaffId", result.Data.StaffId.ToString()));
+
+            // ====================================================================
+            // 🔥 BÍ KÍP CHỮA BỆNH "MẤT TRÍ NHỚ AVATAR LÚC ĐĂNG NHẬP LẠI" Ở ĐÂY 🔥
+            // ====================================================================
+            // ====================================================================
+            if (!string.IsNullOrEmpty(result.Data.AvatarUrl))
+            {
+                // Bắt buộc phải có 2 tham số: "Tên_Thông_Tin", Giá_Trị_Của_Nó
+                claims.Add(new Claim("AvatarUrl", result.Data.AvatarUrl));
+            }
+            //
+            // ====================================================================
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -128,7 +141,7 @@ namespace CafeChain.Controllers
             }
 
             // 🔥 STAFF (Cashier, Barista, Manager,...)
-            if (role.Contains("cashier") || role.Contains("barista") )
+            if (role.Contains("cashier") || role.Contains("barista"))
             {
                 return RedirectToAction("Index", "Pos", new { area = "Cashier" });
             }
@@ -152,5 +165,7 @@ namespace CafeChain.Controllers
         {
             return View();
         }
+
+
     }
 }

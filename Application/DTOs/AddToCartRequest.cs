@@ -7,5 +7,6 @@
         public int Quantity { get; set; }
         public List<int> OptionalToppingIds { get; set; } = new List<int>();
         public List<int> RemovedDefaultToppingIds { get; set; } = new List<int>();
+        public string? Note { get; set; } // 🔥 Thêm dòng này để hứng ghi chú từ Frontend gửi lên
     }
 }
