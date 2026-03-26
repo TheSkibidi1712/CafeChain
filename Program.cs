@@ -1,12 +1,14 @@
-﻿using CafeChain.Data;
+﻿using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Customers;
+using CafeChain.Application.Services;
+using CafeChain.Application.Services.Accounts;
+using CafeChain.Application.Services.Customers;
+using CafeChain.Data;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
+using CafeChain.Infrastrusture.Repositories.Accounts;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Application.Interfaces.Accounts;
-using CafeChain.Application.Services.Accounts;
-using CafeChain.Infrastrusture.Repositories.Accounts;
-using CafeChain.Infrastrusture.Interfaces.Accounts;
-using CafeChain.Application.Interfaces;
-using CafeChain.Application.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,6 +74,9 @@ builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 // =======================
 builder.Services.AddScoped<IDrinkService, DrinkService>();
 builder.Services.AddScoped<ICartService, CartService>();
+// Đăng ký FileService
+builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 var app = builder.Build();
 
