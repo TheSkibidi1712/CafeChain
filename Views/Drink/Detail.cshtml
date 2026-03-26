@@ -2,10 +2,14 @@
 
 @{
     ViewData["Title"] = Model.Drink.Name;
-    // Lấy giá trị size thấp nhất làm giá gốc mặc định
-    var defaultBasePrice = Model.Drink.DrinkSizes.Any() ? Model.Drink.DrinkSizes.Min(s => s.Price) : 0;
-}
+    var defaultBasePrice = Model.Drink.DrinkSizes != null && Model.Drink.DrinkSizes.Any() ? Model.Drink.DrinkSizes.Min(s => s.Price) : 0;
 
+    // Tách logic ra đây để Visual Studio KHÔNG BỊ LÚ và gạch đỏ
+    var hasOptionalToppings = Model.OptionalToppings != null && Model.OptionalToppings.Any();
+    var hasDefaultToppings = Model.DefaultToppings != null && Model.DefaultToppings.Any();
+    var offsetClass = !hasOptionalToppings ? "offset-6" : "";
+}
+    
 <div class="container mt-4 mb-5">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb small">
@@ -17,11 +21,21 @@
 
     <div class="row mt-4">
         <div class="col-md-6 mb-4">
-            <div class="mb-3">
-                <img id="mainImage" src="@(Model.Drink.DrinkImages.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg")"
-                     class="img-fluid rounded-4 w-100 object-fit-cover shadow-sm" style="aspect-ratio: 1/1;" alt="@Model.Drink.Name">
+            <div class="mb-3 position-relative" id="mainImageContainer">
+                <img id="mainImage" src="@(Model.Drink.DrinkImages?.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg")"
+                     class="img-fluid rounded-4 w-100 object-fit-cover shadow-sm" style="aspect-ratio: 1/1;" alt="@Model.Drink.Name" data-current-index="0">
+
+                @if (Model.Drink.DrinkImages != null && Model.Drink.DrinkImages.Count > 1)
+                {
+                    <button class="btn btn-light rounded-circle shadow position-absolute top-50 start-0 translate-middle-y ms-3" style="width: 40px; height: 40px; opacity: 0.8;" onclick="navigateImage(-1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <button class="btn btn-light rounded-circle shadow position-absolute top-50 end-0 translate-middle-y me-3" style="width: 40px; height: 40px; opacity: 0.8;" onclick="navigateImage(1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
             </div>
-            @if (Model.Drink.DrinkImages.Count > 1)
+            @if (Model.Drink.DrinkImages != null && Model.Drink.DrinkImages.Count > 1)
             {
                 <div class="d-flex gap-3">
                     @foreach (var img in Model.Drink.DrinkImages)
@@ -34,22 +48,62 @@
         </div>
 
         <div class="col-md-6 ps-md-5">
-            <h1 class="fw-bold mb-3">@Model.Drink.Name</h1>
-            <p class="text-muted mb-4" style="line-height: 1.8;">@Model.Drink.Description</p>
+            <h1 class="fw-bold mb-1">@Model.Drink.Name</h1>
 
+            <div class="d-flex align-items-center mb-3" style="cursor: pointer;" onclick="document.getElementById('reviews-section').scrollIntoView({behavior: 'smooth'})">
+                <div class="text-warning me-2" style="font-size: 0.9rem;">
+                    @if (Model.TotalReviews == 0)
+                    {
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                    }
+                    else
+                    {
+                        // Tính toán Sao Đầy, Sao Khuyết, Sao Trống
+                        var fullStars = (int)Math.Floor(Model.AverageRating);
+                        var hasHalfStar = (Model.AverageRating - fullStars) >= 0.5;
+                        var emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+                        for (int i = 0; i < fullStars; i++)
+                        {
+
+                            <i class="bi bi-star-fill"></i>
+                        }
+                        if (hasHalfStar)
+                        {
+
+                            <i class="bi bi-star-half"></i>
+                        }
+                        for (int i = 0; i < emptyStars; i++)
+                        {
+
+                            <i class="bi bi-star text-muted opacity-25"></i>
+                        }
+                    }
+                </div>
+
+                <span class="text-orange fw-bold me-2">@(Model.TotalReviews > 0 ? Model.AverageRating.ToString("0.0") : "0.0")</span>
+                <span class="text-muted small border-start border-2 ps-2">@Model.TotalReviews Đánh giá</span>
+            </div>
+
+            <p class="text-muted mb-4" style="line-height: 1.8;">@Model.Drink.Description</p>
             <h2 class="fw-bold text-orange mb-4" id="displayTotalPrice">@defaultBasePrice.ToString("N0")đ</h2>
 
             <form id="addToCartForm">
                 <input type="hidden" id="drinkId" value="@Model.Drink.DrinkId" />
 
-                @if (Model.Drink.DrinkSizes.Any())
+                @if (Model.Drink.DrinkSizes != null && Model.Drink.DrinkSizes.Any())
                 {
                     <div class="mb-4">
                         <label class="fw-bold mb-2">Chọn Size</label>
                         <div class="d-flex gap-2">
                             @foreach (var ds in Model.Drink.DrinkSizes.OrderBy(s => s.Price))
                             {
-                                <button type="button" class="btn btn-outline-custom size-btn flex-fill @(ds.Price == defaultBasePrice ? "active" : "")"
+                                var activeClass = ds.Price == defaultBasePrice ? "active" : "";
+                                <button type="button" class="btn btn-outline-custom size-btn flex-fill @activeClass"
                                         data-price="@ds.Price" data-size-id="@ds.SizeId" onclick="selectSize(this)">
                                     @ds.Size.Name
                                 </button>
@@ -57,51 +111,66 @@
                         </div>
                     </div>
                 }
+                else
+                {
+                    var singleSize = Model.Drink.DrinkSizes?.FirstOrDefault();
+                    var sp = singleSize?.Price ?? 0;
+                    var sid = singleSize?.SizeId ?? 0;
+                    <button type="button" class="size-btn active d-none" data-price="@sp" data-size-id="@sid"></button>
+                }
 
-                <div class="row mb-4">
-                    @if (Model.OptionalToppings != null && Model.OptionalToppings.Any())
-                    {
-                        <div class="col-6">
-                            <label class="fw-bold mb-2">Chọn Topping</label>
-                            <select class="form-select shadow-none border rounded-3 py-2" id="toppingSelector" onchange="addOptionalTopping(this)">
-                                <option value="">Chọn Topping</option>
-                                @foreach (var dt in Model.OptionalToppings)
-                                {
-                                    // 💡 LOGIC KIỂM TRA: Nếu topping này ĐÃ CÓ trong danh sách mặc định rồi
-                                    bool isAlsoDefault = Model.DefaultToppings != null && Model.DefaultToppings.Any(d => d.ToppingId == dt.ToppingId);
-
-                                    // Thì mình gán thêm chữ "Thêm " ở đằng trước cho khách hiểu là mua "Double"
-                                    string prefixName = isAlsoDefault ? "Thêm " : "";
-
-                                    <option value="@dt.ToppingId" data-price="@dt.Topping.Price">
-                                        @prefixName@dt.Topping.Name (+@dt.Topping.Price.ToString("N0")đ)
-                                    </option>
-                                }
-                            </select>
-                        </div>
-                    }
-
-                    @if (Model.DefaultToppings != null && Model.DefaultToppings.Any())
-                    {
-                        <div class="col-6 @(!Model.OptionalToppings.Any() ? "offset-6" : "")">
-                            <label class="text-muted small mb-2">Topping mặc định</label>
-                            <div class="d-flex flex-wrap gap-2" id="defaultToppingsContainer">
-                                @foreach (var ddt in Model.DefaultToppings)
-                                {
-                                    <div class="topping-tag default-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border text-muted small"
-                                         data-topping-id="@ddt.ToppingId">
-                                        @ddt.Topping.Name
-                                        <button type="button" class="btn btn-link text-muted p-0 ms-2 shadow-none" onclick="removeTag(this, 'default')">
-                                            <i class="bi bi-x fs-6"></i>
-                                        </button>
-                                    </div>
-                                }
+                @if (hasOptionalToppings || hasDefaultToppings)
+                {
+                    <div class="row mb-4">
+                        @if (hasOptionalToppings)
+                        {
+                            <div class="col-6">
+                                <label class="fw-bold mb-2">Chọn Topping</label>
+                                <select class="form-select shadow-none border rounded-3 py-2" id="toppingSelector" onchange="addOptionalTopping(this)">
+                                    <option value="">Chọn Topping</option>
+                                    @foreach (var dt in Model.OptionalToppings)
+                                    {
+                                        bool isAlsoDefault = Model.DefaultToppings != null && Model.DefaultToppings.Any(d => d.ToppingId == dt.ToppingId);
+                                        string prefixName = isAlsoDefault ? "Thêm " : "";
+                                        <option value="@dt.ToppingId" data-price="@dt.Topping.Price">
+                                            @prefixName@dt.Topping.Name (+@dt.Topping.Price.ToString("N0")đ)
+                                        </option>
+                                    }
+                                </select>
                             </div>
-                        </div>
-                    }
-                </div>
+                        }
+
+                        @if (hasDefaultToppings)
+                        {
+                            <div class="col-6 @offsetClass">
+                                <label class="text-muted small mb-2">Topping mặc định</label>
+                                <div class="d-flex flex-wrap gap-2" id="defaultToppingsContainer">
+                                    @foreach (var ddt in Model.DefaultToppings)
+                                    {
+                                        <div class="topping-tag default-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border text-muted small"
+                                             data-topping-id="@ddt.ToppingId">
+                                            @ddt.Topping.Name
+                                            <button type="button" class="btn btn-link text-muted p-0 ms-2 shadow-none" onclick="removeTag(this, 'default')">
+                                                <i class="bi bi-x fs-6"></i>
+                                            </button>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
 
                 <div class="d-flex flex-wrap gap-2 mb-4" id="optionalToppingsTagsContainer"></div>
+
+
+                <div class="mb-4">
+                    <label for="drinkNote" class="fw-bold mb-2">
+                        Ghi chú cho món này <span class="text-muted fw-normal small">(Tùy chọn)</span>
+                    </label>
+                    <textarea id="drinkNote" class="form-control rounded-3 shadow-none border-secondary border-opacity-25"
+                              rows="2" placeholder="VD: Ít đá, để topping ra bịch riêng..." maxlength="200"></textarea>
+                </div>
 
 
                 <div class="d-flex gap-3 mb-4 mt-5">
@@ -115,50 +184,119 @@
                         <i class="bi bi-cart-plus me-2 fs-5"></i> Thêm vào giỏ hàng
                     </button>
                 </div>
-
-                <div class="text-muted small">
-                    <i class="bi bi-shield-check text-orange me-1"></i> Đảm bảo chất lượng
-                </div>
             </form>
         </div>
     </div>
 
-    @if (Model.RelatedDrinks.Any())
+    @if (Model.RelatedDrinks != null && Model.RelatedDrinks.Any())
     {
         <div class="mt-5 pt-5 border-top">
             <h4 class="fw-bold mb-4">Gợi ý dành cho bạn</h4>
-
-            <div class="product-slider-container position-relative mb-5">
-                @if (Model.RelatedDrinks.Count > 4)
-                {
-                    <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
-                        <i class="bi bi-chevron-left"></i>
-                    </button>
-                }
-
-                <div class="product-slider">
+            <div class="mb-5">
+                <div class="row g-4">
                     @foreach (var item in Model.RelatedDrinks)
                     {
-                        <div class="slider-item">
+                        <div class="col-lg-3 col-md-4 col-6">
                             <partial name="~/Views/Product/ProductCard.cshtml" model="item" />
                         </div>
                     }
                 </div>
-
-                @if (Model.RelatedDrinks.Count > 4)
-                {
-                    <button class="slider-btn next" onclick="scrollSlider(this, 1)">
-                        <i class="bi bi-chevron-right"></i>
-                    </button>
-                }
             </div>
         </div>
     }
+
+    <div class="mt-5 pt-5 border-top" id="reviews-section">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="fw-bold m-0">Đánh giá sản phẩm (@Model.TotalReviews)</h4>
+        </div>
+
+        @if (User.Identity.IsAuthenticated)
+        {
+            <div class="card border border-orange-subtle rounded-4 bg-orange-light mb-5 shadow-sm">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square text-orange me-2"></i> Chia sẻ trải nghiệm của bạn về món ăn này nhé!</h6>
+
+                    <form id="submitReviewForm">
+                        <input type="hidden" name="DrinkId" value="@Model.Drink.DrinkId" />
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">1. Số sao đánh giá</label>
+                            <div class="rating-stars text-muted fs-4" id="submitReviewStars">
+                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="1"></i>
+                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="2"></i>
+                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="3"></i>
+                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="4"></i>
+                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="5"></i>
+                            </div>
+                            <input type="hidden" id="selectedStars" name="Stars" value="0" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">2. Nội dung nhận xét</label>
+                            <textarea class="form-control rounded-3 border-secondary border-opacity-25" id="reviewComment" name="Comment" rows="3" placeholder="Pha rất ngon, đúng chuẩn vị mình thích. Giao hàng nhanh đóng gói cẩn thận..."></textarea>
+                        </div>
+
+                        <div class="text-end">
+                            <button type="button" class="btn btn-orange fw-bold rounded-pill px-5" onclick="submitReviewAjax()">Gửi đánh giá</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border border-secondary border-opacity-25 rounded-4 bg-light mb-5 shadow-sm">
+                <div class="card-body p-4 text-center">
+                    <h6 class="text-muted"><i class="bi bi-info-circle me-2 text-secondary"></i> Bạn cần <a href="/Account/Login" class="text-orange fw-bold text-decoration-none">đăng nhập</a> để đánh giá sản phẩm nhé!</h6>
+                </div>
+            </div>
+        }
+
+        <div class="reviews-list">
+            @if (Model.Ratings != null && Model.Ratings.Any())
+            {
+                foreach (var review in Model.Ratings)
+                {
+                    <div class="review-item py-4 border-bottom">
+                        <div class="d-flex mb-2">
+                            <img src="@(review.Customer?.AvatarUrl ?? "/Images/Uploadt/avtdf.jpg")"
+                                 oonerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                 class="rounded-circle me-3 object-fit-cover shadow-sm" style="width: 45px; height: 45px;" alt="Avatar">
+                            <div>
+                                <h6 class="fw-bold mb-1">@(review.Customer?.FullName ?? "Khách hàng ẩn danh")</h6>
+                                <div class="text-warning small mb-1">
+                                    @for (int i = 0; i < review.Stars; i++)
+                                    {
+                                        <i class="bi bi-star-fill"></i>
+                                    }
+                                    @for (int i = review.Stars; i < 5; i++)
+                                    {
+                                        <i class="bi bi-star"></i>
+                                    }
+                                </div>
+                                <small class="text-muted">@review.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                        </div>
+                        <p class="mt-3 mb-2 text-dark">@review.Comment</p>
+                        <div class="mt-2 small text-muted cursor-pointer hover-text-orange d-inline-block">
+                            <i class="bi bi-hand-thumbs-up me-1"></i> Hữu ích (0)
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-chat-square-text opacity-25" style="font-size: 3rem;"></i>
+                    <p class="mt-3">Chưa có đánh giá nào. Hãy là người đầu tiên nhận xét món này nhé!</p>
+                </div>
+            }
+        </div>
+    </div>
 </div>
 
 @section Scripts {
     <style>
-        /* CSS cho nút Size xịn như ảnh mới */
         .btn-outline-custom {
             color: #555;
             background-color: #f8f9fa;
@@ -177,7 +315,6 @@
                 border-color: #d35400;
             }
 
-        /* CSS cho Tag Topping */
         .topping-tag {
             transition: all 0.2s;
             border-color: #eee !important;
@@ -194,6 +331,14 @@
             cursor: pointer;
         }
 
+        .hover-text-orange:hover {
+            color: #d35400 !important;
+        }
+
+        .active-star {
+            color: #d35400 !important;
+        }
+
         .thumbnail-img:hover {
             border-color: #d35400 !important;
         }
@@ -203,65 +348,57 @@
         }
     </style>
 
- 
-    <style>
-        /* CSS cho nút Size xịn như ảnh mới */
-        .btn-outline-custom { color: #555; background-color: #f8f9fa; border-color: #ddd; font-weight: 600; font-size: 0.9rem; }
-        .btn-outline-custom:hover { background-color: #f1f3f5; }
-        .btn-outline-custom.active { background-color: #fdebd0; color: #d35400; border-color: #d35400; }
-        /* CSS cho Tag Topping */
-        .topping-tag { transition: all 0.2s; border-color: #eee !important; }
-        .optional-tag { color: #d35400; font-weight: 600; background-color: #fdebd0 !important; border-color: #d35400 !important; }
-        .cursor-pointer { cursor: pointer; }
-        .thumbnail-img:hover { border-color: #d35400 !important; }
-        .h-50px { height: 50px; }
-    </style>
-
     <script>
-        // 1. JS Đổi ảnh chính
-        function changeMainImage(src) { 
-            document.getElementById('mainImage').src = src; 
+        // Sử dụng JsonSerializer để Visual Studio không bị lỗi gạch đỏ khi dùng thẻ HTML trong JS
+        const imageList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Drink.DrinkImages?.Select(i => i.ImageUrl) ?? new List<string>()));
+
+        function changeMainImage(src) { document.getElementById('mainImage').src = src; }
+
+        function navigateImage(direction) {
+            if(imageList.length <= 1) return;
+            const mainImg = document.getElementById('mainImage');
+            let currentIndex = parseInt(mainImg.getAttribute('data-current-index'));
+            currentIndex += direction;
+            if (currentIndex >= imageList.length) currentIndex = 0;
+            if (currentIndex < 0) currentIndex = imageList.length - 1;
+            mainImg.src = imageList[currentIndex];
+            mainImg.setAttribute('data-current-index', currentIndex);
         }
 
-        // 2. TẠO STATE (Dùng .ToString("0") để C# tuyệt đối không sinh ra dấu phẩy làm chết JS)
         let state = {
-            basePrice: @defaultBasePrice.ToString("0"), 
-            optionalToppings: [], 
-            removedDefaultToppings: [] 
+            basePrice: @defaultBasePrice.ToString("0"),
+            optionalToppings: [],
+            removedDefaultToppings: []
         };
 
-        // Hàm cập nhật tổng giá hiển thị
         function updateDisplayTotal() {
             let toppingsTotal = state.optionalToppings.reduce((sum, t) => sum + t.price, 0);
             let grandTotal = state.basePrice + toppingsTotal;
             document.getElementById('displayTotalPrice').innerText = grandTotal.toLocaleString('vi-VN') + 'đ';
         }
 
-        // 3. Chọn Size
         function selectSize(btn) {
             document.querySelectorAll('.size-btn').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
             state.basePrice = parseInt(btn.getAttribute('data-price'));
-            updateDisplayTotal(); 
+            updateDisplayTotal();
         }
 
-        // 4. Thêm Topping mua thêm
         function addOptionalTopping(select) {
             let option = select.options[select.selectedIndex];
             let id = option.value;
-            if (id === "") return; 
+            if (id === "") return;
 
             let price = parseInt(option.getAttribute('data-price'));
-            let name = option.text.split(' (+')[0]; 
+            let name = option.text.split(' (+')[0];
 
             if (state.optionalToppings.some(t => t.id === id)) {
                 alert("Bạn đã chọn Topping này rồi!");
-                select.selectedIndex = 0; 
+                select.selectedIndex = 0;
                 return;
             }
 
             state.optionalToppings.push({ id, price });
-
             let container = document.getElementById('optionalToppingsTagsContainer');
             let tagHtml = `
                 <div class="topping-tag optional-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border small"
@@ -273,29 +410,26 @@
                 </div>
             `;
             container.insertAdjacentHTML('beforeend', tagHtml);
-
-            select.selectedIndex = 0; 
-            updateDisplayTotal(); 
+            select.selectedIndex = 0;
+            updateDisplayTotal();
         }
 
-        // 5. Xóa Tag
         function removeTag(button, type, optionalId) {
             let tag = button.closest('.topping-tag');
             let id = tag.getAttribute('data-topping-id');
 
             if (type === 'default') {
-                tag.style.opacity = '0.4'; 
+                tag.style.opacity = '0.4';
                 state.removedDefaultToppings.push(id);
                 button.setAttribute('onclick', "restoreTag(this, 'default')");
                 button.innerHTML = '<i class="bi bi-plus fs-6"></i>';
             } else if (type === 'optional') {
                 tag.remove();
                 state.optionalToppings = state.optionalToppings.filter(t => t.id !== optionalId);
-                updateDisplayTotal(); 
+                updateDisplayTotal();
             }
         }
 
-        // 6. Phục hồi Tag mặc định
         function restoreTag(button, type) {
              let tag = button.closest('.topping-tag');
              let id = tag.getAttribute('data-topping-id');
@@ -305,62 +439,106 @@
              button.innerHTML = '<i class="bi bi-x fs-6"></i>';
         }
 
-        // 7. Số lượng
         function updateQty(change) {
             let input = document.getElementById('quantity');
             let current = parseInt(input.value);
             if (current + change >= 1) { input.value = current + change; }
         }
 
-        // 8. Thêm vào Giỏ hàng (Có thêm lớp bảo vệ chống lỗi)
         function addToCartDetail() {
-            let activeSizeBtn = document.querySelector('.size-btn.active');
-            
-            // Lớp bảo vệ: Nếu chưa chọn Size thì báo lỗi nhẹ nhàng chứ không làm sập web
-            if (!activeSizeBtn) {
-                alert("Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!");
-                return;
-            }
+             let activeSizeBtn = document.querySelector('.size-btn.active');
+             if (!activeSizeBtn) {
+                 alert("Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!");
+                 return;
+             }
 
-            let payload = {
-                drinkId: parseInt(document.getElementById('drinkId').value),
-                sizeId: parseInt(activeSizeBtn.getAttribute('data-size-id')),
-                quantity: parseInt(document.getElementById('quantity').value),
-                optionalToppingIds: state.optionalToppings.map(t => parseInt(t.id)), 
-                removedDefaultToppingIds: state.removedDefaultToppings.map(id => parseInt(id)) 
+             // Lấy giá trị ghi chú một cách an toàn (tránh lỗi null)
+             let noteElement = document.getElementById('drinkNote');
+             let noteValue = noteElement ? noteElement.value.trim() : "";
+
+             // Đóng gói dữ liệu gửi đi (Đảm bảo không thiếu dấu phẩy)
+             let payload = {
+                 drinkId: parseInt(document.getElementById('drinkId').value),
+                 sizeId: parseInt(activeSizeBtn.getAttribute('data-size-id')),
+                 quantity: parseInt(document.getElementById('quantity').value),
+                 optionalToppingIds: state.optionalToppings.map(t => parseInt(t.id)),
+                 removedDefaultToppingIds: state.removedDefaultToppings.map(id => parseInt(id)),
+                 note: noteValue
+             };
+
+             let btn = document.querySelector('button[onclick="addToCartDetail()"]');
+             let originalText = btn.innerHTML;
+             btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang thêm...';
+             btn.disabled = true;
+
+             fetch('/Cart/AddToCartAdvance', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(payload)
+             })
+             .then(res => res.json())
+             .then(data => {
+                 if (data.success) {
+                     const badge = document.getElementById('cart-badge');
+                     if(badge) {
+                         badge.innerText = data.totalCount;
+                         badge.classList.remove('d-none');
+                     }
+                     alert("Đã thêm món vào giỏ hàng thành công!");
+                     // ==========================================================
+                    // 🔥 THÊM ĐOẠN NÀY ĐỂ XÓA TRẮNG FORM SAU KHI THÊM 🔥
+                    // ==========================================================
+                    // 1. Xóa trắng ô ghi chú
+                    let noteElement = document.getElementById('drinkNote');
+                    if (noteElement) noteElement.value = '';
+
+                    // 2. (Tùy chọn) Đưa số lượng về lại 1 cho chuẩn bài
+                    document.getElementById('quantity').value = 1;
+                    // ==========================================================
+                 } else { alert("Lỗi: " + data.message); }
+             })
+             .catch(error => console.error('Error:', error))
+             .finally(() => {
+                 btn.innerHTML = originalText;
+                 btn.disabled = false;
+             });
+         }
+
+        function submitReviewAjax() {
+            let stars = starsHiddenInput.value;
+            let comment = document.getElementById('reviewComment').value.trim();
+
+            if(stars == "0") { alert("Vui lòng chọn số sao đánh giá!"); return; }
+            if(comment == "") { alert("Vui lòng nhập nhận xét!"); return; }
+
+            const payload = {
+                DrinkId: parseInt(document.querySelector('input[name="DrinkId"]').value),
+                Stars: parseInt(stars),
+                Comment: comment
             };
 
-            let btn = document.querySelector('button[onclick="addToCartDetail()"]');
+            let btn = document.querySelector('#submitReviewForm button[type="button"]');
             let originalText = btn.innerHTML;
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang thêm...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span> Đang gửi...';
             btn.disabled = true;
 
-            fetch('/Cart/AddToCartAdvance', {
+            fetch('/Drink/SubmitReview', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                if (data.success) {
-                    const badge = document.getElementById('cart-badge');
-                    if(badge) {
-                        badge.innerText = data.totalCount;
-                        badge.classList.remove('d-none');
-                    }
-                    alert("Đã thêm món vào giỏ hàng thành công!");
-                } else {
-                    alert("Lỗi: " + data.message);
-                }
+                if(data.success) {
+                    alert(data.message);
+                    location.reload();
+                } else { alert("Lỗi: " + data.message); }
             })
-            .catch(error => console.error('Error:', error))
+            .catch(err => console.error("Lỗi:", err))
             .finally(() => {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             });
         }
     </script>
-}
 }

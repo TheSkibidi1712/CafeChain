@@ -13,6 +13,7 @@ namespace CafeChain.Application.Interfaces
             string sortBy,
             int page,
             int pageSize);
+
         Task<DrinkDetailViewModel> GetDrinkDetailAsync(int drinkId);
     }
 }

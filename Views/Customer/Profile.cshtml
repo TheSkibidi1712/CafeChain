@@ -1,0 +1,419 @@
+﻿@model CafeChain.ViewModels.Customers.CustomerProfileViewModel
+@{
+    ViewData["Title"] = "Hồ sơ cá nhân";
+}
+
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center">
+                <div class="d-flex flex-column align-items-center mb-3">
+                    <div class="avatar-wrapper position-relative d-inline-block">
+
+                        <img id="avatarImage" src="@(Model.Customer.AvatarUrl ?? "/Images/Upload/avtdf.jpg")"
+                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                             class="rounded-circle object-fit-cover shadow"
+                             style="width: 120px; height: 120px; border: 4px solid #fff;"
+                             alt="Avatar" onclick="document.getElementById('avatarInput').click()">
+
+                        <div class="avatar-upload-icon" onclick="document.getElementById('avatarInput').click()" title="Đổi ảnh đại diện">
+                            <i class="bi bi-camera-fill"></i>
+                        </div>
+                    </div>
+
+                    <input type="file" id="avatarInput" class="d-none" accept="image/*" onchange="uploadAvatar(this)">
+
+                    <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                        Dung lượng tối đa 1 MB. Định dạng: .JPEG, .PNG
+                    </div>
+                </div>
+
+                <h4 class="fw-bold">@Model.Customer.FullName</h4>
+                <p class="text-orange mb-4 small">Khách hàng thân thiết</p>
+
+                <div class="gold-card text-white rounded-4 p-4 text-start mb-4 position-relative overflow-hidden">
+                    <p class="small text-uppercase mb-1 opacity-75 fw-semibold">Hạng thành viên</p>
+                    <h4 class="fw-bold mb-4">GOLD MEMBER</h4>
+                    <p class="small mb-1 opacity-75">Điểm tích lũy hiện tại</p>
+                    <h2 class="fw-bold mb-3">1,250 <span class="fs-6 fw-normal">điểm</span></h2>
+
+                    <div class="progress bg-white bg-opacity-25" style="height: 4px;">
+                        <div class="progress-bar bg-white" style="width: 70%"></div>
+                    </div>
+                    <p class="mt-2 mb-0 fw-light" style="font-size: 0.65rem;">CAFECHAIN ELITE</p>
+                </div>
+
+                <div class="text-start profile-menu">
+                    <a href="#" class="nav-link active rounded-3 p-3 mb-2"><i class="bi bi-person me-3"></i> Hồ sơ cá nhân</a>
+                    <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-clock-history me-3"></i> Lịch sử đơn hàng</a>
+                    <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-gift me-3"></i> Ưu đãi của tôi</a>
+                    <hr class="my-3 opacity-10">
+                    <form asp-controller="Account" asp-action="Logout" method="post">
+                        <button type="submit" class="btn btn-light w-100 rounded-3 py-2 text-danger fw-bold"><i class="bi bi-box-arrow-right me-2"></i> Đăng xuất tài khoản</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+                <h3 class="fw-bold mb-1">Thông tin cá nhân</h3>
+                <p class="text-muted small mb-4">Cập nhật thông tin của bạn để nhận thêm nhiều ưu đãi đặc biệt.</p>
+
+                <form id="profileForm">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Họ và tên</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-muted"></i></span>
+                                <input type="text" id="inputFullName" class="form-control bg-white border-start-0 py-2 profile-input shadow-none" value="@Model.Customer.FullName" readonly>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Số điện thoại (tích điểm)</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-telephone text-muted"></i></span>
+                                <select id="phoneSelect" name="PrimaryPhone" class="form-select border-start-0 profile-input" disabled>
+                                    @foreach (var p in Model.Customer.CustomerPhones)
+                                    {
+                                        <option value="@p.Phone" selected="@(p.IsDefault ? "selected" : null)">
+                                            @p.Phone @(p.IsDefault ? "(Mặc định)" : "")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mt-2" onclick="openPhoneModal()" style="cursor: pointer; display: inline-block;">
+                                <span class="text-orange small fw-semibold">
+                                    <i class="bi bi-plus-circle me-1"></i>Thêm số điện thoại phụ
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Địa chỉ</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-geo-alt text-muted"></i></span>
+                                <select id="addressSelect" name="PrimaryAddress" class="form-select border-start-0 profile-input" disabled>
+                                    @foreach (var a in Model.Customer.CustomerAddresses)
+                                    {
+                                        <option value="@a.Address" selected="@(a.IsDefault ? "selected" : null)">
+                                            @a.Address @(a.IsDefault ? "(Mặc định)" : "")
+                                        </option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="mt-2" onclick="openAddressModal()" style="cursor: pointer; display: inline-block;">
+                                <span class="text-orange small fw-semibold">
+                                    <i class="bi bi-plus-circle me-1"></i>Thêm địa chỉ giao hàng
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Địa chỉ Email</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light border-0"><i class="bi bi-envelope text-muted"></i></span>
+                                <input type="email" class="form-control bg-light border-0 py-2" value="@Model.Email" readonly disabled>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label text-muted small fw-bold">Ngày sinh</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar text-muted"></i></span>
+                                <input type="date" id="inputDob" class="form-control bg-white border-start-0 py-2 profile-input shadow-none" value="@(Model.Customer.DateOfBirth?.ToString("yyyy-MM-dd"))" readonly>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-5">
+                        <div class="col-md-6">
+                            <button type="button" id="btnEditProfile" class="btn btn-secondary w-100 rounded-3 py-2 fw-bold" onclick="enableEditMode()">
+                                <i class="bi bi-pencil-square me-2"></i>Chỉnh sửa thông tin
+                            </button>
+
+                            <button type="button" id="btnSaveProfile" class="btn btn-orange w-100 rounded-3 py-2 fw-bold d-none" onclick="saveAllData()">
+                                <i class="bi bi-save me-2"></i>Lưu thông tin
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <a href="/Customer/ChangePassword" class="btn btn-outline-orange w-100 rounded-3 py-2 fw-bold text-decoration-none">
+                                <i class="bi bi-shield-lock me-2"></i>Đổi mật khẩu
+                            </a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="mt-5 p-3 rounded-4 bg-orange-light border border-orange-subtle d-flex gap-3">
+                    <i class="bi bi-info-circle text-orange fs-4"></i>
+                    <div>
+                        <h6 class="fw-bold mb-1">Quyền lợi Hạng Vàng</h6>
+                        <p class="small text-muted mb-0">Bạn còn 250 điểm để lên hạng Kim Cương. Khách hàng Hạng Vàng được giảm 10% cho mọi đơn hàng tại cửa hàng.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addPhoneModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Thêm Số Điện Thoại</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addPhoneForm">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Nhập số điện thoại mới</label>
+                        <input type="tel" id="newPhoneInput" class="form-control py-2 shadow-none" placeholder="VD: 090 123 4567" required>
+                    </div>
+                    <button type="button" onclick="submitNewPhone()" class="btn btn-orange w-100 py-2 rounded-3 fw-bold">Xác nhận thêm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="addAddressModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Thêm Địa Chỉ Mới</h5>
+                <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addAddressForm">
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Nhập địa chỉ chi tiết</label>
+                        <textarea id="newAddressInput" class="form-control py-2 shadow-none" rows="3" placeholder="VD: 40/11 Khu phố A, Phường Long Bình..." required></textarea>
+                    </div>
+                    <button type="button" onclick="submitNewAddress()" class="btn btn-orange w-100 py-2 rounded-3 fw-bold">Xác nhận thêm</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        /* BƯỚC 2: CHÈN CSS NÀY VÀO TRONG THẺ <style> */
+
+        /* Container chính của Avatar */
+        .avatar-wrapper {
+            width: 120px;
+            height: 120px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+            /* Hiệu ứng khi rê chuột vào cả cụm: Ảnh tối đi 1 tí để nổi bật icon */
+            .avatar-wrapper:hover #avatarImage {
+                filter: brightness(0.8);
+            }
+
+        /* 🔥 ĐỊNH VỊ ICON CAMERA DÍNH LIỀN 🔥 */
+        .avatar-upload-icon {
+            position: absolute;
+            bottom: 0px; /* Dính sát đáy ảnh */
+            right: 0px; /* Dính sát bên phải ảnh */
+            background-color: #f0f2f5; /* Màu nền xám nhạt */
+            color: #1c1e21; /* Màu icon tối */
+            width: 36px;
+            height: 36px;
+            border-radius: 50%; /* Bo tròn 100% */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 2px solid #fff; /* Viền trắng để tách biệt với ảnh */
+            transition: all 0.2s ease;
+            z-index: 10; /* Đảm bảo luôn nằm trên ảnh */
+        }
+
+            /* Hiệu ứng khi rê chuột vào riêng Icon: Phóng to và đổi màu nền */
+            .avatar-upload-icon:hover {
+                background-color: #e4e6eb;
+                transform: scale(1.1);
+            }
+
+        .gold-card {
+            background: linear-gradient(135deg, #d35400 0%, #8e44ad 100%);
+            box-shadow: 0 10px 20px rgba(211, 84, 0, 0.3);
+        }
+
+        .bg-orange-light {
+            background-color: #fff3ed;
+        }
+
+        .profile-menu .nav-link.active {
+            background-color: #fff3ed;
+            color: #d35400 !important;
+            font-weight: bold;
+        }
+
+        /* Thêm viền cam khi ô input được mở khóa */
+        .profile-input:not([readonly]):not([disabled]) {
+            background-color: #fff !important;
+            border: 1px solid #d35400 !important;
+            box-shadow: 0 0 5px rgba(211, 84, 0, 0.2);
+        }
+    </style>
+
+    <script>
+        let myPhoneModal;
+        let myAddressModal;
+        let initialState = {};
+
+        window.addEventListener('DOMContentLoaded', (event) => {
+            myPhoneModal = new bootstrap.Modal(document.getElementById('addPhoneModal'));
+            myAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+
+            initialState = {
+                fullName: document.getElementById('inputFullName').value,
+                dob: document.getElementById('inputDob').value,
+                phone: document.getElementById('phoneSelect').value,
+                address: document.getElementById('addressSelect').value
+            };
+        });
+
+        function openPhoneModal() { myPhoneModal.show(); }
+        function openAddressModal() { myAddressModal.show(); }
+
+        let pendingData = { phones: [], addresses: [] };
+
+        function submitNewPhone() {
+            const input = document.getElementById('newPhoneInput');
+            const phone = input.value.trim();
+            if (phone === "") { alert("Vui lòng nhập số điện thoại!"); return; }
+
+            const select = document.getElementById('phoneSelect');
+            const option = document.createElement("option");
+            option.text = phone; option.value = phone;
+            select.add(option, 0);
+            select.value = phone;
+
+            pendingData.phones.push(phone);
+            input.value = "";
+            myPhoneModal.hide();
+
+            // Tự động bật chế độ Edit để khách biết phải bấm Lưu
+            enableEditMode();
+        }
+
+        function submitNewAddress() {
+            const input = document.getElementById('newAddressInput');
+            const addr = input.value.trim();
+            if (addr === "") { alert("Vui lòng nhập địa chỉ!"); return; }
+
+            const select = document.getElementById('addressSelect');
+            const option = document.createElement("option");
+            option.text = addr; option.value = addr;
+            select.add(option, 0);
+            select.value = addr;
+
+            pendingData.addresses.push(addr);
+            input.value = "";
+            myAddressModal.hide();
+
+            // Tự động bật chế độ Edit để khách biết phải bấm Lưu
+            enableEditMode();
+        }
+
+        // 🔥 HÀM MỞ KHÓA EDIT MODE 🔥
+        function enableEditMode() {
+            document.querySelectorAll('.profile-input').forEach(el => {
+                el.removeAttribute('readonly');
+                el.removeAttribute('disabled');
+            });
+            document.getElementById('btnEditProfile').classList.add('d-none');
+            document.getElementById('btnSaveProfile').classList.remove('d-none');
+            document.getElementById('inputFullName').focus();
+        }
+
+        function saveAllData() {
+            const currentFullName = document.getElementById('inputFullName').value;
+            const currentDob = document.getElementById('inputDob').value;
+            const currentPhone = document.getElementById('phoneSelect').value;
+            const currentAddress = document.getElementById('addressSelect').value;
+
+            let isChanged = (currentFullName !== initialState.fullName) ||
+                            (currentDob !== initialState.dob) ||
+                            (currentPhone !== initialState.phone) ||
+                            (currentAddress !== initialState.address) ||
+                            (pendingData.phones.length > 0) ||
+                            (pendingData.addresses.length > 0);
+
+            if (!isChanged) {
+                // Nếu không đổi gì thì đóng Edit Mode lại
+                document.querySelectorAll('.profile-input').forEach(el => {
+                    if(el.tagName === 'SELECT') el.setAttribute('disabled', 'disabled');
+                    else el.setAttribute('readonly', 'readonly');
+                });
+                document.getElementById('btnEditProfile').classList.remove('d-none');
+                document.getElementById('btnSaveProfile').classList.add('d-none');
+                return;
+            }
+
+            const payload = {
+                 fullName: currentFullName,
+                 dob: currentDob,
+                 primaryPhone: currentPhone,
+                 primaryAddress: currentAddress,
+                 newPhones: pendingData.phones,
+                 newAddresses: pendingData.addresses
+            };
+
+            let btn = document.getElementById('btnSaveProfile');
+            let originalHtml = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Đang lưu...';
+            btn.disabled = true;
+
+            fetch('/Customer/UpdateProfile', {
+                 method: 'POST',
+                 headers: { 'Content-Type': 'application/json' },
+                 body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                 if(data.success || data.message === "Không có thay đổi nào được lưu.") {
+                     alert("Tuyệt vời! Dữ liệu đã được lưu thành công.");
+                     location.reload();
+                 } else {
+                     alert("Lỗi: " + data.message);
+                     btn.innerHTML = originalHtml;
+                     btn.disabled = false;
+                 }
+            })
+            .catch(err => {
+                console.error("Lỗi kết nối server:", err);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
+            });
+        }
+
+        function uploadAvatar(input) {
+            if (input.files && input.files[0]) {
+                let formData = new FormData();
+                formData.append("avatarFile", input.files[0]);
+
+                let reader = new FileReader();
+                reader.onload = e => {
+                    document.getElementById('avatarImage').src = e.target.result;
+                    const headerImg = document.getElementById('headerAvatar');
+                    if(headerImg) headerImg.src = e.target.result;
+                };
+                reader.readAsDataURL(input.files[0]);
+
+                fetch('/Customer/UpdateAvatar', { method: 'POST', body: formData })
+                .then(res => res.json())
+                .then(data => {
+                    if(data.isReused) console.log("Ảnh cũ dùng lại, không tốn ổ cứng!");
+                });
+            }
+        }
+    </script>
+}

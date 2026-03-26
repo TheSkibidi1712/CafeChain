@@ -8,5 +8,6 @@ namespace CafeChain.Models.Customers
         public int CustomerId { get; set; }
         public string Address { get; set; }
         public virtual Customer Customer { get; set; }
+        public bool IsDefault { get; set; } = false; // Mặc định tạo ra là false
     }
 }

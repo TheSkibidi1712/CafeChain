@@ -1,32 +1,86 @@
 ﻿@model CafeChain.Models.Drinks.Drink
 @{
-    var imgName = Model.DrinkImages?.FirstOrDefault()?.ImageUrl ?? "cpd1.jpg";
+    var imgName = Model.DrinkImages?.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg";
     var price = Model.DrinkSizes?.FirstOrDefault()?.Price ?? 0;
     var badgeText = Model.DrinkId % 2 == 0 ? "PHỔ BIẾN" : "SÁNG TẠO";
     var badgeBg = Model.DrinkId % 2 == 0 ? "bg-orange" : "bg-dark";
+
+    // 🔥 LOGIC TÍNH TOÁN RATING TỪ DATABASE 🔥
+    var totalReviews = Model.Ratings != null ? Model.Ratings.Count : 0;
+    double avgRating = totalReviews > 0 ? Model.Ratings.Average(r => r.Stars) : 0;
+
+    int fullStars = (int)Math.Floor(avgRating);
+    bool hasHalfStar = (avgRating - fullStars) >= 0.5;
+    int emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
 }
 
-<div class="card h-100 border-0 product-card p-2" style="background-color: #fdfdfd; box-shadow: 0 2px 10px rgba(0,0,0,0.03);">
-
+<div class="card h-100 border-0 product-card p-2" style="background-color: #fdfdfd; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: transform 0.2s;">
     <a href="/Drink/Detail/@Model.DrinkId" class="text-decoration-none text-dark d-block flex-grow-1">
-
-        <div class="position-relative">
+        <div class="position-relative overflow-hidden rounded-4">
             <span class="badge @badgeBg text-white position-absolute top-0 end-0 m-2 rounded-pill px-2 py-1" style="font-size: 0.65rem; z-index: 2;">@badgeText</span>
-            <img src="@imgName" class="card-img-top rounded-4 p-1" alt="@Model.Name">
+            <img src="@imgName" class="card-img-top p-1 object-fit-cover w-100" style="aspect-ratio: 1/1;" alt="@Model.Name" onerror="this.onerror=null; this.src='/images/default.jpg';">
+            <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-10 opacity-0 overlay-hover transition-all"></div>
         </div>
 
         <div class="card-body text-start px-2 pt-3 pb-0 d-flex flex-column">
             <h6 class="card-title fw-bold mb-1 text-dark">@Model.Name</h6>
-            <p class="text-muted mb-2 text-truncate" style="font-size: 0.8rem;">
-                @(string.IsNullOrEmpty(Model.Description) ? "Sự kết hợp hoàn hảo..." : Model.Description)
-            </p>
+
+            <div class="d-flex align-items-center mb-2">
+                <div class="text-warning small me-1">
+                    @if (totalReviews == 0)
+                    {
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                        <i class="bi bi-star text-muted opacity-25"></i>
+                    }
+                    else
+                    {
+                        for (int i = 0; i < fullStars; i++)
+                        {
+
+                            <i class="bi bi-star-fill"></i>
+                        }
+                        if (hasHalfStar)
+                        {
+
+                            <i class="bi bi-star-half"></i>
+                        }
+                        for (int i = 0; i < emptyStars; i++)
+                        {
+
+                            <i class="bi bi-star text-muted opacity-25"></i>
+                        }
+                    }
+                </div>
+
+                @if (totalReviews > 0)
+                {
+                    <span class="text-dark fw-bold me-1" style="font-size: 0.75rem;">@avgRating.ToString("0.0")</span>
+                }
+                <span class="text-muted" style="font-size: 0.7rem;">(@totalReviews)</span>
+            </div>
+
         </div>
+    </a>
 
-    </a> <div class="px-2 pb-2 mt-auto d-flex justify-content-between align-items-center">
-        <span class="text-orange fw-bold">@price.ToString("N0")đ</span>
-
-        <button onclick="addToCart(@Model.DrinkId)" class="btn btn-orange text-white rounded-3 shadow-sm d-flex align-items-center justify-content-center p-0" style="width:32px; height:32px;">
-            <i class="bi bi-cart-plus fs-6"></i>
-        </button>
+    <div class="px-2 pb-2 mt-auto d-flex justify-content-between align-items-center">
+        <span class="text-orange fw-bold fs-5">@price.ToString("N0")đ</span>
     </div>
 </div>
+
+<style>
+    .product-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+    }
+
+    .overlay-hover {
+        transition: opacity 0.3s;
+    }
+
+    .product-card:hover .overlay-hover {
+        opacity: 1;
+    }
+</style>

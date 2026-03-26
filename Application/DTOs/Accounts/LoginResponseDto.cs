@@ -1,4 +1,4 @@
-namespace CafeChain.Application.DTOs.Accounts
+﻿namespace CafeChain.Application.DTOs.Accounts
 {
     public class LoginResponseDto
     {
@@ -8,5 +8,7 @@ namespace CafeChain.Application.DTOs.Accounts
         public int AccountId { get; set; }
         public int? CustomerId { get; set; }
         public int? StaffId { get; set; }
+        // 🔥 THÊM DÒNG NÀY VÀO 🔥
+        public string? AvatarUrl { get; set; }
     }
 }
