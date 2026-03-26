@@ -1,0 +1,225 @@
+@model CafeChain.ViewModels.Admin.Inventories.AdminInventoryListViewModel
+
+@{
+    ViewData["Title"] = "Quản lý Tồn kho";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 style="font-weight: 700; color: #343a40;">Quản lý Tồn kho</h2>
+        <p class="text-muted" style="font-size: 14px;">Theo dõi, kiểm kê và điều chỉnh nguyên liệu cho toàn chuỗi.</p>
+    </div>
+    <div class="d-flex gap-3">
+        <a asp-action="Import" class="btn text-white px-4 py-2" style="background-color: #d9421c; border-radius: 8px; font-weight: 500;">
+            <i class="fas fa-plus-circle me-1"></i> Nhập kho
+        </a>
+        <a asp-action="Export" asp-route-searchTerm="@Model.SearchTerm" asp-route-type="@Model.SelectedType" asp-route-status="@Model.SelectedStatus" class="btn btn-light bg-white border px-4 py-2" style="border-radius: 8px; font-weight: 500;">
+            <i class="fas fa-download me-1"></i> Xuất File
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    <!-- Card 1 -->
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-muted mb-2" style="font-size: 14px; font-weight: 500;">Tổng mặt hàng</p>
+                <div class="d-flex justify-content-between align-items-end">
+                    <h3 class="mb-0" style="font-weight: 700;">@Model.TotalItemsCount</h3>
+                    <span class="badge" style="background-color: #e6f8ef; color: #1da35d; border-radius: 6px; padding: 6px 8px;">+@Model.TotalItemsGrowthPercentage%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Card 2: Cần chú ý -->
+    <div class="col-md-3">
+        <div class="card shadow-sm h-100" style="border-radius: 12px; border: 1.5px solid #ffdbd5; background-color: #fffaf9;">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-muted mb-2" style="font-size: 14px; font-weight: 500;">Sắp hết hàng</p>
+                <div class="d-flex justify-content-between align-items-end">
+                    <h3 class="mb-0 text-danger" style="font-weight: 700;">@Model.LowStockCount.ToString("D2")</h3>
+                    <span class="text-danger" style="font-size: 14px; font-weight: 600;">Cần chú ý</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-muted mb-2" style="font-size: 14px; font-weight: 500;">Giá trị tồn kho</p>
+                <div class="d-flex justify-content-between align-items-end">
+                    <h3 class="mb-0" style="font-weight: 700;">@(Model.TotalInventoryValue > 1000000 ? (Model.TotalInventoryValue/1000000).ToString("0.0") + "M" : Model.TotalInventoryValue.ToString("N0"))</h3>
+                    <span class="text-muted" style="font-size: 14px; font-weight: 500;">VND</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm h-100" style="border-radius: 12px;">
+            <div class="card-body p-4 d-flex flex-column justify-content-center">
+                <p class="text-muted mb-2" style="font-size: 14px; font-weight: 500;">Nhập trong tháng</p>
+                <div class="d-flex justify-content-between align-items-end">
+                    <h3 class="mb-0 text-warning" style="font-weight: 700; color: #d9421c !important;">@Model.MonthlyImportBatches.ToString("D2")</h3>
+                    <span class="text-muted" style="font-size: 14px; font-weight: 500;">Lô hàng</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Filters -->
+<form method="get" asp-action="Index" id="filterForm" class="mb-4">
+    <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+        <div class="card-body p-3">
+            <div class="row g-3">
+                <div class="col-md-7">
+                    <div class="input-group">
+                        <span class="input-group-text bg-light border-end-0 border" style="border-radius: 8px 0 0 8px;"><i class="fas fa-search text-muted"></i></span>
+                        <input type="text" asp-for="SearchTerm" name="searchTerm" class="form-control bg-light border-start-0 border" style="border-radius: 0 8px 8px 0;" placeholder="Tìm kiếm mã hoặc tên nguyên liệu..." onkeypress="handleEnter(event)">
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <select asp-for="SelectedType" name="type" class="form-select border" style="border-radius: 8px;" onchange="document.getElementById('filterForm').submit()">
+                        @foreach (var t in Model.Types)
+                        {
+                            <option value="@t">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select asp-for="SelectedStatus" name="status" class="form-select border" style="border-radius: 8px;" onchange="document.getElementById('filterForm').submit()">
+                        @foreach (var s in Model.Statuses)
+                        {
+                            <option value="@s">@s</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm" style="border-radius: 12px; overflow: hidden; background-color: #fffbfa;">
+    <div class="card-body p-0">
+        <table class="table mb-0 table-hover align-middle">
+            <thead>
+                <tr style="border-bottom: 2px solid #fff0eb;">
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px; width: 15%;">MÃ NL</th>
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">TÊN NGUYÊN LIỆU</th>
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">LOẠI</th>
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">ĐVT</th>
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">TỒN KHO</th>
+                    <th class="border-0 text-muted" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">TRẠNG THÁI</th>
+                    <th class="border-0 text-muted text-center" style="font-size: 13px; font-weight: 600; padding: 16px 24px;">HÀNH ĐỘNG</th>
+                </tr>
+            </thead>
+            <tbody style="background-color: #fff;">
+                @foreach (var item in Model.IngredientsList.Items)
+                {
+                    <tr style="border-bottom: 1px solid #f8f9fa;">
+                        <td class="text-muted" style="padding: 16px 24px; font-family: monospace; font-size: 14px;">@item.Code</td>
+                        <td style="padding: 16px 24px; font-weight: 500; font-size: 14px; color: #495057;">@item.Name</td>
+                        <td style="padding: 16px 24px; font-size: 14px; color: #6c757d;">@item.Type</td>
+                        <td style="padding: 16px 24px; font-size: 14px; color: #6c757d;">@item.Unit</td>
+                        <td style="padding: 16px 24px; font-weight: 700; font-size: 15px; color: @(item.Status == "Sắp hết" ? "#dc3545" : "#212529");">@item.TotalStock.ToString("G29")</td>
+                        <td style="padding: 16px 24px;">
+                            @{
+                                var statusBg = "#e6f8ef";
+                                var statusColor = "#1da35d";
+                                var dotColor = "#1da35d";
+                                if (item.Status == "Sắp hết")
+                                {
+                                    statusBg = "#ffeeeb";
+                                    statusColor = "#d9421c";
+                                    dotColor = "#d9421c";
+                                }
+                                else if (item.Status == "Gần hết")
+                                {
+                                    statusBg = "#fff3cd";
+                                    statusColor = "#cc8925";
+                                    dotColor = "#cc8925";
+                                }
+                            }
+                            <span class="badge" style="background-color: @statusBg; color: @statusColor; padding: 8px 12px; border-radius: 20px; font-weight: 500; font-size: 13px;">
+                                <i class="fas fa-circle me-1" style="font-size: 8px; vertical-align: middle; color: @dotColor;"></i>
+                                @item.Status
+                            </span>
+                        </td>
+                        <td class="text-center" style="padding: 16px 24px;">
+                            <button class="btn btn-sm btn-light border-0" style="color: #adb5bd; background: transparent;">
+                                <i class="fas fa-pen"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="card-footer bg-white border-0 py-3" style="border-top: 1px solid #fff0eb !important;">
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="text-muted" style="font-size: 14px;">Hiển thị @(Model.IngredientsList.Items.Count > 0 ? (Model.IngredientsList.PageIndex - 1) * 5 + 1 : 0)-@(Math.Min((Model.IngredientsList.PageIndex) * 5, Model.IngredientsList.TotalCount)) trong số @Model.IngredientsList.TotalCount nguyên liệu</span>
+            
+            <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm mb-0 gap-1">
+                    <li class="page-item @(!Model.IngredientsList.HasPreviousPage ? "disabled" : "")">
+                        <a class="page-link text-muted" style="border-radius: 6px; border: 1px solid #dee2e6;" asp-action="Index"
+                           asp-route-pageIndex="@(Model.IngredientsList.PageIndex - 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-type="@Model.SelectedType"
+                           asp-route-status="@Model.SelectedStatus">Trước</a>
+                    </li>
+                    
+                    @for (int i = 1; i <= Model.IngredientsList.TotalPages; i++)
+                    {
+                        if (i == Model.IngredientsList.PageIndex)
+                        {
+                            <li class="page-item active">
+                                <span class="page-link text-white border-0" style="background-color: #d9421c; border-radius: 6px; padding: 5px 12px;">@i</span>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="page-item">
+                                <a class="page-link text-dark" style="border-radius: 6px; border: 1px solid #dee2e6; padding: 5px 12px;" asp-action="Index"
+                                   asp-route-pageIndex="@i"
+                                   asp-route-searchTerm="@Model.SearchTerm"
+                                   asp-route-type="@Model.SelectedType"
+                                   asp-route-status="@Model.SelectedStatus">@i</a>
+                            </li>
+                        }
+                    }
+
+                    <li class="page-item @(!Model.IngredientsList.HasNextPage ? "disabled" : "")">
+                        <a class="page-link text-muted" style="border-radius: 6px; border: 1px solid #dee2e6;" asp-action="Index"
+                           asp-route-pageIndex="@(Model.IngredientsList.PageIndex + 1)"
+                           asp-route-searchTerm="@Model.SearchTerm"
+                           asp-route-type="@Model.SelectedType"
+                           asp-route-status="@Model.SelectedStatus">Sau</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function handleEnter(e) {
+            if (e.keyCode === 13) {
+                e.preventDefault();
+                document.getElementById('filterForm').submit();
+            }
+        }
+    </script>
+}

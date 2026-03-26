@@ -333,7 +333,7 @@
                     <label class="form-label" asp-for="FullName"></label>
                     <div class="input-wrapper">
                         <i class="far fa-user input-icon"></i>
-                        <input asp-for="FullName" class="form-input" placeholder="Nhập họ và tên của bạn" maxlength="100" oninput="this.value=this.value.replace(/[^a-zA-ZÀ-ỹ\s]/g,'')" />
+                        <input asp-for="FullName" class="form-input" placeholder="Nhập họ và tên của bạn" maxlength="100" />
                     </div>
                     <span asp-validation-for="FullName" class="text-danger"></span>
                 </div>
@@ -349,7 +349,7 @@
                     <label class="form-label" asp-for="PhoneNumber">Số điện thoại <span>(để tích điểm)</span></label>
                     <div class="input-wrapper">
                         <i class="fas fa-mobile-alt input-icon"></i>
-                        <input asp-for="PhoneNumber" class="form-input" placeholder="0xxx xxx xxx" maxlength="11" minlength="10" oninput="this.value = this.value.replace(/[^0-9]/g, '')" />
+                        <input asp-for="PhoneNumber" class="form-input" placeholder="0xxx xxx xxx" maxlength="11" minlength="10" />
                     </div>
                     <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                 </div>

@@ -9,6 +9,19 @@ using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Infrastrusture.Repositories.Accounts;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
+<<<<<<< HEAD
+=======
+using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
+using CafeChain.Infrastrusture.Repositories.Admin.Categories;
+using CafeChain.Application.Interfaces.Admin.Categories;
+using CafeChain.Application.Services.Admin.Categories;
+using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Services.Accounts;
+using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
+using CafeChain.Application.Interfaces;
+using CafeChain.Application.Services;
+>>>>>>> de67feeaf88dea133e60895926b9f2905a680a77
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -59,13 +72,20 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // =======================
 builder.Services.AddHttpContextAccessor();
 
+
 // =======================
 // 6. Dependency Injection for Services and Repositories
 // =======================
 
+builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
+builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
+
 // Account
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+builder.Services.AddScoped<IEmailService, EmailService>();
 
 
 

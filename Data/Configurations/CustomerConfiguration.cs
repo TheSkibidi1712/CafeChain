@@ -285,8 +285,64 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => new { x.CustomerId, x.DrinkId })
                 .IsUnique()
                 .HasFilter("[CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
+        }
+    }
 
+    public class RatingImageConfiguration : IEntityTypeConfiguration<RatingImage>
+    {
+        public void Configure(EntityTypeBuilder<RatingImage> entity)
+        {
+            entity.ToTable("RatingImages");
 
+            entity.HasKey(x => x.RatingImageId);
+
+            entity.Property(x => x.ImageUrl)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.HasOne(x => x.Rating)
+                .WithMany(r => r.Images)
+                .HasForeignKey(x => x.RatingId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
+    // ========================== PASSWORD RESET OTP ==========================
+    public class PasswordResetOtpConfiguration : IEntityTypeConfiguration<PasswordResetOtp>
+    {
+        public void Configure(EntityTypeBuilder<PasswordResetOtp> entity)
+        {
+            entity.ToTable("PasswordResetOtps");
+
+            entity.HasKey(x => x.Id);
+
+            entity.Property(x => x.Email)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(10);
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.Property(x => x.ExpiredAt)
+                .IsRequired();
+
+            entity.Property(x => x.IsUsed)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.FailedAttempts)
+                .HasDefaultValue(0); // 🔥 QUAN TRỌNG
+
+             // ================= INDEX =================
+
+             entity.HasIndex(x => new { x.Email, x.Code, x.IsUsed });
+
+             entity.HasIndex(x => x.Email);
+
+             entity.HasIndex(x => x.CreatedAt);
         }
     }
 }
