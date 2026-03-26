@@ -19,6 +19,15 @@ using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Services;
+using CafeChain.Infrastrusture.Interfaces.Admin.Sizes;
+using CafeChain.Infrastrusture.Repositories.Admin.Sizes;
+using CafeChain.Application.Interfaces.Admin.Sizes;
+using CafeChain.Application.Services.Admin.Sizes;
+using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
+using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
+using CafeChain.Application.Interfaces.Admin.Toppings;
+using CafeChain.Application.Services.Admin.Toppings;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,16 +93,20 @@ builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-
-
-// =======================
-// 6. Application Services
-// =======================
+// Home
 builder.Services.AddScoped<IDrinkService, DrinkService>();
 builder.Services.AddScoped<ICartService, CartService>();
 // Đăng ký FileService
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+// Admin Sizes
+builder.Services.AddScoped<IAdminSizeRepository, AdminSizeRepository>();
+builder.Services.AddScoped<IAdminSizeService, AdminSizeService>();
+
+// Admin Toppings
+builder.Services.AddScoped<IAdminToppingRepository, AdminToppingRepository>();
+builder.Services.AddScoped<IAdminToppingService, AdminToppingService>();
 
 var app = builder.Build();
 
