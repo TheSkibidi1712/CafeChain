@@ -1,4 +1,4 @@
-﻿namespace CafeChain.Models.Inventories
+﻿  namespace CafeChain.Models.Inventories
 {
     public class StockImportDetail
     {

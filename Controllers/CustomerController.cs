@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
+using CafeChain.ViewModels.Customers; // Thêm using này
 
 namespace CafeChain.Controllers
 {
@@ -126,6 +127,28 @@ namespace CafeChain.Controllers
             var viewModel = await _customerService.GetCustomerProfileAsync(accountIdStr);
 
             return View(viewModel);
+        }
+        [HttpPost]
+        public async Task<IActionResult> UpdatePassword([FromBody] ChangePasswordViewModel model)
+        {
+            // Kiểm tra Validation từ ViewModel
+            if (!ModelState.IsValid)
+            {
+                var errorMsg = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage;
+                return Json(new { success = false, message = errorMsg ?? "Dữ liệu không hợp lệ." });
+            }
+
+            // Lấy AccountId từ Cookie Auth
+            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (!int.TryParse(accountIdStr, out int accountId))
+            {
+                return Unauthorized();
+            }
+
+            // Gọi Service thực thi
+            var result = await _customerService.ChangePasswordAsync(accountId, model);
+
+            return Json(new { success = result.Success, message = result.Message });
         }
     }
 }

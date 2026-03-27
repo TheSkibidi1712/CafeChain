@@ -35,7 +35,9 @@ namespace CafeChain.ViewModels.Accounts
         // ================= PASSWORD =================
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
         [DataType(DataType.Password)]
-        [MinLength(6, ErrorMessage = "Mật khẩu phải có ít nhất 6 ký tự")]
+        // Bỏ [MinLength(6)] cũ đi và thay bằng cụm này:
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$",
+            ErrorMessage = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số")]
         [Display(Name = "Mật khẩu")]
         public string Password { get; set; }
 

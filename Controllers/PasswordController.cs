@@ -72,20 +72,23 @@ namespace CafeChain.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ResetPassword(ResetPasswordViewModel vm)
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordViewModel vm)
         {
+            // Kiểm tra Validation
             if (!ModelState.IsValid)
-                return View(vm);
+            {
+                var errorMsg = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage;
+                return Json(new { success = false, message = errorMsg ?? "Dữ liệu không hợp lệ." });
+            }
 
             var result = await _service.ResetPasswordAsync(vm.Email, vm.OtpCode, vm.NewPassword);
 
             if (!result.IsSuccess)
             {
-                ModelState.AddModelError("", result.Message);
-                return View(vm);
+                return Json(new { success = false, message = result.Message });
             }
 
-            return RedirectToAction("Login", "Account");
+            return Json(new { success = true, message = "Đặt lại mật khẩu thành công! Hãy đăng nhập lại bằng mật khẩu mới." });
         }
     }
 }

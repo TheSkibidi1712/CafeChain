@@ -11,6 +11,7 @@ namespace CafeChain.Application.Interfaces.Customers
         Task<(string Url, bool IsReused)> UpdateAvatarAsync(int customerId, IFormFile file);
         Task<CustomerProfileViewModel> GetCustomerProfileAsync(string accountId);
         Task<bool> UpdateProfileAsync(int customerId, UpdateProfileRequest request);
-
+        // Dòng cần thêm:
+        Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordViewModel request);
     }
 }

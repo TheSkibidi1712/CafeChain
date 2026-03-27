@@ -136,6 +136,39 @@ namespace CafeChain.Application.Services.Customers
             // KHÔNG CỐ TÌNH SẮP XẾP HAY XÓA GÌ Ở ĐÂY CẢ
             return await _context.SaveChangesAsync() > 0;
         }
+        public async Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordViewModel request)
+        {
+            // 1. Tìm tài khoản trong Database
+            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId);
+            if (account == null)
+            {
+                return (false, "Không tìm thấy tài khoản.");
+            }
 
+            // 2. Kiểm tra mật khẩu hiện tại bằng BCrypt (Đồng bộ với logic Login)
+            bool isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash);
+
+            if (!isCurrentPasswordValid)
+            {
+                return (false, "Mật khẩu hiện tại không chính xác.");
+            }
+
+            // ====================================================================
+            // 🔥 THÊM LOGIC NÀY: CHẶN TRÙNG MẬT KHẨU CŨ
+            // ====================================================================
+            if (request.CurrentPassword == request.NewPassword)
+            {
+                return (false, "Mật khẩu mới không được trùng với mật khẩu hiện tại.");
+            }
+
+            // 3. Mã hóa mật khẩu mới bằng BCrypt (Đồng bộ với logic Register)
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+            // 4. Lưu thay đổi
+            _context.Accounts.Update(account);
+            await _context.SaveChangesAsync();
+
+            return (true, "Đổi mật khẩu thành công!");
+        }
     }
 }
