@@ -958,6 +958,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.HasKey("DrinkImageId");
 
                     b.HasIndex("DrinkId");
@@ -969,145 +974,169 @@ namespace CafeChain.Migrations
                         {
                             DrinkImageId = 1,
                             DrinkId = 1,
-                            ImageUrl = "/Images/DrinkImages/cps1.jpg"
+                            ImageUrl = "/Images/DrinkImages/cps1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 2,
                             DrinkId = 1,
-                            ImageUrl = "/Images/DrinkImages/cps2.jpg"
+                            ImageUrl = "/Images/DrinkImages/cps2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 3,
                             DrinkId = 1,
-                            ImageUrl = "/Images/DrinkImages/cps3.jpg"
+                            ImageUrl = "/Images/DrinkImages/cps3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 4,
                             DrinkId = 1,
-                            ImageUrl = "/Images/DrinkImages/cps4.jpg"
+                            ImageUrl = "/Images/DrinkImages/cps4.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 5,
                             DrinkId = 2,
-                            ImageUrl = "/Images/DrinkImages/cpd1.jpg"
+                            ImageUrl = "/Images/DrinkImages/cpd1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 6,
                             DrinkId = 2,
-                            ImageUrl = "/Images/DrinkImages/cpd2.jpg"
+                            ImageUrl = "/Images/DrinkImages/cpd2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 7,
                             DrinkId = 2,
-                            ImageUrl = "/Images/DrinkImages/cpd3.jpg"
+                            ImageUrl = "/Images/DrinkImages/cpd3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 8,
                             DrinkId = 2,
-                            ImageUrl = "/Images/DrinkImages/cpd4.jpg"
+                            ImageUrl = "/Images/DrinkImages/cpd4.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 9,
                             DrinkId = 3,
-                            ImageUrl = "/Images/DrinkImages/trasuatranchauden1.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuatranchauden1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 10,
                             DrinkId = 3,
-                            ImageUrl = "/Images/DrinkImages/trasuatranchauden2.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuatranchauden2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 11,
                             DrinkId = 3,
-                            ImageUrl = "/Images/DrinkImages/trasuatranchauden3.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuatranchauden3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 12,
                             DrinkId = 3,
-                            ImageUrl = "/Images/DrinkImages/trasuatranchauden4.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuatranchauden4.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 13,
                             DrinkId = 4,
-                            ImageUrl = "/Images/DrinkImages/trasuasocola1.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuasocola1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 14,
                             DrinkId = 4,
-                            ImageUrl = "/Images/DrinkImages/trasuasocola2.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuasocola2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 15,
                             DrinkId = 4,
-                            ImageUrl = "/Images/DrinkImages/trasuasocola3.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuasocola3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 16,
                             DrinkId = 4,
-                            ImageUrl = "/Images/DrinkImages/trasuasocola4.jpg"
+                            ImageUrl = "/Images/DrinkImages/trasuasocola4.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 17,
                             DrinkId = 5,
-                            ImageUrl = "/Images/DrinkImages/sting1.jpg"
+                            ImageUrl = "/Images/DrinkImages/sting1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 18,
                             DrinkId = 5,
-                            ImageUrl = "/Images/DrinkImages/sting2.jpg"
+                            ImageUrl = "/Images/DrinkImages/sting2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 19,
                             DrinkId = 5,
-                            ImageUrl = "/Images/DrinkImages/sting3.jpg"
+                            ImageUrl = "/Images/DrinkImages/sting3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 20,
                             DrinkId = 5,
-                            ImageUrl = "/Images/DrinkImages/sting4.jpg"
+                            ImageUrl = "/Images/DrinkImages/sting4.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 21,
                             DrinkId = 6,
-                            ImageUrl = "/Images/DrinkImages/coca1.jpg"
+                            ImageUrl = "/Images/DrinkImages/coca1.jpg",
+                            IsDefault = true
                         },
                         new
                         {
                             DrinkImageId = 22,
                             DrinkId = 6,
-                            ImageUrl = "/Images/DrinkImages/coca2.jpg"
+                            ImageUrl = "/Images/DrinkImages/coca2.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 23,
                             DrinkId = 6,
-                            ImageUrl = "/Images/DrinkImages/coca3.jpg"
+                            ImageUrl = "/Images/DrinkImages/coca3.jpg",
+                            IsDefault = false
                         },
                         new
                         {
                             DrinkImageId = 24,
                             DrinkId = 6,
-                            ImageUrl = "/Images/DrinkImages/coca4.jpg"
+                            ImageUrl = "/Images/DrinkImages/coca4.jpg",
+                            IsDefault = false
                         });
                 });
 

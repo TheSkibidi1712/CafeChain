@@ -668,7 +668,8 @@ namespace CafeChain.Migrations
                     DrinkImageId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DrinkId = table.Column<int>(type: "int", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -2097,30 +2098,89 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 1, 1, "/Images/DrinkImages/cps1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
                 values: new object[,]
                 {
-                    { 1, 1, "/Images/DrinkImages/cps1.jpg" },
                     { 2, 1, "/Images/DrinkImages/cps2.jpg" },
                     { 3, 1, "/Images/DrinkImages/cps3.jpg" },
-                    { 4, 1, "/Images/DrinkImages/cps4.jpg" },
-                    { 5, 2, "/Images/DrinkImages/cpd1.jpg" },
+                    { 4, 1, "/Images/DrinkImages/cps4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 5, 2, "/Images/DrinkImages/cpd1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
                     { 6, 2, "/Images/DrinkImages/cpd2.jpg" },
                     { 7, 2, "/Images/DrinkImages/cpd3.jpg" },
-                    { 8, 2, "/Images/DrinkImages/cpd4.jpg" },
-                    { 9, 3, "/Images/DrinkImages/trasuatranchauden1.jpg" },
+                    { 8, 2, "/Images/DrinkImages/cpd4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 9, 3, "/Images/DrinkImages/trasuatranchauden1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
                     { 10, 3, "/Images/DrinkImages/trasuatranchauden2.jpg" },
                     { 11, 3, "/Images/DrinkImages/trasuatranchauden3.jpg" },
-                    { 12, 3, "/Images/DrinkImages/trasuatranchauden4.jpg" },
-                    { 13, 4, "/Images/DrinkImages/trasuasocola1.jpg" },
+                    { 12, 3, "/Images/DrinkImages/trasuatranchauden4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 13, 4, "/Images/DrinkImages/trasuasocola1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
                     { 14, 4, "/Images/DrinkImages/trasuasocola2.jpg" },
                     { 15, 4, "/Images/DrinkImages/trasuasocola3.jpg" },
-                    { 16, 4, "/Images/DrinkImages/trasuasocola4.jpg" },
-                    { 17, 5, "/Images/DrinkImages/sting1.jpg" },
+                    { 16, 4, "/Images/DrinkImages/trasuasocola4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 17, 5, "/Images/DrinkImages/sting1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
                     { 18, 5, "/Images/DrinkImages/sting2.jpg" },
                     { 19, 5, "/Images/DrinkImages/sting3.jpg" },
-                    { 20, 5, "/Images/DrinkImages/sting4.jpg" },
-                    { 21, 6, "/Images/DrinkImages/coca1.jpg" },
+                    { 20, 5, "/Images/DrinkImages/sting4.jpg" }
+                });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
+                values: new object[] { 21, 6, "/Images/DrinkImages/coca1.jpg", true });
+
+            migrationBuilder.InsertData(
+                table: "DrinkImages",
+                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                values: new object[,]
+                {
                     { 22, 6, "/Images/DrinkImages/coca2.jpg" },
                     { 23, 6, "/Images/DrinkImages/coca3.jpg" },
                     { 24, 6, "/Images/DrinkImages/coca4.jpg" }
