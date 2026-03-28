@@ -5,6 +5,48 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CafeChain.Data.Configurations
 {
+    // ========================== PRODUCT TYPE ==========================
+    public class ProductTypeConfiguration : IEntityTypeConfiguration<ProductType>
+    {
+        public void Configure(EntityTypeBuilder<ProductType> entity)
+        {
+            entity.ToTable("ProductTypes");
+
+            entity.HasKey(x => x.ProductTypeId);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Code).IsUnique();
+
+            // 🔥 SEED QUAN TRỌNG
+            entity.HasData(
+                new ProductType
+                {
+                    ProductTypeId = 1,
+                    Code = "HANDCRAFTED",
+                    Name = "Pha chế",
+                    Active = true
+                },
+                new ProductType
+                {
+                    ProductTypeId = 2,
+                    Code = "RETAIL",
+                    Name = "Đóng chai",
+                    Active = true
+                }
+            );
+        }
+    }
+
     // ========================== DRINK ==========================
     public class DrinkConfiguration : IEntityTypeConfiguration<Drink>
     {
@@ -14,6 +56,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.DrinkId);
 
+            // ================= PROPERTIES =================
             entity.Property(x => x.Name)
                 .IsRequired()
                 .HasMaxLength(200);
@@ -27,21 +70,36 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
+            // ================= RELATIONSHIPS =================
+
+            // Category
             entity.HasOne(x => x.Category)
                 .WithMany(x => x.Drinks)
                 .HasForeignKey(x => x.CategoryId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // ProductType (🔥 thiếu trong config cũ)
+            entity.HasOne(x => x.ProductType)
+                .WithMany(x => x.Drinks)
+                .HasForeignKey(x => x.ProductTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= INDEX =================
+
             entity.HasIndex(x => x.Name)
                 .IsUnique();
 
+            entity.HasIndex(x => new { x.CategoryId, x.ProductTypeId });
+
+            // ================= SEED DATA =================
             entity.HasData(
-                new Drink 
-                { 
-                    DrinkId = 1, 
-                    CategoryId = 1, 
-                    Name = "Cà phê sữa", 
-                    Description = "Cà phê pha với sữa đặc.", 
+                new Drink
+                {
+                    DrinkId = 1,
+                    CategoryId = 1,
+                    ProductTypeId = 1,
+                    Name = "Cà phê sữa",
+                    Description = "Cà phê pha với sữa đặc.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -49,44 +107,49 @@ namespace CafeChain.Data.Configurations
                 {
                     DrinkId = 2,
                     CategoryId = 1,
+                    ProductTypeId = 1,
                     Name = "Cà phê đen",
                     Description = "Cà phê pha với nước sôi, không có sữa.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                new Drink 
-                { 
-                    DrinkId = 3, 
-                    CategoryId = 2, 
-                    Name = "Trà sữa trân châu", 
-                    Description = "Trà sữa pha với trân châu đen và đá viên.", 
+                new Drink
+                {
+                    DrinkId = 3,
+                    CategoryId = 2,
+                    ProductTypeId = 1,
+                    Name = "Trà sữa trân châu",
+                    Description = "Trà sữa pha với trân châu đen và đá viên.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                new Drink 
-                { 
-                    DrinkId = 4, 
-                    CategoryId = 2, 
-                    Name = "Trà sữa socola full topping", 
-                    Description = "Trà sữa socola pha với nhiều topping.", 
+                new Drink
+                {
+                    DrinkId = 4,
+                    CategoryId = 2,
+                    ProductTypeId = 1,
+                    Name = "Trà sữa socola full topping",
+                    Description = "Trà sữa socola pha với nhiều topping.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                new Drink 
-                { 
-                    DrinkId = 5, 
-                    CategoryId = 3, 
-                    Name = "Sting", 
-                    Description = "Sting mát lạnh", 
+                new Drink
+                {
+                    DrinkId = 5,
+                    CategoryId = 3,
+                    ProductTypeId = 2,
+                    Name = "Sting",
+                    Description = "Sting mát lạnh",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                new Drink 
-                { 
-                    DrinkId = 6, 
-                    CategoryId = 3, 
-                    Name = "Coca-cola", 
-                    Description = "Coca-cola mát lạnh", 
+                new Drink
+                {
+                    DrinkId = 6,
+                    CategoryId = 3,
+                    ProductTypeId = 2,
+                    Name = "Coca-cola",
+                    Description = "Coca-cola mát lạnh",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 }
@@ -400,19 +463,23 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.RecipeId);
 
-            entity.HasOne(x => x.Drink)
-                .WithMany(x => x.Recipes)
-                .HasForeignKey(x => x.DrinkId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(x => x.Name)
+                .HasMaxLength(200);
 
-            entity.HasIndex(x => x.DrinkId)
-                .IsUnique();
+            entity.Property(x => x.YieldPercentage)
+                .HasDefaultValue(100);
+
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
+
 
             entity.HasData(
-                new Recipe { RecipeId = 1, DrinkId = 1 },
-                new Recipe { RecipeId = 2, DrinkId = 2 },
-                new Recipe { RecipeId = 3, DrinkId = 3 },
-                new Recipe { RecipeId = 4, DrinkId = 4 }
+                new Recipe { RecipeId = 1, Name = "Recipe CF Sữa", Active = true },
+                new Recipe { RecipeId = 2, Name = "Recipe CF Đen", Active = true },
+                new Recipe { RecipeId = 3, Name = "Recipe Trà sữa", Active = true },
+                new Recipe { RecipeId = 4, Name = "Recipe Trà sữa socola", Active = true },
+                new Recipe { RecipeId = 5, Name = "Trân châu đen", Active = true },
+                new Recipe { RecipeId = 6, Name = "Trân châu trắng", Active = true }
             );
         }
     }
@@ -426,8 +493,16 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.RecipeDetailId);
 
+            // ================= PROPERTIES =================
             entity.Property(x => x.Quantity)
-                .HasColumnType("decimal(18,3)");
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
+
+            entity.Property(x => x.Unit)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            // ================= RELATIONSHIPS =================
 
             entity.HasOne(x => x.Recipe)
                 .WithMany(x => x.RecipeDetails)
@@ -435,28 +510,71 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Ingredient)
-                .WithMany(r => r.RecipeDetails)
+                .WithMany(x => x.RecipeDetails)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new { x.RecipeId, x.IngredientId })
-                .IsUnique();
+            // 🔥 FIX THIẾU: ChildRecipe
+            entity.HasOne(x => x.ChildRecipe)
+                .WithMany()
+                .HasForeignKey(x => x.ChildRecipeId)
+                .OnDelete(DeleteBehavior.Restrict);
 
+            // ================= CONSTRAINT QUAN TRỌNG =================
+
+            // 🔥 BẮT BUỘC: chỉ được 1 trong 2
+            entity.ToTable(t => t.HasCheckConstraint(
+                "CK_RecipeDetail_OnlyOneSource",
+                @"(IngredientId IS NOT NULL AND ChildRecipeId IS NULL)
+           OR (IngredientId IS NULL AND ChildRecipeId IS NOT NULL)"
+            ));
+
+            // ================= INDEX =================
+
+            entity.HasIndex(x => new { x.RecipeId, x.IngredientId })
+                .IsUnique()
+                .HasFilter("[IngredientId] IS NOT NULL");
+
+            entity.HasIndex(x => new { x.RecipeId, x.ChildRecipeId })
+                .IsUnique()
+                .HasFilter("[ChildRecipeId] IS NOT NULL");
+
+            // ================= SEED (GIỮ NGUYÊN) =================
             entity.HasData(
-                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m }, // cà phê
-                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m }, // sữa
-                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m }, // đá
-                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m },
-                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m },
-                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m }, // trà
-                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m }, // bột sữa
-                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m }, // đường
-                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m }, // đá
-                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m },
-                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m },
-                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m }, // socola
-                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m },
-                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m }
+                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+
+                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+
+                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+
+                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m, Unit = "ml" },
+                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+
+                new RecipeDetail { RecipeDetailId = 15, RecipeId = 5, IngredientId = 11, Quantity = 100m, Unit = "g" }, // bột năng
+                new RecipeDetail { RecipeDetailId = 16, RecipeId = 5, IngredientId = 12, Quantity = 50m, Unit = "g" },  // đường nâu
+                new RecipeDetail { RecipeDetailId = 17, RecipeId = 5, IngredientId = 13, Quantity = 60m, Unit = "ml" },  // nước
+
+                new RecipeDetail { RecipeDetailId = 18, RecipeId = 6, IngredientId = 11, Quantity = 100m, Unit = "g" }, // bột năng
+                new RecipeDetail { RecipeDetailId = 19, RecipeId = 6, IngredientId = 14, Quantity = 40m, Unit = "g" },  // đường trắng
+                new RecipeDetail { RecipeDetailId = 20, RecipeId = 6, IngredientId = 13, Quantity = 60m, Unit = "ml" },  // nước
+
+                new RecipeDetail
+                {
+                    RecipeDetailId = 21,
+                    RecipeId = 3,
+                    ChildRecipeId = 5, // trân châu đen
+                    Quantity = 1,
+                    Unit = "portion"
+                }
             );
         }
     }

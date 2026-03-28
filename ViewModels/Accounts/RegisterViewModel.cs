@@ -18,26 +18,24 @@ namespace CafeChain.ViewModels.Accounts
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
         [Display(Name = "Số điện thoại")]
         [RegularExpression(
-            @"^0\d{9,10}$",
-            ErrorMessage = "Số điện thoại phải bắt đầu bằng 0 và có 10-11 chữ số"
+            @"^(0|\+84)\d{9}$",
+            ErrorMessage = "SĐT phải bắt đầu bằng 0 hoặc +84 và có 10 số"
         )]
         public string PhoneNumber { get; set; }
 
         // ================= EMAIL =================
         [Required(ErrorMessage = "Email không được để trống")]
         [Display(Name = "Email")]
-        [RegularExpression(
-            @"^[^@\s]+@[^@\s]+\.com$",
-            ErrorMessage = "Email phải đúng định dạng và kết thúc bằng .com"
-        )]
+        [EmailAddress(ErrorMessage = "Email không hợp lệ")]
         public string Email { get; set; }
 
         // ================= PASSWORD =================
         [Required(ErrorMessage = "Mật khẩu không được để trống")]
         [DataType(DataType.Password)]
-        // Bỏ [MinLength(6)] cũ đi và thay bằng cụm này:
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$",
-            ErrorMessage = "Mật khẩu phải có ít nhất 8 ký tự, bao gồm chữ hoa, chữ thường và chữ số")]
+        [RegularExpression(
+            @"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$",
+            ErrorMessage = "Mật khẩu phải ≥ 8 ký tự, gồm chữ hoa, chữ thường, số và ký tự đặc biệt"
+        )]
         [Display(Name = "Mật khẩu")]
         public string Password { get; set; }
 
@@ -50,11 +48,19 @@ namespace CafeChain.ViewModels.Accounts
 
         // ================= DATE OF BIRTH =================
         [DataType(DataType.Date)]
-        [Display(Name = "Ngày sinh")]
+        [CustomValidation(typeof(RegisterViewModel), nameof(ValidateDOB))]
         public DateTime? DateOfBirth { get; set; }
+
+        public static ValidationResult ValidateDOB(DateTime? dob, ValidationContext context)
+        {
+            if (dob.HasValue && dob > DateTime.Today)
+                return new ValidationResult("Ngày sinh không hợp lệ");
+
+            return ValidationResult.Success;
+        }
 
         // ================= TERMS =================
         [Required(ErrorMessage = "Bạn phải đồng ý với điều khoản")]
-        public bool AcceptTerms { get; set; }
+        public bool? AcceptTerms { get; set; }
     }
 }

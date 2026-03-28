@@ -35,51 +35,48 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
 
             try
             {
+                // ===== 1. ADD ACCOUNT (EF sẽ tự add Customer kèm theo) =====
+                _context.Accounts.Add(account);
+                await _context.SaveChangesAsync();
+                // 🔥 Sau dòng này:
+                // account.AccountId có giá trị
+                // account.Customer.CustomerId cũng có
+
                 var customer = account.Customer;
 
-                // ===== CUSTOMER =====
-                customer.Active = true;
-                customer.AvatarUrl ??= "/Images/Upload/avtdf.jpg";
-
-                _context.Customers.Add(customer);
-
-                // ===== SAVE lần 1 để lấy CustomerId =====
-                await _context.SaveChangesAsync();
-
-                // ===== PHONE =====
-                var customerPhone = new CustomerPhone
+                // ===== 2. PHONE =====
+                _context.CustomerPhones.Add(new CustomerPhone
                 {
                     CustomerId = customer.CustomerId,
-                    Phone = phone
-                };
-                _context.CustomerPhones.Add(customerPhone);
+                    Phone = phone,
+                    IsDefault = true
+                });
 
-                // ===== POINT =====
-                var customerPoint = new CustomerPoint
+                // ===== 3. POINT =====
+                _context.CustomerPoints.Add(new CustomerPoint
                 {
                     CustomerId = customer.CustomerId,
                     Points = 0
-                };
-                _context.CustomerPoints.Add(customerPoint);
+                });
 
-                // ===== ACCOUNT =====
-                account.CustomerId = customer.CustomerId;
-                account.AccountTypeId = 1; // Customer
-                account.Active = true;
+                // ===== 4. ROLE =====
+                _context.AccountRoles.Add(new AccountRole
+                {
+                    AccountId = account.AccountId,
+                    RoleId = 6 // ⚠️ nhớ check DB có tồn tại
+                });
 
-                _context.Accounts.Add(account);
-
-                // ===== SAVE ALL =====
                 await _context.SaveChangesAsync();
-
                 await tran.CommitAsync();
 
                 return account;
             }
-            catch
+            catch (Exception ex)
             {
                 await tran.RollbackAsync();
-                throw;
+
+                // 🔥 QUAN TRỌNG: expose lỗi thật
+                throw new Exception(ex.InnerException?.Message ?? ex.Message);
             }
         }
 
@@ -88,9 +85,10 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
             email = email.ToLower().Trim();
 
             return await _context.Accounts
-                .Include(x => x.AccountType)
                 .Include(x => x.Customer)
                 .Include(x => x.Staff)
+                .Include(x => x.AccountRoles)
+                    .ThenInclude(ar => ar.Role)
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
         }
     }

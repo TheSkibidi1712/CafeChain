@@ -393,14 +393,20 @@
                     </div>
                 </div>
 
-                <div class="checkbox-group">
-                    <input type="checkbox" asp-for="AcceptTerms" id="terms" value="true" />
-                    <label for="terms" class="checkbox-label">
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox"
+                           name="AcceptTerms"
+                           id="terms"
+                           value="true"
+                           data-val="true"
+                           data-val-required="Bạn phải đồng ý với điều khoản" />
+                        <label for="terms" class="checkbox-label">
                         Tôi đồng ý với <span>điều khoản thành viên</span> và chính sách bảo mật của CafeChain.
-                    </label>
+                        </label>
+                    </div>
+                    <span asp-validation-for="AcceptTerms" class="text-danger"></span>
                 </div>
-                <span asp-validation-for="AcceptTerms" class="text-danger"></span>
-
                 <button type="submit" class="submit-btn">
                     Tạo tài khoản <i class="fas fa-arrow-right"></i>
                 </button>

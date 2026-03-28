@@ -115,8 +115,7 @@ namespace CafeChain.Controllers
             // ====================================================================
             if (!string.IsNullOrEmpty(result.Data.AvatarUrl))
             {
-                // Bắt buộc phải có 2 tham số: "Tên_Thông_Tin", Giá_Trị_Của_Nó
-                claims.Add(new Claim("AvatarUrl", result.Data.AvatarUrl));
+                claims.Add(new Claim("AvatarUrl", string.IsNullOrEmpty(result.Data.AvatarUrl) ? "/Images/Upload/avtdf.jpg" : result.Data.AvatarUrl));
             }
             //
             // ====================================================================
@@ -124,32 +123,37 @@ namespace CafeChain.Controllers
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
             await HttpContext.SignInAsync(
-                CookieAuthenticationDefaults.AuthenticationScheme,
-                new ClaimsPrincipal(identity),
-                new AuthenticationProperties
-                {
-                    IsPersistent = model.RememberMe
-                });
+            CookieAuthenticationDefaults.AuthenticationScheme,
+            new ClaimsPrincipal(identity),
+            new AuthenticationProperties
+            {
+                IsPersistent = model.RememberMe,
+
+                // 🔥 QUAN TRỌNG
+                ExpiresUtc = model.RememberMe
+                    ? DateTimeOffset.UtcNow.AddDays(7)
+                    : null, // hoặc null nếu muốn session
+
+                AllowRefresh = true
+            });
 
             TempData["SuccessMessage"] = "Đăng nhập thành công!";
 
             // ===== REDIRECT ROLE =====
             var role = (result.Data.Role ?? "").ToLower();
 
-            // 🔥 ADMIN SYSTEM
-            if (role.Contains("admin") || role.Contains("manager"))
+            switch (role.ToLower())
             {
-                return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-            }
+                case "admin":
+                case "manager":
+                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
 
-            // 🔥 STAFF (Cashier, Barista, Manager,...)
-            if (role.Contains("cashier") || role.Contains("barista"))
-            {
-                return RedirectToAction("Index", "Pos", new { area = "Cashier" });
-            }
+                case "cashier":
+                    return RedirectToAction("Index", "Pos", new { area = "Cashier" });
 
-            // 🔥 CUSTOMER
-            return RedirectToAction("Index", "Home");
+                default:
+                    return RedirectToAction("Index", "Home");
+            }
         }
 
         // ========================= LOGOUT =========================

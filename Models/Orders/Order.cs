@@ -20,7 +20,14 @@ namespace CafeChain.Models.Orders
         public string Source { get; set; }
         public string Note { get; set; }
 
-        public decimal Total { get; set; }
+        // ====== MONEY BREAKDOWN ======
+        public decimal SubTotal { get; set; }          // Tổng tiền gốc (chưa giảm)
+        public decimal VoucherDiscount { get; set; }   // Giảm từ voucher
+        public decimal PointDiscount { get; set; }     // Giảm từ điểm
+        public int PointsUsed { get; set; }            // Số điểm dùng
+
+        public decimal Total { get; set; }             // Tổng cuối (SubTotal - Discount)
+
         public DateTime CreatedAt { get; set; }
 
         public virtual Customer Customer { get; set; }

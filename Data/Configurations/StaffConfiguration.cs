@@ -49,7 +49,7 @@ namespace CafeChain.Data.Configurations
             // Staff - Account (1-1, FK nằm ở Account)
             entity.HasOne(x => x.Account)
                 .WithOne(a => a.Staff)
-                .HasForeignKey<Account>(a => a.StaffId)
+                .HasForeignKey<Staff>(x => x.AccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ================= INDEX (optional nhưng nên có) =================
@@ -63,6 +63,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 1,
+                    AccountId = 6,
                     FullName = "Nguyễn Văn A",
                     TaxCode = "TAX001",
                     Salary = 8000000,
@@ -74,6 +75,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 2,
+                    AccountId= 7,
                     FullName = "Trần Thị B",
                     TaxCode = "TAX002",
                     Salary = 10000000,
@@ -85,6 +87,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 3,
+                    AccountId = 8,
                     FullName = "Lê Văn C",
                     TaxCode = "TAX003",
                     Salary = 12000000,
@@ -96,6 +99,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 4,
+                    AccountId = 9,
                     FullName = "Phạm Thị D",
                     TaxCode = "TAX004",
                     Salary = 14000000,
@@ -107,6 +111,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 5,
+                    AccountId = 10,
                     FullName = "Hoàng Văn E",
                     TaxCode = "TAX005",
                     Salary = 9000000,
@@ -118,6 +123,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 6,
+                    AccountId= 11,
                     FullName = "Đỗ Thị F",
                     TaxCode = "TAX006",
                     Salary = 7000000,
@@ -129,6 +135,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 7,
+                    AccountId = 12,
                     FullName = "Nguyễn Văn G",
                     TaxCode = "TAX007",
                     Salary = 8500000,
@@ -140,6 +147,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 8,
+                    AccountId = 13,
                     FullName = "Trần Văn H",
                     TaxCode = "TAX008",
                     Salary = 9500000,
@@ -151,6 +159,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 9,
+                    AccountId = 14,
                     FullName = "Lý Thị I",
                     TaxCode = "TAX009",
                     Salary = 6000000,
@@ -162,6 +171,7 @@ namespace CafeChain.Data.Configurations
                 new Staff
                 {
                     StaffId = 10,
+                    AccountId= 15,
                     FullName = "Admin Tổng",
                     TaxCode = "TAX010",
                     Salary = 16000000,
@@ -196,7 +206,7 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => new { x.BankName, x.AccountNumber })
                 .IsUnique()
-                .HasFilter("[AccountNumber] IS NOT NULL");
+                .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
 
             entity.HasData(
                 new StaffBank { StaffBankId = 1, StaffId = 1, BankName = "Vietcombank", AccountNumber = "123456789" },
@@ -206,45 +216,6 @@ namespace CafeChain.Data.Configurations
         }
     }
 
-    // ========================== STAFF ROLE ==========================
-    public class StaffRoleConfiguration : IEntityTypeConfiguration<StaffRole>
-    {
-        public void Configure(EntityTypeBuilder<StaffRole> entity)
-        {
-            entity.ToTable("StaffRoles");
-
-            entity.HasKey(x => x.StaffRoleId);
-
-            entity.Property(x => x.AssignedAt)
-                .HasDefaultValueSql("GETDATE()");
-
-            entity.HasOne(x => x.Staff)
-                .WithMany(x => x.StaffRoles)
-                .HasForeignKey(x => x.StaffId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasOne(x => x.Role)
-                .WithMany(x => x.StaffRoles)
-                .HasForeignKey(x => x.RoleId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasIndex(x => new { x.StaffId, x.RoleId })
-                .IsUnique();
-
-            entity.HasData(
-                new StaffRole { StaffRoleId = 1, StaffId = 1, RoleId = 1 },
-                new StaffRole { StaffRoleId = 2, StaffId = 2, RoleId = 1 },
-                new StaffRole { StaffRoleId = 3, StaffId = 3, RoleId = 2 },
-                new StaffRole { StaffRoleId = 4, StaffId = 4, RoleId = 2 },
-                new StaffRole { StaffRoleId = 5, StaffId = 5, RoleId = 3 },
-                new StaffRole { StaffRoleId = 6, StaffId = 6, RoleId = 3 },
-                new StaffRole { StaffRoleId = 7, StaffId = 7, RoleId = 1 },
-                new StaffRole { StaffRoleId = 8, StaffId = 8, RoleId = 2 },
-                new StaffRole { StaffRoleId = 9, StaffId = 9, RoleId = 4 }, // Province Manager
-                new StaffRole { StaffRoleId = 10, StaffId = 10, RoleId = 5 } // Admin
-            );
-        }
-    }
 
     // ========================== STAFF SCOPE ==========================
     public class StaffScopeConfiguration : IEntityTypeConfiguration<StaffScope>
@@ -261,7 +232,7 @@ namespace CafeChain.Data.Configurations
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffScopes)
                 .HasForeignKey(x => x.StaffId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.ScopeType)
                 .WithMany()
@@ -382,13 +353,23 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.StaffShiftId);
 
-            entity.Property(x => x.WorkDate)
-                .IsRequired();
+            entity.Property(x => x.WorkDate).IsRequired();
+
+            entity.Property(x => x.ActualCheckIn).IsRequired(false);
+            entity.Property(x => x.ActualCheckOut).IsRequired(false);
+
+            entity.Property(x => x.StatusId)
+                .HasDefaultValue(1); // PLANNED
+
+            entity.HasOne(x => x.Status)
+                .WithMany(x => x.StaffShifts)
+                .HasForeignKey(x => x.StatusId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.StaffShifts)
                 .HasForeignKey(x => x.StaffId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Shift)
                 .WithMany(x => x.StaffShifts)
@@ -401,15 +382,13 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.WorkDate);
 
             entity.HasData(
-                new StaffShift { StaffShiftId = 1, StaffId = 1, ShiftId = 1, WorkDate = new DateTime(2024, 1, 1) },
-                new StaffShift { StaffShiftId = 2, StaffId = 2, ShiftId = 2, WorkDate = new DateTime(2024, 1, 1) },
-                new StaffShift { StaffShiftId = 3, StaffId = 3, ShiftId = 4, WorkDate = new DateTime(2024, 1, 1) },
-                new StaffShift { StaffShiftId = 4, StaffId = 4, ShiftId = 5, WorkDate = new DateTime(2024, 1, 1) },
-                new StaffShift { StaffShiftId = 5, StaffId = 5, ShiftId = 6, WorkDate = new DateTime(2024, 1, 1) },
-                new StaffShift { StaffShiftId = 6, StaffId = 6, ShiftId = 7, WorkDate = new DateTime(2024, 1, 1) }
+                new StaffShift { StaffShiftId = 1, StaffId = 1, ShiftId = 1, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 2, StaffId = 2, ShiftId = 2, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 3, StaffId = 3, ShiftId = 4, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 }
             );
         }
     }
+
 
     // ========================== ROLE ==========================
     public class RoleConfiguration : IEntityTypeConfiguration<Role>
@@ -430,15 +409,46 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
-            entity.HasIndex(x => x.Name)
-                .IsUnique();
+            entity.HasIndex(x => x.Name).IsUnique();
 
             entity.HasData(
                 new Role { RoleId = 1, Name = "Cashier", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
                 new Role { RoleId = 2, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
                 new Role { RoleId = 3, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
                 new Role { RoleId = 4, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 5, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
+                new Role { RoleId = 5, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
+                new Role { RoleId = 6, Name = "Customer", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
+            );
+        }
+    }
+
+    // ========================== STAFF SHIFT STATUS ==========================
+    public class StaffShiftStatusConfiguration : IEntityTypeConfiguration<StaffShiftStatus>
+    {
+        public void Configure(EntityTypeBuilder<StaffShiftStatus> entity)
+        {
+            entity.ToTable("StaffShiftStatuses");
+
+            entity.HasKey(x => x.StaffShiftStatusId);
+
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.IsSystem)
+                .HasDefaultValue(true);
+
+            entity.HasIndex(x => x.Code).IsUnique();
+
+            entity.HasData(
+                new StaffShiftStatus { StaffShiftStatusId = 1, Code = "PLANNED", Name = "Planned", IsSystem = true },
+                new StaffShiftStatus { StaffShiftStatusId = 2, Code = "CHECKED_IN", Name = "Checked In", IsSystem = true },
+                new StaffShiftStatus { StaffShiftStatusId = 3, Code = "COMPLETED", Name = "Completed", IsSystem = true },
+                new StaffShiftStatus { StaffShiftStatusId = 4, Code = "ABSENT", Name = "Absent", IsSystem = true }
             );
         }
     }

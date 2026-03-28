@@ -3,9 +3,9 @@
     public class PasswordResetOtp
     {
         public int Id { get; set; }
-
+        public int? AccountId { get; set; } // 🔥 nên có
         public string Email { get; set; }
-        public string Code { get; set; }
+        public string CodeHash { get; set; }
 
         public DateTime ExpiredAt { get; set; }
         public bool IsUsed { get; set; }

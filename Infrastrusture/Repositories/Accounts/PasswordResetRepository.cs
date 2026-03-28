@@ -20,14 +20,15 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
             await _context.SaveChangesAsync();
         }
 
-        public async Task<PasswordResetOtp> GetValidOtpAsync(string email, string code)
+        public async Task<PasswordResetOtp> GetValidOtpAsync(string email)
         {
             return await _context.PasswordResetOtps
-                .FirstOrDefaultAsync(x =>
+                .Where(x =>
                     x.Email == email &&
-                    x.Code == code &&
                     !x.IsUsed &&
-                    x.ExpiredAt > DateTime.UtcNow);
+                    x.ExpiredAt > DateTime.UtcNow)
+                .OrderByDescending(x => x.CreatedAt)
+                .FirstOrDefaultAsync();
         }
 
         public async Task MarkOtpUsedAsync(PasswordResetOtp otp)
@@ -38,7 +39,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
 
         public async Task UpdatePasswordAsync(string email, string hash)
         {
-            var acc = await _context.Accounts.FirstOrDefaultAsync(x => x.Email == email);
+            var acc = await _context.Accounts.FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
             if (acc == null)
                 throw new Exception("Account not found");
             acc.PasswordHash = hash;

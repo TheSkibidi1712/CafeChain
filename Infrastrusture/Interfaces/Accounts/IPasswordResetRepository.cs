@@ -5,7 +5,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Accounts
     public interface IPasswordResetRepository
     {
         Task SaveOtpAsync(PasswordResetOtp otp);
-        Task<PasswordResetOtp> GetValidOtpAsync(string email, string code);
+        Task<PasswordResetOtp> GetValidOtpAsync(string email);
         Task MarkOtpUsedAsync(PasswordResetOtp otp);
         Task UpdatePasswordAsync(string email, string newPasswordHash);
         Task<PasswordResetOtp?> GetLatestOtpAsync(string email);

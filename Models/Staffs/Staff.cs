@@ -8,6 +8,7 @@ namespace CafeChain.Models.Staffs
     public class Staff
     {
         public int StaffId { get; set; }
+        public int AccountId { get; set; }
         public string FullName { get; set; }
         public string TaxCode { get; set; }
         public decimal? Salary { get; set; }
@@ -20,7 +21,6 @@ namespace CafeChain.Models.Staffs
 
         public virtual Store Store { get; set; }
         public  virtual Account Account { get; set; }
-        public virtual ICollection<StaffRole> StaffRoles { get; set; }
         public virtual ICollection<StaffBank> StaffBanks { get; set; }
         public virtual ICollection<StaffScope> StaffScopes { get; set; }
         public virtual ICollection<StaffShift> StaffShifts { get; set; }

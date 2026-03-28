@@ -14,19 +14,37 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.OrderId);
 
+            // ================= TEXT =================
             entity.Property(x => x.Source)
                 .HasMaxLength(50);
 
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            // ================= MONEY (QUAN TRỌNG) =================
+            entity.Property(x => x.SubTotal)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.VoucherDiscount)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.PointDiscount)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.PointsUsed)
+                .HasDefaultValue(0);
+
             entity.Property(x => x.Total)
                 .HasColumnType("decimal(18,2)");
 
+            // ================= TIME =================
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
-            // RELATION
+            // ================= RELATION =================
             entity.HasOne(x => x.Customer)
                 .WithMany(x => x.Orders)
                 .HasForeignKey(x => x.CustomerId)
@@ -40,7 +58,7 @@ namespace CafeChain.Data.Configurations
             entity.HasOne(x => x.Staff)
                 .WithMany()
                 .HasForeignKey(x => x.StaffId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction); // tránh multiple cascade
 
             entity.HasOne(x => x.OrderStatus)
                 .WithMany(x => x.Orders)
@@ -52,12 +70,13 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.OrderTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // INDEX
+            // ================= INDEX =================
             entity.HasIndex(x => x.CreatedAt);
             entity.HasIndex(x => x.CustomerId);
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
 
+            // ================= SEED DATA (FIX LẠI) =================
             entity.HasData(
                 new Order
                 {
@@ -70,7 +89,13 @@ namespace CafeChain.Data.Configurations
                     StaffId = 1,
                     Source = "POS",
                     Note = "",
+
+                    SubTotal = 45000,
+                    VoucherDiscount = 0,
+                    PointDiscount = 0,
+                    PointsUsed = 0,
                     Total = 45000,
+
                     CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0)
                 },
                 new Order
@@ -84,7 +109,13 @@ namespace CafeChain.Data.Configurations
                     StaffId = 2,
                     Source = "APP",
                     Note = "Ít đá",
+
+                    SubTotal = 60000,
+                    VoucherDiscount = 0,
+                    PointDiscount = 0,
+                    PointsUsed = 0,
                     Total = 60000,
+
                     CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0)
                 },
                 new Order
@@ -98,7 +129,13 @@ namespace CafeChain.Data.Configurations
                     StaffId = 3,
                     Source = "POS",
                     Note = "",
+
+                    SubTotal = 70000,
+                    VoucherDiscount = 0,
+                    PointDiscount = 0,
+                    PointsUsed = 0,
                     Total = 70000,
+
                     CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0)
                 }
             );
@@ -134,7 +171,7 @@ namespace CafeChain.Data.Configurations
             entity.HasOne(x => x.Order)
                 .WithMany(x => x.OrderDetails)
                 .HasForeignKey(x => x.OrderId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // giữ cái này
 
             entity.HasOne(x => x.Drink)
                 .WithMany()
@@ -212,7 +249,7 @@ namespace CafeChain.Data.Configurations
             entity.HasOne(x => x.OrderDetail)
                 .WithMany(x => x.OrderToppings)
                 .HasForeignKey(x => x.OrderDetailId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade); // chain chính
 
             entity.HasOne(x => x.Topping)
                 .WithMany(o => o.OrderToppings)

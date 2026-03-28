@@ -12,8 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260325090138_InitialCreate")]
-
+    [Migration("20260328030003_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -37,9 +36,6 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AccountId"));
 
-                    b.Property<int>("AccountTypeId")
-                        .HasColumnType("int");
-
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -49,9 +45,6 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<int?>("CustomerId")
-                        .HasColumnType("int");
 
                     b.Property<string>("Email")
                         .IsRequired()
@@ -63,71 +56,149 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int?>("StaffId")
-                        .HasColumnType("int");
-
                     b.HasKey("AccountId");
-
-                    b.HasIndex("AccountTypeId");
-
-                    b.HasIndex("CustomerId")
-                        .IsUnique()
-                        .HasFilter("[CustomerId] IS NOT NULL");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex("StaffId")
-                        .IsUnique()
-                        .HasFilter("[StaffId] IS NOT NULL");
-
                     b.ToTable("Accounts", (string)null);
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Customers.AccountType", b =>
-                {
-                    b.Property<int>("AccountTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AccountTypeId"));
-
-                    b.Property<bool>("Active")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("AccountTypeId");
-
-                    b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.ToTable("AccountTypes", (string)null);
 
                     b.HasData(
                         new
                         {
-                            AccountTypeId = 1,
-                            Active = true,
-                            Name = "Customer"
+                            AccountId = 1,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "a@gmail.com",
+                            PasswordHash = "123"
                         },
                         new
                         {
-                            AccountTypeId = 2,
-                            Active = true,
-                            Name = "Staff"
+                            AccountId = 2,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "b@gmail.com",
+                            PasswordHash = "123"
                         },
                         new
                         {
-                            AccountTypeId = 3,
-                            Active = true,
-                            Name = "Admin"
+                            AccountId = 3,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "c@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 4,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "d@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 5,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "e@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 6,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "f@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 7,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "g@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 8,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "o@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 9,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "p@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 10,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "i@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 11,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "u@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 12,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "y@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 13,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "t@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 14,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "r@gmail.com",
+                            PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 15,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "w@gmail.com",
+                            PasswordHash = "123"
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.AccountRole", b =>
+                {
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.HasKey("AccountId", "RoleId");
+
+                    b.HasIndex("RoleId");
+
+                    b.ToTable("AccountRoles", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
@@ -137,6 +208,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
+
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
 
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
@@ -163,12 +237,16 @@ namespace CafeChain.Migrations
 
                     b.HasKey("CustomerId");
 
+                    b.HasIndex("AccountId")
+                        .IsUnique();
+
                     b.ToTable("Customers", (string)null);
 
                     b.HasData(
                         new
                         {
                             CustomerId = 1,
+                            AccountId = 1,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -178,6 +256,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerId = 2,
+                            AccountId = 2,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -187,6 +266,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerId = 3,
+                            AccountId = 3,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -196,6 +276,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerId = 4,
+                            AccountId = 4,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -205,6 +286,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerId = 5,
+                            AccountId = 5,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -453,6 +535,38 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("CustomerPoints", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            CustomerPointId = 1,
+                            CustomerId = 1,
+                            Points = 100
+                        },
+                        new
+                        {
+                            CustomerPointId = 2,
+                            CustomerId = 2,
+                            Points = 200
+                        },
+                        new
+                        {
+                            CustomerPointId = 3,
+                            CustomerId = 3,
+                            Points = 50
+                        },
+                        new
+                        {
+                            CustomerPointId = 4,
+                            CustomerId = 4,
+                            Points = 0
+                        },
+                        new
+                        {
+                            CustomerPointId = 5,
+                            CustomerId = 5,
+                            Points = 300
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.PasswordResetOtp", b =>
@@ -463,7 +577,10 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("Code")
+                    b.Property<int?>("AccountId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CodeHash")
                         .IsRequired()
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
@@ -497,7 +614,7 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Email");
 
-                    b.HasIndex("Email", "Code", "IsUsed");
+                    b.HasIndex("Email", "CodeHash", "IsUsed");
 
                     b.ToTable("PasswordResetOtps", (string)null);
                 });
@@ -525,6 +642,12 @@ namespace CafeChain.Migrations
                     b.Property<int?>("DrinkId")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int?>("ParentRatingId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Stars")
                         .HasColumnType("int");
 
@@ -532,9 +655,11 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("DrinkId");
 
+                    b.HasIndex("ParentRatingId");
+
                     b.HasIndex("CustomerId", "DrinkId")
                         .IsUnique()
-                        .HasFilter("[CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
+                        .HasFilter("[ParentRatingId] IS NULL AND [CustomerId] IS NOT NULL AND [DrinkId] IS NOT NULL");
 
                     b.ToTable("Ratings", null, t =>
                         {
@@ -550,6 +675,11 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RatingImageId"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
                     b.Property<string>("ImageUrl")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -563,6 +693,40 @@ namespace CafeChain.Migrations
                     b.HasIndex("RatingId");
 
                     b.ToTable("RatingImages", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.RatingReaction", b =>
+                {
+                    b.Property<int>("RatingReactionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RatingReactionId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RatingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("RatingReactionId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("RatingId");
+
+                    b.HasIndex("RatingId", "CustomerId")
+                        .IsUnique();
+
+                    b.ToTable("RatingReactions", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
@@ -596,12 +760,17 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.HasKey("DrinkId");
+                    b.Property<int>("ProductTypeId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("CategoryId");
+                    b.HasKey("DrinkId");
 
                     b.HasIndex("Name")
                         .IsUnique();
+
+                    b.HasIndex("ProductTypeId");
+
+                    b.HasIndex("CategoryId", "ProductTypeId");
 
                     b.ToTable("Drinks", (string)null);
 
@@ -613,7 +782,8 @@ namespace CafeChain.Migrations
                             CategoryId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cà phê pha với sữa đặc.",
-                            Name = "Cà phê sữa"
+                            Name = "Cà phê sữa",
+                            ProductTypeId = 1
                         },
                         new
                         {
@@ -622,7 +792,8 @@ namespace CafeChain.Migrations
                             CategoryId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cà phê pha với nước sôi, không có sữa.",
-                            Name = "Cà phê đen"
+                            Name = "Cà phê đen",
+                            ProductTypeId = 1
                         },
                         new
                         {
@@ -631,7 +802,8 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Trà sữa pha với trân châu đen và đá viên.",
-                            Name = "Trà sữa trân châu"
+                            Name = "Trà sữa trân châu",
+                            ProductTypeId = 1
                         },
                         new
                         {
@@ -640,7 +812,8 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Trà sữa socola pha với nhiều topping.",
-                            Name = "Trà sữa socola full topping"
+                            Name = "Trà sữa socola full topping",
+                            ProductTypeId = 1
                         },
                         new
                         {
@@ -649,7 +822,8 @@ namespace CafeChain.Migrations
                             CategoryId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Sting mát lạnh",
-                            Name = "Sting"
+                            Name = "Sting",
+                            ProductTypeId = 2
                         },
                         new
                         {
@@ -658,7 +832,8 @@ namespace CafeChain.Migrations
                             CategoryId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Coca-cola mát lạnh",
-                            Name = "Coca-cola"
+                            Name = "Coca-cola",
+                            ProductTypeId = 2
                         });
                 });
 
@@ -1191,6 +1366,53 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Drinks.ProductType", b =>
+                {
+                    b.Property<int>("ProductTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProductTypeId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("ProductTypeId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("ProductTypes", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            ProductTypeId = 1,
+                            Active = true,
+                            Code = "HANDCRAFTED",
+                            Name = "Pha chế"
+                        },
+                        new
+                        {
+                            ProductTypeId = 2,
+                            Active = true,
+                            Code = "RETAIL",
+                            Name = "Đóng chai"
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
                 {
                     b.Property<int>("RecipeId")
@@ -1199,13 +1421,27 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecipeId"));
 
-                    b.Property<int>("DrinkId")
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<int?>("DrinkId")
                         .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<decimal>("YieldPercentage")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(100m);
 
                     b.HasKey("RecipeId");
 
-                    b.HasIndex("DrinkId")
-                        .IsUnique();
+                    b.HasIndex("DrinkId");
 
                     b.ToTable("Recipes", (string)null);
 
@@ -1213,22 +1449,44 @@ namespace CafeChain.Migrations
                         new
                         {
                             RecipeId = 1,
-                            DrinkId = 1
+                            Active = true,
+                            Name = "Recipe CF Sữa",
+                            YieldPercentage = 100m
                         },
                         new
                         {
                             RecipeId = 2,
-                            DrinkId = 2
+                            Active = true,
+                            Name = "Recipe CF Đen",
+                            YieldPercentage = 100m
                         },
                         new
                         {
                             RecipeId = 3,
-                            DrinkId = 3
+                            Active = true,
+                            Name = "Recipe Trà sữa",
+                            YieldPercentage = 100m
                         },
                         new
                         {
                             RecipeId = 4,
-                            DrinkId = 4
+                            Active = true,
+                            Name = "Recipe Trà sữa socola",
+                            YieldPercentage = 100m
+                        },
+                        new
+                        {
+                            RecipeId = 5,
+                            Active = true,
+                            Name = "Trân châu đen",
+                            YieldPercentage = 100m
+                        },
+                        new
+                        {
+                            RecipeId = 6,
+                            Active = true,
+                            Name = "Trân châu trắng",
+                            YieldPercentage = 100m
                         });
                 });
 
@@ -1240,7 +1498,10 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RecipeDetailId"));
 
-                    b.Property<int>("IngredientId")
+                    b.Property<int?>("ChildRecipeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IngredientId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Quantity")
@@ -1249,14 +1510,29 @@ namespace CafeChain.Migrations
                     b.Property<int>("RecipeId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("RecipeDetailId");
+
+                    b.HasIndex("ChildRecipeId");
 
                     b.HasIndex("IngredientId");
 
-                    b.HasIndex("RecipeId", "IngredientId")
-                        .IsUnique();
+                    b.HasIndex("RecipeId", "ChildRecipeId")
+                        .IsUnique()
+                        .HasFilter("[ChildRecipeId] IS NOT NULL");
 
-                    b.ToTable("RecipeDetails", (string)null);
+                    b.HasIndex("RecipeId", "IngredientId")
+                        .IsUnique()
+                        .HasFilter("[IngredientId] IS NOT NULL");
+
+                    b.ToTable("RecipeDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_RecipeDetail_OnlyOneSource", "(IngredientId IS NOT NULL AND ChildRecipeId IS NULL)\r\n           OR (IngredientId IS NULL AND ChildRecipeId IS NOT NULL)");
+                        });
 
                     b.HasData(
                         new
@@ -1264,98 +1540,168 @@ namespace CafeChain.Migrations
                             RecipeDetailId = 1,
                             IngredientId = 1,
                             Quantity = 50m,
-                            RecipeId = 1
+                            RecipeId = 1,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 2,
                             IngredientId = 2,
                             Quantity = 30m,
-                            RecipeId = 1
+                            RecipeId = 1,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 3,
                             IngredientId = 7,
                             Quantity = 100m,
-                            RecipeId = 1
+                            RecipeId = 1,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 4,
                             IngredientId = 1,
                             Quantity = 60m,
-                            RecipeId = 2
+                            RecipeId = 2,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 5,
                             IngredientId = 7,
                             Quantity = 100m,
-                            RecipeId = 2
+                            RecipeId = 2,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 6,
                             IngredientId = 3,
                             Quantity = 80m,
-                            RecipeId = 3
+                            RecipeId = 3,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 7,
                             IngredientId = 4,
                             Quantity = 40m,
-                            RecipeId = 3
+                            RecipeId = 3,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 8,
                             IngredientId = 6,
                             Quantity = 20m,
-                            RecipeId = 3
+                            RecipeId = 3,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 9,
                             IngredientId = 7,
                             Quantity = 100m,
-                            RecipeId = 3
+                            RecipeId = 3,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 10,
                             IngredientId = 3,
                             Quantity = 70m,
-                            RecipeId = 4
+                            RecipeId = 4,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 11,
                             IngredientId = 4,
                             Quantity = 40m,
-                            RecipeId = 4
+                            RecipeId = 4,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 12,
                             IngredientId = 5,
                             Quantity = 20m,
-                            RecipeId = 4
+                            RecipeId = 4,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 13,
                             IngredientId = 6,
                             Quantity = 20m,
-                            RecipeId = 4
+                            RecipeId = 4,
+                            Unit = "ml"
                         },
                         new
                         {
                             RecipeDetailId = 14,
                             IngredientId = 7,
                             Quantity = 100m,
-                            RecipeId = 4
+                            RecipeId = 4,
+                            Unit = "ml"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 15,
+                            IngredientId = 11,
+                            Quantity = 100m,
+                            RecipeId = 5,
+                            Unit = "g"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 16,
+                            IngredientId = 12,
+                            Quantity = 50m,
+                            RecipeId = 5,
+                            Unit = "g"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 17,
+                            IngredientId = 13,
+                            Quantity = 60m,
+                            RecipeId = 5,
+                            Unit = "ml"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 18,
+                            IngredientId = 11,
+                            Quantity = 100m,
+                            RecipeId = 6,
+                            Unit = "g"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 19,
+                            IngredientId = 14,
+                            Quantity = 40m,
+                            RecipeId = 6,
+                            Unit = "g"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 20,
+                            IngredientId = 13,
+                            Quantity = 60m,
+                            RecipeId = 6,
+                            Unit = "ml"
+                        },
+                        new
+                        {
+                            RecipeDetailId = 21,
+                            ChildRecipeId = 5,
+                            Quantity = 1m,
+                            RecipeId = 3,
+                            Unit = "portion"
                         });
                 });
 
@@ -1545,17 +1891,25 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("BaseUnit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.HasKey("IngredientId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1567,72 +1921,204 @@ namespace CafeChain.Migrations
                         {
                             IngredientId = 1,
                             Active = true,
-                            Name = "Cà phê",
-                            Unit = "ml"
+                            BaseUnit = "ml",
+                            Code = "ING00001",
+                            Name = "Cà phê"
                         },
                         new
                         {
                             IngredientId = 2,
                             Active = true,
-                            Name = "Sữa đặc",
-                            Unit = "ml"
+                            BaseUnit = "ml",
+                            Code = "ING00002",
+                            Name = "Sữa đặc"
                         },
                         new
                         {
                             IngredientId = 3,
                             Active = true,
-                            Name = "Trà đen",
-                            Unit = "ml"
+                            BaseUnit = "ml",
+                            Code = "ING00003",
+                            Name = "Trà đen"
                         },
                         new
                         {
                             IngredientId = 4,
                             Active = true,
-                            Name = "Bột sữa",
-                            Unit = "g"
+                            BaseUnit = "g",
+                            Code = "ING00004",
+                            Name = "Bột sữa"
                         },
                         new
                         {
                             IngredientId = 5,
                             Active = true,
-                            Name = "Bột socola",
-                            Unit = "g"
+                            BaseUnit = "g",
+                            Code = "ING00005",
+                            Name = "Bột socola"
                         },
                         new
                         {
                             IngredientId = 6,
                             Active = true,
-                            Name = "Đường",
-                            Unit = "g"
+                            BaseUnit = "g",
+                            Code = "ING00006",
+                            Name = "Đường"
                         },
                         new
                         {
                             IngredientId = 7,
                             Active = true,
-                            Name = "Đá",
-                            Unit = "g"
+                            BaseUnit = "g",
+                            Code = "ING00007",
+                            Name = "Đá"
                         },
                         new
                         {
                             IngredientId = 8,
                             Active = true,
-                            Name = "Nước lọc",
-                            Unit = "ml"
+                            BaseUnit = "ml",
+                            Code = "ING00008",
+                            Name = "Syrup"
                         },
                         new
                         {
                             IngredientId = 9,
                             Active = true,
-                            Name = "Trân châu đen",
-                            Unit = "g"
+                            BaseUnit = "g",
+                            Code = "ING00009",
+                            Name = "Matcha"
                         },
                         new
                         {
                             IngredientId = 10,
                             Active = true,
-                            Name = "Thạch",
-                            Unit = "g"
+                            BaseUnit = "ml",
+                            Code = "ING00010",
+                            Name = "Kem béo"
+                        },
+                        new
+                        {
+                            IngredientId = 11,
+                            Active = true,
+                            BaseUnit = "g",
+                            Code = "ING00011",
+                            Name = "Bột năng"
+                        },
+                        new
+                        {
+                            IngredientId = 12,
+                            Active = true,
+                            BaseUnit = "g",
+                            Code = "ING00012",
+                            Name = "Đường nâu"
+                        },
+                        new
+                        {
+                            IngredientId = 13,
+                            Active = true,
+                            BaseUnit = "ml",
+                            Code = "ING00013",
+                            Name = "Nước lọc"
+                        },
+                        new
+                        {
+                            IngredientId = 14,
+                            Active = true,
+                            BaseUnit = "g",
+                            Code = "ING00014",
+                            Name = "Đường trắng"
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
+                {
+                    b.Property<int>("InventoryDocumentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDocumentId"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("DocumentDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("InventoryDocumentId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("InventoryDocuments", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocumentDetail", b =>
+                {
+                    b.Property<int>("InventoryDocumentDetailId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDocumentDetailId"));
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("InventoryDocumentDetailId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("InventoryDocumentId");
+
+                    b.ToTable("InventoryDocumentDetails", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransaction", b =>
@@ -1675,6 +2161,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("StockImportId");
 
                     b.HasIndex("StoreInventoryId");
+
+                    b.HasIndex("RefType", "RefId");
 
                     b.ToTable("InventoryTransactions", null, t =>
                         {
@@ -1727,6 +2215,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1744,61 +2237,29 @@ namespace CafeChain.Migrations
                         {
                             InventoryTransactionTypeId = 1,
                             Code = "IMPORT",
+                            IsSystem = true,
                             Name = "Nhập kho"
                         },
                         new
                         {
                             InventoryTransactionTypeId = 2,
                             Code = "EXPORT",
+                            IsSystem = true,
                             Name = "Xuất kho"
                         },
                         new
                         {
                             InventoryTransactionTypeId = 3,
                             Code = "ADJUST",
+                            IsSystem = true,
                             Name = "Điều chỉnh"
                         },
                         new
                         {
                             InventoryTransactionTypeId = 4,
                             Code = "WASTE",
+                            IsSystem = true,
                             Name = "Hao hụt"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 5,
-                            Code = "RETURN",
-                            Name = "Trả hàng"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 6,
-                            Code = "TRANSFER",
-                            Name = "Chuyển kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 7,
-                            Code = "SALE",
-                            Name = "Bán hàng"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 8,
-                            Code = "CANCEL",
-                            Name = "Hủy giao dịch"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 9,
-                            Code = "CHECK",
-                            Name = "Kiểm kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 10,
-                            Code = "LOSS",
-                            Name = "Thất thoát"
                         });
                 });
 
@@ -1826,6 +2287,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
                     b.HasKey("StockImportId");
 
                     b.HasIndex("ImportDate");
@@ -1833,6 +2297,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("StaffId");
 
                     b.HasIndex("StoreId");
+
+                    b.HasIndex("SupplierId");
 
                     b.ToTable("StockImports", (string)null);
 
@@ -1843,7 +2309,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập đầu ngày",
                             StaffId = 1,
-                            StoreId = 1
+                            StoreId = 1,
+                            SupplierId = 1
                         },
                         new
                         {
@@ -1851,7 +2318,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập bổ sung",
                             StaffId = 2,
-                            StoreId = 1
+                            StoreId = 1,
+                            SupplierId = 2
                         },
                         new
                         {
@@ -1859,7 +2327,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập nguyên liệu",
                             StaffId = 1,
-                            StoreId = 2
+                            StoreId = 2,
+                            SupplierId = 3
                         },
                         new
                         {
@@ -1867,7 +2336,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập kho",
                             StaffId = 3,
-                            StoreId = 2
+                            StoreId = 2,
+                            SupplierId = 1
                         },
                         new
                         {
@@ -1875,7 +2345,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập định kỳ",
                             StaffId = 2,
-                            StoreId = 3
+                            StoreId = 3,
+                            SupplierId = 2
                         },
                         new
                         {
@@ -1883,7 +2354,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập thêm",
                             StaffId = 1,
-                            StoreId = 1
+                            StoreId = 1,
+                            SupplierId = 3
                         },
                         new
                         {
@@ -1891,7 +2363,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập hàng",
                             StaffId = 2,
-                            StoreId = 2
+                            StoreId = 2,
+                            SupplierId = 4
                         },
                         new
                         {
@@ -1899,7 +2372,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập tuần",
                             StaffId = 3,
-                            StoreId = 3
+                            StoreId = 3,
+                            SupplierId = 5
                         },
                         new
                         {
@@ -1907,7 +2381,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập khẩn",
                             StaffId = 3,
-                            StoreId = 1
+                            StoreId = 1,
+                            SupplierId = 1
                         },
                         new
                         {
@@ -1915,7 +2390,8 @@ namespace CafeChain.Migrations
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập cuối ngày",
                             StaffId = 1,
-                            StoreId = 2
+                            StoreId = 2,
+                            SupplierId = 2
                         });
                 });
 
@@ -2033,6 +2509,328 @@ namespace CafeChain.Migrations
                             Quantity = 500m,
                             StockImportId = 9,
                             UnitPrice = 22000m
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.StockTake", b =>
+                {
+                    b.Property<int>("StockTakeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockTakeId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<bool>("IsBalanced")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StockTakeId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("StockTakes", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.StockTakeDetail", b =>
+                {
+                    b.Property<int>("StockTakeDetailId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StockTakeDetailId"));
+
+                    b.Property<decimal>("ActualQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("StockTakeId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("SystemQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.HasKey("StockTakeDetailId");
+
+                    b.HasIndex("StoreInventoryId");
+
+                    b.HasIndex("StockTakeId", "StoreInventoryId")
+                        .IsUnique();
+
+                    b.ToTable("StockTakeDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StockTakeDetail_Qty", "[SystemQty] >= 0 AND [ActualQty] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Supplier", b =>
+                {
+                    b.Property<int>("SupplierId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<decimal>("DebtAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.HasKey("SupplierId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("Suppliers", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SupplierId = 1,
+                            Active = true,
+                            Address = "Bình Dương",
+                            Code = "SUP001",
+                            DebtAmount = 0m,
+                            Name = "Nhà cung cấp A",
+                            Phone = "0901111111"
+                        },
+                        new
+                        {
+                            SupplierId = 2,
+                            Active = true,
+                            Address = "TP HCM",
+                            Code = "SUP002",
+                            DebtAmount = 0m,
+                            Name = "Nhà cung cấp B",
+                            Phone = "0902222222"
+                        },
+                        new
+                        {
+                            SupplierId = 3,
+                            Active = true,
+                            Address = "Đồng Nai",
+                            Code = "SUP003",
+                            DebtAmount = 0m,
+                            Name = "Nhà cung cấp C",
+                            Phone = "0903333333"
+                        },
+                        new
+                        {
+                            SupplierId = 4,
+                            Active = true,
+                            Address = "Hà Nội",
+                            Code = "SUP004",
+                            DebtAmount = 0m,
+                            Name = "Nhà cung cấp D",
+                            Phone = "0904444444"
+                        },
+                        new
+                        {
+                            SupplierId = 5,
+                            Active = true,
+                            Address = "Đà Nẵng",
+                            Code = "SUP005",
+                            DebtAmount = 0m,
+                            Name = "Nhà cung cấp E",
+                            Phone = "0905555555"
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.UnitConversion", b =>
+                {
+                    b.Property<int>("UnitConversionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("UnitConversionId"));
+
+                    b.Property<string>("FromUnit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Ratio")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.Property<string>("ToUnit")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("UnitConversionId");
+
+                    b.HasIndex("IngredientId", "FromUnit", "ToUnit")
+                        .IsUnique();
+
+                    b.ToTable("UnitConversions", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Waste", b =>
+                {
+                    b.Property<int>("WasteId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WasteId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Note")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WasteId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("StaffId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("Wastes", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.WasteDetail", b =>
+                {
+                    b.Property<int>("WasteDetailId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WasteDetailId"));
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WasteId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WasteReasonId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WasteDetailId");
+
+                    b.HasIndex("StoreInventoryId");
+
+                    b.HasIndex("WasteReasonId");
+
+                    b.HasIndex("WasteId", "StoreInventoryId")
+                        .IsUnique();
+
+                    b.ToTable("WasteDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WasteDetail_Qty", "[Quantity] > 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.WasteReason", b =>
+                {
+                    b.Property<int>("WasteReasonId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WasteReasonId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("WasteReasonId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("WasteReasons", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            WasteReasonId = 1,
+                            Active = true,
+                            Code = "EXPIRED",
+                            Name = "Hết hạn"
+                        },
+                        new
+                        {
+                            WasteReasonId = 2,
+                            Active = true,
+                            Code = "BROKEN",
+                            Name = "Đổ vỡ"
+                        },
+                        new
+                        {
+                            WasteReasonId = 3,
+                            Active = true,
+                            Code = "DAMAGED",
+                            Name = "Hư hỏng"
                         });
                 });
 
@@ -2396,6 +3194,16 @@ namespace CafeChain.Migrations
                     b.Property<int>("OrderTypeId")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("PointDiscount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<int>("PointsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
                     b.Property<string>("Source")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -2410,11 +3218,21 @@ namespace CafeChain.Migrations
                     b.Property<int?>("StoreId1")
                         .HasColumnType("int");
 
+                    b.Property<decimal>("SubTotal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
                     b.Property<int?>("TableId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("Total")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("VoucherDiscount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
 
                     b.HasKey("OrderId");
 
@@ -2443,11 +3261,15 @@ namespace CafeChain.Migrations
                             Note = "",
                             OrderStatusId = 3,
                             OrderTypeId = 1,
+                            PointDiscount = 0m,
+                            PointsUsed = 0,
                             Source = "POS",
                             StaffId = 1,
                             StoreId = 1,
+                            SubTotal = 45000m,
                             TableId = 1,
-                            Total = 45000m
+                            Total = 45000m,
+                            VoucherDiscount = 0m
                         },
                         new
                         {
@@ -2457,10 +3279,14 @@ namespace CafeChain.Migrations
                             Note = "Ít đá",
                             OrderStatusId = 2,
                             OrderTypeId = 2,
+                            PointDiscount = 0m,
+                            PointsUsed = 0,
                             Source = "APP",
                             StaffId = 2,
                             StoreId = 1,
-                            Total = 60000m
+                            SubTotal = 60000m,
+                            Total = 60000m,
+                            VoucherDiscount = 0m
                         },
                         new
                         {
@@ -2470,11 +3296,15 @@ namespace CafeChain.Migrations
                             Note = "",
                             OrderStatusId = 1,
                             OrderTypeId = 3,
+                            PointDiscount = 0m,
+                            PointsUsed = 0,
                             Source = "POS",
                             StaffId = 3,
                             StoreId = 2,
+                            SubTotal = 70000m,
                             TableId = 3,
-                            Total = 70000m
+                            Total = 70000m,
+                            VoucherDiscount = 0m
                         });
                 });
 
@@ -3036,6 +3866,13 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "Admin System"
+                        },
+                        new
+                        {
+                            RoleId = 6,
+                            Active = true,
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Customer"
                         });
                 });
 
@@ -3213,6 +4050,9 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffId"));
 
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("Active")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
@@ -3236,9 +4076,6 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<int?>("RoleId")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("Salary")
                         .HasColumnType("decimal(18,2)");
 
@@ -3252,7 +4089,8 @@ namespace CafeChain.Migrations
 
                     b.HasKey("StaffId");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("AccountId")
+                        .IsUnique();
 
                     b.HasIndex("StoreId");
 
@@ -3265,6 +4103,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 1,
+                            AccountId = 6,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3276,6 +4115,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 2,
+                            AccountId = 7,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3287,6 +4127,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 3,
+                            AccountId = 8,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3298,6 +4139,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 4,
+                            AccountId = 9,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3309,6 +4151,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 5,
+                            AccountId = 10,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3320,6 +4163,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 6,
+                            AccountId = 11,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3331,6 +4175,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 7,
+                            AccountId = 12,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3342,6 +4187,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 8,
+                            AccountId = 13,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3353,6 +4199,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 9,
+                            AccountId = 14,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3364,6 +4211,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffId = 10,
+                            AccountId = 15,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -3399,7 +4247,7 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("BankName", "AccountNumber")
                         .IsUnique()
-                        .HasFilter("[AccountNumber] IS NOT NULL");
+                        .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
 
                     b.ToTable("StaffBanks", (string)null);
 
@@ -3424,107 +4272,6 @@ namespace CafeChain.Migrations
                             AccountNumber = "456123789",
                             BankName = "Techcombank",
                             StaffId = 3
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffRole", b =>
-                {
-                    b.Property<int>("StaffRoleId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffRoleId"));
-
-                    b.Property<DateTime>("AssignedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffRoleId");
-
-                    b.HasIndex("RoleId");
-
-                    b.HasIndex("StaffId", "RoleId")
-                        .IsUnique();
-
-                    b.ToTable("StaffRoles", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            StaffRoleId = 1,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 1,
-                            StaffId = 1
-                        },
-                        new
-                        {
-                            StaffRoleId = 2,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 1,
-                            StaffId = 2
-                        },
-                        new
-                        {
-                            StaffRoleId = 3,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 2,
-                            StaffId = 3
-                        },
-                        new
-                        {
-                            StaffRoleId = 4,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 2,
-                            StaffId = 4
-                        },
-                        new
-                        {
-                            StaffRoleId = 5,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 3,
-                            StaffId = 5
-                        },
-                        new
-                        {
-                            StaffRoleId = 6,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 3,
-                            StaffId = 6
-                        },
-                        new
-                        {
-                            StaffRoleId = 7,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 1,
-                            StaffId = 7
-                        },
-                        new
-                        {
-                            StaffRoleId = 8,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 2,
-                            StaffId = 8
-                        },
-                        new
-                        {
-                            StaffRoleId = 9,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 4,
-                            StaffId = 9
-                        },
-                        new
-                        {
-                            StaffRoleId = 10,
-                            AssignedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            RoleId = 5,
-                            StaffId = 10
                         });
                 });
 
@@ -3637,11 +4384,22 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffShiftId"));
 
+                    b.Property<DateTime?>("ActualCheckIn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ActualCheckOut")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("ShiftId")
                         .HasColumnType("int");
 
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
+
+                    b.Property<int>("StatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<DateTime>("WorkDate")
                         .HasColumnType("datetime2");
@@ -3649,6 +4407,8 @@ namespace CafeChain.Migrations
                     b.HasKey("StaffShiftId");
 
                     b.HasIndex("ShiftId");
+
+                    b.HasIndex("StatusId");
 
                     b.HasIndex("WorkDate");
 
@@ -3663,6 +4423,7 @@ namespace CafeChain.Migrations
                             StaffShiftId = 1,
                             ShiftId = 1,
                             StaffId = 1,
+                            StatusId = 1,
                             WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
@@ -3670,6 +4431,7 @@ namespace CafeChain.Migrations
                             StaffShiftId = 2,
                             ShiftId = 2,
                             StaffId = 2,
+                            StatusId = 1,
                             WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
@@ -3677,28 +4439,69 @@ namespace CafeChain.Migrations
                             StaffShiftId = 3,
                             ShiftId = 4,
                             StaffId = 3,
+                            StatusId = 1,
                             WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffShiftStatus", b =>
+                {
+                    b.Property<int>("StaffShiftStatusId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffShiftStatusId"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsSystem")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("StaffShiftStatusId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.ToTable("StaffShiftStatuses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            StaffShiftStatusId = 1,
+                            Code = "PLANNED",
+                            IsSystem = true,
+                            Name = "Planned"
                         },
                         new
                         {
-                            StaffShiftId = 4,
-                            ShiftId = 5,
-                            StaffId = 4,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            StaffShiftStatusId = 2,
+                            Code = "CHECKED_IN",
+                            IsSystem = true,
+                            Name = "Checked In"
                         },
                         new
                         {
-                            StaffShiftId = 5,
-                            ShiftId = 6,
-                            StaffId = 5,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            StaffShiftStatusId = 3,
+                            Code = "COMPLETED",
+                            IsSystem = true,
+                            Name = "Completed"
                         },
                         new
                         {
-                            StaffShiftId = 6,
-                            ShiftId = 7,
-                            StaffId = 6,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            StaffShiftStatusId = 4,
+                            Code = "ABSENT",
+                            IsSystem = true,
+                            Name = "Absent"
                         });
                 });
 
@@ -4012,6 +4815,9 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("VoucherId");
 
+                    b.HasIndex("OrderId", "VoucherId")
+                        .IsUnique();
+
                     b.ToTable("OrderVouchers", (string)null);
                 });
 
@@ -4062,8 +4868,14 @@ namespace CafeChain.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("EndDate");
+
+                    b.HasIndex("StartDate");
+
                     b.ToTable("Vouchers", null, t =>
                         {
+                            t.HasCheckConstraint("CK_Voucher_Date", "[StartDate] <= [EndDate]");
+
                             t.HasCheckConstraint("CK_Voucher_Discount", "(DiscountPercent IS NOT NULL AND DiscountAmount IS NULL) OR (DiscountPercent IS NULL AND DiscountAmount IS NOT NULL)");
                         });
                 });
@@ -4091,35 +4903,153 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("VoucherId", "CustomerId")
-                        .IsUnique();
+                    b.HasIndex("UsedAt");
+
+                    b.HasIndex("VoucherId", "CustomerId");
 
                     b.ToTable("VoucherUsages", (string)null);
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelConfig", b =>
                 {
-                    b.HasOne("CafeChain.Models.Customers.AccountType", "AccountType")
-                        .WithMany("Accounts")
-                        .HasForeignKey("AccountTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                    b.Property<int>("WheelConfigId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WheelConfigId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("SlotCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SpinCost")
+                        .HasColumnType("int");
+
+                    b.HasKey("WheelConfigId");
+
+                    b.ToTable("WheelConfigs", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WheelConfig_Slot", "[SlotCount] IN (6,8)");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelPrize", b =>
+                {
+                    b.Property<int>("WheelPrizeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WheelPrizeId"));
+
+                    b.Property<bool>("IsLose")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<decimal>("Probability")
+                        .HasColumnType("decimal(5,4)");
+
+                    b.Property<int>("SlotIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("VoucherId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WheelConfigId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WheelPrizeId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.HasIndex("WheelConfigId", "SlotIndex")
+                        .IsUnique();
+
+                    b.ToTable("WheelPrizes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_WheelPrize_Lose", "(IsLose = 1 AND VoucherId IS NULL) OR (IsLose = 0)");
+
+                            t.HasCheckConstraint("CK_WheelPrize_Probability", "[Probability] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelSpin", b =>
+                {
+                    b.Property<int>("WheelSpinId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WheelSpinId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WheelConfigId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("WheelPrizeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("WheelSpinId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("WheelConfigId");
+
+                    b.HasIndex("WheelPrizeId");
+
+                    b.ToTable("WheelSpins", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.AccountRole", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Account", "Account")
+                        .WithMany("AccountRoles")
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
-                        .WithOne("Account")
-                        .HasForeignKey("CafeChain.Models.Customers.Account", "CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                    b.HasOne("CafeChain.Models.Staffs.Role", "Role")
+                        .WithMany("AccountRoles")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithOne("Account")
-                        .HasForeignKey("CafeChain.Models.Customers.Account", "StaffId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                    b.Navigation("Account");
 
-                    b.Navigation("AccountType");
+                    b.Navigation("Role");
+                });
 
-                    b.Navigation("Customer");
+            modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Account", "Account")
+                        .WithOne("Customer")
+                        .HasForeignKey("CafeChain.Models.Customers.Customer", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Staff");
+                    b.Navigation("Account");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerAddress", b =>
@@ -4178,9 +5108,16 @@ namespace CafeChain.Migrations
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade);
 
+                    b.HasOne("CafeChain.Models.Customers.Rating", "ParentRating")
+                        .WithMany("Replies")
+                        .HasForeignKey("ParentRatingId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Customer");
 
                     b.Navigation("Drink");
+
+                    b.Navigation("ParentRating");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.RatingImage", b =>
@@ -4194,6 +5131,25 @@ namespace CafeChain.Migrations
                     b.Navigation("Rating");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Customers.RatingReaction", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Customers.Rating", "Rating")
+                        .WithMany("Reactions")
+                        .HasForeignKey("RatingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Rating");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.DrinkCategory", "Category")
@@ -4201,7 +5157,15 @@ namespace CafeChain.Migrations
                         .HasForeignKey("CategoryId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CafeChain.Models.Drinks.ProductType", "ProductType")
+                        .WithMany("Drinks")
+                        .HasForeignKey("ProductTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Category");
+
+                    b.Navigation("ProductType");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkDefaultTopping", b =>
@@ -4274,22 +5238,22 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
                 {
-                    b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
+                    b.HasOne("CafeChain.Models.Drinks.Drink", null)
                         .WithMany("Recipes")
-                        .HasForeignKey("DrinkId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Drink");
+                        .HasForeignKey("DrinkId");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.RecipeDetail", b =>
                 {
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "ChildRecipe")
+                        .WithMany()
+                        .HasForeignKey("ChildRecipeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
                         .WithMany("RecipeDetails")
                         .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CafeChain.Models.Drinks.Recipe", "Recipe")
                         .WithMany("RecipeDetails")
@@ -4297,9 +5261,56 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("ChildRecipe");
+
                     b.Navigation("Ingredient");
 
                     b.Navigation("Recipe");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocumentDetail", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", "InventoryDocument")
+                        .WithMany("Details")
+                        .HasForeignKey("InventoryDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("InventoryDocument");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransaction", b =>
@@ -4342,9 +5353,17 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.Supplier", "Supplier")
+                        .WithMany("StockImports")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Staff");
 
                     b.Navigation("Store");
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.StockImportDetail", b =>
@@ -4364,6 +5383,101 @@ namespace CafeChain.Migrations
                     b.Navigation("Ingredient");
 
                     b.Navigation("StockImport");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.StockTake", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.StockTakeDetail", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.StockTake", "StockTake")
+                        .WithMany("Details")
+                        .HasForeignKey("StockTakeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
+                        .WithMany()
+                        .HasForeignKey("StoreInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("StockTake");
+
+                    b.Navigation("StoreInventory");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.UnitConversion", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Waste", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany()
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.WasteDetail", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
+                        .WithMany()
+                        .HasForeignKey("StoreInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Waste", "Waste")
+                        .WithMany("Details")
+                        .HasForeignKey("WasteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.WasteReason", "WasteReason")
+                        .WithMany("WasteDetails")
+                        .HasForeignKey("WasteReasonId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("StoreInventory");
+
+                    b.Navigation("Waste");
+
+                    b.Navigation("WasteReason");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
@@ -4438,7 +5552,7 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany()
                         .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
@@ -4572,15 +5686,19 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Staff", b =>
                 {
-                    b.HasOne("CafeChain.Models.Staffs.Role", null)
-                        .WithMany("Staffs")
-                        .HasForeignKey("RoleId");
+                    b.HasOne("CafeChain.Models.Customers.Account", "Account")
+                        .WithOne("Staff")
+                        .HasForeignKey("CafeChain.Models.Staffs.Staff", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany("Staffs")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("Account");
 
                     b.Navigation("Store");
                 });
@@ -4591,25 +5709,6 @@ namespace CafeChain.Migrations
                         .WithMany("StaffBanks")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Staff");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffRole", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Role", "Role")
-                        .WithMany("StaffRoles")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany("StaffRoles")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Role");
 
                     b.Navigation("Staff");
                 });
@@ -4625,7 +5724,7 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffScopes")
                         .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("ScopeType");
@@ -4644,12 +5743,20 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffShifts")
                         .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.StaffShiftStatus", "Status")
+                        .WithMany("StaffShifts")
+                        .HasForeignKey("StatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Shift");
 
                     b.Navigation("Staff");
+
+                    b.Navigation("Status");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
@@ -4757,16 +5864,55 @@ namespace CafeChain.Migrations
                     b.Navigation("Voucher");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Customers.AccountType", b =>
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelPrize", b =>
                 {
-                    b.Navigation("Accounts");
+                    b.HasOne("CafeChain.Models.Vouchers.Voucher", "Voucher")
+                        .WithMany()
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CafeChain.Models.Vouchers.WheelConfig", "WheelConfig")
+                        .WithMany("Prizes")
+                        .HasForeignKey("WheelConfigId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Voucher");
+
+                    b.Navigation("WheelConfig");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelSpin", b =>
+                {
+                    b.HasOne("CafeChain.Models.Vouchers.WheelConfig", "WheelConfig")
+                        .WithMany()
+                        .HasForeignKey("WheelConfigId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Vouchers.WheelPrize", "WheelPrize")
+                        .WithMany()
+                        .HasForeignKey("WheelPrizeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("WheelConfig");
+
+                    b.Navigation("WheelPrize");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
+                {
+                    b.Navigation("AccountRoles");
+
+                    b.Navigation("Customer")
+                        .IsRequired();
+
+                    b.Navigation("Staff")
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
                 {
-                    b.Navigation("Account")
-                        .IsRequired();
-
                     b.Navigation("CustomerAddresses");
 
                     b.Navigation("CustomerBanks");
@@ -4787,6 +5933,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Customers.Rating", b =>
                 {
                     b.Navigation("Images");
+
+                    b.Navigation("Reactions");
+
+                    b.Navigation("Replies");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Drink", b =>
@@ -4807,6 +5957,11 @@ namespace CafeChain.Migrations
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkCategory", b =>
+                {
+                    b.Navigation("Drinks");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.ProductType", b =>
                 {
                     b.Navigation("Drinks");
                 });
@@ -4839,6 +5994,11 @@ namespace CafeChain.Migrations
                     b.Navigation("StoreInventories");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
+                {
+                    b.Navigation("Details");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
                 {
                     b.Navigation("InventoryTransactions");
@@ -4849,6 +6009,26 @@ namespace CafeChain.Migrations
                     b.Navigation("Details");
 
                     b.Navigation("InventoryTransactions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.StockTake", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Supplier", b =>
+                {
+                    b.Navigation("StockImports");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Waste", b =>
+                {
+                    b.Navigation("Details");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.WasteReason", b =>
+                {
+                    b.Navigation("WasteDetails");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Country", b =>
@@ -4914,9 +6094,7 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
                 {
-                    b.Navigation("StaffRoles");
-
-                    b.Navigation("Staffs");
+                    b.Navigation("AccountRoles");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
@@ -4926,20 +6104,20 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Staff", b =>
                 {
-                    b.Navigation("Account")
-                        .IsRequired();
-
                     b.Navigation("CashSessions");
 
                     b.Navigation("StaffBanks");
-
-                    b.Navigation("StaffRoles");
 
                     b.Navigation("StaffScopes");
 
                     b.Navigation("StaffShifts");
 
                     b.Navigation("StockImports");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffShiftStatus", b =>
+                {
+                    b.Navigation("StaffShifts");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
@@ -4971,6 +6149,11 @@ namespace CafeChain.Migrations
                     b.Navigation("OrderVouchers");
 
                     b.Navigation("VoucherUsages");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Vouchers.WheelConfig", b =>
+                {
+                    b.Navigation("Prizes");
                 });
 #pragma warning restore 612, 618
         }

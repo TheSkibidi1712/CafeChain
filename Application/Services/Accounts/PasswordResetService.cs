@@ -44,8 +44,9 @@ namespace CafeChain.Application.Services.Accounts
 
             var otp = new PasswordResetOtp
             {
+                AccountId = account.AccountId,
                 Email = email,
-                Code = code,
+                CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
                 CreatedAt = DateTime.UtcNow,
                 ExpiredAt = DateTime.UtcNow.AddMinutes(5),
                 IsUsed = false
@@ -65,7 +66,6 @@ namespace CafeChain.Application.Services.Accounts
         {
             email = email.Trim().ToLower();
             code = code.Trim().ToUpper();
-
             // 🔥 LUÔN LẤY OTP MỚI NHẤT
             var otp = await _otpRepository.GetLatestOtpAsync(email);
 
@@ -93,7 +93,7 @@ namespace CafeChain.Application.Services.Accounts
             }
 
             // 🔥 SO SÁNH CODE
-            if (otp.Code != code)
+            if (!BCrypt.Net.BCrypt.Verify(code, otp.CodeHash))
             {
                 await _otpRepository.IncreaseFailCountAsync(otp);
 
@@ -104,6 +104,10 @@ namespace CafeChain.Application.Services.Accounts
 
                 return ServiceResult.Failure($"OTP không đúng. Bạn còn {remaining} lần thử");
             }
+            else
+            {
+                otp.FailedAttempts = 0;
+            }   
 
             return ServiceResult.Success("OTP hợp lệ");
         }
@@ -112,10 +116,14 @@ namespace CafeChain.Application.Services.Accounts
         {
             email = email.Trim().ToLower();
             code = code.Trim().ToUpper();
-            var otp = await _otpRepository.GetValidOtpAsync(email, code);
+            var otp = await _otpRepository.GetValidOtpAsync(email);
 
             if (otp == null)
                 return ServiceResult.Failure("OTP không hợp lệ hoặc đã hết hạn");
+
+            // 🔥 VERIFY Ở SERVICE (ĐÚNG LAYER)
+            if (!BCrypt.Net.BCrypt.Verify(code, otp.CodeHash))
+                return ServiceResult.Failure("OTP không đúng");
 
             var hash = BCrypt.Net.BCrypt.HashPassword(newPassword);
 

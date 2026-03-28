@@ -6,6 +6,7 @@ namespace CafeChain.Models.Customers
     public class Customer
     {
         public int CustomerId { get; set; }
+        public int AccountId { get; set; }
         public string FullName { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public DateTime CreatedAt { get; set; }

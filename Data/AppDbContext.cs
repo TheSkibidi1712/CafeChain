@@ -18,25 +18,26 @@ namespace CafeChain.Data
         }
 
         // ========================= CUSTOMER =========================
+        public DbSet<Account> Accounts { get; set; }
+        public DbSet<AccountRole> AccountRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<CustomerAddress> CustomerAddresses { get; set; }
+        public DbSet<CustomerAddress> CustomersAddresses { get; set; }
         public DbSet<CustomerBank> CustomerBanks { get; set; }
         public DbSet<CustomerPoint> CustomerPoints { get; set; }
         public DbSet<CustomerPhone> CustomerPhones { get; set; }
+        public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<RatingImage> RatingImages { get; set; }
-        public DbSet<Account> Accounts { get; set; }
-        public DbSet<AccountType> AccountTypes { get; set; }
-        public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
+        public DbSet<RatingReaction> RatingReactions { get; set; }
         // ========================= STAFF =========================
+        public DbSet<Role> Roles { get; set; }
+        public DbSet<ScopeType> ScopeTypes { get; set; }
+        public DbSet<Shift> Shifts { get; set; }
         public DbSet<Staff> Staffs { get; set; }
         public DbSet<StaffBank> StaffBanks { get; set; }
-        public DbSet<StaffRole> StaffRoles { get; set; }
         public DbSet<StaffScope> StaffScopes { get; set; }
-        public DbSet<ScopeType> ScopeTypes { get; set; }
         public DbSet<StaffShift> StaffShifts { get; set; }
-        public DbSet<Shift> Shifts { get; set; }
-        public DbSet<Role> Roles { get; set; }
+        public DbSet<StaffShiftStatus> StaffShiftStatuses { get; set; }
 
         // ========================= ORDER =========================
         public DbSet<Order> Orders { get; set; }
@@ -48,14 +49,16 @@ namespace CafeChain.Data
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }
         public DbSet<DrinkCategory> DrinkCategories { get; set; }
+        public DbSet<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
         public DbSet<DrinkImage> DrinkImages { get; set; }
         public DbSet<DrinkSize> DrinkSizes { get; set; }
         public DbSet<DrinkTopping> DrinkToppings { get; set; }
-        public DbSet<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
-        public DbSet<Size> Sizes { get; set; }
-        public DbSet<Topping> Toppings { get; set; }
+        public DbSet<ProductType> ProductTypes { get; set; }
         public DbSet<Recipe> Recipes { get; set; }
         public DbSet<RecipeDetail> RecipeDetails { get; set; }
+        public DbSet<Size> Sizes { get; set; }
+        public DbSet<Topping> Toppings { get; set; }
+
 
         // ========================= STORE =========================
         public DbSet<Store> Stores { get; set; }
@@ -64,11 +67,21 @@ namespace CafeChain.Data
         public DbSet<StoreTopping> StoreToppings { get; set; }
 
         // ========================= INVENTORY =========================
-        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+        public DbSet<InventoryDocument> InventoryDocuments { get; set; }
+        public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
+        public DbSet<InventoryTransaction> InventoryTransaction { get; set; }
         public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
-        public DbSet<StockImport> StockImports { get; set; }
-        public DbSet<StockImportDetail> StockImportDetails { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
+        public DbSet<StockImport> StocksImport { get; set; }
+        public DbSet<StockImportDetail> StockImportDetails { get; set; }
+        public DbSet<StockTake> StockTakes { get; set; }
+        public DbSet<StockTakeDetail> StockTakeDetails { get; set; }
+        public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<UnitConversion> UnitConversations { get; set; }
+        public DbSet<Waste> Wastes { get; set; }
+        public DbSet<WasteDetail> WasteDetails { get; set; }
+        public DbSet<WasteReason> WasteReasons { get; set; }
+
 
         // ========================= PAYMENT =========================
         public DbSet<Payment> Payments { get; set; }
@@ -80,6 +93,9 @@ namespace CafeChain.Data
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherUsage> VoucherUsages { get; set; }
         public DbSet<OrderVoucher> OrderVouchers { get; set; }
+        public DbSet<WheelConfig> WheelConfigs { get; set; }
+        public DbSet<WheelPrize> WheelPrizes { get; set; }
+        public DbSet<WheelSpin> WheelSpins { get; set; }
 
         // ========================= LOCATION =========================
         public DbSet<Country> Countries { get; set; }

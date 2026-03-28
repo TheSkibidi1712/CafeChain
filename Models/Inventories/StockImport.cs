@@ -6,6 +6,7 @@ namespace CafeChain.Models.Inventories
     public class StockImport
     {
         public int StockImportId { get; set; }
+        public int SupplierId { get; set; }
         public int StoreId { get; set; }
         public int StaffId { get; set; }
         public DateTime ImportDate { get; set; }
@@ -14,6 +15,7 @@ namespace CafeChain.Models.Inventories
         public virtual Store Store { get; set; }
         public virtual Staff Staff { get; set; }
 
+        public virtual Supplier Supplier { get; set; }
         public virtual ICollection<StockImportDetail> Details { get; set; }
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; }
 
