@@ -71,3 +71,20 @@
 .btn-orange {
     border-radius: 10px;
 }
+.drink-card {
+    border: 1px solid #eee;
+    border-radius: 12px;
+    background: #fff;
+    transition: 0.2s;
+}
+
+    .drink-card:hover {
+        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+    }
+
+.drink-img {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 10px;
+}

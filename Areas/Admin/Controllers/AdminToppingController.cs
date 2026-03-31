@@ -1,18 +1,23 @@
-﻿using CafeChain.Application.DTOs.Admin.Toppings;
+﻿using CafeChain.Application.DTOs.Admin.DrinkToppings;
+using CafeChain.Application.DTOs.Admin.Toppings;
+using CafeChain.Application.Interfaces.Admin.DrinkToppings;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.ViewModels.Admin.Toppings;
 using Microsoft.AspNetCore.Mvc;
-
+using CafeChain.ViewModels.Admin.DrinkToppings;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
     public class AdminToppingController : Controller
     {
         private readonly IAdminToppingService _service;
+        private readonly IAdminDrinkToppingService _drinkToppingService;
 
-        public AdminToppingController(IAdminToppingService service)
+
+        public AdminToppingController(IAdminToppingService service, IAdminDrinkToppingService adminDrinkToppingService)
         {
             _service = service;
+            _drinkToppingService = adminDrinkToppingService;
         }
 
         // =============================
@@ -147,6 +152,44 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             await _service.ToggleStatusAsync(id);
             return RedirectToAction(nameof(Index));
+        }
+
+        // =============================
+        // List Drinks for Topping
+        // =============================
+        [HttpGet]
+        public async Task<IActionResult> GetDrinks(int toppingId)
+        {
+            var data = await _drinkToppingService.GetDrinksForToppingAsync(toppingId);
+            return Json(data);
+        }
+
+        // =============================
+        // Assign Topping to Drink
+        // =============================
+        [HttpPost]
+        public async Task<IActionResult> Assign([FromBody] AssignDrinkToppingVM vm)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid data");
+
+            await _drinkToppingService.AssignAsync(new DrinkToppingDto
+            {
+                DrinkId = vm.DrinkId,
+                ToppingId = vm.ToppingId
+            });
+
+            return Ok();
+        }
+
+        // =============================
+        // Toggle Drink-Topping
+        // =============================
+        [HttpPost]
+        public async Task<IActionResult> Toggle(int id)
+        {
+            await _drinkToppingService.ToggleAsync(id);
+            return Ok();
         }
     }
 }

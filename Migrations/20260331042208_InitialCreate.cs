@@ -717,7 +717,8 @@ namespace CafeChain.Migrations
                     DrinkToppingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DrinkId = table.Column<int>(type: "int", nullable: false),
-                    ToppingId = table.Column<int>(type: "int", nullable: false)
+                    ToppingId = table.Column<int>(type: "int", nullable: false),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
                 {
@@ -1737,7 +1738,13 @@ namespace CafeChain.Migrations
                     { 12, "y@gmail.com", "123" },
                     { 13, "t@gmail.com", "123" },
                     { 14, "r@gmail.com", "123" },
-                    { 15, "w@gmail.com", "123" }
+                    { 15, "w@gmail.com", "123" },
+                    { 16, "thesadboiz1712@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                    { 17, "anhnttb001711@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                    { 18, "AdminHeThong@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                    { 19, "AdminPhuong@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                    { 20, "AdminChiNhanh@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                    { 21, "ThuNgan@gmail.com", "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" }
                 });
 
             migrationBuilder.InsertData(
@@ -1963,6 +1970,19 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "AccountRoles",
+                columns: new[] { "AccountId", "RoleId" },
+                values: new object[,]
+                {
+                    { 16, 6 },
+                    { 17, 2 },
+                    { 18, 5 },
+                    { 19, 4 },
+                    { 20, 3 },
+                    { 21, 1 }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Customers",
                 columns: new[] { "CustomerId", "AccountId", "Active", "AvatarUrl", "CreatedAt", "DateOfBirth", "FullName" },
                 values: new object[,]
@@ -1971,7 +1991,8 @@ namespace CafeChain.Migrations
                     { 2, 2, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn B" },
                     { 3, 3, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn C" },
                     { 4, 4, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 4, 5, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn D" },
-                    { 5, 5, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 2, 26, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn E" }
+                    { 5, 5, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 2, 26, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Văn E" },
+                    { 6, 16, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 12, 17, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nguyễn Thế Anh" }
                 });
 
             migrationBuilder.InsertData(
@@ -2210,21 +2231,21 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "DrinkToppings",
-                columns: new[] { "DrinkToppingId", "DrinkId", "ToppingId" },
+                columns: new[] { "DrinkToppingId", "Active", "DrinkId", "ToppingId" },
                 values: new object[,]
                 {
-                    { 1, 3, 1 },
-                    { 2, 3, 2 },
-                    { 3, 3, 3 },
-                    { 4, 3, 4 },
-                    { 5, 3, 5 },
-                    { 6, 3, 6 },
-                    { 7, 4, 1 },
-                    { 8, 4, 2 },
-                    { 9, 4, 3 },
-                    { 10, 4, 4 },
-                    { 11, 4, 5 },
-                    { 12, 4, 6 }
+                    { 1, true, 3, 1 },
+                    { 2, true, 3, 2 },
+                    { 3, true, 3, 3 },
+                    { 4, true, 3, 4 },
+                    { 5, true, 3, 5 },
+                    { 6, true, 3, 6 },
+                    { 7, true, 4, 1 },
+                    { 8, true, 4, 2 },
+                    { 9, true, 4, 3 },
+                    { 10, true, 4, 4 },
+                    { 11, true, 4, 5 },
+                    { 12, true, 4, 6 }
                 });
 
             migrationBuilder.InsertData(
@@ -2282,7 +2303,12 @@ namespace CafeChain.Migrations
                     { 7, 12, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Nguyễn Văn G", 8500000m, 1, "TAX007" },
                     { 8, 13, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Trần Văn H", 9500000m, 2, "TAX008" },
                     { 9, 14, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Lý Thị I", 6000000m, 3, "TAX009" },
-                    { 10, 15, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Tổng", 16000000m, 1, "TAX010" }
+                    { 10, 15, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Tổng", 16000000m, 1, "TAX010" },
+                    { 11, 17, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Hệ Thống", 39999999m, 1, "TAX011" },
+                    { 12, 18, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Phường", 10000000000m, 1, "TAX012" },
+                    { 13, 19, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Tỉnh", 20000000000m, 1, "TAX013" },
+                    { 14, 20, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Admin Chi Nhánh", 3000000000m, 1, "TAX014" },
+                    { 15, 21, true, "/Images/Upload/avtdf.jpg", new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Thu Ngân", 200000m, 1, "TAX015" }
                 });
 
             migrationBuilder.InsertData(

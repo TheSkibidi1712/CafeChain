@@ -179,6 +179,66 @@ namespace CafeChain.Data.Configurations
                     Active = true,
                     AvatarUrl = "/Images/Upload/avtdf.jpg",
                     CreatedAt = new DateTime(2024, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 11,
+                    AccountId = 17,
+                    FullName = "Admin Hệ Thống",
+                    TaxCode = "TAX011",
+                    Salary = 39999999,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    CreatedAt = new DateTime(2024, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 12,
+                    AccountId = 18,
+                    FullName = "Admin Phường",
+                    TaxCode = "TAX012",
+                    Salary = 10000000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    CreatedAt = new DateTime(2024, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 13,
+                    AccountId = 19,
+                    FullName = "Admin Tỉnh",
+                    TaxCode = "TAX013",
+                    Salary = 20000000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    CreatedAt = new DateTime(2024, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 14,
+                    AccountId = 20,
+                    FullName = "Admin Chi Nhánh",
+                    TaxCode = "TAX014",
+                    Salary = 3000000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    CreatedAt = new DateTime(2024, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 15,
+                    AccountId = 21,
+                    FullName = "Thu Ngân",
+                    TaxCode = "TAX015",
+                    Salary = 200000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    CreatedAt = new DateTime(2024, 1, 1)
                 }
             );
         }

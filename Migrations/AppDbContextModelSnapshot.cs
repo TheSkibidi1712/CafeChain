@@ -180,6 +180,54 @@ namespace CafeChain.Migrations
                             CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "w@gmail.com",
                             PasswordHash = "123"
+                        },
+                        new
+                        {
+                            AccountId = 16,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "thesadboiz1712@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                        },
+                        new
+                        {
+                            AccountId = 17,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "anhnttb001711@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                        },
+                        new
+                        {
+                            AccountId = 18,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "AdminHeThong@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                        },
+                        new
+                        {
+                            AccountId = 19,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "AdminPhuong@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                        },
+                        new
+                        {
+                            AccountId = 20,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "AdminChiNhanh@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                        },
+                        new
+                        {
+                            AccountId = 21,
+                            Active = false,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "ThuNgan@gmail.com",
+                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
                         });
                 });
 
@@ -196,6 +244,38 @@ namespace CafeChain.Migrations
                     b.HasIndex("RoleId");
 
                     b.ToTable("AccountRoles", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            AccountId = 16,
+                            RoleId = 6
+                        },
+                        new
+                        {
+                            AccountId = 17,
+                            RoleId = 2
+                        },
+                        new
+                        {
+                            AccountId = 18,
+                            RoleId = 5
+                        },
+                        new
+                        {
+                            AccountId = 19,
+                            RoleId = 4
+                        },
+                        new
+                        {
+                            AccountId = 20,
+                            RoleId = 3
+                        },
+                        new
+                        {
+                            AccountId = 21,
+                            RoleId = 1
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Customer", b =>
@@ -289,6 +369,16 @@ namespace CafeChain.Migrations
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DateOfBirth = new DateTime(2000, 2, 26, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             FullName = "Nguyễn Văn E"
+                        },
+                        new
+                        {
+                            CustomerId = 6,
+                            AccountId = 16,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DateOfBirth = new DateTime(2000, 12, 17, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Nguyễn Thế Anh"
                         });
                 });
 
@@ -1302,6 +1392,11 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkToppingId"));
 
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
@@ -1321,72 +1416,84 @@ namespace CafeChain.Migrations
                         new
                         {
                             DrinkToppingId = 1,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 2,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 3,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 4,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 5,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 6,
+                            Active = true,
                             DrinkId = 3,
                             ToppingId = 6
                         },
                         new
                         {
                             DrinkToppingId = 7,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 8,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 9,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 10,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 11,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 12,
+                            Active = true,
                             DrinkId = 4,
                             ToppingId = 6
                         });
@@ -4245,6 +4352,66 @@ namespace CafeChain.Migrations
                             Salary = 16000000m,
                             StoreId = 1,
                             TaxCode = "TAX010"
+                        },
+                        new
+                        {
+                            StaffId = 11,
+                            AccountId = 17,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Admin Hệ Thống",
+                            Salary = 39999999m,
+                            StoreId = 1,
+                            TaxCode = "TAX011"
+                        },
+                        new
+                        {
+                            StaffId = 12,
+                            AccountId = 18,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Admin Phường",
+                            Salary = 10000000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX012"
+                        },
+                        new
+                        {
+                            StaffId = 13,
+                            AccountId = 19,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Admin Tỉnh",
+                            Salary = 20000000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX013"
+                        },
+                        new
+                        {
+                            StaffId = 14,
+                            AccountId = 20,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Admin Chi Nhánh",
+                            Salary = 3000000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX014"
+                        },
+                        new
+                        {
+                            StaffId = 15,
+                            AccountId = 21,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Thu Ngân",
+                            Salary = 200000m,
+                            StoreId = 1,
+                            TaxCode = "TAX015"
                         });
                 });
 

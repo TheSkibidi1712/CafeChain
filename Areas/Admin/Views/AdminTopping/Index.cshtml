@@ -104,6 +104,11 @@
 
                         <!-- Actions -->
                         <td class="text-end">
+                            <!-- ASSIGN -->
+                            <button class="btn btn-sm btn-warning me-2"
+                                    onclick="openDrinkModal(@item.ToppingId, '@item.Name.Replace("'", "\\'")')">
+                                <i class="fas fa-link"></i>
+                            </button>
 
                             <!-- EDIT -->
                             <button class="btn btn-sm btn-light me-2"
@@ -256,7 +261,174 @@
     </div>
 </div>
 
+<!-- ================= DRINK MODAL ================= -->
+<div class="modal fade" id="drinkModal">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content p-3">
+
+            <div class="modal-header border-0">
+                <h5 class="fw-bold mb-0" id="drinkModalTitle"></h5>
+                <button class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+
+            <div class="modal-body">
+                <div class="row">
+
+                    <div class="mb-3">
+                        <span class="badge bg-danger fs-6" id="currentToppingBadge"></span>
+                    </div>
+
+                    <!-- UNASSIGNED -->
+                    <div class="col-6">
+                        <h6 class="fw-bold text-muted mb-3">Chưa gán</h6>
+                        <div id="unassignedList" class="row g-2"></div>
+                    </div>
+
+                    <!-- ASSIGNED -->
+                    <div class="col-6">
+                        <h6 class="fw-bold text-muted mb-3">Đã gán</h6>
+                        <div id="assignedList" class="row g-2"></div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<div class="toast position-fixed bottom-0 end-0 p-3" id="liveToast">
+    <div class="toast-body bg-success text-white rounded">
+        Thành công!
+    </div>
+</div>
+
 <script>
+    let currentToppingId = 0;
+    let currentToppingName = "";
+    let selectedDrinkId = 0;
+    let drinkModalInstance = null;
+
+    function showToast(msg) {
+        let toastEl = document.getElementById('liveToast');
+        toastEl.querySelector('.toast-body').innerText = msg;
+        new bootstrap.Toast(toastEl).show();
+    }
+
+    // =========================
+    // OPEN MODAL
+    // =========================
+    function openDrinkModal(toppingId, toppingName) {
+        currentToppingId = toppingId;
+        currentToppingName = toppingName;
+
+        document.getElementById("drinkModalTitle").innerText =
+            `Quản lý Drink - Topping ${toppingName}`;
+
+        document.getElementById("currentToppingBadge").innerText =
+            `Topping: ${toppingName}`;
+
+        fetch(`/Admin/AdminTopping/GetDrinks?toppingId=${toppingId}`)
+            .then(res => res.json())
+            .then(data => renderDrinkUI(data));
+    }
+
+    // =========================
+    // RENDER UI
+    // =========================
+    function renderDrinkUI(data) {
+
+        let assignedHtml = "";
+        let unassignedHtml = "";
+
+        data.forEach(d => {
+
+            let image = d.imageUrl ?? "/images/no-image.png";
+
+            let card = `
+            <div class="col-6">
+                <div class="drink-card p-2">
+                    <img src="${image}" class="drink-img mb-2"/>
+                    <h6 class="mb-1">${d.name}</h6>
+                    <small class="text-muted">${d.categoryName ?? ""} - ${d.productTypeName ?? ""}</small>
+            `;
+
+            if (d.isAssigned) {
+                assignedHtml += card + `
+                    <div class="mt-2">
+
+                        <button class="btn btn-sm btn-outline-danger w-100"
+                                onclick="toggleDrinkTopping(${d.drinkToppingId})">
+                            ${d.active ? "Tắt" : "Bật"}
+                        </button>
+
+                    </div>
+                </div>
+            </div>`;
+            } else {
+                unassignedHtml += card + `
+                    <button class="btn btn-sm btn-orange w-100 mt-2"
+                            onclick="assignTopping(${d.drinkId})">
+                        Gán
+                    </button>
+                </div>
+            </div>`;
+            }
+        });
+
+        document.getElementById("assignedList").innerHTML = assignedHtml;
+        document.getElementById("unassignedList").innerHTML = unassignedHtml;
+
+        if (!drinkModalInstance) {
+            drinkModalInstance = new bootstrap.Modal(document.getElementById('drinkModal'));
+        }
+
+        drinkModalInstance.show();
+    }
+
+    // =========================
+    // ASSIGN
+    // =========================
+    function assignTopping(drinkId) {
+
+        fetch('/Admin/AdminTopping/Assign', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                drinkId: drinkId,
+                toppingId: currentToppingId
+            })
+        })
+        .then(res => {
+            if (!res.ok) throw new Error();
+            return res.text();
+        })
+        .then(() => {
+            showToast("Gán thành công");
+
+            return fetch(`/Admin/AdminTopping/GetDrinks?toppingId=${currentToppingId}`);
+        })
+        .then(res => res.json())
+        .then(data => renderDrinkUI(data))
+        .catch(() => alert("Lỗi khi gán"));
+    }
+
+    // =========================
+    // TOGGLE
+    // =========================
+    function toggleDrinkTopping(id) {
+        fetch(`/Admin/AdminTopping/Toggle?id=${id}`, {
+            method: 'POST'
+        })
+        .then(() => {
+            showToast("Cập nhật trạng thái");
+
+            return fetch(`/Admin/AdminTopping/GetDrinks?toppingId=${currentToppingId}`);
+        })
+        .then(res => res.json())
+        .then(data => renderDrinkUI(data));
+    }
+
     // ===== CREATE =====
     function previewCreateImage(event) {
         const file = event.target.files[0];

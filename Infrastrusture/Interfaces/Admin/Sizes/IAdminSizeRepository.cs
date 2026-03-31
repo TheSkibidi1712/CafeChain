@@ -3,6 +3,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Sizes
 {
     public interface IAdminSizeRepository
     {
+        // ===== SIZE =====
         Task<IEnumerable<Size>> GetAllAsync();
         Task<Size> GetByIdAsync(int id);
         Task AddAsync(Size size);
@@ -10,5 +11,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Sizes
         Task SaveChangesAsync();
         Task<bool> ExistsByNameAsync(string name);
         Task<bool> ExistsByNameAsync(string name, int excludeId);
+
+        // ===== DRINK =====
+        Task<IEnumerable<Drink>> GetActiveDrinksAsync();
     }
 }

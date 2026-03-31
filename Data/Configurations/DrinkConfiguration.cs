@@ -328,6 +328,9 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.DrinkToppingId);
 
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
+
             entity.HasOne(x => x.Drink)
                 .WithMany(x => x.DrinkToppings)
                 .HasForeignKey(x => x.DrinkId)
@@ -342,19 +345,19 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasData(
-                new DrinkTopping { DrinkToppingId = 1, DrinkId = 3 , ToppingId = 1},
-                new DrinkTopping { DrinkToppingId = 2, DrinkId = 3 , ToppingId = 2},
-                new DrinkTopping { DrinkToppingId = 3, DrinkId = 3 , ToppingId = 3},
-                new DrinkTopping { DrinkToppingId = 4, DrinkId = 3 , ToppingId = 4},
-                new DrinkTopping { DrinkToppingId = 5, DrinkId = 3 , ToppingId = 5},
-                new DrinkTopping { DrinkToppingId = 6, DrinkId = 3 , ToppingId = 6},
+                new DrinkTopping { DrinkToppingId = 1, DrinkId = 3 , ToppingId = 1, Active = true},
+                new DrinkTopping { DrinkToppingId = 2, DrinkId = 3 , ToppingId = 2, Active = true},
+                new DrinkTopping { DrinkToppingId = 3, DrinkId = 3 , ToppingId = 3, Active = true },
+                new DrinkTopping { DrinkToppingId = 4, DrinkId = 3 , ToppingId = 4, Active = true },
+                new DrinkTopping { DrinkToppingId = 5, DrinkId = 3 , ToppingId = 5, Active = true },
+                new DrinkTopping { DrinkToppingId = 6, DrinkId = 3 , ToppingId = 6, Active = true },
 
-                new DrinkTopping { DrinkToppingId = 7, DrinkId = 4 , ToppingId = 1},
-                new DrinkTopping { DrinkToppingId = 8, DrinkId = 4 , ToppingId = 2},
-                new DrinkTopping { DrinkToppingId = 9, DrinkId = 4 , ToppingId = 3},
-                new DrinkTopping { DrinkToppingId = 10, DrinkId = 4 , ToppingId = 4},
-                new DrinkTopping { DrinkToppingId = 11, DrinkId = 4 , ToppingId = 5},
-                new DrinkTopping { DrinkToppingId = 12, DrinkId = 4 , ToppingId = 6}
+                new DrinkTopping { DrinkToppingId = 7, DrinkId = 4 , ToppingId = 1, Active = true},
+                new DrinkTopping { DrinkToppingId = 8, DrinkId = 4 , ToppingId = 2, Active = true },
+                new DrinkTopping { DrinkToppingId = 9, DrinkId = 4 , ToppingId = 3, Active = true },
+                new DrinkTopping { DrinkToppingId = 10, DrinkId = 4 , ToppingId = 4, Active = true },
+                new DrinkTopping { DrinkToppingId = 11, DrinkId = 4 , ToppingId = 5, Active = true },
+                new DrinkTopping { DrinkToppingId = 12, DrinkId = 4 , ToppingId = 6, Active = true }
             );
         }
     }

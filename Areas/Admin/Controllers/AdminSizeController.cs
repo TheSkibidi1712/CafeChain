@@ -1,5 +1,8 @@
-﻿using CafeChain.Application.DTOs.Admin.Sizes;
+﻿using CafeChain.Application.DTOs.Admin.DrinkSizes;
+using CafeChain.Application.DTOs.Admin.Sizes;
+using CafeChain.Application.Interfaces.Admin.DrinkSizes;
 using CafeChain.Application.Interfaces.Admin.Sizes;
+using CafeChain.ViewModels.Admin.DrinkSizes;
 using CafeChain.ViewModels.Admin.Sizes;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,9 +12,12 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminSizeController : Controller
     {
         private readonly IAdminSizeService _adminsizeService;
-        public AdminSizeController(IAdminSizeService adminsizeService)
+        private readonly IAdminDrinkSizeService _drinkSizeService;
+
+        public AdminSizeController(IAdminSizeService adminsizeService, IAdminDrinkSizeService adminDrinkSizeService)
         {
             _adminsizeService = adminsizeService;
+            _drinkSizeService = adminDrinkSizeService;
         }
 
         // =============================
@@ -89,6 +95,63 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             await _adminsizeService.ToggleStatusAsync(id);
             return RedirectToAction(nameof(Index));
+        }
+
+        // =============================
+        // List Drinks
+        // =============================
+        [HttpGet]
+        public async Task<IActionResult> GetDrinks(int sizeId)
+        {
+            var data = await _drinkSizeService.GetDrinksForSizeAsync(sizeId);
+            return Json(data);
+        }
+
+        // =============================
+        // Assign Drink to Size
+        // =============================
+        [HttpPost]
+        public async Task<IActionResult> AssignDrink([FromBody] AssignDrinkSizeVM vm)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest("Invalid data");
+
+            await _drinkSizeService.AssignDrinkAsync(new DrinkSizeDto
+            {
+                DrinkId = vm.DrinkId,
+                SizeId = vm.SizeId,
+                Price = vm.Price
+            });
+
+            return Ok();
+        }
+
+        // =============================
+        // Toggle Drink-Size Assignment
+        // =============================
+        [HttpPost]
+        public async Task<IActionResult> ToggleDrinkSize(int id)
+        {
+            await _drinkSizeService.ToggleDrinkSizeAsync(id);
+            return Ok();
+        }
+
+        // =============================
+        // Update Drink-Size Price
+        // =============================
+        [HttpPost]
+        public async Task<IActionResult> UpdatePrice(int drinkSizeId, decimal price)
+        {
+            if (price <= 0)
+                return BadRequest("Giá không hợp lệ");
+
+            await _drinkSizeService.UpdatePriceAsync(new DrinkSizeDto
+            {
+                DrinkSizeId = drinkSizeId,
+                Price = price
+            });
+
+            return Ok();
         }
     }
 }

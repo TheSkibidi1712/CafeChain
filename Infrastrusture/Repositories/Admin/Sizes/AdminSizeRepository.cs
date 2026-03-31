@@ -35,5 +35,16 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Sizes
             return await _context.Sizes
                 .AnyAsync(x => x.Name == name && x.SizeId != excludeId);
         }
+
+        // ===== DRINK =====
+        public async Task<IEnumerable<Drink>> GetActiveDrinksAsync()
+        {
+            return await _context.Drinks
+                .Where(d => d.Active)
+                .Include(d => d.Category)
+                .Include(d => d.ProductType)
+                .Include(d => d.DrinkImages)
+                .ToListAsync();
+        }
     }
 }

@@ -48,7 +48,13 @@ namespace CafeChain.Data.Configurations
                 new Account { AccountId = 12, Email = "y@gmail.com", PasswordHash = "123" },
                 new Account { AccountId = 13, Email = "t@gmail.com", PasswordHash = "123" },
                 new Account { AccountId = 14, Email = "r@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 15, Email = "w@gmail.com", PasswordHash = "123" }
+                new Account { AccountId = 15, Email = "w@gmail.com", PasswordHash = "123" },
+                new Account { AccountId = 16, Email = "thesadboiz1712@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                new Account { AccountId = 17, Email = "anhnttb001711@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                new Account { AccountId = 18, Email = "AdminHeThong@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                new Account { AccountId = 19, Email = "AdminPhuong@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                new Account { AccountId = 20, Email = "AdminChiNhanh@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
+                new Account { AccountId = 21, Email = "ThuNgan@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" }
             );
         }
     }
@@ -71,6 +77,15 @@ namespace CafeChain.Data.Configurations
                 .WithMany(x => x.AccountRoles)
                 .HasForeignKey(x => x.RoleId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new AccountRole { AccountId = 16, RoleId = 6 },
+                new AccountRole { AccountId = 17, RoleId = 2 },
+                new AccountRole { AccountId = 18, RoleId = 5 },
+                new AccountRole { AccountId = 19, RoleId = 4 },
+                new AccountRole { AccountId = 20, RoleId = 3 },
+                new AccountRole { AccountId = 21, RoleId = 1 }
+            );
         }
     }
 
@@ -131,7 +146,8 @@ namespace CafeChain.Data.Configurations
                 new Customer { CustomerId = 2, AccountId = 2, FullName = "Nguyễn Văn B", DateOfBirth = new DateTime(2000, 01, 01), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
                 new Customer { CustomerId = 3, AccountId = 3, FullName = "Nguyễn Văn C", DateOfBirth = new DateTime(2000, 05, 04), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
                 new Customer { CustomerId = 4, AccountId = 4, FullName = "Nguyễn Văn D", DateOfBirth = new DateTime(2000, 04, 05), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
-                new Customer { CustomerId = 5, AccountId = 5, FullName = "Nguyễn Văn E", DateOfBirth = new DateTime(2000, 02, 26), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true }
+                new Customer { CustomerId = 5, AccountId = 5, FullName = "Nguyễn Văn E", DateOfBirth = new DateTime(2000, 02, 26), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
+                new Customer { CustomerId = 6, AccountId = 16, FullName = "Nguyễn Thế Anh", DateOfBirth = new DateTime(2000, 12, 17), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true }
             );
         }
     }
