@@ -1,0 +1,227 @@
+@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkCreateViewModel
+
+@{
+    ViewData["Title"] = "Thêm Nước Uống Mới";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Thêm Nước Uống Mới</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index">Danh sách Nước uống</a></li>
+        <li class="breadcrumb-item active">Thêm mới</li>
+    </ol>
+
+    <form asp-action="Create" method="post" enctype="multipart/form-data">
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger mb-3" style="display:none"></div>
+
+        <div class="row g-4">
+            <!-- CỘT TRÁI: Thông tin -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm border-0 h-100">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0 text-primary">
+                            <i class="fas fa-coffee me-2"></i>Thông tin Nước uống
+                        </h5>
+                    </div>
+                    <div class="card-body">
+
+                        <div class="mb-4">
+                            <label asp-for="DrinkCreateDTO.Name" class="form-label fw-semibold">
+                                Tên Nước Uống <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="DrinkCreateDTO.Name" class="form-control form-control-lg"
+                                   placeholder="Nhập tên nước uống..." />
+                            <span asp-validation-for="DrinkCreateDTO.Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <label asp-for="DrinkCreateDTO.CategoryId" class="form-label fw-semibold">
+                                    Danh Mục <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="DrinkCreateDTO.CategoryId" class="form-select" asp-items="Model.Categories">
+                                    <option value="">-- Chọn Danh Mục --</option>
+                                </select>
+                                <span asp-validation-for="DrinkCreateDTO.CategoryId" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="DrinkCreateDTO.ProductTypeId" class="form-label fw-semibold">
+                                    Loại Sản Phẩm <span class="text-danger">*</span>
+                                </label>
+                                <select asp-for="DrinkCreateDTO.ProductTypeId" class="form-select" asp-items="Model.ProductTypes">
+                                    <option value="">-- Chọn Loại Sản Phẩm --</option>
+                                </select>
+                                <span asp-validation-for="DrinkCreateDTO.ProductTypeId" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="mb-2">
+                            <label asp-for="DrinkCreateDTO.Description" class="form-label fw-semibold">
+                                Mô tả chi tiết
+                            </label>
+                            <textarea asp-for="DrinkCreateDTO.Description" class="form-control" rows="6"
+                                      placeholder="Mô tả thành phần, hương vị..."></textarea>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- CỘT PHẢI: Ảnh -->
+            <div class="col-lg-4">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0 text-primary">
+                            <i class="fas fa-images me-2"></i>Hình Ảnh Sản Phẩm
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted small mb-3">
+                            <i class="fas fa-info-circle me-1"></i>Định dạng hỗ trợ: .jpg, .png — Có thể chọn nhiều ảnh
+                        </p>
+
+                        <!-- Drop Zone -->
+                        <div id="dropZone"
+                             class="border border-2 border-dashed rounded-3 text-center p-4 mb-3"
+                             style="cursor:pointer; border-color:#dee2e6; background:#f8f9fa; transition: all .2s;">
+                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
+                            <p class="text-muted small mb-1"><strong>Kéo thả ảnh vào đây</strong></p>
+                            <p class="text-muted small mb-0">hoặc <span class="text-primary" id="browseLink" style="cursor:pointer;text-decoration:underline;">chọn file</span></p>
+                            <input asp-for="DrinkCreateDTO.ImageFiles" type="file" id="imageFilesInput"
+                                   multiple accept=".jpg,.png" class="d-none" />
+                        </div>
+
+                        <!-- Preview grid -->
+                        <div id="previewContainer" class="row g-2"></div>
+
+                        <!-- Modal xem ảnh to -->
+                        <div class="modal fade" id="previewModal">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content bg-dark border-0">
+                                    <img id="previewModalImg" class="w-100 rounded" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FOOTER ACTIONS -->
+        <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <a asp-action="Index" class="btn btn-outline-secondary px-4">
+                <i class="fas fa-arrow-left me-1"></i> Quay lại
+            </a>
+            <button type="submit" class="btn btn-primary px-4">
+                <i class="fas fa-save me-1"></i> Tạo Nước Uống
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+    <script>
+        $(document).ready(function () {
+            let selectedFiles = [];
+            const input = document.getElementById('imageFilesInput');
+            const dropZone = document.getElementById('dropZone');
+
+            // Mở file picker khi click vùng drop hoặc link
+            $('#dropZone, #browseLink').on('click', function (e) {
+                e.stopPropagation();
+                input.click();
+            });
+
+            // Drag & Drop styling
+            dropZone.addEventListener('dragover', function (e) {
+                e.preventDefault();
+                dropZone.style.borderColor = '#0d6efd';
+                dropZone.style.background = '#e8f0fe';
+            });
+
+            dropZone.addEventListener('dragleave', function () {
+                dropZone.style.borderColor = '#dee2e6';
+                dropZone.style.background = '#f8f9fa';
+            });
+
+            dropZone.addEventListener('drop', function (e) {
+                e.preventDefault();
+                dropZone.style.borderColor = '#dee2e6';
+                dropZone.style.background = '#f8f9fa';
+                const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'image/jpeg' || f.type === 'image/png');
+                files.forEach(f => selectedFiles.push(f));
+                renderPreview();
+            });
+
+            // Chọn file qua input
+            $(input).on('change', function (e) {
+                Array.from(e.target.files).forEach(f => selectedFiles.push(f));
+                renderPreview();
+            });
+
+            // Render preview
+            function renderPreview() {
+                const container = $('#previewContainer');
+                container.empty();
+
+                if (selectedFiles.length === 0) return;
+
+                selectedFiles.forEach((file, index) => {
+                    const reader = new FileReader();
+                    reader.onload = function (e) {
+                        const html = `
+                            <div class="col-6 position-relative" id="preview-${index}">
+                                <div class="rounded overflow-hidden border shadow-sm" style="height:100px;">
+                                    <img src="${e.target.result}"
+                                         class="w-100 h-100 preview-img"
+                                         data-index="${index}"
+                                         style="object-fit:cover;cursor:pointer;" />
+                                </div>
+                                <button type="button"
+                                        class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle btn-remove"
+                                        data-index="${index}"
+                                        style="width:22px;height:22px;padding:0;font-size:11px;line-height:22px;">
+                                    ✕
+                                </button>
+                            </div>`;
+                        container.append(html);
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                syncInputFiles();
+            }
+
+            // Xóa ảnh
+            $(document).on('click', '.btn-remove', function (e) {
+                e.stopPropagation();
+                const index = $(this).data('index');
+                selectedFiles.splice(index, 1);
+                renderPreview();
+            });
+
+            // Xem ảnh to
+            $(document).on('click', '.preview-img', function () {
+                $('#previewModalImg').attr('src', $(this).attr('src'));
+                new bootstrap.Modal(document.getElementById('previewModal')).show();
+            });
+
+            // Sync file input để form gửi đúng
+            function syncInputFiles() {
+                const dataTransfer = new DataTransfer();
+                selectedFiles.forEach(f => dataTransfer.items.add(f));
+                input.files = dataTransfer.files;
+            }
+
+            // Hiện validation summary nếu có lỗi
+            const valSummary = $('[data-valmsg-summary]');
+            if (valSummary.find('li').length > 0) {
+                valSummary.show();
+            }
+        });
+    </script>
+}
