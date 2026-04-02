@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.Customers.CustomerProfileViewModel
+@model CafeChain.ViewModels.Customers.CustomerProfileViewModel
 @{
     ViewData["Title"] = "Hồ sơ cá nhân";
 }
@@ -94,18 +94,25 @@
                             <label class="form-label text-muted small fw-bold">Địa chỉ</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-geo-alt text-muted"></i></span>
-                                <select id="addressSelect" name="PrimaryAddress" class="form-select border-start-0 profile-input" disabled>
+                                <select id="addressSelect" name="PrimaryAddressId" class="form-select border-start-0 profile-input" disabled>
                                     @foreach (var a in Model.Customer.CustomerAddresses)
                                     {
-                                        <option value="@a.Address" selected="@(a.IsDefault ? "selected" : null)">
-                                            @a.Address @(a.IsDefault ? "(Mặc định)" : "")
+                                        <option value="@a.CustomerAddressId" 
+                                                data-ward-id="@a.WardId" 
+                                                data-province-id="@(a.Ward?.ProvinceId)" 
+                                                data-street="@a.Address"
+                                                selected="@(a.IsDefault ? "selected" : null)">
+                                            @a.DisplayAddress @(a.IsDefault ? "(Mặc định)" : "") @(a.WardId == null ? " ⚠️ (Cần cập nhật)" : "")
                                         </option>
                                     }
                                 </select>
                             </div>
-                            <div class="mt-2" onclick="openAddressModal()" style="cursor: pointer; display: inline-block;">
-                                <span class="text-orange small fw-semibold">
+                            <div class="mt-2 d-flex gap-3">
+                                <span class="text-orange small fw-semibold" onclick="openAddressModal()" style="cursor: pointer;">
                                     <i class="bi bi-plus-circle me-1"></i>Thêm địa chỉ giao hàng
+                                </span>
+                                <span class="text-primary small fw-semibold" onclick="editSelectedAddress()" style="cursor: pointer;">
+                                    <i class="bi bi-pencil me-1"></i>Sửa địa chỉ đang chọn
                                 </span>
                             </div>
                         </div>
@@ -120,9 +127,18 @@
 
                         <div class="col-md-6">
                             <label class="form-label text-muted small fw-bold">Ngày sinh</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar text-muted"></i></span>
-                                <input type="date" id="inputDob" class="form-control bg-white border-start-0 py-2 profile-input shadow-none" value="@(Model.Customer.DateOfBirth?.ToString("yyyy-MM-dd"))" readonly>
+                            <div class="input-group position-relative">
+                                <span class="input-group-text bg-white border-end-0" id="iconDob" style="cursor: pointer;"><i class="bi bi-calendar text-muted"></i></span>
+                                <!-- Ô hiển thị dd/mm/yyyy -->
+                                <input type="text" id="inputDobDisplay" class="form-input form-control bg-white border-start-0 py-2 profile-input shadow-none" value="@(Model.Customer.DateOfBirth?.ToString("dd/MM/yyyy"))" placeholder="dd/mm/yyyy" readonly>
+                                
+                                <!-- Icon lịch bên phải -->
+                                <i class="bi bi-calendar3 position-absolute end-0 top-50 translate-middle-y me-3 text-orange" style="z-index: 4; cursor: pointer;"></i>
+
+                                <!-- Ô chọn lịch ẩn nằm đè lên hoàn toàn -->
+                                <input type="date" id="inputDob" 
+                                       style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 5;" 
+                                       value="@(Model.Customer.DateOfBirth?.ToString("yyyy-MM-dd"))">
                             </div>
                         </div>
                     </div>
@@ -187,9 +203,25 @@
             <div class="modal-body">
                 <form id="addAddressForm">
                     <div class="mb-3">
-                        <label class="form-label text-muted small">Nhập địa chỉ chi tiết</label>
-                        <textarea id="newAddressInput" class="form-control py-2 shadow-none" rows="3" placeholder="VD: 40/11 Khu phố A, Phường Long Bình..." required></textarea>
+                        <label class="form-label text-muted small">Tỉnh / Thành phố</label>
+                        <select id="provinceSelect" class="form-select py-2 shadow-none" onchange="fetchWards()" required>
+                            <option value="">Chọn Tỉnh/Thành phố</option>
+                        </select>
                     </div>
+                    <!-- Đã bỏ Quận/Huyện do DB không thiết kế -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Phường / Xã</label>
+                        <select id="wardSelect" class="form-select py-2 shadow-none" disabled required>
+                            <option value="">Chọn Phường/Xã</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label text-muted small" style="margin-left: 0;">Số nhà, Tên đường</label>
+                        <textarea id="streetInput" class="form-control py-2 shadow-none" rows="2" placeholder="VD: 40/11 Khu phố A, đường Nguyễn Văn Cừ..." required></textarea>
+                    </div>
+                    <!-- Note cho người dùng -->
+                    <p class="text-danger small fst-italic mb-3"><i class="bi bi-info-circle"></i> Chỉ hỗ trợ giao hàng tại các khu vực có cửa hàng.</p>
+                    
                     <button type="button" onclick="submitNewAddress()" class="btn btn-orange w-100 py-2 rounded-3 fw-bold">Xác nhận thêm</button>
                 </form>
             </div>
@@ -241,7 +273,7 @@
             }
 
         .gold-card {
-            background: linear-gradient(135deg, #d35400 0%, #8e44ad 100%);
+            background-color: #d35400;
             box-shadow: 0 10px 20px rgba(211, 84, 0, 0.3);
         }
 
@@ -267,10 +299,26 @@
         let myPhoneModal;
         let myAddressModal;
         let initialState = {};
+        let provinceData = []; // Dữ liệu API Nội bộ
 
         window.addEventListener('DOMContentLoaded', (event) => {
             myPhoneModal = new bootstrap.Modal(document.getElementById('addPhoneModal'));
             myAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
+
+            // Load danh sách Tỉnh/Thành phố từ DB của mình
+            fetch('/Customer/GetProvinces')
+                .then(res => res.json())
+                .then(data => {
+                    provinceData = data;
+                    const provinceSelect = document.getElementById('provinceSelect');
+                    data.forEach(p => {
+                        const option = document.createElement('option');
+                        option.value = p.code;
+                        option.text = p.name;
+                        provinceSelect.add(option);
+                    });
+                })
+                .catch(err => console.error("Lỗi khi tải danh sách Tỉnh/Thành:", err));
 
             initialState = {
                 fullName: document.getElementById('inputFullName').value,
@@ -278,21 +326,129 @@
                 phone: document.getElementById('phoneSelect').value,
                 address: document.getElementById('addressSelect').value
             };
+
+            // Logic đồng bộ dd/MM/yyyy cho Profile
+            const $dobDisplay = $('#inputDobDisplay');
+            const $dobActual = $('#inputDob');
+            const $dobIcon = $('#iconDob');
+
+            function toVN(iso) { if (!iso || iso.indexOf('-') === -1) return iso; let p = iso.split('-'); return p[2] + '/' + p[1] + '/' + p[0]; }
+            function toISO(vn) { if (!vn || vn.indexOf('/') === -1) return vn; let p = vn.split('/'); return p[2] + '-' + p[1] + '-' + p[0]; }
+
+            $dobDisplay.add($dobIcon).add($dobActual).on('click', function () {
+                // Nếu đang ở chế độ xem, tự động bật chế độ sửa
+                if ($dobDisplay.prop('readonly')) {
+                    enableEditMode();
+                }
+                try { $dobActual[0].showPicker(); } catch (e) { $dobActual.click(); }
+            });
+
+            $dobActual.on('change', function () {
+                let v = $(this).val();
+                if (v) $dobDisplay.val(toVN(v));
+            });
+
+            // Nếu người dùng gõ tay
+            $dobDisplay.on('input', function () {
+                let v = $(this).val();
+                if (v && v.length === 10) {
+                    $dobActual.val(toISO(v));
+                }
+            });
         });
 
         function openPhoneModal() { myPhoneModal.show(); }
-        function openAddressModal() { myAddressModal.show(); }
+        
+        let editingAddressId = null;
+
+        function openAddressModal() { 
+            editingAddressId = null;
+            document.getElementById('streetInput').value = "";
+            document.getElementById('provinceSelect').selectedIndex = 0;
+            document.getElementById('wardSelect').innerHTML = '<option value="">Chọn Phường/Xã</option>';
+            document.getElementById('wardSelect').disabled = true;
+            document.querySelector('#addAddressModal .modal-title').innerText = "Thêm Địa Chỉ Mới";
+            myAddressModal.show(); 
+        }
+
+        async function editSelectedAddress() {
+            const select = document.getElementById('addressSelect');
+            if (select.options.length === 0) return;
+            const option = select.options[select.selectedIndex];
+            
+            const addrId = option.value;
+            // Nếu là địa chỉ mới thêm (ID âm), alert thông báo chức năng chưa cập nhật cho địa chỉ tạm
+            if (parseInt(addrId) < 0) {
+                alert("Đây là địa chỉ mới, vui lòng lưu lại trước khi sửa!");
+                return;
+            }
+
+            const wardId = option.getAttribute('data-ward-id');
+            const procId = option.getAttribute('data-province-id');
+            const street = option.getAttribute('data-street');
+
+            editingAddressId = addrId; 
+            document.querySelector('#addAddressModal .modal-title').innerText = "Cập Nhật Địa Chỉ";
+            
+            document.getElementById('streetInput').value = street || "";
+            const provSelect = document.getElementById('provinceSelect');
+            
+            if (procId) {
+                provSelect.value = procId;
+                await fetchWardsAsync(); // Gọi API chờ xong mới select Ward
+                document.getElementById('wardSelect').value = wardId || "";
+            } else {
+                provSelect.selectedIndex = 0;
+                document.getElementById('wardSelect').innerHTML = '<option value="">Chọn Phường/Xã</option>';
+                document.getElementById('wardSelect').disabled = true;
+                // Nhắc user tỉnh cũ
+            }
+            
+            myAddressModal.show();
+        }
 
         let pendingData = { phones: [], addresses: [] };
 
         function submitNewPhone() {
             const input = document.getElementById('newPhoneInput');
-            const phone = input.value.trim();
-            if (phone === "") { alert("Vui lòng nhập số điện thoại!"); return; }
+            let phone = input.value.trim().replace(/\s/g, ''); // Loại bỏ khoảng trắng nếu có
 
+            // 1. Kiểm tra trống
+            if (phone === "") { 
+                alert("Vui lòng nhập số điện thoại!"); 
+                return; 
+            }
+
+            // 2. Regex kiểm tra định dạng SĐT Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09)
+            const vnf_regex = /((09|03|07|08|05)+([0-9]{8})\b)/g;
+            
+            if (!vnf_regex.test(phone)) {
+                alert("Số điện thoại không đúng định dạng Việt Nam! (Phải đủ 10 số và bắt đầu bằng 03, 05, 07, 08, 09)");
+                input.focus();
+                return;
+            }
+
+            // 3. Kiểm tra trùng lặp trong danh sách hiện tại (tránh khách nhập 2 số giống hệt nhau)
             const select = document.getElementById('phoneSelect');
+            let isExist = false;
+            for (let i = 0; i < select.options.length; i++) {
+                // So sánh chỉ lấy phần số để tránh sai lệch
+                const existingVal = select.options[i].value.trim().replace(/\s/g, '');
+                if (existingVal === phone) {
+                    isExist = true;
+                    break;
+                }
+            }
+            
+            if (isExist) {
+                alert("Số điện thoại này đã tồn tại trong hồ sơ của bạn!");
+                return;
+            }
+
+            // Nếu vượt qua tất cả, tiến hành thêm vào UI list tạm thời
             const option = document.createElement("option");
-            option.text = phone; option.value = phone;
+            option.text = phone; 
+            option.value = phone;
             select.add(option, 0);
             select.value = phone;
 
@@ -304,67 +460,135 @@
             enableEditMode();
         }
 
+        // Đã xóa fetchDistricts vì không có quận
+
+        async function fetchWardsAsync() {
+            const provinceCode = document.getElementById('provinceSelect').value;
+            const wardSelect = document.getElementById('wardSelect');
+            
+            wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+            
+            if (!provinceCode) {
+                wardSelect.disabled = true;
+                return;
+            }
+            
+            wardSelect.disabled = false;
+            
+            try {
+                const res = await fetch('/Customer/GetWards?provinceId=' + provinceCode);
+                const data = await res.json();
+                data.forEach(w => {
+                    const option = document.createElement('option');
+                    option.value = w.code;
+                    option.text = w.name;
+                    wardSelect.add(option);
+                });
+            } catch(err) {
+                console.error("Lỗi khi tải danh sách Phường/Xã:", err);
+            }
+        }
+        
+        function fetchWards() {
+            fetchWardsAsync();
+        }
+
         function submitNewAddress() {
-            const input = document.getElementById('newAddressInput');
-            const addr = input.value.trim();
-            if (addr === "") { alert("Vui lòng nhập địa chỉ!"); return; }
+            const provinceSelect = document.getElementById('provinceSelect');
+            const wardSelect = document.getElementById('wardSelect');
+            const streetInput = document.getElementById('streetInput');
+            
+            const wCode = wardSelect.value;
+            const street = streetInput.value.trim();
+            
+            if (!wCode || street === "") {
+                alert("Vui lòng nhập đầy đủ Tỉnh/Thành, Phường/Xã và Số nhà!");
+                return;
+            }
+            
+            // Lấy tên để hiển thị tạm thời trên UI (Trước khi reload)
+            const provinceName = provinceSelect.options[provinceSelect.selectedIndex].text;
+            const wardName = wardSelect.options[wardSelect.selectedIndex].text;
+            const fullLabel = `${street}, ${wardName}, ${provinceName}`;
 
-            const select = document.getElementById('addressSelect');
-            const option = document.createElement("option");
-            option.text = addr; option.value = addr;
-            select.add(option, 0);
-            select.value = addr;
+            if (editingAddressId != null) {
+                // Xử lý CẬP NHẬT ĐỊA CHỈ CŨ
+                if (!pendingData.updatedAddresses) {
+                    pendingData.updatedAddresses = [];
+                }
+                
+                // Loại bỏ nếu đã edit address này trước đó
+                pendingData.updatedAddresses = pendingData.updatedAddresses.filter(x => x.customerAddressId != parseInt(editingAddressId));
+                
+                pendingData.updatedAddresses.push({
+                    customerAddressId: parseInt(editingAddressId),
+                    street: street,
+                    wardId: parseInt(wCode)
+                });
 
-            pendingData.addresses.push(addr);
-            input.value = "";
+                // Cập nhật lại UI Option đang có
+                const select = document.getElementById('addressSelect');
+                for(let i=0; i<select.options.length; i++){
+                    if(select.options[i].value == editingAddressId){
+                        select.options[i].text = fullLabel + " (Đã sửa)";
+                        break;
+                    }
+                }
+            } else {
+                // Xử lý THÊM ĐỊA CHỈ MỚI
+                const tempId = -1 - pendingData.addresses.length;
+                const select = document.getElementById('addressSelect');
+                const option = document.createElement("option");
+                option.text = fullLabel + " (Mới Thêm)"; 
+                option.value = tempId;
+                select.add(option, 0);
+                select.value = tempId;
+
+                pendingData.addresses.push({
+                    tempId: tempId,
+                    street: street,
+                    wardId: parseInt(wCode)
+                });
+            }
+            
+            // Reset dữ liệu Modal
+            streetInput.value = "";
+            provinceSelect.selectedIndex = 0;
+            wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
+            wardSelect.disabled = true;
+            
             myAddressModal.hide();
-
-            // Tự động bật chế độ Edit để khách biết phải bấm Lưu
             enableEditMode();
         }
 
         // 🔥 HÀM MỞ KHÓA EDIT MODE 🔥
         function enableEditMode() {
-            document.querySelectorAll('.profile-input').forEach(el => {
+            document.querySelectorAll('.profile-input, #inputDobDisplay').forEach(el => {
                 el.removeAttribute('readonly');
                 el.removeAttribute('disabled');
             });
             document.getElementById('btnEditProfile').classList.add('d-none');
             document.getElementById('btnSaveProfile').classList.remove('d-none');
-            document.getElementById('inputFullName').focus();
+            // focus vào họ tên nếu chưa có focus
+            if (document.activeElement.tagName !== 'INPUT') {
+                document.getElementById('inputFullName').focus();
+            }
         }
 
         function saveAllData() {
             const currentFullName = document.getElementById('inputFullName').value;
             const currentDob = document.getElementById('inputDob').value;
             const currentPhone = document.getElementById('phoneSelect').value;
-            const currentAddress = document.getElementById('addressSelect').value;
-
-            let isChanged = (currentFullName !== initialState.fullName) ||
-                            (currentDob !== initialState.dob) ||
-                            (currentPhone !== initialState.phone) ||
-                            (currentAddress !== initialState.address) ||
-                            (pendingData.phones.length > 0) ||
-                            (pendingData.addresses.length > 0);
-
-            if (!isChanged) {
-                // Nếu không đổi gì thì đóng Edit Mode lại
-                document.querySelectorAll('.profile-input').forEach(el => {
-                    if(el.tagName === 'SELECT') el.setAttribute('disabled', 'disabled');
-                    else el.setAttribute('readonly', 'readonly');
-                });
-                document.getElementById('btnEditProfile').classList.remove('d-none');
-                document.getElementById('btnSaveProfile').classList.add('d-none');
-                return;
-            }
+            const currentAddressId = document.getElementById('addressSelect').value;
 
             const payload = {
                  fullName: currentFullName,
                  dob: currentDob,
                  primaryPhone: currentPhone,
-                 primaryAddress: currentAddress,
+                 primaryAddressId: isNaN(parseInt(currentAddressId)) ? null : parseInt(currentAddressId),
                  newPhones: pendingData.phones,
-                 newAddresses: pendingData.addresses
+                 newAddresses: pendingData.addresses,
+                 updatedAddresses: pendingData.updatedAddresses || []
             };
 
             let btn = document.getElementById('btnSaveProfile');

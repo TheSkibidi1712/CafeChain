@@ -1,6 +1,8 @@
 using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.ViewModels.Customers;
+using CafeChain.Models.Locations;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Interfaces.Customers
@@ -16,5 +18,9 @@ namespace CafeChain.Application.Interfaces.Customers
 
         Task<CafeChain.Models.Customers.Customer> GetByPhoneAsync(string phone);
         Task<(bool Success, string Message, int CustomerId)> QuickRegisterAsync(string fullName, string phone);
+        
+        // Load Location từ DB theo yêu cầu mới
+        Task<List<Province>> GetProvincesAsync();
+        Task<List<Ward>> GetWardsByProvinceAsync(int provinceId);
     }
 }

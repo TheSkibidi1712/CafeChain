@@ -1,13 +1,10 @@
-﻿@model CafeChain.Models.Drinks.Drink
+@model CafeChain.Models.Drinks.Drink
 @{
     var imgName = Model.DrinkImages?.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg";
     var price = Model.DrinkSizes?.FirstOrDefault()?.Price ?? 0;
-    var badgeText = Model.DrinkId % 2 == 0 ? "PHỔ BIẾN" : "SÁNG TẠO";
-    var badgeBg = Model.DrinkId % 2 == 0 ? "bg-orange" : "bg-dark";
-
     // 🔥 LOGIC TÍNH TOÁN RATING TỪ DATABASE 🔥
     var totalReviews = Model.Ratings != null ? Model.Ratings.Count : 0;
-    double avgRating = totalReviews > 0 ? Model.Ratings.Average(r => r.Stars) : 0;
+    double avgRating = totalReviews > 0 ? Model.Ratings!.Average(r => r.Stars) : 0;
 
     int fullStars = (int)Math.Floor(avgRating);
     bool hasHalfStar = (avgRating - fullStars) >= 0.5;
@@ -17,7 +14,6 @@
 <div class="card h-100 border-0 product-card p-2" style="background-color: #fdfdfd; box-shadow: 0 2px 10px rgba(0,0,0,0.03); transition: transform 0.2s;">
     <a href="/Drink/Detail/@Model.DrinkId" class="text-decoration-none text-dark d-block flex-grow-1">
         <div class="position-relative overflow-hidden rounded-4">
-            <span class="badge @badgeBg text-white position-absolute top-0 end-0 m-2 rounded-pill px-2 py-1" style="font-size: 0.65rem; z-index: 2;">@badgeText</span>
             <img src="@imgName" class="card-img-top p-1 object-fit-cover w-100" style="aspect-ratio: 1/1;" alt="@Model.Name" onerror="this.onerror=null; this.src='/images/default.jpg';">
             <div class="position-absolute top-0 start-0 w-100 h-100 bg-dark bg-opacity-10 opacity-0 overlay-hover transition-all"></div>
         </div>

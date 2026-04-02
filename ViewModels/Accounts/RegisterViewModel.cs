@@ -48,8 +48,9 @@ namespace CafeChain.ViewModels.Accounts
 
         // ================= DATE OF BIRTH =================
         [DataType(DataType.Date)]
+        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
         [CustomValidation(typeof(RegisterViewModel), nameof(ValidateDOB))]
-        public DateTime? DateOfBirth { get; set; }
+        public DateTime? DateOfBirth { get; set; } = DateTime.Today.AddYears(-18);
 
         public static ValidationResult ValidateDOB(DateTime? dob, ValidationContext context)
         {

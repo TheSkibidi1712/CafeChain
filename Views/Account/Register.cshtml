@@ -21,6 +21,12 @@
             --placeholder-color: #9ca3af;
         }
 
+        /* Ẩn con mắt mặc định của trình duyệt Edge để tránh trùng lặp */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;
@@ -349,7 +355,12 @@
                     <label class="form-label" asp-for="DateOfBirth">Ngày sinh</label>
                     <div class="input-wrapper">
                         <i class="fas fa-calendar input-icon"></i>
-                        <input asp-for="DateOfBirth" type="date" class="form-input" />
+                        <!-- Ô text chính: Luôn hiển thị dd/MM/yyyy -->
+                        <input asp-for="DateOfBirth" type="text" class="form-input" placeholder="dd/mm/yyyy" id="DateOfBirthText" />
+                        
+                        <!-- Lịch native ẩn (Mẹo để gọi Popup lịch việt nam) -->
+                        <i class="fas fa-calendar-alt toggle-date" style="position: absolute; right: 1.25rem; top: 50%; transform: translateY(-50%); color: var(--primary-orange); cursor: pointer;"></i>
+                        <input type="date" id="HiddenDatePicker" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); opacity: 0; width: 30px; height: 30px; cursor: pointer; z-index: 5;" />
                     </div>
                     <span asp-validation-for="DateOfBirth" class="text-danger"></span>
                 </div>
@@ -428,6 +439,73 @@
     <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
+        $(function () {
+            // Xử lý rủi ro 2: Ghi đè phương thức validate date của jQuery để chấp nhận dd/MM/yyyy
+            $.validator.methods.date = function (value, element) {
+                if (this.optional(element)) return true;
+                
+                var isValid = !/Invalid|NaN/.test(new Date(value).toString());
+                if (!isValid) {
+                    var parts = value.split('/');
+                    if (parts.length === 3) {
+                        var d = parseInt(parts[0], 10);
+                        var m = parseInt(parts[1], 10);
+                        var y = parseInt(parts[2], 10);
+                        var dateObj = new Date(y, m - 1, d);
+                        isValid = dateObj.getFullYear() === y && dateObj.getMonth() === m - 1 && dateObj.getDate() === d;
+                    }
+                }
+                return isValid;
+            };
+
+            // Logic mới hiển thị 100% dd/MM/yyyy
+            var $dobText = $('#DateOfBirthText');
+            var $hiddenPicker = $('#HiddenDatePicker');
+            var $calendarIcon = $('.toggle-date');
+            
+            function toVN(dateIso) {
+                if (!dateIso || dateIso.indexOf('-') === -1) return dateIso;
+                var p = dateIso.split('-');
+                return p[2] + '/' + p[1] + '/' + p[0];
+            }
+            
+            function toISO(dateVn) {
+                if (!dateVn || dateVn.indexOf('/') === -1) return dateVn;
+                var p = dateVn.split('/');
+                return p[2] + '-' + p[1] + '-' + p[0];
+            }
+
+            // Init ban đầu (Sync từ server ra nếu có giá trị)
+            var initialVal = $dobText.val();
+            if (initialVal && initialVal.indexOf('-') !== -1) {
+                $hiddenPicker.val(initialVal); 
+                $dobText.val(toVN(initialVal)); 
+            }
+
+            // Click vào icon hoặc ô text để mở lịch
+            $calendarIcon.add($dobText).on('click', function() {
+                try { $hiddenPicker[0].showPicker(); } catch(e) { $hiddenPicker.focus().click(); }
+            });
+
+            // Khi người dùng chọn từ popup lịch -> cập nhật ra text
+            $hiddenPicker.on('change', function() {
+                var vIso = $(this).val(); 
+                if (vIso) {
+                    $dobText.val(toVN(vIso));
+                    $dobText.trigger('blur'); // Trigger validation
+                }
+            });
+
+            // Nếu người dùng tự gõ tay vào text -> sync ngược lại vào lịch ẩn
+            $dobText.on('input', function() {
+                var vVn = $(this).val();
+                if (vVn && vVn.length === 10) {
+                    var iso = toISO(vVn);
+                    $hiddenPicker.val(iso);
+                }
+            });
+        });
+
         function togglePasswordVisibility(inputId) {
             const input = document.getElementById(inputId);
             const icon = input.nextElementSibling;

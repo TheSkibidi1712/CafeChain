@@ -118,7 +118,7 @@ namespace CafeChain.Data.Configurations
                     DrinkId = 3,
                     CategoryId = 2,
                     ProductTypeId = 1,
-                    Name = "Trà sữa trân châu",
+                    Name = "Trà sữa truyền thống",
                     Description = "Trà sữa pha với trân châu đen và đá viên.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
@@ -128,8 +128,8 @@ namespace CafeChain.Data.Configurations
                     DrinkId = 4,
                     CategoryId = 2,
                     ProductTypeId = 1,
-                    Name = "Trà sữa socola full topping",
-                    Description = "Trà sữa socola pha với nhiều topping.",
+                    Name = "Trà sữa socola",
+                    Description = "Trà sữa socola thơm ngon, béo ngậy.",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },

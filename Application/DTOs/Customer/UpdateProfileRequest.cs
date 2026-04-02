@@ -1,13 +1,29 @@
-﻿namespace CafeChain.Application.DTOs.Customer
+namespace CafeChain.Application.DTOs.Customer
 {
     public class UpdateProfileRequest
     {
         public string FullName { get; set; }
         public DateTime? Dob { get; set; }
-        // 🔥 THÊM 2 DÒNG NÀY ĐỂ HỨNG DỮ LIỆU TỪ JAVASCRIPT 🔥
         public string PrimaryPhone { get; set; }
-        public string PrimaryAddress { get; set; }
+        public int? PrimaryAddressId { get; set; } // Đổi sang ID để xử lý chính xác
         public List<string> NewPhones { get; set; } = new List<string>();
-        public List<string> NewAddresses { get; set; } = new List<string>();
+        
+        // 🔥 Cấu trúc hóa địa chỉ mới để chứa thông tin sau sát nhập
+        public List<NewAddressDto> NewAddresses { get; set; } = new List<NewAddressDto>();
+        public List<UpdateAddressDto> UpdatedAddresses { get; set; } = new List<UpdateAddressDto>();
+    }
+
+    public class NewAddressDto
+    {
+        public int TempId { get; set; } // Dùng map logic Tạm khi chưa có ID DB
+        public string Street { get; set; }
+        public int WardId { get; set; }
+    }
+
+    public class UpdateAddressDto
+    {
+        public int CustomerAddressId { get; set; }
+        public string Street { get; set; }
+        public int WardId { get; set; }
     }
 }

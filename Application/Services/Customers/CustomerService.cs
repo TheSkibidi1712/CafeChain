@@ -36,6 +36,8 @@ namespace CafeChain.Application.Services.Customers
             var account = await _context.Accounts // Thay bằng bảng Account tương ứng
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerAddresses)
+                        .ThenInclude(ca => ca.Ward)         // 🔥 UPDATE: Kéo Phường
+                            .ThenInclude(w => w.Province)   // 🔥 UPDATE: Kéo Tỉnh
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerPhones)
                 .FirstOrDefaultAsync(a => a.AccountId == accId);
@@ -87,24 +89,44 @@ namespace CafeChain.Application.Services.Customers
             // 2. Thêm Số điện thoại mới
             if (request.NewPhones != null && request.NewPhones.Any())
             {
-                foreach (var phone in request.NewPhones)
+                foreach (var p in request.NewPhones)
                 {
-                    if (!customer.CustomerPhones.Any(p => p.Phone == phone))
+                    if (!customer.CustomerPhones.Any(cp => cp.Phone == p))
                     {
-                        customer.CustomerPhones.Add(new CustomerPhone { Phone = phone });
+                        customer.CustomerPhones.Add(new CustomerPhone { Phone = p });
                     }
                 }
             }
 
-            // 3. Thêm Địa chỉ mới
+            // [NEW MAGIC] 2.5 Cập nhật Địa chỉ cũ (Khách sửa địa chỉ)
+            if (request.UpdatedAddresses != null && request.UpdatedAddresses.Any())
+            {
+                foreach (var updateDto in request.UpdatedAddresses)
+                {
+                    var existing = customer.CustomerAddresses.FirstOrDefault(a => a.CustomerAddressId == updateDto.CustomerAddressId);
+                    if (existing != null)
+                    {
+                        existing.Address = updateDto.Street;
+                        existing.WardId = updateDto.WardId;
+                    }
+                }
+            }
+
+            // 3. Thêm Địa chỉ mới (Logic CHUYÊN GIA: Không N+1, không dư thừa)
+            var newlyAddedAddresses = new List<(CustomerAddress Entity, int TempId)>();
+
             if (request.NewAddresses != null && request.NewAddresses.Any())
             {
-                foreach (var addr in request.NewAddresses)
+                foreach (var addrDto in request.NewAddresses)
                 {
-                    if (!customer.CustomerAddresses.Any(a => a.Address == addr))
-                    {
-                        customer.CustomerAddresses.Add(new CustomerAddress { Address = addr });
-                    }
+                    // 🔥 Không query Wards! Entity Framework tự gán FK bằng WardId
+                    var newAddr = new CustomerAddress 
+                    { 
+                        Address = addrDto.Street, // CHỈ lưu Số nhà/Đường
+                        WardId = addrDto.WardId   // Lưu khóa ngoại
+                    };
+                    customer.CustomerAddresses.Add(newAddr);
+                    newlyAddedAddresses.Add((newAddr, addrDto.TempId)); // Nhớ lại TempId để lật cờ Mặc định nếu cần
                 }
             }
 
@@ -122,13 +144,25 @@ namespace CafeChain.Application.Services.Customers
                 }
             }
 
-            // XỬ LÝ ĐỊA CHỈ MẶC ĐỊNH
-            if (!string.IsNullOrEmpty(request.PrimaryAddress))
+            // 🔥 XỬ LÝ ĐỊA CHỈ MẶC ĐỊNH BẰNG ID THAY VÌ CHUỖI
+            if (request.PrimaryAddressId.HasValue)
             {
-                // Duyệt qua tất cả địa chỉ (cũ + mới)
-                foreach (var a in customer.CustomerAddresses)
+                int pId = request.PrimaryAddressId.Value;
+
+                if (pId < 0) 
                 {
-                    a.IsDefault = (a.Address == request.PrimaryAddress);
+                    // Nếu ID âm (< 0), nghĩa là khách hàng chọn 1 địa chỉ VỪA THÊM làm mặc định
+                    foreach (var a in customer.CustomerAddresses) { a.IsDefault = false; }
+                    var target = newlyAddedAddresses.FirstOrDefault(x => x.TempId == pId).Entity;
+                    if (target != null) target.IsDefault = true;
+                } 
+                else 
+                {
+                    // Cập nhật địa chỉ cũ làm mặc định
+                    foreach (var a in customer.CustomerAddresses)
+                    {
+                        a.IsDefault = (a.CustomerAddressId == pId);
+                    }
                 }
             }
             // =====================================================================
@@ -225,6 +259,18 @@ namespace CafeChain.Application.Services.Customers
 
             return (true, "Đăng ký thành viên thành công!", customer.CustomerId);
         }
-    }
 
+        // ======================= LOCATION METHODS =========================
+        public async Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync()
+        {
+            return await _context.Provinces.ToListAsync();
+        }
+
+        public async Task<List<CafeChain.Models.Locations.Ward>> GetWardsByProvinceAsync(int provinceId)
+        {
+            return await _context.Wards
+                .Where(w => w.ProvinceId == provinceId)
+                .ToListAsync();
+        }
+    }
 }

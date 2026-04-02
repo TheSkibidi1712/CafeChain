@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs;
+using CafeChain.Application.DTOs;
 using CafeChain.Application.Interfaces;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Http;
@@ -142,15 +142,22 @@ namespace CafeChain.Application.Services
                 }
             }
 
-            // Xử lý Topping MẶC ĐỊNH BỊ BỎ ĐI
-            if (request.RemovedDefaultToppingIds != null && request.RemovedDefaultToppingIds.Any())
+            // 3. Xử lý Topping MẶC ĐỊNH (Tự động cộng tiền trừ khi bị khách bỏ)
+            var defaultToppingsForDrink = await _context.DrinkDefaultToppings.Include(dt => dt.Topping)
+                                                .Where(dt => dt.DrinkId == request.DrinkId)
+                                                .ToListAsync();
+            
+            foreach (var dt in defaultToppingsForDrink)
             {
-                var removedToppings = await _context.DrinkDefaultToppings.Include(dt => dt.Topping)
-                                        .Where(dt => dt.DrinkId == request.DrinkId && request.RemovedDefaultToppingIds.Contains(dt.ToppingId))
-                                        .ToListAsync();
-                foreach (var r in removedToppings)
+                if (request.RemovedDefaultToppingIds != null && request.RemovedDefaultToppingIds.Contains(dt.ToppingId))
                 {
-                    item.RemovedToppings.Add(r.Topping.Name); // Nhét vào mảng Removed
+                    // Nếu bị khách bỏ -> Chỉ ghi nhận vào danh sách Removed để hiển thị, không cộng tiền
+                    item.RemovedToppings.Add(dt.Topping.Name);
+                }
+                else
+                {
+                    // Nếu KHÔNG bị bỏ -> Cộng tiền vào giá ly nước
+                    unitPrice += dt.Topping.Price;
                 }
             }
 

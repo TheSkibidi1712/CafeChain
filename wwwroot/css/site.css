@@ -1,4 +1,4 @@
-﻿html {
+html {
   font-size: 14px;
 }
 
@@ -13,12 +13,11 @@
 }
 
 html {
-  position: relative;
-  min-height: 100%;
+  height: 100%;
 }
 
 body {
-  margin-bottom: 60px;
+  min-height: 100%;
 }
 /* Màu chủ đạo CafeChain */
 :root {
@@ -252,3 +251,16 @@ body {
         border: none;
         box-shadow: 0 0 5px rgba(0,0,0,0.2);
     }
+
+/* Icon cái lon nước ngọt tùy chỉnh */
+.bi-soda-can {
+    display: inline-block;
+    width: 1em;
+    height: 1em;
+    background-color: currentColor;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6,6V19A3,3 0 0,0 9,22H15A3,3 0 0,0 18,19V6A3,3 0 0,0 15,3H9A3,3 0 0,0 6,6M15,5H9V4H15V5M16,8H8V6H16V8M8,10H16V19A1,1 0 0,1 15,20H9A1,1 0 0,1 8,19V10Z' /%3E%3C/svg%3E") no-repeat center;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M6,6V19A3,3 0 0,0 9,22H15A3,3 0 0,0 18,19V6A3,3 0 0,0 15,3H9A3,3 0 0,0 6,6M15,5H9V4H15V5M16,8H8V6H16V8M8,10H16V19A1,1 0 0,1 15,20H9A1,1 0 0,1 8,19V10Z' /%3E%3C/svg%3E") no-repeat center;
+    mask-size: contain;
+    -webkit-mask-size: contain;
+    vertical-align: -0.125em;
+}

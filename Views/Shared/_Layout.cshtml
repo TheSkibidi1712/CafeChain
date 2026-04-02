@@ -3,6 +3,7 @@
 @{
     // Lấy tổng số lượng từ Session ngay khi load trang
     int cartCount = CartService.GetTotalCount();
+    string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
 }
 <!DOCTYPE html>
 <html lang="en">
@@ -16,7 +17,7 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <header class="bg-white sticky-top">
         <nav class="navbar navbar-expand-lg py-3">
             <div class="container">
@@ -31,18 +32,18 @@
                 <div class="collapse navbar-collapse" id="navbarMain">
                     <ul class="navbar-nav me-auto ms-4 mb-2 mb-lg-0 fw-semibold">
                         <li class="nav-item">
-                            <a class="nav-link text-dark px-3" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                            <a class="nav-link px-3 @(currentController == "Home" ? "text-dark fw-bold" : "text-muted")" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-muted px-3" asp-area="" asp-controller="Drink" asp-action="Menu">Thực đơn</a>
+                            <a class="nav-link px-3 @(currentController == "Drink" ? "text-dark fw-bold" : "text-muted")" asp-area="" asp-controller="Drink" asp-action="Menu">Thực đơn</a>
                         </li>
                     </ul>
 
                     <div class="d-flex align-items-center gap-4">
-                        <div class="search-box position-relative d-none d-md-block" style="width: 250px;">
+                        <form asp-controller="Drink" asp-action="Menu" method="get" class="search-box position-relative d-none d-md-block" style="width: 250px;">
                             <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
-                            <input type="text" class="form-control rounded-pill ps-5 border-0" placeholder="Tìm cà phê...">
-                        </div>
+                            <input type="text" name="keyword" class="form-control rounded-pill ps-5 border-0" placeholder="Tìm cà phê..." value="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Drink" ? Context.Request.Query["keyword"] : "")">
+                        </form>
 
                         <a asp-controller="Cart" asp-action="Index" class="position-relative text-orange text-decoration-none">
                             <i class="bi bi-cart2 fs-4"></i>
@@ -97,12 +98,12 @@
         </nav>
     </header>
 
-    <div class="container-fluid p-0">
+    <div class="container-fluid p-0 flex-grow-1">
         <main role="main">
             @RenderBody()
         </main>
     </div>
-    <footer class="text-light mt-5" style="background-color: var(--footer-bg);">
+    <footer class="text-light mt-auto" style="background-color: var(--footer-bg); padding-top: 3rem;">
         <div class="container py-5">
             <div class="row g-4">
                 <div class="col-lg-4 col-md-6">
