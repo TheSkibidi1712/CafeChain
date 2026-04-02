@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Customer;
+using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.Application.Interfaces.Customers;
 using Microsoft.AspNetCore.Authentication;
@@ -149,6 +149,26 @@ namespace CafeChain.Controllers
             var result = await _customerService.ChangePasswordAsync(accountId, model);
 
             return Json(new { success = result.Success, message = result.Message });
+        }
+
+        // ======================= LOCATION ENDPOINTS =========================
+        [HttpGet]
+        [AllowAnonymous] // Phường/Xã thì không nhất thiết phải login mới load được
+        public async Task<IActionResult> GetProvinces()
+        {
+            var provinces = await _customerService.GetProvincesAsync();
+            // Map sang cùng cấu trúc "code" và "name" để JS khỏi phải sửa nhiều
+            var data = provinces.Select(p => new { code = p.ProvinceId, name = p.Name }).ToList();
+            return Json(data);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetWards(int provinceId)
+        {
+            var wards = await _customerService.GetWardsByProvinceAsync(provinceId);
+            var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
+            return Json(data);
         }
     }
 }

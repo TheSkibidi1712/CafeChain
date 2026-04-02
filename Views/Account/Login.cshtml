@@ -21,6 +21,12 @@
             --placeholder-color: #9ca3af;
         }
 
+        /* Ẩn con mắt mặc định của trình duyệt Edge để tránh trùng lặp */
+        input[type="password"]::-ms-reveal,
+        input[type="password"]::-ms-clear {
+            display: none;
+        }
+
         * {
             box-sizing: border-box;
             margin: 0;

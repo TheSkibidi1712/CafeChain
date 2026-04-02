@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Services;
@@ -127,6 +127,21 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// =======================
+// Localization (vi-VN)
+// =======================
+var cultureInfo = new System.Globalization.CultureInfo("vi-VN");
+// Xử lý rủi ro 1: Ép NumberFormat về InvariantCulture để tránh lỗi gõ/lưu số thập phân (do vi-VN dùng ',')
+cultureInfo.NumberFormat = System.Globalization.CultureInfo.InvariantCulture.NumberFormat;
+
+var localizationOptions = new RequestLocalizationOptions
+{
+    DefaultRequestCulture = new Microsoft.AspNetCore.Localization.RequestCulture(cultureInfo),
+    SupportedCultures = new[] { cultureInfo },
+    SupportedUICultures = new[] { cultureInfo }
+};
+app.UseRequestLocalization(localizationOptions);
 
 app.MapControllerRoute(
     name: "areas",

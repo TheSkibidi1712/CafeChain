@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
@@ -176,13 +176,19 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(300);
 
+            // 🔥 Khai báo quan hệ với bảng Ward (Location system)
+            entity.HasOne(x => x.Ward)
+                .WithMany(w => w.CustomerAddresses)
+                .HasForeignKey(x => x.WardId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasData(
-                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A, Phường Long Bình, Đồng Nai" },
-                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D, Phường Trảng Dài, Đồng Nai" },
-                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G, Phường H, Quận I, TP. HCM" },
-                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J, Phường K, Quận L, TP. HCM" },
-                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M, Phường N, Quận O, Hà Nội" },
-                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P, Phường Q, Quận R, Hà Nội" }
+                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A", WardId = 6, IsDefault = true},
+                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D", WardId = 7, IsDefault = true},
+                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G", WardId = 4, IsDefault = true},
+                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J", WardId = 5, IsDefault = true},
+                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M", WardId = 1, IsDefault = true},
+                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P", WardId = 2, IsDefault = false}
             );
         }
     }

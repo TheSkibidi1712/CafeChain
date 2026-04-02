@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Locations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -50,7 +50,8 @@ namespace CafeChain.Data.Configurations
 
             entity.HasData(
                 new Province { ProvinceId = 1, CountryId = 1, Name = "Bình Dương" },
-                new Province { ProvinceId = 2, CountryId = 1, Name = "Hồ Chí Minh" }
+                new Province { ProvinceId = 2, CountryId = 1, Name = "Hồ Chí Minh" },
+                new Province { ProvinceId = 3, CountryId = 1, Name = "Đồng Nai" }
             );
         }
     }
@@ -84,7 +85,13 @@ namespace CafeChain.Data.Configurations
 
                 // TP.HCM
                 new Ward { WardId = 4, ProvinceId = 2, Name = "Phường 1" },
-                new Ward { WardId = 5, ProvinceId = 2, Name = "Phường 2" }
+                new Ward { WardId = 5, ProvinceId = 2, Name = "Phường 2" },
+                
+                // Đồng Nai
+                new Ward { WardId = 6, ProvinceId = 3, Name = "Phường Long Bình" },
+                new Ward { WardId = 7, ProvinceId = 3, Name = "Phường Trảng Dài" },
+                new Ward { WardId = 8, ProvinceId = 3, Name = "Phường Tân Mai" },
+                new Ward { WardId = 9, ProvinceId = 3, Name = "Phường Long Hưng" }
             );
         }
     }

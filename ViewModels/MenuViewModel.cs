@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Drinks;
+using CafeChain.Models.Drinks;
 
 namespace CafeChain.ViewModels
 {
@@ -12,7 +12,8 @@ namespace CafeChain.ViewModels
         public int? SelectedCategoryId { get; set; }
         public decimal MinPrice { get; set; } = 0;
         public decimal MaxPrice { get; set; } = 150000;
-        public string SortBy { get; set; }
+        public string? SortBy { get; set; }
+        public string? Keyword { get; set; }
 
         // Phân trang
         public int CurrentPage { get; set; } = 1;

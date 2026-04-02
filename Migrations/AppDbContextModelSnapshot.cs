@@ -311,9 +311,14 @@ namespace CafeChain.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
+                    b.Property<int?>("WardId")
+                        .HasColumnType("int");
+
                     b.HasKey("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("WardId");
 
                     b.ToTable("CustomerAddresses", (string)null);
 
@@ -321,44 +326,50 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerAddressId = 1,
-                            Address = "123 Đường A, Phường Long Bình, Đồng Nai",
+                            Address = "123 Đường A",
                             CustomerId = 1,
-                            IsDefault = false
+                            IsDefault = true,
+                            WardId = 6
                         },
                         new
                         {
                             CustomerAddressId = 2,
-                            Address = "456 Đường D, Phường Trảng Dài, Đồng Nai",
+                            Address = "456 Đường D",
                             CustomerId = 2,
-                            IsDefault = false
+                            IsDefault = true,
+                            WardId = 7
                         },
                         new
                         {
                             CustomerAddressId = 3,
-                            Address = "789 Đường G, Phường H, Quận I, TP. HCM",
+                            Address = "789 Đường G",
                             CustomerId = 3,
-                            IsDefault = false
+                            IsDefault = true,
+                            WardId = 4
                         },
                         new
                         {
                             CustomerAddressId = 4,
-                            Address = "321 Đường J, Phường K, Quận L, TP. HCM",
+                            Address = "321 Đường J",
                             CustomerId = 4,
-                            IsDefault = false
+                            IsDefault = true,
+                            WardId = 5
                         },
                         new
                         {
                             CustomerAddressId = 5,
-                            Address = "654 Đường M, Phường N, Quận O, Hà Nội",
+                            Address = "654 Đường M",
                             CustomerId = 5,
-                            IsDefault = false
+                            IsDefault = true,
+                            WardId = 1
                         },
                         new
                         {
                             CustomerAddressId = 6,
-                            Address = "987 Đường P, Phường Q, Quận R, Hà Nội",
+                            Address = "987 Đường P",
                             CustomerId = 1,
-                            IsDefault = false
+                            IsDefault = false,
+                            WardId = 2
                         });
                 });
 
@@ -799,7 +810,7 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Trà sữa pha với trân châu đen và đá viên.",
-                            Name = "Trà sữa trân châu",
+                            Name = "Trà sữa truyền thống",
                             ProductTypeId = 1
                         },
                         new
@@ -808,8 +819,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Description = "Trà sữa socola pha với nhiều topping.",
-                            Name = "Trà sữa socola full topping",
+                            Description = "Trà sữa socola thơm ngon, béo ngậy.",
+                            Name = "Trà sữa socola",
                             ProductTypeId = 1
                         },
                         new
@@ -2924,6 +2935,12 @@ namespace CafeChain.Migrations
                             ProvinceId = 2,
                             CountryId = 1,
                             Name = "Hồ Chí Minh"
+                        },
+                        new
+                        {
+                            ProvinceId = 3,
+                            CountryId = 1,
+                            Name = "Đồng Nai"
                         });
                 });
 
@@ -2981,6 +2998,30 @@ namespace CafeChain.Migrations
                             WardId = 5,
                             Name = "Phường 2",
                             ProvinceId = 2
+                        },
+                        new
+                        {
+                            WardId = 6,
+                            Name = "Phường Long Bình",
+                            ProvinceId = 3
+                        },
+                        new
+                        {
+                            WardId = 7,
+                            Name = "Phường Trảng Dài",
+                            ProvinceId = 3
+                        },
+                        new
+                        {
+                            WardId = 8,
+                            Name = "Phường Tân Mai",
+                            ProvinceId = 3
+                        },
+                        new
+                        {
+                            WardId = 9,
+                            Name = "Phường Long Hưng",
+                            ProvinceId = 3
                         });
                 });
 
@@ -5086,7 +5127,14 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
+                        .WithMany("CustomerAddresses")
+                        .HasForeignKey("WardId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Customer");
+
+                    b.Navigation("Ward");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerBank", b =>
@@ -6069,6 +6117,8 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>
                 {
+                    b.Navigation("CustomerAddresses");
+
                     b.Navigation("Stores");
                 });
 

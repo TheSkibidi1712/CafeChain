@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.DrinkDetailViewModel
+@model CafeChain.ViewModels.DrinkDetailViewModel
 
 @{
     ViewData["Title"] = Model.Drink.Name;
@@ -8,6 +8,17 @@
     var hasOptionalToppings = Model.OptionalToppings != null && Model.OptionalToppings.Any();
     var hasDefaultToppings = Model.DefaultToppings != null && Model.DefaultToppings.Any();
     var offsetClass = !hasOptionalToppings ? "offset-6" : "";
+
+    var customerIdStr = User.FindFirst("CustomerId")?.Value;
+    int.TryParse(customerIdStr, out int currentCustomerId);
+
+    var reviews = Model.Ratings ?? new List<CafeChain.Models.Customers.Rating>();
+    var totalReviews = reviews.Count;
+    var starDist = new int[6];
+    if (totalReviews > 0)
+    {
+        foreach (var r in reviews) if (r.Stars >= 1 && r.Stars <= 5) starDist[r.Stars]++;
+    }
 }
     
 <div class="container mt-4 mb-5">
@@ -40,7 +51,7 @@
                 <div class="d-flex gap-3">
                     @foreach (var img in Model.Drink.DrinkImages)
                     {
-                        <img src="@img.ImageUrl" class="rounded-3 object-fit-cover cursor-pointer border thumbnail-img"
+                        <img src="@img.ImageUrl" class="rounded-3 object-fit-cover cursor-pointer border-radius-lg thumbnail-img"
                              style="width: 80px; height: 80px;" onclick="changeMainImage('@img.ImageUrl')" />
                     }
                 </div>
@@ -90,7 +101,12 @@
             </div>
 
             <p class="text-muted mb-4" style="line-height: 1.8;">@Model.Drink.Description</p>
-            <h2 class="fw-bold text-orange mb-4" id="displayTotalPrice">@defaultBasePrice.ToString("N0")đ</h2>
+            <div class="d-flex align-items-baseline gap-2 mb-4">
+                <h2 class="fw-bold text-orange m-0" id="displayTotalPrice">@defaultBasePrice.ToString("N0")đ</h2>
+                <span id="priceBreakdown" class="text-muted small d-none">
+                    (<span id="breakdownBasePrice">@defaultBasePrice.ToString("N0")</span>đ + <span id="toppingsPrice">0</span>đ topping)
+                </span>
+            </div>
 
             <form id="addToCartForm">
                 <input type="hidden" id="drinkId" value="@Model.Drink.DrinkId" />
@@ -148,7 +164,7 @@
                                     @foreach (var ddt in Model.DefaultToppings)
                                     {
                                         <div class="topping-tag default-tag d-flex align-items-center rounded-pill px-3 py-1 bg-light border text-muted small"
-                                             data-topping-id="@ddt.ToppingId">
+                                             data-topping-id="@ddt.ToppingId" data-price="@ddt.Topping.Price">
                                             @ddt.Topping.Name
                                             <button type="button" class="btn btn-link text-muted p-0 ms-2 shadow-none" onclick="removeTag(this, 'default')">
                                                 <i class="bi bi-x fs-6"></i>
@@ -163,24 +179,14 @@
 
                 <div class="d-flex flex-wrap gap-2 mb-4" id="optionalToppingsTagsContainer"></div>
 
-
-                <div class="mb-4">
-                    <label for="drinkNote" class="fw-bold mb-2">
-                        Ghi chú cho món này <span class="text-muted fw-normal small">(Tùy chọn)</span>
-                    </label>
-                    <textarea id="drinkNote" class="form-control rounded-3 shadow-none border-secondary border-opacity-25"
-                              rows="2" placeholder="VD: Ít đá, để topping ra bịch riêng..." maxlength="200"></textarea>
-                </div>
-
-
                 <div class="d-flex gap-3 mb-4 mt-5">
-                    <div class="d-flex align-items-center border rounded-3 px-1 bg-light" style="width: 140px; height: 50px;">
-                        <button type="button" class="btn text-muted shadow-none" onclick="updateQty(-1)">-</button>
-                        <input type="text" id="quantity" class="form-control border-0 text-center fw-bold shadow-none p-0 bg-transparent" value="1" readonly>
-                        <button type="button" class="btn text-muted shadow-none" onclick="updateQty(1)">+</button>
+                    <div class="d-flex align-items-center border rounded-pill px-2 bg-light shadow-sm" style="width: 140px; height: 52px; border-color: #e2e8f0 !important;">
+                        <button type="button" class="btn text-muted shadow-none border-0 fw-bold fs-5" onclick="updateQty(-1)">-</button>
+                        <input type="text" id="quantity" class="form-control border-0 text-center fw-bold shadow-none p-0 bg-transparent fs-5" value="1" readonly>
+                        <button type="button" class="btn text-muted shadow-none border-0 fw-bold fs-5" onclick="updateQty(1)">+</button>
                     </div>
 
-                    <button type="button" class="btn btn-orange flex-grow-1 fw-bold rounded-3 shadow-sm d-flex align-items-center justify-content-center h-50px" style="height: 50px;" onclick="addToCartDetail()">
+                    <button type="button" class="btn btn-orange flex-grow-1 fw-bold rounded-pill shadow d-flex align-items-center justify-content-center" style="height: 52px; transition: all 0.3s ease; transform: translateY(0);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" onclick="addToCartDetail()">
                         <i class="bi bi-cart-plus me-2 fs-5"></i> Thêm vào giỏ hàng
                     </button>
                 </div>
@@ -207,41 +213,114 @@
 
     <div class="mt-5 pt-5 border-top" id="reviews-section">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="fw-bold m-0">Đánh giá sản phẩm (@Model.TotalReviews)</h4>
+            <h4 class="fw-bold m-0 text-dark">Đánh giá sản phẩm (@Model.TotalReviews)</h4>
         </div>
 
-        @if (User.Identity.IsAuthenticated)
+        @if (totalReviews > 0 || User.Identity.IsAuthenticated)
         {
-            <div class="card border border-orange-subtle rounded-4 bg-orange-light mb-5 shadow-sm">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square text-orange me-2"></i> Chia sẻ trải nghiệm của bạn về món ăn này nhé!</h6>
-
-                    <form id="submitReviewForm">
-                        <input type="hidden" name="DrinkId" value="@Model.Drink.DrinkId" />
-
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">1. Số sao đánh giá</label>
-                            <div class="rating-stars text-muted fs-4" id="submitReviewStars">
-                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="1"></i>
-                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="2"></i>
-                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="3"></i>
-                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="4"></i>
-                                <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="5"></i>
+            <!-- SECTION 1: RATING SUMMARY (New Card Style) -->
+            <div class="card border-0 shadow-sm rounded-4 mb-5" style="background-color: #fff9f5;">
+                <div class="card-body p-4 p-md-5">
+                    <div class="row align-items-center">
+                        <div class="col-md-4 text-center border-end-md">
+                            <h1 class="display-3 fw-bold text-orange mb-0">@(totalReviews > 0 ? Model.AverageRating.ToString("0.0") : "0.0")</h1>
+                            <div class="text-warning fs-4 mb-2">
+                                @for(int i=1; i<=5; i++) {
+                                    <i class="bi bi-star-fill @(i <= Math.Round(Model.AverageRating) ? "" : "text-muted opacity-25")"></i>
+                                }
                             </div>
-                            <input type="hidden" id="selectedStars" name="Stars" value="0" />
+                            <p class="text-muted mb-0">Dựa trên @totalReviews đánh giá</p>
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label text-muted small fw-bold">2. Nội dung nhận xét</label>
-                            <textarea class="form-control rounded-3 border-secondary border-opacity-25" id="reviewComment" name="Comment" rows="3" placeholder="Pha rất ngon, đúng chuẩn vị mình thích. Giao hàng nhanh đóng gói cẩn thận..."></textarea>
+                        <div class="col-md-8 ps-md-5 mt-4 mt-md-0">
+                            <div class="d-flex flex-wrap gap-2">
+                                <button class="btn btn-sm btn-orange rounded-pill px-3 py-1 fw-semibold">Tất cả</button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                    5 Sao (@starDist[5])
+                                </button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                    4 Sao (@starDist[4])
+                                </button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                    3 Sao (@starDist[3])
+                                </button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                    Cần cải thiện (@(starDist[1] + starDist[2]))
+                                </button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                    Có hình ảnh (@(reviews.Count(r => r.Images != null && r.Images.Any())))
+                                </button>
+                            </div>
                         </div>
-
-                        <div class="text-end">
-                            <button type="button" class="btn btn-orange fw-bold rounded-pill px-5" onclick="submitReviewAjax()">Gửi đánh giá</button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
             </div>
+
+            @if (User.Identity.IsAuthenticated)
+            {
+                <!-- SECTION 2: COLLAPSIBLE REVIEW ENTRY -->
+                <div id="reviewPlaceholder" class="card border border-2 border-dashed border-orange-subtle rounded-4 mb-5 cursor-pointer hover-shadow transition-all" 
+                     onclick="expandReviewForm()" style="background-color: #fff;">
+                    <div class="card-body p-4 d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-orange-light d-flex align-items-center justify-content-center text-orange" style="width: 48px; height: 48px;">
+                            <i class="bi bi-pencil-square fs-4"></i>
+                        </div>
+                        <span class="text-muted fw-medium">Viết đánh giá của bạn về món ăn này nhé...</span>
+                        <div class="ms-auto text-orange">
+                            <i class="bi bi-camera-fill fs-4 opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="fullReviewForm" class="card border-0 shadow-sm rounded-4 mb-5 d-none" style="background-color: #fff;">
+                    <div class="card-body p-4 p-md-5">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="fw-bold m-0"><i class="bi bi-pencil-square text-orange me-2"></i> Chia sẻ cảm nhận của bạn</h5>
+                            <button type="button" class="btn-close shadow-none" onclick="collapseReviewForm()"></button>
+                        </div>
+
+                        <form id="submitReviewForm">
+                            <input type="hidden" name="DrinkId" value="@Model.Drink.DrinkId" />
+
+                            <div class="row g-4">
+                                <div class="col-md-5 text-center border-end">
+                                    <label class="form-label text-muted small fw-bold mb-3 d-block uppercase tracking-wider">1. Số sao bạn muốn đánh giá</label>
+                                    <div class="rating-stars text-muted fs-1 mb-2 d-flex justify-content-center gap-2" id="submitReviewStars">
+                                        <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="1"></i>
+                                        <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="2"></i>
+                                        <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="3"></i>
+                                        <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="4"></i>
+                                        <i class="bi bi-star-fill cursor-pointer hover-text-orange" data-value="5"></i>
+                                    </div>
+                                    <input type="hidden" id="selectedStars" name="Stars" value="0" />
+                                    <p id="starLabel" class="text-orange fw-bold mb-0">Chưa chọn sao</p>
+                                </div>
+
+                                <div class="col-md-7">
+                                    <label class="form-label text-muted small fw-bold mb-3 d-block uppercase tracking-wider">2. Nội dung nhận xét & Hình ảnh</label>
+                                    <div class="position-relative">
+                                        <textarea class="form-control rounded-4 border-light-subtle bg-light shadow-none pe-5" 
+                                                  id="reviewComment" name="Comment" rows="4" 
+                                                  placeholder="Hãy cho chúng mình vài lời góp ý chân thành về hương vị món này nhé..."></textarea>
+                                        
+                                        <div class="position-absolute bottom-0 end-0 mb-2 me-2">
+                                            <button type="button" class="btn btn-sm btn-light border-0 shadow-sm text-orange rounded-pill px-3" 
+                                                    onclick="document.getElementById('reviewImagesInput').click()">
+                                                <i class="bi bi-camera-fill me-1"></i> Ảnh
+                                            </button>
+                                        </div>
+                                        <input type="file" id="reviewImagesInput" name="Images" class="d-none" multiple accept=".jpg,.jpeg,.png" onchange="previewReviewImages(this)">
+                                    </div>
+                                    <div id="reviewImagesPreview" class="d-flex gap-2 flex-wrap mt-3"></div>
+                                </div>
+                            </div>
+
+                            <div class="text-end mt-4 pt-3 border-top">
+                                <button type="button" class="btn btn-orange fw-bold rounded-pill px-5 py-2 shadow-sm" onclick="submitReviewAjax()">Gửi đánh giá ngay</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            }
         }
         else
         {
@@ -260,9 +339,9 @@
                     <div class="review-item py-4 border-bottom">
                         <div class="d-flex mb-2">
                             <img src="@(review.Customer?.AvatarUrl ?? "/Images/Uploadt/avtdf.jpg")"
-                                 oonerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                 onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
                                  class="rounded-circle me-3 object-fit-cover shadow-sm" style="width: 45px; height: 45px;" alt="Avatar">
-                            <div>
+                            <div class="flex-grow-1">
                                 <h6 class="fw-bold mb-1">@(review.Customer?.FullName ?? "Khách hàng ẩn danh")</h6>
                                 <div class="text-warning small mb-1">
                                     @for (int i = 0; i < review.Stars; i++)
@@ -278,9 +357,146 @@
                             </div>
                         </div>
                         <p class="mt-3 mb-2 text-dark">@review.Comment</p>
-                        <div class="mt-2 small text-muted cursor-pointer hover-text-orange d-inline-block">
-                            <i class="bi bi-hand-thumbs-up me-1"></i> Hữu ích (0)
+                        
+                        @if (review.Images != null && review.Images.Any())
+                        {
+                            <div class="d-flex gap-2 mb-3 mt-2 flex-wrap">
+                                @foreach(var img in review.Images)
+                                {
+                                    <img src="@img.ImageUrl" class="rounded object-fit-cover shadow-sm border" style="width: 100px; height: 100px; cursor: pointer;" onclick="window.open('@img.ImageUrl', '_blank')" />
+                                }
+                            </div>
+                        }
+
+                        <div class="d-flex align-items-center mt-2 position-relative gap-4">
+                            @{
+                                var userReaction = review.Reactions?.FirstOrDefault(r => r.CustomerId == currentCustomerId);
+                                int totalReactions = review.Reactions?.Count ?? 0;
+                                string reactionIcon = "<i class=\"bi bi-hand-thumbs-up me-1\"></i> Thích";
+                                string reactionClass = "text-muted";
+                                
+                                if (userReaction != null)
+                                {
+                                    reactionClass = "fw-bold text-primary";
+                                    switch (userReaction.Type)
+                                    {
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Like: 
+                                            reactionIcon = "<span class=\"me-1 fs-5\">👍</span> Thích"; break;
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Love: 
+                                            reactionClass = "fw-bold text-danger"; reactionIcon = "<span class=\"me-1 fs-5\">❤️</span> Yêu thích"; break;
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Haha: 
+                                            reactionClass = "fw-bold text-warning"; reactionIcon = "<span class=\"me-1 fs-5\">😆</span> Haha"; break;
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Wow: 
+                                            reactionClass = "fw-bold text-warning"; reactionIcon = "<span class=\"me-1 fs-5\">😲</span> Wow"; break;
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Sad: 
+                                            reactionClass = "fw-bold text-warning"; reactionIcon = "<span class=\"me-1 fs-5\">😢</span> Buồn"; break;
+                                        case CafeChain.Models.Enums.Customer.ReactionType.Angry: 
+                                            reactionClass = "fw-bold text-danger"; reactionIcon = "<span class=\"me-1 fs-5\">😡</span> Phẫn nộ"; break;
+                                    }
+                                }
+                            }
+                            
+                            <div class="reaction-wrapper d-inline-block position-relative">
+                                <div class="cursor-pointer reaction-btn @reactionClass toggle-reaction" data-rating-id="@review.RatingId" onclick="toggleReactionAjax(@review.RatingId, 1)">
+                                    @Html.Raw(reactionIcon) <span class="reaction-count ms-1">(@totalReactions)</span>
+                                </div>
+                                <div class="reaction-tooltip bg-white shadow-lg rounded-pill px-3 py-2 d-flex gap-3 position-absolute z-3">
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 1)" title="Thích">👍</span>
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 2)" title="Yêu thích">❤️</span>
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 3)" title="Haha">😆</span>
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 4)" title="Wow">😲</span>
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 5)" title="Buồn">😢</span>
+                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@review.RatingId, 6)" title="Phẫn nộ">😡</span>
+                                </div>
+                            </div>
+                            
+                            <div class="text-muted cursor-pointer hover-text-orange" onclick="openReplyForm(@review.RatingId, '@(review.Customer?.FullName ?? "Bạn này")')">
+                                <i class="bi bi-chat-left-dots me-1"></i> Trả lời (@(review.Replies?.Count ?? 0))
+                            </div>
                         </div>
+
+                        @if (review.Replies != null && review.Replies.Any())
+                        {
+                            <div class="replies-list ms-5 mt-3 ps-3 border-start border-2 border-orange-subtle">
+                                @foreach (var reply in review.Replies.OrderBy(r => r.CreatedAt))
+                                {
+                                    <div class="reply-item mb-3">
+                                        <div class="d-flex">
+                                            <img src="@(reply.Customer?.AvatarUrl ?? "/Images/Uploadt/avtdf.jpg")"
+                                                 onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                                 class="rounded-circle me-3 object-fit-cover shadow-sm" style="width: 35px; height: 35px;" alt="Avatar">
+                                            <div class="bg-light rounded-4 px-3 py-2 flex-grow-1">
+                                                <div class="d-flex justify-content-between">
+                                                    <h6 class="fw-bold mb-1 fs-sm">@(reply.Customer?.FullName ?? "Khách hàng ẩn danh")</h6>
+                                                    <small class="text-muted">@reply.CreatedAt.ToString("dd/MM/yyyy HH:mm")</small>
+                                                </div>
+                                                <p class="mb-1 text-dark fs-sm">
+                                                    @reply.Comment
+                                                </p>
+                                                
+                                                @if (reply.Images != null && reply.Images.Any())
+                                                {
+                                                    <div class="d-flex gap-2 mt-2">
+                                                        @foreach(var img in reply.Images)
+                                                        {
+                                                            <img src="@img.ImageUrl" class="rounded object-fit-cover shadow-sm border" style="width: 80px; height: 80px; cursor: pointer;" onclick="window.open('@img.ImageUrl', '_blank')" />
+                                                        }
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="ms-5 ps-2 mt-1 small d-flex align-items-center gap-3 fw-semibold">
+                                            @{
+                                                var replyReaction = reply.Reactions?.FirstOrDefault(r => r.CustomerId == currentCustomerId);
+                                                int replyTotalReactions = reply.Reactions?.Count ?? 0;
+                                                string repReactionIcon = "<i class=\"bi bi-hand-thumbs-up me-1\"></i> Thích";
+                                                string repReactionClass = "text-muted";
+                                                
+                                                if (replyReaction != null)
+                                                {
+                                                    repReactionClass = "fw-bold text-primary";
+                                                    switch (replyReaction.Type)
+                                                    {
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Like: 
+                                                            repReactionIcon = "<span class=\"me-1 fs-6\">👍</span> Thích"; break;
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Love: 
+                                                            repReactionClass = "fw-bold text-danger"; repReactionIcon = "<span class=\"me-1 fs-6\">❤️</span> Yêu thích"; break;
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Haha: 
+                                                            repReactionClass = "fw-bold text-warning"; repReactionIcon = "<span class=\"me-1 fs-6\">😆</span> Haha"; break;
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Wow: 
+                                                            repReactionClass = "fw-bold text-warning"; repReactionIcon = "<span class=\"me-1 fs-6\">😲</span> Wow"; break;
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Sad: 
+                                                            repReactionClass = "fw-bold text-warning"; repReactionIcon = "<span class=\"me-1 fs-6\">😢</span> Buồn"; break;
+                                                        case CafeChain.Models.Enums.Customer.ReactionType.Angry: 
+                                                            repReactionClass = "fw-bold text-danger"; repReactionIcon = "<span class=\"me-1 fs-6\">😡</span> Phẫn nộ"; break;
+                                                    }
+                                                }
+                                            }
+                                            <div class="reaction-wrapper d-inline-block position-relative">
+                                                <div class="cursor-pointer reaction-btn @repReactionClass toggle-reaction hover-text-orange" data-rating-id="@reply.RatingId" onclick="toggleReactionAjax(@reply.RatingId, 1)">
+                                                    @Html.Raw(repReactionIcon) <span class="reaction-count">@(replyTotalReactions > 0 ? $"({replyTotalReactions})" : "")</span>
+                                                </div>
+                                                <div class="reaction-tooltip bg-white shadow-lg rounded-pill px-3 py-1 d-flex gap-2 position-absolute z-3" style="top: -40px; transform: translateX(-20%) scale(0.85);">
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 1)" title="Thích">👍</span>
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 2)" title="Yêu thích">❤️</span>
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 3)" title="Haha">😆</span>
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 4)" title="Wow">😲</span>
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 5)" title="Buồn">😢</span>
+                                                    <span class="fs-3 cursor-pointer reaction-icon" onclick="toggleReactionAjax(@reply.RatingId, 6)" title="Phẫn nộ">😡</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="text-muted cursor-pointer hover-text-orange" onclick="openReplyForm(@review.RatingId, '@(reply.Customer?.FullName ?? "Bạn này")')">
+                                                Phản hồi
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+
+                        <div id="reply-container-@review.RatingId" class="mt-3 ms-4 reply-dropzone d-none"></div>
+                        
                     </div>
                 }
             }
@@ -298,33 +514,76 @@
 @section Scripts {
     <style>
         .btn-outline-custom {
-            color: #555;
-            background-color: #f8f9fa;
-            border-color: #ddd;
-            font-weight: 600;
-            font-size: 0.9rem;
+            color: #475569;
+            background-color: #fff;
+            border: 2px solid #e2e8f0;
+            font-weight: 700;
+            font-size: 0.95rem;
+            border-radius: 12px;
+            padding: 10px 20px;
+            transition: all 0.2s ease;
         }
 
             .btn-outline-custom:hover {
-                background-color: #f1f3f5;
+                background-color: #f8fafc;
+                border-color: #cbd5e1;
+                transform: translateY(-1px);
             }
 
             .btn-outline-custom.active {
-                background-color: #fdebd0;
-                color: #d35400;
-                border-color: #d35400;
+                background-color: #fff7ed;
+                color: #ea580c;
+                border-color: #ea580c;
+                box-shadow: 0 4px 12px rgba(234, 88, 12, 0.15);
             }
 
         .topping-tag {
-            transition: all 0.2s;
-            border-color: #eee !important;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 12px !important;
+            padding: 8px 16px !important;
+            font-weight: 500;
         }
 
         .optional-tag {
-            color: #d35400;
-            font-weight: 600;
-            background-color: #fdebd0 !important;
-            border-color: #d35400 !important;
+            color: #ea580c;
+            background-color: #fff7ed !important;
+            border: 2px solid #ea580c !important;
+        }
+
+        #addToCartForm .form-select, 
+        #submitReviewForm .form-control,
+        #fullReviewForm .form-control,
+        .reply-textarea {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        #addToCartForm .form-select:focus, 
+        #submitReviewForm .form-control:focus,
+        #fullReviewForm .form-control:focus,
+        .reply-textarea:focus {
+            border-color: #ea580c;
+            box-shadow: 0 0 0 4px rgba(234, 88, 12, 0.1);
+        }
+
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: "›" !important;
+            font-size: 1.2rem;
+            line-height: 1;
+            vertical-align: middle;
+            color: #cbd5e1;
+        }
+
+        .thumbnail-img {
+            transition: all 0.2s ease;
+            border: 2px solid transparent !important;
+        }
+
+        .thumbnail-img:hover, .thumbnail-img.active {
+            border-color: #ea580c !important;
+            transform: scale(1.05);
         }
 
         .cursor-pointer {
@@ -346,9 +605,183 @@
         .h-50px {
             height: 50px;
         }
+
+        .border-dash {
+            border-style: dashed !important;
+        }
+
+        .cursor-pointer {
+            cursor: pointer;
+        }
+
+        .transition-all {
+            transition: all 0.3s ease;
+        }
+
+        .hover-shadow:hover {
+            box-shadow: 0 10px 25px rgba(211, 84, 0, 0.1) !important;
+            transform: translateY(-2px);
+        }
+
+        @@media (min-width: 768px) {
+            .border-end-md {
+                border-right: 1px solid #dee2e6 !important;
+            }
+        }
+    </style>
+    
+    <!-- TEMPLATE CHỨA FORM TRẢ LỜI SẼ ĐƯỢC JS NHẤC ĐI CHỖ KHÁC -->
+    <template id="globalReplyFormTemplate">
+        <div class="bg-light rounded-4 px-3 py-3 border border-secondary border-opacity-25" id="activeReplyForm">
+            <input type="hidden" id="replyParentRatingId" />
+            <div class="d-flex align-items-center mb-2">
+                <span id="replyingToBadge" class="badge bg-orange text-white me-2 fw-semibold p-2"><i class="bi bi-reply-all-fill me-1"></i> Đang trả lời <span id="replyingToName">...</span></span>
+                <span class="text-muted small cursor-pointer hover-text-danger ms-auto" onclick="closeReplyForm()"><i class="bi bi-x-circle-fill"></i> Hủy trả lời</span>
+            </div>
+            <div class="d-flex gap-2">
+                <!-- Avatar giả lập của người đang đăng nhập (hoặc dùng icon tròn) -->
+                <div class="rounded-circle bg-secondary bg-opacity-25 d-flex align-items-center justify-content-center text-muted" style="width: 40px; height: 40px; min-width: 40px;">
+                    <i class="bi bi-person-fill fs-4"></i>
+                </div>
+                <!-- Vùng nhập chứa các icon -->
+                <div class="flex-grow-1 position-relative reply-input-area">
+                    <textarea class="form-control rounded-4 shadow-none bg-white pe-5 border-secondary border-opacity-25 reply-textarea fs-sm" 
+                              id="replyComment" rows="1" placeholder="Bình luận dưới tên bạn..." 
+                              oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                    
+                    <!-- Cột Icon Tool Bar bên phải -->
+                    <div class="d-flex position-absolute bottom-0 end-0 mb-2 me-2 gap-1 icon-toolbar">
+                        <button type="button" class="btn btn-sm btn-light border-0 text-muted rounded-circle p-1 action-btn" onclick="document.getElementById('replyImageInput').click()">
+                            <i class="bi bi-camera-fill fs-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Khu vực Preview hình ảnh -->
+            <div id="replyImagePreviewBox" class="mt-2 ms-5 ps-1 d-none position-relative" style="width: 80px;">
+                <img id="replyImagePreview" src="" class="rounded object-fit-cover shadow-sm border" style="width: 80px; height: 80px;" />
+                <button type="button" class="btn btn-danger btn-sm rounded-circle position-absolute top-0 start-100 translate-middle" style="width: 24px; height: 24px; padding: 0; line-height: 1;" onclick="clearReplyImage()">
+                    <i class="bi bi-x"></i>
+                </button>
+            </div>
+            <input type="file" id="replyImageInput" class="d-none" accept=".jpg,.jpeg,.png" onchange="previewReplyImage(this)" />
+
+            <div class="text-end mt-2">
+                <button type="button" class="btn btn-orange rounded-pill px-4 py-1 btn-sm fw-bold shadow-sm" onclick="submitReplyAjax()">Gửi phản hồi</button>
+            </div>
+        </div>
+    </template>
+    
+    <!-- MODAL BẮT ĐĂNG NHẬP -->
+    <div class="modal fade" id="authModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow">
+          <div class="modal-body text-center p-4">
+            <img src="/Images/lock.png" onerror="this.src='https://cdn-icons-png.flaticon.com/512/295/295128.png'" style="width: 60px" class="mb-3 opacity-75"/>
+            <h5 class="fw-bold text-orange">Chưa đăng nhập!</h5>
+            <p class="text-muted small mb-4">Bạn cần đăng nhập để thao tác bình luận hoặc thả cảm xúc nhé!</p>
+            <div class="d-flex gap-2 justify-content-center">
+                <button type="button" class="btn btn-light rounded-pill px-4 border" data-bs-dismiss="modal">Đóng</button>
+                <a href="/Account/Login" class="btn btn-orange rounded-pill px-4 fw-bold shadow-sm">Đăng nhập</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+        .fs-sm { font-size: 0.9rem; }
+        .text-orange { color: #d35400 !important; }
+        .bg-orange { background-color: #d35400 !important; }
+        .border-orange { border-color: #d35400 !important; }
+        .hover-text-orange:hover { color: #d35400 !important; }
+        
+        /* Tooltip cảm xúc */
+        .reaction-wrapper .reaction-tooltip {
+            top: -45px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.8);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-origin: bottom center;
+            pointer-events: none;
+        }
+        
+        .reaction-wrapper:hover .reaction-tooltip,
+        .reaction-wrapper:active .reaction-tooltip {
+            opacity: 1;
+            transform: translateX(-50%) scale(1);
+            visibility: visible;
+            pointer-events: auto;
+        }
+        
+        /* Hiệu ứng nảy cho Icon */
+        .reaction-icon {
+            transition: transform 0.2s;
+            display: inline-block;
+        }
+        .reaction-icon:hover {
+            transform: scale(1.4) translateY(-5px);
+        }
+        
+        .reply-textarea {
+            resize: none;
+            overflow: hidden;
+            min-height: 42px;
+            line-height: 1.5;
+            padding-top: 10px;
+        }
+        
+        .icon-toolbar {
+            opacity: 0.7;
+        }
+        .reply-input-area:focus-within .icon-toolbar {
+            opacity: 1;
+        }
+        .action-btn:hover {
+            background-color: #e9ecef !important;
+        }
     </style>
 
     <script>
+        // Logic xử lý Rating Stars
+        const starsHiddenInput = document.getElementById('selectedStars');
+        const starIcons = document.querySelectorAll('#submitReviewStars i');
+
+        if (starIcons && starIcons.length > 0) {
+            starIcons.forEach(star => {
+                star.addEventListener('mouseover', function() {
+                    let val = parseInt(this.getAttribute('data-value'));
+                    highlightStars(val);
+                });
+                star.addEventListener('mouseout', function() {
+                    let currentVal = parseInt(starsHiddenInput.value);
+                    highlightStars(currentVal);
+                });
+                star.addEventListener('click', function() {
+                    let val = this.getAttribute('data-value');
+                    starsHiddenInput.value = val;
+                    highlightStars(parseInt(val));
+                });
+            });
+        }
+
+        function highlightStars(val) {
+            if(!starIcons) return;
+            starIcons.forEach(star => {
+                let starVal = parseInt(star.getAttribute('data-value'));
+                if (starVal <= val) {
+                    star.classList.remove('text-muted');
+                    star.classList.add('text-warning');
+                } else {
+                    star.classList.remove('text-warning');
+                    star.classList.add('text-muted');
+                }
+            });
+        }
+
         // Sử dụng JsonSerializer để Visual Studio không bị lỗi gạch đỏ khi dùng thẻ HTML trong JS
         const imageList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Drink.DrinkImages?.Select(i => i.ImageUrl) ?? new List<string>()));
 
@@ -368,19 +801,46 @@
         let state = {
             basePrice: @defaultBasePrice.ToString("0"),
             optionalToppings: [],
-            removedDefaultToppings: []
+            removedDefaultToppings: [],
+            defaultToppings: @Html.Raw(System.Text.Json.JsonSerializer.Serialize((Model.DefaultToppings ?? new List<CafeChain.Models.Drinks.DrinkDefaultTopping>()).Where(t => t.Topping != null).Select(t => new { id = t.ToppingId.ToString(), price = (int)t.Topping.Price })))
         };
 
         function updateDisplayTotal() {
-            let toppingsTotal = state.optionalToppings.reduce((sum, t) => sum + t.price, 0);
-            let grandTotal = state.basePrice + toppingsTotal;
+            let optionalToppingsTotal = state.optionalToppings.reduce((sum, t) => sum + t.price, 0);
+            
+            // Tính tổng tiền các Topping Mặc Định (chỉ tính những cái CHƯA bị xóa)
+            let defaultToppingsTotal = state.defaultToppings
+                .filter(dt => !state.removedDefaultToppings.includes(dt.id))
+                .reduce((sum, dt) => sum + dt.price, 0);
+
+            let grandTotal = state.basePrice + optionalToppingsTotal + defaultToppingsTotal;
+            
             document.getElementById('displayTotalPrice').innerText = grandTotal.toLocaleString('vi-VN') + 'đ';
+            
+            const breakdown = document.getElementById('priceBreakdown');
+            const toppingsPriceEl = document.getElementById('toppingsPrice');
+            const totalToppingsTotal = optionalToppingsTotal + defaultToppingsTotal;
+            
+            if (totalToppingsTotal > 0) {
+                breakdown.classList.remove('d-none');
+                document.getElementById('breakdownBasePrice').innerText = state.basePrice.toLocaleString('vi-VN');
+                toppingsPriceEl.innerText = totalToppingsTotal.toLocaleString('vi-VN');
+            } else {
+                breakdown.classList.add('d-none');
+            }
         }
 
         function selectSize(btn) {
             document.querySelectorAll('.size-btn').forEach(el => el.classList.remove('active'));
             btn.classList.add('active');
             state.basePrice = parseInt(btn.getAttribute('data-price'));
+            
+            // Cập nhật giá gốc trong dòng breakdown nếu đang hiển thị
+            const breakdownBasePriceEl = document.getElementById('breakdownBasePrice');
+            if(breakdownBasePriceEl) {
+                breakdownBasePriceEl.innerText = state.basePrice.toLocaleString('vi-VN');
+            }
+            
             updateDisplayTotal();
         }
 
@@ -420,9 +880,12 @@
 
             if (type === 'default') {
                 tag.style.opacity = '0.4';
-                state.removedDefaultToppings.push(id);
+                if (!state.removedDefaultToppings.includes(id)) {
+                    state.removedDefaultToppings.push(id);
+                }
                 button.setAttribute('onclick', "restoreTag(this, 'default')");
                 button.innerHTML = '<i class="bi bi-plus fs-6"></i>';
+                updateDisplayTotal();
             } else if (type === 'optional') {
                 tag.remove();
                 state.optionalToppings = state.optionalToppings.filter(t => t.id !== optionalId);
@@ -437,6 +900,7 @@
              state.removedDefaultToppings = state.removedDefaultToppings.filter(removedId => removedId !== id);
              button.setAttribute('onclick', "removeTag(this, 'default')");
              button.innerHTML = '<i class="bi bi-x fs-6"></i>';
+             updateDisplayTotal();
         }
 
         function updateQty(change) {
@@ -446,6 +910,11 @@
         }
 
         function addToCartDetail() {
+             if (!isAuthenticated) {
+                 window.location.href = '/Account/Login?ReturnUrl=' + encodeURIComponent(window.location.pathname + window.location.search);
+                 return;
+             }
+
              let activeSizeBtn = document.querySelector('.size-btn.active');
              if (!activeSizeBtn) {
                  alert("Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!");
@@ -504,18 +973,126 @@
              });
          }
 
+        let pendingReviewImages = [];
+
+        function previewReviewImages(input) {
+            const previewContainer = document.getElementById('reviewImagesPreview');
+            previewContainer.innerHTML = '';
+            pendingReviewImages = [];
+            
+            if (input.files) {
+                if (input.files.length > 5) {
+                    alert("Chỉ được tải lên tối đa 5 ảnh.");
+                    input.value = '';
+                    return;
+                }
+                
+                for (let i = 0; i < input.files.length; i++) {
+                    let file = input.files[i];
+                    if (file.size > 1024 * 1024) {
+                        alert(`Ảnh thứ ${i+1} vượt quá 1MB. Vui lòng chọn ảnh nhỏ hơn.`);
+                        input.value = '';
+                        previewContainer.innerHTML = '';
+                        pendingReviewImages = [];
+                        return;
+                    }
+                    
+                    pendingReviewImages.push(file);
+                    
+                    let reader = new FileReader();
+                    reader.onload = function (e) {
+                        let imgHtml = `
+                            <div class="position-relative" style="width: 80px; height: 80px;">
+                                <img src="${e.target.result}" class="rounded object-fit-cover shadow-sm border w-100 h-100" />
+                            </div>
+                        `;
+                        previewContainer.insertAdjacentHTML('beforeend', imgHtml);
+                    }
+                    reader.readAsDataURL(file);
+                }
+            }
+        }
+        
+        // Khai báo các hàm điều khiển form review ra global để đảm bảo onclick="" chạy được
+        window.expandReviewForm = function() {
+            const placeholder = document.getElementById('reviewPlaceholder');
+            const form = document.getElementById('fullReviewForm');
+            if (placeholder) placeholder.classList.add('d-none');
+            if (form) form.classList.remove('d-none');
+        };
+
+        window.collapseReviewForm = function() {
+            const placeholder = document.getElementById('reviewPlaceholder');
+            const form = document.getElementById('fullReviewForm');
+            if (form) form.classList.add('d-none');
+            if (placeholder) placeholder.classList.remove('d-none');
+        };
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const starsHiddenInput = document.getElementById('selectedStars');
+            const starLabel = document.getElementById('starLabel');
+
+            if (starsHiddenInput && starLabel) {
+                // Khởi tạo sự kiện cho các ngôi sao đánh giá
+                document.querySelectorAll('#submitReviewStars i').forEach(star => {
+                    star.addEventListener('mouseover', function() {
+                        const val = parseInt(this.getAttribute('data-value'));
+                        highlightStars(val);
+                    });
+
+                    star.addEventListener('mouseout', function() {
+                        const currentVal = parseInt(starsHiddenInput.value) || 0;
+                        highlightStars(currentVal);
+                    });
+
+                    star.addEventListener('click', function() {
+                        const val = parseInt(this.getAttribute('data-value'));
+                        starsHiddenInput.value = val;
+                        updateStarLabel(val);
+                    });
+                });
+            }
+        });
+
+        function highlightStars(val) {
+            document.querySelectorAll('#submitReviewStars i').forEach(s => {
+                const sVal = parseInt(s.getAttribute('data-value'));
+                if (sVal <= val) {
+                    s.classList.add('text-orange');
+                    s.classList.remove('text-muted');
+                } else {
+                    s.classList.remove('text-orange');
+                    s.classList.add('text-muted');
+                }
+            });
+        }
+
+        function updateStarLabel(val) {
+            const starLabel = document.getElementById('starLabel');
+            if (!starLabel) return;
+            const labels = ["", "Rất tệ", "Tệ", "Bình thường", "Tốt", "Rất tuyệt vời!"];
+            starLabel.innerText = labels[val] || "Chưa chọn sao";
+            starLabel.classList.add('text-orange');
+        }
+
         function submitReviewAjax() {
-            let stars = starsHiddenInput.value;
+            const starsHiddenInput = document.getElementById('selectedStars');
+            let stars = starsHiddenInput ? starsHiddenInput.value : "0";
             let comment = document.getElementById('reviewComment').value.trim();
 
             if(stars == "0") { alert("Vui lòng chọn số sao đánh giá!"); return; }
-            if(comment == "") { alert("Vui lòng nhập nhận xét!"); return; }
+            if(comment == "" && pendingReviewImages.length === 0) { alert("Vui lòng nhập nhận xét hoặc đính kèm ảnh!"); return; }
 
-            const payload = {
-                DrinkId: parseInt(document.querySelector('input[name="DrinkId"]').value),
-                Stars: parseInt(stars),
-                Comment: comment
-            };
+            const drinkId = document.querySelector('input[name="DrinkId"]').value;
+
+            const formData = new FormData();
+            formData.append('DrinkId', drinkId);
+            formData.append('Stars', stars);
+            formData.append('Comment', comment);
+            
+            pendingReviewImages.forEach(file => {
+                formData.append('Images', file);
+            });
 
             let btn = document.querySelector('#submitReviewForm button[type="button"]');
             let originalText = btn.innerHTML;
@@ -524,8 +1101,7 @@
 
             fetch('/Drink/SubmitReview', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                body: formData // Xóa header JSON để Fetch tự sinh boundary cho multipart/form-data
             })
             .then(res => res.json())
             .then(data => {
@@ -540,5 +1116,208 @@
                 btn.disabled = false;
             });
         }
+        
+        // ==========================================
+        // KHỐI LOGIC THẢ CẢM XÚC VÀ TRẢ LỜI CỦA TOM
+        // ==========================================
+        const isAuthenticated = @(User.Identity.IsAuthenticated.ToString().ToLower());
+        
+        function requireAuth(e) {
+            if(!isAuthenticated) {
+                if(e) { e.preventDefault(); e.stopPropagation(); }
+                var authModal = new bootstrap.Modal(document.getElementById('authModal'));
+                authModal.show();
+                return false;
+            }
+            return true;
+        }
+        
+
+        function toggleReactionAjax(ratingId, typeValue) {
+            if(!requireAuth(event)) return;
+            
+            // Highlight tạm thời UI trước khi HTTP request để giảm lag
+            let wrapper = document.querySelector(`.reaction-btn[data-rating-id="${ratingId}"]`);
+            if(wrapper) {
+                // Tắt tooltip đi
+                let tooltip = wrapper.nextElementSibling;
+                if(tooltip) tooltip.style.visibility = 'hidden'; // Ẩn cmn ngay và luôn dể ko cướp cú click
+            }
+
+            const formData = new FormData();
+            formData.append('ratingId', ratingId);
+            formData.append('type', typeValue);
+
+            fetch('/Drink/ToggleReactionAjax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 401) { requireAuth(); return; }
+                if (data.status === 429) { alert(data.message); return; } // Spam alert
+                
+                if (data.success) {
+                    if (wrapper) {
+                        let iconHtml = '<i class="bi bi-hand-thumbs-up me-1"></i> Thích';
+                        let cssClass = 'text-muted';
+
+                        if (data.action === 'added' || data.action === 'updated') {
+                            cssClass = 'fw-bold text-primary';
+                            switch(data.type) {
+                                case 1: iconHtml = '<span class="me-1 fs-5">👍</span> Thích'; break;
+                                case 2: cssClass = 'fw-bold text-danger'; iconHtml = '<span class="me-1 fs-5">❤️</span> Yêu thích'; break;
+                                case 3: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😆</span> Haha'; break;
+                                case 4: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😲</span> Wow'; break;
+                                case 5: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😢</span> Buồn'; break;
+                                case 6: cssClass = 'fw-bold text-danger'; iconHtml = '<span class="me-1 fs-5">😡</span> Phẫn nộ'; break;
+                            }
+                        }
+                        
+                        // Cập nhật giao diện lập tức không cần tải lại trang
+                        wrapper.className = `cursor-pointer reaction-btn toggle-reaction ${cssClass}`;
+                        wrapper.innerHTML = `${iconHtml} <span class="reaction-count ms-1">(${data.totalCount})</span>`;
+                        wrapper.setAttribute('onclick', `toggleReactionAjax(${ratingId}, ${data.type || 1})`);
+                        
+                        // Khôi phục tooltip để có thể tương tác tiếp
+                        let tooltip = wrapper.nextElementSibling;
+                        if(tooltip) tooltip.style.visibility = ''; 
+                    }
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(err => console.error(err));
+        }
+
+        // Logic Mở Form Reply 
+        let activeReplyRatingId = null;
+
+        function openReplyForm(ratingId, customerName) {
+            if(!requireAuth(event)) return;
+
+            // Xóa form cũ nếu đang mở
+            closeReplyForm();
+            
+            activeReplyRatingId = ratingId;
+            let targetZone = document.getElementById(`reply-container-${ratingId}`);
+            if(!targetZone) return;
+
+            // Clone nội dung từ template
+            const template = document.getElementById('globalReplyFormTemplate');
+            const formClone = template.content.cloneNode(true);
+            
+            // Xóa class d-none của target
+            targetZone.classList.remove('d-none');
+            targetZone.appendChild(formClone);
+            
+            // Cập nhật thông số
+            document.getElementById('replyParentRatingId').value = ratingId;
+            document.getElementById('replyingToName').innerText = customerName;
+            let textArea = document.getElementById('replyComment');
+            
+            // Tự động gõ sẵn TÊN CỦA NGƯỜI ĐÓ VÀO Ô 
+            textArea.value = `@@${customerName} `;
+            
+            // Focus và cho chỏ chuột xuống cuối
+            textArea.focus();
+            let val = textArea.value; 
+            textArea.value = ''; 
+            textArea.value = val;
+        }
+
+        function closeReplyForm() {
+            if(activeReplyRatingId) {
+                let targetZone = document.getElementById(`reply-container-${activeReplyRatingId}`);
+                if(targetZone) {
+                    targetZone.innerHTML = '';
+                    targetZone.classList.add('d-none');
+                }
+                activeReplyRatingId = null;
+                clearReplyImage();
+            }
+        }
+        
+        let replyImageFile = null;
+
+        function previewReplyImage(input) {
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                // Thuật Validate size JS: 2MB
+                if(file.size > 2 * 1024 * 1024) {
+                    alert("Kích thước hình ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+                    input.value = ""; return;
+                }
+                
+                replyImageFile = file;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('replyImagePreview').src = e.target.result;
+                    document.getElementById('replyImagePreviewBox').classList.remove('d-none');
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function clearReplyImage() {
+            document.getElementById('replyImageInput').value = "";
+            document.getElementById('replyImagePreviewBox').classList.add('d-none');
+            document.getElementById('replyImagePreview').src = "";
+            replyImageFile = null;
+        }
+
+        function submitReplyAjax() {
+            if(!requireAuth(event)) return;
+            
+            let btn = event.target;
+            let parentRatingId = document.getElementById('replyParentRatingId').value;
+            let comment = document.getElementById('replyComment').value;
+            let drinkId = document.querySelector('input[name="DrinkId"]').value; // Của form cha
+
+            if(comment.trim() === "" && !replyImageFile) {
+                alert("Vui lòng nhập nội dung hoặc đính kèm một hình ảnh!");
+                return;
+            }
+
+            let formData = new FormData();
+            formData.append('parentRatingId', parentRatingId);
+            formData.append('drinkId', drinkId);
+            formData.append('comment', comment);
+            if(replyImageFile) {
+                 formData.append('imageFile', replyImageFile);
+            }
+
+            let originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Đang đẩy mã...';
+            btn.disabled = true;
+
+            fetch('/Drink/SubmitReplyAjax', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 401) { requireAuth(); return; }
+                if (data.status === 429) { alert(data.message); return; }
+                
+                if(data.success) {
+                    // Load lại cái mịa nó cho đỡ lằng nhằng DOM :)))
+                    window.location.reload();
+                } else {
+                    alert("Lỗi: " + data.message);
+                }
+            })
+            .catch(err => console.error("Lỗi:", err))
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
+        }
+
+        // Khởi tạo tổng tiền ngay khi tải trang
+        document.addEventListener('DOMContentLoaded', function() {
+            updateDisplayTotal();
+        });
     </script>
 }
