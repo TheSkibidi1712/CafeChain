@@ -4215,7 +4215,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("TaxCode")
-                        .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -4414,6 +4413,57 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
+                {
+                    b.Property<int>("StaffAddressId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffAddressId"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StaffAddressId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffAddresses", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            StaffAddressId = 1,
+                            Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM",
+                            IsDefault = true,
+                            StaffId = 1
+                        },
+                        new
+                        {
+                            StaffAddressId = 2,
+                            Address = "456 Đường Lê Lợi, Q3, TP.HCM",
+                            IsDefault = true,
+                            StaffId = 2
+                        },
+                        new
+                        {
+                            StaffAddressId = 3,
+                            Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM",
+                            IsDefault = true,
+                            StaffId = 3
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
                 {
                     b.Property<int>("StaffBankId")
@@ -4464,6 +4514,141 @@ namespace CafeChain.Migrations
                             AccountNumber = "456123789",
                             BankName = "Techcombank",
                             StaffId = 3
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
+                {
+                    b.Property<int>("StaffPhoneId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffPhoneId"));
+
+                    b.Property<bool>("IsDefault")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StaffPhoneId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffPhones", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            StaffPhoneId = 1,
+                            IsDefault = true,
+                            Phone = "0901000001",
+                            StaffId = 1
+                        },
+                        new
+                        {
+                            StaffPhoneId = 2,
+                            IsDefault = true,
+                            Phone = "0901000002",
+                            StaffId = 2
+                        },
+                        new
+                        {
+                            StaffPhoneId = 3,
+                            IsDefault = true,
+                            Phone = "0901000003",
+                            StaffId = 3
+                        },
+                        new
+                        {
+                            StaffPhoneId = 4,
+                            IsDefault = true,
+                            Phone = "0901000004",
+                            StaffId = 4
+                        },
+                        new
+                        {
+                            StaffPhoneId = 5,
+                            IsDefault = true,
+                            Phone = "0901000005",
+                            StaffId = 5
+                        },
+                        new
+                        {
+                            StaffPhoneId = 6,
+                            IsDefault = true,
+                            Phone = "0901000006",
+                            StaffId = 6
+                        },
+                        new
+                        {
+                            StaffPhoneId = 7,
+                            IsDefault = true,
+                            Phone = "0901000007",
+                            StaffId = 7
+                        },
+                        new
+                        {
+                            StaffPhoneId = 8,
+                            IsDefault = true,
+                            Phone = "0901000008",
+                            StaffId = 8
+                        },
+                        new
+                        {
+                            StaffPhoneId = 9,
+                            IsDefault = true,
+                            Phone = "0901000009",
+                            StaffId = 9
+                        },
+                        new
+                        {
+                            StaffPhoneId = 10,
+                            IsDefault = true,
+                            Phone = "0901000010",
+                            StaffId = 10
+                        },
+                        new
+                        {
+                            StaffPhoneId = 11,
+                            IsDefault = true,
+                            Phone = "0901000011",
+                            StaffId = 11
+                        },
+                        new
+                        {
+                            StaffPhoneId = 12,
+                            IsDefault = true,
+                            Phone = "0901000012",
+                            StaffId = 12
+                        },
+                        new
+                        {
+                            StaffPhoneId = 13,
+                            IsDefault = true,
+                            Phone = "0901000013",
+                            StaffId = 13
+                        },
+                        new
+                        {
+                            StaffPhoneId = 14,
+                            IsDefault = true,
+                            Phone = "0901000014",
+                            StaffId = 14
+                        },
+                        new
+                        {
+                            StaffPhoneId = 15,
+                            IsDefault = true,
+                            Phone = "0901000015",
+                            StaffId = 15
                         });
                 });
 
@@ -5078,11 +5263,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 2, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9716),
+                            EndDate = new DateTime(2026, 5, 2, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(888),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 3, 26, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9696)
+                            StartDate = new DateTime(2026, 3, 26, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(864)
                         },
                         new
                         {
@@ -5090,10 +5275,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 17, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9721),
+                            EndDate = new DateTime(2026, 4, 17, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(894),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9720)
+                            StartDate = new DateTime(2026, 4, 1, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(893)
                         },
                         new
                         {
@@ -5101,11 +5286,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9725),
+                            EndDate = new DateTime(2026, 6, 1, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(897),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 3, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9724)
+                            StartDate = new DateTime(2026, 3, 3, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(897)
                         });
                 });
 
@@ -5932,12 +6117,34 @@ namespace CafeChain.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany("StaffAddresses")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffBanks")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Staff");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany("StaffPhones")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Staff");
                 });
@@ -6335,7 +6542,11 @@ namespace CafeChain.Migrations
                 {
                     b.Navigation("CashSessions");
 
+                    b.Navigation("StaffAddresses");
+
                     b.Navigation("StaffBanks");
+
+                    b.Navigation("StaffPhones");
 
                     b.Navigation("StaffScopes");
 

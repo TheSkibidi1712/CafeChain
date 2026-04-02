@@ -41,6 +41,10 @@ using CafeChain.Application.Interfaces.Admin.Drinks;
 using CafeChain.Application.Services.Admin.Drinks;
 using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
 using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
+using CafeChain.Infrastrusture.Interfaces.Admin.Staff;
+using CafeChain.Infrastrusture.Repositories.Admin.Staff;
+using CafeChain.Application.Interfaces.Admin.Staff;
+using CafeChain.Application.Services.Admin.Staff;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -136,6 +140,10 @@ builder.Services.AddScoped<IAdminDrinkService, AdminDrinkService>();
 
 // Admin Voucher
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
+
+// Admin Staff
+builder.Services.AddScoped<IAdminStaffRepository, AdminStaffRepository>();
+builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
 
 var app = builder.Build();
 

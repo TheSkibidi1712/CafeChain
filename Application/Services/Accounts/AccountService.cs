@@ -109,10 +109,22 @@ namespace CafeChain.Application.Services.Accounts
                 if (!account.Active)
                     return ServiceResult<LoginResponseDto>.Failure("Tài khoản bị khóa.");
 
-                // ===== ROLE =====
-                var roleName = account.AccountRoles
+                // ===== ROLE: Lấy TẤT CẢ roles =====
+                var allRoles = account.AccountRoles
                     .Select(r => r.Role.Name)
-                    .FirstOrDefault() ?? "Customer";
+                    .ToList();
+
+                // 🔥 Chọn role ưu tiên cao nhất cho redirect
+                // Thứ tự ưu tiên: Admin System > Store Manager > Ward/Province Manager > Cashier > Customer
+                string primaryRole;
+                if (allRoles.Any(r => r.Contains("Admin")))
+                    primaryRole = allRoles.First(r => r.Contains("Admin"));
+                else if (allRoles.Any(r => r.Contains("Manager")))
+                    primaryRole = allRoles.First(r => r.Contains("Manager"));
+                else if (allRoles.Any(r => r.Contains("Cashier")))
+                    primaryRole = allRoles.First(r => r.Contains("Cashier"));
+                else
+                    primaryRole = allRoles.FirstOrDefault() ?? "Customer";
 
                 // ===== FULL NAME =====
                 var fullName = account.Customer?.FullName
@@ -123,11 +135,13 @@ namespace CafeChain.Application.Services.Accounts
                 {
                     Email = account.Email,
                     FullName = fullName,
-                    Role = roleName,
+                    Role = primaryRole,
+                    AllRoles = allRoles, // 🔥 TẤT CẢ roles cho Claims
                     AccountId = account.AccountId,
                     CustomerId = account.Customer?.CustomerId,
                     StaffId = account.Staff?.StaffId,
-                    AvatarUrl = account.Customer?.AvatarUrl
+                    StoreId = account.Staff?.StoreId,
+                    AvatarUrl = account.Customer?.AvatarUrl ?? account.Staff?.AvatarUrl
                 };
 
                 return ServiceResult<LoginResponseDto>.Success(response, "Đăng nhập thành công!");

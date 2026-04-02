@@ -56,15 +56,30 @@
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
                             <div class="d-flex align-items-center ms-3">
-                                <a href="/Customer/Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
-                                    <img id="headerAvatar"
-                                         src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
-                                         onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
-                                         class="rounded-circle object-fit-cover me-2"
-                                         style="width: 28px; height: 28px; border: 1px solid #d35400;"
-                                         alt="Avatar">
-                                    <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
-                                </a>
+                                @if (User.IsInRole("Customer"))
+                                {
+                                    <a href="/Customer/Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                        <img id="headerAvatar"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
+                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             class="rounded-circle object-fit-cover me-2"
+                                             style="width: 28px; height: 28px; border: 1px solid #d35400;"
+                                             alt="Avatar">
+                                        <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                        <img id="headerAvatar"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
+                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             class="rounded-circle object-fit-cover me-2"
+                                             style="width: 28px; height: 28px; border: 1px solid #d35400;"
+                                             alt="Avatar">
+                                        <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
+                                    </span>
+                                }
                             </div>
                         }
                         else

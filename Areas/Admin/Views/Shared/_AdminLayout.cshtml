@@ -1,27 +1,102 @@
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    
+
     <title>@ViewData["Title"] - CafeChain Admin</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #f8f9fa; }
-        .sidebar { height: 100vh; background-color: white; border-right: 1px solid #e9ecef; position: fixed; width: 250px; left: 0; top: 0; padding-top: 20px; }
-        .sidebar a { padding: 12px 20px; display: block; color: #495057; text-decoration: none; font-weight: 500; font-size: 14px; }
-        .sidebar a:hover, .sidebar a.active { background-color: #fdf2f0; color: #d93d20; border-right: 4px solid #d93d20; }
-        .sidebar i { width: 24px; text-align: center; margin-right: 10px; }
-        .main-content { margin-left: 250px; padding: 30px; }
-        .logo-wrap { display: flex; align-items: center; padding: 0 20px 30px; margin-bottom: 20px; border-bottom: 1px solid #e9ecef; }
-        .logo-icon { background: #d93d20; color: white; border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; margin-right: 10px; font-weight: 800; }
-        .logo-text { font-size: 18px; font-weight: 700; color: #212529; line-height: 1.2; }
-        .logo-sub { font-size: 11px; color: #adb5bd; font-weight: 500;}
-        .topbar { display: flex; justify-content: flex-end; padding-bottom: 20px; margin-bottom: 30px; border-bottom: 1px solid #e9ecef; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background-color: white;
+            border-right: 1px solid #e9ecef;
+            position: fixed;
+            width: 250px;
+            left: 0;
+            top: 0;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            padding: 12px 20px;
+            display: block;
+            color: #495057;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background-color: #fdf2f0;
+            color: #d93d20;
+            border-right: 4px solid #d93d20;
+        }
+
+        .sidebar i {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            padding: 0 20px 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .logo-icon {
+            background: #d93d20;
+            color: white;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: 800;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1.2;
+        }
+
+        .logo-sub {
+            font-size: 11px;
+            color: #adb5bd;
+            font-weight: 500;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
+
 <body>
     <div class="sidebar">
         <div class="logo-wrap">
@@ -31,15 +106,31 @@
                 <div class="logo-sub">Admin Dashboard</div>
             </div>
         </div>
-        <a href="#"><i class="fas fa-border-all"></i> Dashboard</a>
-        <a href="/Admin/AdminCategory"><i class="fas fa-list"></i> Quản lý danh mục</a>
-        <a href="#"><i class="fas fa-file-alt"></i> Quản lý công thức</a>
-        <a href="#"><i class="fas fa-coffee"></i> Quản lý size & topping</a>
-        <a href="#"><i class="fas fa-users"></i> Quản lý nhân sự</a>
-        <a href="#"><i class="fas fa-box"></i> Quản lý tồn kho</a>
-        <a href="/Admin/AdminVoucher"><i class="fas fa-gift"></i> Quản lý voucher</a>
-        <a href="#"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
-        <a href="#"><i class="fas fa-cog"></i> Cài đặt</a>
+
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"><i
+                class="fas fa-border-all"></i> Dashboard</a>
+        <a href="/Admin/AdminCategory"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminCategory" ? "active" : "")"><i
+                class="fas fa-list"></i> Quản lý danh mục</a>
+        <a href="#"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminRecipe" ? "active" : "")"><i
+                class="fas fa-file-alt"></i> Quản lý công thức</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSize" ? "active" : "")"><i
+                class="fas fa-coffee"></i> Quản lý size & topping</a>
+        <a href="/Admin/AdminStaff"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminStaff" ? "active" : "")"><i
+                class="fas fa-users"></i> Quản lý nhân sự</a>
+        <a href="#"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminInventory" ? "active" : "")"><i
+                class="fas fa-box"></i> Quản lý tồn kho</a>
+        <a href="#"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminVoucher" ? "active" : "")"><i
+                class="fas fa-gift"></i> Quản lý voucher</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminOrder" ? "active" : "")"><i
+                class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+        <a href="#"
+            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSetting" ? "active" : "")"><i
+                class="fas fa-cog"></i> Cài đặt</a>
     </div>
 
     <div class="main-content">
@@ -53,7 +144,8 @@
     <!-- Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
+
 </html>

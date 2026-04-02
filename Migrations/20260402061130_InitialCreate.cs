@@ -966,7 +966,7 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     AccountId = table.Column<int>(type: "int", nullable: false),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Salary = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
@@ -1205,6 +1205,27 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StaffAddresses",
+                columns: table => new
+                {
+                    StaffAddressId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffAddresses", x => x.StaffAddressId);
+                    table.ForeignKey(
+                        name: "FK_StaffAddresses_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffBanks",
                 columns: table => new
                 {
@@ -1223,6 +1244,27 @@ namespace CafeChain.Migrations
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffPhones",
+                columns: table => new
+                {
+                    StaffPhoneId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffPhones", x => x.StaffPhoneId);
+                    table.ForeignKey(
+                        name: "FK_StaffPhones_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1964,9 +2006,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 2, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9716), 20000m, 100, null, 40000m, new DateTime(2026, 3, 26, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9696) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 17, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9721), null, 500, null, 50000m, new DateTime(2026, 4, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9720) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9725), 100000m, 1000, null, 0m, new DateTime(2026, 3, 3, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9724) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 2, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(888), 20000m, 100, null, 40000m, new DateTime(2026, 3, 26, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(864) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 17, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(894), null, 500, null, 50000m, new DateTime(2026, 4, 1, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(893) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 1, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(897), 100000m, 1000, null, 0m, new DateTime(2026, 3, 3, 13, 11, 27, 468, DateTimeKind.Local).AddTicks(897) }
                 });
 
             migrationBuilder.InsertData(
@@ -2377,6 +2419,16 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "StaffAddresses",
+                columns: new[] { "StaffAddressId", "Address", "IsDefault", "StaffId" },
+                values: new object[,]
+                {
+                    { 1, "123 Đường Nguyễn Huệ, Q1, TP.HCM", true, 1 },
+                    { 2, "456 Đường Lê Lợi, Q3, TP.HCM", true, 2 },
+                    { 3, "789 Đường Trần Hưng Đạo, Q5, TP.HCM", true, 3 }
+                });
+
+            migrationBuilder.InsertData(
                 table: "StaffBanks",
                 columns: new[] { "StaffBankId", "AccountNumber", "BankName", "StaffId" },
                 values: new object[,]
@@ -2384,6 +2436,28 @@ namespace CafeChain.Migrations
                     { 1, "123456789", "Vietcombank", 1 },
                     { 2, "987654321", "ACB", 2 },
                     { 3, "456123789", "Techcombank", 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "StaffPhones",
+                columns: new[] { "StaffPhoneId", "IsDefault", "Phone", "StaffId" },
+                values: new object[,]
+                {
+                    { 1, true, "0901000001", 1 },
+                    { 2, true, "0901000002", 2 },
+                    { 3, true, "0901000003", 3 },
+                    { 4, true, "0901000004", 4 },
+                    { 5, true, "0901000005", 5 },
+                    { 6, true, "0901000006", 6 },
+                    { 7, true, "0901000007", 7 },
+                    { 8, true, "0901000008", 8 },
+                    { 9, true, "0901000009", 9 },
+                    { 10, true, "0901000010", 10 },
+                    { 11, true, "0901000011", 11 },
+                    { 12, true, "0901000012", 12 },
+                    { 13, true, "0901000013", 13 },
+                    { 14, true, "0901000014", 14 },
+                    { 15, true, "0901000015", 15 }
                 });
 
             migrationBuilder.InsertData(
@@ -2973,6 +3047,11 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_StaffAddresses_StaffId",
+                table: "StaffAddresses",
+                column: "StaffId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StaffBanks_BankName_AccountNumber",
                 table: "StaffBanks",
                 columns: new[] { "BankName", "AccountNumber" },
@@ -2982,6 +3061,11 @@ namespace CafeChain.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_StaffBanks_StaffId",
                 table: "StaffBanks",
+                column: "StaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffPhones_StaffId",
+                table: "StaffPhones",
                 column: "StaffId");
 
             migrationBuilder.CreateIndex(
@@ -3327,7 +3411,13 @@ namespace CafeChain.Migrations
                 name: "RecipeDetails");
 
             migrationBuilder.DropTable(
+                name: "StaffAddresses");
+
+            migrationBuilder.DropTable(
                 name: "StaffBanks");
+
+            migrationBuilder.DropTable(
+                name: "StaffPhones");
 
             migrationBuilder.DropTable(
                 name: "StaffScopes");
