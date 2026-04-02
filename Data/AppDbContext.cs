@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Customers;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories;
 using CafeChain.Models.Locations;
@@ -38,6 +38,8 @@ namespace CafeChain.Data
         public DbSet<StaffScope> StaffScopes { get; set; }
         public DbSet<StaffShift> StaffShifts { get; set; }
         public DbSet<StaffShiftStatus> StaffShiftStatuses { get; set; }
+        public DbSet<StaffPhone> StaffPhones { get; set; }
+        public DbSet<StaffAddress> StaffAddresses { get; set; }
 
         // ========================= ORDER =========================
         public DbSet<Order> Orders { get; set; }

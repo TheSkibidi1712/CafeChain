@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
@@ -509,6 +509,80 @@ namespace CafeChain.Data.Configurations
                 new StaffShiftStatus { StaffShiftStatusId = 2, Code = "CHECKED_IN", Name = "Checked In", IsSystem = true },
                 new StaffShiftStatus { StaffShiftStatusId = 3, Code = "COMPLETED", Name = "Completed", IsSystem = true },
                 new StaffShiftStatus { StaffShiftStatusId = 4, Code = "ABSENT", Name = "Absent", IsSystem = true }
+            );
+        }
+    }
+
+    // ========================== STAFF PHONE ==========================
+    public class StaffPhoneConfiguration : IEntityTypeConfiguration<StaffPhone>
+    {
+        public void Configure(EntityTypeBuilder<StaffPhone> entity)
+        {
+            entity.ToTable("StaffPhones");
+
+            entity.HasKey(x => x.StaffPhoneId);
+
+            entity.Property(x => x.Phone)
+                .IsRequired()
+                .HasMaxLength(15);
+
+            entity.Property(x => x.IsDefault)
+                .HasDefaultValue(false);
+
+            entity.HasOne(x => x.Staff)
+                .WithMany(x => x.StaffPhones)
+                .HasForeignKey(x => x.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.StaffId);
+
+            entity.HasData(
+                new StaffPhone { StaffPhoneId = 1, StaffId = 1, Phone = "0901000001", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 2, StaffId = 2, Phone = "0901000002", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 3, StaffId = 3, Phone = "0901000003", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 4, StaffId = 4, Phone = "0901000004", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 5, StaffId = 5, Phone = "0901000005", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000006", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 7, StaffId = 7, Phone = "0901000007", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 8, StaffId = 8, Phone = "0901000008", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 9, StaffId = 9, Phone = "0901000009", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 10, StaffId = 10, Phone = "0901000010", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 11, StaffId = 11, Phone = "0901000011", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 12, StaffId = 12, Phone = "0901000012", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 13, StaffId = 13, Phone = "0901000013", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 14, StaffId = 14, Phone = "0901000014", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 15, StaffId = 15, Phone = "0901000015", IsDefault = true }
+            );
+        }
+    }
+
+    // ========================== STAFF ADDRESS ==========================
+    public class StaffAddressConfiguration : IEntityTypeConfiguration<StaffAddress>
+    {
+        public void Configure(EntityTypeBuilder<StaffAddress> entity)
+        {
+            entity.ToTable("StaffAddresses");
+
+            entity.HasKey(x => x.StaffAddressId);
+
+            entity.Property(x => x.Address)
+                .IsRequired()
+                .HasMaxLength(300);
+
+            entity.Property(x => x.IsDefault)
+                .HasDefaultValue(false);
+
+            entity.HasOne(x => x.Staff)
+                .WithMany(x => x.StaffAddresses)
+                .HasForeignKey(x => x.StaffId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => x.StaffId);
+
+            entity.HasData(
+                new StaffAddress { StaffAddressId = 1, StaffId = 1, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 2, StaffId = 2, Address = "456 Đường Lê Lợi, Q3, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 3, StaffId = 3, Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM", IsDefault = true }
             );
         }
     }

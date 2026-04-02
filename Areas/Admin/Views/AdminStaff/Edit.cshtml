@@ -1,0 +1,272 @@
+@model CafeChain.ViewModels.Admin.Staff.StaffEditVM
+
+@{
+    ViewData["Title"] = "Chỉnh sửa nhân viên";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
+    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
+    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
+    bool isStoreManager = ViewBag.IsStoreManager ?? false;
+    int currentStoreId = ViewBag.CurrentStoreId ?? 0;
+    string currentStoreName = ViewBag.CurrentStoreName ?? "";
+}
+
+<link rel="stylesheet" href="~/css/staff.css" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+<div class="staff-page-header">
+    <div>
+        <h2>Chỉnh sửa nhân viên</h2>
+        <p>Cập nhật thông tin nhân viên <strong>@Model.FullName</strong></p>
+    </div>
+    <a href="@Url.Action("Index", "AdminStaff", new { area = "Admin" })" class="btn btn-outline-secondary" style="border-radius: 10px; font-weight: 500;">
+        <i class="fas fa-arrow-left"></i> Quay lại
+    </a>
+</div>
+
+<div class="staff-table-wrap" style="padding: 28px;">
+    <form asp-action="Edit" asp-route-id="@Model.StaffId" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="StaffId" value="@Model.StaffId" />
+        <input type="hidden" name="AccountId" value="@Model.AccountId" />
+        <input type="hidden" name="Active" value="@Model.Active" />
+
+        <div class="row">
+            <!-- Avatar -->
+            <div class="col-md-3 mb-4">
+                <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Ảnh đại diện</label>
+                <div class="avatar-upload-box" onclick="document.getElementById('editAvatarInput').click()">
+                    <img id="editAvatarPreview" src="@Model.CurrentAvatarUrl" style="@(string.IsNullOrEmpty(Model.CurrentAvatarUrl) ? "display:none" : "")" />
+                    <i class="fas fa-camera-retro placeholder-icon" style="@(!string.IsNullOrEmpty(Model.CurrentAvatarUrl) ? "display:none" : "")"></i>
+                    <span class="placeholder-text" style="@(!string.IsNullOrEmpty(Model.CurrentAvatarUrl) ? "display:none" : "")">Nhấp để tải ảnh</span>
+                </div>
+                <input type="file" name="AvatarFile" id="editAvatarInput" accept="image/*" style="display:none" />
+                <input type="hidden" name="CurrentAvatarUrl" value="@Model.CurrentAvatarUrl" />
+            </div>
+
+            <div class="col-md-9">
+                <div class="row">
+                    <!-- Vai trò -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Vai trò hệ thống <span class="text-danger">*</span></label>
+                        <select name="SelectedRoleIds" class="form-select" multiple size="3">
+                            @if (roles != null)
+                            {
+                                @foreach (var role in roles)
+                                {
+                                    <option value="@role.RoleId" selected="@(Model.SelectedRoleIds.Contains(role.RoleId))">@role.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <!-- Họ tên -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Họ và tên <span class="text-danger">*</span></label>
+                        <input type="text" name="FullName" class="form-control" value="@Model.FullName" required />
+                    </div>
+
+                    <!-- Email -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Email <span class="text-danger">*</span></label>
+                        <input type="email" name="Email" class="form-control" value="@Model.Email" required />
+                    </div>
+
+                    <!-- Mật khẩu mới -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mật khẩu mới <span class="label-optional">(để trống = giữ nguyên)</span></label>
+                        <input type="password" name="NewPassword" class="form-control" placeholder="••••••••" />
+                    </div>
+
+                    <!-- Mã số thuế -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã số thuế / CCCD</label>
+                        <input type="text" name="TaxCode" class="form-control" value="@Model.TaxCode" />
+                    </div>
+
+                    <!-- Lương -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">
+                            Mức lương (VNĐ)
+                            @if (isStoreManager)
+                            {
+                                <span class="label-optional">🔒 Chỉ Admin thay đổi</span>
+                            }
+                        </label>
+                        <input type="number" name="Salary" class="form-control" value="@Model.Salary" step="1000" @(isStoreManager ? "disabled" : "") />
+                        @if (isStoreManager)
+                        {
+                            <input type="hidden" name="Salary" value="@Model.Salary" />
+                        }
+                    </div>
+
+                    <!-- Cửa hàng -->
+                    @if (isStoreManager)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Cửa hàng</label>
+                            <input type="text" class="form-control" value="@currentStoreName" disabled />
+                            <input type="hidden" name="StoreId" value="@currentStoreId" />
+                            <input type="hidden" name="ScopeTypeId" value="4" />
+                            <input type="hidden" name="ScopeRefId" value="@currentStoreId" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Cửa hàng <span class="text-danger">*</span></label>
+                            <select name="StoreId" class="form-select" required>
+                                @if (stores != null)
+                                {
+                                    @foreach (var store in stores)
+                                    {
+                                        <option value="@store.StoreId" selected="@(Model.StoreId == store.StoreId)">@store.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                    }
+
+                    <!-- Ngày sinh -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Ngày sinh</label>
+                        <input type="date" name="DateOfBirth" class="form-control" value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))" />
+                    </div>
+
+                    @if (!isStoreManager)
+                    {
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Phạm vi quản lý</label>
+                            <select name="ScopeTypeId" class="form-select">
+                                @if (scopeTypes != null)
+                                {
+                                    @foreach (var st in scopeTypes)
+                                    {
+                                        <option value="@st.ScopeTypeId" selected="@(Model.ScopeTypeId == st.ScopeTypeId)">@st.Name</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã tham chiếu (ScopeRefId)</label>
+                            <input type="number" name="ScopeRefId" class="form-control" value="@Model.ScopeRefId" />
+                        </div>
+                    }
+                </div>
+
+                <!-- Phones -->
+                <div class="mb-3">
+                    <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Số điện thoại <span class="label-optional">(tối đa 3)</span></label>
+                    <div id="editPhonesContainer">
+                        @if (Model.Phones != null && Model.Phones.Any())
+                        {
+                            @for (int i = 0; i < Model.Phones.Count; i++)
+                            {
+                                <div class="dynamic-input-group">
+                                    <input type="text" name="Phones" class="form-control" value="@Model.Phones[i]" maxlength="15" />
+                                    @if (i > 0)
+                                    {
+                                        <button type="button" class="btn-remove-input" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="dynamic-input-group">
+                                <input type="text" name="Phones" class="form-control" placeholder="Số điện thoại chính" maxlength="15" />
+                            </div>
+                        }
+                    </div>
+                    <button type="button" class="btn-add-input" onclick="addDynamicInput('editPhonesContainer', 'Phones', 3, 'Thêm số điện thoại')">
+                        <i class="fas fa-plus"></i> Thêm số điện thoại
+                    </button>
+                </div>
+
+                <!-- Addresses -->
+                <div class="mb-3">
+                    <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Địa chỉ <span class="label-optional">(tối đa 3)</span></label>
+                    <div id="editAddressesContainer">
+                        @if (Model.Addresses != null && Model.Addresses.Any())
+                        {
+                            @for (int i = 0; i < Model.Addresses.Count; i++)
+                            {
+                                <div class="dynamic-input-group">
+                                    <input type="text" name="Addresses" class="form-control" value="@Model.Addresses[i]" maxlength="300" />
+                                    @if (i > 0)
+                                    {
+                                        <button type="button" class="btn-remove-input" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+                                    }
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="dynamic-input-group">
+                                <input type="text" name="Addresses" class="form-control" placeholder="Địa chỉ chính" maxlength="300" />
+                            </div>
+                        }
+                    </div>
+                    <button type="button" class="btn-add-input" onclick="addDynamicInput('editAddressesContainer', 'Addresses', 3, 'Thêm địa chỉ')">
+                        <i class="fas fa-plus"></i> Thêm địa chỉ
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mt-3 pt-3" style="border-top: 1px solid #f0f0f0;">
+            <a href="@Url.Action("Index", "AdminStaff", new { area = "Admin" })" class="btn-cancel" style="text-decoration:none">Hủy</a>
+            <button type="submit" class="btn-submit" style="background:#d93d20; color:white; border:none; padding:10px 32px; border-radius:10px; font-weight:600;">Lưu thay đổi</button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        // Avatar preview
+        document.getElementById('editAvatarInput').addEventListener('change', function (e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    const img = document.getElementById('editAvatarPreview');
+                    img.src = ev.target.result;
+                    img.style.display = 'block';
+                    document.querySelector('.avatar-upload-box .placeholder-icon').style.display = 'none';
+                    document.querySelector('.avatar-upload-box .placeholder-text').style.display = 'none';
+                }
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Dynamic inputs
+        function addDynamicInput(containerId, fieldName, maxCount, label) {
+            const container = document.getElementById(containerId);
+            const currentCount = container.querySelectorAll('.dynamic-input-group').length;
+            if (currentCount >= maxCount) {
+                Swal.fire('Đã đạt giới hạn!', `Tối đa ${maxCount} mục.`, 'warning');
+                return;
+            }
+            const div = document.createElement('div');
+            div.className = 'dynamic-input-group';
+            div.innerHTML = `
+                <input type="text" name="${fieldName}" class="form-control" placeholder="${label}" maxlength="${fieldName === 'Phones' ? 15 : 300}" />
+                <button type="button" class="btn-remove-input" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+            `;
+            container.appendChild(div);
+        }
+
+        @if (TempData["Error"] != null)
+        {
+            <text>
+            Swal.fire({ title: 'Lỗi!', text: '@TempData["Error"]', icon: 'error' });
+            </text>
+        }
+        @if (TempData["Success"] != null)
+        {
+            <text>
+            Swal.fire({ title: 'Thành công!', text: '@TempData["Success"]', icon: 'success', timer: 2000, showConfirmButton: false });
+            </text>
+        }
+    </script>
+}

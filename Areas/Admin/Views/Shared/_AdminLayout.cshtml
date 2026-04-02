@@ -29,15 +29,15 @@
                 <div class="logo-sub">Admin Dashboard</div>
             </div>
         </div>
-        <a href="#"><i class="fas fa-border-all"></i> Dashboard</a>
-        <a href="/Admin/AdminCategory" class="active"><i class="fas fa-list"></i> Quản lý danh mục</a>
-        <a href="#"><i class="fas fa-file-alt"></i> Quản lý công thức</a>
-        <a href="#"><i class="fas fa-coffee"></i> Quản lý size & topping</a>
-        <a href="#"><i class="fas fa-users"></i> Quản lý nhân sự</a>
-        <a href="#"><i class="fas fa-box"></i> Quản lý tồn kho</a>
-        <a href="#"><i class="fas fa-gift"></i> Quản lý voucher</a>
-        <a href="#"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
-        <a href="#"><i class="fas fa-cog"></i> Cài đặt</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"><i class="fas fa-border-all"></i> Dashboard</a>
+        <a href="/Admin/AdminCategory" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminCategory" ? "active" : "")"><i class="fas fa-list"></i> Quản lý danh mục</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminRecipe" ? "active" : "")"><i class="fas fa-file-alt"></i> Quản lý công thức</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSize" ? "active" : "")"><i class="fas fa-coffee"></i> Quản lý size & topping</a>
+        <a href="/Admin/AdminStaff" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminStaff" ? "active" : "")"><i class="fas fa-users"></i> Quản lý nhân sự</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminInventory" ? "active" : "")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminVoucher" ? "active" : "")"><i class="fas fa-gift"></i> Quản lý voucher</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminOrder" ? "active" : "")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSetting" ? "active" : "")"><i class="fas fa-cog"></i> Cài đặt</a>
     </div>
 
     <div class="main-content">

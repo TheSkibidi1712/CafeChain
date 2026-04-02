@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Customers;
@@ -26,5 +26,7 @@ namespace CafeChain.Models.Staffs
         public virtual ICollection<StaffShift> StaffShifts { get; set; }
         public virtual ICollection<CashSession> CashSessions { get; set; }
         public virtual ICollection<StockImport> StockImports { get; set; }
+        public virtual ICollection<StaffPhone> StaffPhones { get; set; }
+        public virtual ICollection<StaffAddress> StaffAddresses { get; set; }
     }
 }

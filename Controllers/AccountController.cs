@@ -96,12 +96,21 @@ namespace CafeChain.Controllers
             // ===== CLAIMS =====
             var claims = new List<Claim>
             {
-                new Claim(ClaimTypes.NameIdentifier, result.Data.AccountId.ToString()), // 🔥 quan trọng
+                new Claim(ClaimTypes.NameIdentifier, result.Data.AccountId.ToString()),
                 new Claim(ClaimTypes.Name, result.Data.FullName),
                 new Claim(ClaimTypes.Email, result.Data.Email),
-                new Claim(ClaimTypes.Role, result.Data.Role ?? "Customer"),
             };
 
+            // 🔥 Thêm TẤT CẢ roles vào Claims (không chỉ 1 role)
+            foreach (var roleName in result.Data.AllRoles)
+            {
+                claims.Add(new Claim(ClaimTypes.Role, roleName));
+            }
+            // Nếu không có role nào, gán mặc định Customer
+            if (!result.Data.AllRoles.Any())
+            {
+                claims.Add(new Claim(ClaimTypes.Role, "Customer"));
+            }
 
             if (result.Data.CustomerId.HasValue)
                 claims.Add(new Claim("CustomerId", result.Data.CustomerId.ToString()));
@@ -109,16 +118,13 @@ namespace CafeChain.Controllers
             if (result.Data.StaffId.HasValue)
                 claims.Add(new Claim("StaffId", result.Data.StaffId.ToString()));
 
-            // ====================================================================
-            // 🔥 BÍ KÍP CHỮA BỆNH "MẤT TRÍ NHỚ AVATAR LÚC ĐĂNG NHẬP LẠI" Ở ĐÂY 🔥
-            // ====================================================================
-            // ====================================================================
-            if (!string.IsNullOrEmpty(result.Data.AvatarUrl))
-            {
-                claims.Add(new Claim("AvatarUrl", string.IsNullOrEmpty(result.Data.AvatarUrl) ? "/Images/Upload/avtdf.jpg" : result.Data.AvatarUrl));
-            }
-            //
-            // ====================================================================
+            // 🔥 BẮT BUỘC cho Decentralized RBAC: StoreId Claim
+            if (result.Data.StoreId.HasValue)
+                claims.Add(new Claim("StoreId", result.Data.StoreId.Value.ToString()));
+
+            // Avatar Claim (hỗ trợ cả Customer & Staff)
+            var avatarUrl = result.Data.AvatarUrl ?? "/Images/Upload/avtdf.jpg";
+            claims.Add(new Claim("AvatarUrl", avatarUrl));
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 
@@ -128,31 +134,28 @@ namespace CafeChain.Controllers
             new AuthenticationProperties
             {
                 IsPersistent = model.RememberMe,
-
-                // 🔥 QUAN TRỌNG
                 ExpiresUtc = model.RememberMe
                     ? DateTimeOffset.UtcNow.AddDays(7)
-                    : null, // hoặc null nếu muốn session
-
+                    : null,
                 AllowRefresh = true
             });
 
             TempData["SuccessMessage"] = "Đăng nhập thành công!";
 
-            // ===== REDIRECT ROLE =====
-            var role = (result.Data.Role ?? "").ToLower();
+            // ===== REDIRECT dựa trên Role ưu tiên cao nhất =====
+            var role = result.Data.Role ?? "";
 
-            switch (role.ToLower())
+            if (role.Contains("Admin") || role.Contains("Manager"))
             {
-                case "admin":
-                case "manager":
-                    return RedirectToAction("Index", "Dashboard", new { area = "Admin" });
-
-                case "cashier":
-                    return RedirectToAction("Index", "Pos", new { area = "Cashier" });
-
-                default:
-                    return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "AdminStaff", new { area = "Admin" });
+            }
+            else if (role.Contains("Cashier"))
+            {
+                return RedirectToAction("Index", "Pos", new { area = "Cashier" });
+            }
+            else
+            {
+                return RedirectToAction("Index", "Home");
             }
         }
 

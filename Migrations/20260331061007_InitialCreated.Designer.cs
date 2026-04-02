@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260331061007_InitialCreated")]
+    partial class InitialCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4415,57 +4418,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
-                {
-                    b.Property<int>("StaffAddressId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffAddressId"));
-
-                    b.Property<string>("Address")
-                        .IsRequired()
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
-
-                    b.Property<bool>("IsDefault")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffAddressId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("StaffAddresses", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            StaffAddressId = 1,
-                            Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM",
-                            IsDefault = true,
-                            StaffId = 1
-                        },
-                        new
-                        {
-                            StaffAddressId = 2,
-                            Address = "456 Đường Lê Lợi, Q3, TP.HCM",
-                            IsDefault = true,
-                            StaffId = 2
-                        },
-                        new
-                        {
-                            StaffAddressId = 3,
-                            Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM",
-                            IsDefault = true,
-                            StaffId = 3
-                        });
-                });
-
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
                 {
                     b.Property<int>("StaffBankId")
@@ -4516,141 +4468,6 @@ namespace CafeChain.Migrations
                             AccountNumber = "456123789",
                             BankName = "Techcombank",
                             StaffId = 3
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
-                {
-                    b.Property<int>("StaffPhoneId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffPhoneId"));
-
-                    b.Property<bool>("IsDefault")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
-
-                    b.Property<int>("StaffId")
-                        .HasColumnType("int");
-
-                    b.HasKey("StaffPhoneId");
-
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("StaffPhones", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            StaffPhoneId = 1,
-                            IsDefault = true,
-                            Phone = "0901000001",
-                            StaffId = 1
-                        },
-                        new
-                        {
-                            StaffPhoneId = 2,
-                            IsDefault = true,
-                            Phone = "0901000002",
-                            StaffId = 2
-                        },
-                        new
-                        {
-                            StaffPhoneId = 3,
-                            IsDefault = true,
-                            Phone = "0901000003",
-                            StaffId = 3
-                        },
-                        new
-                        {
-                            StaffPhoneId = 4,
-                            IsDefault = true,
-                            Phone = "0901000004",
-                            StaffId = 4
-                        },
-                        new
-                        {
-                            StaffPhoneId = 5,
-                            IsDefault = true,
-                            Phone = "0901000005",
-                            StaffId = 5
-                        },
-                        new
-                        {
-                            StaffPhoneId = 6,
-                            IsDefault = true,
-                            Phone = "0901000006",
-                            StaffId = 6
-                        },
-                        new
-                        {
-                            StaffPhoneId = 7,
-                            IsDefault = true,
-                            Phone = "0901000007",
-                            StaffId = 7
-                        },
-                        new
-                        {
-                            StaffPhoneId = 8,
-                            IsDefault = true,
-                            Phone = "0901000008",
-                            StaffId = 8
-                        },
-                        new
-                        {
-                            StaffPhoneId = 9,
-                            IsDefault = true,
-                            Phone = "0901000009",
-                            StaffId = 9
-                        },
-                        new
-                        {
-                            StaffPhoneId = 10,
-                            IsDefault = true,
-                            Phone = "0901000010",
-                            StaffId = 10
-                        },
-                        new
-                        {
-                            StaffPhoneId = 11,
-                            IsDefault = true,
-                            Phone = "0901000011",
-                            StaffId = 11
-                        },
-                        new
-                        {
-                            StaffPhoneId = 12,
-                            IsDefault = true,
-                            Phone = "0901000012",
-                            StaffId = 12
-                        },
-                        new
-                        {
-                            StaffPhoneId = 13,
-                            IsDefault = true,
-                            Phone = "0901000013",
-                            StaffId = 13
-                        },
-                        new
-                        {
-                            StaffPhoneId = 14,
-                            IsDefault = true,
-                            Phone = "0901000014",
-                            StaffId = 14
-                        },
-                        new
-                        {
-                            StaffPhoneId = 15,
-                            IsDefault = true,
-                            Phone = "0901000015",
-                            StaffId = 15
                         });
                 });
 
@@ -6082,34 +5899,12 @@ namespace CafeChain.Migrations
                     b.Navigation("Store");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffAddress", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany("StaffAddresses")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Staff");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffBank", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffBanks")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.Navigation("Staff");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany("StaffPhones")
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("Staff");
                 });
@@ -6507,11 +6302,7 @@ namespace CafeChain.Migrations
                 {
                     b.Navigation("CashSessions");
 
-                    b.Navigation("StaffAddresses");
-
                     b.Navigation("StaffBanks");
-
-                    b.Navigation("StaffPhones");
 
                     b.Navigation("StaffScopes");
 
