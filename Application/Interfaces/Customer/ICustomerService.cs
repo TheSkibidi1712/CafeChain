@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Customer;
+using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.ViewModels.Customers;
 using System.Threading.Tasks;
@@ -13,5 +13,8 @@ namespace CafeChain.Application.Interfaces.Customers
         Task<bool> UpdateProfileAsync(int customerId, UpdateProfileRequest request);
         // Dòng cần thêm:
         Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordViewModel request);
+
+        Task<CafeChain.Models.Customers.Customer> GetByPhoneAsync(string phone);
+        Task<(bool Success, string Message, int CustomerId)> QuickRegisterAsync(string fullName, string phone);
     }
 }

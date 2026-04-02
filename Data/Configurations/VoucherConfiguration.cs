@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -41,6 +41,44 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.StartDate);
             entity.HasIndex(x => x.EndDate);
+
+            entity.HasData(
+                new Voucher 
+                { 
+                    VoucherId = 1, 
+                    Code = "CAFECHAIN50", 
+                    DiscountPercent = 50, 
+                    MaxDiscount = 20000, 
+                    MinOrderValue = 40000, 
+                    StartDate = DateTime.Now.AddDays(-7), 
+                    EndDate = DateTime.Now.AddDays(30), 
+                    Active = true, 
+                    MaxUsage = 100 
+                },
+                new Voucher 
+                { 
+                    VoucherId = 2, 
+                    Code = "GIAM10K", 
+                    DiscountAmount = 10000, 
+                    MinOrderValue = 50000, 
+                    StartDate = DateTime.Now.AddDays(-1), 
+                    EndDate = DateTime.Now.AddDays(15), 
+                    Active = true, 
+                    MaxUsage = 500 
+                },
+                new Voucher 
+                { 
+                    VoucherId = 3, 
+                    Code = "NEWUSER", 
+                    DiscountPercent = 20, 
+                    MaxDiscount = 100000, 
+                    MinOrderValue = 0, 
+                    StartDate = DateTime.Now.AddDays(-30), 
+                    EndDate = DateTime.Now.AddDays(60), 
+                    Active = true, 
+                    MaxUsage = 1000 
+                }
+            );
         }
     }
 

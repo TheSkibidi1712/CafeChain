@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Customer;
+using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Customers;
@@ -170,5 +170,61 @@ namespace CafeChain.Application.Services.Customers
 
             return (true, "Đổi mật khẩu thành công!");
         }
+
+        public async Task<CafeChain.Models.Customers.Customer> GetByPhoneAsync(string phone)
+        {
+            var customerPhone = await _context.CustomerPhones
+                .Include(p => p.Customer)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(p => p.Phone == phone);
+
+            return customerPhone?.Customer;
+        }
+
+        public async Task<(bool Success, string Message, int CustomerId)> QuickRegisterAsync(string fullName, string phone)
+        {
+            var exists = await _context.CustomerPhones.AnyAsync(p => p.Phone == phone);
+            if (exists) return (false, "Số điện thoại này đã được sử dụng.", 0);
+
+            var account = new Account
+            {
+                Email = $"pos_{phone}@cafechain.com",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
+                Active = true,
+                CreatedAt = DateTime.Now
+            };
+            _context.Accounts.Add(account);
+            await _context.SaveChangesAsync();
+
+            var customer = new Customer
+            {
+                AccountId = account.AccountId,
+                FullName = fullName,
+                CreatedAt = DateTime.Now,
+                Active = true
+            };
+            _context.Customers.Add(customer);
+            await _context.SaveChangesAsync();
+
+            var cp = new CustomerPhone
+            {
+                CustomerId = customer.CustomerId,
+                Phone = phone,
+                IsDefault = true
+            };
+            _context.CustomerPhones.Add(cp);
+
+            var initialPoint = new CustomerPoint
+            {
+                CustomerId = customer.CustomerId,
+                Points = 0
+            };
+            _context.CustomerPoints.Add(initialPoint);
+
+            await _context.SaveChangesAsync();
+
+            return (true, "Đăng ký thành viên thành công!", customer.CustomerId);
+        }
     }
+
 }

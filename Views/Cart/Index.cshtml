@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.CartViewModel
+@model CafeChain.ViewModels.CartViewModel
 
 @{
     ViewData["Title"] = "Giỏ hàng";
@@ -82,32 +82,98 @@
         </div>
 
         <div class="col-lg-4">
+            <!-- AC1: Customer Identity -->
+            <div class="card border-0 shadow-sm rounded-4 bg-white mb-3">
+                <div class="card-body p-4">
+                    <h6 class="fw-bold mb-3"><i class="bi bi-person-badge text-orange me-2"></i>Khách hàng & Ưu đãi</h6>
+
+                    <!-- SĐT Lookup -->
+                    <div class="input-group mb-3" id="phoneLookupSection">
+                        <input type="text" id="customerPhone" class="form-control border-end-0 rounded-start-pill px-3" placeholder="Nhập số điện thoại...">
+                        <button class="btn btn-outline-secondary border-start-0 rounded-end-pill px-3" type="button" id="lookupBtn">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </div>
+
+                    <!-- Customer Info (Hidden by default) -->
+                    <div id="customerInfo" class="d-none mb-3">
+                        <div class="alert alert-light border-orange-subtle rounded-4 d-flex align-items-center justify-content-between">
+                            <div>
+                                <div class="small text-muted">Xin chào,</div>
+                                <div class="fw-bold text-orange" id="customerName">--</div>
+                                <div class="badge bg-orange-light text-orange fw-normal" id="customerRank">--</div>
+                            </div>
+                            <div class="text-end">
+                                <div class="small text-muted">Điểm tích lũy</div>
+                                <div class="fw-bold fs-5" id="customerPointsDisplay">0</div>
+                            </div>
+                        </div>
+
+                        <!-- AC2: Point Toggle -->
+                        <div class="form-check form-switch mt-3 d-flex justify-content-between align-items-center ps-0">
+                            <label class="form-check-label fw-bold small" for="usePoints">Sử dụng điểm tích lũy thanh toán</label>
+                            <input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="usePoints" style="width: 2.5em; height: 1.25em; cursor: pointer;">
+                        </div>
+                        <div id="pointUsageInfo" class="small text-muted d-none mt-1">
+                            Quy đổi: <span class="fw-bold">1đ = 1 VNĐ</span>. Đã giảm: <span class="text-success fw-bold" id="pointDiscountValue">0đ</span>
+                        </div>
+                    </div>
+
+                    <!-- Register Prompt (Hidden) -->
+                    <div id="registerPrompt" class="d-none text-center py-2">
+                        <p class="small text-muted mb-2">Chưa là thành viên?</p>
+                        <button type="button" class="btn btn-sm btn-outline-orange rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#quickRegisterModal">
+                            Đăng ký ngay
+                        </button>
+                    </div>
+
+                    <hr class="opacity-10 my-4 text-orange">
+
+                    <!-- AC3: Promo Code -->
+                    <div class="mb-0">
+                        <label class="fw-bold small mb-2 text-muted">Mã giảm giá (Săn voucher / Quét QR)</label>
+                        <div class="input-group mb-2">
+                            <input type="text" id="promoCodeInput" class="form-control rounded-start-pill px-3" placeholder="Ví dụ: COFFEE2024">
+                            <button class="btn btn-orange rounded-end-pill px-3 fw-bold" type="button" id="applyVoucherBtn">ÁP DỤNG</button>
+                        </div>
+                        <div id="voucherStatus" class="small text-danger d-none"></div>
+                    </div>
+                </div>
+            </div>
+
             <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
                 <div class="card-body p-4">
                     <h5 class="fw-bold mb-4">Tóm tắt đơn hàng</h5>
 
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted small">Tạm tính</span>
-                        <span class="fw-bold">@Model.SubTotal.ToString("N0")đ</span>
+                        <span class="fw-bold"><span id="subTotalText">@Model.SubTotal.ToString("N0")</span>đ</span>
                     </div>
                     <div class="d-flex justify-content-between mb-3">
                         <span class="text-muted small">Phí vận chuyển (dự kiến)</span>
-                        <span class="fw-bold">@currentShippingFee.ToString("N0")đ</span>
+                        <span class="fw-bold"><span id="shippingFeeText">15,000</span>đ</span>
                     </div>
 
-                    @if (Model.Discount > 0)
-                    {
-                        <div class="d-flex justify-content-between mb-3">
-                            <span class="text-muted small">Giảm giá</span>
-                            <span class="fw-bold text-success">-@Model.Discount.ToString("N0")đ</span>
-                        </div>
-                    }
+                    <div class="d-flex justify-content-between mb-3 d-none" id="voucherRow">
+                        <span class="text-muted small">Voucher giảm giá</span>
+                        <span class="fw-bold text-success">-<span id="voucherDiscountText">0</span>đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 d-none" id="memberDiscountRow">
+                        <span class="text-muted small">Giảm giá thành viên</span>
+                        <span class="fw-bold text-success">-<span id="memberDiscountText">0</span>đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 d-none" id="pointRow">
+                        <span class="text-muted small">Dùng điểm tích lũy</span>
+                        <span class="fw-bold text-success">-<span id="pointDiscountText">0</span>đ</span>
+                    </div>
 
                     <hr class="opacity-10 my-4">
 
                     <div class="d-flex justify-content-between mb-4 align-items-center">
                         <span class="fw-bold fs-6">Tổng cộng</span>
-                        <span class="fw-bold fs-4 text-orange">@finalTotal.ToString("N0")đ</span>
+                        <span class="fw-bold fs-4 text-orange"><span id="finalTotalText">@finalTotal.ToString("N0")</span>đ</span>
                     </div>
 
                     <button class="btn btn-orange w-100 rounded-3 py-3 fw-bold mb-3 shadow-sm border-0" @(!Model.Items.Any() ? "disabled" : "")>
@@ -156,6 +222,114 @@
     </style>
 
     <script>
+        // --- POS VOCUHER SYSTEM LOGIC ---
+        let currentCustomerId = 0;
+        let subtotal = @Model.SubTotal;
+        let shippingFee = 15000;
+        let voucherDiscount = 0;
+        let pointDiscount = 0;
+        let userPoints = 0;
+
+        function updateUI() {
+            const finalTotal = subtotal + shippingFee - voucherDiscount - pointDiscount;
+            
+            // Cập nhật text summary
+            $('#voucherDiscountText').text(voucherDiscount.toLocaleString());
+            if(voucherDiscount > 0) $('#voucherRow').removeClass('d-none'); else $('#voucherRow').addClass('d-none');
+
+            $('#pointDiscountText').text(pointDiscount.toLocaleString());
+            if(pointDiscount > 0) $('#pointRow').removeClass('d-none'); else $('#pointRow').addClass('d-none');
+
+            $('#finalTotalText').text(finalTotal.toLocaleString());
+            $('#pointDiscountValue').text(pointDiscount.toLocaleString() + 'đ');
+        }
+
+        // AC1: Tra cứu khách hàng
+        $('#lookupBtn').click(function() {
+            const phone = $('#customerPhone').val();
+            if(!phone) return;
+            
+            $.get('/api/Pos/customer-lookup', { phone: phone }, function(res) {
+                if(res.found) {
+                    currentCustomerId = res.customerId;
+                    userPoints = res.points;
+                    $('#customerName').text(res.fullName);
+                    $('#customerRank').text(res.rank);
+                    $('#customerPointsDisplay').text(res.points.toLocaleString());
+                    
+                    $('#customerInfo').removeClass('d-none');
+                    $('#registerPrompt').addClass('d-none');
+                    $('#phoneLookupSection').addClass('d-none');
+                } else {
+                    currentCustomerId = 0;
+                    $('#regPhone').val(phone);
+                    $('#registerPrompt').removeClass('d-none');
+                    $('#customerInfo').addClass('d-none');
+                }
+            });
+        });
+
+        // AC1: Đăng ký nhanh
+        $(document).on('click', '#confirmRegisterBtn', function() {
+            const name = $('#regFullName').val();
+            const phone = $('#regPhone').val();
+            if(!name) { alert('Vui lòng nhập tên'); return; }
+
+            $.ajax({
+                url: '/api/Pos/quick-register',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ fullName: name, phone: phone }),
+                success: function(res) {
+                    $('#quickRegisterModal').modal('hide');
+                    $('#customerPhone').val(phone);
+                    // Re-trigger lookup to login
+                    setTimeout(() => $('#lookupBtn').click(), 500);
+                }
+            });
+        });
+
+        // AC2: Sử dụng điểm
+        $('#usePoints').change(function() {
+            if($(this).is(':checked')) {
+                pointDiscount = Math.min(userPoints, subtotal - voucherDiscount);
+                $('#pointUsageInfo').removeClass('d-none');
+            } else {
+                pointDiscount = 0;
+                $('#pointUsageInfo').addClass('d-none');
+            }
+            updateUI();
+        });
+
+        // AC3: Áp dụng Voucher
+        $('#applyVoucherBtn').click(function() {
+            const code = $('#promoCodeInput').val();
+            if(!code) return;
+
+            $.ajax({
+                url: '/api/Pos/validate-voucher',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    code: code, 
+                    customerId: currentCustomerId, 
+                    subTotal: subtotal 
+                }),
+                success: function(res) {
+                    if(res.success) {
+                        voucherDiscount = res.discountAmount;
+                        if($('#usePoints').is(':checked')) {
+                            pointDiscount = Math.min(userPoints, subtotal - voucherDiscount);
+                        }
+                        $('#voucherStatus').text(res.message).removeClass('d-none text-danger').addClass('text-success');
+                        updateUI();
+                    } else {
+                        $('#voucherStatus').text(res.message).removeClass('d-none text-success').addClass('text-danger');
+                    }
+                }
+            });
+        });
+
         function updateQuantity(cartItemId, newQty) {
             if(newQty < 1) { removeItem(cartItemId); return; }
             $.post('/Cart/UpdateQuantity', { id: cartItemId, quantity: newQty }, function (res) {
@@ -171,4 +345,28 @@
             }
         }
     </script>
+
+    <!-- Modal Quick Register -->
+    <div class="modal fade" id="quickRegisterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">Đăng ký thành viên</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Số điện thoại</label>
+                        <input type="text" id="regPhone" class="form-control rounded-3 bg-light" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Họ và tên khách hàng</label>
+                        <input type="text" id="regFullName" class="form-control rounded-3" placeholder="Ví dụ: Nguyễn Văn A">
+                        <div class="form-text small">Chỉ cần Tên + SĐT để tích điểm ngay.</div>
+                    </div>
+                    <button type="button" class="btn btn-orange w-100 rounded-3 py-3 fw-bold mt-2" id="confirmRegisterBtn">XÁC NHẬN ĐĂNG KÝ</button>
+                </div>
+            </div>
+        </div>
+    </div>
 }

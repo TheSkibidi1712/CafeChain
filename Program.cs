@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Services;
@@ -19,6 +19,8 @@ using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Services;
+using CafeChain.Application.Interfaces.Admin.Vouchers;
+using CafeChain.Application.Services.Admin.Vouchers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Sizes;
 using CafeChain.Infrastrusture.Repositories.Admin.Sizes;
 using CafeChain.Application.Interfaces.Admin.Sizes;
@@ -90,6 +92,7 @@ builder.Services.AddHttpContextAccessor();
 // 6. Dependency Injection for Services and Repositories
 // =======================
 
+// Admin Category
 builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
 builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
 
@@ -122,6 +125,9 @@ builder.Services.AddScoped<IAdminToppingService, AdminToppingService>();
 // Admin DrinkToppings
 builder.Services.AddScoped<IAdminDrinkToppingRepository, AdminDrinkToppingRepository>();
 builder.Services.AddScoped<IAdminDrinkToppingService, AdminDrinkToppingService>();
+
+// Admin Voucher
+builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
 
 var app = builder.Build();
 

@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs;
+using CafeChain.Application.DTOs;
 using CafeChain.Application.Interfaces;
 using CafeChain.Data;
 using CafeChain.ViewModels;
@@ -24,7 +24,7 @@ namespace CafeChain.Controllers
             var viewModel = new CartViewModel
             {
                 Items = cart,
-                Discount = cart.Any() ? 10000 : 0
+                VoucherDiscount = 0
             };
             return View(viewModel);
         }

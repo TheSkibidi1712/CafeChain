@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Loyalties;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -113,10 +113,9 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasData(
-                new MemberLevel { MemberId = 1, Name = "Bronze", MinPoints = 0, MaxPoints = 999 },
-                new MemberLevel { MemberId = 2, Name = "Silver", MinPoints = 1000, MaxPoints = 4999 },
-                new MemberLevel { MemberId = 3, Name = "Gold", MinPoints = 5000, MaxPoints = 9999 },
-                new MemberLevel { MemberId = 4, Name = "Platinum", MinPoints = 10000, MaxPoints = null }
+                new MemberLevel { MemberId = 1, Name = "Bronze", MinPoints = 0, MaxPoints = 999, DiscountPercent = 0 },
+                new MemberLevel { MemberId = 2, Name = "Silver", MinPoints = 1000, MaxPoints = 4999, DiscountPercent = 5 },
+                new MemberLevel { MemberId = 3, Name = "Gold", MinPoints = 5000, MaxPoints = null, DiscountPercent = 10 }
             );
         }
     }
