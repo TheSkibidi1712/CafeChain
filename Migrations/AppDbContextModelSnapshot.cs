@@ -3099,6 +3099,9 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("MemberId"));
 
+                    b.Property<int>("DiscountPercent")
+                        .HasColumnType("int");
+
                     b.Property<int?>("MaxPoints")
                         .HasColumnType("int");
 
@@ -3121,6 +3124,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             MemberId = 1,
+                            DiscountPercent = 0,
                             MaxPoints = 999,
                             MinPoints = 0,
                             Name = "Bronze"
@@ -3128,6 +3132,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             MemberId = 2,
+                            DiscountPercent = 5,
                             MaxPoints = 4999,
                             MinPoints = 1000,
                             Name = "Silver"
@@ -3135,15 +3140,9 @@ namespace CafeChain.Migrations
                         new
                         {
                             MemberId = 3,
-                            MaxPoints = 9999,
+                            DiscountPercent = 10,
                             MinPoints = 5000,
                             Name = "Gold"
-                        },
-                        new
-                        {
-                            MemberId = 4,
-                            MinPoints = 10000,
-                            Name = "Platinum"
                         });
                 });
 
@@ -5070,6 +5069,43 @@ namespace CafeChain.Migrations
                             t.HasCheckConstraint("CK_Voucher_Date", "[StartDate] <= [EndDate]");
 
                             t.HasCheckConstraint("CK_Voucher_Discount", "(DiscountPercent IS NOT NULL AND DiscountAmount IS NULL) OR (DiscountPercent IS NULL AND DiscountAmount IS NOT NULL)");
+                        });
+
+                    b.HasData(
+                        new
+                        {
+                            VoucherId = 1,
+                            Active = true,
+                            Code = "CAFECHAIN50",
+                            DiscountPercent = 50,
+                            EndDate = new DateTime(2026, 5, 2, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9716),
+                            MaxDiscount = 20000m,
+                            MaxUsage = 100,
+                            MinOrderValue = 40000m,
+                            StartDate = new DateTime(2026, 3, 26, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9696)
+                        },
+                        new
+                        {
+                            VoucherId = 2,
+                            Active = true,
+                            Code = "GIAM10K",
+                            DiscountAmount = 10000m,
+                            EndDate = new DateTime(2026, 4, 17, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9721),
+                            MaxUsage = 500,
+                            MinOrderValue = 50000m,
+                            StartDate = new DateTime(2026, 4, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9720)
+                        },
+                        new
+                        {
+                            VoucherId = 3,
+                            Active = true,
+                            Code = "NEWUSER",
+                            DiscountPercent = 20,
+                            EndDate = new DateTime(2026, 6, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9725),
+                            MaxDiscount = 100000m,
+                            MaxUsage = 1000,
+                            MinOrderValue = 0m,
+                            StartDate = new DateTime(2026, 3, 3, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9724)
                         });
                 });
 

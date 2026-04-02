@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs;
+using CafeChain.Application.DTOs;
 
 namespace CafeChain.ViewModels
 {
@@ -9,11 +9,20 @@ namespace CafeChain.ViewModels
         // Tạm tính (Tổng tiền các món)
         public decimal SubTotal => Items.Sum(i => i.Total);
 
-        // Phí vận chuyển (Tạm gán cứng 15k như Figma, sau này có thể làm logic tính theo km)
+        // Phí vận chuyển (Tạm gán cứng 15k như Figma)
         public decimal ShippingFee { get; set; } = 15000;
 
-        // Giảm giá (Tạm gán 0, sau này ráp logic Voucher vào)
-        public decimal Discount { get; set; } = 0;
+        // Giảm giá từ Voucher
+        public decimal VoucherDiscount { get; set; } = 0;
+
+        // Giảm giá từ điểm
+        public decimal PointDiscount { get; set; } = 0;
+
+        // Số điểm dùng
+        public int PointsUsed { get; set; } = 0;
+
+        // Tổng giảm giá
+        public decimal Discount => VoucherDiscount + PointDiscount;
 
         // Tổng cộng cuối cùng
         public decimal GrandTotal => SubTotal + ShippingFee - Discount;

@@ -95,7 +95,8 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     MinPoints = table.Column<int>(type: "int", nullable: false),
-                    MaxPoints = table.Column<int>(type: "int", nullable: true)
+                    MaxPoints = table.Column<int>(type: "int", nullable: true),
+                    DiscountPercent = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1796,13 +1797,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "MemberLevels",
-                columns: new[] { "MemberId", "MaxPoints", "MinPoints", "Name" },
+                columns: new[] { "MemberId", "DiscountPercent", "MaxPoints", "MinPoints", "Name" },
                 values: new object[,]
                 {
-                    { 1, 999, 0, "Bronze" },
-                    { 2, 4999, 1000, "Silver" },
-                    { 3, 9999, 5000, "Gold" },
-                    { 4, null, 10000, "Platinum" }
+                    { 1, 0, 999, 0, "Bronze" },
+                    { 2, 5, 4999, 1000, "Silver" },
+                    { 3, 10, null, 5000, "Gold" }
                 });
 
             migrationBuilder.InsertData(
@@ -1957,6 +1957,16 @@ namespace CafeChain.Migrations
                     { 4, true, "/Images/ToppingImages/khucbachchanmeo.jpg", "Khúc bạch chân mèo", 7000m },
                     { 5, true, "/Images/ToppingImages/thachkhoaimon.jpg", "Thạch khoai môn", 6000m },
                     { 6, true, "/Images/ToppingImages/banhflan.jpg", "Bánh flan", 6000m }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Vouchers",
+                columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
+                values: new object[,]
+                {
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 2, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9716), 20000m, 100, null, 40000m, new DateTime(2026, 3, 26, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9696) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 17, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9721), null, 500, null, 50000m, new DateTime(2026, 4, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9720) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 1, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9725), 100000m, 1000, null, 0m, new DateTime(2026, 3, 3, 10, 33, 15, 75, DateTimeKind.Local).AddTicks(9724) }
                 });
 
             migrationBuilder.InsertData(

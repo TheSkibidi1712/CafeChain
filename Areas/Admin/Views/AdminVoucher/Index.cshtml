@@ -1,0 +1,433 @@
+@using CafeChain.ViewModels.Admin.Vouchers
+@model VoucherDashboardViewModel
+@{
+    ViewData["Title"] = "Quản lý Voucher";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            Swal.fire('Thành công', '@TempData["Success"]', 'success');
+        });
+    </script>
+}
+
+@if (TempData["Error"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            Swal.fire('Thất bại', '@TempData["Error"]', 'error');
+        });
+    </script>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-1 mt-4">
+    <div>
+        <h2 style="font-weight: 700; color: #343a40;">Quản lý Voucher</h2>
+        <p class="text-muted" style="font-size: 14px;">Thiết lập chương trình ưu đãi và hạng thành viên</p>
+    </div>
+    <button type="button" class="btn text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#addVoucherModal" style="background-color: #d93d20; border-radius: 8px; padding: 10px 20px; font-weight: 600;">
+        <i class="fas fa-plus me-2"></i>Thêm Voucher mới
+    </button>
+</div>
+
+<!-- Voucher Table -->
+<div class="card border-0 shadow-sm mb-5" style="border-radius: 12px; overflow: hidden;">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" style="font-size: 14px; vertical-align: middle;">
+            <thead class="bg-light text-muted" style="font-size: 11px; text-transform: uppercase; font-weight: 600;">
+                <tr>
+                    <th class="border-0 py-3 px-4">Mã Voucher</th>
+                    <th class="border-0 py-3">Chiết khấu</th>
+                    <th class="border-0 py-3">Hiệu lực</th>
+                    <th class="border-0 py-3 text-end">Lượt dùng</th>
+                    <th class="border-0 py-3 text-center">Trạng thái</th>
+                    <th class="border-0 text-end px-4 py-3">Thao tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Vouchers.Any())
+                {
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted italic">Chưa có voucher nào được tạo.</td>
+                    </tr>
+                }
+                @foreach (var v in Model.Vouchers)
+                {
+                    <tr>
+                        <td class="py-3 px-4 fw-bold text-dark">@v.Code</td>
+                        <td class="py-3">
+                            @if (v.DiscountPercent.HasValue && v.DiscountPercent > 0)
+                            {
+                                <span class="fw-bold text-orange">@v.DiscountPercent%</span>
+                            }
+                            else
+                            {
+                                <span class="fw-bold text-orange">@v.DiscountAmount?.ToString("N0")đ</span>
+                            }
+                        </td>
+                        <td class="py-3 text-muted">
+                            <i class="far fa-calendar-alt me-1"></i> @v.StartDate.ToString("dd/MM") - @v.EndDate.ToString("dd/MM/yyyy")
+                        </td>
+                        <td class="py-3 text-end">
+                            <span class="fw-bold">@v.VoucherUsages?.Count</span> / @(v.MaxUsage?.ToString("N0") ?? "∞")
+                        </td>
+                        <td class="py-3 text-center">
+                            @if (!v.Active)
+                            {
+                                <span class="badge bg-light text-danger" style="padding: 6px 12px; border-radius: 6px;">Đã khóa</span>
+                            }
+                            else if (v.EndDate < DateTime.Now)
+                            {
+                                <span class="badge bg-light text-muted" style="padding: 6px 12px; border-radius: 6px;">Hết hạn</span>
+                            }
+                            else if (v.StartDate > DateTime.Now)
+                            {
+                                <span class="badge bg-light text-warning" style="padding: 6px 12px; border-radius: 6px; color: #f08c00;">Sắp diễn ra</span>
+                            }
+                            else
+                            {
+                                <span class="badge" style="background-color: #e6fcf5; color: #0ca678; padding: 6px 12px; border-radius: 6px; font-weight: 500;">Đang hoạt động</span>
+                            }
+
+                        </td>
+                        <td class="text-end px-4 py-3">
+                            <button class="btn btn-sm text-primary p-1" onclick="editVoucher(@v.VoucherId)" title="Sửa"><i class="fas fa-pen"></i></button>
+                            <button class="btn btn-sm @(v.Active ? "text-danger" : "text-success") p-1 ms-2" onclick="toggleVoucher(@v.VoucherId, @(v.Active ? "true" : "false"))" title="@(v.Active ? "Khóa" : "Kích hoạt")">
+                                <i class="fas @(v.Active ? "fa-lock" : "fa-unlock-alt")"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Membership Ranks -->
+<div class="row align-items-center mb-3">
+    <div class="col">
+        <h4 class="fw-bold mb-0">Cấu hình cấp độ thành viên</h4>
+    </div>
+</div>
+
+<div class="row g-4 mb-5 justify-content-center">
+    @foreach (var level in Model.MemberLevels.OrderBy(l => (l.Name ?? "").ToLower() == "bronze" ? 1 : (l.Name ?? "").ToLower() == "silver" ? 2 : (l.Name ?? "").ToLower() == "gold" ? 3 : 4).Take(3))
+    {
+        var rankColor = level.Name switch {
+            "Bronze" => "#cd7f32",
+            "Silver" => "#adb5bd",
+            "Gold" => "#f1c40f",
+            _ => "#d93d20"
+        };
+        var rankBg = level.Name switch {
+            "Bronze" => "#fff3ed",
+            "Silver" => "#f8f9fa",
+            "Gold" => "#fff9db",
+            _ => "#e3f2fd"
+        };
+
+        <div class="col-md-4">
+            <div class="card border-0 shadow-sm rounded-4 text-center p-4 h-100 @(level.Name == "Silver" ? "border-orange" : "")" @(level.Name == "Silver" ? "style=border:2px_solid_#d93d20!important;" : "")>
+                <div class="mb-3 d-flex justify-content-center">
+                    <div class="avatar-rank" style="background: @rankBg; width: 60px; height: 60px; border-radius: 50%; display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-medal fa-2x" style="color: @rankColor;"></i>
+                    </div>
+                </div>
+                <div class="badge bg-light text-dark align-self-center mb-2 px-3">HẠNG @(level.Name?.ToUpper() ?? "CHƯA XÁC ĐỊNH")</div>
+                <h5 class="fw-bold">@level.Name</h5>
+                <div class="mt-4 bg-light rounded-3 p-3 text-start">
+                    <div class="small text-muted mb-1 text-center">Yêu cầu điểm</div>
+                    <div class="fw-bold text-center">@((level.MinPoints).ToString("N0")) <span class="small fw-normal">đ</span></div>
+                </div>
+                <div class="mt-2 bg-light rounded-3 p-3 text-start mb-4">
+                    <div class="small text-muted mb-1 text-center">Mức ưu đãi</div>
+                    <div class="fw-bold text-center text-orange">@level.DiscountPercent%</div>
+                </div>
+                <button class="btn btn-light w-100 rounded-3 fw-bold border text-muted py-2 mt-auto" 
+                        onclick="editMemberLevel(@level.MemberId, '@level.Name', @level.MinPoints, @level.DiscountPercent)">
+                    CẬP NHẬT
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="row g-4 mb-5">
+    <div class="col-md-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 text-white position-relative overflow-hidden" style="background: linear-gradient(135deg, #d93d20 0%, #ff7e5f 100%); min-height: 180px;">
+            <div class="position-relative z-1">
+                <div class="small opacity-75 fw-bold mb-1 uppercase">HIỆU QUẢ MARKETING</div>
+                <h4 class="fw-bold mb-4">Số liệu thực tế tháng này</h4>
+                <div class="row text-start mt-auto">
+                    <div class="col-6 border-end border-white border-opacity-25">
+                        <div class="fs-2 fw-bold">@(Model.TotalUsedCount.ToString("N0"))</div>
+                        <div class="small opacity-75">Voucher đã dùng</div>
+                    </div>
+                    <div class="col-6 ps-4">
+                        <div class="fs-2 fw-bold">@Model.ConversionRate.ToString("N1")%</div>
+                        <div class="small opacity-75">Tỉ lệ chuyển đổi</div>
+                    </div>
+                </div>
+            </div>
+            <i class="fas fa-chart-line position-absolute bottom-0 end-0 m-4 opacity-10" style="font-size: 100px;"></i>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 h-100">
+            <h5 class="fw-bold mb-4">Cài đặt quy đổi điểm</h5>
+            <div class="alert alert-light border border-dashed d-flex justify-content-between align-items-center mb-3 px-4 py-3 rounded-4" style="border-style: dashed !important; background: #fafafa;">
+                <div>
+                    <div class="small text-muted mb-1">Quy tắc hiện tại</div>
+                    <div class="fw-bold text-dark" id="currentPointRule">10,000đ = 1 điểm</div>
+                </div>
+                <button class="btn btn-sm fw-bold px-3 border bg-white" onclick="editPointRule()">THAY ĐỔI</button>
+            </div>
+            <p class="small text-muted mb-0"><i class="fas fa-info-circle me-1 text-primary"></i>Hệ thống tự động cộng điểm sau mỗi đơn hàng hoàn tất.</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Add/Edit Voucher -->
+<div class="modal fade" id="addVoucherModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4">
+                <h5 class="fw-bold" id="voucherModalTitle">Thêm Voucher mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="voucherForm" method="post" action="/Admin/AdminVoucher/Create">
+                <input type="hidden" name="VoucherId" id="vId">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Mã Voucher</label>
+                        <input type="text" name="Code" id="vCode" class="form-control rounded-3" placeholder="Ví dụ: SUMMER2026" required>
+                    </div>
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Loại chiết khấu</label>
+                            <select id="discountType" class="form-select rounded-3">
+                                <option value="percent">Phần trăm (%)</option>
+                                <option value="amount">Số tiền cố định (đ)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="percentInput">
+                            <label class="form-label small fw-bold">Phần trăm giảm</label>
+                            <input type="number" name="DiscountPercent" id="vPercent" class="form-control rounded-3" max="100" min="0">
+                        </div>
+                        <div class="col-md-6 d-none" id="amountInput">
+                            <label class="form-label small fw-bold">Số tiền giảm</label>
+                            <input type="number" name="DiscountAmount" id="vAmount" class="form-control rounded-3">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6" id="maxDiscountContainer">
+                            <label class="form-label small fw-bold">Giảm tối đa (đ)</label>
+                            <input type="number" name="MaxDiscount" id="vMaxDiscount" class="form-control rounded-3">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Đơn tối thiểu (đ)</label>
+                            <input type="number" name="MinOrderValue" id="vMinOrder" class="form-control rounded-3">
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Ngày bắt đầu</label>
+                            <input type="date" name="StartDate" id="vStart" class="form-control rounded-3" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Ngày kết thúc</label>
+                            <input type="date" name="EndDate" id="vEnd" class="form-control rounded-3" required>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Tổng lượt dùng</label>
+                            <input type="number" name="MaxUsage" id="vMaxUsage" class="form-control rounded-3">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Mỗi người tối đa</label>
+                            <input type="number" name="MaxUsagePerUser" id="vMaxPerUser" class="form-control rounded-3">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light rounded-3 fw-bold px-4" data-bs-dismiss="modal">HỦY</button>
+                    <button type="submit" class="btn text-white rounded-3 fw-bold px-4 shadow-sm" style="background-color: #d93d20;">LƯU VOUCHER</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Member Level -->
+<div class="modal fade" id="editMemberLevelModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 text-center d-block">
+                <h5 class="fw-bold mb-0 text-orange">Cập nhật hạng <span id="editRankName"></span></h5>
+            </div>
+            <form action="/Admin/AdminVoucher/UpdateMemberLevel" method="post">
+                <input type="hidden" name="MemberId" id="editMemberId">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Điểm yêu cầu (đ)</label>
+                        <input type="number" name="MinPoints" id="editMinPoints" class="form-control rounded-3 shadow-sm" required>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label small fw-bold">Phần trăm ưu đãi (%)</label>
+                        <input type="number" name="DiscountPercent" id="editDiscountPercent" class="form-control rounded-3 shadow-sm" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 pb-4 px-4">
+                    <button type="button" class="btn btn-light rounded-3 fw-bold flex-grow-1" data-bs-dismiss="modal">HỦY</button>
+                    <button type="submit" class="btn text-white rounded-3 fw-bold flex-grow-1 shadow-sm" style="background-color: #d93d20;">CẬP NHẬT</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Point Rule -->
+<div class="modal fade" id="pointRuleModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 16px;">
+            <div class="modal-header border-0 pb-0 pt-4 px-4 text-center d-block">
+                <h5 class="fw-bold mb-0">Cài đặt quy đổi điểm</h5>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="mb-3">
+                    <label class="form-label small fw-bold">Số tiền cho 1 điểm (đ)</label>
+                    <input type="number" id="pointAmount" class="form-control rounded-3 text-center fs-5 fw-bold" value="10000">
+                </div>
+                <p class="small text-muted">Ví dụ: Nhập 20000 nghĩa là 20.000đ được tích 1 điểm.</p>
+            </div>
+            <div class="modal-footer border-0 pb-4 px-4">
+                <button type="button" class="btn btn-light rounded-3 fw-bold flex-grow-1" data-bs-dismiss="modal">HỦY</button>
+                <button type="button" onclick="savePointRule()" class="btn text-white rounded-3 fw-bold flex-grow-1 shadow-sm" style="background-color: #d93d20;">LƯU LẠI</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        .text-orange { color: #d93d20; }
+        .bg-orange { background-color: #d93d20; }
+        .border-orange { border-color: #d93d20 !important; }
+        .uppercase { text-transform: uppercase; }
+        .form-control:focus, .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.25rem rgba(217, 61, 32, 0.1); }
+        .btn-orange:hover { background-color: #b32e18 !important; }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        $(document).ready(function() {
+            $('#vStart').on('change', function() {
+                var minDate = $(this).val();
+                $('#vEnd').attr('min', minDate);
+            });
+
+            $('#discountType').on('change', function() {
+                if ($(this).val() === 'percent') {
+                    $('#percentInput').removeClass('d-none');
+                    $('#amountInput').addClass('d-none');
+                    $('#maxDiscountContainer').show();
+                } else {
+                    $('#percentInput').addClass('d-none');
+                    $('#amountInput').removeClass('d-none');
+                    $('#maxDiscountContainer').hide();
+                    $('#vMaxDiscount').val(''); // Clear max discount when fixed amount
+                }
+            });
+        });
+
+        const formatter = new Intl.NumberFormat('en-US');
+
+        function editVoucher(id) {
+            $.get('/Admin/AdminVoucher/GetVoucherJson/' + id, function(data) {
+                $('#voucherModalTitle').text('Chỉnh sửa Voucher');
+                $('#vId').val(data.voucherId);
+                $('#vCode').val(data.code);
+                if (data.discountPercent) {
+                    $('#discountType').val('percent').trigger('change');
+                    $('#vPercent').val(data.discountPercent);
+                } else {
+                    $('#discountType').val('amount').trigger('change');
+                    $('#vAmount').val(data.discountAmount);
+                }
+                $('#vMaxDiscount').val(data.maxDiscount);
+                $('#vMinOrder').val(data.minOrderValue);
+                $('#vStart').val(data.startDate.split('T')[0]);
+                $('#vEnd').val(data.endDate.split('T')[0]);
+                $('#vMaxUsage').val(data.maxUsage);
+                $('#vMaxPerUser').val(data.maxUsagePerUser);
+                $('#addVoucherModal').modal('show');
+            });
+        }
+
+        function editMemberLevel(id, name, min, discount) {
+            $('#editMemberId').val(id);
+            $('#editRankName').text(name);
+            $('#editMinPoints').val(min);
+            $('#editDiscountPercent').val(discount);
+            $('#editMemberLevelModal').modal('show');
+        }
+
+        function editPointRule() {
+            $('#pointRuleModal').modal('show');
+        }
+
+        function savePointRule() {
+            var amt = $('#pointAmount').val();
+            $('#currentPointRule').text(formatter.format(amt) + 'đ = 1 điểm');
+            $('#pointRuleModal').modal('hide');
+            Swal.fire('Thành công', 'Đã lưu cài đặt điểm quy đổi mới!', 'success');
+        }
+
+        function toggleVoucher(id, isActive) {
+            const title = isActive ? 'Khóa Voucher?' : 'Kích hoạt Voucher?';
+            const text = isActive ? "Voucher này sẽ không thể sử dụng cho đến khi được kích hoạt lại!" : "Voucher sẽ bắt đầu có hiệu lực lại ngay lập tức!";
+            const confirmText = isActive ? 'Đồng ý khóa' : 'Đồng ý kích hoạt';
+            const confirmColor = isActive ? '#d93d20' : '#198754';
+
+            Swal.fire({
+                title: title,
+                text: text,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: confirmColor,
+                cancelButtonColor: '#adb5bd',
+                confirmButtonText: confirmText,
+                cancelButtonText: 'Hủy'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        url: '/Admin/AdminVoucher/ToggleStatus/' + id,
+                        type: 'POST',
+                        success: function(data) {
+                            if (data.success) {
+                                Swal.fire(
+                                    isActive ? 'Đã khóa' : 'Đã kích hoạt', 
+                                    isActive ? 'Voucher đã được tắt trạng thái thành công!' : 'Voucher đã hoạt động trở lại!', 
+                                    'success'
+                                ).then(() => {
+                                    location.reload();
+                                });
+                            }
+                        }
+                    });
+                }
+            })
+        }
+    </script>
+}
