@@ -1,0 +1,96 @@
+@model IEnumerable<CafeChain.Application.DTOs.Admin.Ingredients.AdminIngredientDTO>
+
+@{
+    ViewData["Title"] = "Quản lý Nguyên Liệu";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Quản lý Nguyên Liệu</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item active">Danh sách Nguyên Liệu</li>
+    </ol>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-box-open me-1"></i>
+                Danh sách Nguyên Liệu
+            </div>
+            <a asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Thêm mới
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover align-middle" id="datatablesSimple">
+                <thead class="table-light">
+                    <tr>
+                        <th>Mã NL</th>
+                        <th>Tên Nguyên Liệu</th>
+                        <th>Đơn vị tính</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td><span class="badge bg-secondary font-monospace">@item.Code</span></td>
+                            <td class="fw-bold">@item.Name</td>
+                            <td><span class="badge bg-info text-dark">@item.BaseUnit</span></td>
+                            <td>
+                                @if (item.Active)
+                                {
+                                    <span class="badge bg-success">Đang dùng</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Ngừng dùng</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <a asp-action="Edit" asp-route-id="@item.IngredientId"
+                                   class="btn btn-sm btn-outline-primary" title="Sửa">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <button type="button"
+                                        class="btn btn-sm @(item.Active ? "btn-outline-danger" : "btn-outline-success") btn-toggle-ingredient"
+                                        data-id="@item.IngredientId"
+                                        title="@(item.Active ? "Ngừng dùng" : "Kích hoạt")">
+                                    <i class="fas @(item.Active ? "fa-ban" : "fa-check-circle")"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).on('click', '.btn-toggle-ingredient', function () {
+            var id = $(this).data('id');
+            if (!confirm("Xác nhận thay đổi trạng thái nguyên liệu này?")) return;
+
+            $.post('@Url.Action("ToggleStatus", "AdminIngredient")', { id: id }, function (res) {
+                if (res.success) {
+                    location.reload();
+                } else {
+                    alert(res.message);
+                }
+            });
+        });
+    </script>
+}

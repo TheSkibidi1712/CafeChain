@@ -1,0 +1,89 @@
+@model CafeChain.ViewModels.Admin.Ingredients.AdminIngredientEditViewModel
+
+@{
+    ViewData["Title"] = "Sửa Nguyên Liệu";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Sửa Nguyên Liệu</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Nguyên Liệu</a></li>
+        <li class="breadcrumb-item active">Chỉnh sửa</li>
+    </ol>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <i class="fas fa-edit me-1"></i> Chỉnh sửa Nguyên Liệu
+                </div>
+                <div class="card-body">
+                    <form asp-action="Edit" method="post">
+                        @Html.AntiForgeryToken()
+                        <input asp-for="IngredientUpdateDTO.IngredientId" type="hidden" />
+
+                        @if (!ViewData.ModelState.IsValid && ViewData.ModelState.Values.Any(v => v.Errors.Count > 0))
+                        {
+                            <div class="alert alert-danger">
+                                <ul class="mb-0">
+                                    @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                                    {
+                                        <li>@error.ErrorMessage</li>
+                                    }
+                                </ul>
+                            </div>
+                        }
+
+                        <div class="mb-3">
+                            <label asp-for="IngredientUpdateDTO.Code" class="form-label fw-semibold">
+                                Mã nguyên liệu <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="IngredientUpdateDTO.Code" class="form-control"
+                                   style="text-transform:uppercase;" />
+                            <span asp-validation-for="IngredientUpdateDTO.Code" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IngredientUpdateDTO.Name" class="form-label fw-semibold">
+                                Tên nguyên liệu <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="IngredientUpdateDTO.Name" class="form-control" />
+                            <span asp-validation-for="IngredientUpdateDTO.Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="IngredientUpdateDTO.BaseUnit" class="form-label fw-semibold">
+                                Đơn vị tính <span class="text-danger">*</span>
+                            </label>
+                            <input asp-for="IngredientUpdateDTO.BaseUnit" class="form-control" />
+                            <span asp-validation-for="IngredientUpdateDTO.BaseUnit" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Trạng thái</label>
+                            <div class="form-check form-switch">
+                                <input asp-for="IngredientUpdateDTO.Active" class="form-check-input" type="checkbox" role="switch" />
+                                <label asp-for="IngredientUpdateDTO.Active" class="form-check-label">Đang hoạt động</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Lưu thay đổi
+                            </button>
+                            <a asp-action="Index" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Quay lại
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
