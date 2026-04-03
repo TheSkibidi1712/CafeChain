@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Services;
@@ -39,6 +39,14 @@ using CafeChain.Application.Interfaces.Admin.Drinks;
 using CafeChain.Application.Services.Admin.Drinks;
 using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
 using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
+using CafeChain.Application.Interfaces.Admin.Ingredients;
+using CafeChain.Application.Services.Admin.Ingredients;
+using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
+using CafeChain.Infrastrusture.Repositories.Admin.Ingredients;
+using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Services.Admin.Suppliers;
+using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
+using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,6 +138,14 @@ builder.Services.AddScoped<IAdminDrinkToppingService, AdminDrinkToppingService>(
 // Admin Drinks
 builder.Services.AddScoped<IAdminDrinkRepository, AdminDrinkRepository>();
 builder.Services.AddScoped<IAdminDrinkService, AdminDrinkService>();
+
+// Admin Ingredients
+builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
+builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
+
+// Admin Suppliers
+builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
+builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
 var app = builder.Build();
 
