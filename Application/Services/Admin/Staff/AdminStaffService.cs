@@ -52,6 +52,10 @@ namespace CafeChain.Application.Services.Admin.Staff
 
             // Filter Roles dựa theo quyền hạn thực tế (UX Filter như Tech Lead yêu cầu)
             var roles = await _repository.GetRolesForDropdownAsync(null);
+            
+            // Bỏ trường Khách hàng ra khỏi form Quản lý Nhân sự (nhân sự không bao giờ là Khách hàng)
+            roles = roles.Where(r => r.RoleId != ROLE_CUSTOMER).ToList();
+
             if (isStoreManager && !isAdmin)
             {
                 // Store Manager chỉ được tạo: Shift Supervisor (9) và Cashier (10)

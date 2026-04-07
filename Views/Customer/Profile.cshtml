@@ -48,8 +48,10 @@
                     <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-clock-history me-3"></i> Lịch sử đơn hàng</a>
                     <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-gift me-3"></i> Ưu đãi của tôi</a>
                     <hr class="my-3 opacity-10">
-                    <form asp-controller="Account" asp-action="Logout" method="post">
-                        <button type="submit" class="btn btn-light w-100 rounded-3 py-2 text-danger fw-bold"><i class="bi bi-box-arrow-right me-2"></i> Đăng xuất tài khoản</button>
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0 p-0">
+                        <button type="submit" class="btn btn-light w-100 rounded-3 py-2 text-danger fw-bold">
+                            <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất tài khoản
+                        </button>
                     </form>
                 </div>
             </div>
