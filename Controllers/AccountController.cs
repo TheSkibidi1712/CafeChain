@@ -26,6 +26,10 @@ namespace CafeChain.Controllers
         [HttpGet]
         public IActionResult Register()
         {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home"); // hoặc dashboard
+            }
             return View();
         }
 
@@ -33,6 +37,11 @@ namespace CafeChain.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home"); // hoặc dashboard
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(model);
@@ -68,6 +77,11 @@ namespace CafeChain.Controllers
         [HttpGet]
         public IActionResult Login()
         {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home"); // hoặc dashboard
+            }
+
             return View(new LoginViewModel());
         }
 
@@ -75,6 +89,11 @@ namespace CafeChain.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
+            if (User.Identity != null && User.Identity.IsAuthenticated)
+            {
+                return RedirectToAction("Index", "Home"); // hoặc dashboard
+            }
+
             if (!ModelState.IsValid)
                 return View(model);
 

@@ -48,7 +48,7 @@ namespace CafeChain.Models.Stores
         public virtual ICollection<StoreDrink> StoreDrinks { get; set; } = new List<StoreDrink>();
         public virtual ICollection<StoreTopping> StoreToppings { get; set; } = new List<StoreTopping>();
         public virtual ICollection<StoreInventory> StoreInventories { get; set; } = new List<StoreInventory>();
-        public virtual ICollection<StockImport> StockImports { get; set; } = new List<StockImport>();
+        public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; } = new List<InventoryDocument>();
         public virtual ICollection<Shift> Shifts { get; set; } = new List<Shift>();
         public virtual ICollection<CashSession> CashSessions { get; set; } = new List<CashSession>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();

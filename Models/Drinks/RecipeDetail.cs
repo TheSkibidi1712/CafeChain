@@ -14,10 +14,11 @@ namespace CafeChain.Models.Drinks
 
         public decimal Quantity { get; set; }
 
-        public string Unit { get; set; }
+        public int UnitId { get; set; }
         // kg, gram, ml...
 
         // Navigation
+        public virtual Unit Unit { get; set; }
         public virtual Recipe Recipe { get; set; }
         public virtual Ingredient Ingredient { get; set; }
         public virtual Recipe ChildRecipe { get; set; }

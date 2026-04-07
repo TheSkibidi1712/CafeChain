@@ -75,15 +75,10 @@ namespace CafeChain.Data
         public DbSet<InventoryTransaction> InventoryTransaction { get; set; }
         public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
-        public DbSet<StockImport> StocksImport { get; set; }
-        public DbSet<StockImportDetail> StockImportDetails { get; set; }
-        public DbSet<StockTake> StockTakes { get; set; }
-        public DbSet<StockTakeDetail> StockTakeDetails { get; set; }
+        public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
         public DbSet<Supplier> Suppliers { get; set; }
+        public DbSet<Unit> Units { get; set; }
         public DbSet<UnitConversion> UnitConversations { get; set; }
-        public DbSet<Waste> Wastes { get; set; }
-        public DbSet<WasteDetail> WasteDetails { get; set; }
-        public DbSet<WasteReason> WasteReasons { get; set; }
 
 
         // ========================= PAYMENT =========================

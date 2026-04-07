@@ -495,7 +495,14 @@ namespace CafeChain.Data.Configurations
     {
         public void Configure(EntityTypeBuilder<RecipeDetail> entity)
         {
-            entity.ToTable("RecipeDetails");
+            entity.ToTable("RecipeDetails", t =>
+            {
+                t.HasCheckConstraint(
+                    "CK_RecipeDetail_OnlyOneSource",
+                    @"(IngredientId IS NOT NULL AND ChildRecipeId IS NULL)
+                    OR (IngredientId IS NULL AND ChildRecipeId IS NOT NULL)"
+                );
+            });
 
             entity.HasKey(x => x.RecipeDetailId);
 
@@ -504,9 +511,8 @@ namespace CafeChain.Data.Configurations
                 .HasColumnType("decimal(18,3)")
                 .IsRequired();
 
-            entity.Property(x => x.Unit)
-                .IsRequired()
-                .HasMaxLength(50);
+            entity.Property(x => x.UnitId)
+                .IsRequired();
 
             // ================= RELATIONSHIPS =================
 
@@ -520,20 +526,15 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 🔥 FIX THIẾU: ChildRecipe
             entity.HasOne(x => x.ChildRecipe)
                 .WithMany()
                 .HasForeignKey(x => x.ChildRecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ================= CONSTRAINT QUAN TRỌNG =================
-
-            // 🔥 BẮT BUỘC: chỉ được 1 trong 2
-            entity.ToTable(t => t.HasCheckConstraint(
-                "CK_RecipeDetail_OnlyOneSource",
-                @"(IngredientId IS NOT NULL AND ChildRecipeId IS NULL)
-           OR (IngredientId IS NULL AND ChildRecipeId IS NOT NULL)"
-            ));
+            entity.HasOne(x => x.Unit)
+                .WithMany()
+                .HasForeignKey(x => x.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             // ================= INDEX =================
 
@@ -545,41 +546,51 @@ namespace CafeChain.Data.Configurations
                 .IsUnique()
                 .HasFilter("[ChildRecipeId] IS NOT NULL");
 
-            // ================= SEED (GIỮ NGUYÊN) =================
+            entity.HasIndex(x => x.UnitId); // 🔥 thêm để optimize
+
+            // ================= SEED =================
+
             entity.HasData(
-                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+                // ===== Recipe 1 =====
+                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m, UnitId = 3 }, // ml
+                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m, UnitId = 3 },
 
-                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+                // ===== Recipe 2 =====
+                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m, UnitId = 3 },
 
-                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+                // ===== Recipe 3 =====
+                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m, UnitId = 3 },
 
-                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m, Unit = "ml" },
-                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m, Unit = "ml" },
+                // ===== Recipe 4 =====
+                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m, UnitId = 3 },
 
-                new RecipeDetail { RecipeDetailId = 15, RecipeId = 5, IngredientId = 11, Quantity = 100m, Unit = "g" }, // bột năng
-                new RecipeDetail { RecipeDetailId = 16, RecipeId = 5, IngredientId = 12, Quantity = 50m, Unit = "g" },  // đường nâu
-                new RecipeDetail { RecipeDetailId = 17, RecipeId = 5, IngredientId = 13, Quantity = 60m, Unit = "ml" },  // nước
+                // ===== Recipe 5 (g) =====
+                new RecipeDetail { RecipeDetailId = 15, RecipeId = 5, IngredientId = 11, Quantity = 100m, UnitId = 1 }, // g
+                new RecipeDetail { RecipeDetailId = 16, RecipeId = 5, IngredientId = 12, Quantity = 50m, UnitId = 1 },
+                new RecipeDetail { RecipeDetailId = 17, RecipeId = 5, IngredientId = 13, Quantity = 60m, UnitId = 3 },
 
-                new RecipeDetail { RecipeDetailId = 18, RecipeId = 6, IngredientId = 11, Quantity = 100m, Unit = "g" }, // bột năng
-                new RecipeDetail { RecipeDetailId = 19, RecipeId = 6, IngredientId = 14, Quantity = 40m, Unit = "g" },  // đường trắng
-                new RecipeDetail { RecipeDetailId = 20, RecipeId = 6, IngredientId = 13, Quantity = 60m, Unit = "ml" },  // nước
+                // ===== Recipe 6 =====
+                new RecipeDetail { RecipeDetailId = 18, RecipeId = 6, IngredientId = 11, Quantity = 100m, UnitId = 1 },
+                new RecipeDetail { RecipeDetailId = 19, RecipeId = 6, IngredientId = 6, Quantity = 40m, UnitId = 1 },
+                new RecipeDetail { RecipeDetailId = 20, RecipeId = 6, IngredientId = 13, Quantity = 60m, UnitId = 3 },
 
+                // ===== Child recipe =====
                 new RecipeDetail
                 {
                     RecipeDetailId = 21,
                     RecipeId = 3,
-                    ChildRecipeId = 5, // trân châu đen
+                    ChildRecipeId = 5,
                     Quantity = 1,
-                    Unit = "portion"
+                    UnitId = 1 // hoặc tạo unit "portion"
                 }
             );
         }

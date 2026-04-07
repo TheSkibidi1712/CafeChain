@@ -26,7 +26,7 @@ namespace CafeChain.Models.Staffs
         public virtual ICollection<StaffScope> StaffScopes { get; set; }
         public virtual ICollection<StaffShift> StaffShifts { get; set; }
         public virtual ICollection<CashSession> CashSessions { get; set; }
-        public virtual ICollection<StockImport> StockImports { get; set; }
+        public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; }
         public virtual ICollection<StaffPhone> StaffPhones { get; set; }
         public virtual ICollection<StaffAddress> StaffAddresses { get; set; }
     }

@@ -6,11 +6,17 @@
 
         public int IngredientId { get; set; }
 
-        public string FromUnit { get; set; } // kg
-        public string ToUnit { get; set; }   // gram
+        // 🔹 Đơn vị nguồn
+        public int FromUnitId { get; set; }
+        public decimal FromQuantity { get; set; } // ví dụ: 1
 
-        public decimal Ratio { get; set; }
+        // 🔹 Đơn vị đích
+        public int ToUnitId { get; set; }
+        public decimal ToQuantity { get; set; }   // ví dụ: 1000
 
-        public virtual Ingredient Ingredient { get; set; }
+        // Navigation
+        public virtual Ingredient Ingredients { get; set; } = null!;
+        public virtual Unit FromUnit { get; set; } = null!;
+        public virtual Unit ToUnit { get; set; } = null!;
     }
 }

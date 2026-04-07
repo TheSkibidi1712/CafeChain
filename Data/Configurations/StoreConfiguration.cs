@@ -39,19 +39,19 @@ namespace CafeChain.Data.Configurations
 
             // ─── Location FK relationships ─────────────────────────────────────────
             entity.HasOne(x => x.Ward)
-                .WithMany(w => w.Stores)
-                .HasForeignKey(x => x.WardId)
-                .OnDelete(DeleteBehavior.SetNull);
+            .WithMany(x => x.Stores)
+            .HasForeignKey(x => x.WardId)
+            .OnDelete(DeleteBehavior.NoAction); // 🔥 FIX
 
             entity.HasOne(x => x.District)
                 .WithMany()
                 .HasForeignKey(x => x.DistrictId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction); // 🔥 FIX
 
             entity.HasOne(x => x.Province)
                 .WithMany()
                 .HasForeignKey(x => x.ProvinceId)
-                .OnDelete(DeleteBehavior.SetNull);
+                .OnDelete(DeleteBehavior.NoAction); // 🔥 FIX
 
             // ─── Seed data ─────────────────────────────────────────────────────────
             // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql

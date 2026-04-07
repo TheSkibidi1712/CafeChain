@@ -207,12 +207,7 @@ namespace CafeChain.Data.Configurations
             // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql
             // Sau khi chạy vietnam_locations.sql, cập nhật WardId/DistrictId/ProvinceId tương ứng
             entity.HasData(
-                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A", WardId = null, IsDefault = true },
-                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D", WardId = null, IsDefault = true },
-                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G", WardId = null, IsDefault = true },
-                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J", WardId = null, IsDefault = true },
-                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M", WardId = null, IsDefault = true },
-                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P", WardId = null, IsDefault = false }
+                new CustomerAddress { CustomerAddressId = 1, CustomerId = 111, Address = "987 Đường P", WardId = null, IsDefault = false }
             );
         }
     }

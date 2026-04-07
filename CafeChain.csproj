@@ -24,6 +24,7 @@
     <Folder Include="Areas\Cashier\Controllers\" />
     <Folder Include="Infrastrusture\Interfaces\Cashiers\" />
     <Folder Include="Infrastrusture\Repositories\Cashiers\" />
+    <Folder Include="Migrations\" />
   </ItemGroup>
 
   <!-- 🔥 vietnam_locations.sql được nhúng vào assembly để Migration đọc không phụ thuộc đường dẫn OS -->

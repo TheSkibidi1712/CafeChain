@@ -14,6 +14,12 @@
 
         public bool Active { get; set; }
 
-        public virtual ICollection<StockImport> StockImports { get; set; }
+        // ================= RELATION =================
+
+        // 🔥 Giá nguyên liệu theo NCC
+        public virtual ICollection<IngredientSupplier> IngredientSuppliers { get; set; } = new List<IngredientSupplier>();
+
+        // 🔥 Liên kết phiếu nhập (InventoryDocument)
+        public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; } = new List<InventoryDocument>();
     }
 }
