@@ -1,0 +1,239 @@
+@model CafeChain.ViewModels.Admin.Staff.StaffCreateVM
+
+@{
+    var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
+    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
+    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
+    bool isStoreManager = ViewBag.IsStoreManager ?? false;
+    int currentStoreId = ViewBag.CurrentStoreId ?? 0;
+    string currentStoreName = ViewBag.CurrentStoreName ?? "";
+}
+
+<div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm nhân viên mới</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p style="color: #868e96; font-size: 13px; margin-bottom: 20px;">Điền thông tin chi tiết để cấp quyền truy cập hệ thống.</p>
+
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createStaffForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 font-weight-bold"></div>
+                    <div class="row">
+                        <!-- Avatar -->
+                        <div class="col-md-3">
+                            <label class="form-label">Ảnh đại diện</label>
+                            <div class="avatar-upload-box" id="avatarUploadBox" onclick="document.getElementById('avatarInput').click()">
+                                <img id="avatarPreview" src="" style="display:none" />
+                                <i class="fas fa-camera-retro placeholder-icon"></i>
+                                <span class="placeholder-text">Kéo thả hoặc nhấp để tải ảnh lên</span>
+                            </div>
+                            <input type="file" name="AvatarFile" id="avatarInput" accept="image/*" style="display:none" />
+                        </div>
+
+                        <!-- Form Fields -->
+                        <div class="col-md-9">
+                            <div class="row">
+                                <!-- Vai trò hệ thống -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Vai trò hệ thống <span class="text-danger">*</span></label>
+                                    <select asp-for="SelectedRoleId" class="form-select" id="roleSelect">
+                                        <option value="">-- Chọn vai trò --</option>
+                                        @if (roles != null)
+                                        {
+                                            @foreach (var role in roles)
+                                            {
+                                                <option value="@role.RoleId">@role.Name</option>
+                                            }
+                                        }
+                                    </select>
+                                    <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
+                                </div>
+
+                                <!-- Họ tên -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                    <input asp-for="FullName" class="form-control" placeholder="Nhập tên đầy đủ" />
+                                    <span asp-validation-for="FullName" class="text-danger"></span>
+                                </div>
+
+                                <!-- Email -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email đăng nhập <span class="text-danger">*</span></label>
+                                    <input asp-for="Email" class="form-control" placeholder="email@cafechain.vn" />
+                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                </div>
+
+                                <!-- Mật khẩu -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mật khẩu <span class="label-optional">(để trống = tự sinh)</span></label>
+                                    <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
+                                    <span asp-validation-for="Password" class="text-danger"></span>
+                                </div>
+
+                                <!-- CCCD -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Số CCCD <span class="label-optional">Không bắt buộc</span></label>
+                                    <input asp-for="CCCD" class="form-control" placeholder="Nhập 12 chữ số CCCD" />
+                                    <span asp-validation-for="CCCD" class="text-danger"></span>
+                                </div>
+
+                                <!-- Mã số thuế -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mã số thuế <span class="label-optional">Không bắt buộc</span></label>
+                                    <input asp-for="TaxCode" class="form-control" placeholder="Nhập mã số thuế (10-14 ký tự)" />
+                                    <span asp-validation-for="TaxCode" class="text-danger"></span>
+                                </div>
+
+                                <!-- Mức lương -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mức lương (VNĐ)</label>
+                                    <input asp-for="Salary" class="form-control" placeholder="0" step="1000" />
+                                    <span asp-validation-for="Salary" class="text-danger"></span>
+                                </div>
+
+                                <!-- Cửa hàng / Scope -->
+                                @if (isStoreManager)
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Cửa hàng</label>
+                                        <input type="text" class="form-control" value="@currentStoreName" disabled />
+                                        <input type="hidden" asp-for="StoreId" value="@currentStoreId" />
+                                        <input type="hidden" asp-for="ScopeTypeId" value="4" />
+                                        <input type="hidden" asp-for="ScopeRefId" value="@currentStoreId" />
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Cửa hàng <span class="text-danger">*</span></label>
+                                        <select asp-for="StoreId" class="form-select">
+                                            <option value="">-- Chọn cửa hàng --</option>
+                                            @if (stores != null)
+                                            {
+                                                @foreach (var store in stores)
+                                                {
+                                                    <option value="@store.StoreId">@store.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <span asp-validation-for="StoreId" class="text-danger"></span>
+                                    </div>
+                                }
+
+                                <!-- Ngày sinh -->
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày sinh</label>
+                                    <input asp-for="DateOfBirth" type="date" class="form-control" />
+                                    <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                                </div>
+
+                                @if (!isStoreManager)
+                                {
+                                    <!-- Scope Type -->
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Phạm vi quản lý</label>
+                                        <select asp-for="ScopeTypeId" class="form-select">
+                                            @if (scopeTypes != null)
+                                            {
+                                                @foreach (var st in scopeTypes)
+                                                {
+                                                    <option value="@st.ScopeTypeId">@st.Name</option>
+                                                }
+                                            }
+                                        </select>
+                                        <span asp-validation-for="ScopeTypeId" class="text-danger"></span>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label" id="scopeRefLabel">Mã tham chiếu (ScopeRefId)</label>
+                                        <select asp-for="ScopeRefId" class="form-select">
+                                            <option value="">-- Vui lòng chọn phạm vi --</option>
+                                        </select>
+                                        <span asp-validation-for="ScopeRefId" class="text-danger"></span>
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Phones dynamic -->
+                            <div class="mb-3">
+                                <label class="form-label">Số điện thoại <span class="label-optional">(tối đa 3)</span></label>
+                                <div id="phonesContainer">
+                                    <div class="dynamic-input-group">
+                                        <input type="text" name="Phones" class="form-control" placeholder="Số điện thoại chính" maxlength="15" />
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-add-input" onclick="addDynamicInput('phonesContainer', 'Phones', 3, 'Thêm số điện thoại')">
+                                    <i class="fas fa-plus"></i> Thêm số điện thoại
+                                </button>
+                            </div>
+
+                            <!-- Addresses dynamic -->
+                            <div class="mb-3">
+                                <label class="form-label">Địa chỉ <span class="label-optional">(tối đa 3)</span></label>
+                                <div id="addressesContainer">
+                                    <div class="dynamic-input-group">
+                                        <input type="text" name="Addresses" class="form-control" placeholder="Địa chỉ chính" maxlength="300" />
+                                    </div>
+                                </div>
+                                <button type="button" class="btn-add-input" onclick="addDynamicInput('addressesContainer', 'Addresses', 3, 'Thêm địa chỉ')">
+                                    <i class="fas fa-plus"></i> Thêm địa chỉ
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-3 pt-3" style="border-top: 1px solid #f0f0f0;">
+                        <button type="button" class="btn-cancel" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn-submit">Thêm nhân viên</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var createScopeTypeSelect = document.getElementById('ScopeTypeId');
+        var createScopeRefSelect = document.getElementById('ScopeRefId');
+        var createScopeRefLabel = document.getElementById('scopeRefLabel');
+
+        if (createScopeTypeSelect && createScopeRefSelect && createScopeRefLabel) {
+            
+            function updateCreateLabel() {
+                var text = createScopeTypeSelect.options[createScopeTypeSelect.selectedIndex].text.toLowerCase();
+                var scopeTypeId = createScopeTypeSelect.value;
+                if (!scopeTypeId) return;
+
+                if (text.includes('tỉnh') || text.includes('thành phố')) {
+                    createScopeRefLabel.innerText = 'Chọn Tỉnh/Thành phố';
+                } else if (text.includes('phường') || text.includes('xã')) {
+                    createScopeRefLabel.innerText = 'Chọn Phường/Xã';
+                } else if (text.includes('cửa hàng') || text.includes('store')) {
+                    createScopeRefLabel.innerText = 'Chọn Cửa hàng';
+                } else {
+                    createScopeRefLabel.innerText = 'Mã tham chiếu (ScopeRefId)';
+                }
+
+                // AJAX Fetch
+                fetch('/Admin/AdminStaff/GetScopeReferences?scopeTypeId=' + scopeTypeId)
+                    .then(response => response.json())
+                    .then(data => {
+                        createScopeRefSelect.innerHTML = '<option value="">-- Vui lòng chọn phạm vi --</option>';
+                        data.forEach(item => {
+                            var option = document.createElement('option');
+                            option.value = item.id;
+                            option.text = item.name;
+                            createScopeRefSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching scope references:', error));
+            }
+
+            createScopeTypeSelect.addEventListener('change', updateCreateLabel);
+            updateCreateLabel();
+        }
+    });
+</script>

@@ -30,6 +30,7 @@
         <input type="hidden" name="AccountId" value="@Model.AccountId" />
         <input type="hidden" name="Active" value="@Model.Active" />
 
+        <div asp-validation-summary="ModelOnly" class="text-danger mb-3 font-weight-bold"></div>
         <div class="row">
             <!-- Avatar -->
             <div class="col-md-3 mb-4">
@@ -48,39 +49,57 @@
                     <!-- Vai trò -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Vai trò hệ thống <span class="text-danger">*</span></label>
-                        <select name="SelectedRoleIds" class="form-select" multiple size="3">
+                        <select asp-for="SelectedRoleId" class="form-select">
+                            <option value="">-- Chọn vai trò --</option>
                             @if (roles != null)
                             {
                                 @foreach (var role in roles)
                                 {
-                                    <option value="@role.RoleId" selected="@(Model.SelectedRoleIds.Contains(role.RoleId))">@role.Name</option>
+                                    bool isSelected = Model.SelectedRoleId == role.RoleId;
+                                    if (isSelected) {
+                                        <option value="@role.RoleId" selected>@role.Name</option>
+                                    } else {
+                                        <option value="@role.RoleId">@role.Name</option>
+                                    }
                                 }
                             }
                         </select>
+                        <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
                     </div>
 
                     <!-- Họ tên -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Họ và tên <span class="text-danger">*</span></label>
-                        <input type="text" name="FullName" class="form-control" value="@Model.FullName" required />
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="text-danger"></span>
                     </div>
 
                     <!-- Email -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Email <span class="text-danger">*</span></label>
-                        <input type="email" name="Email" class="form-control" value="@Model.Email" required />
+                        <input asp-for="Email" class="form-control" />
+                        <span asp-validation-for="Email" class="text-danger"></span>
                     </div>
 
                     <!-- Mật khẩu mới -->
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mật khẩu mới <span class="label-optional">(để trống = giữ nguyên)</span></label>
                         <input type="password" name="NewPassword" class="form-control" placeholder="••••••••" />
+                        <span asp-validation-for="NewPassword" class="text-danger"></span>
+                    </div>
+
+                    <!-- CCCD -->
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Số CCCD <span class="label-optional">Không bắt buộc</span></label>
+                        <input asp-for="CCCD" class="form-control" placeholder="Nhập 12 chữ số CCCD" />
+                        <span asp-validation-for="CCCD" class="text-danger"></span>
                     </div>
 
                     <!-- Mã số thuế -->
                     <div class="col-md-6 mb-3">
-                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã số thuế / CCCD</label>
-                        <input type="text" name="TaxCode" class="form-control" value="@Model.TaxCode" />
+                        <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã số thuế <span class="label-optional">Không bắt buộc</span></label>
+                        <input asp-for="TaxCode" class="form-control" placeholder="Nhập mã số thuế (10-14 ký tự)" />
+                        <span asp-validation-for="TaxCode" class="text-danger"></span>
                     </div>
 
                     <!-- Lương -->
@@ -93,6 +112,7 @@
                             }
                         </label>
                         <input type="number" name="Salary" class="form-control" value="@Model.Salary" step="1000" @(isStoreManager ? "disabled" : "") />
+                        <span asp-validation-for="Salary" class="text-danger"></span>
                         @if (isStoreManager)
                         {
                             <input type="hidden" name="Salary" value="@Model.Salary" />
@@ -114,15 +134,17 @@
                     {
                         <div class="col-md-6 mb-3">
                             <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Cửa hàng <span class="text-danger">*</span></label>
-                            <select name="StoreId" class="form-select" required>
+                            <select asp-for="StoreId" class="form-select">
                                 @if (stores != null)
                                 {
                                     @foreach (var store in stores)
                                     {
-                                        <option value="@store.StoreId" selected="@(Model.StoreId == store.StoreId)">@store.Name</option>
+                                        <!-- Model binder selects automatically -->
+                                        <option value="@store.StoreId">@store.Name</option>
                                     }
                                 }
                             </select>
+                            <span asp-validation-for="StoreId" class="text-danger"></span>
                         </div>
                     }
 
@@ -130,6 +152,7 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Ngày sinh</label>
                         <input type="date" name="DateOfBirth" class="form-control" value="@(Model.DateOfBirth?.ToString("yyyy-MM-dd"))" />
+                        <span asp-validation-for="DateOfBirth" class="text-danger"></span>
                     </div>
 
                     @if (!isStoreManager)
@@ -145,10 +168,14 @@
                                     }
                                 }
                             </select>
+                            <span asp-validation-for="ScopeTypeId" class="text-danger"></span>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label class="form-label" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã tham chiếu (ScopeRefId)</label>
-                            <input type="number" name="ScopeRefId" class="form-control" value="@Model.ScopeRefId" />
+                            <label class="form-label" id="editScopeRefLabel" style="font-weight:600; font-size:12px; text-transform:uppercase; color:#d93d20;">Mã tham chiếu (ScopeRefId)</label>
+                            <select name="ScopeRefId" class="form-select" data-selected="@Model.ScopeRefId">
+                                <option value="">-- Vui lòng chọn phạm vi --</option>
+                            </select>
+                            <span asp-validation-for="ScopeRefId" class="text-danger"></span>
                         </div>
                     }
                 </div>
@@ -268,5 +295,49 @@
             Swal.fire({ title: 'Thành công!', text: '@TempData["Success"]', icon: 'success', timer: 2000, showConfirmButton: false });
             </text>
         }
+
+        // Logic đổi Label Scope Reflex động cho Edit View
+        var scopeTypeSelect = document.querySelector('select[name="ScopeTypeId"]');
+        var scopeRefLabel = document.getElementById('editScopeRefLabel');
+        var scopeRefSelect = document.querySelector('select[name="ScopeRefId"]');
+
+        if (scopeTypeSelect && scopeRefLabel && scopeRefSelect) {
+            function updateLabel() {
+                var text = scopeTypeSelect.options[scopeTypeSelect.selectedIndex]?.text.toLowerCase() || '';
+                var scopeTypeId = scopeTypeSelect.value;
+                if (!scopeTypeId) return;
+
+                if (text.includes('tỉnh') || text.includes('thành phố')) {
+                    scopeRefLabel.innerText = 'Chọn Tỉnh/Thành phố';
+                } else if (text.includes('phường') || text.includes('xã')) {
+                    scopeRefLabel.innerText = 'Chọn Phường/Xã';
+                } else if (text.includes('cửa hàng') || text.includes('store')) {
+                    scopeRefLabel.innerText = 'Chọn Cửa hàng';
+                } else {
+                    scopeRefLabel.innerText = 'Mã tham chiếu (ScopeRefId)';
+                }
+
+                // AJAX Fetch
+                fetch('/Admin/AdminStaff/GetScopeReferences?scopeTypeId=' + scopeTypeId)
+                    .then(response => response.json())
+                    .then(data => {
+                        var selectedVal = scopeRefSelect.getAttribute('data-selected');
+                        scopeRefSelect.innerHTML = '<option value="">-- Vui lòng chọn phạm vi --</option>';
+                        data.forEach(item => {
+                            var option = document.createElement('option');
+                            option.value = item.id;
+                            option.text = item.name;
+                            if(selectedVal == item.id) {
+                                option.selected = true;
+                            }
+                            scopeRefSelect.appendChild(option);
+                        });
+                    })
+                    .catch(error => console.error('Error fetching scope references:', error));
+            }
+            scopeTypeSelect.addEventListener('change', updateLabel);
+            updateLabel(); // call once on load
+        }
     </script>
+    <partial name="_ValidationScriptsPartial" />
 }

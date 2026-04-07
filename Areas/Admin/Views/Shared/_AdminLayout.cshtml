@@ -1,3 +1,4 @@
+@using CafeChain.Helpers
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -107,30 +108,31 @@
             </div>
         </div>
 
-        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Dashboard" ? "active" : "")"><i
-                class="fas fa-border-all"></i> Dashboard</a>
-        <a href="/Admin/AdminCategory"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminCategory" ? "active" : "")"><i
-                class="fas fa-list"></i> Quản lý danh mục</a>
-        <a href="#"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminRecipe" ? "active" : "")"><i
-                class="fas fa-file-alt"></i> Quản lý công thức</a>
-        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSize" ? "active" : "")"><i
-                class="fas fa-coffee"></i> Quản lý size & topping</a>
-        <a href="/Admin/AdminStaff"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminStaff" ? "active" : "")"><i
-                class="fas fa-users"></i> Quản lý nhân sự</a>
-        <a href="#"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminInventory" ? "active" : "")"><i
-                class="fas fa-box"></i> Quản lý tồn kho</a>
-        <a href="#"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminVoucher" ? "active" : "")"><i
-                class="fas fa-gift"></i> Quản lý voucher</a>
-        <a href="#" class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminOrder" ? "active" : "")"><i
-                class="fas fa-receipt"></i> Quản lý đơn hàng</a>
-        <a href="#"
-            class="@(ViewContext.RouteData.Values["controller"]?.ToString() == "AdminSetting" ? "active" : "")"><i
-                class="fas fa-cog"></i> Cài đặt</a>
+        <a asp-area="Admin" asp-controller="Admin" asp-action="Index" class="@Html.IsActive("Admin")"><i class="fas fa-border-all"></i> Dashboard</a>
+        
+        <!-- Parent Menu DEMO: Quản lý sản phẩm -->
+        <a href="#collapseProducts" data-bs-toggle="collapse" 
+           aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping") != "" ? "true" : "false")"
+           class="@Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping")">
+            <i class="fas fa-boxes"></i> Sản phẩm <i class="fas fa-chevron-down ms-auto" style="font-size: 10px; width: auto; float: right; margin-top: 5px;"></i>
+        </a>
+        <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping", cssClass: "show")" id="collapseProducts">
+            <div style="background-color: #fafafa; border-left: 2px solid #e9ecef; margin-left: 20px;">
+                <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Danh mục</a>
+                <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Đồ uống</a>
+                <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Size</a>
+                <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Topping</a>
+            </div>
+        </div>
+        <!-- End DEMO -->
+
+        <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-leaf"></i> Quản lý nguyên liệu</a>
+        <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà CC</a>
+        <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân sự</a>
+        <a href="#" class="@Html.IsActive("AdminInventory")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
+        <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
+        <a href="#" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+        <a href="#" class="@Html.IsActive("AdminSetting")"><i class="fas fa-cog"></i> Cài đặt</a>
     </div>
 
     <div class="main-content">

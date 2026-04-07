@@ -47,5 +47,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staff
         Task<bool> TaxCodeExistsAsync(string taxCode, int? excludeStaffId = null);
         Task<bool> HasOpenCashSessionAsync(int staffId);
         Task<bool> HasActiveShiftAsync(int staffId);
+        Task<bool> CCCDExistsAsync(string cccd, int? excludeStaffId = null);
     }
 }

@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Orders;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -81,12 +81,12 @@ namespace CafeChain.Data.Configurations
                 new Order
                 {
                     OrderId = 1,
-                    CustomerId = 1,
+                    CustomerId = 111,
                     StoreId = 1,
                     OrderStatusId = 3,
                     OrderTypeId = 1,
                     TableId = 1,
-                    StaffId = 1,
+                    StaffId = 108,
                     Source = "POS",
                     Note = "",
 
@@ -101,12 +101,12 @@ namespace CafeChain.Data.Configurations
                 new Order
                 {
                     OrderId = 2,
-                    CustomerId = 2,
+                    CustomerId = 111,
                     StoreId = 1,
                     OrderStatusId = 2,
                     OrderTypeId = 2,
                     TableId = null,
-                    StaffId = 2,
+                    StaffId = 109,
                     Source = "APP",
                     Note = "Ít đá",
 
@@ -121,12 +121,12 @@ namespace CafeChain.Data.Configurations
                 new Order
                 {
                     OrderId = 3,
-                    CustomerId = 3,
+                    CustomerId = 111,
                     StoreId = 2,
                     OrderStatusId = 1,
                     OrderTypeId = 3,
                     TableId = 3,
-                    StaffId = 3,
+                    StaffId = 110,
                     Source = "POS",
                     Note = "",
 

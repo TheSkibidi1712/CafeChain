@@ -11,6 +11,7 @@ namespace CafeChain.Models.Staffs
         public int AccountId { get; set; }
         public string FullName { get; set; }
         public string? TaxCode { get; set; }
+        public string? CCCD { get; set; }
         public decimal? Salary { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int StoreId { get; set; }

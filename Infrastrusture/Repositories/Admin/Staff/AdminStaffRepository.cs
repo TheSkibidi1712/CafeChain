@@ -335,5 +335,17 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staff
                 await _context.SaveChangesAsync();
             }
         }
+
+        // 🔥 CCCD Uniqueness Check (Filtered — bỏ qua NULL/empty)
+        public async Task<bool> CCCDExistsAsync(string cccd, int? excludeStaffId = null)
+        {
+            if (string.IsNullOrWhiteSpace(cccd)) return false;
+
+            if (excludeStaffId.HasValue)
+                return await _context.Staffs.AnyAsync(s =>
+                    s.CCCD == cccd && s.StaffId != excludeStaffId.Value);
+
+            return await _context.Staffs.AnyAsync(s => s.CCCD == cccd);
+        }
     }
 }

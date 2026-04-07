@@ -14,7 +14,7 @@ namespace CafeChain.Application.Interfaces.Admin.Staff
         Task<ServiceResult> ToggleStaffStatusAsync(int staffId, ClaimsPrincipal user);
 
         // 🔥 Thin Controller: Master data cho dropdown forms
-        Task<StaffFormMasterDataVM> GetMasterDataForFormAsync(int? storeId);
+        Task<StaffFormMasterDataVM> GetMasterDataForFormAsync(ClaimsPrincipal user);
 
         // 🔥 Thin Controller: Avatar upload logic di chuyển xuống Service
         Task<string> SaveAvatarAsync(IFormFile file);

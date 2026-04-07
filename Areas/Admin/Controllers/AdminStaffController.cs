@@ -1,19 +1,24 @@
 using CafeChain.Application.Interfaces.Admin.Staff;
 using CafeChain.ViewModels.Admin.Staff;
+using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Roles = "Admin System, Store Manager")]
+    [Authorize(Policy = "RequireAdminPanelAccess")]
     public class AdminStaffController : Controller
     {
         private readonly IAdminStaffService _staffService;
+        private readonly AppDbContext _dbContext;
 
-        public AdminStaffController(IAdminStaffService staffService)
+        public AdminStaffController(IAdminStaffService staffService, AppDbContext dbContext)
         {
             _staffService = staffService;
+            _dbContext = dbContext;
         }
 
         // ==================== HELPER: Gom logic đọc Claims ====================
@@ -28,9 +33,9 @@ namespace CafeChain.Areas.Admin.Controllers
             return null;
         }
 
-        private async Task SetViewBagFromMasterData(int? storeId)
+        private async Task SetViewBagFromMasterData(ClaimsPrincipal user)
         {
-            var masterData = await _staffService.GetMasterDataForFormAsync(storeId);
+            var masterData = await _staffService.GetMasterDataForFormAsync(user);
             ViewBag.Roles = masterData.Roles;
             ViewBag.Stores = masterData.Stores;
             ViewBag.ScopeTypes = masterData.ScopeTypes;
@@ -44,7 +49,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var storeId = GetCurrentManagerStoreId();
             var model = await _staffService.GetStaffIndexPageAsync(page, 6, storeId, search, roleFilter, User);
-            await SetViewBagFromMasterData(storeId);
+            await SetViewBagFromMasterData(User);
             return View(model);
         }
 
@@ -53,6 +58,12 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(StaffCreateVM model)
         {
+            if (!ModelState.IsValid)
+            {
+                await SetViewBagFromMasterData(User);
+                return PartialView("_CreateStaffModal", model);
+            }
+
             var result = await _staffService.CreateStaffAsync(model, User, model.AvatarFile);
 
             if (!result.IsSuccess)
@@ -71,7 +82,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var model = await _staffService.GetStaffForEditAsync(id);
             if (model == null) return NotFound();
 
-            await SetViewBagFromMasterData(GetCurrentManagerStoreId());
+            await SetViewBagFromMasterData(User);
             return View(model);
         }
 
@@ -82,6 +93,12 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (id != model.StaffId) return BadRequest();
 
+            if (!ModelState.IsValid)
+            {
+                await SetViewBagFromMasterData(User);
+                return View(model);
+            }
+
             try
             {
                 var result = await _staffService.UpdateStaffAsync(model, User, model.AvatarFile);
@@ -89,7 +106,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 if (!result.IsSuccess)
                 {
                     TempData["Error"] = result.Message;
-                    await SetViewBagFromMasterData(GetCurrentManagerStoreId());
+                    await SetViewBagFromMasterData(User);
                     return View(model);
                 }
 
@@ -117,6 +134,40 @@ namespace CafeChain.Areas.Admin.Controllers
             catch (UnauthorizedAccessException ex)
             {
                 return Json(new { success = false, message = ex.Message });
+            }
+        }
+        
+        // ==================== DYNAMIC DROPDOWN API ====================
+        [HttpGet]
+        public async Task<IActionResult> GetScopeReferences(int scopeTypeId)
+        {
+            try
+            {
+                if (scopeTypeId == 1) // HQ
+                {
+                    return Json(new[] { new { id = 1, name = "Trụ sở chính" } });
+                }
+                else if (scopeTypeId == 2) // Province
+                {
+                    var provinces = await _dbContext.Provinces.Select(p => new { id = p.ProvinceId, name = p.Name }).ToListAsync();
+                    return Json(provinces);
+                }
+                else if (scopeTypeId == 3) // Ward
+                {
+                    var wards = await _dbContext.Wards.Select(w => new { id = w.WardId, name = w.Name }).ToListAsync();
+                    return Json(wards);
+                }
+                else if (scopeTypeId == 4) // Store
+                {
+                    var stores = await _dbContext.Stores.Where(s => s.Active).Select(s => new { id = s.StoreId, name = s.Name }).ToListAsync();
+                    return Json(stores);
+                }
+
+                return Json(new object[] { });
+            }
+            catch
+            {
+                return Json(new object[] { });
             }
         }
     }

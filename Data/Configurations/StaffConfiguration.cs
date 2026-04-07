@@ -22,7 +22,11 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(200);
 
             entity.Property(x => x.TaxCode)
-                .HasMaxLength(50);
+                .HasMaxLength(14);
+
+            entity.Property(x => x.CCCD)
+                .HasMaxLength(12)
+                .IsFixedLength(true);
 
             entity.Property(x => x.Salary)
                 .HasColumnType("decimal(18,2)");
@@ -57,189 +61,24 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.StoreId);
 
             entity.HasIndex(x => x.TaxCode)
-                .HasFilter("[TaxCode] IS NOT NULL");
+                .IsUnique()
+                .HasFilter("[TaxCode] IS NOT NULL AND [TaxCode] <> ''");
+
+            entity.HasIndex(x => x.CCCD)
+                .IsUnique()
+                .HasFilter("[CCCD] IS NOT NULL AND [CCCD] <> ''");
 
             entity.HasData(
-                new Staff
-                {
-                    StaffId = 1,
-                    AccountId = 6,
-                    FullName = "Nguyễn Văn A",
-                    TaxCode = "TAX001",
-                    Salary = 8000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 2,
-                    AccountId= 7,
-                    FullName = "Trần Thị B",
-                    TaxCode = "TAX002",
-                    Salary = 10000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 3,
-                    AccountId = 8,
-                    FullName = "Lê Văn C",
-                    TaxCode = "TAX003",
-                    Salary = 12000000,
-                    StoreId = 2,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 4,
-                    AccountId = 9,
-                    FullName = "Phạm Thị D",
-                    TaxCode = "TAX004",
-                    Salary = 14000000,
-                    StoreId = 2,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 5,
-                    AccountId = 10,
-                    FullName = "Hoàng Văn E",
-                    TaxCode = "TAX005",
-                    Salary = 9000000,
-                    StoreId = 3,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 6,
-                    AccountId= 11,
-                    FullName = "Đỗ Thị F",
-                    TaxCode = "TAX006",
-                    Salary = 7000000,
-                    StoreId = 3,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 7,
-                    AccountId = 12,
-                    FullName = "Nguyễn Văn G",
-                    TaxCode = "TAX007",
-                    Salary = 8500000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 8,
-                    AccountId = 13,
-                    FullName = "Trần Văn H",
-                    TaxCode = "TAX008",
-                    Salary = 9500000,
-                    StoreId = 2,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 9,
-                    AccountId = 14,
-                    FullName = "Lý Thị I",
-                    TaxCode = "TAX009",
-                    Salary = 6000000,
-                    StoreId = 3,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 10,
-                    AccountId= 15,
-                    FullName = "Admin Tổng",
-                    TaxCode = "TAX010",
-                    Salary = 16000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 11,
-                    AccountId = 17,
-                    FullName = "Admin Hệ Thống",
-                    TaxCode = "TAX011",
-                    Salary = 39999999,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 12,
-                    AccountId = 18,
-                    FullName = "Admin Phường",
-                    TaxCode = "TAX012",
-                    Salary = 10000000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 13,
-                    AccountId = 19,
-                    FullName = "Admin Tỉnh",
-                    TaxCode = "TAX013",
-                    Salary = 20000000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 14,
-                    AccountId = 20,
-                    FullName = "Admin Chi Nhánh",
-                    TaxCode = "TAX014",
-                    Salary = 3000000000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                },
-                new Staff
-                {
-                    StaffId = 15,
-                    AccountId = 21,
-                    FullName = "Thu Ngân",
-                    TaxCode = "TAX015",
-                    Salary = 200000,
-                    StoreId = 1,
-                    Active = true,
-                    AvatarUrl = "/Images/Upload/avtdf.jpg",
-                    CreatedAt = new DateTime(2024, 1, 1)
-                }
+                new Staff { StaffId = 101, AccountId = 101, FullName = "Super Admin System", TaxCode = "TAX101", Salary = 50000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 102, AccountId = 102, FullName = "CEO Director", TaxCode = "TAX102", Salary = 100000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 103, AccountId = 103, FullName = "CFO Finance", TaxCode = "TAX103", Salary = 80000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 104, AccountId = 104, FullName = "Marketing Manager", TaxCode = "TAX104", Salary = 40000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 105, AccountId = 105, FullName = "Operations Manager", TaxCode = "TAX105", Salary = 45000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 106, AccountId = 106, FullName = "HR Manager", TaxCode = "TAX106", Salary = 35000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", Salary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", Salary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", Salary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", Salary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
             );
         }
     }
@@ -269,9 +108,9 @@ namespace CafeChain.Data.Configurations
                 .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
 
             entity.HasData(
-                new StaffBank { StaffBankId = 1, StaffId = 1, BankName = "Vietcombank", AccountNumber = "123456789" },
-                new StaffBank { StaffBankId = 2, StaffId = 2, BankName = "ACB", AccountNumber = "987654321" },
-                new StaffBank { StaffBankId = 3, StaffId = 3, BankName = "Techcombank", AccountNumber = "456123789" }
+                new StaffBank { StaffBankId = 1, StaffId = 101, BankName = "Vietcombank", AccountNumber = "123456789" },
+                new StaffBank { StaffBankId = 2, StaffId = 102, BankName = "ACB", AccountNumber = "987654321" },
+                new StaffBank { StaffBankId = 3, StaffId = 103, BankName = "Techcombank", AccountNumber = "456123789" }
             );
         }
     }
@@ -305,23 +144,21 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasData(
-                // ===== STORE LEVEL =====
-                new StaffScope { StaffScopeId = 1, StaffId = 1, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 2, StaffId = 2, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 3, StaffId = 7, ScopeTypeId = 4, ScopeRefId = 1 },
+                // ===== SYSTEM LEVEL (Super Admin, CEO, CFO, Marketing, Operations, HR) =====
+                new StaffScope { StaffScopeId = 101, StaffId = 101, ScopeTypeId = 1, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 102, StaffId = 102, ScopeTypeId = 1, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 103, StaffId = 103, ScopeTypeId = 1, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 104, StaffId = 104, ScopeTypeId = 1, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 105, StaffId = 105, ScopeTypeId = 1, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 106, StaffId = 106, ScopeTypeId = 1, ScopeRefId = 1 },
 
-                new StaffScope { StaffScopeId = 4, StaffId = 3, ScopeTypeId = 4, ScopeRefId = 2 },
-                new StaffScope { StaffScopeId = 5, StaffId = 4, ScopeTypeId = 4, ScopeRefId = 2 },
-                new StaffScope { StaffScopeId = 6, StaffId = 8, ScopeTypeId = 4, ScopeRefId = 2 },
+                // ===== PROVINCE LEVEL (Area Manager HCM) =====
+                new StaffScope { StaffScopeId = 107, StaffId = 107, ScopeTypeId = 2, ScopeRefId = 1 },
 
-                new StaffScope { StaffScopeId = 7, StaffId = 5, ScopeTypeId = 4, ScopeRefId = 3 },
-                new StaffScope { StaffScopeId = 8, StaffId = 6, ScopeTypeId = 4, ScopeRefId = 3 },
-
-                // ===== PROVINCE LEVEL =====
-                new StaffScope { StaffScopeId = 9, StaffId = 9, ScopeTypeId = 2, ScopeRefId = 1 },
-
-                // ===== SYSTEM LEVEL =====
-                new StaffScope { StaffScopeId = 10, StaffId = 10, ScopeTypeId = 1, ScopeRefId = 1 }
+                // ===== STORE LEVEL (Store Manager, Shift Supervisor, Cashier) =====
+                new StaffScope { StaffScopeId = 108, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 109, StaffId = 109, ScopeTypeId = 4, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 110, StaffId = 110, ScopeTypeId = 4, ScopeRefId = 1 }
             );
         }
     }
@@ -442,47 +279,15 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.WorkDate);
 
             entity.HasData(
-                new StaffShift { StaffShiftId = 1, StaffId = 1, ShiftId = 1, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 },
-                new StaffShift { StaffShiftId = 2, StaffId = 2, ShiftId = 2, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 },
-                new StaffShift { StaffShiftId = 3, StaffId = 3, ShiftId = 4, WorkDate = new DateTime(2024, 1, 1), StatusId = 1 }
+                new StaffShift { StaffShiftId = 1, StaffId = 108, ShiftId = 1, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 2, StaffId = 109, ShiftId = 2, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 3, StaffId = 110, ShiftId = 4, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 }
             );
         }
     }
 
 
-    // ========================== ROLE ==========================
-    public class RoleConfiguration : IEntityTypeConfiguration<Role>
-    {
-        public void Configure(EntityTypeBuilder<Role> entity)
-        {
-            entity.ToTable("Roles");
 
-            entity.HasKey(x => x.RoleId);
-
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(100);
-
-            entity.Property(x => x.Active)
-                .HasDefaultValue(true);
-
-            entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
-
-            entity.HasIndex(x => x.Name).IsUnique();
-
-            entity.HasData(
-                new Role { RoleId = 1, Name = "Cashier", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 2, Name = "Store Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 3, Name = "Ward Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 4, Name = "Province Manager", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 5, Name = "Admin System", Active = true, CreatedAt = new DateTime(2024, 1, 1) },
-                new Role { RoleId = 6, Name = "Customer", Active = true, CreatedAt = new DateTime(2024, 1, 1) }
-            );
-        }
-    }
-
-    // ========================== STAFF SHIFT STATUS ==========================
     public class StaffShiftStatusConfiguration : IEntityTypeConfiguration<StaffShiftStatus>
     {
         public void Configure(EntityTypeBuilder<StaffShiftStatus> entity)
@@ -537,21 +342,16 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.StaffId);
 
             entity.HasData(
-                new StaffPhone { StaffPhoneId = 1, StaffId = 1, Phone = "0901000001", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 2, StaffId = 2, Phone = "0901000002", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 3, StaffId = 3, Phone = "0901000003", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 4, StaffId = 4, Phone = "0901000004", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 5, StaffId = 5, Phone = "0901000005", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000006", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 7, StaffId = 7, Phone = "0901000007", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 8, StaffId = 8, Phone = "0901000008", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 9, StaffId = 9, Phone = "0901000009", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 10, StaffId = 10, Phone = "0901000010", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 11, StaffId = 11, Phone = "0901000011", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 12, StaffId = 12, Phone = "0901000012", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 13, StaffId = 13, Phone = "0901000013", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 14, StaffId = 14, Phone = "0901000014", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 15, StaffId = 15, Phone = "0901000015", IsDefault = true }
+                new StaffPhone { StaffPhoneId = 1, StaffId = 101, Phone = "0901000101", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 2, StaffId = 102, Phone = "0901000102", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 3, StaffId = 103, Phone = "0901000103", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 4, StaffId = 104, Phone = "0901000104", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 5, StaffId = 105, Phone = "0901000105", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 6, StaffId = 106, Phone = "0901000106", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 7, StaffId = 107, Phone = "0901000107", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 8, StaffId = 108, Phone = "0901000108", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 9, StaffId = 109, Phone = "0901000109", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 10, StaffId = 110, Phone = "0901000110", IsDefault = true }
             );
         }
     }
@@ -580,9 +380,9 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.StaffId);
 
             entity.HasData(
-                new StaffAddress { StaffAddressId = 1, StaffId = 1, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },
-                new StaffAddress { StaffAddressId = 2, StaffId = 2, Address = "456 Đường Lê Lợi, Q3, TP.HCM", IsDefault = true },
-                new StaffAddress { StaffAddressId = 3, StaffId = 3, Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM", IsDefault = true }
+                new StaffAddress { StaffAddressId = 1, StaffId = 101, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 2, StaffId = 102, Address = "456 Đường Lê Lợi, Q3, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 3, StaffId = 103, Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM", IsDefault = true }
             );
         }
     }

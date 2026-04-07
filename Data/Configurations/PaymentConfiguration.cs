@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -195,7 +195,7 @@ namespace CafeChain.Data.Configurations
                 new CashSession
                 {
                     CashSessionId = 1,
-                    StaffId = 1,
+                    StaffId = 108,
                     StoreId = 1,
                     StartCash = 1000000,
                     EndCash = null,
@@ -205,7 +205,7 @@ namespace CafeChain.Data.Configurations
                 new CashSession
                 {
                     CashSessionId = 2,
-                    StaffId = 2,
+                    StaffId = 109,
                     StoreId = 1,
                     StartCash = 500000,
                     EndCash = 800000,

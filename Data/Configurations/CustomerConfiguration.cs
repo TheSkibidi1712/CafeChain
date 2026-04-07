@@ -33,28 +33,19 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey<Staff>(x => x.AccountId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // ===== CLEAN SLATE: Chỉ 11 Accounts (101-111) =====
             entity.HasData(
-                new Account { AccountId = 1, Email = "a@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 2, Email = "b@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 3, Email = "c@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 4, Email = "d@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 5, Email = "e@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 6, Email = "f@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 7, Email = "g@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 8, Email = "o@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 9, Email = "p@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 10, Email = "i@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 11, Email = "u@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 12, Email = "y@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 13, Email = "t@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 14, Email = "r@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 15, Email = "w@gmail.com", PasswordHash = "123" },
-                new Account { AccountId = 16, Email = "thesadboiz1712@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
-                new Account { AccountId = 17, Email = "anhnttb001711@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
-                new Account { AccountId = 18, Email = "AdminHeThong@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
-                new Account { AccountId = 19, Email = "AdminPhuong@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
-                new Account { AccountId = 20, Email = "AdminChiNhanh@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" },
-                new Account { AccountId = 21, Email = "ThuNgan@gmail.com", PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze" }
+                new Account { AccountId = 101, Email = "superadmin@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 102, Email = "ceo@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 103, Email = "cfo@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 104, Email = "marketing@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 105, Email = "operations@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 106, Email = "hr@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 107, Email = "areamanager@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 108, Email = "storemanager@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 109, Email = "shiftsupervisor@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 110, Email = "cashier@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 111, Email = "khachhang@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) }
             );
         }
     }
@@ -79,12 +70,18 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasData(
-                new AccountRole { AccountId = 16, RoleId = 6 },
-                new AccountRole { AccountId = 17, RoleId = 2 },
-                new AccountRole { AccountId = 18, RoleId = 5 },
-                new AccountRole { AccountId = 19, RoleId = 4 },
-                new AccountRole { AccountId = 20, RoleId = 3 },
-                new AccountRole { AccountId = 21, RoleId = 1 }
+                // ===== NEW ORG CHART ROLES MAPPING =====
+                new AccountRole { AccountId = 101, RoleId = 1 },
+                new AccountRole { AccountId = 102, RoleId = 2 },
+                new AccountRole { AccountId = 103, RoleId = 3 },
+                new AccountRole { AccountId = 104, RoleId = 4 },
+                new AccountRole { AccountId = 105, RoleId = 5 },
+                new AccountRole { AccountId = 106, RoleId = 6 },
+                new AccountRole { AccountId = 107, RoleId = 7 },
+                new AccountRole { AccountId = 108, RoleId = 8 },
+                new AccountRole { AccountId = 109, RoleId = 9 },
+                new AccountRole { AccountId = 110, RoleId = 10 },
+                new AccountRole { AccountId = 111, RoleId = 11 }
             );
         }
     }
@@ -140,14 +137,9 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.CustomerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // ================= SEED =================
+            // ===== CLEAN SLATE: Chỉ 1 Customer (111) → AccountId 111 =====
             entity.HasData(
-                new Customer { CustomerId = 1, AccountId = 1, FullName = "Nguyễn Văn A", DateOfBirth = new DateTime(2000, 12, 17), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl= "/Images/Upload/avtdf.jpg",Active = true },
-                new Customer { CustomerId = 2, AccountId = 2, FullName = "Nguyễn Văn B", DateOfBirth = new DateTime(2000, 01, 01), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
-                new Customer { CustomerId = 3, AccountId = 3, FullName = "Nguyễn Văn C", DateOfBirth = new DateTime(2000, 05, 04), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
-                new Customer { CustomerId = 4, AccountId = 4, FullName = "Nguyễn Văn D", DateOfBirth = new DateTime(2000, 04, 05), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
-                new Customer { CustomerId = 5, AccountId = 5, FullName = "Nguyễn Văn E", DateOfBirth = new DateTime(2000, 02, 26), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true },
-                new Customer { CustomerId = 6, AccountId = 16, FullName = "Nguyễn Thế Anh", DateOfBirth = new DateTime(2000, 12, 17), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true }
+                new Customer { CustomerId = 111, AccountId = 111, FullName = "Khách Hàng Mới", DateOfBirth = new DateTime(2000, 1, 1), CreatedAt = new DateTime(2025, 1, 1), AvatarUrl = "/Images/Upload/avtdf.jpg", Active = true }
             );
         }
     }
@@ -168,13 +160,9 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => new {x.Phone })
                 .IsUnique();
 
+            // ===== CLEAN SLATE: Chỉ 1 Phone cho Customer 111 =====
             entity.HasData(
-                new CustomerPhone { CustomerPhoneId = 1, CustomerId = 1, Phone = "0123456789" },
-                new CustomerPhone { CustomerPhoneId = 2, CustomerId = 2, Phone = "0987654321" },
-                new CustomerPhone { CustomerPhoneId = 3, CustomerId = 3, Phone = "0112233445" },
-                new CustomerPhone { CustomerPhoneId = 4, CustomerId = 4, Phone = "0223344556" },
-                new CustomerPhone { CustomerPhoneId = 5, CustomerId = 5, Phone = "0334455667" },
-                new CustomerPhone { CustomerPhoneId = 6, CustomerId = 1, Phone = "0445566778" }
+                new CustomerPhone { CustomerPhoneId = 1, CustomerId = 111, Phone = "0900111222" }
             );
         }
     }
@@ -198,13 +186,9 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // ===== CLEAN SLATE: Chỉ 1 Address cho Customer 111 =====
             entity.HasData(
-                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A", WardId = 6, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D", WardId = 7, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G", WardId = 4, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J", WardId = 5, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M", WardId = 1, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P", WardId = 2, IsDefault = false}
+                new CustomerAddress { CustomerAddressId = 1, CustomerId = 111, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", WardId = 1, IsDefault = true }
             );
         }
     }
@@ -229,13 +213,9 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => new { x.BankName, x.AccountNumber })
                 .IsUnique();
 
+            // ===== CLEAN SLATE: Chỉ 1 Bank cho Customer 111 =====
             entity.HasData(
-                new CustomerBank { CustomerBankId = 1, CustomerId = 1, BankName = "Vietcombank", AccountNumber = "123456789" },
-                new CustomerBank { CustomerBankId = 2, CustomerId = 2, BankName = "Techcombank", AccountNumber = "987654321" },
-                new CustomerBank { CustomerBankId = 3, CustomerId = 3, BankName = "BIDV", AccountNumber = "111222333" },
-                new CustomerBank { CustomerBankId = 4, CustomerId = 4, BankName = "Vietinbank", AccountNumber = "444555666" },
-                new CustomerBank { CustomerBankId = 5, CustomerId = 5, BankName = "Agribank", AccountNumber = "777888999" },
-                new CustomerBank { CustomerBankId = 6, CustomerId = 1, BankName = "Sacombank", AccountNumber = "222333444" }
+                new CustomerBank { CustomerBankId = 1, CustomerId = 111, BankName = "Vietcombank", AccountNumber = "111222333444" }
             );
         }
     }
@@ -253,12 +233,9 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.CustomerId).IsUnique();
 
+            // ===== CLEAN SLATE: Chỉ 1 Point cho Customer 111 =====
             entity.HasData(
-                new CustomerPoint { CustomerPointId = 1, CustomerId = 1, Points = 100 },
-                new CustomerPoint { CustomerPointId = 2, CustomerId = 2, Points = 200 },
-                new CustomerPoint { CustomerPointId = 3, CustomerId = 3, Points = 50 },
-                new CustomerPoint { CustomerPointId = 4, CustomerId = 4, Points = 0 },
-                new CustomerPoint { CustomerPointId = 5, CustomerId = 5, Points = 300 }
+                new CustomerPoint { CustomerPointId = 1, CustomerId = 111, Points = 0 }
             );
         }
     }

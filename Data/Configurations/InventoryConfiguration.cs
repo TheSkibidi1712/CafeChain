@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Inventories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -475,16 +475,16 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.ImportDate);
 
             entity.HasData(
-                new StockImport { StockImportId = 1, StoreId = 1, StaffId = 1, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập đầu ngày" },
-                new StockImport { StockImportId = 2, StoreId = 1, StaffId = 2, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập bổ sung" },
-                new StockImport { StockImportId = 3, StoreId = 2, StaffId = 1, SupplierId = 3, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập nguyên liệu" },
-                new StockImport { StockImportId = 4, StoreId = 2, StaffId = 3, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập kho" },
-                new StockImport { StockImportId = 5, StoreId = 3, StaffId = 2, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập định kỳ" },
-                new StockImport { StockImportId = 6, StoreId = 1, StaffId = 1, SupplierId = 3, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập thêm" },
-                new StockImport { StockImportId = 7, StoreId = 2, StaffId = 2, SupplierId = 4, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập hàng" },
-                new StockImport { StockImportId = 8, StoreId = 3, StaffId = 3, SupplierId = 5, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập tuần" },
-                new StockImport { StockImportId = 9, StoreId = 1, StaffId = 3, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập khẩn" },
-                new StockImport { StockImportId = 10, StoreId = 2, StaffId = 1, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập cuối ngày" }
+                new StockImport { StockImportId = 1, StoreId = 1, StaffId = 108, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập đầu ngày" },
+                new StockImport { StockImportId = 2, StoreId = 1, StaffId = 109, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập bổ sung" },
+                new StockImport { StockImportId = 3, StoreId = 2, StaffId = 108, SupplierId = 3, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập nguyên liệu" },
+                new StockImport { StockImportId = 4, StoreId = 2, StaffId = 110, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập kho" },
+                new StockImport { StockImportId = 5, StoreId = 3, StaffId = 109, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập định kỳ" },
+                new StockImport { StockImportId = 6, StoreId = 1, StaffId = 108, SupplierId = 3, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập thêm" },
+                new StockImport { StockImportId = 7, StoreId = 2, StaffId = 109, SupplierId = 4, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập hàng" },
+                new StockImport { StockImportId = 8, StoreId = 3, StaffId = 110, SupplierId = 5, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập tuần" },
+                new StockImport { StockImportId = 9, StoreId = 1, StaffId = 110, SupplierId = 1, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập khẩn" },
+                new StockImport { StockImportId = 10, StoreId = 2, StaffId = 108, SupplierId = 2, ImportDate = new DateTime(2025, 5, 1), Note = "Nhập cuối ngày" }
             );
         }
     }

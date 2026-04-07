@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260402141740_InitialCreate")]
+    [Migration("20260406134848_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -66,171 +66,91 @@ namespace CafeChain.Migrations
                     b.HasData(
                         new
                         {
-                            AccountId = 1,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "a@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 101,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "superadmin@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 2,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "b@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 102,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "ceo@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 3,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "c@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 103,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "cfo@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 4,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "d@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 104,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "marketing@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 5,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "e@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 105,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "operations@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 6,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "f@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 106,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "hr@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 7,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "g@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 107,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "areamanager@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 8,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "o@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 108,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "storemanager@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 9,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "p@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 109,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "shiftsupervisor@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 10,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "i@gmail.com",
-                            PasswordHash = "123"
+                            AccountId = 110,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "cashier@cafechain.vn",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         },
                         new
                         {
-                            AccountId = 11,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "u@gmail.com",
-                            PasswordHash = "123"
-                        },
-                        new
-                        {
-                            AccountId = 12,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "y@gmail.com",
-                            PasswordHash = "123"
-                        },
-                        new
-                        {
-                            AccountId = 13,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "t@gmail.com",
-                            PasswordHash = "123"
-                        },
-                        new
-                        {
-                            AccountId = 14,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "r@gmail.com",
-                            PasswordHash = "123"
-                        },
-                        new
-                        {
-                            AccountId = 15,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "w@gmail.com",
-                            PasswordHash = "123"
-                        },
-                        new
-                        {
-                            AccountId = 16,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "thesadboiz1712@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
-                        },
-                        new
-                        {
-                            AccountId = 17,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "anhnttb001711@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
-                        },
-                        new
-                        {
-                            AccountId = 18,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "AdminHeThong@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
-                        },
-                        new
-                        {
-                            AccountId = 19,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "AdminPhuong@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
-                        },
-                        new
-                        {
-                            AccountId = 20,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "AdminChiNhanh@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
-                        },
-                        new
-                        {
-                            AccountId = 21,
-                            Active = false,
-                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Email = "ThuNgan@gmail.com",
-                            PasswordHash = "$2a$11$XfTi8A6EOmOxWskjcLpTZePuDuB9A12QhUu/KUcCtfMVT9gjzmSze"
+                            AccountId = 111,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "khachhang@gmail.com",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
                         });
                 });
 
@@ -251,33 +171,58 @@ namespace CafeChain.Migrations
                     b.HasData(
                         new
                         {
-                            AccountId = 16,
-                            RoleId = 6
+                            AccountId = 101,
+                            RoleId = 1
                         },
                         new
                         {
-                            AccountId = 17,
+                            AccountId = 102,
                             RoleId = 2
                         },
                         new
                         {
-                            AccountId = 18,
-                            RoleId = 5
-                        },
-                        new
-                        {
-                            AccountId = 19,
-                            RoleId = 4
-                        },
-                        new
-                        {
-                            AccountId = 20,
+                            AccountId = 103,
                             RoleId = 3
                         },
                         new
                         {
-                            AccountId = 21,
-                            RoleId = 1
+                            AccountId = 104,
+                            RoleId = 4
+                        },
+                        new
+                        {
+                            AccountId = 105,
+                            RoleId = 5
+                        },
+                        new
+                        {
+                            AccountId = 106,
+                            RoleId = 6
+                        },
+                        new
+                        {
+                            AccountId = 107,
+                            RoleId = 7
+                        },
+                        new
+                        {
+                            AccountId = 108,
+                            RoleId = 8
+                        },
+                        new
+                        {
+                            AccountId = 109,
+                            RoleId = 9
+                        },
+                        new
+                        {
+                            AccountId = 110,
+                            RoleId = 10
+                        },
+                        new
+                        {
+                            AccountId = 111,
+                            RoleId = 11
                         });
                 });
 
@@ -325,63 +270,13 @@ namespace CafeChain.Migrations
                     b.HasData(
                         new
                         {
-                            CustomerId = 1,
-                            AccountId = 1,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2000, 12, 17, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn A"
-                        },
-                        new
-                        {
-                            CustomerId = 2,
-                            AccountId = 2,
+                            CustomerId = 111,
+                            AccountId = 111,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DateOfBirth = new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn B"
-                        },
-                        new
-                        {
-                            CustomerId = 3,
-                            AccountId = 3,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2000, 5, 4, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn C"
-                        },
-                        new
-                        {
-                            CustomerId = 4,
-                            AccountId = 4,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2000, 4, 5, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn D"
-                        },
-                        new
-                        {
-                            CustomerId = 5,
-                            AccountId = 5,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2000, 2, 26, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn E"
-                        },
-                        new
-                        {
-                            CustomerId = 6,
-                            AccountId = 16,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DateOfBirth = new DateTime(2000, 12, 17, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Thế Anh"
+                            FullName = "Khách Hàng Mới"
                         });
                 });
 
@@ -419,50 +314,10 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerAddressId = 1,
-                            Address = "123 Đường A",
-                            CustomerId = 1,
-                            IsDefault = true,
-                            WardId = 6
-                        },
-                        new
-                        {
-                            CustomerAddressId = 2,
-                            Address = "456 Đường D",
-                            CustomerId = 2,
-                            IsDefault = true,
-                            WardId = 7
-                        },
-                        new
-                        {
-                            CustomerAddressId = 3,
-                            Address = "789 Đường G",
-                            CustomerId = 3,
-                            IsDefault = true,
-                            WardId = 4
-                        },
-                        new
-                        {
-                            CustomerAddressId = 4,
-                            Address = "321 Đường J",
-                            CustomerId = 4,
-                            IsDefault = true,
-                            WardId = 5
-                        },
-                        new
-                        {
-                            CustomerAddressId = 5,
-                            Address = "654 Đường M",
-                            CustomerId = 5,
+                            Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM",
+                            CustomerId = 111,
                             IsDefault = true,
                             WardId = 1
-                        },
-                        new
-                        {
-                            CustomerAddressId = 6,
-                            Address = "987 Đường P",
-                            CustomerId = 1,
-                            IsDefault = false,
-                            WardId = 2
                         });
                 });
 
@@ -500,44 +355,9 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerBankId = 1,
-                            AccountNumber = "123456789",
+                            AccountNumber = "111222333444",
                             BankName = "Vietcombank",
-                            CustomerId = 1
-                        },
-                        new
-                        {
-                            CustomerBankId = 2,
-                            AccountNumber = "987654321",
-                            BankName = "Techcombank",
-                            CustomerId = 2
-                        },
-                        new
-                        {
-                            CustomerBankId = 3,
-                            AccountNumber = "111222333",
-                            BankName = "BIDV",
-                            CustomerId = 3
-                        },
-                        new
-                        {
-                            CustomerBankId = 4,
-                            AccountNumber = "444555666",
-                            BankName = "Vietinbank",
-                            CustomerId = 4
-                        },
-                        new
-                        {
-                            CustomerBankId = 5,
-                            AccountNumber = "777888999",
-                            BankName = "Agribank",
-                            CustomerId = 5
-                        },
-                        new
-                        {
-                            CustomerBankId = 6,
-                            AccountNumber = "222333444",
-                            BankName = "Sacombank",
-                            CustomerId = 1
+                            CustomerId = 111
                         });
                 });
 
@@ -573,44 +393,9 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerPhoneId = 1,
-                            CustomerId = 1,
+                            CustomerId = 111,
                             IsDefault = false,
-                            Phone = "0123456789"
-                        },
-                        new
-                        {
-                            CustomerPhoneId = 2,
-                            CustomerId = 2,
-                            IsDefault = false,
-                            Phone = "0987654321"
-                        },
-                        new
-                        {
-                            CustomerPhoneId = 3,
-                            CustomerId = 3,
-                            IsDefault = false,
-                            Phone = "0112233445"
-                        },
-                        new
-                        {
-                            CustomerPhoneId = 4,
-                            CustomerId = 4,
-                            IsDefault = false,
-                            Phone = "0223344556"
-                        },
-                        new
-                        {
-                            CustomerPhoneId = 5,
-                            CustomerId = 5,
-                            IsDefault = false,
-                            Phone = "0334455667"
-                        },
-                        new
-                        {
-                            CustomerPhoneId = 6,
-                            CustomerId = 1,
-                            IsDefault = false,
-                            Phone = "0445566778"
+                            Phone = "0900111222"
                         });
                 });
 
@@ -641,32 +426,8 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerPointId = 1,
-                            CustomerId = 1,
-                            Points = 100
-                        },
-                        new
-                        {
-                            CustomerPointId = 2,
-                            CustomerId = 2,
-                            Points = 200
-                        },
-                        new
-                        {
-                            CustomerPointId = 3,
-                            CustomerId = 3,
-                            Points = 50
-                        },
-                        new
-                        {
-                            CustomerPointId = 4,
-                            CustomerId = 4,
+                            CustomerId = 111,
                             Points = 0
-                        },
-                        new
-                        {
-                            CustomerPointId = 5,
-                            CustomerId = 5,
-                            Points = 300
                         });
                 });
 
@@ -2455,7 +2216,7 @@ namespace CafeChain.Migrations
                             StockImportId = 1,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập đầu ngày",
-                            StaffId = 1,
+                            StaffId = 108,
                             StoreId = 1,
                             SupplierId = 1
                         },
@@ -2464,7 +2225,7 @@ namespace CafeChain.Migrations
                             StockImportId = 2,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập bổ sung",
-                            StaffId = 2,
+                            StaffId = 109,
                             StoreId = 1,
                             SupplierId = 2
                         },
@@ -2473,7 +2234,7 @@ namespace CafeChain.Migrations
                             StockImportId = 3,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập nguyên liệu",
-                            StaffId = 1,
+                            StaffId = 108,
                             StoreId = 2,
                             SupplierId = 3
                         },
@@ -2482,7 +2243,7 @@ namespace CafeChain.Migrations
                             StockImportId = 4,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập kho",
-                            StaffId = 3,
+                            StaffId = 110,
                             StoreId = 2,
                             SupplierId = 1
                         },
@@ -2491,7 +2252,7 @@ namespace CafeChain.Migrations
                             StockImportId = 5,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập định kỳ",
-                            StaffId = 2,
+                            StaffId = 109,
                             StoreId = 3,
                             SupplierId = 2
                         },
@@ -2500,7 +2261,7 @@ namespace CafeChain.Migrations
                             StockImportId = 6,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập thêm",
-                            StaffId = 1,
+                            StaffId = 108,
                             StoreId = 1,
                             SupplierId = 3
                         },
@@ -2509,7 +2270,7 @@ namespace CafeChain.Migrations
                             StockImportId = 7,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập hàng",
-                            StaffId = 2,
+                            StaffId = 109,
                             StoreId = 2,
                             SupplierId = 4
                         },
@@ -2518,7 +2279,7 @@ namespace CafeChain.Migrations
                             StockImportId = 8,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập tuần",
-                            StaffId = 3,
+                            StaffId = 110,
                             StoreId = 3,
                             SupplierId = 5
                         },
@@ -2527,7 +2288,7 @@ namespace CafeChain.Migrations
                             StockImportId = 9,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập khẩn",
-                            StaffId = 3,
+                            StaffId = 110,
                             StoreId = 1,
                             SupplierId = 1
                         },
@@ -2536,7 +2297,7 @@ namespace CafeChain.Migrations
                             StockImportId = 10,
                             ImportDate = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Note = "Nhập cuối ngày",
-                            StaffId = 1,
+                            StaffId = 108,
                             StoreId = 2,
                             SupplierId = 2
                         });
@@ -3242,7 +3003,7 @@ namespace CafeChain.Migrations
                             PointTransactionId = 1,
                             BalanceAfter = 50,
                             CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
+                            CustomerId = 111,
                             ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             OrderId = 1,
                             PointTransactionTypeId = 1,
@@ -3253,7 +3014,7 @@ namespace CafeChain.Migrations
                             PointTransactionId = 2,
                             BalanceAfter = 80,
                             CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
+                            CustomerId = 111,
                             ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             OrderId = 2,
                             PointTransactionTypeId = 1,
@@ -3264,7 +3025,7 @@ namespace CafeChain.Migrations
                             PointTransactionId = 3,
                             BalanceAfter = 60,
                             CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
+                            CustomerId = 111,
                             OrderId = 2,
                             PointTransactionTypeId = 2,
                             Points = 20
@@ -3274,7 +3035,7 @@ namespace CafeChain.Migrations
                             PointTransactionId = 4,
                             BalanceAfter = 100,
                             CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 2,
+                            CustomerId = 111,
                             ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             OrderId = 3,
                             PointTransactionTypeId = 1,
@@ -3285,7 +3046,7 @@ namespace CafeChain.Migrations
                             PointTransactionId = 5,
                             BalanceAfter = 50,
                             CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 2,
+                            CustomerId = 111,
                             PointTransactionTypeId = 3,
                             Points = 50
                         });
@@ -3433,14 +3194,14 @@ namespace CafeChain.Migrations
                         {
                             OrderId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 1,
+                            CustomerId = 111,
                             Note = "",
                             OrderStatusId = 3,
                             OrderTypeId = 1,
                             PointDiscount = 0m,
                             PointsUsed = 0,
                             Source = "POS",
-                            StaffId = 1,
+                            StaffId = 108,
                             StoreId = 1,
                             SubTotal = 45000m,
                             TableId = 1,
@@ -3451,14 +3212,14 @@ namespace CafeChain.Migrations
                         {
                             OrderId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 2,
+                            CustomerId = 111,
                             Note = "Ít đá",
                             OrderStatusId = 2,
                             OrderTypeId = 2,
                             PointDiscount = 0m,
                             PointsUsed = 0,
                             Source = "APP",
-                            StaffId = 2,
+                            StaffId = 109,
                             StoreId = 1,
                             SubTotal = 60000m,
                             Total = 60000m,
@@ -3468,14 +3229,14 @@ namespace CafeChain.Migrations
                         {
                             OrderId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 3,
+                            CustomerId = 111,
                             Note = "",
                             OrderStatusId = 1,
                             OrderTypeId = 3,
                             PointDiscount = 0m,
                             PointsUsed = 0,
                             Source = "POS",
-                            StaffId = 3,
+                            StaffId = 110,
                             StoreId = 2,
                             SubTotal = 70000m,
                             TableId = 3,
@@ -3758,7 +3519,7 @@ namespace CafeChain.Migrations
                             CashSessionId = 1,
                             IsClosed = false,
                             OpenTime = new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified),
-                            StaffId = 1,
+                            StaffId = 108,
                             StartCash = 1000000m,
                             StoreId = 1
                         },
@@ -3769,7 +3530,7 @@ namespace CafeChain.Migrations
                             EndCash = 800000m,
                             IsClosed = true,
                             OpenTime = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            StaffId = 2,
+                            StaffId = 109,
                             StartCash = 500000m,
                             StoreId = 1
                         });
@@ -4012,43 +3773,78 @@ namespace CafeChain.Migrations
                         {
                             RoleId = 1,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Cashier"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Super Admin"
                         },
                         new
                         {
                             RoleId = 2,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Store Manager"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "CEO / Ban Giám đốc"
                         },
                         new
                         {
                             RoleId = 3,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Ward Manager"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Kế toán trưởng / Tài chính"
                         },
                         new
                         {
                             RoleId = 4,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Province Manager"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Giám đốc Marketing"
                         },
                         new
                         {
                             RoleId = 5,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Admin System"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Giám đốc Vận hành"
                         },
                         new
                         {
                             RoleId = 6,
                             Active = true,
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            Name = "Customer"
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Quản lý Nhân sự"
+                        },
+                        new
+                        {
+                            RoleId = 7,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Quản lý Khu vực"
+                        },
+                        new
+                        {
+                            RoleId = 8,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Cửa hàng trưởng"
+                        },
+                        new
+                        {
+                            RoleId = 9,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Ca trưởng"
+                        },
+                        new
+                        {
+                            RoleId = 10,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Thu ngân"
+                        },
+                        new
+                        {
+                            RoleId = 11,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Khách hàng"
                         });
                 });
 
@@ -4239,6 +4035,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("CCCD")
+                        .HasMaxLength(12)
+                        .HasColumnType("nchar(12)")
+                        .IsFixedLength();
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -4259,201 +4060,146 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("TaxCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(14)
+                        .HasColumnType("nvarchar(14)");
 
                     b.HasKey("StaffId");
 
                     b.HasIndex("AccountId")
                         .IsUnique();
 
+                    b.HasIndex("CCCD")
+                        .IsUnique()
+                        .HasFilter("[CCCD] IS NOT NULL AND [CCCD] <> ''");
+
                     b.HasIndex("StoreId");
 
                     b.HasIndex("TaxCode")
-                        .HasFilter("[TaxCode] IS NOT NULL");
+                        .IsUnique()
+                        .HasFilter("[TaxCode] IS NOT NULL AND [TaxCode] <> ''");
 
                     b.ToTable("Staffs", (string)null);
 
                     b.HasData(
                         new
                         {
-                            StaffId = 1,
-                            AccountId = 6,
+                            StaffId = 101,
+                            AccountId = 101,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn A",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Super Admin System",
+                            Salary = 50000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX101"
+                        },
+                        new
+                        {
+                            StaffId = 102,
+                            AccountId = 102,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "CEO Director",
+                            Salary = 100000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX102"
+                        },
+                        new
+                        {
+                            StaffId = 103,
+                            AccountId = 103,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "CFO Finance",
+                            Salary = 80000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX103"
+                        },
+                        new
+                        {
+                            StaffId = 104,
+                            AccountId = 104,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Marketing Manager",
+                            Salary = 40000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX104"
+                        },
+                        new
+                        {
+                            StaffId = 105,
+                            AccountId = 105,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Operations Manager",
+                            Salary = 45000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX105"
+                        },
+                        new
+                        {
+                            StaffId = 106,
+                            AccountId = 106,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "HR Manager",
+                            Salary = 35000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX106"
+                        },
+                        new
+                        {
+                            StaffId = 107,
+                            AccountId = 107,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Area Manager HCM",
+                            Salary = 30000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX107"
+                        },
+                        new
+                        {
+                            StaffId = 108,
+                            AccountId = 108,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Store Manager D1",
+                            Salary = 20000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX108"
+                        },
+                        new
+                        {
+                            StaffId = 109,
+                            AccountId = 109,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Shift Supervisor",
+                            Salary = 12000000m,
+                            StoreId = 1,
+                            TaxCode = "TAX109"
+                        },
+                        new
+                        {
+                            StaffId = 110,
+                            AccountId = 110,
+                            Active = true,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            FullName = "Cashier Staff",
                             Salary = 8000000m,
                             StoreId = 1,
-                            TaxCode = "TAX001"
-                        },
-                        new
-                        {
-                            StaffId = 2,
-                            AccountId = 7,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Trần Thị B",
-                            Salary = 10000000m,
-                            StoreId = 1,
-                            TaxCode = "TAX002"
-                        },
-                        new
-                        {
-                            StaffId = 3,
-                            AccountId = 8,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Lê Văn C",
-                            Salary = 12000000m,
-                            StoreId = 2,
-                            TaxCode = "TAX003"
-                        },
-                        new
-                        {
-                            StaffId = 4,
-                            AccountId = 9,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Phạm Thị D",
-                            Salary = 14000000m,
-                            StoreId = 2,
-                            TaxCode = "TAX004"
-                        },
-                        new
-                        {
-                            StaffId = 5,
-                            AccountId = 10,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Hoàng Văn E",
-                            Salary = 9000000m,
-                            StoreId = 3,
-                            TaxCode = "TAX005"
-                        },
-                        new
-                        {
-                            StaffId = 6,
-                            AccountId = 11,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Đỗ Thị F",
-                            Salary = 7000000m,
-                            StoreId = 3,
-                            TaxCode = "TAX006"
-                        },
-                        new
-                        {
-                            StaffId = 7,
-                            AccountId = 12,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Nguyễn Văn G",
-                            Salary = 8500000m,
-                            StoreId = 1,
-                            TaxCode = "TAX007"
-                        },
-                        new
-                        {
-                            StaffId = 8,
-                            AccountId = 13,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Trần Văn H",
-                            Salary = 9500000m,
-                            StoreId = 2,
-                            TaxCode = "TAX008"
-                        },
-                        new
-                        {
-                            StaffId = 9,
-                            AccountId = 14,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Lý Thị I",
-                            Salary = 6000000m,
-                            StoreId = 3,
-                            TaxCode = "TAX009"
-                        },
-                        new
-                        {
-                            StaffId = 10,
-                            AccountId = 15,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Admin Tổng",
-                            Salary = 16000000m,
-                            StoreId = 1,
-                            TaxCode = "TAX010"
-                        },
-                        new
-                        {
-                            StaffId = 11,
-                            AccountId = 17,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Admin Hệ Thống",
-                            Salary = 39999999m,
-                            StoreId = 1,
-                            TaxCode = "TAX011"
-                        },
-                        new
-                        {
-                            StaffId = 12,
-                            AccountId = 18,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Admin Phường",
-                            Salary = 10000000000m,
-                            StoreId = 1,
-                            TaxCode = "TAX012"
-                        },
-                        new
-                        {
-                            StaffId = 13,
-                            AccountId = 19,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Admin Tỉnh",
-                            Salary = 20000000000m,
-                            StoreId = 1,
-                            TaxCode = "TAX013"
-                        },
-                        new
-                        {
-                            StaffId = 14,
-                            AccountId = 20,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Admin Chi Nhánh",
-                            Salary = 3000000000m,
-                            StoreId = 1,
-                            TaxCode = "TAX014"
-                        },
-                        new
-                        {
-                            StaffId = 15,
-                            AccountId = 21,
-                            Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
-                            CreatedAt = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Thu Ngân",
-                            Salary = 200000m,
-                            StoreId = 1,
-                            TaxCode = "TAX015"
+                            TaxCode = "TAX110"
                         });
                 });
 
@@ -4490,21 +4236,21 @@ namespace CafeChain.Migrations
                             StaffAddressId = 1,
                             Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM",
                             IsDefault = true,
-                            StaffId = 1
+                            StaffId = 101
                         },
                         new
                         {
                             StaffAddressId = 2,
                             Address = "456 Đường Lê Lợi, Q3, TP.HCM",
                             IsDefault = true,
-                            StaffId = 2
+                            StaffId = 102
                         },
                         new
                         {
                             StaffAddressId = 3,
                             Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM",
                             IsDefault = true,
-                            StaffId = 3
+                            StaffId = 103
                         });
                 });
 
@@ -4543,21 +4289,21 @@ namespace CafeChain.Migrations
                             StaffBankId = 1,
                             AccountNumber = "123456789",
                             BankName = "Vietcombank",
-                            StaffId = 1
+                            StaffId = 101
                         },
                         new
                         {
                             StaffBankId = 2,
                             AccountNumber = "987654321",
                             BankName = "ACB",
-                            StaffId = 2
+                            StaffId = 102
                         },
                         new
                         {
                             StaffBankId = 3,
                             AccountNumber = "456123789",
                             BankName = "Techcombank",
-                            StaffId = 3
+                            StaffId = 103
                         });
                 });
 
@@ -4593,106 +4339,71 @@ namespace CafeChain.Migrations
                         {
                             StaffPhoneId = 1,
                             IsDefault = true,
-                            Phone = "0901000001",
-                            StaffId = 1
+                            Phone = "0901000101",
+                            StaffId = 101
                         },
                         new
                         {
                             StaffPhoneId = 2,
                             IsDefault = true,
-                            Phone = "0901000002",
-                            StaffId = 2
+                            Phone = "0901000102",
+                            StaffId = 102
                         },
                         new
                         {
                             StaffPhoneId = 3,
                             IsDefault = true,
-                            Phone = "0901000003",
-                            StaffId = 3
+                            Phone = "0901000103",
+                            StaffId = 103
                         },
                         new
                         {
                             StaffPhoneId = 4,
                             IsDefault = true,
-                            Phone = "0901000004",
-                            StaffId = 4
+                            Phone = "0901000104",
+                            StaffId = 104
                         },
                         new
                         {
                             StaffPhoneId = 5,
                             IsDefault = true,
-                            Phone = "0901000005",
-                            StaffId = 5
+                            Phone = "0901000105",
+                            StaffId = 105
                         },
                         new
                         {
                             StaffPhoneId = 6,
                             IsDefault = true,
-                            Phone = "0901000006",
-                            StaffId = 6
+                            Phone = "0901000106",
+                            StaffId = 106
                         },
                         new
                         {
                             StaffPhoneId = 7,
                             IsDefault = true,
-                            Phone = "0901000007",
-                            StaffId = 7
+                            Phone = "0901000107",
+                            StaffId = 107
                         },
                         new
                         {
                             StaffPhoneId = 8,
                             IsDefault = true,
-                            Phone = "0901000008",
-                            StaffId = 8
+                            Phone = "0901000108",
+                            StaffId = 108
                         },
                         new
                         {
                             StaffPhoneId = 9,
                             IsDefault = true,
-                            Phone = "0901000009",
-                            StaffId = 9
+                            Phone = "0901000109",
+                            StaffId = 109
                         },
                         new
                         {
                             StaffPhoneId = 10,
                             IsDefault = true,
-                            Phone = "0901000010",
-                            StaffId = 10
-                        },
-                        new
-                        {
-                            StaffPhoneId = 11,
-                            IsDefault = true,
-                            Phone = "0901000011",
-                            StaffId = 11
-                        },
-                        new
-                        {
-                            StaffPhoneId = 12,
-                            IsDefault = true,
-                            Phone = "0901000012",
-                            StaffId = 12
-                        },
-                        new
-                        {
-                            StaffPhoneId = 13,
-                            IsDefault = true,
-                            Phone = "0901000013",
-                            StaffId = 13
-                        },
-                        new
-                        {
-                            StaffPhoneId = 14,
-                            IsDefault = true,
-                            Phone = "0901000014",
-                            StaffId = 14
-                        },
-                        new
-                        {
-                            StaffPhoneId = 15,
-                            IsDefault = true,
-                            Phone = "0901000015",
-                            StaffId = 15
+                            Phone = "0901000110",
+                            StaffId = 110
                         });
                 });
 
@@ -4727,73 +4438,73 @@ namespace CafeChain.Migrations
                     b.HasData(
                         new
                         {
-                            StaffScopeId = 1,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 4,
-                            StaffId = 1
-                        },
-                        new
-                        {
-                            StaffScopeId = 2,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 4,
-                            StaffId = 2
-                        },
-                        new
-                        {
-                            StaffScopeId = 3,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 4,
-                            StaffId = 7
-                        },
-                        new
-                        {
-                            StaffScopeId = 4,
-                            ScopeRefId = 2,
-                            ScopeTypeId = 4,
-                            StaffId = 3
-                        },
-                        new
-                        {
-                            StaffScopeId = 5,
-                            ScopeRefId = 2,
-                            ScopeTypeId = 4,
-                            StaffId = 4
-                        },
-                        new
-                        {
-                            StaffScopeId = 6,
-                            ScopeRefId = 2,
-                            ScopeTypeId = 4,
-                            StaffId = 8
-                        },
-                        new
-                        {
-                            StaffScopeId = 7,
-                            ScopeRefId = 3,
-                            ScopeTypeId = 4,
-                            StaffId = 5
-                        },
-                        new
-                        {
-                            StaffScopeId = 8,
-                            ScopeRefId = 3,
-                            ScopeTypeId = 4,
-                            StaffId = 6
-                        },
-                        new
-                        {
-                            StaffScopeId = 9,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 2,
-                            StaffId = 9
-                        },
-                        new
-                        {
-                            StaffScopeId = 10,
+                            StaffScopeId = 101,
                             ScopeRefId = 1,
                             ScopeTypeId = 1,
-                            StaffId = 10
+                            StaffId = 101
+                        },
+                        new
+                        {
+                            StaffScopeId = 102,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 1,
+                            StaffId = 102
+                        },
+                        new
+                        {
+                            StaffScopeId = 103,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 1,
+                            StaffId = 103
+                        },
+                        new
+                        {
+                            StaffScopeId = 104,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 1,
+                            StaffId = 104
+                        },
+                        new
+                        {
+                            StaffScopeId = 105,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 1,
+                            StaffId = 105
+                        },
+                        new
+                        {
+                            StaffScopeId = 106,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 1,
+                            StaffId = 106
+                        },
+                        new
+                        {
+                            StaffScopeId = 107,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 2,
+                            StaffId = 107
+                        },
+                        new
+                        {
+                            StaffScopeId = 108,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 4,
+                            StaffId = 108
+                        },
+                        new
+                        {
+                            StaffScopeId = 109,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 4,
+                            StaffId = 109
+                        },
+                        new
+                        {
+                            StaffScopeId = 110,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 4,
+                            StaffId = 110
                         });
                 });
 
@@ -4843,25 +4554,25 @@ namespace CafeChain.Migrations
                         {
                             StaffShiftId = 1,
                             ShiftId = 1,
-                            StaffId = 1,
+                            StaffId = 108,
                             StatusId = 1,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            WorkDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             StaffShiftId = 2,
                             ShiftId = 2,
-                            StaffId = 2,
+                            StaffId = 109,
                             StatusId = 1,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            WorkDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             StaffShiftId = 3,
                             ShiftId = 4,
-                            StaffId = 3,
+                            StaffId = 110,
                             StatusId = 1,
-                            WorkDate = new DateTime(2024, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
+                            WorkDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -5307,11 +5018,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 2, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(711),
+                            EndDate = new DateTime(2026, 5, 6, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7216),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 3, 26, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(694)
+                            StartDate = new DateTime(2026, 3, 30, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7190)
                         },
                         new
                         {
@@ -5319,10 +5030,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 17, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(715),
+                            EndDate = new DateTime(2026, 4, 21, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7219),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 1, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(715)
+                            StartDate = new DateTime(2026, 4, 5, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7218)
                         },
                         new
                         {
@@ -5330,11 +5041,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 1, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(718),
+                            EndDate = new DateTime(2026, 6, 5, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7221),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 3, 21, 17, 39, 838, DateTimeKind.Local).AddTicks(718)
+                            StartDate = new DateTime(2026, 3, 7, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7221)
                         });
                 });
 

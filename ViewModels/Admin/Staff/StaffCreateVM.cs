@@ -13,21 +13,25 @@ namespace CafeChain.ViewModels.Admin.Staff
         [MaxLength(255)]
         public string Email { get; set; }
 
+        [Required(ErrorMessage = "Mật khẩu không được để trống")]
         [MaxLength(500)]
         public string Password { get; set; }
 
-        [MaxLength(50)]
-        public string TaxCode { get; set; }
+        public string? CCCD { get; set; }
+
+        public string? TaxCode { get; set; }
 
         public decimal? Salary { get; set; }
 
         public DateTime? DateOfBirth { get; set; }
 
-        public int StoreId { get; set; }
+        public int? StoreId { get; set; }
 
-        public List<int> SelectedRoleIds { get; set; } = new();
+        [Required(ErrorMessage = "Vui lòng chọn vai trò")]
+        public int SelectedRoleId { get; set; }
 
         // Scope
+        [Required(ErrorMessage = "Vui lòng chọn phạm vi quản lý")]
         public int ScopeTypeId { get; set; }
         public int ScopeRefId { get; set; }
 

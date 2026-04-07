@@ -103,6 +103,24 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 // =======================
 builder.Services.AddHttpContextAccessor();
 
+// =======================
+// 5.1 Authorization Policies
+// =======================
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("RequireAdminPanelAccess", policy =>
+        policy.RequireRole(
+            CafeChain.Application.Constants.RoleConstants.SuperAdmin,
+            CafeChain.Application.Constants.RoleConstants.CEO,
+            CafeChain.Application.Constants.RoleConstants.CFO,
+            CafeChain.Application.Constants.RoleConstants.MarketingManager,
+            CafeChain.Application.Constants.RoleConstants.OperationsManager,
+            CafeChain.Application.Constants.RoleConstants.HRManager,
+            CafeChain.Application.Constants.RoleConstants.AreaManager,
+            CafeChain.Application.Constants.RoleConstants.StoreManager
+        ));
+});
+
 
 // =======================
 // 6. Dependency Injection for Services and Repositories
@@ -159,6 +177,9 @@ builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 // Admin Suppliers
 builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
 builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+
+// Security
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Security.IScopeAuthorizationService, CafeChain.Application.Services.Security.ScopeAuthorizationService>();
 
 var app = builder.Build();
 

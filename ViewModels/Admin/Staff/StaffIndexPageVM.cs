@@ -1,4 +1,5 @@
 using CafeChain.ViewModels.Shared;
+using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.ViewModels.Admin.Staff
 {

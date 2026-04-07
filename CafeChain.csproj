@@ -24,7 +24,6 @@
     <Folder Include="Areas\Cashier\Controllers\" />
     <Folder Include="Infrastrusture\Interfaces\Cashiers\" />
     <Folder Include="Infrastrusture\Repositories\Cashiers\" />
-    <Folder Include="Migrations\" />
   </ItemGroup>
 
 </Project>
