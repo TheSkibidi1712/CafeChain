@@ -27,4 +27,9 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
+  <!-- 🔥 vietnam_locations.sql được nhúng vào assembly để Migration đọc không phụ thuộc đường dẫn OS -->
+  <ItemGroup>
+    <EmbeddedResource Include="Data\Seeds\vietnam_locations.sql" />
+  </ItemGroup>
+
 </Project>

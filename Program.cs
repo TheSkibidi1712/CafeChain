@@ -13,12 +13,6 @@ using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
 using CafeChain.Application.Services.Admin.Categories;
-using CafeChain.Application.Interfaces.Accounts;
-using CafeChain.Application.Services.Accounts;
-using CafeChain.Infrastrusture.Repositories.Accounts;
-using CafeChain.Infrastrusture.Interfaces.Accounts;
-using CafeChain.Application.Interfaces;
-using CafeChain.Application.Services;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Services.Admin.Vouchers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Sizes;
@@ -60,14 +54,19 @@ var builder = WebApplication.CreateBuilder(args);
 // 1. MVC
 // =======================
 builder.Services.AddControllersWithViews();
-
+builder.Services.AddMemoryCache();
 // =======================
 // 2. Database
 // =======================
+// Trong Program.cs, khi cấu hình DbContext:
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")).UseLazyLoadingProxies()
-    );
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.CommandTimeout(120) // 120 giây
+    )
+    .UseLazyLoadingProxies()
+);
+
 
 // =======================
 // 3. SESSION
@@ -125,6 +124,9 @@ builder.Services.AddScoped<ICartService, CartService>();
 // Đăng ký FileService
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+
+// Bản đồ Geocoding
+builder.Services.AddHttpClient<CafeChain.Application.Interfaces.Customers.IGeocodingService, CafeChain.Application.Services.Customers.NominatimGeocodingService>();
 
 // Admin Sizes
 builder.Services.AddScoped<IAdminSizeRepository, AdminSizeRepository>();
@@ -202,5 +204,41 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+// === 🚀 DIAGNOSTIC SCRIPT (TỰ ĐỘNG CHẨN ĐOÁN LỖI DATABASE) ===
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<CafeChain.Data.AppDbContext>();
+    var conn = dbContext.Database.GetDbConnection();
+    try
+    {
+        conn.Open();
+        using var cmd = conn.CreateCommand();
+        cmd.CommandText = @"
+            SELECT t.TABLE_NAME, 
+                   CASE WHEN c.COLUMN_NAME IS NOT NULL THEN 'TRUE' ELSE 'FALSE' END AS HasActive
+            FROM INFORMATION_SCHEMA.TABLES t
+            LEFT JOIN INFORMATION_SCHEMA.COLUMNS c 
+                   ON t.TABLE_NAME = c.TABLE_NAME AND c.COLUMN_NAME = 'Active'
+            WHERE t.TABLE_TYPE = 'BASE TABLE' 
+              AND t.TABLE_NAME IN ('Drinks', 'DrinkSizes', 'Sizes', 'DrinkCategories', 'Ratings', 'Stores', 'DrinkToppings', 'Toppings', 'DrinkDefaultToppings', 'Customers', 'Accounts', 'Staffs', 'CustomerAddresses')
+            ORDER BY HasActive DESC, t.TABLE_NAME;";
+        using var reader = cmd.ExecuteReader();
+        var outputPath = System.IO.Path.Combine(builder.Environment.ContentRootPath, "diagnostic.txt");
+        using var writer = new System.IO.StreamWriter(outputPath, false);
+        writer.WriteLine("--- SCHEMA DIAGNOSTIC ---");
+        while (reader.Read())
+        {
+            writer.WriteLine($"{reader.GetString(0)}:{reader.GetString(1)}");
+        }
+        writer.WriteLine("--- END ---");
+        Console.WriteLine("\n\n✅ ĐÃ GHI KẾT QUẢ VÀO FILE diagnostic.txt\n\n");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("LỖI GHI FILE: " + ex.Message);
+    }
+}
+// =============================================================
 
 app.Run();

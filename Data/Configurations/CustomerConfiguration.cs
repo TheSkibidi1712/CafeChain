@@ -192,19 +192,39 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(300);
 
-            // 🔥 Khai báo quan hệ với bảng Ward (Location system)
+            // ─── GPS coordinates precision ────────────────────────────────────────
+            entity.Property(x => x.Latitude)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(x => x.Longitude)
+                .HasColumnType("decimal(9,6)");
+
+            // ─── Location FK relationships (all Restrict — địa chỉ không bị xóa khi xóa Phường/Quận/Tỉnh) ───
             entity.HasOne(x => x.Ward)
                 .WithMany(w => w.CustomerAddresses)
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.District)
+                .WithMany()
+                .HasForeignKey(x => x.DistrictId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.Province)
+                .WithMany()
+                .HasForeignKey(x => x.ProvinceId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ─── Seed data ────────────────────────────────────────────────────────
+            // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql
+            // Sau khi chạy vietnam_locations.sql, cập nhật WardId/DistrictId/ProvinceId tương ứng
             entity.HasData(
-                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A", WardId = 6, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D", WardId = 7, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G", WardId = 4, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J", WardId = 5, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M", WardId = 1, IsDefault = true},
-                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P", WardId = 2, IsDefault = false}
+                new CustomerAddress { CustomerAddressId = 1, CustomerId = 1, Address = "123 Đường A", WardId = null, IsDefault = true },
+                new CustomerAddress { CustomerAddressId = 2, CustomerId = 2, Address = "456 Đường D", WardId = null, IsDefault = true },
+                new CustomerAddress { CustomerAddressId = 3, CustomerId = 3, Address = "789 Đường G", WardId = null, IsDefault = true },
+                new CustomerAddress { CustomerAddressId = 4, CustomerId = 4, Address = "321 Đường J", WardId = null, IsDefault = true },
+                new CustomerAddress { CustomerAddressId = 5, CustomerId = 5, Address = "654 Đường M", WardId = null, IsDefault = true },
+                new CustomerAddress { CustomerAddressId = 6, CustomerId = 1, Address = "987 Đường P", WardId = null, IsDefault = false }
             );
         }
     }

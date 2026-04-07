@@ -9,6 +9,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Models; 
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -102,12 +103,15 @@ namespace CafeChain.Data
         // ========================= LOCATION =========================
         public DbSet<Country> Countries { get; set; }
         public DbSet<Province> Provinces { get; set; }
+        public DbSet<District> Districts { get; set; }   // 🔥 MỚI: Cấp Quận/Huyện
         public DbSet<Ward> Wards { get; set; }
 
         // ========================= LOYALTY =========================
         public DbSet<MemberLevel> MemberLevels { get; set; }
         public DbSet<PointTransaction> PointTransactions { get; set; }
         public DbSet<PointTransactionType> PointTransactionTypes { get; set; }
+
+        public DbSet<SystemSetting> SystemSettings { get; set; }
 
         // ========================= CONFIG =========================
         protected override void OnModelCreating(ModelBuilder modelBuilder)

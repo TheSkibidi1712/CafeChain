@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260405171114_InitialBaseline")]
+    partial class InitialBaseline
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -5181,44 +5184,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.SystemSetting", b =>
-                {
-                    b.Property<int>("SettingId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettingId"));
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("SettingKey")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("SettingValue")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("SettingId");
-
-                    b.HasIndex("SettingKey")
-                        .IsUnique();
-
-                    b.ToTable("SystemSettings", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            SettingId = 1,
-                            Description = "Toạ độ trung tâm mặc định (VD: TPHCM - 10.8231, 106.6297)",
-                            SettingKey = "Map_Default_Center",
-                            SettingValue = "10.8231, 106.6297"
-                        });
-                });
-
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
                     b.Property<int>("OrderVoucherId")
@@ -5314,11 +5279,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 6, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5514),
+                            EndDate = new DateTime(2026, 5, 6, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3628),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 3, 30, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5496)
+                            StartDate = new DateTime(2026, 3, 30, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3615)
                         },
                         new
                         {
@@ -5326,10 +5291,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 21, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5518),
+                            EndDate = new DateTime(2026, 4, 21, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3632),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 5, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5518)
+                            StartDate = new DateTime(2026, 4, 5, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3631)
                         },
                         new
                         {
@@ -5337,11 +5302,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 5, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5521),
+                            EndDate = new DateTime(2026, 6, 5, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3635),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 7, 12, 17, 51, 153, DateTimeKind.Local).AddTicks(5521)
+                            StartDate = new DateTime(2026, 3, 7, 0, 11, 14, 85, DateTimeKind.Local).AddTicks(3634)
                         });
                 });
 

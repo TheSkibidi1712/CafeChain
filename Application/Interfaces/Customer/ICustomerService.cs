@@ -21,6 +21,7 @@ namespace CafeChain.Application.Interfaces.Customers
         
         // Load Location từ DB theo yêu cầu mới
         Task<List<Province>> GetProvincesAsync();
-        Task<List<Ward>> GetWardsByProvinceAsync(int provinceId);
+        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
+        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
     }
 }

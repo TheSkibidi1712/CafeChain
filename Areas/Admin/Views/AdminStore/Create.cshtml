@@ -1,0 +1,490 @@
+@model CafeChain.Models.Stores.Store
+@{
+    ViewData["Title"] = "Thêm Cửa Hàng Mới";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml"; // Giả định layout
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>@ViewData["Title"]</h2>
+    <a asp-action="Index" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Trở về danh sách</a>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<style>
+    #admin-map {
+        height: 480px;
+        width: 100%;
+        margin-top: 10px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    }
+    /* Google-style Floating Action Button */
+    .leaflet-control-locate {
+        background: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        cursor: pointer;
+        box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+    }
+    .leaflet-control-locate:hover {
+        background: #f4f4f4;
+    }
+    .leaflet-control-locate i {
+        font-size: 1.3rem; 
+        color: #0d6efd; /* Blue Google-like color */
+    }
+    /* Red Dot Pulse Animation */
+    .user-location-dot {
+        width: 14px;
+        height: 14px;
+        background-color: #ff4d4d;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        box-shadow: 0 0 5px rgba(0,0,0,0.3);
+    }
+    .user-location-dot::after {
+        content: "";
+        position: absolute;
+        top: -10px; left: -10px; right: -10px; bottom: -10px;
+        border: 4px solid #ff4d4d;
+        border-radius: 50%;
+        animation: pulse 1.8s infinite;
+        opacity: 0;
+    }
+    @@keyframes pulse {
+        0% { transform: scale(0.5); opacity: 0; }
+        50% { opacity: 0.4; }
+        100% { transform: scale(1.5); opacity: 0; }
+    }
+</style>
+
+<div class="row">
+    <div class="col-lg-6 col-md-12">
+        <form asp-action="Create" class="card shadow-sm p-4">
+            <div class="form-group mb-3">
+                <label asp-for="Name" class="fw-bold section-title">Tên Cửa Hàng <span class="text-danger">*</span></label>
+                <input asp-for="Name" class="form-control" placeholder="Ví dụ: CafeChain Quận 1..." />
+                <span asp-validation-for="Name" class="text-danger"></span>
+            </div>
+            
+            <div class="row mb-3">
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                    <label asp-for="ProvinceId" class="fw-bold">Tỉnh/Thành phố <span class="text-danger">*</span></label>
+                    <select asp-for="ProvinceId" id="ProvinceId" class="form-select" asp-items="ViewBag.Provinces" required>
+                        <option value="">-- Chọn Tỉnh/TP --</option>
+                    </select>
+                    <span asp-validation-for="ProvinceId" class="text-danger"></span>
+                </div>
+                <div class="col-12 col-md-4 mb-2 mb-md-0">
+                    <label asp-for="DistrictId" class="fw-bold">Quận/Huyện <span class="text-danger">*</span></label>
+                    <select asp-for="DistrictId" id="DistrictId" class="form-select" required disabled>
+                        <option value="">-- Chọn Quận/Huyện --</option>
+                    </select>
+                    <span asp-validation-for="DistrictId" class="text-danger"></span>
+                </div>
+                <div class="col-12 col-md-4">
+                    <label asp-for="WardId" class="fw-bold">Phường/Xã <span class="text-danger">*</span></label>
+                    <select asp-for="WardId" id="WardId" class="form-select" required disabled>
+                        <option value="">-- Chọn Phường/Xã --</option>
+                    </select>
+                    <span asp-validation-for="WardId" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Address" class="fw-bold">Địa chỉ Số nhà, Tên đường <span class="text-danger">*</span></label>
+                <input asp-for="Address" id="Address" class="form-control" placeholder="123 Đường Số 4..." />
+                <span asp-validation-for="Address" class="text-danger"></span>
+            </div>
+
+            <button type="button" id="btnGeocode" class="btn btn-warning w-100 mb-4 fw-bold shadow-sm">
+                <i class="bi bi-geo-alt-fill"></i> Tự Động Tìm Vị Trí Trên Bản Đồ (OSM)
+            </button>
+
+            <div class="row mb-3">
+                <div class="col-6">
+                    <label asp-for="Latitude" class="fw-bold text-muted">Vĩ độ (Latitude)</label>
+                    <input asp-for="Latitude" id="Latitude" class="form-control bg-light" readonly />
+                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                </div>
+                <div class="col-6">
+                    <label asp-for="Longitude" class="fw-bold text-muted">Kinh độ (Longitude)</label>
+                    <input asp-for="Longitude" id="Longitude" class="form-control bg-light" readonly />
+                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                </div>
+            </div>
+
+            <div class="form-group mb-3">
+                <label asp-for="Phone" class="fw-bold">Số điện thoại liên hệ</label>
+                <input asp-for="Phone" class="form-control" />
+                <span asp-validation-for="Phone" class="text-danger"></span>
+            </div>
+
+            <div class="form-check form-switch mb-4 mt-2">
+                <input asp-for="Active" class="form-check-input" type="checkbox" checked style="transform: scale(1.3); margin-right: 10px;" />
+                <label class="form-check-label fw-bold" asp-for="Active" style="padding-top: 3px;">Cho phép cửa hàng Hoạt động</label>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">Thêm Cửa Hàng Mới</button>
+        </form>
+    </div>
+    
+    <div class="col-lg-6 col-md-12 mt-4 mt-lg-0">
+        <h5 class="fw-bold"><i class="bi bi-map text-success"></i> Manual Fallback (Kéo thả ghim thủ công)</h5>
+        <div class="alert alert-info py-2 small">
+            Nếu nút "Tự động tìm kiếm" thả ghim không chính xác, bạn có thể <strong>click và kéo thả ghim</strong> trên bản đồ dưới đây để chỉnh lại tọa độ cho chuẩn xác nhất.
+        </div>
+        <div id="admin-map"></div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        $(document).ready(function() {
+            // ===============================================
+            // 1. UTILITY: FUZZY DROPDOWN SELECTION & PREFIX STRIPPING
+            // ===============================================
+            function cleanVNName(str) {
+                if (!str) return "";
+                var prefixes = ["Tỉnh ", "Thành phố ", "TP ", "Quận ", "Huyện ", "Thị xã ", "Phường ", "Xã ", "Thị trấn "];
+                var cleaned = str;
+                prefixes.forEach(p => {
+                    if (cleaned.startsWith(p)) cleaned = cleaned.replace(p, "");
+                });
+                return cleaned.trim().toLowerCase();
+            }
+
+            function fuzzySelect($select, targetName) {
+                if (!targetName) return null;
+                var cleanedTarget = cleanVNName(targetName);
+                var foundId = null;
+
+                $select.find('option').each(function() {
+                    var optionText = $(this).text();
+                    var cleanedOption = cleanVNName(optionText);
+                    
+                    if (cleanedOption.includes(cleanedTarget) || cleanedTarget.includes(cleanedOption)) {
+                        foundId = $(this).val();
+                        return false; // break loop
+                    }
+                });
+
+                if (foundId) {
+                    $select.val(foundId).trigger('change');
+                }
+                return foundId;
+            }
+
+            // ===============================================
+            // 2. AJAX CASCADING DROPDOWNS (Promise-based)
+            // ===============================================
+            function apiLoadDistricts(provinceId) {
+                var dfd = $.Deferred();
+                var $district = $('#DistrictId');
+                var $ward = $('#WardId');
+                
+                $district.empty().append('<option value="">-- Chọn Quận/Huyện --</option>').prop('disabled', true);
+                $ward.empty().append('<option value="">-- Chọn Phường/Xã --</option>').prop('disabled', true);
+
+                if (!provinceId) {
+                    dfd.resolve();
+                    return dfd.promise();
+                }
+
+                $.get('/Customer/GetDistricts', { provinceId: provinceId }, function(data) {
+                    $.each(data, function(index, item) {
+                        $district.append($('<option/>', { value: item.code, text: item.name }));
+                    });
+                    $district.prop('disabled', false);
+                    dfd.resolve();
+                }).fail(function() { dfd.reject(); });
+                
+                return dfd.promise();
+            }
+
+            function apiLoadWards(districtId) {
+                var dfd = $.Deferred();
+                var $ward = $('#WardId');
+                
+                $ward.empty().append('<option value="">-- Chọn Phường/Xã --</option>').prop('disabled', true);
+
+                if (!districtId) {
+                    dfd.resolve();
+                    return dfd.promise();
+                }
+
+                $.get('/Customer/GetWards', { districtId: districtId }, function(data) {
+                    $.each(data, function(index, item) {
+                        $ward.append($('<option/>', { value: item.code, text: item.name }));
+                    });
+                    $ward.prop('disabled', false);
+                    dfd.resolve();
+                }).fail(function() { dfd.reject(); });
+
+                return dfd.promise();
+            }
+
+            // Gắn sự kiện Change thủ công cho Admin tương tác tay
+            $('#ProvinceId').change(function() {
+                var pid = $(this).val();
+                if (pid && !window._isMapAutoLoading) {
+                    apiLoadDistricts(pid);
+                }
+            });
+
+            $('#DistrictId').change(function() {
+                var did = $(this).val();
+                if (did && !window._isMapAutoLoading) {
+                    apiLoadWards(did);
+                }
+            });
+
+            // ==========================================
+            // 2. LEAFLET MAP & GOOGLE HYBRID LAYERS
+            // ==========================================
+            // Nâng cấp lớp bản đồ Google (2D & Vệ tinh) - Bypass API Key
+            var googleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            });
+
+            var googleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps Satellite'
+            });
+
+            var map = L.map('admin-map', {
+                center: [10.8231, 106.6297],
+                zoom: 15,
+                layers: [googleStreets] // Mặc định mở bản đồ 2D của Google
+            });
+
+            var baseMaps = {
+                "🗺️ Bản đồ Đường xá (Google)": googleStreets,
+                "🌍 Ảnh vệ tinh (Google)": googleSat
+            };
+            L.control.layers(baseMaps).addTo(map);
+
+            var cafeIcon = L.icon({
+                iconUrl: 'https://cdn-icons-png.flaticon.com/512/5695/5695648.png',
+                iconSize: [45, 45],
+                iconAnchor: [22, 45],
+                popupAnchor: [0, -45]
+            });
+
+            // Cờ draggable: true cho chức năng Manual Fallback
+            var marker = L.marker([10.8231, 106.6297], { icon: cafeIcon, draggable: true }).addTo(map);
+
+            // ==========================================
+            // 2.1 CUSTOM CONTROL: NÚT ĐỊNH VỊ (LOCATE)
+            // ==========================================
+            var userLocationMarker = null;
+
+            L.Control.Locate = L.Control.extend({
+                onAdd: function(map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    var button = L.DomUtil.create('a', 'leaflet-control-locate', container);
+                    button.innerHTML = '<i class="bi bi-crosshair"></i>';
+                    button.title = "Định vị vị trí của tôi";
+
+                    L.DomEvent.on(button, 'click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        L.DomEvent.preventDefault(e);
+                        
+                        if (!navigator.geolocation) {
+                            alert("Trình duyệt không hỗ trợ định vị.");
+                            return;
+                        }
+
+                        $(button).html('<span class="spinner-border spinner-border-sm" role="status"></span>');
+                        
+                        navigator.geolocation.getCurrentPosition(function(pos) {
+                            var lt = pos.coords.latitude;
+                            var lg = pos.coords.longitude;
+
+                            map.flyTo([lt, lg], 18);
+                            
+                            // Cắm 'Red Dot' chuẩn Google
+                            var redDotIcon = L.divIcon({
+                                className: 'user-location-dot-container',
+                                html: '<div class="user-location-dot"></div>',
+                                iconSize: [14, 14],
+                                iconAnchor: [7, 7]
+                            });
+
+                            if (userLocationMarker) {
+                                userLocationMarker.setLatLng([lt, lg]);
+                            } else {
+                                userLocationMarker = L.marker([lt, lg], { icon: redDotIcon }).addTo(map);
+                            }
+
+                            $(button).html('<i class="bi bi-crosshair"></i>');
+                        }, function() {
+                            alert("⚠️ Bạn chưa cấp quyền vị trí cho trình duyệt. Vui lòng bật trong cài đặt!");
+                            $(button).html('<i class="bi bi-crosshair"></i>');
+                        }, { enableHighAccuracy: true });
+                    });
+
+                    return container;
+                }
+            });
+
+            new L.Control.Locate({ position: 'bottomright' }).addTo(map);
+
+            // --- HÀM HELPER: REVERSE GEOCODING (Lấy địa chỉ & Tự động dropdown) ---
+            function performReverseGeocoding(lat, lng) {
+                var MAPBOX_TOKEN = 'pk.eyJ1Ijoibmd1eWVucGh1YzA1MDQiLCJhIjoiY21ubzF3bjJxMjBtOTJwcTJtZW9hOHhlcCJ9.0v8s3Xy-6HKnOrvz9pa48w';
+                var url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?access_token=${MAPBOX_TOKEN}&language=vi&limit=1`;
+
+                $('#Address').val('... Đang quét vị trí ...').addClass('text-info');
+                window._isMapAutoLoading = true; // Flag chặn sự kiện change lặp vô hạn
+
+                $.ajax({
+                    url: url,
+                    type: 'GET',
+                    success: function(data) {
+                        if (data && data.features && data.features.length > 0) {
+                            var feature = data.features[0];
+                            
+                            // 1. Cập nhật Địa chỉ chi tiết (Strip số nhà/đường)
+                            var fullPlace = feature.place_name;
+                            var shortAddress = fullPlace.split(',')[0].trim();
+                            $('#Address').val(shortAddress).removeClass('text-info');
+
+                            // 2. Phân tích ngữ cảnh địa lý để Auto-dropdown
+                            var province = null, district = null, ward = null;
+                            if (feature.context) {
+                                feature.context.forEach(ctx => {
+                                    if (ctx.id.startsWith('region')) province = ctx.text;
+                                    if (ctx.id.startsWith('district') || ctx.id.startsWith('place')) district = ctx.text;
+                                    if (ctx.id.startsWith('locality') || ctx.id.startsWith('neighborhood')) ward = ctx.text;
+                                });
+                            }
+
+                            // 3. Chuỗi Promise: Tỉnh -> (Tải District) -> Chọn District -> (Tải Phường) -> Chọn Phường
+                            var pIdSelected = fuzzySelect($('#ProvinceId'), province);
+                            if (pIdSelected) {
+                                apiLoadDistricts(pIdSelected).then(function() {
+                                    var dIdSelected = fuzzySelect($('#DistrictId'), district);
+                                    if (dIdSelected) {
+                                        apiLoadWards(dIdSelected).then(function() {
+                                            fuzzySelect($('#WardId'), ward);
+                                            window._isMapAutoLoading = false;
+                                        });
+                                    } else {
+                                        window._isMapAutoLoading = false;
+                                    }
+                                });
+                            } else {
+                                window._isMapAutoLoading = false;
+                            }
+                        } else {
+                            $('#Address').val('').removeClass('text-info');
+                            window._isMapAutoLoading = false;
+                        }
+                    },
+                    error: function() {
+                        $('#Address').val('').removeClass('text-info');
+                        window._isMapAutoLoading = false;
+                    }
+                });
+            }
+
+            // Bắt sự kiện Dragend ghim để cập nhật Readonly Inputs & Lấy địa chỉ
+            marker.on('dragend', function(e) {
+                var pos = marker.getLatLng();
+                $('#Latitude').val(pos.lat.toFixed(6));
+                $('#Longitude').val(pos.lng.toFixed(6));
+                
+                // Tự động lấy lại địa chỉ khi kéo thả xong
+                performReverseGeocoding(pos.lat, pos.lng);
+            });
+
+            // Chạm click trên map để dời ghim siêu tốc & Lấy địa chỉ
+            map.on('click', function(e) {
+                marker.setLatLng(e.latlng);
+                $('#Latitude').val(e.latlng.lat.toFixed(6));
+                $('#Longitude').val(e.latlng.lng.toFixed(6));
+
+                // Tự động lấy địa chỉ khi click
+                performReverseGeocoding(e.latlng.lat, e.latlng.lng);
+            });
+
+            // ===============================================
+            // 3. FRONTEND GEOCODING BẰNG NÚT BẤM (NOMINATIM)
+            // ===============================================
+            $('#btnGeocode').click(function() {
+                var detail = $('#Address').val().trim() || '';
+                var wardName = $('#WardId option:selected').text();
+                var districtName = $('#DistrictId option:selected').text();
+                var provinceName = $('#ProvinceId option:selected').text();
+                
+                // Loại bỏ placeholder text của Select Option
+                if (wardName.includes('--')) wardName = '';
+                if (districtName.includes('--')) districtName = '';
+                if (provinceName.includes('--')) provinceName = '';
+
+                // Hợp nhất chuỗi Query String
+                var fullAddress = [detail, wardName, districtName, provinceName].filter(Boolean).join(', ');
+
+                if (!provinceName) {
+                    alert('Vui lòng nhập tối thiểu Tỉnh/Thành phố trước khi tìm kiếm tự động!');
+                    return;
+                }
+
+                var $btn = $(this);
+                var originalText = $btn.html();
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang Quét Vị Trí (Mapbox)...');
+
+                function doGeocode(searchQuery) {
+                    var MAPBOX_TOKEN = 'pk.eyJ1Ijoibmd1eWVucGh1YzA1MDQiLCJhIjoiY21ubzF3bjJxMjBtOTJwcTJtZW9hOHhlcCJ9.0v8s3Xy-6HKnOrvz9pa48w'; // Token chính thức từ bác Tech Lead
+                    
+                    var url = 'https://api.mapbox.com/geocoding/v5/mapbox.places/' + encodeURIComponent(searchQuery) + '.json?access_token=' + MAPBOX_TOKEN + '&country=vn&limit=1';
+
+                    $.ajax({
+                        url: url,
+                        type: 'GET',
+                        success: function(data) {
+                            if (data && data.features && data.features.length > 0) {
+                                var feature = data.features[0];
+                                // Mapbox trả về [lng, lat] -> Cần đảo ngược cho Leaflet
+                                var lonFound = feature.center[0];
+                                var latFound = feature.center[1];
+                                
+                                // Gán tự động vào 2 ô Readonly
+                                $('#Latitude').val(latFound.toFixed(6));
+                                $('#Longitude').val(lonFound.toFixed(6));
+                                
+                                // Bay Map mượt mà tới toạ độ mới [lat, lng]
+                                map.flyTo([latFound, lonFound], 18, { duration: 1.5 });
+                                setTimeout(function() {
+                                    marker.setLatLng([latFound, lonFound]);
+                                }, 1500);
+                                
+                                $btn.prop('disabled', false).html(originalText);
+                            } else {
+                                alert('Mapbox không định vị được địa chỉ này. Vui lòng kiểm tra lại chính tả hoặc Dời ghim Thủ Công!');
+                                $btn.prop('disabled', false).html(originalText);
+                            }
+                        },
+                        error: function() {
+                            alert('Lỗi kết nối tới Máy chủ Mapbox. Vui lòng kiểm tra lại API TOKEN.');
+                            $btn.prop('disabled', false).html(originalText);
+                        }
+                    });
+                }
+                
+                doGeocode(fullAddress);
+            });
+        });
+    </script>
+}

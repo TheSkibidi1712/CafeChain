@@ -1,0 +1,127 @@
+@model IEnumerable<CafeChain.Models.Stores.Store>
+@{
+    ViewData["Title"] = "Quản lý Cửa Hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0 text-dark"><i class="bi bi-shop me-2"></i> Danh sách Cửa Hàng</h2>
+        <a asp-action="Create" class="btn btn-primary shadow-sm rounded-pill px-4">
+            <i class="bi bi-plus-circle me-2"></i> Thêm Cửa Hàng Mới
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3">
+        <div class="card-header bg-white border-bottom py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Tất cả cửa hàng trong hệ thống</h6>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0" id="storesTable">
+                    <thead class="table-light text-muted">
+                        <tr>
+                            <th scope="col" class="text-center" style="width: 50px;">#</th>
+                            <th scope="col">Tên Cửa Hàng</th>
+                            <th scope="col">Địa Chỉ</th>
+                            <th scope="col">Số Điện Thoại</th>
+                            <th scope="col" class="text-center">Định Vị (GPS)</th>
+                            <th scope="col" class="text-center">Trạng Thái</th>
+                            <th scope="col" class="text-center" style="width: 150px;">Hành Động</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model != null && Model.Any())
+                        {
+                            int index = 1;
+                            foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center fw-bold text-muted">@index</td>
+                                    <td>
+                                        <div class="fw-bold text-dark">@item.Name</div>
+                                        <div class="small text-muted"><i class="bi bi-clock me-1"></i> @item.CreatedAt.ToString("dd/MM/yyyy")</div>
+                                    </td>
+                                    <td>
+                                        <span class="d-inline-block text-truncate" style="max-width: 250px;" title="@item.Address">
+                                            @item.Address
+                                            @if (item.Ward != null && item.District != null && item.Province != null)
+                                            {
+                                                <br /><small class="text-muted">@item.Ward.Name, @item.District.Name, @item.Province.Name</small>
+                                            }
+                                        </span>
+                                    </td>
+                                    <td>@item.Phone</td>
+                                    <td class="text-center">
+                                        @if (item.Latitude != 0 && item.Longitude != 0)
+                                        {
+                                            <a href="https://www.openstreetmap.org/?mlat=@item.Latitude&mlon=@item.Longitude#map=18/@item.Latitude/@item.Longitude" target="_blank" class="badge bg-info text-decoration-none p-2" title="Xem trên OpenStreetMap">
+                                                <i class="bi bi-geo-alt-fill"></i> Xem Bản Đồ
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary p-2"><i class="bi bi-geo-alt"></i> Chưa có</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        @if (item.Active)
+                                        {
+                                            <span class="badge bg-success rounded-pill px-3 py-2"><i class="bi bi-check-circle me-1"></i> Hoạt động</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-danger rounded-pill px-3 py-2"><i class="bi bi-x-circle me-1"></i> Dừng hoạt động</span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="d-flex flex-column align-items-center gap-2">
+                                            <a asp-action="Edit" asp-route-id="@item.StoreId" class="btn btn-sm btn-outline-primary rounded-pill w-100 text-nowrap">
+                                                <i class="bi bi-pencil-square me-1"></i> Cập nhật
+                                            </a>
+                                            
+                                            @* Chuẩn bị Phân quyền: @if (User.IsInRole("SuperAdmin")) { *@
+                                            <form asp-action="ToggleStatus" asp-route-id="@item.StoreId" method="post" class="w-100">
+                                                @if (item.Active)
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-warning rounded-pill w-100 text-nowrap" onclick="return confirm('Bạn có chắc muốn khóa / tạm ngưng cửa hàng này?');">
+                                                        <i class="bi bi-lock-fill me-1"></i> Tạm ngưng
+                                                    </button>
+                                                }
+                                                else
+                                                {
+                                                    <button type="submit" class="btn btn-sm btn-outline-success rounded-pill w-100 text-nowrap" onclick="return confirm('Bạn có chắc muốn mở hoạt động lại cửa hàng này?');">
+                                                        <i class="bi bi-unlock-fill me-1"></i> Mở hoạt động
+                                                    </button>
+                                                }
+                                            </form>
+                                            @* } *@
+                                        </div>
+                                    </td>
+                                </tr>
+                                index++;
+                            }
+                        }
+                        else
+                        {
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1 d-block mb-3"></i>
+                                    Chưa có cửa hàng nào trong hệ thống.
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Có thể tích hợp DataTables hoặc logic sorting/pagination tại đây nếu cần
+        });
+    </script>
+}
