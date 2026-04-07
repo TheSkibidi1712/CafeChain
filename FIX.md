@@ -1,1 +1,0 @@
-Bỏ trường Khách hàng trong module quản lý nhân sự đi khi thêm nhân sự không được chọn vai trò khách hàng
