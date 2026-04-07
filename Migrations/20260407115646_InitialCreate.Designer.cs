@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260406134848_InitialCreate")]
+    [Migration("20260407115646_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -296,8 +296,20 @@ namespace CafeChain.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("DistrictId")
+                        .HasColumnType("int");
+
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("int");
 
                     b.Property<int?>("WardId")
                         .HasColumnType("int");
@@ -305,6 +317,10 @@ namespace CafeChain.Migrations
                     b.HasKey("CustomerAddressId");
 
                     b.HasIndex("CustomerId");
+
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("ProvinceId");
 
                     b.HasIndex("WardId");
 
@@ -314,10 +330,44 @@ namespace CafeChain.Migrations
                         new
                         {
                             CustomerAddressId = 1,
-                            Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM",
-                            CustomerId = 111,
-                            IsDefault = true,
-                            WardId = 1
+                            Address = "123 Đường A",
+                            CustomerId = 1,
+                            IsDefault = true
+                        },
+                        new
+                        {
+                            CustomerAddressId = 2,
+                            Address = "456 Đường D",
+                            CustomerId = 2,
+                            IsDefault = true
+                        },
+                        new
+                        {
+                            CustomerAddressId = 3,
+                            Address = "789 Đường G",
+                            CustomerId = 3,
+                            IsDefault = true
+                        },
+                        new
+                        {
+                            CustomerAddressId = 4,
+                            Address = "321 Đường J",
+                            CustomerId = 4,
+                            IsDefault = true
+                        },
+                        new
+                        {
+                            CustomerAddressId = 5,
+                            Address = "654 Đường M",
+                            CustomerId = 5,
+                            IsDefault = true
+                        },
+                        new
+                        {
+                            CustomerAddressId = 6,
+                            Address = "987 Đường P",
+                            CustomerId = 1,
+                            IsDefault = false
                         });
                 });
 
@@ -1167,11 +1217,6 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkToppingId"));
 
-                    b.Property<bool>("Active")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
                     b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
@@ -1191,84 +1236,72 @@ namespace CafeChain.Migrations
                         new
                         {
                             DrinkToppingId = 1,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 2,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 3,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 4,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 5,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 6,
-                            Active = true,
                             DrinkId = 3,
                             ToppingId = 6
                         },
                         new
                         {
                             DrinkToppingId = 7,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 8,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 9,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 10,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 11,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 12,
-                            Active = true,
                             DrinkId = 4,
                             ToppingId = 6
                         });
@@ -2770,6 +2803,31 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
+                {
+                    b.Property<int>("DistrictId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DistrictId"));
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("int");
+
+                    b.HasKey("DistrictId");
+
+                    b.HasIndex("ProvinceId", "Name")
+                        .IsUnique()
+                        .HasFilter("[ProvinceId] IS NOT NULL");
+
+                    b.ToTable("Districts", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
                     b.Property<int>("ProvinceId")
@@ -2793,26 +2851,6 @@ namespace CafeChain.Migrations
                         .HasFilter("[CountryId] IS NOT NULL");
 
                     b.ToTable("Provinces", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            ProvinceId = 1,
-                            CountryId = 1,
-                            Name = "Bình Dương"
-                        },
-                        new
-                        {
-                            ProvinceId = 2,
-                            CountryId = 1,
-                            Name = "Hồ Chí Minh"
-                        },
-                        new
-                        {
-                            ProvinceId = 3,
-                            CountryId = 1,
-                            Name = "Đồng Nai"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>
@@ -2823,77 +2861,21 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("WardId"));
 
+                    b.Property<int?>("DistrictId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
-                    b.Property<int?>("ProvinceId")
-                        .HasColumnType("int");
-
                     b.HasKey("WardId");
 
-                    b.HasIndex("ProvinceId", "Name")
+                    b.HasIndex("DistrictId", "Name")
                         .IsUnique()
-                        .HasFilter("[ProvinceId] IS NOT NULL");
+                        .HasFilter("[DistrictId] IS NOT NULL");
 
                     b.ToTable("Wards", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            WardId = 1,
-                            Name = "Phú Lợi",
-                            ProvinceId = 1
-                        },
-                        new
-                        {
-                            WardId = 2,
-                            Name = "Lái Thiêu",
-                            ProvinceId = 1
-                        },
-                        new
-                        {
-                            WardId = 3,
-                            Name = "Dĩ An",
-                            ProvinceId = 1
-                        },
-                        new
-                        {
-                            WardId = 4,
-                            Name = "Phường 1",
-                            ProvinceId = 2
-                        },
-                        new
-                        {
-                            WardId = 5,
-                            Name = "Phường 2",
-                            ProvinceId = 2
-                        },
-                        new
-                        {
-                            WardId = 6,
-                            Name = "Phường Long Bình",
-                            ProvinceId = 3
-                        },
-                        new
-                        {
-                            WardId = 7,
-                            Name = "Phường Trảng Dài",
-                            ProvinceId = 3
-                        },
-                        new
-                        {
-                            WardId = 8,
-                            Name = "Phường Tân Mai",
-                            ProvinceId = 3
-                        },
-                        new
-                        {
-                            WardId = 9,
-                            Name = "Phường Long Hưng",
-                            ProvinceId = 3
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.MemberLevel", b =>
@@ -4660,6 +4642,15 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<int?>("DistrictId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("Latitude")
+                        .HasColumnType("decimal(9,6)");
+
+                    b.Property<decimal?>("Longitude")
+                        .HasColumnType("decimal(9,6)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -4670,10 +4661,17 @@ namespace CafeChain.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("nvarchar(15)");
 
+                    b.Property<int?>("ProvinceId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("WardId")
                         .HasColumnType("int");
 
                     b.HasKey("StoreId");
+
+                    b.HasIndex("DistrictId");
+
+                    b.HasIndex("ProvinceId");
 
                     b.HasIndex("WardId");
 
@@ -4687,8 +4685,7 @@ namespace CafeChain.Migrations
                             Address = "123 Đại lộ Bình Dương",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "CafeChain Thủ Dầu Một",
-                            Phone = "0900000001",
-                            WardId = 1
+                            Phone = "0900000001"
                         },
                         new
                         {
@@ -4697,8 +4694,7 @@ namespace CafeChain.Migrations
                             Address = "456 Nguyễn Trãi",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "CafeChain Thuận An",
-                            Phone = "0900000002",
-                            WardId = 2
+                            Phone = "0900000002"
                         },
                         new
                         {
@@ -4707,8 +4703,7 @@ namespace CafeChain.Migrations
                             Address = "789 Lê Hồng Phong",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Name = "CafeChain Dĩ An",
-                            Phone = "0900000003",
-                            WardId = 3
+                            Phone = "0900000003"
                         });
                 });
 
@@ -4923,6 +4918,44 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.SystemSetting", b =>
+                {
+                    b.Property<int>("SettingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SettingId"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("SettingKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("SettingValue")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("SettingId");
+
+                    b.HasIndex("SettingKey")
+                        .IsUnique();
+
+                    b.ToTable("SystemSettings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SettingId = 1,
+                            Description = "Toạ độ trung tâm mặc định (VD: TPHCM - 10.8231, 106.6297)",
+                            SettingKey = "Map_Default_Center",
+                            SettingValue = "10.8231, 106.6297"
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
                     b.Property<int>("OrderVoucherId")
@@ -5018,11 +5051,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 6, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7216),
+                            EndDate = new DateTime(2026, 5, 7, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4543),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 3, 30, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7190)
+                            StartDate = new DateTime(2026, 3, 31, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4524)
                         },
                         new
                         {
@@ -5030,10 +5063,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 21, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7219),
+                            EndDate = new DateTime(2026, 4, 22, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4546),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 5, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7218)
+                            StartDate = new DateTime(2026, 4, 6, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4546)
                         },
                         new
                         {
@@ -5041,11 +5074,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 5, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7221),
+                            EndDate = new DateTime(2026, 6, 6, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4549),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 7, 20, 48, 47, 374, DateTimeKind.Local).AddTicks(7221)
+                            StartDate = new DateTime(2026, 3, 8, 18, 56, 46, 196, DateTimeKind.Local).AddTicks(4549)
                         });
                 });
 
@@ -5229,12 +5262,26 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Locations.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
                         .WithMany("CustomerAddresses")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Customer");
+
+                    b.Navigation("District");
+
+                    b.Navigation("Province");
 
                     b.Navigation("Ward");
                 });
@@ -5656,24 +5703,34 @@ namespace CafeChain.Migrations
                     b.Navigation("WasteReason");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
+                {
+                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
+                        .WithMany("Districts")
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Province");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
                 {
                     b.HasOne("CafeChain.Models.Locations.Country", "Country")
                         .WithMany("Provinces")
                         .HasForeignKey("CountryId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Country");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>
                 {
-                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
+                    b.HasOne("CafeChain.Models.Locations.District", "District")
                         .WithMany("Wards")
-                        .HasForeignKey("ProvinceId")
+                        .HasForeignKey("DistrictId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.Navigation("Province");
+                    b.Navigation("District");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransaction", b =>
@@ -5959,10 +6016,24 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
+                    b.HasOne("CafeChain.Models.Locations.District", "District")
+                        .WithMany()
+                        .HasForeignKey("DistrictId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("CafeChain.Models.Locations.Province", "Province")
+                        .WithMany()
+                        .HasForeignKey("ProvinceId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("CafeChain.Models.Locations.Ward", "Ward")
                         .WithMany("Stores")
                         .HasForeignKey("WardId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("District");
+
+                    b.Navigation("Province");
 
                     b.Navigation("Ward");
                 });
@@ -6234,9 +6305,14 @@ namespace CafeChain.Migrations
                     b.Navigation("Provinces");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
+            modelBuilder.Entity("CafeChain.Models.Locations.District", b =>
                 {
                     b.Navigation("Wards");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Locations.Province", b =>
+                {
+                    b.Navigation("Districts");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Locations.Ward", b =>

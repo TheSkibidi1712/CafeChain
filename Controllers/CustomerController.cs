@@ -163,10 +163,19 @@ namespace CafeChain.Controllers
         }
 
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetWards(int provinceId)
+        [AllowAnonymous] // Cấp Quận/Huyện
+        public async Task<IActionResult> GetDistricts(int provinceId)
         {
-            var wards = await _customerService.GetWardsByProvinceAsync(provinceId);
+            var districts = await _customerService.GetDistrictsByProvinceAsync(provinceId);
+            var data = districts.Select(d => new { code = d.DistrictId, name = d.Name }).ToList();
+            return Json(data);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetWards(int districtId)
+        {
+            var wards = await _customerService.GetWardsByDistrictAsync(districtId);
             var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
             return Json(data);
         }

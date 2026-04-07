@@ -1,0 +1,15 @@
+--- SCHEMA DIAGNOSTIC ---
+Accounts:TRUE
+Customers:TRUE
+DrinkCategories:TRUE
+Drinks:TRUE
+DrinkSizes:TRUE
+Sizes:TRUE
+Staffs:TRUE
+Stores:TRUE
+Toppings:TRUE
+CustomerAddresses:FALSE
+DrinkDefaultToppings:FALSE
+DrinkToppings:FALSE
+Ratings:FALSE
+--- END ---

@@ -40,7 +40,7 @@ namespace CafeChain.Application.Services.Security
                 .ToList();
             if (provinceIds.Any())
             {
-                return await query.Where(s => s.Ward.ProvinceId.HasValue && provinceIds.Contains(s.Ward.ProvinceId.Value)).ToListAsync();
+                return await query.Where(s => s.Ward.DistrictId.HasValue && provinceIds.Contains(s.Ward.DistrictId.Value)).ToListAsync();
             }
 
             // 3. Chế độ Hỗ trợ ĐA Phường/Xã (Multiple Wards)
@@ -80,7 +80,7 @@ namespace CafeChain.Application.Services.Security
                 .ToList();
             if (provinceIds.Any())
             {
-                return await storeQuery.AnyAsync(s => s.Ward.ProvinceId.HasValue && provinceIds.Contains(s.Ward.ProvinceId.Value));
+                return await storeQuery.AnyAsync(s => s.Ward.DistrictId.HasValue && provinceIds.Contains(s.Ward.DistrictId.Value));
             }
 
             // 3. Ward Check

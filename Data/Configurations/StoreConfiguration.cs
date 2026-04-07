@@ -1,4 +1,4 @@
-﻿using CafeChain.Models;
+using CafeChain.Models;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -30,11 +30,31 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
+            // ─── GPS coordinates precision ─────────────────────────────────────────
+            entity.Property(x => x.Latitude)
+                .HasColumnType("decimal(9,6)");
+
+            entity.Property(x => x.Longitude)
+                .HasColumnType("decimal(9,6)");
+
+            // ─── Location FK relationships ─────────────────────────────────────────
             entity.HasOne(x => x.Ward)
                 .WithMany(w => w.Stores)
                 .HasForeignKey(x => x.WardId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.District)
+                .WithMany()
+                .HasForeignKey(x => x.DistrictId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(x => x.Province)
+                .WithMany()
+                .HasForeignKey(x => x.ProvinceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // ─── Seed data ─────────────────────────────────────────────────────────
+            // ⚠️ WardId = NULL vì bảng Wards sẽ bị xóa sạch và nạp lại qua vietnam_locations.sql
             entity.HasData(
                 new Store
                 {
@@ -42,7 +62,7 @@ namespace CafeChain.Data.Configurations
                     Name = "CafeChain Thủ Dầu Một",
                     Address = "123 Đại lộ Bình Dương",
                     Phone = "0900000001",
-                    WardId = 1,
+                    WardId = null,
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -52,7 +72,7 @@ namespace CafeChain.Data.Configurations
                     Name = "CafeChain Thuận An",
                     Address = "456 Nguyễn Trãi",
                     Phone = "0900000002",
-                    WardId = 2,
+                    WardId = null,
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -62,13 +82,14 @@ namespace CafeChain.Data.Configurations
                     Name = "CafeChain Dĩ An",
                     Address = "789 Lê Hồng Phong",
                     Phone = "0900000003",
-                    WardId = 3,
+                    WardId = null,
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 }
             );
         }
     }
+
 
     public class StoreDrinkConfiguration : IEntityTypeConfiguration<StoreDrink>
     {

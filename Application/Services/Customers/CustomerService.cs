@@ -8,20 +8,19 @@ using CafeChain.ViewModels.Customers;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
-
 namespace CafeChain.Application.Services.Customers
 {
     public class CustomerService : ICustomerService
     {
         private readonly AppDbContext _context;
-        // 1. Khai báo biến _fileService
         private readonly IFileService _fileService;
+        private readonly IGeocodingService _geocodingService;
 
-        // 2. Tiêm IFileService vào Constructor
-        public CustomerService(AppDbContext context, IFileService fileService)
+        public CustomerService(AppDbContext context, IFileService fileService, IGeocodingService geocodingService)
         {
             _context = context;
             _fileService = fileService;
+            _geocodingService = geocodingService;
         }
 
         public async Task<CustomerProfileViewModel> GetCustomerProfileAsync(string accountId)
@@ -37,7 +36,8 @@ namespace CafeChain.Application.Services.Customers
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerAddresses)
                         .ThenInclude(ca => ca.Ward)         // 🔥 UPDATE: Kéo Phường
-                            .ThenInclude(w => w.Province)   // 🔥 UPDATE: Kéo Tỉnh
+                            .ThenInclude(w => w.District)
+                                .ThenInclude(d => d.Province)   // 🔥 UPDATE: Kéo Tỉnh
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerPhones)
                 .FirstOrDefaultAsync(a => a.AccountId == accId);
@@ -108,6 +108,22 @@ namespace CafeChain.Application.Services.Customers
                     {
                         existing.Address = updateDto.Street;
                         existing.WardId = updateDto.WardId;
+                        existing.DistrictId = updateDto.DistrictId;
+                        existing.ProvinceId = updateDto.ProvinceId;
+
+                        var wardName = await _context.Wards.Where(w => w.WardId == updateDto.WardId).Select(w => w.Name).FirstOrDefaultAsync();
+                        var districtName = await _context.Districts.Where(d => d.DistrictId == updateDto.DistrictId).Select(d => d.Name).FirstOrDefaultAsync();
+                        var provinceName = await _context.Provinces.Where(p => p.ProvinceId == updateDto.ProvinceId).Select(p => p.Name).FirstOrDefaultAsync();
+
+                        // 1. Phân rã trực tiếp kết quả trả về thành 2 biến lat và lng
+                        var (lat, lng) = await _geocodingService.GetCoordinatesAsync($"...");
+
+                        // 2. Kiểm tra xem 2 biến này có chứa dữ liệu thật không
+                        if (lat != null && lng != null)
+                        {
+                            existing.Latitude = lat;
+                            existing.Longitude = lng;
+                        }
                     }
                 }
             }
@@ -119,12 +135,25 @@ namespace CafeChain.Application.Services.Customers
             {
                 foreach (var addrDto in request.NewAddresses)
                 {
-                    // 🔥 Không query Wards! Entity Framework tự gán FK bằng WardId
                     var newAddr = new CustomerAddress 
                     { 
                         Address = addrDto.Street, // CHỈ lưu Số nhà/Đường
-                        WardId = addrDto.WardId   // Lưu khóa ngoại
+                        WardId = addrDto.WardId,  // Lưu khóa ngoại Phường
+                        DistrictId = addrDto.DistrictId, // Lưu khóa ngoại Quận
+                        ProvinceId = addrDto.ProvinceId  // Lưu khóa ngoại Tỉnh
                     };
+
+                    var wardName = await _context.Wards.Where(w => w.WardId == addrDto.WardId).Select(w => w.Name).FirstOrDefaultAsync();
+                    var districtName = await _context.Districts.Where(d => d.DistrictId == addrDto.DistrictId).Select(d => d.Name).FirstOrDefaultAsync();
+                    var provinceName = await _context.Provinces.Where(p => p.ProvinceId == addrDto.ProvinceId).Select(p => p.Name).FirstOrDefaultAsync();
+
+                    var (lat, lng) = await _geocodingService.GetCoordinatesAsync($"{addrDto.Street}, {wardName}, {districtName}, {provinceName}");
+                    if (lat != null && lng != null)
+                    {
+                        newAddr.Latitude = lat;
+                        newAddr.Longitude = lng;
+                    }
+
                     customer.CustomerAddresses.Add(newAddr);
                     newlyAddedAddresses.Add((newAddr, addrDto.TempId)); // Nhớ lại TempId để lật cờ Mặc định nếu cần
                 }
@@ -266,10 +295,17 @@ namespace CafeChain.Application.Services.Customers
             return await _context.Provinces.ToListAsync();
         }
 
-        public async Task<List<CafeChain.Models.Locations.Ward>> GetWardsByProvinceAsync(int provinceId)
+        public async Task<List<CafeChain.Models.Locations.District>> GetDistrictsByProvinceAsync(int provinceId)
+        {
+            return await _context.Districts
+                .Where(d => d.ProvinceId == provinceId)
+                .ToListAsync();
+        }
+
+        public async Task<List<CafeChain.Models.Locations.Ward>> GetWardsByDistrictAsync(int districtId)
         {
             return await _context.Wards
-                .Where(w => w.ProvinceId == provinceId)
+                .Where(w => w.DistrictId == districtId)
                 .ToListAsync();
         }
     }

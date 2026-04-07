@@ -18,6 +18,8 @@ namespace CafeChain.Application.DTOs.Customer
         public int TempId { get; set; } // Dùng map logic Tạm khi chưa có ID DB
         public string Street { get; set; }
         public int WardId { get; set; }
+        public int DistrictId { get; set; }
+        public int ProvinceId { get; set; }
     }
 
     public class UpdateAddressDto
@@ -25,5 +27,7 @@ namespace CafeChain.Application.DTOs.Customer
         public int CustomerAddressId { get; set; }
         public string Street { get; set; }
         public int WardId { get; set; }
+        public int DistrictId { get; set; }
+        public int ProvinceId { get; set; }
     }
 }
