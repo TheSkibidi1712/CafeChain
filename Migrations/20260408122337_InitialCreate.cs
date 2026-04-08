@@ -1254,7 +1254,8 @@ namespace CafeChain.Migrations
                     StaffId = table.Column<int>(type: "int", nullable: false),
                     SupplierId = table.Column<int>(type: "int", nullable: true),
                     DocumentDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
                 },
                 constraints: table =>
@@ -1476,7 +1477,8 @@ namespace CafeChain.Migrations
                     InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
                     IngredientId = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    Unit = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
                 },
@@ -1495,6 +1497,12 @@ namespace CafeChain.Migrations
                         principalTable: "InventoryDocuments",
                         principalColumn: "InventoryDocumentId",
                         onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InventoryDocumentDetails_Units_UnitId",
+                        column: x => x.UnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -1962,9 +1970,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 7, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2075), 20000m, 100, null, 40000m, new DateTime(2026, 3, 31, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2060) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 22, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2078), null, 500, null, 50000m, new DateTime(2026, 4, 6, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2077) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 6, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2079), 100000m, 1000, null, 0m, new DateTime(2026, 3, 8, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2079) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 8, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7356), 20000m, 100, null, 40000m, new DateTime(2026, 4, 1, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7343) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 23, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7360), null, 500, null, 50000m, new DateTime(2026, 4, 7, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7359) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 7, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7361), 100000m, 1000, null, 0m, new DateTime(2026, 3, 9, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7361) }
                 });
 
             migrationBuilder.InsertData(
@@ -2628,6 +2636,11 @@ namespace CafeChain.Migrations
                 name: "IX_InventoryDocumentDetails_InventoryDocumentId",
                 table: "InventoryDocumentDetails",
                 column: "InventoryDocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDocumentDetails_UnitId",
+                table: "InventoryDocumentDetails",
+                column: "UnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocuments_Code",

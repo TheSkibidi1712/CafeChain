@@ -18,9 +18,12 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(50);
 
+            // ✅ Enum -> int (default EF)
             entity.Property(x => x.Type)
-                .IsRequired()
-                .HasMaxLength(50);
+                .IsRequired();
+
+            entity.Property(x => x.Status)
+                .IsRequired();
 
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
@@ -28,23 +31,26 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.DocumentDate)
                 .HasDefaultValueSql("GETDATE()");
 
-            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.Code)
+                .IsUnique();
 
+            // 🔗 Store
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 🔗 Staff
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // 🔗 Supplier
             entity.HasOne(x => x.Supplier)
-                .WithMany(s => s.InventoryDocuments) // 🔥 thêm nav
+                .WithMany(s => s.InventoryDocuments)
                 .HasForeignKey(x => x.SupplierId)
                 .OnDelete(DeleteBehavior.Restrict);
-
         }
     }
 
@@ -58,10 +64,12 @@ namespace CafeChain.Data.Configurations
             entity.HasKey(x => x.InventoryDocumentDetailId);
 
             entity.Property(x => x.Quantity)
-                .HasColumnType("decimal(18,3)");
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
 
-            entity.Property(x => x.Unit)
-                .HasMaxLength(50);
+            entity.Property(x => x.BaseQuantity)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
 
             entity.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
@@ -69,14 +77,22 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            // 🔗 Document
             entity.HasOne(x => x.InventoryDocument)
                 .WithMany(x => x.Details)
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 🔗 Ingredient
             entity.HasOne(x => x.Ingredient)
-                .WithMany(i => i.InventoryDocumentDetails) // 🔥 FIX
+                .WithMany(i => i.InventoryDocumentDetails)
                 .HasForeignKey(x => x.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔗 Unit
+            entity.HasOne(x => x.Unit)
+                .WithMany()
+                .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

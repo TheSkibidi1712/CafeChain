@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Staffs;
+﻿using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Inventories
@@ -16,8 +17,8 @@ namespace CafeChain.Models.Inventories
 
         public DateTime DocumentDate { get; set; }
 
-        public string Type { get; set; }
-        // IMPORT, EXPORT, STOCK_TAKE, WASTE
+        public InventoryDocumentType Type { get; set; }
+        public InventoryDocumentStatus Status { get; set; }
 
         public string Note { get; set; }
 
@@ -26,6 +27,6 @@ namespace CafeChain.Models.Inventories
         public virtual Staff Staff { get; set; }
         public virtual Supplier Supplier { get; set; }
 
-        public virtual ICollection<InventoryDocumentDetail> Details { get; set; }
+        public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
     }
 }

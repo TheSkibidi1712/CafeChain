@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260407163343_InitialCreate")]
+    [Migration("20260408122337_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2075,16 +2075,17 @@ namespace CafeChain.Migrations
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
 
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
                     b.Property<int?>("SupplierId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Type")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.HasKey("InventoryDocumentId");
 
@@ -2108,6 +2109,9 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDocumentDetailId"));
 
+                    b.Property<decimal>("BaseQuantity")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
@@ -2122,10 +2126,8 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<string>("Unit")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<int>("UnitId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("UnitPrice")
                         .HasColumnType("decimal(18,2)");
@@ -2135,6 +2137,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("InventoryDocumentId");
+
+                    b.HasIndex("UnitId");
 
                     b.ToTable("InventoryDocumentDetails", (string)null);
                 });
@@ -4764,11 +4768,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 7, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2075),
+                            EndDate = new DateTime(2026, 5, 8, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7356),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 3, 31, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2060)
+                            StartDate = new DateTime(2026, 4, 1, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7343)
                         },
                         new
                         {
@@ -4776,10 +4780,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 22, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2078),
+                            EndDate = new DateTime(2026, 4, 23, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7360),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 6, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2077)
+                            StartDate = new DateTime(2026, 4, 7, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7359)
                         },
                         new
                         {
@@ -4787,11 +4791,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 6, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2079),
+                            EndDate = new DateTime(2026, 6, 7, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7361),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 8, 23, 33, 43, 193, DateTimeKind.Local).AddTicks(2079)
+                            StartDate = new DateTime(2026, 3, 9, 19, 23, 37, 399, DateTimeKind.Local).AddTicks(7361)
                         });
                 });
 
@@ -5294,9 +5298,17 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.Unit", "Unit")
+                        .WithMany()
+                        .HasForeignKey("UnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
                     b.Navigation("Ingredient");
 
                     b.Navigation("InventoryDocument");
+
+                    b.Navigation("Unit");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransaction", b =>
