@@ -1,4 +1,5 @@
 using CafeChain.Models;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -18,12 +19,10 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(50);
 
-            // ✅ Enum -> int (default EF)
-            entity.Property(x => x.Type)
-                .IsRequired();
+            entity.HasIndex(x => x.Code).IsUnique();
 
-            entity.Property(x => x.Status)
-                .IsRequired();
+            entity.Property(x => x.Type).IsRequired();
+            entity.Property(x => x.Status).IsRequired();
 
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
@@ -31,26 +30,26 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.DocumentDate)
                 .HasDefaultValueSql("GETDATE()");
 
-            entity.HasIndex(x => x.Code)
-                .IsUnique();
+            // ================= RELATION =================
 
-            // 🔗 Store
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 🔗 Staff
             entity.HasOne(x => x.Staff)
                 .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 🔗 Supplier
+            // ✅ FIX: Supplier nullable
             entity.HasOne(x => x.Supplier)
-                .WithMany(s => s.InventoryDocuments)
+                .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.SupplierId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull); // 🔥 quan trọng
+
+            // ================= INDEX =================
+            entity.HasIndex(x => new { x.StoreId, x.DocumentDate });
         }
     }
 
@@ -77,23 +76,25 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
-            // 🔗 Document
+            // ================= RELATION =================
+
             entity.HasOne(x => x.InventoryDocument)
                 .WithMany(x => x.Details)
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // 🔗 Ingredient
             entity.HasOne(x => x.Ingredient)
                 .WithMany(i => i.InventoryDocumentDetails)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // 🔗 Unit
             entity.HasOne(x => x.Unit)
-                .WithMany()
+                .WithMany(x => x.InventoryDocumentDetails)
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= INDEX =================
+            entity.HasIndex(x => x.InventoryDocumentId);
         }
     }
 
@@ -127,11 +128,6 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
-            entity.HasMany(x => x.InventoryDocuments)
-                .WithOne(d => d.Supplier)
-                .HasForeignKey(d => d.SupplierId)
-                .OnDelete(DeleteBehavior.Restrict);
-
 
             entity.HasIndex(x => x.Code).IsUnique();
 
@@ -164,10 +160,23 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.UnitCode).IsUnique();
 
             entity.HasData(
-                new Unit { UnitId = 1, UnitCode = "g", Name = "Gram", Active = true },
-                new Unit { UnitId = 2, UnitCode = "kg", Name = "Kilogram", Active = true },
-                new Unit { UnitId = 3, UnitCode = "ml", Name = "Milliliter", Active = true },
-                new Unit { UnitId = 4, UnitCode = "l", Name = "Liter", Active = true }
+                // ===== KHỐI LƯỢNG =====
+                new Unit { UnitId = 1, UnitCode = "g", Name = "Gram", Type = UnitType.KhoiLuong, Active = true },
+                new Unit { UnitId = 2, UnitCode = "kg", Name = "Kilogram", Type = UnitType.KhoiLuong, Active = true },
+
+                // ===== THỂ TÍCH =====
+                new Unit { UnitId = 3, UnitCode = "ml", Name = "Milliliter", Type = UnitType.TheTich, Active = true },
+                new Unit { UnitId = 4, UnitCode = "l", Name = "Liter", Type = UnitType.TheTich, Active = true },
+                new Unit { UnitId = 5, UnitCode = "oz", Name = "Ounce", Type = UnitType.TheTich, Active = true },
+                new Unit { UnitId = 6, UnitCode = "cup", Name = "Cup", Type = UnitType.TheTich, Active = true },
+                new Unit { UnitId = 7, UnitCode = "tbsp", Name = "Tablespoon", Type = UnitType.TheTich, Active = true },
+                new Unit { UnitId = 8, UnitCode = "tsp", Name = "Teaspoon", Type = UnitType.TheTich, Active = true },
+
+                // ===== ĐẾM =====
+                new Unit { UnitId = 9, UnitCode = "pcs", Name = "Piece", Type = UnitType.Dem, Active = true },
+                new Unit { UnitId = 10, UnitCode = "bottle", Name = "Bottle", Type = UnitType.Dem, Active = true },
+                new Unit { UnitId = 11, UnitCode = "can", Name = "Can", Type = UnitType.Dem, Active = true },
+                new Unit { UnitId = 12, UnitCode = "pack", Name = "Pack", Type = UnitType.Dem, Active = true }
             );
         }
     }
@@ -210,14 +219,50 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasData(
-                // Gram ↔ Kg
-                new UnitConversion { UnitConversionId = 1, IngredientId = 1, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
 
-                // ml ↔ l
-                new UnitConversion { UnitConversionId = 2, IngredientId = 2, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
-                new UnitConversion { UnitConversionId = 3, IngredientId = 8, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
-                new UnitConversion { UnitConversionId = 4, IngredientId = 10, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
-                new UnitConversion { UnitConversionId = 5, IngredientId = 13, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 }
+                // ================= MASS (kg -> g) =================
+                new UnitConversion { UnitConversionId = 1, IngredientId = 1, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 2, IngredientId = 3, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 3, IngredientId = 4, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 4, IngredientId = 5, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 5, IngredientId = 6, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 6, IngredientId = 7, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 7, IngredientId = 9, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 8, IngredientId = 11, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 9, IngredientId = 12, FromUnitId = 2, FromQuantity = 1, ToUnitId = 1, ToQuantity = 1000 },
+
+                // ================= VOLUME (l -> ml) =================
+                new UnitConversion { UnitConversionId = 20, IngredientId = 2, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 21, IngredientId = 8, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 22, IngredientId = 10, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
+                new UnitConversion { UnitConversionId = 23, IngredientId = 13, FromUnitId = 4, FromQuantity = 1, ToUnitId = 3, ToQuantity = 1000 },
+
+                // ================= oz =================
+                new UnitConversion { UnitConversionId = 30, IngredientId = 2, FromUnitId = 5, FromQuantity = 1, ToUnitId = 3, ToQuantity = 29.5735m },
+                new UnitConversion { UnitConversionId = 31, IngredientId = 8, FromUnitId = 5, FromQuantity = 1, ToUnitId = 3, ToQuantity = 29.5735m },
+                new UnitConversion { UnitConversionId = 32, IngredientId = 10, FromUnitId = 5, FromQuantity = 1, ToUnitId = 3, ToQuantity = 29.5735m },
+
+                // ================= cup =================
+                new UnitConversion { UnitConversionId = 40, IngredientId = 2, FromUnitId = 6, FromQuantity = 1, ToUnitId = 3, ToQuantity = 240 },
+                new UnitConversion { UnitConversionId = 41, IngredientId = 8, FromUnitId = 6, FromQuantity = 1, ToUnitId = 3, ToQuantity = 240 },
+                new UnitConversion { UnitConversionId = 42, IngredientId = 10, FromUnitId = 6, FromQuantity = 1, ToUnitId = 3, ToQuantity = 240 },
+
+                // ================= tbsp =================
+                new UnitConversion { UnitConversionId = 50, IngredientId = 2, FromUnitId = 7, FromQuantity = 1, ToUnitId = 3, ToQuantity = 15 },
+
+                // ================= tsp =================
+                new UnitConversion { UnitConversionId = 60, IngredientId = 2, FromUnitId = 8, FromQuantity = 1, ToUnitId = 3, ToQuantity = 5 },
+
+                // ================= COUNT (quan trọng nhất) =================
+
+                // Syrup Torani (750ml)
+                new UnitConversion { UnitConversionId = 70, IngredientId = 8, FromUnitId = 10, FromQuantity = 1, ToUnitId = 3, ToQuantity = 750 },
+
+                // Sữa đặc (1 lon ~ 300ml)
+                new UnitConversion { UnitConversionId = 71, IngredientId = 2, FromUnitId = 11, FromQuantity = 1, ToUnitId = 3, ToQuantity = 300 },
+
+                // Nước Lavie (1 chai = 500ml)
+                new UnitConversion { UnitConversionId = 72, IngredientId = 13, FromUnitId = 11, FromQuantity = 1, ToUnitId = 3, ToQuantity = 500 }
             );
         }
     }
@@ -230,40 +275,57 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("InventoryTransactions", t =>
             {
-                t.HasCheckConstraint("CK_InventoryTransaction_Qty", "[Quantity] <> 0");
+                t.HasCheckConstraint("CK_InventoryTransaction_Qty_NotZero", "[Quantity] <> 0");
             });
 
             entity.HasKey(x => x.InventoryTransactionId);
 
-            entity.Property(x => x.Quantity)
-                .HasColumnType("decimal(18,3)");
+            // ================= COLUMNS =================
 
-            entity.Property(x => x.RefType)
-                .HasMaxLength(50);
+            entity.Property(x => x.Quantity)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
+
+            entity.Property(x => x.BeforeQty)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
+
+            entity.Property(x => x.AfterQty)
+                .HasColumnType("decimal(18,3)")
+                .IsRequired();
 
             entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
+                .HasDefaultValueSql("GETDATE()")
+                .IsRequired();
 
-            // ================= RELATION =================
+            // ================= RELATIONS =================
 
             entity.HasOne(x => x.StoreInventory)
-            .WithMany(x => x.InventoryTransactions)
-            .HasForeignKey(x => x.StoreInventoryId)
-            .OnDelete(DeleteBehavior.Cascade);
+                .WithMany(x => x.InventoryTransactions)
+                .HasForeignKey(x => x.StoreInventoryId)
+                .OnDelete(DeleteBehavior.Restrict); // 🔥 FIX: tránh mất lịch sử
 
             entity.HasOne(x => x.TransactionType)
                 .WithMany(x => x.InventoryTransactions)
                 .HasForeignKey(x => x.InventoryTransactionTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-
+            entity.HasOne(x => x.InventoryDocument)
+                .WithMany(x => x.InventoryTransactions)
+                .HasForeignKey(x => x.InventoryDocumentId)
+                .OnDelete(DeleteBehavior.SetNull);
 
             // ================= INDEX =================
-            entity.HasIndex(x => new { x.RefType, x.RefId });
+
             entity.HasIndex(x => x.StoreInventoryId);
+
             entity.HasIndex(x => x.InventoryTransactionTypeId);
 
-            // ================= SEED =================
+            entity.HasIndex(x => x.InventoryDocumentId);
+
+            entity.HasIndex(x => x.CreatedAt); // 🔥 query timeline
+
+            entity.HasIndex(x => new { x.StoreInventoryId, x.CreatedAt }); // 🔥 history theo kho
         }
     }
 

@@ -19,7 +19,8 @@
         // 🔥 Giá nguyên liệu theo NCC
         public virtual ICollection<IngredientSupplier> IngredientSuppliers { get; set; } = new List<IngredientSupplier>();
 
-        // 🔥 Liên kết phiếu nhập (InventoryDocument)
+        // 🔥 Phiếu nhập hàng từ NCC
         public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; } = new List<InventoryDocument>();
+
     }
 }

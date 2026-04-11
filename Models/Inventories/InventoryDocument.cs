@@ -12,20 +12,18 @@ namespace CafeChain.Models.Inventories
 
         public int StoreId { get; set; }
         public int StaffId { get; set; }
-
-        public int? SupplierId { get; set; } // chỉ dùng cho nhập
-
         public DateTime DocumentDate { get; set; }
 
         public InventoryDocumentType Type { get; set; }
         public InventoryDocumentStatus Status { get; set; }
 
-        public string Note { get; set; }
-
+        public int? SupplierId { get; set; } // ✅ FIX NULLABLE
+        public string? Note { get; set; }
         // Navigation
         public virtual Store Store { get; set; }
         public virtual Staff Staff { get; set; }
         public virtual Supplier Supplier { get; set; }
+        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
 
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
     }

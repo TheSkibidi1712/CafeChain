@@ -169,13 +169,15 @@ namespace CafeChain.Data.Configurations
         {
             entity.ToTable("StoreInventories", t =>
             {
-                // ❗ chống tồn kho âm
-                t.HasCheckConstraint("CK_StoreInventory_Qty",
-                    "[AvailableQty] >= 0 AND [ReservedQty] >= 0");
+                t.HasCheckConstraint(
+                    "CK_StoreInventories_NonNegativeQty",
+                    "[AvailableQty] >= 0 AND [ReservedQty] >= 0"
+                );
             });
 
             entity.HasKey(x => x.StoreInventoryId);
 
+            // ================= COLUMN =================
             entity.Property(x => x.AvailableQty)
                 .HasColumnType("decimal(18,3)")
                 .HasDefaultValue(0);
@@ -187,22 +189,33 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.LastUpdated)
                 .HasDefaultValueSql("GETDATE()");
 
+            // 🔥 QUAN TRỌNG: concurrency token
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
+            // ================= RELATION =================
             entity.HasOne(x => x.Store)
                 .WithMany(x => x.StoreInventories)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Ingredient)
-                .WithMany(s => s.StoreInventories)
+                .WithMany(x => x.StoreInventories)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ❗ mỗi store chỉ có 1 record cho 1 nguyên liệu
+            // ================= UNIQUE =================
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
-                .IsUnique();
+                .IsUnique()
+                .HasDatabaseName("UX_Store_Ingredient");
 
+            // ================= INDEX =================
+            entity.HasIndex(x => x.StoreId);
+            entity.HasIndex(x => x.IngredientId);
+
+            // ================= SEED =================
             entity.HasData(
-                // Store 1
                 new StoreInventory
                 {
                     StoreInventoryId = 1,
@@ -221,8 +234,6 @@ namespace CafeChain.Data.Configurations
                     ReservedQty = 0,
                     LastUpdated = new DateTime(2025, 1, 1)
                 },
-
-                // Store 2
                 new StoreInventory
                 {
                     StoreInventoryId = 3,
@@ -232,8 +243,6 @@ namespace CafeChain.Data.Configurations
                     ReservedQty = 0,
                     LastUpdated = new DateTime(2025, 1, 1)
                 },
-
-                // Store 3
                 new StoreInventory
                 {
                     StoreInventoryId = 4,

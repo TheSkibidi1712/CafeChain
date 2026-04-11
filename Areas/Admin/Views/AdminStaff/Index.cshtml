@@ -1,4 +1,4 @@
-@model CafeChain.ViewModels.Admin.Staff.StaffIndexPageVM
+@model CafeChain.ViewModels.Admin.Staffs.StaffIndexPageVM
 
 @{
     ViewData["Title"] = "Quản lý nhân sự";
@@ -174,7 +174,7 @@
 </div>
 
 <!-- ==================== MODAL: THÊM NHÂN VIÊN (PARTIAL) ==================== -->
-<partial name="_CreateStaffModal" model="new CafeChain.ViewModels.Admin.Staff.StaffCreateVM()" />
+<partial name="_CreateStaffModal" model="new CafeChain.ViewModels.Admin.Staffs.StaffCreateVM()" />
 
 @section Scripts {
     <!-- SweetAlert2 -->

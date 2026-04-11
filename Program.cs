@@ -35,10 +35,10 @@ using CafeChain.Application.Interfaces.Admin.Drinks;
 using CafeChain.Application.Services.Admin.Drinks;
 using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
 using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
-using CafeChain.Infrastrusture.Interfaces.Admin.Staff;
-using CafeChain.Infrastrusture.Repositories.Admin.Staff;
-using CafeChain.Application.Interfaces.Admin.Staff;
-using CafeChain.Application.Services.Admin.Staff;
+using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
+using CafeChain.Infrastrusture.Repositories.Admin.Staffs;
+using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.Application.Services.Admin.Staffs;
 using CafeChain.Application.Interfaces.Admin.Ingredients;
 using CafeChain.Application.Services.Admin.Ingredients;
 using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
@@ -47,6 +47,15 @@ using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Services.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
+using CafeChain.Application.Interfaces.Customers;
+using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Services.Security;
+using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Services.Admin.InventoryDocuments;
+using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -55,6 +64,15 @@ var builder = WebApplication.CreateBuilder(args);
 // =======================
 builder.Services.AddControllersWithViews();
 builder.Services.AddMemoryCache();
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.Converters.Add(
+            new System.Text.Json.Serialization.JsonStringEnumConverter()
+        );
+    });
+
+
 // =======================
 // 2. Database
 // =======================
@@ -144,7 +162,7 @@ builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
 // Bản đồ Geocoding
-builder.Services.AddHttpClient<CafeChain.Application.Interfaces.Customers.IGeocodingService, CafeChain.Application.Services.Customers.NominatimGeocodingService>();
+builder.Services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
 
 // Admin Sizes
 builder.Services.AddScoped<IAdminSizeRepository, AdminSizeRepository>();
@@ -180,8 +198,12 @@ builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
 builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
+// Admin Inventory Documents
+builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
+builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+
 // Security
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Security.IScopeAuthorizationService, CafeChain.Application.Services.Security.ScopeAuthorizationService>();
+builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
 
 var app = builder.Build();
 

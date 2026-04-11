@@ -1,5 +1,5 @@
-using CafeChain.Application.Interfaces.Admin.Staff;
-using CafeChain.ViewModels.Admin.Staff;
+using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.ViewModels.Admin.Staffs;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

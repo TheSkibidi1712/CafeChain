@@ -1,5 +1,8 @@
 {
   "dependencies": {
     "bcryptjs": "^3.0.3"
+  },
+  "devDependencies": {
+    "eslint": "^10.2.0"
   }
 }

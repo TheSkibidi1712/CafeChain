@@ -11,13 +11,9 @@ namespace CafeChain.Models.Inventories
         public int InventoryTransactionTypeId { get; set; }
 
         public decimal Quantity { get; set; }
-
-        // IMPORT / EXPORT / WASTE / ADJUST
-        public string RefType { get; set; }
-
-        // 🔥 link tới InventoryDocument
-        public int RefId { get; set; }
-
+        public decimal BeforeQty { get; set; }
+        public decimal AfterQty { get; set; }
+        public int? InventoryDocumentId { get; set; }
         public DateTime CreatedAt { get; set; }
 
         // ================= RELATION =================
@@ -26,6 +22,6 @@ namespace CafeChain.Models.Inventories
 
         public virtual StoreInventory StoreInventory { get; set; }
 
-        public virtual InventoryDocument InventoryDocument { get; set; }
+        public virtual InventoryDocument? InventoryDocument { get; set; }
     }
 }
