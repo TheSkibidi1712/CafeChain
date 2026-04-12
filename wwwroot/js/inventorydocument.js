@@ -205,26 +205,30 @@ function loadUnitPrice(tr) {
     if (!ingId) return;
 
     if (type === "IMPORT") {
-        // IMPORT → lấy từ supplier (readonly)
-        fetch(`/Admin/AdminInventoryDocument/GetUnitsWithPrice?ingredientId=${ingId}&supplierId=${supplierId}`)
+        fetch(`/Admin/AdminInventoryDocument/GetImportInfo?ingredientId=${ingId}&supplierId=${supplierId}`)
             .then(r => r.json())
             .then(data => {
 
                 const unitSelect = tr.querySelector(".unit");
 
-                unitSelect.innerHTML =
-                    `<option value="">-- Chọn đơn vị --</option>` +
-                    data.map(x =>
-                        `<option value="${x.unitId}" data-price="${x.price}">${x.name}</option>`
-                    ).join("");
+                // ❌ KHÔNG CHO CHỌN
+                unitSelect.innerHTML = `
+                <option value="${data.unitId}">
+                    ${data.unitName}
+                </option>
+            `;
 
-                unitSelect.addEventListener("change", () => updatePrice(tr));
+                unitSelect.disabled = true; // 🔥 khóa luôn
 
-                tr.querySelector(".price").readOnly = true;
+                // set price
+                const priceInput = tr.querySelector(".price");
+                priceInput.value = data.price;
+                priceInput.readOnly = true;
 
-                updatePrice(tr);
+                calcRow(tr);
             });
-    } else {
+    }
+    else {
         // EXPORT → lấy tất cả unit, giá nhập tay
         fetch(`/Admin/AdminInventoryDocument/GetUnits?ingredientId=${ingId}`)
             .then(r => r.json())

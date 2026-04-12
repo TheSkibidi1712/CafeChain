@@ -1,3 +1,4 @@
+using CafeChain.Application.DTOs.Admin.Units;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Application.DTOs.Admin.Ingredients
@@ -6,18 +7,19 @@ namespace CafeChain.Application.DTOs.Admin.Ingredients
     {
         public int IngredientId { get; set; }
 
-        [Required(ErrorMessage = "Mã nguyên liệu không được để trống.")]
-        [StringLength(20, MinimumLength = 3, ErrorMessage = "Mã nguyên liệu từ 3-20 ký tự.")]
+        [Required]
         public string Code { get; set; }
 
-        [Required(ErrorMessage = "Tên nguyên liệu không được để trống.")]
-        [StringLength(100, ErrorMessage = "Tên nguyên liệu tối đa 100 ký tự.")]
+        [Required]
         public string Name { get; set; }
 
-        [Required(ErrorMessage = "Đơn vị tính không được để trống.")]
-        [StringLength(20, ErrorMessage = "Đơn vị tính tối đa 20 ký tự.")]
-        public string BaseUnit { get; set; }
+        [Required]
+        public int BaseUnitId { get; set; }
+
+        public string? BaseUnitName { get; set; } // 🔥 để render select2
 
         public bool Active { get; set; }
+
+        public List<UnitConversionDTO> Conversions { get; set; } = new();
     }
 }

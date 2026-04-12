@@ -94,6 +94,12 @@
             margin-bottom: 30px;
             border-bottom: 1px solid #e9ecef;
         }
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+        }
     </style>
     @await RenderSectionAsync("Styles", required: false)
 </head>
@@ -122,11 +128,13 @@
                 <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Đồ uống</a>
                 <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Size</a>
                 <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Topping</a>
+
             </div>
         </div>
         <!-- End DEMO -->
 
-        <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-leaf"></i> Quản lý nguyên liệu</a>
+        <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-box-open"></i> Nguyên liệu</a>
+        <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-file-alt"></i> Phiếu tồn kho</a>
         <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà CC</a>
         <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân sự</a>
         <a href="#" class="@Html.IsActive("AdminInventory")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
@@ -142,6 +150,8 @@
         @RenderBody()
     </div>
 
+    <!-- ✅ THÊM Ở ĐÂY -->
+    <div id="toast-container"></div>
 
     <!-- Bootstrap -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>

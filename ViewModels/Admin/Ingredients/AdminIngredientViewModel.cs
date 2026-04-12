@@ -4,6 +4,6 @@ namespace CafeChain.ViewModels.Admin.Ingredients
 {
     public class AdminIngredientViewModel
     {
-        public IEnumerable<AdminIngredientDTO> Ingredients { get; set; }
+        public IEnumerable<AdminIngredientDTO> Items { get; set; }
     }
 }

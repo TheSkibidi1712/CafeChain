@@ -140,19 +140,21 @@ namespace CafeChain.Areas.Admin.Controllers
             }));
         }
 
+        // =============== Lấy thông tin đơn vị và giá nhập của nguyên liệu từ nhà cung cấp ===============
         [HttpGet]
-        public async Task<IActionResult> GetUnitsWithPrice(int ingredientId, int? supplierId)
+        public async Task<IActionResult> GetImportInfo(int ingredientId, int supplierId)
         {
-            var data = await _service.GetUnitsWithPriceAsync(ingredientId, supplierId);
+            var data = await _service.GetImportInfoAsync(ingredientId, supplierId);
 
-            return Json(data.Select(x => new
+            return Json(new
             {
-                unitId = x.unitId,
-                name = x.unitName,
-                price = x.price
-            }));
+                unitId = data.unitId,
+                unitName = data.unitName,
+                price = data.price
+            });
         }
 
+        // =============== Lấy danh sách nguyên liệu mà nhà cung cấp đang cung cấp ===============
         [HttpGet]
         public async Task<IActionResult> GetIngredientSuppliersBySupplier(int supplierId)
         {

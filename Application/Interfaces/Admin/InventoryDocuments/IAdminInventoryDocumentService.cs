@@ -17,7 +17,7 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<decimal> GetStockAsync(int storeId, int ingredientId);
         Task<List<Unit>> GetUnitsByIngredientAsync(int ingredientId);
-        Task<List<(int unitId, string unitName, decimal price)>> GetUnitsWithPriceAsync(int ingredientId, int? supplierId);
+        Task<(int unitId, string unitName, decimal price)> GetImportInfoAsync(int ingredientId, int supplierId);
         Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId);
 
         // ================= XUẤT KHO =================

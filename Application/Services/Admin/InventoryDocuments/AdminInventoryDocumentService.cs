@@ -262,15 +262,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         }
 
         // ======================== UNITS WITH PRICE ========================
-        public async Task<List<(int unitId, string unitName, decimal price)>> GetUnitsWithPriceAsync(int ingredientId, int? supplierId)
+        public async Task<(int unitId, string unitName, decimal price)> GetImportInfoAsync(int ingredientId, int supplierId)
         {
             var data = await _repository.GetIngredientSuppliersAsync(ingredientId, supplierId);
 
-            return data.Select(x => (
-                x.UnitId,
-                x.Unit.Name,
-                x.Price
-            )).ToList();
+            var item = data.FirstOrDefault();
+
+            if (item == null)
+                throw new Exception("Không tìm thấy cấu hình nhập");
+
+            return (
+                item.UnitId,
+                item.Unit.Name,
+                item.Price
+            );
         }
 
         // ======================== INGREDIENT SUPPLIERS BY SUPPLIER ========================

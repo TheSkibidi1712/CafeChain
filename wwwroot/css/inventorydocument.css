@@ -280,3 +280,19 @@ select {
 #detailTable {
     min-width: 1000px; /* ép bảng rộng hơn */
 }
+    #detailTable td:nth-child(1) {
+        width: 25%;
+    }
+    /* nguyên liệu */
+    #detailTable td:nth-child(2) {
+        width: 15%;
+    }
+    /* đơn vị */
+    #detailTable td:nth-child(3) {
+        width: 10%;
+    }
+    /* số lượng */
+    #detailTable td:nth-child(4) {
+        width: 15%;
+    }
+/* giá */
