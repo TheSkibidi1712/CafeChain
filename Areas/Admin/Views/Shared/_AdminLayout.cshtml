@@ -132,7 +132,7 @@
             </div>
         </div>
         <!-- End DEMO -->
-
+        <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-warehouse"></i> Quản lý tồn kho</a>
         <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-box-open"></i> Nguyên liệu</a>
         <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-file-alt"></i> Phiếu tồn kho</a>
         <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà CC</a>
@@ -140,7 +140,12 @@
         <a href="#" class="@Html.IsActive("AdminInventory")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
         <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
         <a href="#" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
-        <a href="#" class="@Html.IsActive("AdminSetting")"><i class="fas fa-cog"></i> Cài đặt</a>
+        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="@Html.IsActive("AdminSetting")">
+                <i class="fas fa-cog"></i> Đăng xuất
+            </button>
+        </form>
     </div>
 
     <div class="main-content">

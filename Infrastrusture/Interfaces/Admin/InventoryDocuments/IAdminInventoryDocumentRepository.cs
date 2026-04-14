@@ -12,6 +12,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         // ================= LOOKUP =================
         Task<List<Store>> GetStoresAsync();
         Task<List<Staff>> GetStaffsAsync();
+        Task<int?> GetStoreIdByStaffAsync(int staffId);
         Task<List<Supplier>> GetSuppliersAsync();
         Task<List<Ingredient>> GetIngredientsAsync();
         Task<List<Unit>> GetUnitsAsync();

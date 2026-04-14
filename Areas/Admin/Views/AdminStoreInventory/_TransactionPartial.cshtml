@@ -1,0 +1,44 @@
+﻿@model List<CafeChain.ViewModels.Admin.StoreInventories.InventoryTransactionVM>
+
+<table class="transaction-table">
+    <thead>
+        <tr>
+            <th>Loại</th>
+            <th>Số lượng</th>
+            <th>Trước</th>
+            <th>Sau</th>
+            <th>Ngày</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.TypeName</td>
+                <td>
+                    @if (item.Quantity > 0)
+                    {
+                        <span class="plus">+@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                    }
+                    else
+                    {
+                        <span class="minus">@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                    }
+                </td>
+                <td>@($"{item.BeforeQty:N0} {item.UnitCode}")</td>
+                <td>@($"{item.AfterQty:N0} {item.UnitCode}")</td>
+                <td>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="pagination">
+    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+    {
+        <button class="page-btn"
+                onclick="loadTransactionPage(@i)">
+            @i
+        </button>
+    }
+</div>

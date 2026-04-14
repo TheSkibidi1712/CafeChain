@@ -24,6 +24,14 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<List<Staff>> GetStaffsAsync()
             => await _context.Staffs.AsNoTracking().ToListAsync();
 
+        public async Task<int?> GetStoreIdByStaffAsync(int staffId)
+        {
+            return await _context.Staffs
+                .Where(x => x.StaffId == staffId)
+                .Select(x => x.StoreId)
+                .FirstOrDefaultAsync();
+        }
+
         public async Task<List<Supplier>> GetSuppliersAsync()
             => await _context.Suppliers.AsNoTracking().ToListAsync();
 

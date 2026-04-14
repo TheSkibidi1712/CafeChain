@@ -278,6 +278,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             );
         }
 
+        // ======================== STORE BY STAFF ========================
+        public async Task<int?> GetStoreIdByStaffAsync(int staffId)
+        {
+            return await _repository.GetStoreIdByStaffAsync(staffId);
+        }
+
+
         // ======================== INGREDIENT SUPPLIERS BY SUPPLIER ========================
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
         {

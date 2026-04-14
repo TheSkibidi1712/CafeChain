@@ -9,12 +9,11 @@
         <h2>📦 Quản lý phiếu kho</h2>
         <button class="btn-create" onclick="openCreateModal()">+ Tạo phiếu</button>
     </div>
-    <div class="filter-box">
 
+    <div class="filter-box">
         <div class="filter-title">🔍 Bộ lọc tìm kiếm</div>
 
         <div class="filter-grid">
-
             <div class="filter-item">
                 <label>Mã phiếu</label>
                 <input type="text" placeholder="Nhập mã..." id="search">
@@ -44,7 +43,6 @@
                 <button onclick="reloadData()" class="btn-filter">Lọc</button>
                 <button onclick="clearFilter()" class="btn-clear">Xóa lọc</button>
             </div>
-
         </div>
     </div>
 
@@ -121,12 +119,12 @@
 
                 <div>
                     <label>🏬 Kho</label>
-                    <select id="store"></select>
+                    <input type="text" id="storeName" readonly>
                 </div>
 
                 <div>
                     <label>👤 Nhân viên</label>
-                    <select id="staff"></select>
+                    <input type="text" id="staffName" readonly>
                 </div>
 
                 <div>

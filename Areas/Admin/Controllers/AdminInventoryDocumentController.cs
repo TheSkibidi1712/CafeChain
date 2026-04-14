@@ -2,6 +2,7 @@
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.ViewModels.Admin.InventoryDocuments;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -21,8 +22,16 @@ namespace CafeChain.Areas.Admin.Controllers
             if (filter.Page <= 0) filter.Page = 1;
             if (filter.PageSize <= 0) filter.PageSize = 10;
 
+            var staffId = GetAccountId();
+
+            // 🔥 ép store theo staff
+            var storeId = await _service.GetStoreIdByStaffAsync(staffId);
+
+            if (storeId.HasValue)
+                filter.StoreId = storeId;
+
             var result = await _service.GetPagedAsync(filter);
-            return View(result); // vẫn giữ view list
+            return View(result);
         }
 
         // ================= GET DATA CREATE =================
@@ -65,6 +74,17 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
+                var staffId = GetAccountId();
+
+                // 🔥 ép lại StoreId + StaffId từ server
+                var storeId = await _service.GetStoreIdByStaffAsync(staffId);
+
+                if (!storeId.HasValue)
+                    return Json(new { success = false, message = "Không xác định được cửa hàng" });
+
+                model.StoreId = storeId.Value;
+                model.StaffId = staffId;
+
                 await _service.CreateAsync(model);
 
                 return Json(new
@@ -179,6 +199,20 @@ namespace CafeChain.Areas.Admin.Controllers
                 name = x.Ingredient.Name,
                 stock = x.AvailableQty
             }));
+        }
+
+        // ================= PRIVATE =================
+
+        private int GetAccountId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                     ?? User.FindFirst("AccountId")
+                     ?? User.FindFirst("sub");
+
+            if (claim == null)
+                return 0;
+
+            return int.TryParse(claim.Value, out var id) ? id : 0;
         }
 
 

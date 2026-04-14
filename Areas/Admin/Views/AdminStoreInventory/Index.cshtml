@@ -1,0 +1,101 @@
+﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
+
+<link rel="stylesheet" href="~/css/storeinventory.css" />
+
+<div class="inventory-container">
+
+    <div class="header">
+        <h2>📦 Quản lý tồn kho</h2>
+
+        <form method="get" class="search-form">
+            <input type="text" name="search" value="@ViewBag.Search" placeholder="Tìm nguyên liệu..." />
+            <button type="submit">Tìm</button>
+        </form>
+        <button class="btn-view-all" onclick="openTransactionModal()">
+            📜 Xem toàn bộ lịch sử
+        </button>
+    </div>
+
+    <table class="inventory-table">
+        <thead>
+            <tr>
+                <th>Nguyên liệu</th>
+                <th title="Tổng số lượng trong kho">Tồn kho</th>
+                <th title="Số lượng đã được giữ cho đơn hàng / phiếu">Đang giữ</th>
+                <th title="Số lượng có thể sử dụng ngay">Khả dụng</th>
+                <th>Cập nhật</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                var available = item.AvailableQty - item.ReservedQty;
+
+                <tr>
+                    <td class="ingredient-name">@item.IngredientName</td>
+
+                    <td class="stock">
+                        @($"{item.AvailableQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td class="reserved @(item.ReservedQty > 0 ? "highlight" : "")">
+                        @($"{item.ReservedQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td class="usable @(available <= 0 ? "danger" : "")">
+                        @($"{available:N0} {item.UnitCode}")
+                    </td>
+
+                    <td>@item.LastUpdated.ToString("dd/MM/yyyy HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <!-- PAGINATION -->
+    <div class="pagination">
+
+        <!-- PREVIOUS -->
+        @if (ViewBag.Page > 1)
+        {
+            <a class="page-btn"
+                   href="?search=@ViewBag.Search&page=@(ViewBag.Page - 1)">
+                ←
+            </a>
+        }
+
+        <!-- PAGE NUMBERS -->
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
+                   href="?search=@ViewBag.Search&page=@i">
+                @i
+            </a>
+        }
+
+        <!-- NEXT -->
+        @if (ViewBag.Page < ViewBag.TotalPages)
+        {
+            <a class="page-btn"
+                   href="?search=@ViewBag.Search&page=@(ViewBag.Page + 1)">
+                →
+            </a>
+        }
+
+    </div>
+
+</div>
+
+<!-- MODAL -->
+<div id="transactionModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>Lịch sử giao dịch</h3>
+
+        <div id="transactionContent">
+            <!-- AJAX load -->
+        </div>
+    </div>
+</div>
+
+<script src="~/js/storeinventory.js"></script>
