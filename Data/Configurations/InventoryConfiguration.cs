@@ -1,4 +1,5 @@
 using CafeChain.Models;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories;
 using Microsoft.EntityFrameworkCore;
@@ -15,20 +16,48 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.InventoryDocumentId);
 
+            // ================= BASIC =================
+
             entity.Property(x => x.Code)
                 .IsRequired()
                 .HasMaxLength(50);
 
-            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.Code)
+                .IsUnique();
 
-            entity.Property(x => x.Type).IsRequired();
-            entity.Property(x => x.Status).IsRequired();
+            entity.Property(x => x.Type)
+                .IsRequired();
+
+            entity.Property(x => x.Status)
+                .IsRequired();
+
+            entity.Property(x => x.Purpose)
+                .IsRequired();
+
+            entity.Property(x => x.DocumentDate)
+                .HasDefaultValueSql("GETDATE()");
 
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
-            entity.Property(x => x.DocumentDate)
-                .HasDefaultValueSql("GETDATE()");
+            // ================= PARTNER =================
+
+            entity.Property(x => x.PartnerType)
+                .HasDefaultValue(InventoryPartnerType.NONE); // NONE
+
+            entity.Property(x => x.PartnerName)
+                .HasMaxLength(200);
+
+            // ================= REVERSAL =================
+
+            entity.Property(x => x.IsReversal)
+                .HasDefaultValue(false);
+
+            // self reference
+            entity.HasOne<InventoryDocument>()
+                .WithMany()
+                .HasForeignKey(x => x.RefDocumentId)
+                .OnDelete(DeleteBehavior.Restrict); // ❌ không cascade
 
             // ================= RELATION =================
 
@@ -42,14 +71,19 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ✅ FIX: Supplier nullable
             entity.HasOne(x => x.Supplier)
                 .WithMany(x => x.InventoryDocuments)
                 .HasForeignKey(x => x.SupplierId)
-                .OnDelete(DeleteBehavior.SetNull); // 🔥 quan trọng
+                .OnDelete(DeleteBehavior.SetNull); // 🔥 đúng
 
             // ================= INDEX =================
+
             entity.HasIndex(x => new { x.StoreId, x.DocumentDate });
+
+            entity.HasIndex(x => x.Type);
+            entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.SupplierId);
+            entity.HasIndex(x => x.RefDocumentId);
         }
     }
 
@@ -107,6 +141,8 @@ namespace CafeChain.Data.Configurations
 
             entity.HasKey(x => x.SupplierId);
 
+            // ================= BASIC =================
+
             entity.Property(x => x.Code)
                 .IsRequired()
                 .HasMaxLength(50);
@@ -115,8 +151,11 @@ namespace CafeChain.Data.Configurations
                 .IsRequired()
                 .HasMaxLength(200);
 
-            entity.Property(x => x.Phone)
-                .HasMaxLength(20);
+            entity.Property(x => x.TaxCode)
+                .HasMaxLength(50);
+
+            entity.Property(x => x.Website)
+                .HasMaxLength(200);
 
             entity.Property(x => x.Address)
                 .HasMaxLength(300);
@@ -128,18 +167,156 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            // ================= INDEX =================
 
             entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => x.Name);
+            entity.HasIndex(x => x.TaxCode);
+
+            // ================= RELATION =================
+
+            entity.HasMany(x => x.Phones)
+                .WithOne(x => x.Supplier)
+                .HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.BankAccounts)
+                .WithOne(x => x.Supplier)
+                .HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(x => x.Contacts)
+                .WithOne(x => x.Supplier)
+                .HasForeignKey(x => x.SupplierId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ================= SEED =================
 
             entity.HasData(
-                new Supplier { SupplierId = 1, Code = "SUP001", Name = "Nhà cung cấp A", Phone = "0901111111", Address = "Bình Dương", DebtAmount = 0, Active = true },
-                new Supplier { SupplierId = 2, Code = "SUP002", Name = "Nhà cung cấp B", Phone = "0902222222", Address = "TP HCM", DebtAmount = 0, Active = true },
-                new Supplier { SupplierId = 3, Code = "SUP003", Name = "Nhà cung cấp C", Phone = "0903333333", Address = "Đồng Nai", DebtAmount = 0, Active = true },
-                new Supplier { SupplierId = 4, Code = "SUP004", Name = "Nhà cung cấp D", Phone = "0904444444", Address = "Hà Nội", DebtAmount = 0, Active = true },
-                new Supplier { SupplierId = 5, Code = "SUP005", Name = "Nhà cung cấp E", Phone = "0905555555", Address = "Đà Nẵng", DebtAmount = 100000, Active = true }
+                new Supplier { SupplierId = 1, Code = "SUP001", Name = "Nhà cung cấp A", TaxCode = "0101234567", Website = "https://supA.com", Address = "Bình Dương", DebtAmount = 0, Active = true },
+                new Supplier { SupplierId = 2, Code = "SUP002", Name = "Nhà cung cấp B", TaxCode = "0201234567", Website = "https://supB.com", Address = "TP HCM", DebtAmount = 0, Active = true },
+                new Supplier { SupplierId = 3, Code = "SUP003", Name = "Nhà cung cấp C", TaxCode = "0301234567", Website = "https://supC.com", Address = "Đồng Nai", DebtAmount = 0, Active = true },
+                new Supplier { SupplierId = 4, Code = "SUP004", Name = "Nhà cung cấp D", TaxCode = "0401234567", Website = "https://supD.com", Address = "Hà Nội", DebtAmount = 0, Active = true },
+                new Supplier { SupplierId = 5, Code = "SUP005", Name = "Nhà cung cấp E", TaxCode = "0501234567", Website = "https://supE.com", Address = "Đà Nẵng", DebtAmount = 100000, Active = true }
             );
         }
     }
+
+    // ================================ SupplierPhone ============================
+    public class SupplierPhoneConfiguration : IEntityTypeConfiguration<SupplierPhone>
+    {
+        public void Configure(EntityTypeBuilder<SupplierPhone> entity)
+        {
+            entity.ToTable("SupplierPhones");
+
+            entity.HasKey(x => x.SupplierPhoneId);
+
+            entity.Property(x => x.PhoneNumber)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(x => x.SupplierId);
+
+            // ================= SEED =================
+
+            entity.HasData(
+                new SupplierPhone { SupplierPhoneId = 1, SupplierId = 1, PhoneNumber = "0901111111", IsPrimary = true },
+                new SupplierPhone { SupplierPhoneId = 2, SupplierId = 1, PhoneNumber = "0901111112", IsPrimary = false },
+
+                new SupplierPhone { SupplierPhoneId = 3, SupplierId = 2, PhoneNumber = "0902222222", IsPrimary = true },
+
+                new SupplierPhone { SupplierPhoneId = 4, SupplierId = 3, PhoneNumber = "0903333333", IsPrimary = true },
+
+                new SupplierPhone { SupplierPhoneId = 5, SupplierId = 4, PhoneNumber = "0904444444", IsPrimary = true },
+
+                new SupplierPhone { SupplierPhoneId = 6, SupplierId = 5, PhoneNumber = "0905555555", IsPrimary = true }
+            );
+        }
+    }
+
+    // ================================ SupplierBankAccount ============================
+    public class SupplierBankAccountConfiguration : IEntityTypeConfiguration<SupplierBankAccount>
+    {
+        public void Configure(EntityTypeBuilder<SupplierBankAccount> entity)
+        {
+            entity.ToTable("SupplierBankAccounts");
+
+            entity.HasKey(x => x.SupplierBankAccountId);
+
+            entity.Property(x => x.BankName)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.AccountNumber)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.AccountHolder)
+                .HasMaxLength(150);
+
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(x => x.SupplierId);
+
+            entity.HasIndex(x => new { x.SupplierId, x.AccountNumber })
+                .IsUnique();
+
+            // ================= SEED =================
+
+            entity.HasData(
+                new SupplierBankAccount { SupplierBankAccountId = 1, SupplierId = 1, BankName = "Vietcombank", AccountNumber = "111111111", AccountHolder = "NCC A", IsPrimary = true },
+                new SupplierBankAccount { SupplierBankAccountId = 2, SupplierId = 2, BankName = "ACB", AccountNumber = "222222222", AccountHolder = "NCC B", IsPrimary = true },
+                new SupplierBankAccount { SupplierBankAccountId = 3, SupplierId = 3, BankName = "Techcombank", AccountNumber = "333333333", AccountHolder = "NCC C", IsPrimary = true },
+                new SupplierBankAccount { SupplierBankAccountId = 4, SupplierId = 4, BankName = "BIDV", AccountNumber = "444444444", AccountHolder = "NCC D", IsPrimary = true },
+                new SupplierBankAccount { SupplierBankAccountId = 5, SupplierId = 5, BankName = "MB Bank", AccountNumber = "555555555", AccountHolder = "NCC E", IsPrimary = true }
+            );
+        }
+    }
+
+    // ================================ SupplierContact ============================
+    public class SupplierContactConfiguration : IEntityTypeConfiguration<SupplierContact>
+    {
+        public void Configure(EntityTypeBuilder<SupplierContact> entity)
+        {
+            entity.ToTable("SupplierContacts");
+
+            entity.HasKey(x => x.SupplierContactId);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(150);
+
+            entity.Property(x => x.Phone)
+                .HasMaxLength(20);
+
+            entity.Property(x => x.Email)
+                .HasMaxLength(150);
+
+            entity.Property(x => x.Position)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.IsPrimary)
+                .HasDefaultValue(false);
+
+            entity.HasIndex(x => x.SupplierId);
+
+            // ================= SEED =================
+
+            entity.HasData(
+                new SupplierContact { SupplierContactId = 1, SupplierId = 1, Name = "Nguyễn Văn A", Phone = "0901111111", Email = "a@supplier.com", Position = "Manager", IsPrimary = true },
+                new SupplierContact { SupplierContactId = 2, SupplierId = 2, Name = "Trần Văn B", Phone = "0902222222", Email = "b@supplier.com", Position = "Sales", IsPrimary = true },
+                new SupplierContact { SupplierContactId = 3, SupplierId = 3, Name = "Lê Văn C", Phone = "0903333333", Email = "c@supplier.com", Position = "Owner", IsPrimary = true },
+                new SupplierContact { SupplierContactId = 4, SupplierId = 4, Name = "Phạm Văn D", Phone = "0904444444", Email = "d@supplier.com", Position = "Director", IsPrimary = true },
+                new SupplierContact { SupplierContactId = 5, SupplierId = 5, Name = "Hoàng Văn E", Phone = "0905555555", Email = "e@supplier.com", Position = "Manager", IsPrimary = true }
+            );
+        }
+    }
+
+
     // ================================ Unit ============================
     public class UnitConfiguration : IEntityTypeConfiguration<Unit>
     {

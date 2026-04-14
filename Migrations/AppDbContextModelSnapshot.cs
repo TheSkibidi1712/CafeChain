@@ -2064,9 +2064,32 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<bool>("IsReversal")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int?>("PartnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PartnerName")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("PartnerType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RefDocumentId")
+                        .HasColumnType("int");
 
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
@@ -2088,9 +2111,15 @@ namespace CafeChain.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("RefDocumentId");
+
                     b.HasIndex("StaffId");
 
+                    b.HasIndex("Status");
+
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("Type");
 
                     b.HasIndex("StoreId", "DocumentDate");
 
@@ -2282,15 +2311,24 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Phone")
+                    b.Property<string>("TaxCode")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Website")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.HasKey("SupplierId");
 
                     b.HasIndex("Code")
                         .IsUnique();
+
+                    b.HasIndex("Name");
+
+                    b.HasIndex("TaxCode");
 
                     b.ToTable("Suppliers", (string)null);
 
@@ -2303,7 +2341,8 @@ namespace CafeChain.Migrations
                             Code = "SUP001",
                             DebtAmount = 0m,
                             Name = "Nhà cung cấp A",
-                            Phone = "0901111111"
+                            TaxCode = "0101234567",
+                            Website = "https://supA.com"
                         },
                         new
                         {
@@ -2313,7 +2352,8 @@ namespace CafeChain.Migrations
                             Code = "SUP002",
                             DebtAmount = 0m,
                             Name = "Nhà cung cấp B",
-                            Phone = "0902222222"
+                            TaxCode = "0201234567",
+                            Website = "https://supB.com"
                         },
                         new
                         {
@@ -2323,7 +2363,8 @@ namespace CafeChain.Migrations
                             Code = "SUP003",
                             DebtAmount = 0m,
                             Name = "Nhà cung cấp C",
-                            Phone = "0903333333"
+                            TaxCode = "0301234567",
+                            Website = "https://supC.com"
                         },
                         new
                         {
@@ -2333,7 +2374,8 @@ namespace CafeChain.Migrations
                             Code = "SUP004",
                             DebtAmount = 0m,
                             Name = "Nhà cung cấp D",
-                            Phone = "0904444444"
+                            TaxCode = "0401234567",
+                            Website = "https://supD.com"
                         },
                         new
                         {
@@ -2343,7 +2385,263 @@ namespace CafeChain.Migrations
                             Code = "SUP005",
                             DebtAmount = 100000m,
                             Name = "Nhà cung cấp E",
-                            Phone = "0905555555"
+                            TaxCode = "0501234567",
+                            Website = "https://supE.com"
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierBankAccount", b =>
+                {
+                    b.Property<int>("SupplierBankAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierBankAccountId"));
+
+                    b.Property<string>("AccountHolder")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("AccountNumber")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BankName")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SupplierBankAccountId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("SupplierId", "AccountNumber")
+                        .IsUnique();
+
+                    b.ToTable("SupplierBankAccounts", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SupplierBankAccountId = 1,
+                            AccountHolder = "NCC A",
+                            AccountNumber = "111111111",
+                            BankName = "Vietcombank",
+                            IsPrimary = true,
+                            SupplierId = 1
+                        },
+                        new
+                        {
+                            SupplierBankAccountId = 2,
+                            AccountHolder = "NCC B",
+                            AccountNumber = "222222222",
+                            BankName = "ACB",
+                            IsPrimary = true,
+                            SupplierId = 2
+                        },
+                        new
+                        {
+                            SupplierBankAccountId = 3,
+                            AccountHolder = "NCC C",
+                            AccountNumber = "333333333",
+                            BankName = "Techcombank",
+                            IsPrimary = true,
+                            SupplierId = 3
+                        },
+                        new
+                        {
+                            SupplierBankAccountId = 4,
+                            AccountHolder = "NCC D",
+                            AccountNumber = "444444444",
+                            BankName = "BIDV",
+                            IsPrimary = true,
+                            SupplierId = 4
+                        },
+                        new
+                        {
+                            SupplierBankAccountId = 5,
+                            AccountHolder = "NCC E",
+                            AccountNumber = "555555555",
+                            BankName = "MB Bank",
+                            IsPrimary = true,
+                            SupplierId = 5
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierContact", b =>
+                {
+                    b.Property<int>("SupplierContactId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierContactId"));
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<string>("Phone")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<string>("Position")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SupplierContactId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierContacts", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SupplierContactId = 1,
+                            Email = "a@supplier.com",
+                            IsPrimary = true,
+                            Name = "Nguyễn Văn A",
+                            Phone = "0901111111",
+                            Position = "Manager",
+                            SupplierId = 1
+                        },
+                        new
+                        {
+                            SupplierContactId = 2,
+                            Email = "b@supplier.com",
+                            IsPrimary = true,
+                            Name = "Trần Văn B",
+                            Phone = "0902222222",
+                            Position = "Sales",
+                            SupplierId = 2
+                        },
+                        new
+                        {
+                            SupplierContactId = 3,
+                            Email = "c@supplier.com",
+                            IsPrimary = true,
+                            Name = "Lê Văn C",
+                            Phone = "0903333333",
+                            Position = "Owner",
+                            SupplierId = 3
+                        },
+                        new
+                        {
+                            SupplierContactId = 4,
+                            Email = "d@supplier.com",
+                            IsPrimary = true,
+                            Name = "Phạm Văn D",
+                            Phone = "0904444444",
+                            Position = "Director",
+                            SupplierId = 4
+                        },
+                        new
+                        {
+                            SupplierContactId = 5,
+                            Email = "e@supplier.com",
+                            IsPrimary = true,
+                            Name = "Hoàng Văn E",
+                            Phone = "0905555555",
+                            Position = "Manager",
+                            SupplierId = 5
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierPhone", b =>
+                {
+                    b.Property<int>("SupplierPhoneId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierPhoneId"));
+
+                    b.Property<bool>("IsPrimary")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("SupplierPhoneId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("SupplierPhones", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            SupplierPhoneId = 1,
+                            IsPrimary = true,
+                            PhoneNumber = "0901111111",
+                            SupplierId = 1
+                        },
+                        new
+                        {
+                            SupplierPhoneId = 2,
+                            IsPrimary = false,
+                            PhoneNumber = "0901111112",
+                            SupplierId = 1
+                        },
+                        new
+                        {
+                            SupplierPhoneId = 3,
+                            IsPrimary = true,
+                            PhoneNumber = "0902222222",
+                            SupplierId = 2
+                        },
+                        new
+                        {
+                            SupplierPhoneId = 4,
+                            IsPrimary = true,
+                            PhoneNumber = "0903333333",
+                            SupplierId = 3
+                        },
+                        new
+                        {
+                            SupplierPhoneId = 5,
+                            IsPrimary = true,
+                            PhoneNumber = "0904444444",
+                            SupplierId = 4
+                        },
+                        new
+                        {
+                            SupplierPhoneId = 6,
+                            IsPrimary = true,
+                            PhoneNumber = "0905555555",
+                            SupplierId = 5
                         });
                 });
 
@@ -5015,11 +5313,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 11, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9895),
+                            EndDate = new DateTime(2026, 5, 14, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4816),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 4, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9879)
+                            StartDate = new DateTime(2026, 4, 7, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4799)
                         },
                         new
                         {
@@ -5027,10 +5325,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 26, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9899),
+                            EndDate = new DateTime(2026, 4, 29, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 10, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9898)
+                            StartDate = new DateTime(2026, 4, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818)
                         },
                         new
                         {
@@ -5038,11 +5336,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 10, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9901),
+                            EndDate = new DateTime(2026, 6, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 12, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9901)
+                            StartDate = new DateTime(2026, 3, 15, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820)
                         });
                 });
 
@@ -5507,6 +5805,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
                 {
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", null)
+                        .WithMany()
+                        .HasForeignKey("RefDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("InventoryDocuments")
                         .HasForeignKey("StaffId")
@@ -5582,6 +5885,39 @@ namespace CafeChain.Migrations
                     b.Navigation("StoreInventory");
 
                     b.Navigation("TransactionType");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierBankAccount", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Supplier", "Supplier")
+                        .WithMany("BankAccounts")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierContact", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Supplier", "Supplier")
+                        .WithMany("Contacts")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.SupplierPhone", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Supplier", "Supplier")
+                        .WithMany("Phones")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Supplier");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.UnitConversion", b =>
@@ -6189,9 +6525,15 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Supplier", b =>
                 {
+                    b.Navigation("BankAccounts");
+
+                    b.Navigation("Contacts");
+
                     b.Navigation("IngredientSuppliers");
 
                     b.Navigation("InventoryDocuments");
+
+                    b.Navigation("Phones");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Unit", b =>

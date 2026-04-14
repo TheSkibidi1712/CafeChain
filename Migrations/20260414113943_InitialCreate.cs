@@ -256,7 +256,8 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Website = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     DebtAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
@@ -450,6 +451,74 @@ namespace CafeChain.Migrations
                         column: x => x.RoleId,
                         principalTable: "Roles",
                         principalColumn: "RoleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierBankAccounts",
+                columns: table => new
+                {
+                    SupplierBankAccountId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    AccountHolder = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierBankAccounts", x => x.SupplierBankAccountId);
+                    table.ForeignKey(
+                        name: "FK_SupplierBankAccounts_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierContacts",
+                columns: table => new
+                {
+                    SupplierContactId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    Position = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierContacts", x => x.SupplierContactId);
+                    table.ForeignKey(
+                        name: "FK_SupplierContacts_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierPhones",
+                columns: table => new
+                {
+                    SupplierPhoneId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierPhones", x => x.SupplierPhoneId);
+                    table.ForeignKey(
+                        name: "FK_SupplierPhones_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -1257,12 +1326,24 @@ namespace CafeChain.Migrations
                     DocumentDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     Type = table.Column<int>(type: "int", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
+                    Purpose = table.Column<int>(type: "int", nullable: false),
+                    PartnerType = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    PartnerId = table.Column<int>(type: "int", nullable: true),
+                    PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SupplierId = table.Column<int>(type: "int", nullable: true),
+                    RefDocumentId = table.Column<int>(type: "int", nullable: true),
+                    IsReversal = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_InventoryDocuments", x => x.InventoryDocumentId);
+                    table.ForeignKey(
+                        name: "FK_InventoryDocuments_InventoryDocuments_RefDocumentId",
+                        column: x => x.RefDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryDocuments_Staffs_StaffId",
                         column: x => x.StaffId,
@@ -1924,19 +2005,19 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Suppliers",
-                columns: new[] { "SupplierId", "Active", "Address", "Code", "Name", "Phone" },
+                columns: new[] { "SupplierId", "Active", "Address", "Code", "Name", "TaxCode", "Website" },
                 values: new object[,]
                 {
-                    { 1, true, "Bình Dương", "SUP001", "Nhà cung cấp A", "0901111111" },
-                    { 2, true, "TP HCM", "SUP002", "Nhà cung cấp B", "0902222222" },
-                    { 3, true, "Đồng Nai", "SUP003", "Nhà cung cấp C", "0903333333" },
-                    { 4, true, "Hà Nội", "SUP004", "Nhà cung cấp D", "0904444444" }
+                    { 1, true, "Bình Dương", "SUP001", "Nhà cung cấp A", "0101234567", "https://supA.com" },
+                    { 2, true, "TP HCM", "SUP002", "Nhà cung cấp B", "0201234567", "https://supB.com" },
+                    { 3, true, "Đồng Nai", "SUP003", "Nhà cung cấp C", "0301234567", "https://supC.com" },
+                    { 4, true, "Hà Nội", "SUP004", "Nhà cung cấp D", "0401234567", "https://supD.com" }
                 });
 
             migrationBuilder.InsertData(
                 table: "Suppliers",
-                columns: new[] { "SupplierId", "Active", "Address", "Code", "DebtAmount", "Name", "Phone" },
-                values: new object[] { 5, true, "Đà Nẵng", "SUP005", 100000m, "Nhà cung cấp E", "0905555555" });
+                columns: new[] { "SupplierId", "Active", "Address", "Code", "DebtAmount", "Name", "TaxCode", "Website" },
+                values: new object[] { 5, true, "Đà Nẵng", "SUP005", 100000m, "Nhà cung cấp E", "0501234567", "https://supE.com" });
 
             migrationBuilder.InsertData(
                 table: "SystemSettings",
@@ -1980,9 +2061,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 11, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9895), 20000m, 100, null, 40000m, new DateTime(2026, 4, 4, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9879) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 26, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9899), null, 500, null, 50000m, new DateTime(2026, 4, 10, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9898) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 10, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9901), 100000m, 1000, null, 0m, new DateTime(2026, 3, 12, 12, 4, 54, 578, DateTimeKind.Local).AddTicks(9901) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 14, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4816), 20000m, 100, null, 40000m, new DateTime(2026, 4, 7, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4799) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 29, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818), null, 500, null, 50000m, new DateTime(2026, 4, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820), 100000m, 1000, null, 0m, new DateTime(2026, 3, 15, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820) }
                 });
 
             migrationBuilder.InsertData(
@@ -2086,6 +2167,51 @@ namespace CafeChain.Migrations
                     { 2, true, 1, 2 },
                     { 3, true, 2, 1 },
                     { 4, true, 3, 2 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "SupplierBankAccounts",
+                columns: new[] { "SupplierBankAccountId", "AccountHolder", "AccountNumber", "BankName", "IsPrimary", "SupplierId" },
+                values: new object[,]
+                {
+                    { 1, "NCC A", "111111111", "Vietcombank", true, 1 },
+                    { 2, "NCC B", "222222222", "ACB", true, 2 },
+                    { 3, "NCC C", "333333333", "Techcombank", true, 3 },
+                    { 4, "NCC D", "444444444", "BIDV", true, 4 },
+                    { 5, "NCC E", "555555555", "MB Bank", true, 5 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "SupplierContacts",
+                columns: new[] { "SupplierContactId", "Email", "IsPrimary", "Name", "Phone", "Position", "SupplierId" },
+                values: new object[,]
+                {
+                    { 1, "a@supplier.com", true, "Nguyễn Văn A", "0901111111", "Manager", 1 },
+                    { 2, "b@supplier.com", true, "Trần Văn B", "0902222222", "Sales", 2 },
+                    { 3, "c@supplier.com", true, "Lê Văn C", "0903333333", "Owner", 3 },
+                    { 4, "d@supplier.com", true, "Phạm Văn D", "0904444444", "Director", 4 },
+                    { 5, "e@supplier.com", true, "Hoàng Văn E", "0905555555", "Manager", 5 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "SupplierPhones",
+                columns: new[] { "SupplierPhoneId", "IsPrimary", "PhoneNumber", "SupplierId" },
+                values: new object[] { 1, true, "0901111111", 1 });
+
+            migrationBuilder.InsertData(
+                table: "SupplierPhones",
+                columns: new[] { "SupplierPhoneId", "PhoneNumber", "SupplierId" },
+                values: new object[] { 2, "0901111112", 1 });
+
+            migrationBuilder.InsertData(
+                table: "SupplierPhones",
+                columns: new[] { "SupplierPhoneId", "IsPrimary", "PhoneNumber", "SupplierId" },
+                values: new object[,]
+                {
+                    { 3, true, "0902222222", 2 },
+                    { 4, true, "0903333333", 3 },
+                    { 5, true, "0904444444", 4 },
+                    { 6, true, "0905555555", 5 }
                 });
 
             migrationBuilder.InsertData(
@@ -2678,9 +2804,19 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryDocuments_RefDocumentId",
+                table: "InventoryDocuments",
+                column: "RefDocumentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocuments_StaffId",
                 table: "InventoryDocuments",
                 column: "StaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDocuments_Status",
+                table: "InventoryDocuments",
+                column: "Status");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocuments_StoreId_DocumentDate",
@@ -2691,6 +2827,11 @@ namespace CafeChain.Migrations
                 name: "IX_InventoryDocuments_SupplierId",
                 table: "InventoryDocuments",
                 column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDocuments_Type",
+                table: "InventoryDocuments",
+                column: "Type");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactions_CreatedAt",
@@ -3154,10 +3295,41 @@ namespace CafeChain.Migrations
                 column: "ToppingId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_SupplierBankAccounts_SupplierId",
+                table: "SupplierBankAccounts",
+                column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierBankAccounts_SupplierId_AccountNumber",
+                table: "SupplierBankAccounts",
+                columns: new[] { "SupplierId", "AccountNumber" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierContacts_SupplierId",
+                table: "SupplierContacts",
+                column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierPhones_SupplierId",
+                table: "SupplierPhones",
+                column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Suppliers_Code",
                 table: "Suppliers",
                 column: "Code",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_Name",
+                table: "Suppliers",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Suppliers_TaxCode",
+                table: "Suppliers",
+                column: "TaxCode");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SystemSettings_SettingKey",
@@ -3349,6 +3521,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StoreToppings");
+
+            migrationBuilder.DropTable(
+                name: "SupplierBankAccounts");
+
+            migrationBuilder.DropTable(
+                name: "SupplierContacts");
+
+            migrationBuilder.DropTable(
+                name: "SupplierPhones");
 
             migrationBuilder.DropTable(
                 name: "SystemSettings");

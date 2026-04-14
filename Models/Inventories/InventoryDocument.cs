@@ -8,23 +8,44 @@ namespace CafeChain.Models.Inventories
     {
         public int InventoryDocumentId { get; set; }
 
-        public string Code { get; set; } // NKMH/2603/0218
+        public string Code { get; set; }
 
         public int StoreId { get; set; }
         public int StaffId { get; set; }
+
         public DateTime DocumentDate { get; set; }
 
         public InventoryDocumentType Type { get; set; }
         public InventoryDocumentStatus Status { get; set; }
 
-        public int? SupplierId { get; set; } // ✅ FIX NULLABLE
+        // ================= NGHIỆP VỤ =================
+
+        public InventoryDocumentPurpose Purpose { get; set; } // 🔥 Mục đích
+
+        // ================= ĐỐI TƯỢNG =================
+
+        public InventoryPartnerType PartnerType { get; set; } // 🔥 loại đối tượng
+        public int? PartnerId { get; set; }                  // 🔥 id liên kết
+        public string? PartnerName { get; set; }             // 🔥 fallback
+
+        // ================= NHẬP NCC =================
+
+        public int? SupplierId { get; set; }
+
+        // ================= REVERSAL =================
+
+        public int? RefDocumentId { get; set; } // phiếu gốc
+        public bool IsReversal { get; set; }    // có phải phiếu đảo
+
         public string? Note { get; set; }
-        // Navigation
+
+        // ================= NAVIGATION =================
+
         public virtual Store Store { get; set; }
         public virtual Staff Staff { get; set; }
         public virtual Supplier Supplier { get; set; }
-        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
 
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
+        public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
     }
 }

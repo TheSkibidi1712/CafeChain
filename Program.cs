@@ -43,10 +43,6 @@ using CafeChain.Application.Interfaces.Admin.Ingredients;
 using CafeChain.Application.Services.Admin.Ingredients;
 using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
 using CafeChain.Infrastrusture.Repositories.Admin.Ingredients;
-using CafeChain.Application.Interfaces.Admin.Suppliers;
-using CafeChain.Application.Services.Admin.Suppliers;
-using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
-using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services.Security;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
@@ -196,9 +192,6 @@ builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
 builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
 builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
-// Admin Suppliers
-builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
-builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
 // Admin Inventory Documents
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();

@@ -22,16 +22,8 @@ namespace CafeChain.Areas.Admin.Controllers
             if (filter.Page <= 0) filter.Page = 1;
             if (filter.PageSize <= 0) filter.PageSize = 10;
 
-            var staffId = GetAccountId();
-
-            // 🔥 ép store theo staff
-            var storeId = await _service.GetStoreIdByStaffAsync(staffId);
-
-            if (storeId.HasValue)
-                filter.StoreId = storeId;
-
             var result = await _service.GetPagedAsync(filter);
-            return View(result);
+            return View(result); // vẫn giữ view list
         }
 
         // ================= GET DATA CREATE =================
@@ -74,17 +66,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
-                var staffId = GetAccountId();
-
-                // 🔥 ép lại StoreId + StaffId từ server
-                var storeId = await _service.GetStoreIdByStaffAsync(staffId);
-
-                if (!storeId.HasValue)
-                    return Json(new { success = false, message = "Không xác định được cửa hàng" });
-
-                model.StoreId = storeId.Value;
-                model.StaffId = staffId;
-
                 await _service.CreateAsync(model);
 
                 return Json(new
