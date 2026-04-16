@@ -9,5 +9,7 @@
         public decimal AfterQty { get; set; }
         public DateTime CreatedAt { get; set; }
         public string UnitCode { get; set; }
+        public decimal? UnitPrice { get; set; }
+
     }
 }

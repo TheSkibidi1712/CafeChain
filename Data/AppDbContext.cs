@@ -70,6 +70,7 @@ namespace CafeChain.Data
         public DbSet<StoreTopping> StoreToppings { get; set; }
 
         // ========================= INVENTORY =========================
+        public DbSet<InventoryDebt> InventoryDebts { get; set; }
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
         public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }

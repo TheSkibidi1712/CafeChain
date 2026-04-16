@@ -7,6 +7,47 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CafeChain.Data.Configurations
 {
+    // ================================ Inventory Debt ============================
+    public class InventoryDebtConfiguration : IEntityTypeConfiguration<InventoryDebt>
+    {
+        public void Configure(EntityTypeBuilder<InventoryDebt> builder)
+        {
+            builder.ToTable("InventoryDebts");
+
+            // ================= PRIMARY KEY =================
+            builder.HasKey(x => x.InventoryDebtId);
+
+            // ================= PROPERTIES =================
+            builder.Property(x => x.PartnerName)
+                .HasMaxLength(255);
+
+            builder.Property(x => x.Amount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            builder.Property(x => x.PaidAmount)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            builder.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            builder.Property(x => x.PaidAt)
+                .IsRequired(false);
+
+            // ================= INDEX =================
+            builder.HasIndex(x => x.InventoryDocumentId);
+
+            builder.HasIndex(x => new { x.PartnerType, x.PartnerId });
+
+            // ================= RELATION =================
+            builder.HasOne<InventoryDocument>()
+                .WithMany(x => x.Debts)
+                .HasForeignKey(x => x.InventoryDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+        }
+    }
+
     // ================================ Inventory Document ============================
     public class InventoryDocumentConfiguration : IEntityTypeConfiguration<InventoryDocument>
     {

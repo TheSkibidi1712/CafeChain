@@ -47,5 +47,6 @@ namespace CafeChain.Models.Inventories
 
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
+        public virtual ICollection<InventoryDebt> Debts { get; set; } = new List<InventoryDebt>();
     }
 }

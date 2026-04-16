@@ -1,0 +1,65 @@
+﻿@model List<CafeChain.ViewModels.Admin.InventoryDocuments.InventoryDocumentItemVM>
+@using CafeChain.Models.Enums.Inventory
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Mã</th>
+            <th>Kho</th>
+            <th>Nhân viên</th>
+
+            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
+            {
+                <th>Nhà cung cấp</th>
+            }
+
+            <th>Loại</th>
+            <th>Ngày</th>
+
+            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
+            {
+                <th>Tổng tiền</th>
+            }
+
+            <th>Ghi chú</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr onclick="openDetail(@item.Id)">
+                <td>@item.Code</td>
+                <td>@item.StoreName</td>
+                <td>@item.StaffName</td>
+
+                @if (item.Type == InventoryDocumentType.IMPORT)
+                {
+                    <td>@(item.SupplierName ?? "")</td>
+                }
+                <td>
+                    <span class="badge
+                        @(item.Type == InventoryDocumentType.IMPORT ? "import" :
+                                                    item.Type == InventoryDocumentType.EXPORT ? "export" :
+                                                    item.Type == InventoryDocumentType.STOCK_TAKE ? "stocktake" :
+                                                    "waste")">
+
+                        @(item.Type == InventoryDocumentType.IMPORT ? "Nhập kho" :
+                          item.Type == InventoryDocumentType.EXPORT ? "Xuất kho" :
+                          item.Type == InventoryDocumentType.STOCK_TAKE ? "Kiểm kê" :
+                          "Hủy kho")
+                    </span>
+                </td>
+                <td>@item.Date.ToString("dd/MM/yyyy")</td>
+                @if (item.Type == InventoryDocumentType.IMPORT)
+                {
+                    <td>@item.TotalAmount.ToString("N0")</td>
+                }
+                <td>@item.Note</td>
+                <td>
+                    <button class="btn-detail" onclick="event.stopPropagation(); openDetail(@item.Id)">Chi tiết</button>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

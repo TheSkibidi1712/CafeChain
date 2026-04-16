@@ -37,7 +37,11 @@ namespace CafeChain.Areas.Admin.Controllers
                     AvailableQty = x.AvailableQty,
                     ReservedQty = x.ReservedQty,
                     LastUpdated = x.LastUpdated,
-                    UnitCode = x.UnitCode
+                    UnitCode = x.UnitCode,
+
+                    // 🔥 NEW
+                    LastUnitPrice = x.LastUnitPrice,
+                    LastSupplierName = x.LastSupplierName
                 }).ToList()
             };
 

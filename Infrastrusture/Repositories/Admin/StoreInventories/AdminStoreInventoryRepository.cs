@@ -1,4 +1,5 @@
-﻿using CafeChain.Data;
+﻿using CafeChain.Application.DTOs.Admin.StoreInventories;
+using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Models.Inventories;
 using CafeChain.Models.Staffs;
@@ -16,12 +17,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
         }
 
         // ================= INVENTORY =================
-
-        public async Task<(List<StoreInventory>, int total)> GetPagedAsync(int storeId, string? search, int page, int pageSize)
+        public async Task<(List<InventoryDTO>, int total)> GetPagedAsync(int storeId, string? search, int page, int pageSize)
         {
             var query = _context.StoreInventories
-                .Include(x => x.Ingredient)
-                    .ThenInclude(i => i.BaseUnit)
                 .Where(x => x.StoreId == storeId);
 
             if (!string.IsNullOrEmpty(search))
@@ -32,13 +30,50 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
             var total = await query.CountAsync();
 
             var data = await query
-                .OrderBy(x => x.Ingredient.Name)
+                .Select(x => new InventoryDTO
+                {
+                    StoreInventoryId = x.StoreInventoryId,
+                    IngredientName = x.Ingredient.Name,
+                    AvailableQty = x.AvailableQty,
+                    ReservedQty = x.ReservedQty,
+                    LastUpdated = x.LastUpdated,
+                    UnitCode = x.Ingredient.BaseUnit.UnitCode,
+
+                    // 🔥 GIÁ GẦN NHẤT (CÁCH 3)
+                    LastUnitPrice = _context.InventoryDocumentDetails
+                        .Where(d => d.IngredientId == x.IngredientId
+                                 && d.InventoryDocument.Status == Models.Enums.Inventory.InventoryDocumentStatus.CONFIRMED)
+                        .Select(d => new
+                        {
+                            d.UnitPrice,
+                            d.InventoryDocument.DocumentDate
+                        })
+                        .OrderByDescending(d => d.DocumentDate)
+                        .Select(d => d.UnitPrice)
+                        .FirstOrDefault(),
+
+                    // 🔥 NCC GẦN NHẤT (CÁCH 3)
+                    LastSupplierName = _context.InventoryDocumentDetails
+                        .Where(d => d.IngredientId == x.IngredientId
+                                 && d.InventoryDocument.Status == Models.Enums.Inventory.InventoryDocumentStatus.CONFIRMED)
+                        .Select(d => new
+                        {
+                            SupplierName = d.InventoryDocument.Supplier.Name,
+                            d.InventoryDocument.DocumentDate
+                        })
+                        .OrderByDescending(d => d.DocumentDate)
+                        .Select(d => d.SupplierName)
+                        .FirstOrDefault()
+                })
+                .OrderBy(x => x.IngredientName)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
             return (data, total);
         }
+
+
         public async Task<(List<InventoryTransaction>, int total)> GetTransactionsByInventoryIdAsync(int storeInventoryId, int page, int pageSize)
         {
             var query = _context.InventoryTransactions
@@ -64,6 +99,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
         {
             var query = _context.InventoryTransactions
                 .Include(x => x.TransactionType)
+                .Include(x => x.InventoryDocument)
+                    .ThenInclude(d => d.Details)
                 .Include(x => x.StoreInventory)
                     .ThenInclude(si => si.Ingredient)
                         .ThenInclude(i => i.BaseUnit)

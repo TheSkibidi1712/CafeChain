@@ -3,6 +3,7 @@ using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments;
 using Microsoft.EntityFrameworkCore;
@@ -11,26 +12,32 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
     public class AdminInventoryDocumentService : IAdminInventoryDocumentService
     {
         private readonly IAdminInventoryDocumentRepository _repository;
+        private readonly IUserContext _userContext;
 
-        public AdminInventoryDocumentService(IAdminInventoryDocumentRepository repository)
+
+        public AdminInventoryDocumentService(IAdminInventoryDocumentRepository repository, IUserContext userContext)
         {
             _repository = repository;
+            _userContext = userContext;
         }
 
         // ======================== CREATE DATA ========================
         public async Task<InventoryDocumentCreateVM> GetCreateDataAsync()
         {
+            var staffId = _userContext.StaffId;
+
             return new InventoryDocumentCreateVM
             {
-                Stores = await _repository.GetStoresAsync(),
-                Staffs = await _repository.GetStaffsAsync(),
+                Stores = await _repository.GetStoresByStaffAsync(staffId),
                 Suppliers = await _repository.GetSuppliersAsync(),
 
                 Ingredients = new List<IngredientDropdownDTO>(),
-
                 Units = new List<UnitDropdownDTO>(),
 
-                Form = new InventoryDocumentVM()
+                Form = new InventoryDocumentVM
+                {
+                    DocumentDate = DateTime.Now
+                }
             };
         }
 
@@ -109,6 +116,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             Validate(vm);
 
+            var staffId = _userContext.StaffId;
+
+            // 🔥 CHECK quyền store
+            var hasPermission = await _repository.CheckStaffHasStoreAsync(staffId, vm.StoreId);
+            if (!hasPermission)
+                throw new Exception("Bạn không có quyền thao tác kho này");
+
             using var tran = await _repository.BeginTransactionAsync();
 
             try
@@ -144,13 +158,24 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var document = new InventoryDocument
                 {
                     Code = GenerateCode(vm.Type),
+
                     StoreId = vm.StoreId,
-                    StaffId = vm.StaffId,
+                    StaffId = staffId,
+
                     SupplierId = vm.SupplierId,
+
                     DocumentDate = DateTime.SpecifyKind(vm.DocumentDate, DateTimeKind.Local),
+
                     Type = vm.Type,
                     Status = InventoryDocumentStatus.CONFIRMED,
+
+                    Purpose = vm.Purpose,
+                    PartnerType = vm.PartnerType,
+                    PartnerId = vm.PartnerId,
+                    PartnerName = vm.PartnerName,
+
                     Note = vm.Note,
+
                     Details = new List<InventoryDocumentDetail>()
                 };
 
@@ -162,15 +187,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         UnitId = item.UnitId,
                         Quantity = item.Quantity,
                         BaseQuantity = baseQty,
-                        UnitPrice = item.UnitPrice,
+                        UnitPrice = vm.Type == InventoryDocumentType.IMPORT
+                            || vm.Purpose == InventoryDocumentPurpose.DEBT
+                                ? item.UnitPrice
+                                : null,
                         Note = item.Note
                     });
                 }
 
                 await _repository.AddAsync(document);
-                await _repository.SaveChangesAsync(); // ✅ cần để lấy ID
-
-                var documentId = document.InventoryDocumentId;
+                await _repository.SaveChangesAsync(); // lấy ID
 
                 // ================= STEP 4: STOCK + TRANSACTION =================
                 foreach (var (item, baseQty) in convertedItems)
@@ -193,7 +219,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                     var beforeQty = stock.AvailableQty;
 
-                    // ✅ APPLY STOCK
                     switch (vm.Type)
                     {
                         case InventoryDocumentType.IMPORT:
@@ -202,44 +227,242 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         case InventoryDocumentType.EXPORT:
                         case InventoryDocumentType.WASTE:
-                            if (stock.AvailableQty < baseQty)
-                                throw new Exception($"Không đủ tồn kho (IngredientId={item.IngredientId})");
 
                             stock.AvailableQty -= baseQty;
                             break;
                     }
 
                     var afterQty = stock.AvailableQty;
-
                     stock.LastUpdated = DateTime.Now;
-
-                    // ❌ KHÔNG update gì hết, EF tự track
 
                     var transaction = new InventoryTransaction
                     {
-                        StoreInventory = stock, // ✅ QUAN TRỌNG (không dùng ID)
-                        InventoryTransactionTypeId = vm.Type == InventoryDocumentType.IMPORT ? 1
-                            : vm.Type == InventoryDocumentType.EXPORT ? 2 : 4,
+                        StoreInventory = stock,
+                        InventoryTransactionTypeId =
+                            vm.Type == InventoryDocumentType.IMPORT ? 1 :
+                            vm.Type == InventoryDocumentType.EXPORT ? 2 : 4,
 
                         Quantity = vm.Type == InventoryDocumentType.IMPORT ? baseQty : -baseQty,
                         BeforeQty = beforeQty,
                         AfterQty = afterQty,
-                        InventoryDocument = document, // ✅ QUAN TRỌNG
+                        InventoryDocument = document,
                         CreatedAt = DateTime.Now
                     };
 
                     await _repository.AddTransactionAsync(transaction);
                 }
 
-                // ✅ SAVE 1 LẦN DUY NHẤT
-                await _repository.SaveChangesAsync();
+                // ================= STEP 5: CREATE DEBT =================
+                if (vm.Type == InventoryDocumentType.EXPORT
+                    && vm.Purpose == InventoryDocumentPurpose.DEBT)
+                {
+                    var totalAmount = document.Details.Sum(x => x.Quantity * (x.UnitPrice ?? 0));
 
+                    if (totalAmount <= 0)
+                        throw new Exception("Phiếu nợ phải có giá");
+
+                    var debt = new InventoryDebt
+                    {
+                        InventoryDocumentId = document.InventoryDocumentId,
+
+                        PartnerType = vm.PartnerType,
+                        PartnerId = vm.PartnerId,
+                        PartnerName = vm.PartnerName ?? "Khách lẻ",
+
+                        Amount = totalAmount,
+                        PaidAmount = 0,
+
+                        CreatedAt = DateTime.Now
+                    };
+
+                    await _repository.AddDebtAsync(debt);
+                }
+
+                await _repository.SaveChangesAsync();
                 await tran.CommitAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
                 await tran.RollbackAsync();
                 throw new Exception("Dữ liệu đã bị thay đổi bởi người khác, vui lòng thử lại");
+            }
+            catch
+            {
+                await tran.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ======================== STOCK TAKE ========================
+        public async Task CreateStockTakeAsync(int storeId, List<StockTakeItemVM> items)
+        {
+            if (storeId <= 0)
+                throw new Exception("Store không hợp lệ");
+
+            if (items == null || !items.Any())
+                throw new Exception("Danh sách kiểm kê trống");
+
+            var staffId = _userContext.StaffId;
+
+            using var tran = await _repository.BeginTransactionAsync();
+
+            try
+            {
+                var document = new InventoryDocument
+                {
+                    Code = GenerateCode(InventoryDocumentType.STOCK_TAKE),
+                    StoreId = storeId,
+                    StaffId = staffId,
+                    Type = InventoryDocumentType.STOCK_TAKE,
+                    Status = InventoryDocumentStatus.CONFIRMED,
+                    Purpose = InventoryDocumentPurpose.NONE,
+                    DocumentDate = DateTime.Now,
+                    Details = new List<InventoryDocumentDetail>()
+                };
+
+                foreach (var item in items)
+                {
+                    if (item.ActualQty < 0)
+                        throw new Exception($"Số lượng không hợp lệ (IngredientId={item.IngredientId})");
+
+                    var ingredient = await _repository.GetIngredientAsync(item.IngredientId)
+                        ?? throw new Exception($"Không tìm thấy nguyên liệu {item.IngredientId}");
+
+                    var stock = await _repository.GetStoreInventoryAsync(storeId, item.IngredientId);
+
+                    var systemQty = stock?.AvailableQty ?? 0;
+                    var diff = item.ActualQty - systemQty;
+
+                    // Không thay đổi thì skip
+                    if (diff == 0) continue;
+
+                    // tạo stock nếu chưa có
+                    if (stock == null)
+                    {
+                        stock = new StoreInventory
+                        {
+                            StoreId = storeId,
+                            IngredientId = item.IngredientId,
+                            AvailableQty = 0,
+                            ReservedQty = 0,
+                            LastUpdated = DateTime.Now
+                        };
+
+                        await _repository.AddStoreInventoryAsync(stock);
+                    }
+
+                    var before = stock.AvailableQty;
+
+                    // 🔥 overwrite theo thực tế
+                    stock.AvailableQty = item.ActualQty;
+                    stock.LastUpdated = DateTime.Now;
+
+                    var after = stock.AvailableQty;
+
+                    // ✅ DETAIL (dùng base unit)
+                    document.Details.Add(new InventoryDocumentDetail
+                    {
+                        IngredientId = item.IngredientId,
+                        Quantity = diff,
+                        BaseQuantity = diff,
+                        UnitId = ingredient.BaseUnitId, // 🔥 CHUẨN
+                        Note = $"System={systemQty} | Actual={item.ActualQty}"
+                    });
+
+                    // ✅ TRANSACTION
+                    await _repository.AddTransactionAsync(new InventoryTransaction
+                    {
+                        StoreInventory = stock,
+                        InventoryTransactionTypeId = (int)InventoryTransactionTypeEnum.STOCK_TAKE,
+                        Quantity = diff,
+                        BeforeQty = before,
+                        AfterQty = after,
+                        InventoryDocument = document,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+
+                // Không có thay đổi → không tạo phiếu
+                if (!document.Details.Any())
+                    throw new Exception("Không có thay đổi tồn kho");
+
+                await _repository.AddAsync(document);
+                await _repository.SaveChangesAsync();
+
+                await tran.CommitAsync();
+            }
+            catch
+            {
+                await tran.RollbackAsync();
+                throw;
+            }
+        }
+
+        // ======================== CANCEL ========================
+        public async Task CancelAsync(int documentId)
+        {
+            var doc = await _repository.GetDetailAsync(documentId)
+                ?? throw new Exception("Không tìm thấy phiếu");
+
+            if (doc.Status == InventoryDocumentStatus.CANCELLED)
+                throw new Exception("Đã hủy");
+
+            using var tran = await _repository.BeginTransactionAsync();
+
+            try
+            {
+                var reversal = new InventoryDocument
+                {
+                    Code = "RV-" + DateTime.Now.Ticks,
+                    StoreId = doc.StoreId,
+                    StaffId = _userContext.StaffId,
+                    Type = doc.Type,
+                    Status = InventoryDocumentStatus.CONFIRMED,
+                    DocumentDate = DateTime.Now,
+                    IsReversal = true,
+                    RefDocumentId = doc.InventoryDocumentId,
+                    Details = new List<InventoryDocumentDetail>()
+                };
+
+                foreach (var d in doc.Details)
+                {
+                    var stock = await _repository.GetStoreInventoryAsync(doc.StoreId, d.IngredientId);
+
+                    var before = stock.AvailableQty;
+
+                    var delta = doc.Type == InventoryDocumentType.IMPORT
+                        ? -d.BaseQuantity
+                        : d.BaseQuantity;
+
+                    stock.AvailableQty += delta;
+
+                    var after = stock.AvailableQty;
+
+                    reversal.Details.Add(new InventoryDocumentDetail
+                    {
+                        IngredientId = d.IngredientId,
+                        Quantity = -d.Quantity,
+                        BaseQuantity = delta,
+                        UnitId = d.UnitId
+                    });
+
+                    await _repository.AddTransactionAsync(new InventoryTransaction
+                    {
+                        StoreInventory = stock,
+                        InventoryTransactionTypeId = (int)doc.Type,
+                        Quantity = delta,
+                        BeforeQty = before,
+                        AfterQty = after,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+
+                doc.Status = InventoryDocumentStatus.CANCELLED;
+
+                await _repository.AddAsync(reversal);
+                await _repository.SaveChangesAsync();
+
+                await tran.CommitAsync();
             }
             catch
             {
@@ -278,13 +501,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             );
         }
 
-        // ======================== STORE BY STAFF ========================
-        public async Task<int?> GetStoreIdByStaffAsync(int staffId)
-        {
-            return await _repository.GetStoreIdByStaffAsync(staffId);
-        }
-
-
         // ======================== INGREDIENT SUPPLIERS BY SUPPLIER ========================
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
         {
@@ -297,6 +513,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<List<StoreInventory>> GetIngredientsByStoreAsync(int storeId)
         {
             return await _repository.GetStoreInventoriesAsync(storeId);
+        }
+
+        public async Task<List<StoreInventory>> GetIngredientsForExportAsync(int storeId)
+        {
+            return await _repository.GetStoreInventoriesForExportAsync(storeId);
         }
 
         // ======================== PRIVATE ========================
@@ -321,9 +542,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             if (vm.StoreId <= 0)
                 throw new Exception("Store không hợp lệ");
-
-            if (vm.StaffId <= 0)
-                throw new Exception("Staff không hợp lệ");
 
             if (!vm.Details.Any())
                 throw new Exception("Danh sách nguyên liệu trống");

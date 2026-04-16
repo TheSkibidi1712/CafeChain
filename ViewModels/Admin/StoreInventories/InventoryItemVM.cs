@@ -8,5 +8,7 @@
         public decimal ReservedQty { get; set; }
         public DateTime LastUpdated { get; set; }
         public string UnitCode { get; set; }
+        public decimal? LastUnitPrice { get; set; }
+        public string? LastSupplierName { get; set; }
     }
 }

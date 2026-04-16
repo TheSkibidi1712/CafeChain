@@ -6,9 +6,10 @@
         public string Code { get; set; }
 
         public string StoreName { get; set; }
+
+        // chỉ hiển thị
         public string StaffName { get; set; }
 
-        // ✅ Supplier ở HEADER
         public string? SupplierName { get; set; }
 
         public string Type { get; set; }

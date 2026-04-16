@@ -34,30 +34,6 @@ $(document).ready(function () {
 });
 
 
-// ===== TOAST =====
-function showToast(msg, type = "success") {
-
-    let container = document.getElementById("toast-container");
-
-    let t = document.createElement("div");
-    t.innerText = msg;
-
-    t.innerHTML = (type === "success" ? "✔ " : "❌ ") + msg;
-    t.style.boxShadow = "0 2px 8px rgba(0,0,0,0.2)";
-    t.style.background = type === "success" ? "#28a745" : "#dc3545";
-    t.style.color = "#fff";
-    t.style.padding = "12px 16px";
-    t.style.borderRadius = "6px";
-    t.style.marginBottom = "10px";
-
-    container.appendChild(t);
-
-    setTimeout(() => {
-        t.style.opacity = "0";
-        setTimeout(() => t.remove(), 300);
-    }, 2000);
-}
-
 // ===== LOAD UNIT =====
 function preloadUnits() {
     return fetch("/Admin/AdminIngredient/GetUnits")
@@ -149,7 +125,7 @@ function saveIngredient() {
         .then(r => r.json())
         .then(res => {
 
-            showToast(res.message || "Có lỗi xảy ra", res.success ? "success" : "error");
+            toast(res.message || "Có lỗi xảy ra", res.success ? "success" : "error");
 
             if (!res.success) return;
 
@@ -224,7 +200,7 @@ function toggleStatus(id) {
         .then(r => r.json())
         .then(res => {
 
-            showToast(res.message || "Có lỗi xảy ra", res.success ? "success" : "error");;
+            toast(res.message || "Có lỗi xảy ra", res.success ? "success" : "error");
 
             if (!res.success) return;
 

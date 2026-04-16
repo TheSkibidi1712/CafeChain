@@ -194,6 +194,7 @@ builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
 
 // Admin Inventory Documents
+builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
 builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
 

@@ -2046,6 +2046,56 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDebt", b =>
+                {
+                    b.Property<int>("InventoryDebtId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDebtId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InventoryDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryDocumentId1")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PaidAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PartnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PartnerName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("PartnerType")
+                        .HasColumnType("int");
+
+                    b.HasKey("InventoryDebtId");
+
+                    b.HasIndex("InventoryDocumentId");
+
+                    b.HasIndex("InventoryDocumentId1");
+
+                    b.HasIndex("PartnerType", "PartnerId");
+
+                    b.ToTable("InventoryDebts", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
                 {
                     b.Property<int>("InventoryDocumentId")
@@ -5313,11 +5363,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 14, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4816),
+                            EndDate = new DateTime(2026, 5, 15, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9668),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 7, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4799)
+                            StartDate = new DateTime(2026, 4, 8, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9653)
                         },
                         new
                         {
@@ -5325,10 +5375,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 29, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818),
+                            EndDate = new DateTime(2026, 4, 30, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818)
+                            StartDate = new DateTime(2026, 4, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672)
                         },
                         new
                         {
@@ -5336,11 +5386,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820),
+                            EndDate = new DateTime(2026, 6, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 15, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820)
+                            StartDate = new DateTime(2026, 3, 16, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674)
                         });
                 });
 
@@ -5801,6 +5851,23 @@ namespace CafeChain.Migrations
                     b.Navigation("Supplier");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDebt", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", null)
+                        .WithMany("Debts")
+                        .HasForeignKey("InventoryDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", "InventoryDocument")
+                        .WithMany()
+                        .HasForeignKey("InventoryDocumentId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryDocument");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
@@ -6513,6 +6580,8 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
                 {
+                    b.Navigation("Debts");
+
                     b.Navigation("Details");
 
                     b.Navigation("InventoryTransactions");

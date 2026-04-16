@@ -1,0 +1,86 @@
+﻿#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999999;
+}
+
+.toast-item {
+    min-width: 280px;
+    margin-top: 12px;
+    border-radius: 10px;
+    color: white;
+    overflow: hidden;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+    animation: slideIn 0.4s ease;
+    position: relative;
+}
+
+.toast-content {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    gap: 10px;
+}
+
+.toast-icon {
+    font-size: 18px;
+}
+
+.toast-text {
+    flex: 1;
+    font-size: 14px;
+}
+
+/* COLORS */
+.toast-item.success {
+    background: #4caf50;
+    border-left: 5px solid #2e7d32;
+}
+
+.toast-item.error {
+    background: #f44336;
+    border-left: 5px solid #c62828;
+}
+
+/* PROGRESS */
+.toast-progress {
+    height: 4px;
+    background: rgba(255,255,255,0.7);
+    width: 100%;
+    animation: progressBar 3s linear forwards;
+}
+
+/* ANIMATION */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes progressBar {
+    from {
+        width: 100%;
+    }
+
+    to {
+        width: 0%;
+    }
+}
+
+.fade-out {
+    animation: fadeOut 0.3s forwards;
+}
+
+@keyframes fadeOut {
+    to {
+        opacity: 0;
+        transform: translateX(50%);
+    }
+}

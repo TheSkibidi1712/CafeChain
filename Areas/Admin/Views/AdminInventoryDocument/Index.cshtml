@@ -1,193 +1,221 @@
-﻿    @model CafeChain.ViewModels.Admin.InventoryDocuments.InventoryDocumentIndexVM
-    @using CafeChain.Models.Enums.Inventory
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.InventoryDocumentIndexVM
+@using CafeChain.Models.Enums.Inventory
 
-    <link rel="stylesheet" href="~/css/inventorydocument.css" />
+<link rel="stylesheet" href="~/css/inventorydocument.css" />
 
-    <div class="inventory-container">
+<div class="inventory-container">
 
-        <div class="header">
-            <h2>📦 Quản lý phiếu kho</h2>
-            <button class="btn-create" onclick="openCreateModal()">+ Tạo phiếu</button>
+    <!-- ================= HEADER ================= -->
+    <div class="header">
+        <h2>📦 Quản lý phiếu kho</h2>
+    </div>
+
+    <!-- ================= FILTER ================= -->
+    <div class="filter-box">
+        <div class="filter-title">🔎 Bộ lọc tìm kiếm</div>
+
+        <div class="filter-grid">
+
+            <div class="filter-item">
+                <label>Mã phiếu</label>
+                <input id="search" placeholder="Nhập mã..." />
+            </div>
+
+            <div class="filter-item">
+                <label>Loại phiếu</label>
+                <select id="filterType">
+                    <option value="">-- Tất cả --</option>
+                    <option value="1">Nhập kho</option>
+                    <option value="2">Xuất kho</option>
+                    <option value="3">Kiểm kê</option>
+                    <option value="4">Hủy</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <label>Từ ngày</label>
+                <input type="date" id="fromDate" />
+            </div>
+
+            <div class="filter-item">
+                <label>Đến ngày</label>
+                <input type="date" id="toDate" />
+            </div>
+
+            <div class="filter-actions">
+                <button type="button" class="btn-filter" onclick="reloadData()">Lọc</button>
+                <button type="button" class="btn-clear" onclick="clearFilter()">Xóa</button>
+            </div>
+
         </div>
-        <div class="filter-box">
+    </div>
 
-            <div class="filter-title">🔍 Bộ lọc tìm kiếm</div>
+    <!-- ================= TABS ================= -->
+    <div class="tabs">
+        <button type="button" class="tab-btn active" onclick="switchTab(event,'importTab')">📥 Nhập kho</button>
+        <button type="button" class="tab-btn" onclick="switchTab(event,'exportTab')">📤 Xuất kho</button>
+        <button type="button" class="tab-btn" onclick="switchTab(event,'stockTab')">📊 Kiểm kê</button>
+        <button type="button" class="tab-btn" onclick="switchTab(event,'wasteTab')">🗑️ Hủy kho</button>
+    </div>
 
-            <div class="filter-grid">
+    <!-- ================= IMPORT ================= -->
+    <div id="importTab" class="tab-content active">
+        <div class="header">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(1)">
+                + Tạo phiếu nhập
+            </button>
+        </div>
 
-                <div class="filter-item">
-                    <label>Mã phiếu</label>
-                    <input type="text" placeholder="Nhập mã..." id="search">
+        @Html.Partial("_InventoryTable",
+            Model.Items.Where(x => x.Type == InventoryDocumentType.IMPORT).ToList())
+    </div>
+
+    <!-- ================= EXPORT ================= -->
+    <div id="exportTab" class="tab-content">
+        <div class="header">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(2)">
+                + Tạo phiếu xuất
+            </button>
+        </div>
+
+        @Html.Partial("_InventoryTable",
+            Model.Items.Where(x => x.Type == InventoryDocumentType.EXPORT).ToList())
+    </div>
+
+    <!-- ================= STOCK TAKE ================= -->
+    <div id="stockTab" class="tab-content">
+        <div class="header">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(3)">
+                + Tạo phiếu kiểm kê
+            </button>
+        </div>
+
+        @Html.Partial("_InventoryTable",
+            Model.Items.Where(x => x.Type == InventoryDocumentType.STOCK_TAKE).ToList())
+    </div>
+
+    <!-- ================= WASTE ================= -->
+    <div id="wasteTab" class="tab-content">
+        <div class="header">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(4)">
+                + Tạo phiếu hủy
+            </button>
+        </div>
+
+        @Html.Partial("_InventoryTable",
+            Model.Items.Where(x => x.Type == InventoryDocumentType.WASTE).ToList())
+    </div>
+
+</div>
+
+<!-- ================= DETAIL MODAL ================= -->
+<div id="detailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>📄 Chi tiết phiếu</h3>
+            <span onclick="closeModal('detailModal')" class="close">×</span>
+        </div>
+        <div id="detailContent"></div>
+    </div>
+</div>
+
+<!-- ================= CREATE MODAL ================= -->
+<div id="createModal" class="modal">
+    <div class="modal-content large">
+
+        <!-- ✅ NÚT X -->
+        <div class="modal-close" id="closeCreateModal">
+            <i class="fa fa-times"></i>
+        </div>
+
+        <div class="modal-body">
+
+            <div class="form-grid">
+
+                <div>
+                    <label>🏬 Kho</label>
+                    <select id="store"></select>
                 </div>
 
-                <div class="filter-item">
-                    <label>Loại phiếu</label>
-                    <select id="filterType">
-                        <option value="">-- Tất cả --</option>
-                        <option value="1">Nhập kho</option>
-                        <option value="2">Xuất kho</option>
-                        <option value="4">Hủy kho</option>
+                <div>
+                    <label>📦 Loại phiếu</label>
+                    <input type="text" id="typeText" readonly />
+                    <input type="hidden" id="type" />
+                </div>
+
+                <div id="supplierBox">
+                    <label>🚚 Nhà cung cấp</label>
+                    <select id="supplier"></select>
+                </div>
+
+                <div id="exportPartner" style="display:none">
+                    <label>👤 Xuất cho</label>
+                    <input type="text" id="partnerName" />
+                </div>
+
+                <div id="exportPurpose" style="display:none">
+                    <label>📌 Lý do</label>
+                    <select id="purpose">
+                        <option value="">-- Chọn --</option>
+                        <option value="2">Bán hàng</option>
+                        <option value="3">Nội bộ</option>
+                        <option value="4">Tặng</option>
+                        <option value="5">Cho nợ</option>
+                    </select>
+                </div>
+                <div id="wastePurpose" style="display:none">
+                    <label>🗑️ Lý do hủy</label>
+                    <select id="wasteReason">
+                        <option value="">-- Chọn --</option>
+                        <option value="6">Hư hỏng</option>
+                        <option value="7">Hết hạn</option>
+                        <option value="8">Vỡ / lỗi</option>
                     </select>
                 </div>
 
-                <div class="filter-item">
-                    <label>Từ ngày</label>
-                    <input type="date" id="fromDate">
+                <div>
+                    <label>📅 Ngày</label>
+                    <input type="datetime-local" id="documentDate">
                 </div>
 
-                <div class="filter-item">
-                    <label>Đến ngày</label>
-                    <input type="date" id="toDate">
-                </div>
-
-                <div class="filter-actions">
-                    <button onclick="reloadData()" class="btn-filter">Lọc</button>
-                    <button onclick="clearFilter()" class="btn-clear">Xóa lọc</button>
-                </div>
-
-            </div>
-        </div>
-
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Mã</th>
-                    <th>Kho</th>
-                    <th>Nhân viên</th>
-                    <th>Nhà cung cấp</th>
-                    <th>Loại</th>
-                    <th>Ngày</th>
-                    <th>Tổng tiền</th>
-                    <th>Ghi chú</th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr onclick="openDetail(@item.Id)">
-                        <td>@item.Code</td>
-                        <td>@item.StoreName</td>
-                        <td>@item.StaffName</td>
-                        <td>@(item.SupplierName ?? "")</td>
-                        <td>
-                            <span class="badge
-                                @(item.Type == InventoryDocumentType.IMPORT ? "import" :
-                                                                item.Type == InventoryDocumentType.EXPORT ? "export" :
-                                                                item.Type == InventoryDocumentType.STOCK_TAKE ? "stocktake" :
-                                                                "waste")">
-
-                                @(item.Type == InventoryDocumentType.IMPORT ? "Nhập kho" :
-                                  item.Type == InventoryDocumentType.EXPORT ? "Xuất kho" :
-                                  item.Type == InventoryDocumentType.STOCK_TAKE ? "Kiểm kho" :
-                                  "Hủy kho")
-                            </span>
-                        </td>
-                        <td>@item.Date.ToString("dd/MM/yyyy")</td>
-                        <td>@item.TotalAmount.ToString("N0")</td>
-                        <td>@item.Note</td>
-                        <td>
-                            <button class="btn-detail" onclick="event.stopPropagation(); openDetail(@item.Id)">Chi tiết</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <!-- DETAIL MODAL -->
-    <div id="detailModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📄 Chi tiết phiếu</h3>
-                <span onclick="closeModal('detailModal')" class="close">×</span>
-            </div>
-            <div id="detailContent"></div>
-        </div>
-    </div>
-
-    <!-- CREATE MODAL -->
-    <div id="createModal" class="modal">
-        <div class="modal-content large">
-
-            <div class="modal-header">
-                <h3>🧾 Tạo phiếu kho</h3>
-                <span onclick="closeModal('createModal')" class="close">×</span>
-            </div>
-
-            <div class="modal-body">
-
-                <div class="form-grid">
-
-                    <div>
-                        <label>🏬 Kho</label>
-                        <select id="store"></select>
-                    </div>
-
-                    <div>
-                        <label>👤 Nhân viên</label>
-                        <select id="staff"></select>
-                    </div>
-
-                    <div>
-                        <label>📦 Loại phiếu</label>
-                        <select id="type" onchange="onTypeChange()">
-                            <option value="">-- Chọn loại phiếu --</option>
-                            <option value="IMPORT">Nhập kho</option>
-                            <option value="EXPORT">Xuất kho</option>
-                            <option value="WASTE">Hủy kho</option>
-                        </select>
-                    </div>
-
-                    <div id="supplierBox">
-                        <label>🚚 Nhà cung cấp</label>
-                        <select id="supplier" onchange="loadIngredientsBySupplier()"></select>
-                    </div>
-
-                    <div>
-                        <label>📅 Ngày</label>
-                        <input type="datetime-local" id="documentDate">
-                    </div>
-
-                    <div>
-                        <label>📝 Ghi chú</label>
-                        <input type="text" id="note">
-                    </div>
-
-                </div>
-
-                <div class="table-wrapper">
-                    <table id="detailTable">
-                        <thead>
-                            <tr>
-                                <th>Nguyên liệu</th>
-                                <th>Đơn vị</th>
-                                <th>Số lượng</th>
-                                <th>Giá</th>
-                                <th>Thành tiền</th>
-                                <th>Ghi chú</th>
-                                <th></th>
-                            </tr>
-                        </thead>
-                        <tbody></tbody>
-                    </table>
-                </div>
-
-                <button class="btn-add" onclick="addRow()">+ Thêm dòng</button>
-
-                <div class="total-box">
-                    Tổng tiền: <span id="grandTotal">0</span> VND
+                <div>
+                    <label>📝 Ghi chú</label>
+                    <input type="text" id="note">
                 </div>
 
             </div>
 
-            <div class="modal-footer">
-                <button onclick="submitForm()" class="btn-save">Lưu</button>
+            <div class="table-wrapper">
+                <table id="detailTable">
+                    <thead>
+                        <tr>
+                            <th>Nguyên liệu</th>
+                            <th>Đơn vị</th>
+                            <th>Số lượng</th>
+                            <th class="col-price">Giá</th>
+                            <th class="col-total">Thành tiền</th>
+                            <th>Ghi chú</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+
+            <button type="button" class="btn-add" onclick="addRow()">+ Thêm dòng</button>
+
+            <div class="total-box">
+                Tổng tiền: <span id="grandTotal">0</span> VND
             </div>
 
         </div>
+
+        <div class="modal-footer">
+            <button type="button" onclick="submitForm()" class="btn-save">Lưu</button>
+        </div>
+
     </div>
+</div>
 
-    <div id="toast"></div>
 
-    <script src="~/js/inventorydocument.js"></script>
+<script type="module" src="~/js/inventorydocument.js"></script>
