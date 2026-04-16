@@ -47,21 +47,18 @@ namespace CafeChain.ViewModels.Accounts
         public string ConfirmPassword { get; set; }
 
         // ================= DATE OF BIRTH =================
-        [DataType(DataType.Date)]
-        [DisplayFormat(DataFormatString = "{0:yyyy-MM-dd}", ApplyFormatInEditMode = true)]
-        [CustomValidation(typeof(RegisterViewModel), nameof(ValidateDOB))]
-        public DateTime? DateOfBirth { get; set; } = DateTime.Today.AddYears(-18);
+        // Nhận dạng dd/MM/yyyy từ form, parse thủ công trong controller
+        public string? DateOfBirthText { get; set; }
 
-        public static ValidationResult ValidateDOB(DateTime? dob, ValidationContext context)
-        {
-            if (dob.HasValue && dob > DateTime.Today)
-                return new ValidationResult("Ngày sinh không hợp lệ");
-
-            return ValidationResult.Success;
-        }
+        // Helper: parse sang DateTime? (dùng trong controller)
+        public DateTime? DateOfBirth =>
+            DateTime.TryParseExact(DateOfBirthText, "dd/MM/yyyy",
+                System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.None, out var d)
+            ? d : null;
 
         // ================= TERMS =================
         [Required(ErrorMessage = "Bạn phải đồng ý với điều khoản")]
-        public bool? AcceptTerms { get; set; }
+        public bool AcceptTerms { get; set; }
     }
 }

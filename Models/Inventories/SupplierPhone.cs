@@ -1,4 +1,4 @@
-﻿namespace CafeChain.Models.Inventories
+namespace CafeChain.Models.Inventories
 {
     public class SupplierPhone
     {
@@ -7,7 +7,7 @@
         public int SupplierId { get; set; }
         public virtual Supplier Supplier { get; set; }
 
-        public string PhoneNumber { get; set; }
+        public string? PhoneNumber { get; set; }
 
         public bool IsPrimary { get; set; } // số chính
     }

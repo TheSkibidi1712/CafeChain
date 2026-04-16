@@ -39,8 +39,19 @@ namespace CafeChain.Controllers
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return RedirectToAction("Index", "Home"); // hoặc dashboard
+                return RedirectToAction("Index", "Home");
             }
+
+            // Validate AcceptTerms thủ công (bool false không trigger [Required])
+            if (!model.AcceptTerms)
+                ModelState.AddModelError("AcceptTerms", "Bạn phải đồng ý với điều khoản");
+
+            // Validate ngày sinh (nếu có nhập)
+            if (!string.IsNullOrWhiteSpace(model.DateOfBirthText) && model.DateOfBirth == null)
+                ModelState.AddModelError("DateOfBirthText", "Ngày sinh không hợp lệ (dd/MM/yyyy)");
+
+            if (model.DateOfBirth.HasValue && model.DateOfBirth > DateTime.Today)
+                ModelState.AddModelError("DateOfBirthText", "Ngày sinh không được lớn hơn hôm nay");
 
             if (!ModelState.IsValid)
             {

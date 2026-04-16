@@ -1,16 +1,16 @@
-﻿namespace CafeChain.Models.Inventories
+namespace CafeChain.Models.Inventories
 {
     public class Supplier
     {
         public int SupplierId { get; set; }
 
-        public string Code { get; set; } // SUP00001
-        public string Name { get; set; }
+        public string? Code { get; set; } // SUP00001
+        public string? Name { get; set; }
 
-        public string TaxCode { get; set; }   // Mã số thuế
-        public string Website { get; set; }   // Website
+        public string? TaxCode { get; set; }   // Mã số thuế
+        public string? Website { get; set; }   // Website
 
-        public string Address { get; set; }   // 🔥 Giữ 1 địa chỉ chính
+        public string? Address { get; set; }   // 🔥 Giữ 1 địa chỉ chính
 
         public decimal DebtAmount { get; set; } // Công nợ hiện tại
 

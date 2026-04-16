@@ -53,6 +53,10 @@ using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Services.Admin.Suppliers;
+using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
+using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -200,6 +204,10 @@ builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumen
 // Admin Store Inventories
 builder.Services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();
 builder.Services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
+
+// Admin Suppliers
+builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
+builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
 // Security
 builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();

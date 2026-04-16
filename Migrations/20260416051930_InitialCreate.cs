@@ -256,9 +256,9 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Website = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Website = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     DebtAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
@@ -463,7 +463,7 @@ namespace CafeChain.Migrations
                     SupplierId = table.Column<int>(type: "int", nullable: false),
                     BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    AccountHolder = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    AccountHolder = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
@@ -485,9 +485,9 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     SupplierId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Position = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
+                    Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    Position = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
@@ -2061,9 +2061,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 14, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4816), 20000m, 100, null, 40000m, new DateTime(2026, 4, 7, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4799) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 29, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818), null, 500, null, 50000m, new DateTime(2026, 4, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820), 100000m, 1000, null, 0m, new DateTime(2026, 3, 15, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 16, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8922), 20000m, 100, null, 40000m, new DateTime(2026, 4, 9, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8904) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 5, 1, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8927), null, 500, null, 50000m, new DateTime(2026, 4, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8926) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930), 100000m, 1000, null, 0m, new DateTime(2026, 3, 17, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930) }
                 });
 
             migrationBuilder.InsertData(

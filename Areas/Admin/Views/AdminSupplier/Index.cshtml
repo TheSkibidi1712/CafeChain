@@ -1,0 +1,310 @@
+@model List<CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierDTO>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<link rel="stylesheet" href="~/css/supplier.css" />
+
+<div class="sup-page">
+
+    <!-- HEADER -->
+    <div class="sup-header">
+        <div>
+            <h2 class="sup-title"><i class="fa fa-truck-field"></i> Quản lý Nhà cung cấp</h2>
+            <p class="sup-subtitle">Quản lý thông tin NCC, số điện thoại, ngân hàng và liên hệ</p>
+        </div>
+        <button class="sup-btn sup-btn-primary" id="btnCreate">
+            <i class="fa fa-plus"></i> Thêm NCC
+        </button>
+    </div>
+
+    <!-- FILTER -->
+    <div class="sup-filter-bar">
+        <input id="searchBox" class="sup-input" placeholder="🔍 Tìm mã, tên nhà cung cấp..." />
+        <select id="statusFilter" class="sup-select">
+            <option value="">Tất cả trạng thái</option>
+            <option value="true">Hoạt động</option>
+            <option value="false">Ngưng</option>
+        </select>
+        <button class="sup-btn sup-btn-dark" id="btnFilter">Lọc</button>
+    </div>
+
+    <!-- TABLE -->
+    <div class="sup-table-wrap">
+        <table class="sup-table">
+            <thead>
+                <tr>
+                    <th>Mã</th>
+                    <th>Tên NCC</th>
+                    <th>SĐT chính</th>
+                    <th>Người liên hệ</th>
+                    <th>Ngân hàng</th>
+                    <th>Công nợ</th>
+                    <th>Trạng thái</th>
+                    <th width="120"></th>
+                </tr>
+            </thead>
+            <tbody id="supplierTable">
+                @foreach (var item in Model)
+                {
+                    <tr data-id="@item.SupplierId">
+                        <td><span class="sup-code">@item.Code</span></td>
+                        <td><b>@item.Name</b><br /><small class="text-muted">@item.Address</small></td>
+                        <td>@(item.PrimaryPhone ?? "—")</td>
+                        <td>
+                            @if (item.PrimaryContactName != null)
+                            {
+                                <span>@item.PrimaryContactName</span><br />
+                                <small class="text-muted">@item.PrimaryContactPhone</small>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td>
+                            @if (item.PrimaryBankName != null)
+                            {
+                                <span>@item.PrimaryBankName</span><br />
+                                <small class="text-muted">@item.PrimaryAccountNumber</small>
+                            }
+                            else
+                            {
+                                <span>—</span>
+                            }
+                        </td>
+                        <td class="text-end">@item.DebtAmount.ToString("N0") ₫</td>
+                        <td>
+                            <span class="sup-badge @(item.Active ? "badge-active" : "badge-inactive")">
+                                @(item.Active ? "Hoạt động" : "Ngưng")
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <i class="fa fa-pen-to-square sup-icon-btn edit-btn" data-id="@item.SupplierId" title="Sửa"></i>
+                            <i class="fa fa-list-ul sup-icon-btn detail-btn" data-id="@item.SupplierId" title="Chi tiết"></i>
+                            <i class="fa fa-lock sup-icon-btn toggle-btn" data-id="@item.SupplierId" title="Tắt/Bật"></i>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div id="supToast"></div>
+
+<!-- ========== MODAL: TẠO MỚI NCC ========== -->
+<div id="createModal" class="sup-modal">
+    <div class="sup-modal-box sup-modal-lg">
+        <div class="sup-modal-header">
+            <h5><i class="fa fa-plus-circle"></i> Thêm Nhà Cung Cấp Mới</h5>
+            <span class="sup-close" data-close="createModal">✖</span>
+        </div>
+        <div class="sup-modal-body">
+            <div class="sup-grid-2">
+                <div>
+                    <label>Mã NCC <span class="req">*</span></label>
+                    <input id="c-code" class="sup-input" placeholder="SUP00001" />
+                </div>
+                <div>
+                    <label>Tên NCC <span class="req">*</span></label>
+                    <input id="c-name" class="sup-input" placeholder="Tên nhà cung cấp" />
+                </div>
+                <div>
+                    <label>Mã số thuế</label>
+                    <input id="c-taxcode" class="sup-input" placeholder="Mã số thuế" />
+                </div>
+                <div>
+                    <label>Website</label>
+                    <input id="c-website" class="sup-input" placeholder="https://..." />
+                </div>
+                <div class="sup-col-2">
+                    <label>Địa chỉ chính</label>
+                    <input id="c-address" class="sup-input" placeholder="Địa chỉ" />
+                </div>
+            </div>
+
+            <hr class="sup-divider" />
+            <h6 class="sup-section-title"><i class="fa fa-phone"></i> Số điện thoại chính</h6>
+            <input id="c-phone" class="sup-input" placeholder="Số điện thoại chính *" />
+
+            <hr class="sup-divider" />
+            <h6 class="sup-section-title"><i class="fa fa-building-columns"></i> Tài khoản ngân hàng chính</h6>
+            <div class="sup-grid-3">
+                <div>
+                    <label>Tên ngân hàng <span class="req">*</span></label>
+                    <div class="bank-picker" id="c-bankpicker">
+                        <div class="bank-picker-display" id="c-bankpicker-display">
+                            <span class="bank-picker-val" id="c-bankpicker-val">Chọn ngân hàng</span>
+                            <i class="fa fa-chevron-down bank-picker-arrow"></i>
+                        </div>
+                        <div class="bank-picker-dropdown" id="c-bankpicker-dropdown">
+                            <input class="bank-picker-search" placeholder="🔍 Tìm ngân hàng..." />
+                            <ul class="bank-picker-list" id="c-bankpicker-list"></ul>
+                        </div>
+                        <input type="hidden" id="c-bankname" />
+                    </div>
+                </div>
+                <div>
+                    <label>Số tài khoản <span class="req">*</span></label>
+                    <input id="c-accnumber" class="sup-input" placeholder="Số tài khoản" />
+                </div>
+                <div>
+                    <label>Chủ tài khoản <span class="req">*</span></label>
+                    <input id="c-accholder" class="sup-input" placeholder="Chủ tài khoản" />
+                </div>
+            </div>
+
+            <hr class="sup-divider" />
+            <h6 class="sup-section-title"><i class="fa fa-user-tie"></i> Người liên hệ chính</h6>
+            <div class="sup-grid-2">
+                <div>
+                    <label>Họ tên <span class="req">*</span></label>
+                    <input id="c-cname" class="sup-input" placeholder="Tên người liên hệ" />
+                </div>
+                <div>
+                    <label>Chức vụ</label>
+                    <input id="c-cposition" class="sup-input" placeholder="VD: Giám đốc kinh doanh" />
+                </div>
+                <div>
+                    <label>SĐT người liên hệ</label>
+                    <input id="c-cphone" class="sup-input" placeholder="SĐT" />
+                </div>
+                <div>
+                    <label>Email</label>
+                    <input id="c-cemail" class="sup-input" placeholder="Email" />
+                </div>
+            </div>
+        </div>
+        <div class="sup-modal-footer">
+            <button class="sup-btn sup-btn-success" id="btnSaveCreate"><i class="fa fa-floppy-disk"></i> Lưu</button>
+            <button class="sup-btn sup-btn-secondary" data-close="createModal">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODAL: SỬA THÔNG TIN NCC ========== -->
+<div id="editModal" class="sup-modal">
+    <div class="sup-modal-box">
+        <div class="sup-modal-header">
+            <h5><i class="fa fa-pen-to-square"></i> Sửa Nhà Cung Cấp</h5>
+            <span class="sup-close" data-close="editModal">✖</span>
+        </div>
+        <div class="sup-modal-body">
+            <input type="hidden" id="e-id" />
+            <div class="sup-grid-2">
+                <div>
+                    <label>Mã NCC <span class="req">*</span></label>
+                    <input id="e-code" class="sup-input" />
+                </div>
+                <div>
+                    <label>Tên NCC <span class="req">*</span></label>
+                    <input id="e-name" class="sup-input" />
+                </div>
+                <div>
+                    <label>Mã số thuế</label>
+                    <input id="e-taxcode" class="sup-input" />
+                </div>
+                <div>
+                    <label>Website</label>
+                    <input id="e-website" class="sup-input" />
+                </div>
+                <div class="sup-col-2">
+                    <label>Địa chỉ chính</label>
+                    <input id="e-address" class="sup-input" />
+                </div>
+                <div class="sup-col-2">
+                    <label>Trạng thái</label>
+                    <select id="e-active" class="sup-select">
+                        <option value="true">Hoạt động</option>
+                        <option value="false">Ngưng</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="sup-modal-footer">
+            <button class="sup-btn sup-btn-success" id="btnSaveEdit"><i class="fa fa-floppy-disk"></i> Lưu</button>
+            <button class="sup-btn sup-btn-secondary" data-close="editModal">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<!-- ========== MODAL: CHI TIẾT (TABS) ========== -->
+<div id="detailModal" class="sup-modal">
+    <div class="sup-modal-box sup-modal-xl">
+        <div class="sup-modal-header">
+            <h5 id="detailTitle"><i class="fa fa-list-ul"></i> Chi tiết NCC</h5>
+            <span class="sup-close" data-close="detailModal">✖</span>
+        </div>
+        <div class="sup-modal-body">
+            <input type="hidden" id="d-supplierId" />
+
+            <!-- TABS -->
+            <div class="sup-tabs">
+                <button class="sup-tab active" data-tab="tabPhones"><i class="fa fa-phone"></i> Điện thoại</button>
+                <button class="sup-tab" data-tab="tabBanks"><i class="fa fa-building-columns"></i> Ngân hàng</button>
+                <button class="sup-tab" data-tab="tabContacts"><i class="fa fa-user-tie"></i> Liên hệ</button>
+            </div>
+
+            <!-- TAB: PHONES -->
+            <div id="tabPhones" class="sup-tab-panel active">
+                <div class="sup-sub-add">
+                    <input id="ph-number" class="sup-input" placeholder="Số điện thoại phụ" />
+                    <button class="sup-btn sup-btn-primary" id="btnAddPhone"><i class="fa fa-plus"></i> Thêm</button>
+                </div>
+                <table class="sup-table mt-2">
+                    <thead><tr><th>Số điện thoại</th><th>Loại</th><th></th></tr></thead>
+                    <tbody id="phoneList"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB: BANKS -->
+            <div id="tabBanks" class="sup-tab-panel">
+                <div class="sup-sub-add sup-grid-3">
+                    <div class="bank-picker" id="bk-bankpicker">
+                        <div class="bank-picker-display" id="bk-bankpicker-display">
+                            <span class="bank-picker-val" id="bk-bankpicker-val">Chọn ngân hàng</span>
+                            <i class="fa fa-chevron-down bank-picker-arrow"></i>
+                        </div>
+                        <div class="bank-picker-dropdown" id="bk-bankpicker-dropdown">
+                            <input class="bank-picker-search" placeholder="🔍 Tìm ngân hàng..." />
+                            <ul class="bank-picker-list" id="bk-bankpicker-list"></ul>
+                        </div>
+                        <input type="hidden" id="bk-name" />
+                    </div>
+                    <input id="bk-number" class="sup-input" placeholder="Số tài khoản" />
+                    <input id="bk-holder" class="sup-input" placeholder="Chủ tài khoản" />
+                </div>
+                <div class="text-end mb-2">
+                    <button class="sup-btn sup-btn-primary" id="btnAddBank"><i class="fa fa-plus"></i> Thêm STK</button>
+                </div>
+                <table class="sup-table">
+                    <thead><tr><th>Ngân hàng</th><th>Số TK</th><th>Chủ TK</th><th>Loại</th><th></th></tr></thead>
+                    <tbody id="bankList"></tbody>
+                </table>
+            </div>
+
+            <!-- TAB: CONTACTS -->
+            <div id="tabContacts" class="sup-tab-panel">
+                <div class="sup-sub-add sup-grid-2">
+                    <input id="ct-name" class="sup-input" placeholder="Họ tên *" />
+                    <input id="ct-position" class="sup-input" placeholder="Chức vụ" />
+                    <input id="ct-phone" class="sup-input" placeholder="SĐT" />
+                    <input id="ct-email" class="sup-input" placeholder="Email" />
+                </div>
+                <div class="text-end mb-2">
+                    <button class="sup-btn sup-btn-primary" id="btnAddContact"><i class="fa fa-plus"></i> Thêm liên hệ</button>
+                </div>
+                <table class="sup-table">
+                    <thead><tr><th>Họ tên</th><th>Chức vụ</th><th>SĐT</th><th>Email</th><th>Loại</th><th></th></tr></thead>
+                    <tbody id="contactList"></tbody>
+                </table>
+            </div>
+        </div>
+        <div class="sup-modal-footer">
+            <button class="sup-btn sup-btn-secondary" data-close="detailModal">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="~/js/supplier.js"></script>
