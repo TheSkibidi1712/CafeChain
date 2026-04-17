@@ -1,4 +1,4 @@
-﻿import { initImport, addImportRow } from "./inventory-import.js";
+﻿import { initImport, addImportRow, getCurrentSupplier } from "./inventory-import.js";
 import { addExportRow } from "./inventory-export.js";
 import { addStockTakeRow, loadStockTakeTable } from "./inventory-stocktake.js";
 import { addWasteRow } from "./inventory-cancel.js";
@@ -6,8 +6,30 @@ import { addWasteRow } from "./inventory-cancel.js";
 const TYPE = {
     IMPORT: "1",
     EXPORT: "2",
-    STOCKTAKE: "3",
-    WASTE: "4"
+    WASTE: "3",        // ✅ đổi lại
+    STOCKTAKE: "4"     // ✅ đổi lại
+};
+
+const PURPOSE = {
+    NONE: 0,
+    IMPORT_PURCHASE: 1,
+    IMPORT_INTERNAL: 2,
+    IMPORT_ADJUSTMENT: 3,
+
+    SALE: 5,
+    INTERNAL_OUT: 6,
+    GIFT: 7,
+    DEBT: 8,
+    SAMPLE: 9,
+    ADJUSTMENT_OUT: 10,
+
+    STOCK_TAKE: 11,
+
+    DAMAGED: 12,
+    EXPIRED: 13,
+    BROKEN: 14,
+    CONTAMINATED: 15,
+    LOST: 16
 };
 
 // ================= FILTER =================
@@ -34,6 +56,10 @@ function formatVND(n) {
     return Number(n || 0).toLocaleString("vi-VN");
 }
 
+function parseMoney(str) {
+    return parseFloat((str || "0").replace(/[^\d]/g, "")) || 0;
+}
+
 function bindSelect(id, data, value, text, placeholder) {
     const el = document.getElementById(id);
 
@@ -43,79 +69,97 @@ function bindSelect(id, data, value, text, placeholder) {
 }
 
 // ================= DETAIL =================
-function openDetail(id) {
-    fetch(`/api/admin/inventory-documents/${id}`)
-        .then(r => r.json())
-        .then(res => {
-            if (!res.success) {
-                toast("Không tìm thấy dữ liệu", "error");
-                return;
-            }
+async function openDetail(id) {
+    try {
+        const r = await fetch(`/api/admin/inventory-documents/${id}`);
+        if (!r.ok) throw new Error();
 
-            const d = res.data;
+        const res = await r.json();
 
-            let html = `
-                <p><b>Mã:</b> ${d.code}</p>
-                <p><b>Kho:</b> ${d.storeName}</p>
-                <p><b>Nhân viên:</b> ${d.staffName}</p>
-                <p><b>Ngày:</b> ${new Date(d.date).toLocaleDateString()}</p>
-                <p><b>Ghi chú:</b> ${d.note || ""}</p>
-                <hr/>
-                <table class="table">
-                    <thead>
-                        <tr>
-                            <th>Nguyên liệu</th>
-                            <th>Số lượng</th>
-                            <th>Đơn vị</th>
-                            ${d.type == "IMPORT" ? "<th>Giá</th>" : ""}
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
+        if (!res.success) {
+            toast("Không tìm thấy dữ liệu", "error");
+            return;
+        }
 
-            d.details.forEach(x => {
-                html += `
+        const d = res.data;
+
+        let html = `
+            <p><b>Mã:</b> ${d.code}</p>
+            <p><b>Kho:</b> ${d.storeName}</p>
+            <p><b>Nhân viên:</b> ${d.staffName}</p>
+            <p><b>Ngày:</b> ${new Date(d.date).toLocaleDateString()}</p>
+            <p><b>Ghi chú:</b> ${d.note || ""}</p>
+            <hr/>
+            <table class="table">
+                <thead>
                     <tr>
-                        <td>${x.ingredientName}</td>
-                        <td>${x.quantity}</td>
-                        <td>${x.unitName}</td>
-                        ${d.type == "IMPORT" ? `<td>${x.unitPrice || 0}</td>` : ""}
+                        <th>Nguyên liệu</th>
+                        <th>Số lượng</th>
+                        <th>Đơn vị</th>
+                        ${d.type == "IMPORT" ? "<th>Giá</th><th>Thành tiền</th>" : ""}
                     </tr>
-                `;
-            });
+                </thead>
+                <tbody>
+        `;
 
-            html += `</tbody></table>`;
-
-            document.getElementById("detailContent").innerHTML = html;
-            document.getElementById("detailModal").style.display = "block";
+        d.details.forEach(x => {
+            html += `
+                <tr>
+                    <td>${x.ingredientName}</td>
+                    <td>${x.quantity}</td>
+                    <td>${x.unitName}</td>
+                    ${d.type == "IMPORT" ? `
+                        <td>${formatVND(x.unitPrice)}</td>
+                        <td>${formatVND(x.totalAmount)}</td>
+                    ` : ""}
+                </tr>
+            `;
         });
+
+        html += `</tbody></table>`;
+
+        document.getElementById("detailContent").innerHTML = html;
+        document.getElementById("detailModal").style.display = "block";
+
+    } catch {
+        toast("Lỗi tải dữ liệu", "error");
+    }
 }
 
 // ================= CREATE =================
-function openCreateModal() {
-    fetch("/api/admin/inventory-documents/create-data")
-        .then(r => r.json())
-        .then(data => {
+async function openCreateModal() {
+    try {
+        const r = await fetch("/api/admin/inventory-documents/create-data");
+        if (!r.ok) throw new Error();
 
-            bindSelect("store", data.stores, "storeId", "name", "-- Chọn Kho --");
-            bindSelect("supplier", data.suppliers, "supplierId", "name", "-- Chọn Nhà Cung Cấp --");
+        const data = await r.json();
 
-            document.getElementById("documentDate").value = new Date().toISOString().slice(0, 16);
+        bindSelect("store", data.stores, "storeId", "name", "-- Chọn Kho --");
+        bindSelect("supplier", data.suppliers, "supplierId", "name", "-- Chọn Nhà Cung Cấp --");
 
-            document.querySelector("#detailTable tbody").innerHTML = "";
-            document.getElementById("grandTotal").innerText = "0";
-            document.querySelector(".total-box").classList.remove("hidden");
-            document.getElementById("createModal").style.display = "block";
+        document.getElementById("documentDate").value = new Date().toISOString().slice(0, 16);
 
-            // 🔥 Khi đổi kho → reload kiểm kê
-            document.getElementById("store").onchange = () => {
-                if (document.getElementById("type").value === TYPE.STOCKTAKE) {
-                    loadStockTakeTable();
-                }
-            };
-        });
+        resetForm();
+
+        document.getElementById("createModal").style.display = "block";
+
+        document.getElementById("store").onchange = () => {
+            if (document.getElementById("type").value === TYPE.STOCKTAKE) {
+                loadStockTakeTable();
+            }
+        };
+
+    } catch {
+        toast("Không tải được dữ liệu", "error");
+    }
 }
 
+function resetForm() {
+    document.querySelector("#detailTable tbody").innerHTML = "";
+    document.getElementById("grandTotal").innerText = "0";
+}
+
+// ================= TYPE =================
 function onTypeChange() {
     const type = document.getElementById("type").value;
 
@@ -129,10 +173,8 @@ function onTypeChange() {
     const addBtn = document.querySelector(".btn-add");
     const totalBox = document.querySelector(".total-box");
 
-    document.querySelector("#detailTable tbody").innerHTML = "";
-    document.getElementById("grandTotal").innerText = "0";
+    resetForm();
 
-    // HEADER
     if (type === TYPE.STOCKTAKE) {
         thead.innerHTML = `
             <th>Nguyên liệu</th>
@@ -146,13 +188,14 @@ function onTypeChange() {
     }
     else if (type === TYPE.WASTE) {
         thead.innerHTML = `
-            <th>Nguyên liệu</th>
-            <th>Đơn vị</th>
-            <th>Số lượng</th>
-            <th>Ghi chú</th>
-            <th></th>
-        `;
-    }
+        <th>Nguyên liệu</th>
+        <th>Đơn vị (Base)</th>
+        <th>Số lượng</th>
+        <th>Tồn kho</th>
+        <th>Ghi chú</th>
+        <th></th>
+    `;
+    }       
     else {
         thead.innerHTML = `
             <th>Nguyên liệu</th>
@@ -165,7 +208,6 @@ function onTypeChange() {
         `;
     }
 
-    // RESET UI
     supplierBox.style.display = "none";
     exportPartner.style.display = "none";
     exportPurpose.style.display = "none";
@@ -173,7 +215,7 @@ function onTypeChange() {
 
     table.classList.remove("hide-price");
 
-    switch (type) {
+   switch (type) {
         case TYPE.IMPORT:
             supplierBox.style.display = "block";
             addBtn.style.display = "inline-block";
@@ -188,28 +230,34 @@ function onTypeChange() {
 
         case TYPE.STOCKTAKE:
             addBtn.style.display = "none";
-
-            const storeId = document.getElementById("store").value;
-            if (storeId) {
-                loadStockTakeTable();
-            }
+            loadStockTakeTable();
             break;
 
         case TYPE.WASTE:
+            wastePurpose.style.display = "block";
             table.classList.add("hide-price");
             addBtn.style.display = "inline-block";
-            wastePurpose.style.display = "block";
             break;
     }
 
-    if (type === TYPE.STOCKTAKE || type === TYPE.WASTE || type === TYPE.EXPORT) {
+    if (type !== TYPE.IMPORT) {
         totalBox.classList.add("hidden");
     } else {
         totalBox.classList.remove("hidden");
     }
 }
 
-// ================= TABS =================
+// ================= ADD ROW =================
+function addRow() {
+    const type = document.getElementById("type").value;
+
+    if (type === TYPE.IMPORT) addImportRow();
+    else if (type === TYPE.EXPORT) addExportRow();
+    else if (type === TYPE.STOCKTAKE) loadStockTakeTable();
+    else if (type === TYPE.WASTE) addWasteRow();
+}
+
+// ================= SWITCH TAB =================
 function switchTab(evt, tabId) {
     document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
     document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
@@ -219,46 +267,26 @@ function switchTab(evt, tabId) {
 }
 
 // ================= CREATE TYPE =================
-function openCreateModalWithType(type) {
-    openCreateModal();
+async function openCreateModalWithType(type) {
+    await openCreateModal();
 
-    setTimeout(() => {
-        const typeInput = document.getElementById("type");
-        const typeText = document.getElementById("typeText");
+    const typeInput = document.getElementById("type");
+    const typeText = document.getElementById("typeText");
 
-        typeInput.value = type.toString();
+    typeInput.value = type.toString();
 
-        if (type == 1) typeText.value = "Nhập kho";
-        if (type == 2) typeText.value = "Xuất kho";
-        if (type == 3) typeText.value = "Kiểm kê";
-        if (type == 4) typeText.value = "Hủy kho";
+    typeText.value =
+        type == 1 ? "Nhập kho" :
+            type == 2 ? "Xuất kho" :
+                type == 3 ? "Hủy kho" :   // ✅ đổi
+                    "Kiểm kê";                // ✅ đổi
 
-        onTypeChange();
-    }, 200);
-}
-
-// ================= ROW =================
-function addRow() {
-    const type = document.getElementById("type").value;
-
-    if (type === TYPE.IMPORT) {
-        addImportRow();
-    }
-    else if (type === TYPE.EXPORT) {
-        addExportRow();
-    }
-    else if (type === TYPE.STOCKTAKE) {
-        loadStockTakeTable();
-    }
-    else if (type === TYPE.WASTE) {
-        addWasteRow();
-    }
+    onTypeChange();
 }
 
 // ================= CALC =================
 function calcRow(tr) {
     const type = document.getElementById("type").value;
-
     if (type !== TYPE.IMPORT) return;
 
     const qty = parseFloat(tr.querySelector(".qty").value || 0);
@@ -271,85 +299,171 @@ function calcRow(tr) {
 }
 
 function calcTotal() {
-    const type = document.getElementById("type").value;
-
-    if (type !== TYPE.IMPORT) {
-        document.getElementById("grandTotal").innerText = "0";
-        return;
-    }
-
     let sum = 0;
 
     document.querySelectorAll(".rowTotal").forEach(x => {
-        const raw = x.innerText.replace(/\./g, "");
-        sum += parseFloat(raw || 0);
+        sum += parseMoney(x.innerText);
     });
 
     document.getElementById("grandTotal").innerText = formatVND(sum);
 }
 
-// ================= SUBMIT =================
-function submitForm() {
+// ================= 🔥 FIX SUBMIT =================
+async function submitForm() {
     const rows = document.querySelectorAll("#detailTable tbody tr");
 
     if (rows.length === 0) {
         toast("Phải có ít nhất 1 dòng", "error");
         return;
     }
+    if (!detail.ingredientId) {
+        toast("Thiếu nguyên liệu", "error");
+        return;
+    }
+    if (detail.quantity <= 0) {
+        toast("Số lượng phải lớn hơn 0", "error");
+        return;
+    }
+    if (!detail.unitId) {
+        toast("Thiếu đơn vị", "error");
+        return;
+    }
+
+    const type = Number(document.getElementById("type").value);
+
+    let partnerType = null;
+    let partnerId = null;
+    let partnerName = null;
+
+    // ================= PARTNER =================
+    if (type === 1) {
+        const supplier = getCurrentSupplier();
+
+        if (!supplier || !supplier.id) {
+            toast("Vui lòng chọn nhà cung cấp", "error");
+            return;
+        }
+
+        partnerType = 1;
+        partnerId = supplier.id;
+        partnerName = supplier.name;
+    }
+    else if (type === 2) {
+        partnerType = 2;
+        partnerName = document.getElementById("partnerName").value || "Khách lẻ";
+        partnerId = null;
+    }
+    else {
+        partnerType = 0;
+        partnerId = null;
+        partnerName = null;
+    }
+
+    // ================= PURPOSE =================
+    let purpose = 0;
+
+    switch (type) {
+        case 1: // IMPORT
+            purpose = PURPOSE.IMPORT_PURCHASE;
+            break;
+
+        case 2: // EXPORT
+            purpose = Number(document.getElementById("purpose").value);
+            break;
+
+        case 3: // WASTE
+            purpose = Number(document.getElementById("wasteReason").value);
+            break;
+
+        case 4: // STOCK TAKE
+            purpose = PURPOSE.STOCK_TAKE;
+            break;
+    }
+
+    if (!purpose) {
+        toast("Vui lòng chọn mục đích", "error");
+        return;
+    }
 
     const model = {
-        storeId: +document.getElementById("store").value,
-        supplierId: document.getElementById("type").value === TYPE.IMPORT
-            ? (document.getElementById("supplier").value || null)
-            : null,
-        type: +document.getElementById("type").value,
-        purpose: document.getElementById("type").value === TYPE.WASTE
-            ? +document.getElementById("wasteReason").value
-            : null,
+        storeId: Number(document.getElementById("store").value),
+        type: type,
+        purpose: purpose,
+
+        supplierId: type === 1 ? Number(getCurrentSupplier().id) : null,
+
+        partnerType: partnerType,
+        partnerId: partnerId,
+        partnerName: partnerName,
+
         documentDate: new Date(document.getElementById("documentDate").value).toISOString(),
         note: document.getElementById("note").value,
-
         details: []
     };
 
     rows.forEach(tr => {
-        const type = document.getElementById("type").value;
 
-        if (type === TYPE.STOCKTAKE) {
-            model.details.push({
-                ingredientId: +tr.querySelector(".ingredient").value,
-                unitId: +tr.querySelector(".unit").value, // 🔥 FIX
-                quantity: +tr.querySelector(".realQty").value,
-                unitPrice: null,
-                note: tr.querySelector(".note").value
-            });
-        } else {
-            model.details.push({
-                ingredientId: +tr.querySelector(".ingredient").value,
-                unitId: +tr.querySelector(".unit").value,
-                quantity: +tr.querySelector(".qty").value,
-                unitPrice: type === TYPE.IMPORT
-                    ? +tr.querySelector(".price").value
-                    : null,
-                note: tr.querySelector(".note").value
-            });
+        let detail = {
+            ingredientId: Number(tr.querySelector(".ingredient").value),
+            note: tr.querySelector(".note")?.value || ""
+        };
+
+        switch (type) {
+
+            // ================= IMPORT =================
+            case 1:
+                detail.unitId = Number(tr.querySelector(".unit").value);
+                detail.quantity = Number(tr.querySelector(".qty").value || 0);
+                detail.unitPrice = Number(tr.querySelector(".price").value || 0);
+                break;
+
+            // ================= EXPORT =================
+            case 2:
+                detail.unitId = Number(tr.querySelector(".unit").value);
+                detail.quantity = Number(tr.querySelector(".qty").value || 0);
+                detail.unitPrice = null;
+                break;
+
+            // ================= WASTE =================
+            case 3:
+                const stock = Number(tr.querySelector(".stock")?.value || 0);
+                const qty = Number(tr.querySelector(".qty").value || 0);
+
+                if (qty > stock) {
+                    toast("Số lượng hủy vượt tồn kho", "error");
+                    throw new Error();
+                }
+                detail.unitId = Number(tr.dataset.unitId); // 🔥 base unit
+                detail.quantity = qty;
+                detail.unitPrice = null;
+                break;
+
+            // ================= STOCK TAKE =================
+            case 4:
+                detail.unitId = Number(tr.dataset.unitId); // 🔥 base unit
+                detail.quantity = Number(tr.querySelector(".realQty").value || 0);
+                detail.unitPrice = null;
+                break;
         }
+
+        model.details.push(detail);
     });
 
-    fetch("/api/admin/inventory-documents", {
+    const r = await fetch("/api/admin/inventory-documents", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(model)
-    })
-        .then(r => r.json())
-        .then(res => {
-            if (res.success) {
-                toast("Tạo thành công", "success");
-                location.reload();
-            } else {
-                toast(res.message, "error");
-            }
-        });
+    });
+
+    const res = await r.json();
+
+    if (res.success) {
+        toast("Tạo thành công", "success");
+        location.reload();
+    } else {
+        toast(res.message, "error");
+    }
+
 }
 
 // ================= GLOBAL =================
@@ -365,7 +479,7 @@ window.calcTotal = calcTotal;
 window.switchTab = switchTab;
 window.openCreateModalWithType = openCreateModalWithType;
 
-// ================= INIT =================
+// INIT
 window.onload = () => {
     initImport();
 };
@@ -377,13 +491,33 @@ function closeModal(id) {
 document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("closeCreateModal");
     if (btn) {
-        btn.addEventListener("click", () => {
-            closeModal("createModal");
-        });
+        btn.addEventListener("click", () => closeModal("createModal"));
+    }
+
+    const savedTab = localStorage.getItem("inventory_tab");
+
+    if (!savedTab) return;
+
+    const map = {
+        1: "importTab",
+        2: "exportTab",
+        3: "wasteTab",
+        4: "stockTab"
+    };
+
+    const tabId = map[savedTab];
+
+    if (tabId) {
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        document.querySelectorAll(".tab-btn").forEach(t => t.classList.remove("active"));
+
+        document.getElementById(tabId).classList.add("active");
+
+        document.querySelector(`[onclick*="${tabId}"]`)?.classList.add("active");
     }
 });
 
-window.addEventListener("click", function (e) {
+window.addEventListener("click", function(e) {
     document.querySelectorAll(".modal").forEach(m => {
         if (e.target === m) {
             m.style.display = "none";
@@ -392,4 +526,3 @@ window.addEventListener("click", function (e) {
 });
 
 window.closeModal = closeModal;
-

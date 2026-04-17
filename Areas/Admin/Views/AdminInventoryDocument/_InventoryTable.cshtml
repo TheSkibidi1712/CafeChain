@@ -7,24 +7,22 @@
             <th>Mã</th>
             <th>Kho</th>
             <th>Nhân viên</th>
-
-            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
+            @if (Model.Any(x => x.Type != InventoryDocumentType.STOCK_TAKE && x.Type != InventoryDocumentType.WASTE))
             {
-                <th>Nhà cung cấp</th>
+                <th>Đối tượng</th>
             }
-
             <th>Loại</th>
             <th>Ngày</th>
-
-            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
+            <th>Tổng SL</th>
+            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT || x.Type == InventoryDocumentType.EXPORT))
             {
                 <th>Tổng tiền</th>
             }
-
             <th>Ghi chú</th>
             <th></th>
         </tr>
     </thead>
+
     <tbody>
         @foreach (var item in Model)
         {
@@ -33,10 +31,15 @@
                 <td>@item.StoreName</td>
                 <td>@item.StaffName</td>
 
-                @if (item.Type == InventoryDocumentType.IMPORT)
+                @if (item.Type != InventoryDocumentType.STOCK_TAKE && item.Type != InventoryDocumentType.WASTE)
                 {
-                    <td>@(item.SupplierName ?? "")</td>
+                    <td>
+                        @(!string.IsNullOrEmpty(item.PartnerName)
+                            ? item.PartnerName
+                            : item.SupplierName ?? "")
+                    </td>
                 }
+
                 <td>
                     <span class="badge
                         @(item.Type == InventoryDocumentType.IMPORT ? "import" :
@@ -50,14 +53,22 @@
                           "Hủy kho")
                     </span>
                 </td>
+
                 <td>@item.Date.ToString("dd/MM/yyyy")</td>
-                @if (item.Type == InventoryDocumentType.IMPORT)
+
+                <td>@($"{item.TotalQuantity:N0} {item.BaseUnitName}")</td>
+                @if (item.Type == InventoryDocumentType.IMPORT || item.Type == InventoryDocumentType.EXPORT)
                 {
                     <td>@item.TotalAmount.ToString("N0")</td>
                 }
+
                 <td>@item.Note</td>
+
                 <td>
-                    <button class="btn-detail" onclick="event.stopPropagation(); openDetail(@item.Id)">Chi tiết</button>
+                    <button class="btn-detail"
+                            onclick="event.stopPropagation(); openDetail(@item.Id)">
+                        Chi tiết
+                    </button>
                 </td>
             </tr>
         }

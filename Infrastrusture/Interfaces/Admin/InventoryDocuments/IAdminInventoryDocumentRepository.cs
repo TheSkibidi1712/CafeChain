@@ -13,7 +13,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Store>> GetStoresByStaffAsync(int staffId);
         Task<bool> CheckStaffHasStoreAsync(int staffId, int storeId);
         Task<List<Supplier>> GetSuppliersAsync();
-
+        Task<Supplier?> GetSupplierByIdAsync(int id);
         // ================= DOCUMENT =================
         Task<(List<InventoryDocument>, int)> GetPagedAsync(InventoryDocumentFilterDTO filter);
         Task<InventoryDocument?> GetDetailAsync(int id);
@@ -23,7 +23,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<InventoryDebt?> GetDebtByDocumentIdAsync(int documentId);
         // ================= INGREDIENT =================
         Task<Ingredient?> GetIngredientAsync(int ingredientId);
-        Task<List<IngredientSupplier>> GetIngredientSuppliersAsync(int ingredientId, int? supplierId);
+        Task<IngredientSupplier?> GetIngredientSupplierAsync(int ingredientId, int supplierId);
         Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId);
         // ================= STORE INVENTORY =================
         Task<StoreInventory?> GetStoreInventoryAsync(int storeId, int ingredientId);
@@ -33,11 +33,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Unit>> GetUnitsByIngredientAsync(int ingredientId);
 
         // ================= STORE INVENTORY =================
-        // kiểm kê
-        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
-
-        // xuất kho
-        Task<List<StoreInventory>> GetStoreInventoriesForExportAsync(int storeId);
+        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId, bool onlyAvailable = false);
         // ================= TRANSACTION =================
         Task AddTransactionAsync(InventoryTransaction transaction);
 

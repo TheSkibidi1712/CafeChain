@@ -76,8 +76,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
         public async Task<(List<InventoryTransaction>, int total)> GetTransactionsByInventoryIdAsync(int storeInventoryId, int page, int pageSize)
         {
-            var query = _context.InventoryTransactions
-                .Include(x => x.TransactionType)
+            var query = _context.InventoryTransactions.AsNoTracking()
                 .Include(x => x.StoreInventory)
                     .ThenInclude(si => si.Ingredient)
                         .ThenInclude(i => i.BaseUnit)
@@ -97,8 +96,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
         // ================= ALL TRANSACTIONS BY STAFF =================
         public async Task<(List<InventoryTransaction>, int total)> GetTransactionsByStoreIdAsync(int storeId, int page, int pageSize)
         {
-            var query = _context.InventoryTransactions
-                .Include(x => x.TransactionType)
+            var query = _context.InventoryTransactions.AsNoTracking()
                 .Include(x => x.InventoryDocument)
                     .ThenInclude(d => d.Details)
                 .Include(x => x.StoreInventory)

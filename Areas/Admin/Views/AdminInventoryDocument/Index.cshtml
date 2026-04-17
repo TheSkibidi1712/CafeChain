@@ -27,8 +27,8 @@
                     <option value="">-- Tất cả --</option>
                     <option value="1">Nhập kho</option>
                     <option value="2">Xuất kho</option>
-                    <option value="3">Kiểm kê</option>
-                    <option value="4">Hủy</option>
+                    <option value="3">Hủy kho</option>
+                    <option value="4">Kiểm kê</option>
                 </select>
             </div>
 
@@ -82,10 +82,10 @@
             Model.Items.Where(x => x.Type == InventoryDocumentType.EXPORT).ToList())
     </div>
 
-    <!-- ================= STOCK TAKE ================= -->
+    <!-- ================= STOCK ================= -->
     <div id="stockTab" class="tab-content">
         <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(3)">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(4)">
                 + Tạo phiếu kiểm kê
             </button>
         </div>
@@ -97,7 +97,7 @@
     <!-- ================= WASTE ================= -->
     <div id="wasteTab" class="tab-content">
         <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(4)">
+            <button type="button" class="btn-create" onclick="openCreateModalWithType(3)">
                 + Tạo phiếu hủy
             </button>
         </div>
@@ -123,7 +123,6 @@
 <div id="createModal" class="modal">
     <div class="modal-content large">
 
-        <!-- ✅ NÚT X -->
         <div class="modal-close" id="closeCreateModal">
             <i class="fa fa-times"></i>
         </div>
@@ -143,33 +142,39 @@
                     <input type="hidden" id="type" />
                 </div>
 
+                <!-- IMPORT -->
                 <div id="supplierBox">
                     <label>🚚 Nhà cung cấp</label>
                     <select id="supplier"></select>
                 </div>
 
+                <!-- EXPORT -->
                 <div id="exportPartner" style="display:none">
-                    <label>👤 Xuất cho</label>
+                    <label>👤 Khách hàng</label>
                     <input type="text" id="partnerName" />
                 </div>
 
                 <div id="exportPurpose" style="display:none">
-                    <label>📌 Lý do</label>
+                    <label>📌 Mục đích</label>
                     <select id="purpose">
                         <option value="">-- Chọn --</option>
-                        <option value="2">Bán hàng</option>
-                        <option value="3">Nội bộ</option>
-                        <option value="4">Tặng</option>
-                        <option value="5">Cho nợ</option>
+                        <option value="5">Bán hàng</option>
+                        <option value="6">Xuất nội bộ</option>
+                        <option value="7">Tặng</option>
+                        <option value="8">Cho nợ</option>
                     </select>
                 </div>
+
+                <!-- WASTE -->
                 <div id="wastePurpose" style="display:none">
                     <label>🗑️ Lý do hủy</label>
                     <select id="wasteReason">
-                        <option value="">-- Chọn --</option>
-                        <option value="6">Hư hỏng</option>
-                        <option value="7">Hết hạn</option>
-                        <option value="8">Vỡ / lỗi</option>
+                        <option value="">-- Chọn lý do --</option>
+                        <option value="12">Hư hỏng</option>
+                        <option value="13">Hết hạn</option>
+                        <option value="14">Vỡ / lỗi</option>
+                        <option value="15">Nhiễm bẩn</option>
+                        <option value="16">Thất lạc</option>
                     </select>
                 </div>
 
@@ -185,6 +190,7 @@
 
             </div>
 
+            <!-- TABLE -->
             <div class="table-wrapper">
                 <table id="detailTable">
                     <thead>
@@ -216,6 +222,5 @@
 
     </div>
 </div>
-
 
 <script type="module" src="~/js/inventorydocument.js"></script>

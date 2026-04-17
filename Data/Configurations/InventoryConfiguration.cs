@@ -148,6 +148,9 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
@@ -523,11 +526,6 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.StoreInventoryId)
                 .OnDelete(DeleteBehavior.Restrict); // 🔥 FIX: tránh mất lịch sử
 
-            entity.HasOne(x => x.TransactionType)
-                .WithMany(x => x.InventoryTransactions)
-                .HasForeignKey(x => x.InventoryTransactionTypeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.InventoryDocument)
                 .WithMany(x => x.InventoryTransactions)
                 .HasForeignKey(x => x.InventoryDocumentId)
@@ -537,46 +535,13 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.StoreInventoryId);
 
-            entity.HasIndex(x => x.InventoryTransactionTypeId);
+            entity.HasIndex(x => x.Type);
 
             entity.HasIndex(x => x.InventoryDocumentId);
 
             entity.HasIndex(x => x.CreatedAt); // 🔥 query timeline
 
             entity.HasIndex(x => new { x.StoreInventoryId, x.CreatedAt }); // 🔥 history theo kho
-        }
-    }
-
-    public class InventoryTransactionTypeConfiguration : IEntityTypeConfiguration<InventoryTransactionType>
-    {
-        public void Configure(EntityTypeBuilder<InventoryTransactionType> entity)
-        {
-            entity.ToTable("InventoryTransactionTypes");
-
-            entity.HasKey(x => x.InventoryTransactionTypeId);
-
-            entity.Property(x => x.Code)
-                .IsRequired()
-                .HasMaxLength(50);
-
-            entity.Property(x => x.IsSystem)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            entity.HasIndex(x => x.Code)
-                .IsUnique(); // 🔥 rất quan trọng
-
-            
-
-            entity.HasData(
-                new InventoryTransactionType { InventoryTransactionTypeId = 1, Code = "IMPORT", Name = "Nhập kho", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 2, Code = "EXPORT", Name = "Xuất kho", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 3, Code = "ADJUST", Name = "Điều chỉnh", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 4, Code = "WASTE", Name = "Hao hụt", IsSystem = true }
-            );
         }
     }
 

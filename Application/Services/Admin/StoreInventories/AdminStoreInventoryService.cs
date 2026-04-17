@@ -39,7 +39,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 return new InventoryTransactionDTO
                 {
                     IngredientName = x.StoreInventory.Ingredient.Name,
-                    TypeName = x.TransactionType.Name,
+                    TypeName = x.Type.ToString(),
                     Quantity = x.Quantity,
                     BeforeQty = x.BeforeQty,
                     AfterQty = x.AfterQty,
@@ -65,13 +65,12 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             {
                 var detail = x.InventoryDocument?.Details?
                     .Where(d => d.IngredientId == x.StoreInventory.IngredientId)
-                    .OrderByDescending(d => x.InventoryDocument.DocumentDate) // đảm bảo lấy cái mới nhất
                     .FirstOrDefault();
 
                 return new InventoryTransactionDTO
                 {
                     IngredientName = x.StoreInventory.Ingredient.Name,
-                    TypeName = x.TransactionType.Name,
+                    TypeName = x.Type.ToString(),
                     Quantity = x.Quantity,
                     BeforeQty = x.BeforeQty,
                     AfterQty = x.AfterQty,
@@ -79,7 +78,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                     UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode,
 
                     // 🔥 NEW
-                    UnitPrice = detail?.UnitPrice
+                    UnitPrice = detail?.UnitPrice,
+                    TotalAmount = detail?.TotalAmount,
                 };
             }).ToList();
 

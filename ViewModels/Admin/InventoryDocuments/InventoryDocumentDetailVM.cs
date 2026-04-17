@@ -1,4 +1,6 @@
-﻿namespace CafeChain.ViewModels.Admin.InventoryDocuments
+﻿using CafeChain.Models.Enums.Inventory;
+
+namespace CafeChain.ViewModels.Admin.InventoryDocuments
 {
     public class InventoryDocumentDetailVM
     {
@@ -11,15 +13,15 @@
         public string StaffName { get; set; }
 
         public string? SupplierName { get; set; }
-
+        public string? PartnerName { get; set; }
+        public InventoryDocumentPurpose Purpose { get; set; }
         public string Type { get; set; }
         public string Status { get; set; }
 
         public DateTime Date { get; set; }
         public string Note { get; set; }
 
-        public decimal GrandTotal => Details.Sum(x => x.Total);
-
+        public decimal GrandTotal => Details.Sum(x => x.TotalAmount ?? 0);
         public List<InventoryDocumentDetailItemVM> Details { get; set; } = new();
     }
 }

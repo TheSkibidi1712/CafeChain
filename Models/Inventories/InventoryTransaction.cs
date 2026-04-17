@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Stores;
+﻿using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Inventories
 {
@@ -8,7 +9,7 @@ namespace CafeChain.Models.Inventories
 
         public int StoreInventoryId { get; set; }
 
-        public int InventoryTransactionTypeId { get; set; }
+        public InventoryDocumentType Type { get; set; }
 
         public decimal Quantity { get; set; }
         public decimal BeforeQty { get; set; }
@@ -17,8 +18,6 @@ namespace CafeChain.Models.Inventories
         public DateTime CreatedAt { get; set; }
 
         // ================= RELATION =================
-
-        public virtual InventoryTransactionType TransactionType { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
 

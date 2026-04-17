@@ -39,9 +39,9 @@
                 </td>
 
                 <td>
-                    @if (item.UnitPrice != null)
+                    @if (item.TotalAmount != null)
                     {
-                        @($"{(item.UnitPrice * item.Quantity):N0} đ")
+                        @($"{item.TotalAmount:N0} đ")
                     }
                     else
                     {

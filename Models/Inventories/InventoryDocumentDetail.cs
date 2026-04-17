@@ -16,6 +16,7 @@ namespace CafeChain.Models.Inventories
         public decimal? UnitPrice { get; set; } // dùng cho nhập
 
         public string Note { get; set; }
+        public decimal? TotalAmount { get; set; }
 
         // Navigation
         public virtual Unit Unit { get; set; }

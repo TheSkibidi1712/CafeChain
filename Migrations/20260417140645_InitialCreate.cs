@@ -57,21 +57,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InventoryTransactionTypes",
-                columns: table => new
-                {
-                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    IsSystem = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryTransactionTypes", x => x.InventoryTransactionTypeId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MemberLevels",
                 columns: table => new
                 {
@@ -1596,7 +1581,8 @@ namespace CafeChain.Migrations
                     BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     UnitId = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1628,7 +1614,7 @@ namespace CafeChain.Migrations
                     InventoryTransactionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StoreInventoryId = table.Column<int>(type: "int", nullable: false),
-                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     BeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     AfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
@@ -1645,12 +1631,6 @@ namespace CafeChain.Migrations
                         principalTable: "InventoryDocuments",
                         principalColumn: "InventoryDocumentId",
                         onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_InventoryTransactions_InventoryTransactionTypes_InventoryTransactionTypeId",
-                        column: x => x.InventoryTransactionTypeId,
-                        principalTable: "InventoryTransactionTypes",
-                        principalColumn: "InventoryTransactionTypeId",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryTransactions_StoreInventories_StoreInventoryId",
                         column: x => x.StoreInventoryId,
@@ -1872,17 +1852,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "InventoryTransactionTypes",
-                columns: new[] { "InventoryTransactionTypeId", "Code", "IsSystem", "Name" },
-                values: new object[,]
-                {
-                    { 1, "IMPORT", true, "Nhập kho" },
-                    { 2, "EXPORT", true, "Xuất kho" },
-                    { 3, "ADJUST", true, "Điều chỉnh" },
-                    { 4, "WASTE", true, "Hao hụt" }
-                });
-
-            migrationBuilder.InsertData(
                 table: "MemberLevels",
                 columns: new[] { "MemberId", "DiscountPercent", "MaxPoints", "MinPoints", "Name" },
                 values: new object[,]
@@ -2094,9 +2063,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 15, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9668), 20000m, 100, null, 40000m, new DateTime(2026, 4, 8, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9653) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 4, 30, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672), null, 500, null, 50000m, new DateTime(2026, 4, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674), 100000m, 1000, null, 0m, new DateTime(2026, 3, 16, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 17, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(393), 20000m, 100, null, 40000m, new DateTime(2026, 4, 10, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(377) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 5, 2, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(396), null, 500, null, 50000m, new DateTime(2026, 4, 16, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(396) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 16, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(421), 100000m, 1000, null, 0m, new DateTime(2026, 3, 18, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(420) }
                 });
 
             migrationBuilder.InsertData(
@@ -2892,11 +2861,6 @@ namespace CafeChain.Migrations
                 column: "InventoryDocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InventoryTransactions_InventoryTransactionTypeId",
-                table: "InventoryTransactions",
-                column: "InventoryTransactionTypeId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactions_StoreInventoryId",
                 table: "InventoryTransactions",
                 column: "StoreInventoryId");
@@ -2907,10 +2871,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "StoreInventoryId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_InventoryTransactionTypes_Code",
-                table: "InventoryTransactionTypes",
-                column: "Code",
-                unique: true);
+                name: "IX_InventoryTransactions_Type",
+                table: "InventoryTransactions",
+                column: "Type");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MemberLevels_Name",
@@ -3599,9 +3562,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "InventoryDocuments");
-
-            migrationBuilder.DropTable(
-                name: "InventoryTransactionTypes");
 
             migrationBuilder.DropTable(
                 name: "StoreInventories");

@@ -74,7 +74,6 @@ namespace CafeChain.Data
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
         public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
-        public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
         // Supplier

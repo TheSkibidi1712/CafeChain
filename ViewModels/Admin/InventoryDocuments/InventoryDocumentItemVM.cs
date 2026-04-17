@@ -12,7 +12,10 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments
         public string StaffName { get; set; }
 
         public string? SupplierName { get; set; }
-
+        public string? PartnerName { get; set; }
+        public string IngredientCode { get; set; }
+        public string BaseUnitName { get; set; }
+        public InventoryDocumentPurpose Purpose { get; set; }
         public InventoryDocumentType Type { get; set; }
         public string Status { get; set; }
 

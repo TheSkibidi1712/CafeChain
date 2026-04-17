@@ -29,26 +29,23 @@ namespace CafeChain.Areas.Admin.Controllers
             });
         }
 
-        // ================= CREATE =================
+        // ================= CREATE (IMPORT / EXPORT / WASTE / STOCKTAKE) =================
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] InventoryDocumentVM model)
         {
             if (!ModelState.IsValid)
             {
-                var errors = ModelState.Values
-                    .SelectMany(v => v.Errors)
-                    .Select(e => e.ErrorMessage)
-                    .ToList();
-
                 return BadRequest(new
                 {
                     success = false,
                     message = "ModelState Invalid",
-                    errors
+                    errors = ModelState.Values
+                        .SelectMany(v => v.Errors)
+                        .Select(e => e.ErrorMessage)
                 });
             }
 
-            if (model == null || !model.Details.Any())
+            if (model == null || model.Details == null || !model.Details.Any())
             {
                 return BadRequest(new
                 {
@@ -59,12 +56,14 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
+                // 🔥 STOCKTAKE cũng đi qua đây (Type = STOCK_TAKE)
                 await _service.CreateAsync(model);
 
                 return Ok(new
                 {
                     success = true,
-                    message = "Tạo phiếu thành công"
+                    message = "Tạo phiếu thành công",
+                    type = model.Type
                 });
             }
             catch (Exception ex)
@@ -96,13 +95,17 @@ namespace CafeChain.Areas.Admin.Controllers
                     data.StoreName,
                     data.StaffName,
                     data.SupplierName,
+                    data.PartnerName,
+                    data.Purpose,
                     data.Type,
                     data.Status,
                     data.Date,
                     data.Note,
                     details = data.Details.Select(d => new
                     {
+                        d.IngredientCode,
                         d.IngredientName,
+                        d.BaseUnitName,
                         d.Quantity,
                         d.UnitName,
                         d.BaseQuantity,
@@ -113,36 +116,18 @@ namespace CafeChain.Areas.Admin.Controllers
             });
         }
 
-        // =================== STOCK TAKE ==================
-        [HttpPost("stocktake")]
-        public async Task<IActionResult> StockTake(int storeId, [FromBody] List<StockTakeItemVM> items)
-        {
-            try
-            {
-                await _service.CreateStockTakeAsync(storeId, items);
-
-                return Ok(new
-                {
-                    success = true,
-                    message = "Kiểm kê thành công"
-                });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
-            }
-        }
-
         // ================= STOCK =================
         [HttpGet("stock")]
         public async Task<IActionResult> GetStock(int storeId, int ingredientId)
         {
             var stock = await _service.GetStockAsync(storeId, ingredientId);
-            return Ok(stock);
+
+            return Ok(new
+            {
+                storeId,
+                ingredientId,
+                stock
+            });
         }
 
         // ================= UNITS =================
@@ -166,9 +151,9 @@ namespace CafeChain.Areas.Admin.Controllers
 
             return Ok(new
             {
-                unitId = data.unitId,
-                unitName = data.unitName,
-                price = data.price
+                unitId = data.UnitId,
+                unitName = data.UnitName,
+                price = data.Price
             });
         }
 
@@ -181,41 +166,24 @@ namespace CafeChain.Areas.Admin.Controllers
             return Ok(data.Select(x => new
             {
                 ingredientId = x.IngredientId,
-                ingredient = new { x.Ingredient.Name }
+                ingredientName = x.Ingredient.Name // ✅ FIX
             }));
         }
 
-        // ================= XUẤT KHO =================
-        [HttpGet("export/ingredients")]
-        public async Task<IActionResult> GetIngredientsForExport(int storeId)
-        {
-            var data = await _service.GetIngredientsForExportAsync(storeId);
-
-            return Ok(data.Select(x => new
-            {
-                ingredientId = x.IngredientId,
-                name = x.Ingredient.Name,
-                stock = x.AvailableQty
-            }));
-        }
-
-        // ================= KIỂM KÊ =================
+        // ================= STORE INVENTORIES (DÙNG CHO EXPORT + STOCKTAKE UI) =================
         [HttpGet("store-inventories")]
-        public async Task<IActionResult> GetStoreInventories(int storeId)
+        public async Task<IActionResult> GetStoreInventories(int storeId, bool onlyAvailable = false)
         {
-            var data = await _service.GetIngredientsByStoreAsync(storeId);
+            var data = await _service.GetStoreInventoriesAsync(storeId, onlyAvailable);
 
             return Ok(data.Select(x => new
             {
                 ingredientId = x.IngredientId,
                 name = x.Ingredient.Name,
                 stock = x.AvailableQty,
-
                 baseUnitId = x.Ingredient.BaseUnitId,
                 unitName = x.Ingredient.BaseUnit.Name
             }));
         }
-
-
     }
 }

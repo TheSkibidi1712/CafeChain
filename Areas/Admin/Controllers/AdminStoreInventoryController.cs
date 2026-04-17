@@ -73,7 +73,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 BeforeQty = x.BeforeQty,
                 AfterQty = x.AfterQty,
                 CreatedAt = x.CreatedAt,
-                UnitCode = x.UnitCode
+                UnitCode = x.UnitCode,
+                UnitPrice = x.UnitPrice,
+                TotalAmount = x.TotalAmount
             }).ToList();
 
             return PartialView("_TransactionPartial", vm);

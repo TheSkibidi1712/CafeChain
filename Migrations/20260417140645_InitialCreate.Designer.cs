@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260415154632_InitialCreate")]
+    [Migration("20260417140645_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2204,6 +2204,9 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<int>("UnitId")
                         .HasColumnType("int");
 
@@ -2243,13 +2246,13 @@ namespace CafeChain.Migrations
                     b.Property<int?>("InventoryDocumentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("InventoryTransactionTypeId")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
                     b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("InventoryTransactionId");
@@ -2258,76 +2261,15 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("InventoryDocumentId");
 
-                    b.HasIndex("InventoryTransactionTypeId");
-
                     b.HasIndex("StoreInventoryId");
+
+                    b.HasIndex("Type");
 
                     b.HasIndex("StoreInventoryId", "CreatedAt");
 
                     b.ToTable("InventoryTransactions", null, t =>
                         {
                             t.HasCheckConstraint("CK_InventoryTransaction_Qty_NotZero", "[Quantity] <> 0");
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
-                {
-                    b.Property<int>("InventoryTransactionTypeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransactionTypeId"));
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsSystem")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.HasKey("InventoryTransactionTypeId");
-
-                    b.HasIndex("Code")
-                        .IsUnique();
-
-                    b.ToTable("InventoryTransactionTypes", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            InventoryTransactionTypeId = 1,
-                            Code = "IMPORT",
-                            IsSystem = true,
-                            Name = "Nhập kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 2,
-                            Code = "EXPORT",
-                            IsSystem = true,
-                            Name = "Xuất kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 3,
-                            Code = "ADJUST",
-                            IsSystem = true,
-                            Name = "Điều chỉnh"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 4,
-                            Code = "WASTE",
-                            IsSystem = true,
-                            Name = "Hao hụt"
                         });
                 });
 
@@ -5366,11 +5308,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 15, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9668),
+                            EndDate = new DateTime(2026, 5, 17, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(393),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 8, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9653)
+                            StartDate = new DateTime(2026, 4, 10, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(377)
                         },
                         new
                         {
@@ -5378,10 +5320,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 30, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672),
+                            EndDate = new DateTime(2026, 5, 2, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(396),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9672)
+                            StartDate = new DateTime(2026, 4, 16, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(396)
                         },
                         new
                         {
@@ -5389,11 +5331,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 14, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674),
+                            EndDate = new DateTime(2026, 6, 16, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(421),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 16, 22, 46, 31, 731, DateTimeKind.Local).AddTicks(9674)
+                            StartDate = new DateTime(2026, 3, 18, 21, 6, 45, 274, DateTimeKind.Local).AddTicks(420)
                         });
                 });
 
@@ -5938,12 +5880,6 @@ namespace CafeChain.Migrations
                         .HasForeignKey("InventoryDocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CafeChain.Models.Inventories.InventoryTransactionType", "TransactionType")
-                        .WithMany("InventoryTransactions")
-                        .HasForeignKey("InventoryTransactionTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("StoreInventoryId")
@@ -5953,8 +5889,6 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocument");
 
                     b.Navigation("StoreInventory");
-
-                    b.Navigation("TransactionType");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.SupplierBankAccount", b =>
@@ -6587,11 +6521,6 @@ namespace CafeChain.Migrations
 
                     b.Navigation("Details");
 
-                    b.Navigation("InventoryTransactions");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
-                {
                     b.Navigation("InventoryTransactions");
                 });
 
