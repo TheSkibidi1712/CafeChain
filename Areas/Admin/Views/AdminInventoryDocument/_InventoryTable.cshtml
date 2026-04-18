@@ -15,7 +15,7 @@
             <th>Trạng thái</th>
             <th>Ngày</th>
             <th>Tổng SL</th>
-            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT || x.Type == InventoryDocumentType.EXPORT))
+            @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
             {
                 <th>Tổng tiền</th>
             }
@@ -70,7 +70,7 @@
                 <td>@item.Date.ToString("dd/MM/yyyy")</td>
 
                 <td>@($"{item.TotalQuantity:N0} {item.BaseUnitName}")</td>
-                @if (item.Type == InventoryDocumentType.IMPORT || item.Type == InventoryDocumentType.EXPORT)
+                @if (item.Type == InventoryDocumentType.IMPORT )
                 {
                     <td>@item.TotalAmount.ToString("N0")</td>
                 }

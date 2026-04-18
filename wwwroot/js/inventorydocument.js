@@ -84,40 +84,87 @@ async function openDetail(id) {
 
         const d = res.data;
 
+        // 🔥 FORMAT TYPE
+        const typeMap = {
+            IMPORT: "Nhập kho",
+            EXPORT: "Xuất kho",
+            WASTE: "Hủy kho",
+            STOCK_TAKE: "Kiểm kê"
+        };
+
+        // 🔥 HEADER INFO
         let html = `
             <p><b>Mã:</b> ${d.code}</p>
+            <p><b>Loại:</b> ${typeMap[d.type] || d.type}</p>
             <p><b>Kho:</b> ${d.storeName}</p>
             <p><b>Nhân viên:</b> ${d.staffName}</p>
-            <p><b>Ngày:</b> ${new Date(d.date).toLocaleDateString()}</p>
+            <p><b>Ngày:</b> ${new Date(d.date).toLocaleString()}</p>
+            <p><b>Trạng thái:</b> ${d.status}</p>
+            <p><b>Mục đích:</b> ${d.purpose}</p>
+        `;
+
+        // 🔥 PARTNER / SUPPLIER
+        if (d.type === "IMPORT" && d.supplierName) {
+            html += `<p><b>Nhà cung cấp:</b> ${d.supplierName}</p>`;
+        }
+
+        if (d.type === "EXPORT" && d.partnerName) {
+            html += `<p><b>Đối tượng:</b> ${d.partnerName}</p>`;
+        }
+
+        html += `
             <p><b>Ghi chú:</b> ${d.note || ""}</p>
             <hr/>
             <table class="table">
                 <thead>
                     <tr>
+                        <th>Mã NL</th>
                         <th>Nguyên liệu</th>
                         <th>Số lượng</th>
                         <th>Đơn vị</th>
-                        ${d.type == "IMPORT" ? "<th>Giá</th><th>Thành tiền</th>" : ""}
+                        <th>Quy đổi (base)</th>
+                        ${d.type === "IMPORT" ? "<th>Giá</th><th>Thành tiền</th>" : ""}
+                        <th>Ghi chú</th>
                     </tr>
                 </thead>
                 <tbody>
         `;
 
+        let total = 0;
+
         d.details.forEach(x => {
+
+            const rowTotal = (x.unitPrice || 0) * (x.quantity || 0);
+            total += rowTotal;
+
             html += `
                 <tr>
+                    <td>${x.ingredientCode}</td>
                     <td>${x.ingredientName}</td>
                     <td>${x.quantity}</td>
                     <td>${x.unitName}</td>
-                    ${d.type == "IMPORT" ? `
+                    <td>${x.baseQuantity} ${x.baseUnitName}</td>
+
+                    ${d.type === "IMPORT" ? `
                         <td>${formatVND(x.unitPrice)}</td>
-                        <td>${formatVND(x.totalAmount)}</td>
+                        <td>${formatVND(rowTotal)}</td>
                     ` : ""}
+
+                    <td>${x.note || ""}</td>
                 </tr>
             `;
         });
 
         html += `</tbody></table>`;
+
+        // 🔥 TOTAL (CHỈ IMPORT)
+        if (d.type === "IMPORT") {
+            html += `
+                <div style="text-align:right; font-weight:bold; margin-top:10px">
+                    Tổng tiền: ${formatVND(total)} VND
+                </div>
+            `;
+        }
 
         document.getElementById("detailContent").innerHTML = html;
         document.getElementById("detailModal").style.display = "block";

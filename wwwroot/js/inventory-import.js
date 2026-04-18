@@ -1,4 +1,6 @@
-﻿
+﻿import { PURPOSE } from "./inventorydocument.js";
+
+
 let currentSupplier = null;
 let ingredientsBySupplier = [];
 
