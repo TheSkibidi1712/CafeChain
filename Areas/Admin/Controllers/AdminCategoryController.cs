@@ -5,8 +5,7 @@ using System.Threading.Tasks;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminCategoryController : Controller
+    public class AdminCategoryController : AdminBaseController
     {
         private readonly IAdminCategoryService _categoryService;
 
@@ -98,3 +97,4 @@ namespace CafeChain.Areas.Admin.Controllers
 
     }
 }
+

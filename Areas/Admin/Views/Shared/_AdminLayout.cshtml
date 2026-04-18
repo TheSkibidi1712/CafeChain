@@ -116,34 +116,64 @@
 
         <a asp-area="Admin" asp-controller="Admin" asp-action="Index" class="@Html.IsActive("Admin")"><i class="fas fa-border-all"></i> Dashboard</a>
         
-        <!-- Parent Menu DEMO: Quản lý sản phẩm -->
-        <a href="#collapseProducts" data-bs-toggle="collapse" 
-           aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping") != "" ? "true" : "false")"
-           class="@Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping")">
-            <i class="fas fa-boxes"></i> Sản phẩm <i class="fas fa-chevron-down ms-auto" style="font-size: 10px; width: auto; float: right; margin-top: 5px;"></i>
-        </a>
-        <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping", cssClass: "show")" id="collapseProducts">
-            <div style="background-color: #fafafa; border-left: 2px solid #e9ecef; margin-left: 20px;">
-                <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Danh mục</a>
-                <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Đồ uống</a>
-                <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Size</a>
-                <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Topping</a>
-
+        @using Microsoft.AspNetCore.Authorization
+        @inject IAuthorizationService AuthorizationService
+        
+        @if ((await AuthorizationService.AuthorizeAsync(User, "RequireAdminPanelAccess")).Succeeded)
+        {
+            <!-- Parent Menu DEMO: Quản lý sản phẩm -->
+            <a href="#collapseProducts" data-bs-toggle="collapse" 
+               aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping") != "" ? "true" : "false")"
+               class="@Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping")">
+                <i class="fas fa-boxes"></i> Sản phẩm <i class="fas fa-chevron-down ms-auto" style="font-size: 10px; width: auto; float: right; margin-top: 5px;"></i>
+            </a>
+            <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping", cssClass: "show")" id="collapseProducts">
+                <div style="background-color: #fafafa; border-left: 2px solid #e9ecef; margin-left: 20px;">
+                    <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Danh mục</a>
+                    <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Đồ uống</a>
+                    <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Size</a>
+                    <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Topping</a>
+                </div>
             </div>
-        </div>
-        <!-- End DEMO -->
-        <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-warehouse"></i> Quản lý tồn kho</a>
-        <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-box-open"></i> Nguyên liệu</a>
-        <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-file-alt"></i> Phiếu tồn kho</a>
-        <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà CC</a>
-        <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân sự</a>
-        <a href="#" class="@Html.IsActive("AdminInventory")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
-        <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
-        <a href="#" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
-        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post">
+
+            <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-warehouse"></i> Quản lý tồn kho</a>
+            <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-box-open"></i> Nguyên liệu</a>
+            <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-file-alt"></i> Phiếu tồn kho</a>
+            <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
+            <a href="#" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+        }
+        
+        <!-- Nhân sự (Link trực tiếp) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân viên</a>
+        }
+
+        <!-- Lịch làm việc (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Khu vực"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStaffShift" asp-action="Index" class="@Html.IsActive("AdminStaffShift")"><i class="fas fa-calendar-alt"></i> Lịch làm việc</a>
+        }
+
+        <!-- Quản lý IP Chấm công (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStoreIP" asp-action="Index" class="@Html.IsActive("AdminStoreIP")"><i class="fas fa-network-wired"></i> Quản lý IP chấm công</a>
+        }
+
+        <!-- Cửa hàng (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Giám đốc Vận hành"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStore" asp-action="Index" class="@Html.IsActive("AdminStore")"><i class="fas fa-store"></i> Quản lý cửa hàng</a>
+        }
+
+        <!-- Hồ sơ cá nhân (Cho TẤT CẢ roles) -->
+        <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="@Html.IsActive("Profile")"><i class="fas fa-user-circle"></i> Hồ sơ của tôi</a>
+
+        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin-top:10px; border-top: 1px solid #e9ecef; padding-top: 10px;">
             @Html.AntiForgeryToken()
-            <button type="submit" class="@Html.IsActive("AdminSetting")">
-                <i class="fas fa-cog"></i> Đăng xuất
+            <button type="submit" class="btn btn-link shadow-none" style="text-decoration:none; color:#dc3545; font-weight: 500; font-size:14px; padding: 12px 20px;">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
             </button>
         </form>
     </div>

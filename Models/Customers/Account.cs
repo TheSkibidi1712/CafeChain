@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Staffs;
+using CafeChain.Models.Staffs;
 
 namespace CafeChain.Models.Customers
 {
@@ -10,6 +10,7 @@ namespace CafeChain.Models.Customers
         public string PasswordHash { get; set; }
 
         public bool Active { get; set; }
+        public bool RequiresPasswordChange { get; set; } = true; // Bắt buộc đổi pass ở lần đầu
         public DateTime CreatedAt { get; set; }
         public virtual ICollection<AccountRole> AccountRoles { get; set; }
         public virtual Customer Customer { get; set; }

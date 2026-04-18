@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260414113943_InitialCreate")]
+    [Migration("20260418070008_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -56,6 +56,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<bool>("RequiresPasswordChange")
+                        .HasColumnType("bit");
+
                     b.HasKey("AccountId");
 
                     b.HasIndex("Email")
@@ -70,7 +73,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "superadmin@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -78,7 +82,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "ceo@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -86,7 +91,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "cfo@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -94,7 +100,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "marketing@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -102,7 +109,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "operations@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -110,7 +118,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "hr@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -118,7 +127,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "areamanager@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -126,7 +136,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "storemanager@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -134,7 +145,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "shiftsupervisor@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -142,7 +154,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "cashier@cafechain.vn",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         },
                         new
                         {
@@ -150,7 +163,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "khachhang@gmail.com",
-                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe"
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         });
                 });
 
@@ -3994,6 +4008,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<bool>("IsStoreLevel")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -4012,6 +4029,7 @@ namespace CafeChain.Migrations
                             RoleId = 1,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Super Admin"
                         },
                         new
@@ -4019,6 +4037,7 @@ namespace CafeChain.Migrations
                             RoleId = 2,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "CEO / Ban Giám đốc"
                         },
                         new
@@ -4026,6 +4045,7 @@ namespace CafeChain.Migrations
                             RoleId = 3,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Kế toán trưởng / Tài chính"
                         },
                         new
@@ -4033,6 +4053,7 @@ namespace CafeChain.Migrations
                             RoleId = 4,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Giám đốc Marketing"
                         },
                         new
@@ -4040,6 +4061,7 @@ namespace CafeChain.Migrations
                             RoleId = 5,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Giám đốc Vận hành"
                         },
                         new
@@ -4047,6 +4069,7 @@ namespace CafeChain.Migrations
                             RoleId = 6,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Quản lý Nhân sự"
                         },
                         new
@@ -4054,6 +4077,7 @@ namespace CafeChain.Migrations
                             RoleId = 7,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Quản lý Khu vực"
                         },
                         new
@@ -4061,6 +4085,7 @@ namespace CafeChain.Migrations
                             RoleId = 8,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = true,
                             Name = "Cửa hàng trưởng"
                         },
                         new
@@ -4068,6 +4093,7 @@ namespace CafeChain.Migrations
                             RoleId = 9,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = true,
                             Name = "Ca trưởng"
                         },
                         new
@@ -4075,6 +4101,7 @@ namespace CafeChain.Migrations
                             RoleId = 10,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = true,
                             Name = "Thu ngân"
                         },
                         new
@@ -4082,7 +4109,24 @@ namespace CafeChain.Migrations
                             RoleId = 11,
                             Active = true,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = false,
                             Name = "Khách hàng"
+                        },
+                        new
+                        {
+                            RoleId = 12,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = true,
+                            Name = "Thủ kho"
+                        },
+                        new
+                        {
+                            RoleId = 13,
+                            Active = true,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IsStoreLevel = true,
+                            Name = "Nhân viên chung"
                         });
                 });
 
@@ -4166,6 +4210,9 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
@@ -4268,10 +4315,16 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<decimal>("Allowance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("AvatarUrl")
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("BaseSalary")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<string>("CCCD")
                         .HasMaxLength(12)
@@ -4286,13 +4339,40 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("DependentCount")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DependentTaxCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("EmployeeStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("FaceDescriptor")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<decimal?>("Salary")
+                    b.Property<int>("Gender")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("OvertimeRate")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("ProbationRate")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("SalaryType")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SocialInsuranceNumber")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
@@ -4324,10 +4404,17 @@ namespace CafeChain.Migrations
                             StaffId = 101,
                             AccountId = 101,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 50000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Super Admin System",
-                            Salary = 50000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX101"
                         },
@@ -4336,10 +4423,17 @@ namespace CafeChain.Migrations
                             StaffId = 102,
                             AccountId = 102,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 100000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "CEO Director",
-                            Salary = 100000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX102"
                         },
@@ -4348,10 +4442,17 @@ namespace CafeChain.Migrations
                             StaffId = 103,
                             AccountId = 103,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 80000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "CFO Finance",
-                            Salary = 80000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX103"
                         },
@@ -4360,10 +4461,17 @@ namespace CafeChain.Migrations
                             StaffId = 104,
                             AccountId = 104,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 40000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Marketing Manager",
-                            Salary = 40000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX104"
                         },
@@ -4372,10 +4480,17 @@ namespace CafeChain.Migrations
                             StaffId = 105,
                             AccountId = 105,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 45000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Operations Manager",
-                            Salary = 45000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX105"
                         },
@@ -4384,10 +4499,17 @@ namespace CafeChain.Migrations
                             StaffId = 106,
                             AccountId = 106,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 35000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "HR Manager",
-                            Salary = 35000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX106"
                         },
@@ -4396,10 +4518,17 @@ namespace CafeChain.Migrations
                             StaffId = 107,
                             AccountId = 107,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 30000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Area Manager HCM",
-                            Salary = 30000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX107"
                         },
@@ -4408,10 +4537,17 @@ namespace CafeChain.Migrations
                             StaffId = 108,
                             AccountId = 108,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 20000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Store Manager D1",
-                            Salary = 20000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX108"
                         },
@@ -4420,10 +4556,17 @@ namespace CafeChain.Migrations
                             StaffId = 109,
                             AccountId = 109,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 12000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Shift Supervisor",
-                            Salary = 12000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX109"
                         },
@@ -4432,10 +4575,17 @@ namespace CafeChain.Migrations
                             StaffId = 110,
                             AccountId = 110,
                             Active = true,
+                            Allowance = 0m,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 8000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            DependentCount = 0,
+                            EmployeeStatus = 0,
                             FullName = "Cashier Staff",
-                            Salary = 8000000m,
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX110"
                         });
@@ -4499,6 +4649,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffBankId"));
+
+                    b.Property<string>("AccountHolderName")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("AccountNumber")
                         .HasMaxLength(50)
@@ -4759,6 +4912,12 @@ namespace CafeChain.Migrations
 
                     b.Property<DateTime?>("ActualCheckOut")
                         .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan?>("CustomEndTime")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("CustomStartTime")
+                        .HasColumnType("time");
 
                     b.Property<int>("ShiftId")
                         .HasColumnType("int");
@@ -5033,6 +5192,69 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             StoreId = 3
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreIP", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("IPAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<bool>("IsPublicNetwork")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Notes")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("StoreIPs", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IPAddress = "192.168.1.*",
+                            IsActive = true,
+                            IsPublicNetwork = false,
+                            Notes = "Mạng LAN cửa hàng 1",
+                            StoreId = 1
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            IPAddress = "171.244.10.15",
+                            IsActive = true,
+                            IsPublicNetwork = true,
+                            Notes = "WAN Cửa hàng 1",
+                            StoreId = 1
                         });
                 });
 
@@ -5316,11 +5538,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 14, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4816),
+                            EndDate = new DateTime(2026, 5, 18, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9718),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 7, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4799)
+                            StartDate = new DateTime(2026, 4, 11, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9702)
                         },
                         new
                         {
@@ -5328,10 +5550,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 4, 29, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818),
+                            EndDate = new DateTime(2026, 5, 3, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9723),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4818)
+                            StartDate = new DateTime(2026, 4, 17, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9723)
                         },
                         new
                         {
@@ -5339,11 +5561,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 13, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820),
+                            EndDate = new DateTime(2026, 6, 17, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9727),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 15, 18, 39, 43, 333, DateTimeKind.Local).AddTicks(4820)
+                            StartDate = new DateTime(2026, 3, 19, 14, 0, 5, 509, DateTimeKind.Local).AddTicks(9726)
                         });
                 });
 
@@ -6300,6 +6522,17 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("Drink");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreIP", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Store");
                 });

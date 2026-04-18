@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.ViewModels.Admin.InventoryDocuments;
 using Microsoft.AspNetCore.Mvc;
@@ -6,8 +6,7 @@ using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminInventoryDocumentController : Controller
+    public class AdminInventoryDocumentController : AdminBaseController
     {
         private readonly IAdminInventoryDocumentService _service;
 
@@ -199,3 +198,4 @@ namespace CafeChain.Areas.Admin.Controllers
 
     }
 }
+

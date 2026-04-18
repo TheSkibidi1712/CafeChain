@@ -2,8 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminController : Controller
+    public class AdminController : AdminBaseController
     {
         public IActionResult Index()
         {
@@ -11,3 +10,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

@@ -5,9 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
     [Authorize(Roles = "Admin System,Store Manager")]
-    public class AdminVoucherController : Controller
+    public class AdminVoucherController : AdminBaseController
     {
         private readonly IAdminVoucherService _voucherService;
 
@@ -143,3 +142,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

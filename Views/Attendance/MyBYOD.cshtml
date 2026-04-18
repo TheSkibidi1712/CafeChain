@@ -1,0 +1,117 @@
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Chấm Công Điện Thoại";
+}
+
+<div class="container text-center mt-4">
+    <h4 class="fw-bold">Ca Làm Việc Của: @ViewBag.StaffName</h4>
+    <h1 id="clock" class="display-3 fw-bold text-primary my-3">--:--:--</h1>
+    
+    <div class="mx-auto shadow rounded-4 overflow-hidden mb-3" style="width: 300px; height: 350px; position: relative; background:#000;">
+        <video id="videoElement" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+    </div>
+
+    <p id="status-msg" class="fw-bold text-warning">Đang khởi động Camera... Vui lòng cho phép quyền truy cập.</p>
+    
+    <div class="row g-3 px-3">
+        <div class="col-6">
+            <button class="btn btn-success w-100 py-3 rounded-4 fw-bold shadow-sm action-btn" onclick="captureAndSubmit('CheckIn')" disabled><i class="fas fa-sign-in-alt d-block mb-1 fs-4"></i> VÀO CA</button>
+        </div>
+        <div class="col-6">
+            <button class="btn btn-danger w-100 py-3 rounded-4 fw-bold shadow-sm action-btn" onclick="captureAndSubmit('CheckOut')" disabled><i class="fas fa-sign-out-alt d-block mb-1 fs-4"></i> TAN CA</button>
+        </div>
+        <div class="col-6">
+            <button class="btn btn-warning w-100 py-3 rounded-4 fw-bold shadow-sm text-dark action-btn" onclick="captureAndSubmit('StartBreak')" disabled><i class="fas fa-mug-hot d-block mb-1 fs-4"></i> BẮT ĐẦU NGHỈ</button>
+        </div>
+        <div class="col-6">
+            <button class="btn btn-info w-100 py-3 rounded-4 fw-bold shadow-sm text-white action-btn" onclick="captureAndSubmit('EndBreak')" disabled><i class="fas fa-rotate-left d-block mb-1 fs-4"></i> KẾT THÚC NGHỈ</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script src="/js/face-api.min.js"></script>
+<script>
+    const video = document.getElementById('videoElement');
+    const msg = document.getElementById('status-msg');
+    const actionBtns = document.querySelectorAll('.action-btn');
+
+    // Đồng hồ thời gian thực
+    setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString('vi-VN'), 1000);
+
+    // Boot Face-API & Camera
+    async function initBYOD() {
+        try {
+            await Promise.all([
+                faceapi.nets.ssdMobilenetv1.loadFromUri('/aifx'),
+                faceapi.nets.faceLandmark68Net.loadFromUri('/aifx'),
+                faceapi.nets.faceRecognitionNet.loadFromUri('/aifx')
+            ]);
+            
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 640 } }
+                });
+            } catch(e) {
+                stream = await navigator.mediaDevices.getUserMedia({ video: true }); // Fallback laptop webcam
+            }
+            video.srcObject = stream;
+            
+            video.onloadeddata = () => {
+                msg.innerText = "Camera Sẵn Sàng! Hãy chọn hành động chấm công bên dưới";
+                msg.className = "fw-bold text-success";
+                actionBtns.forEach(b => b.disabled = false);
+            };
+        } catch (err) {
+            msg.innerText = "Lỗi Camera: " + err.message;
+            msg.className = "fw-bold text-danger";
+        }
+    }
+
+    async function captureAndSubmit(actionType) {
+        actionBtns.forEach(b => b.disabled = true);
+        msg.innerText = "Đang trích xuất dữ liệu khuôn mặt...";
+        msg.className = "fw-bold text-warning";
+
+        try {
+            const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                                           .withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+                msg.innerText = "Không tìm thấy khuôn mặt rõ nét! Xin chỉnh lại khung hình.";
+                msg.className = "fw-bold text-danger";
+                actionBtns.forEach(b => b.disabled = false);
+                return;
+            }
+
+            msg.innerText = "Đang khớp số liệu toán học...";
+            const faceVectorJson = JSON.stringify(Array.from(detection.descriptor)); // 128 chiều
+
+            const formData = new FormData();
+            formData.append('accountId', '@ViewBag.AccountId');
+            formData.append('actionType', actionType);
+            formData.append('faceDescriptor', faceVectorJson);
+
+            // Fetch tới API SubmitTimeAction đã có sẵn trong AttendanceActionService
+            const res = await fetch('/api/Attendance/SubmitTimeAction', { method: 'POST', body: formData });
+            const result = await res.json();
+
+            if (result.success) {
+                alert("Chấm công thành công!\n" + result.message);
+                video.srcObject.getTracks().forEach(track => track.stop()); // Tắt camera tiết kiệm pin
+                window.location.reload(); 
+            } else {
+                alert("Thất bại: " + result.message);
+                msg.innerText = "Chấm công thất bại!";
+                actionBtns.forEach(b => b.disabled = false);
+            }
+        } catch (e) {
+            alert("Lỗi thực thi dữ liệu: " + e.message);
+            actionBtns.forEach(b => b.disabled = false);
+        }
+    }
+
+    window.addEventListener('load', initBYOD);
+</script>
+}

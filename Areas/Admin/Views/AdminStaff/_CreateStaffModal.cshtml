@@ -1,192 +1,255 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffCreateVM
-
 @{
     var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
     var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
     var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
-    bool isStoreManager = ViewBag.IsStoreManager ?? false;
-    int currentStoreId = ViewBag.CurrentStoreId ?? 0;
-    string currentStoreName = ViewBag.CurrentStoreName ?? "";
 }
 
+<style>
+    .staff-modal .form-label { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #868e96; margin-bottom: 5px; }
+    .staff-modal .form-control, .staff-modal .form-select { border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; padding: 10px 12px; }
+    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.2rem rgba(217, 61, 32, 0.25); }
+    .staff-modal .btn-submit { background-color: #d93d20; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; }
+    .staff-modal .btn-submit:hover { background-color: #b52f16; }
+    .avatar-upload-box { 
+        border: 2px dashed #ced4da; 
+        border-radius: 8px; 
+        aspect-ratio: 1/1; 
+        width: 100%;
+        max-height: 250px; 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        background-color: #f8f9fa; 
+        cursor: pointer; 
+        transition: all 0.3s;
+        text-align: center;
+        padding: 20px;
+        overflow: hidden;
+    }
+    .avatar-upload-box:hover { border-color: #d93d20; background-color: #fffaf9; }
+    .avatar-upload-box i { font-size: 40px; color: #adb5bd; margin-bottom: 10px; }
+    .avatar-upload-box span { font-size: 13px; color: #6c757d; }
+    .avatar-upload-box img { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+        border-radius: 6px; 
+        display: none; 
+    }
+    .section-title { font-size: 14px; font-weight: 700; color: #495057; text-transform: uppercase; margin-top: 15px; margin-bottom: 15px; border-bottom: 2px solid #e9ecef; padding-bottom: 5px; }
+</style>
+
 <div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Thêm nhân viên mới</h5>
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h4 class="modal-title font-weight-bold" style="color: #212529;">Thêm nhân viên mới</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body">
-                <p style="color: #868e96; font-size: 13px; margin-bottom: 20px;">Điền thông tin chi tiết để cấp quyền truy cập hệ thống.</p>
-
+            <div class="modal-body pt-3">
                 <form asp-action="Create" method="post" enctype="multipart/form-data" id="createStaffForm">
-                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3 font-weight-bold"></div>
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+                    
                     <div class="row">
-                        <!-- Avatar -->
-                        <div class="col-md-3">
+                        <!-- CỘT TRÁI: AVATAR -->
+                        <div class="col-md-3 mb-4">
                             <label class="form-label">Ảnh đại diện</label>
-                            <div class="avatar-upload-box" id="avatarUploadBox" onclick="document.getElementById('avatarInput').click()">
-                                <img id="avatarPreview" src="" style="display:none" />
-                                <i class="fas fa-camera-retro placeholder-icon"></i>
-                                <span class="placeholder-text">Kéo thả hoặc nhấp để tải ảnh lên</span>
+                            <div class="avatar-upload-box" onclick="document.getElementById('avatarInput').click()">
+                                <i class="fas fa-cloud-upload-alt placeholder-icon"></i>
+                                <span class="placeholder-text">Kéo thả hoặc click để<br>tải ảnh lên</span>
+                                <img id="avatarPreview" src="" />
                             </div>
-                            <input type="file" name="AvatarFile" id="avatarInput" accept="image/*" style="display:none" />
+                            <input type="file" name="AvatarFile" id="avatarInput" class="d-none" accept="image/*" onchange="previewAvatar(this)" />
                         </div>
 
-                        <!-- Form Fields -->
+                        <!-- CỘT PHẢI: CHI TIẾT -->
                         <div class="col-md-9">
                             <div class="row">
-                                <!-- Vai trò hệ thống -->
+                                <!-- Nhóm Định danh -->
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Vai trò hệ thống <span class="text-danger">*</span></label>
-                                    <select asp-for="SelectedRoleId" class="form-select" id="roleSelect">
+                                    <label class="form-label text-danger">Vai trò hệ thống *</label>
+                                    <select asp-for="SelectedRoleId" class="form-select" id="dynamicRoleSelect">
                                         <option value="">-- Chọn vai trò --</option>
-                                        @if (roles != null)
-                                        {
-                                            @foreach (var role in roles)
-                                            {
-                                                <option value="@role.RoleId">@role.Name</option>
-                                            }
-                                        }
+                                        @if(roles != null) { foreach(var r in roles) { <option value="@r.RoleId">@r.Name</option> } }
                                     </select>
-                                    <span asp-validation-for="SelectedRoleId" class="text-danger"></span>
+                                    <span asp-validation-for="SelectedRoleId" class="text-danger small"></span>
                                 </div>
-
-                                <!-- Họ tên -->
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                                    <input asp-for="FullName" class="form-control" placeholder="Nhập tên đầy đủ" />
-                                    <span asp-validation-for="FullName" class="text-danger"></span>
+                                    <input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" />
+                                    <span asp-validation-for="FullName" class="text-danger small"></span>
                                 </div>
-
-                                <!-- Email -->
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Email đăng nhập <span class="text-danger">*</span></label>
-                                    <input asp-for="Email" class="form-control" placeholder="email@cafechain.vn" />
-                                    <span asp-validation-for="Email" class="text-danger"></span>
+                                    <input asp-for="Email" class="form-control" placeholder="email@domain.com" />
+                                    <span asp-validation-for="Email" class="text-danger small"></span>
                                 </div>
-
-                                <!-- Mật khẩu -->
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Mật khẩu <span class="label-optional">(để trống = tự sinh)</span></label>
-                                    <input asp-for="Password" type="password" class="form-control" placeholder="••••••••" />
-                                    <span asp-validation-for="Password" class="text-danger"></span>
-                                </div>
-
-                                <!-- CCCD -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Số CCCD <span class="label-optional">Không bắt buộc</span></label>
-                                    <input asp-for="CCCD" class="form-control" placeholder="Nhập 12 chữ số CCCD" />
-                                    <span asp-validation-for="CCCD" class="text-danger"></span>
-                                </div>
-
-                                <!-- Mã số thuế -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Mã số thuế <span class="label-optional">Không bắt buộc</span></label>
-                                    <input asp-for="TaxCode" class="form-control" placeholder="Nhập mã số thuế (10-14 ký tự)" />
-                                    <span asp-validation-for="TaxCode" class="text-danger"></span>
-                                </div>
-
-                                <!-- Mức lương -->
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Mức lương (VNĐ)</label>
-                                    <input asp-for="Salary" class="form-control" placeholder="0" step="1000" />
-                                    <span asp-validation-for="Salary" class="text-danger"></span>
-                                </div>
-
-                                <!-- Cửa hàng / Scope -->
-                                @if (isStoreManager)
-                                {
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Cửa hàng</label>
-                                        <input type="text" class="form-control" value="@currentStoreName" disabled />
-                                        <input type="hidden" asp-for="StoreId" value="@currentStoreId" />
-                                        <input type="hidden" asp-for="ScopeTypeId" value="4" />
-                                        <input type="hidden" asp-for="ScopeRefId" value="@currentStoreId" />
+                                    <label class="form-label">Mật khẩu đăng nhập <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-key"></i></span>
+                                        <input type="password" asp-for="Password" class="form-control" placeholder="Vui lòng cấp mật khẩu..." required />
                                     </div>
-                                }
-                                else
-                                {
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Cửa hàng <span class="text-danger">*</span></label>
-                                        <select asp-for="StoreId" class="form-select">
-                                            <option value="">-- Chọn cửa hàng --</option>
-                                            @if (stores != null)
-                                            {
-                                                @foreach (var store in stores)
-                                                {
-                                                    <option value="@store.StoreId">@store.Name</option>
-                                                }
-                                            }
-                                        </select>
-                                        <span asp-validation-for="StoreId" class="text-danger"></span>
-                                    </div>
-                                }
-
-                                <!-- Ngày sinh -->
+                                    <span asp-validation-for="Password" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Căn cước công dân</label>
+                                    <input asp-for="CCCD" class="form-control" placeholder="12 chữ số" />
+                                    <span asp-validation-for="CCCD" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Giới tính</label>
+                                    <select asp-for="Gender" class="form-select">
+                                        <option value="0">Nữ</option>
+                                        <option value="1">Nam</option>
+                                        <option value="2">Khác</option>
+                                    </select>
+                                    <span asp-validation-for="Gender" class="text-danger small"></span>
+                                </div>
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Ngày sinh</label>
-                                    <input asp-for="DateOfBirth" type="date" class="form-control" />
-                                    <span asp-validation-for="DateOfBirth" class="text-danger"></span>
+                                    <input asp-for="DateOfBirth" type="text" class="form-control flatpickr-date" placeholder="dd/mm/yyyy" />
+                                    <span asp-validation-for="DateOfBirth" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Ngày bắt đầu làm việc</label>
+                                    <input asp-for="StartDate" type="text" class="form-control flatpickr-date" placeholder="dd/mm/yyyy" />
+                                    <span asp-validation-for="StartDate" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Trạng thái làm việc</label>
+                                    <select asp-for="EmployeeStatus" class="form-select">
+                                        <option value="1">Thử việc</option>
+                                        <option value="2">Chính thức</option>
+                                    </select>
+                                    <span asp-validation-for="EmployeeStatus" class="text-danger small"></span>
                                 </div>
 
-                                @if (!isStoreManager)
-                                {
-                                    <!-- Scope Type -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phạm vi quản lý</label>
-                                        <select asp-for="ScopeTypeId" class="form-select">
-                                            @if (scopeTypes != null)
-                                            {
-                                                @foreach (var st in scopeTypes)
-                                                {
-                                                    <option value="@st.ScopeTypeId">@st.Name</option>
-                                                }
-                                            }
-                                        </select>
-                                        <span asp-validation-for="ScopeTypeId" class="text-danger"></span>
-                                    </div>
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label" id="scopeRefLabel">Mã tham chiếu (ScopeRefId)</label>
-                                        <select asp-for="ScopeRefId" class="form-select">
-                                            <option value="">-- Vui lòng chọn phạm vi --</option>
-                                        </select>
-                                        <span asp-validation-for="ScopeRefId" class="text-danger"></span>
-                                    </div>
-                                }
-                            </div>
+                                <div class="col-12"><div class="section-title">Nhóm Phân quyền</div></div>
 
-                            <!-- Phones dynamic -->
-                            <div class="mb-3">
-                                <label class="form-label">Số điện thoại <span class="label-optional">(tối đa 3)</span></label>
-                                <div id="phonesContainer">
-                                    <div class="dynamic-input-group">
-                                        <input type="text" name="Phones" class="form-control" placeholder="Số điện thoại chính" maxlength="15" />
-                                    </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label text-danger">Loại phạm vi *</label>
+                                    <select asp-for="ScopeTypeId" class="form-select" id="dynamicScopeTypeSelect">
+                                        <option value="">-- Xin vui lòng chọn --</option>
+                                        @if(scopeTypes != null) { foreach(var st in scopeTypes) { <option value="@st.ScopeTypeId">@st.Name</option> } }
+                                    </select>
+                                    <span asp-validation-for="ScopeTypeId" class="text-danger small"></span>
                                 </div>
-                                <button type="button" class="btn-add-input" onclick="addDynamicInput('phonesContainer', 'Phones', 3, 'Thêm số điện thoại')">
-                                    <i class="fas fa-plus"></i> Thêm số điện thoại
-                                </button>
-                            </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label" id="lblScopeRefId">Mã tham chiếu</label>
+                                    <input type="hidden" asp-for="ScopeRefId" id="HiddenScopeRefId">
+                                    <button type="button" id="BtnLocationPicker" class="form-select text-start" style="width: 100%;">
+                                        -- Mặc định HQ --
+                                    </button>
+                                    <span asp-validation-for="ScopeRefId" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label class="form-label">Cửa Hàng Đồng Bộ</label>
+                                    <select asp-for="StoreId" class="form-select" id="dynamicStoreSelect">
+                                        <option value="">-- Tự động --</option>
+                                        @if(stores != null) { foreach(var s in stores) { <option value="@s.StoreId">@s.Name</option> } }
+                                    </select>
+                                    <span asp-validation-for="StoreId" class="text-danger small"></span>
+                                </div>
 
-                            <!-- Addresses dynamic -->
-                            <div class="mb-3">
-                                <label class="form-label">Địa chỉ <span class="label-optional">(tối đa 3)</span></label>
-                                <div id="addressesContainer">
-                                    <div class="dynamic-input-group">
-                                        <input type="text" name="Addresses" class="form-control" placeholder="Địa chỉ chính" maxlength="300" />
-                                    </div>
+                                <div class="col-12"><div class="section-title">Nhóm Lương & Thuế</div></div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Hình thức trả lương</label>
+                                    <select asp-for="SalaryType" class="form-select" id="SalaryTypeSelect">
+                                        <option value="1">Lương Cố định</option>
+                                        <option value="2">Lương Theo giờ</option>
+                                    </select>
+                                    <span asp-validation-for="SalaryType" class="text-danger small"></span>
                                 </div>
-                                <button type="button" class="btn-add-input" onclick="addDynamicInput('addressesContainer', 'Addresses', 3, 'Thêm địa chỉ')">
-                                    <i class="fas fa-plus"></i> Thêm địa chỉ
-                                </button>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label" id="lblBaseSalary">Lương gốc (VNĐ)</label>
+                                    <input asp-for="BaseSalary" type="number" class="form-control" step="1000" />
+                                    <span asp-validation-for="BaseSalary" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Phụ cấp (VNĐ)</label>
+                                    <input asp-for="Allowance" type="number" class="form-control" step="1000" />
+                                    <span asp-validation-for="Allowance" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Hệ số Lương Thử việc</label>
+                                    <input asp-for="ProbationRate" id="ProbationRateInput" type="number" class="form-control" step="0.01" />
+                                    <span asp-validation-for="ProbationRate" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Hệ số Nhân lương OT</label>
+                                    <input asp-for="OvertimeRate" type="number" class="form-control" step="0.1" />
+                                    <span asp-validation-for="OvertimeRate" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Sổ BHXH</label>
+                                    <input asp-for="SocialInsuranceNumber" class="form-control" />
+                                    <span asp-validation-for="SocialInsuranceNumber" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Người phụ thuộc (SL)</label>
+                                    <input asp-for="DependentCount" type="number" class="form-control" />
+                                    <span asp-validation-for="DependentCount" class="text-danger small"></span>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Mã số thuế cá nhân</label>
+                                    <input asp-for="DependentTaxCode" class="form-control" />
+                                    <span asp-validation-for="DependentTaxCode" class="text-danger small"></span>
+                                </div>
                             </div>
                         </div>
+
+                        <!-- HÀNG CÙNG DIỄN TOÀN MÀN HÌNH -->
+                        <div class="col-12"><div class="section-title mt-2">Thông tin Liên hệ & Ngân hàng</div></div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số điện thoại liên lạc</label>
+                            <div id="phonesContainerModal">
+                                <div class="dynamic-input-group d-flex mb-2">
+                                    <input name="Phones[0]" class="form-control phone-input" placeholder="+84 9..." />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('phonesContainerModal', 'Phones', 3, 'Nhập số điện thoại')">
+                                <i class="fas fa-plus"></i> Thêm số điện thoại
+                            </button>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Địa chỉ liên hệ</label>
+                            <div id="addressesContainerModal">
+                                <div class="dynamic-input-group d-flex mb-2">
+                                    <input name="Addresses[0]" class="form-control addr-input" placeholder="Nhập địa chỉ tạm trú/thường trú..." />
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('addressesContainerModal', 'Addresses', 3, 'Nhập địa chỉ')">
+                                <i class="fas fa-plus"></i> Thêm địa chỉ
+                            </button>
+                        </div>
+                        
+                        <!-- NGÂN HÀNG TRÊN 1 DÒNG COL-12 CHIA 3 -->
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tên Ngân Hàng</label>
+                            <input asp-for="BankName" class="form-control" placeholder="Tên NH (VD: MBBank)" />
+                            <span asp-validation-for="BankName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Số Tài Khoản</label>
+                            <input asp-for="AccountNumber" class="form-control" placeholder="Số TK" />
+                            <span asp-validation-for="AccountNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">Tên Chủ Tài Khoản</label>
+                            <input asp-for="AccountHolderName" class="form-control" placeholder="Viết Hoa Không Dấu" style="text-transform:uppercase"/>
+                            <span asp-validation-for="AccountHolderName" class="text-danger small"></span>
+                        </div>
+
                     </div>
 
-                    <div class="d-flex justify-content-end gap-3 mt-3 pt-3" style="border-top: 1px solid #f0f0f0;">
-                        <button type="button" class="btn-cancel" data-bs-dismiss="modal">Hủy</button>
-                        <button type="submit" class="btn-submit">Thêm nhân viên</button>
+                    <div class="d-flex justify-content-end gap-3 mt-3 pt-3 border-top">
+                        <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn-submit px-5" onclick="validateAndSubmit(this)">Tạo tài khoản</button>
                     </div>
                 </form>
             </div>
@@ -194,46 +257,349 @@
     </div>
 </div>
 
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+
 <script>
+    // JS Preview Avatar
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                var box = input.previousElementSibling;
+                var placeholderIcon = box.querySelector('.placeholder-icon');
+                var placeholderText = box.querySelector('.placeholder-text');
+                var img = box.querySelector('img');
+                
+                if(placeholderIcon) placeholderIcon.style.display = 'none';
+                if(placeholderText) placeholderText.style.display = 'none';
+                img.src = e.target.result;
+                img.style.display = 'block';
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // Dynamic Input with Index Mapping for ASP.NET Core
+    function addDynamicInput(containerId, fieldName, maxCount, placeholder) {
+        const container = document.getElementById(containerId);
+        const currentCount = container.querySelectorAll('.dynamic-input-group').length;
+        if (currentCount >= maxCount) return alert('Tối đa ' + maxCount + ' dòng');
+        
+        const nextIndex = currentCount;
+        const inputClass = fieldName === 'Phones' ? 'phone-input' : 'addr-input';
+
+        const div = document.createElement('div');
+        div.className = 'dynamic-input-group d-flex mb-2';
+        div.innerHTML = `<input name="${fieldName}[${nextIndex}]" class="form-control me-2 ${inputClass}" placeholder="${placeholder}" />
+                         <button type="button" class="btn btn-sm btn-danger" onclick="removeDynamicInput(this, '${containerId}', '${fieldName}', '${inputClass}')"><i class="fas fa-trash"></i></button>`;
+        container.appendChild(div);
+    }
+    
+    function removeDynamicInput(btn, containerId, fieldName, inputClass) {
+        btn.parentElement.remove();
+        // Re-index remaining inputs
+        const container = document.getElementById(containerId);
+        const inputs = container.querySelectorAll(`.${inputClass}`);
+        inputs.forEach((input, index) => {
+            input.name = `${fieldName}[${index}]`;
+        });
+    }
+
+    function validateAndSubmit(btn) {
+        const form = document.getElementById('createStaffForm');
+        
+        // Custom simple validation to ensure Required fields before submit, avoiding ModelState partial layout break.
+        const fullName = form.querySelector('[name="FullName"]').value;
+        const email = form.querySelector('[name="Email"]').value;
+        const password = form.querySelector('[name="Password"]').value;
+        const role = form.querySelector('[name="SelectedRoleId"]').value;
+        const scope = form.querySelector('[name="ScopeTypeId"]').value;
+        const scopeRef = form.querySelector('[name="ScopeRefId"]').value;
+
+        if (!role) return Swal.fire('Cảnh báo', 'Vui lòng chọn Vai trò!', 'warning');
+        if (!fullName) return Swal.fire('Cảnh báo', 'Vui lòng nhập Họ và Tên!', 'warning');
+        if (!email) return Swal.fire('Cảnh báo', 'Vui lòng nhập Email!', 'warning');
+        if (!password || password.length < 6) return Swal.fire('Cảnh báo', 'Vui lòng nhập Mật khẩu (tối thiểu 6 ký tự)!', 'warning');
+        if (!scope) return Swal.fire('Cảnh báo', 'Vui lòng chọn Loại Phạm vi!', 'warning');
+
+        if(scope > 1 && (!scopeRef || scopeRef === '0')) {
+             return Swal.fire('Cảnh báo', 'Vui lòng chọn Mã tham chiếu (Địa bàn/Cửa hàng)!', 'warning');
+        }
+
+        btn.disabled = true;
+        btn.innerHTML = 'Đang xử lý...';
+        form.submit();
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
-        var createScopeTypeSelect = document.getElementById('ScopeTypeId');
-        var createScopeRefSelect = document.getElementById('ScopeRefId');
-        var createScopeRefLabel = document.getElementById('scopeRefLabel');
+        flatpickr(".flatpickr-date", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            allowInput: true,
+            locale: "vn"
+        });
 
-        if (createScopeTypeSelect && createScopeRefSelect && createScopeRefLabel) {
-            
-            function updateCreateLabel() {
-                var text = createScopeTypeSelect.options[createScopeTypeSelect.selectedIndex].text.toLowerCase();
-                var scopeTypeId = createScopeTypeSelect.value;
-                if (!scopeTypeId) return;
-
-                if (text.includes('tỉnh') || text.includes('thành phố')) {
-                    createScopeRefLabel.innerText = 'Chọn Tỉnh/Thành phố';
-                } else if (text.includes('phường') || text.includes('xã')) {
-                    createScopeRefLabel.innerText = 'Chọn Phường/Xã';
-                } else if (text.includes('cửa hàng') || text.includes('store')) {
-                    createScopeRefLabel.innerText = 'Chọn Cửa hàng';
-                } else {
-                    createScopeRefLabel.innerText = 'Mã tham chiếu (ScopeRefId)';
+        // --- 1. DYNAMIC PAYROLL LOGIC ---
+        const salaryTypeSelect = document.getElementById('SalaryTypeSelect');
+        const probRateInput = document.getElementById('ProbationRateInput');
+        const lblBaseSalary = document.getElementById('lblBaseSalary');
+        
+        if (salaryTypeSelect) {
+            salaryTypeSelect.addEventListener('change', function() {
+                if(this.value == '2') { // Theo giờ
+                    probRateInput.value = 1;
+                    probRateInput.setAttribute('disabled', 'true');
+                    lblBaseSalary.innerText = "Mức lương/giờ";
+                } else { // Cố định
+                    probRateInput.removeAttribute('disabled');
+                    lblBaseSalary.innerText = "Lương gốc/tháng";
                 }
+            });
+            salaryTypeSelect.dispatchEvent(new Event('change'));
+        }
 
-                // AJAX Fetch
-                fetch('/Admin/AdminStaff/GetScopeReferences?scopeTypeId=' + scopeTypeId)
-                    .then(response => response.json())
-                    .then(data => {
-                        createScopeRefSelect.innerHTML = '<option value="">-- Vui lòng chọn phạm vi --</option>';
-                        data.forEach(item => {
-                            var option = document.createElement('option');
-                            option.value = item.id;
-                            option.text = item.name;
-                            createScopeRefSelect.appendChild(option);
-                        });
-                    })
-                    .catch(error => console.error('Error fetching scope references:', error));
+        const roleSel = document.getElementById('dynamicRoleSelect');
+        const scopeTypeSel = document.getElementById('dynamicScopeTypeSelect');
+        const hiddenScopeRef = document.getElementById('HiddenScopeRefId');
+        const btnLocationPick = document.getElementById('BtnLocationPicker');
+        const storeSel = document.getElementById('dynamicStoreSelect');
+        const lblScopeRefId = document.getElementById('lblScopeRefId');
+
+        // 🔥 Bảng quy tắc cứng Array-based: RoleId → [ScopeTypeIds]
+        const ROLE_SCOPE_MAP = {
+            1: [1], 2: [1], 3: [1], 4: [1], 5: [1], 6: [1],  // HQ-level (Country)
+            7: [2, 3, 4],                                // Area Manager → Province HOẶC District
+            8: [4], 9: [4], 10: [4], 12: [4], 13: [4] // Store-level
+        };
+
+        function enforceCascadingRole() {
+            if (!roleSel || !scopeTypeSel) return;
+            const roleId = parseInt(roleSel.value) || 0;
+            const allowedScopes = ROLE_SCOPE_MAP[roleId] || [];
+
+            // RESET options của "Loại phạm vi"
+            Array.from(scopeTypeSel.options).forEach(opt => {
+                opt.style.display = '';
+                opt.disabled = false;
+            });
+
+            if (roleId === 0 || allowedScopes.length === 0) {
+                scopeTypeSel.value = '';
+                refreshScopeMatrix();
+                return;
             }
 
-            createScopeTypeSelect.addEventListener('change', updateCreateLabel);
-            updateCreateLabel();
+            // Lọc options "Loại phạm vi" -> chỉ hiển thị scopes hợp lệ
+            let firstValid = null;
+            Array.from(scopeTypeSel.options).forEach(opt => {
+                const optVal = parseInt(opt.value);
+                if (opt.value !== "" && !allowedScopes.includes(optVal)) {
+                    opt.style.display = 'none';
+                    opt.disabled = true;
+                } else if (opt.value !== "" && allowedScopes.includes(optVal)) {
+                    if (!firstValid) firstValid = opt.value;
+                }
+            });
+
+            // Nếu scope hiện tại không hợp lệ, tự động gán cái đầu tiên
+            const currentSelected = parseInt(scopeTypeSel.value);
+            if (!allowedScopes.includes(currentSelected) && firstValid) {
+                scopeTypeSel.value = firstValid;
+            }
+            
+            refreshScopeMatrix();
         }
+
+        function refreshScopeMatrix() {
+            if (!roleSel || !scopeTypeSel || !btnLocationPick) return;
+            
+            const scopeTypeId = parseInt(scopeTypeSel.value) || 0;
+
+            // Nếu người dùng chọn HQ level (1) => khóa nút bấm, gán 1
+            if (scopeTypeId === 1) {
+                hiddenScopeRef.value = '1';
+                btnLocationPick.innerHTML = 'Trụ sở chính (HQ)';
+                btnLocationPick.setAttribute('disabled', 'true');
+                if(lblScopeRefId) lblScopeRefId.innerText = "Phạm vi: Toàn chuỗi";
+                return;
+            }
+
+            btnLocationPick.removeAttribute('disabled');
+            hiddenScopeRef.value = ''; // Reset khi đổi scope type
+            btnLocationPick.innerHTML = '-- Bấm để chọn địa bàn --';
+
+            // Dynamic Label
+            if (scopeTypeId === 2) {
+                if(lblScopeRefId) lblScopeRefId.innerText = 'Tỉnh / Thành Phố quản lý';
+            } else if (scopeTypeId === 3) {
+                if(lblScopeRefId) lblScopeRefId.innerText = 'Quận / Huyện quản lý';
+            } else if (scopeTypeId === 4) {
+                if(lblScopeRefId) lblScopeRefId.innerText = 'Cửa Hàng cụ thể';
+            } else {
+                if(lblScopeRefId) lblScopeRefId.innerText = 'Mã tham chiếu';
+            }
+        }
+
+        // --- SWEETALERT LOCATION PICKER ---
+        if (btnLocationPick) {
+            btnLocationPick.addEventListener('click', function() {
+                const scopeTypeId = parseInt(scopeTypeSel.value) || 0;
+                if (!scopeTypeId) {
+                    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn Loại Phạm vi trước!' });
+                    return;
+                }
+
+                if (scopeTypeId === 2) { // 1 dropdown TỈNH
+                    Swal.fire({
+                        title: 'Chọn Tỉnh / Thành Phố',
+                        html: '<select id="swal-province" class="form-select"><option value="">-- Đang tải dữ liệu... --</option></select>',
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        didOpen: () => {
+                            Swal.showLoading();
+                            fetch('/Admin/AdminStaff/GetScopeReferences?scopeTypeId=2')
+                                .then(res => res.json())
+                                .then(data => {
+                                    Swal.hideLoading();
+                                    const sel = document.getElementById('swal-province');
+                                    sel.innerHTML = '<option value="">-- Chọn Tỉnh --</option>';
+                                    data.forEach(p => {
+                                        sel.innerHTML += `<option value="${p.id}">${p.name}</option>`;
+                                    });
+                                })
+                                .catch(err => Swal.showValidationMessage('Lỗi tải dữ liệu.'));
+                        },
+                        preConfirm: () => {
+                            const sel = document.getElementById('swal-province');
+                            if (!sel.value) return Swal.showValidationMessage('Vui lòng chọn Tỉnh/Thành!');
+                            const txt = sel.options[sel.selectedIndex].text;
+                            return { id: sel.value, text: txt };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            hiddenScopeRef.value = result.value.id;
+                            btnLocationPick.innerText = result.value.text;
+                        }
+                    });
+
+                } else if (scopeTypeId === 3) { // 2 dropdown TỈNH -> HUYỆN
+                    Swal.fire({
+                        title: 'Chọn Quận / Huyện',
+                        html: `
+                            <select id="swal-province" class="form-select mb-2"><option value="">-- Đang tải Tỉnh... --</option></select>
+                            <select id="swal-district" class="form-select" disabled><option value="">-- Chọn Quận/Huyện --</option></select>
+                        `,
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        didOpen: () => {
+                            Swal.showLoading();
+                            const pSel = document.getElementById('swal-province');
+                            const dSel = document.getElementById('swal-district');
+                            
+                            fetch('https://provinces.open-api.vn/api/p')
+                                .then(res => res.json())
+                                .then(data => {
+                                    Swal.hideLoading();
+                                    pSel.innerHTML = '<option value="">-- Chọn Tỉnh --</option>';
+                                    data.forEach(p => {
+                                        pSel.innerHTML += `<option value="${p.code}">${p.name}</option>`;
+                                    });
+                                });
+
+                            pSel.addEventListener('change', function() {
+                                if (!this.value) {
+                                    dSel.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+                                    dSel.disabled = true;
+                                    return;
+                                }
+                                dSel.innerHTML = '<option value="">-- Đang nạp danh sách... --</option>';
+                                fetch(`/Admin/AdminStaff/GetScopeReferences?scopeTypeId=3&parentId=${this.value}`)
+                                    .then(res => res.json())
+                                    .then(data => {
+                                        dSel.disabled = false;
+                                        dSel.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+                                        data.forEach(d => {
+                                            dSel.innerHTML += `<option value="${d.id}">${d.name}</option>`;
+                                        });
+                                    });
+                            });
+                        },
+                        preConfirm: () => {
+                            const dSel = document.getElementById('swal-district');
+                            if (!dSel.value) return Swal.showValidationMessage('Vui lòng chọn Quận/Huyện!');
+                            const txt = dSel.options[dSel.selectedIndex].text;
+                            const pTxt = document.getElementById('swal-province').options[document.getElementById('swal-province').selectedIndex].text;
+                            return { id: dSel.value, text: txt + " (" + pTxt + ")" };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            hiddenScopeRef.value = result.value.id;
+                            btnLocationPick.innerText = result.value.text;
+                        }
+                    });
+
+                } else if (scopeTypeId === 4) { // CỬA HÀNG
+                    Swal.fire({
+                        title: 'Chọn Cửa Hàng',
+                        html: '<select id="swal-store" class="form-select"><option value="">-- Đang tải Cửa hàng... --</option></select>',
+                        showCancelButton: true,
+                        confirmButtonText: 'Xác nhận',
+                        cancelButtonText: 'Hủy',
+                        didOpen: () => {
+                            Swal.showLoading();
+                            fetch('/Admin/AdminStaff/GetScopeReferences?scopeTypeId=4')
+                                .then(res => res.json())
+                                .then(data => {
+                                    Swal.hideLoading();
+                                    const sel = document.getElementById('swal-store');
+                                    sel.innerHTML = '<option value="">-- Chọn Cửa Hàng --</option>';
+                                    data.forEach(s => {
+                                        sel.innerHTML += `<option value="${s.id}">${s.name}</option>`;
+                                    });
+                                })
+                                .catch(err => Swal.showValidationMessage('Lỗi tải dữ liệu cửa hàng.'));
+                        },
+                        preConfirm: () => {
+                            const sel = document.getElementById('swal-store');
+                            if (!sel.value) return Swal.showValidationMessage('Vui lòng chọn Cửa hàng!');
+                            const txt = sel.options[sel.selectedIndex].text;
+                            return { id: sel.value, text: txt };
+                        }
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            hiddenScopeRef.value = result.value.id;
+                            btnLocationPick.innerText = result.value.text;
+                            if (storeSel) {
+                                // If the hidden dynamic store select has this option, select it.
+                                const optionExists = Array.from(storeSel.options).some(opt => opt.value === result.value.id);
+                                if (!optionExists) {
+                                    // Append it to make model building viable
+                                    const newOpt = new Option(result.value.text, result.value.id, true, true);
+                                    storeSel.appendChild(newOpt);
+                                } else {
+                                    storeSel.value = result.value.id;
+                                }
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        roleSel.addEventListener('change', enforceCascadingRole);
+        scopeTypeSel.addEventListener('change', refreshScopeMatrix);
+        
+        // Init on page load
+        enforceCascadingRole();
     });
 </script>
+
+

@@ -1,0 +1,673 @@
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kiosk Chấm Công - CafeChain</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --kiosk-bg: #1a1a2e;
+            --card-bg: #ffffff;
+            --accent: #e8643c;
+            --accent-light: #fff3ef;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --info: #3b82f6;
+            --text: #1e293b;
+            --text-muted: #94a3b8;
+            --border: #e2e8f0;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, var(--kiosk-bg) 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+            color: var(--text);
+            overflow: hidden;
+        }
+
+        /* === HEADER === */
+        .kiosk-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 30px;
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+        .kiosk-header .brand { display: flex; align-items: center; gap: 10px; color: white; }
+        .kiosk-header .brand-icon { background: var(--accent); border-radius: 8px; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: white; }
+        .kiosk-header .brand-name { font-weight: 700; font-size: 16px; }
+        .kiosk-header .brand-sub { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+        .kiosk-header .store-badge { display: flex; align-items: center; gap: 6px; background: rgba(232,100,60,0.15); color: var(--accent); padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600; }
+        .kiosk-header .store-badge::before { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+
+        /* === MAIN SPLIT LAYOUT === */
+        .kiosk-body { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; padding: 24px 30px; height: calc(100vh - 60px); }
+
+        /* === LEFT PANEL: Store + Clock + Actions === */
+        .panel-left { display: flex; flex-direction: column; gap: 20px; }
+        .store-card { background: var(--card-bg); border-radius: 16px; padding: 20px 24px; display: flex; align-items: center; gap: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .store-card .store-logo { width: 48px; height: 48px; background: var(--accent-light); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+        .store-card .store-logo i { color: var(--accent); font-size: 20px; }
+        .store-card .store-info h4 { font-size: 16px; font-weight: 700; margin-bottom: 2px; }
+        .store-card .store-info p { font-size: 12px; color: var(--text-muted); margin: 0; }
+
+        .clock-section { text-align: center; flex: 1; display: flex; flex-direction: column; justify-content: center; }
+        .clock-time { font-size: 6rem; font-weight: 900; color: white; line-height: 1; letter-spacing: -4px; }
+        .clock-time .seconds { font-size: 3rem; color: var(--accent); vertical-align: super; letter-spacing: 0; }
+        .clock-date { font-size: 1rem; color: rgba(255,255,255,0.5); margin-top: 8px; font-weight: 500; }
+        .clock-date .day-badge { background: rgba(232,100,60,0.2); color: var(--accent); padding: 4px 12px; border-radius: 6px; font-weight: 600; font-size: 13px; margin-right: 8px; }
+
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .btn-action {
+            padding: 18px 16px; border-radius: 14px; border: none; font-weight: 700; font-size: 15px;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            cursor: pointer; transition: all 0.2s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .btn-action:active { transform: scale(0.96); }
+        .btn-action i { font-size: 20px; }
+        .btn-checkin { background: #e0f2fe; color: #0284c7; }
+        .btn-checkout { background: #fee2e2; color: #dc2626; }
+        .btn-break { background: #fef3c7; color: #d97706; }
+        .btn-endbreak { background: #d1fae5; color: #059669; }
+
+        /* === RIGHT PANEL: Schedule === */
+        .panel-right { display: flex; flex-direction: column; gap: 16px; }
+        .schedule-card { background: var(--card-bg); border-radius: 16px; padding: 24px; flex: 1; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        .schedule-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .schedule-header h3 { font-size: 18px; font-weight: 700; }
+        .schedule-header .total-hours { background: var(--accent-light); color: var(--accent); padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 13px; }
+        .schedule-header .total-hours .big { font-size: 18px; display: block; }
+        .staff-badge { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
+        .staff-badge i { margin-right: 6px; }
+
+        .shift-item { position: relative; padding: 16px; padding-left: 24px; border-left: 3px solid var(--border); margin-bottom: 8px; border-radius: 0 12px 12px 0; transition: all 0.2s; }
+        .shift-item::before { content: ''; position: absolute; left: -7px; top: 20px; width: 12px; height: 12px; border-radius: 50%; border: 3px solid var(--border); background: white; }
+        .shift-item.completed { border-left-color: var(--success); background: rgba(34,197,94,0.04); }
+        .shift-item.completed::before { border-color: var(--success); background: var(--success); }
+        .shift-item.current { border-left-color: var(--accent); background: var(--accent-light); }
+        .shift-item.current::before { border-color: var(--accent); background: var(--accent); animation: pulse 1.5s infinite; }
+        .shift-item.upcoming { border-left-color: var(--border); background: #fafafa; }
+        .shift-item .shift-status { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; }
+        .shift-item.completed .shift-status { color: var(--success); }
+        .shift-item.current .shift-status { color: var(--accent); }
+        .shift-item.upcoming .shift-status { color: var(--text-muted); }
+        .shift-item .shift-name { font-size: 15px; font-weight: 700; margin-bottom: 2px; }
+        .shift-item .shift-desc { font-size: 12px; color: var(--text-muted); }
+        .shift-item .shift-time { position: absolute; right: 16px; top: 16px; font-size: 13px; font-weight: 600; color: var(--text); }
+        .shift-item .shift-hours { position: absolute; right: 16px; bottom: 12px; font-size: 11px; color: var(--text-muted); }
+
+        @@keyframes pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(232,100,60,0.4); } 50% { box-shadow: 0 0 0 8px rgba(232,100,60,0); } }
+
+        .footer-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; background: rgba(255,255,255,0.04); border-radius: 10px; }
+        .footer-bar span { font-size: 12px; color: rgba(255,255,255,0.4); }
+        .footer-bar .status-dot { width: 8px; height: 8px; background: var(--success); border-radius: 50%; display: inline-block; margin-right: 6px; }
+
+        /* === FACE ID MODAL === */
+        .faceid-card { background: var(--card-bg); border-radius: 20px; padding: 32px 28px; max-width: 420px; margin: 0 auto; text-align: center; }
+        .faceid-card h4 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+        .faceid-card .subtitle { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+        .faceid-frame { width: 280px; height: 320px; margin: 0 auto 20px auto; border: 3px dashed var(--border); border-radius: 16px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #fafafa; }
+        .faceid-frame .corner { position: absolute; width: 24px; height: 24px; border-color: var(--accent); border-style: solid; z-index: 2; }
+        .faceid-frame .corner.tl { top: 0; left: 0; border-width: 3px 0 0 3px; border-radius: 8px 0 0 0; }
+        .faceid-frame .corner.tr { top: 0; right: 0; border-width: 3px 3px 0 0; border-radius: 0 8px 0 0; }
+        .faceid-frame .corner.bl { bottom: 0; left: 0; border-width: 0 0 3px 3px; border-radius: 0 0 0 8px; }
+        .faceid-frame .corner.br { bottom: 0; right: 0; border-width: 0 3px 3px 0; border-radius: 0 0 8px 0; }
+        .faceid-frame video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); display: none; position: absolute; top: 0; left: 0; }
+        .faceid-frame canvas { position: absolute; top: 0; left: 0; width: 100% !important; height: 100% !important; transform: scaleX(-1); z-index: 1; }
+        .faceid-frame .placeholder-icon { color: #d1d5db; font-size: 64px; }
+        .ready-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-light); color: var(--accent); padding: 6px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; margin-bottom: 16px; }
+        .ready-badge::before { content: ''; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; }
+        .step-indicators { display: flex; justify-content: center; gap: 40px; margin-bottom: 20px; }
+        .step-dot { text-align: center; }
+        .step-dot .num { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 4px auto; font-size: 12px; font-weight: 700; border: 2px solid var(--border); color: var(--text-muted); }
+        .step-dot.active .num { background: var(--accent); border-color: var(--accent); color: white; }
+        .step-dot.done .num { background: var(--success); border-color: var(--success); color: white; }
+        .step-dot .label { font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+        .step-dot.active .label { color: var(--accent); }
+        .btn-scan { background: var(--accent); color: white; border: none; padding: 14px 0; width: 100%; border-radius: 12px; font-weight: 700; font-size: 15px; cursor: pointer; transition: all 0.2s; }
+        .btn-scan:hover { background: #d4572f; }
+        .btn-scan:disabled { background: #d1d5db; cursor: not-allowed; }
+        .btn-cancel { background: none; border: none; color: var(--text-muted); font-size: 13px; margin-top: 10px; cursor: pointer; }        
+        .scan-msg { font-size: 13px; color: var(--accent); font-weight: 600; margin-bottom: 10px; min-height: 20px; }
+
+        /* === RESPONSIVE MOBILE === */
+        @@media (max-width: 768px) {
+            body { overflow: auto; }
+            .kiosk-header { padding: 10px 16px; }
+            .kiosk-header .brand-sub { display: none; }
+            .kiosk-body { grid-template-columns: 1fr; padding: 16px; gap: 16px; height: auto; min-height: calc(100vh - 52px); }
+            .clock-time { font-size: 3.5rem; }
+            .clock-time .seconds { font-size: 1.8rem; }
+            .action-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
+            .btn-action { padding: 14px 10px; font-size: 13px; gap: 6px; }
+            .btn-action i { font-size: 16px; }
+            .schedule-card { padding: 16px; }
+            .schedule-header { flex-direction: column; gap: 10px; align-items: flex-start; }
+            .shift-item .shift-time { position: static; margin-top: 6px; font-size: 12px; }
+            .shift-item .shift-hours { position: static; }
+            .footer-bar { flex-direction: column; gap: 4px; text-align: center; }
+            .faceid-frame { width: 220px; height: 280px; }
+            .faceid-card { padding: 20px 16px; }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="kiosk-header">
+        <div class="brand">
+            <div class="brand-icon">C</div>
+            <div>
+                <div class="brand-name">CafeChain</div>
+                <div class="brand-sub">Main Terminal</div>
+            </div>
+        </div>
+        <div class="store-badge"><i class="fas fa-map-marker-alt me-1"></i> Chi nhánh: <span id="headerStoreName">Đang tải...</span></div>
+    </div>
+
+    <!-- Main Split Layout -->
+    <div class="kiosk-body">
+        <!-- LEFT PANEL -->
+        <div class="panel-left">
+            <div class="store-card">
+                <div class="store-logo"><i class="fas fa-store"></i></div>
+                <div class="store-info">
+                    <h4 id="storeName">CafeChain</h4>
+                    <p id="storeAddress">Đang tải thông tin cửa hàng...</p>
+                </div>
+            </div>
+
+            <div class="clock-section">
+                <div class="clock-time" id="clock">12:45<span class="seconds" id="clockSec">:03</span></div>
+                <div class="clock-date"><span class="day-badge" id="dayBadge">THỨ BA</span> <span id="dateText">Ngày 24 tháng 10, 2023</span></div>
+            </div>
+
+            <div class="action-grid">
+                <button class="btn-action btn-checkin" onclick="handleAction('CheckIn')"><i class="fa-solid fa-right-to-bracket"></i> Vào ca</button>
+                <button class="btn-action btn-checkout" onclick="handleAction('CheckOut')"><i class="fa-solid fa-right-from-bracket"></i> Tan ca</button>
+                <button class="btn-action btn-break" onclick="handleAction('StartBreak')"><i class="fa-solid fa-mug-hot"></i> Bắt đầu nghỉ</button>
+                <button class="btn-action btn-endbreak" onclick="handleAction('EndBreak')"><i class="fa-solid fa-rotate-left"></i> Kết thúc nghỉ</button>
+            </div>
+        </div>
+
+        <!-- RIGHT PANEL -->
+        <div class="panel-right">
+            <div class="schedule-card">
+                <div class="schedule-header">
+                    <div>
+                        <h3>Lịch làm việc hôm nay</h3>
+                        <div class="staff-badge">
+                            <i class="fas fa-user"></i> Nhân viên trực: <strong>@User.Identity?.Name</strong>
+                            <a href="#" onclick="openRegistration()" class="ms-2" style="font-size: 11px; color: var(--warning); text-decoration: none;"><i class="fas fa-redo"></i> Quét lại FaceID</a>
+                        </div>
+                    </div>
+                    <div class="total-hours text-center">
+                        <span style="font-size:11px; color: var(--text-muted);">TỔNG GIỜ HÔM NAY</span>
+                        <span class="big" id="totalHours">00:00:00</span>
+                    </div>
+                </div>
+
+                <div id="shiftTimeline">
+                    <!-- JS sẽ render các shift vào đây -->
+                    <div class="text-center text-muted py-4"><i class="fas fa-spinner fa-spin me-2"></i> Đang tải lịch ca...</div>
+                </div>
+            </div>
+            <div class="footer-bar">
+                <span>VÀO CA LÚC: <strong id="footerCheckIn">--:--</strong></span>
+                <span>TĂNG CA: <strong id="footerOvertime">00:00</strong></span>
+                <span><span class="status-dot"></span> Terminal Online • Stable</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- FACE ID MODAL -->
+    <div class="modal fade" id="faceModal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="background: transparent;">
+                <div class="faceid-card" id="faceidCard">
+                    <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 8px;">
+                        <div class="text-start">
+                            <h4 id="faceidTitle">Face ID Registration</h4>
+                            <div class="subtitle" id="faceidSubtitle">Thiết lập bảo mật nhận diện khuôn mặt</div>
+                        </div>
+                        <button class="btn-close" data-bs-dismiss="modal" onclick="stopCamera()"></button>
+                    </div>
+
+                    <div class="faceid-frame" id="faceFrame">
+                        <span class="corner tl"></span><span class="corner tr"></span>
+                        <span class="corner bl"></span><span class="corner br"></span>
+                        <i class="fas fa-user placeholder-icon" id="facePlaceholder"></i>
+                        <video id="face-video" autoplay muted playsinline></video>
+                    </div>
+
+                    <div class="scan-msg" id="scanMsg"></div>
+                    <div class="ready-badge" id="readyBadge">READY TO SCAN</div>
+
+                    <div class="step-indicators" id="stepIndicators" style="display: none;">
+                        <div class="step-dot active" id="step1"><div class="num">1</div><div class="label">NHÌN THẲNG</div></div>
+                        <div class="step-dot" id="step2"><div class="num">2</div><div class="label">QUAY TRÁI</div></div>
+                        <div class="step-dot" id="step3"><div class="num">3</div><div class="label">QUAY PHẢI</div></div>
+                    </div>
+
+                    <button class="btn-scan" id="btnScan" onclick="startScan()">Bắt đầu Quét Khuôn Mặt</button>
+                    <button class="btn-cancel" onclick="cancelScan()">Hủy thao tác / Chụp lại</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="//cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/face-api.min.js"></script>
+
+    <script>
+        // ===== STATE =====
+        let currentAction = '';
+        let videoStream = null;
+        let isModelLoaded = false;
+        let faceDetectionInterval = null;
+        let isRegistrationMode = false;
+        let kioskState = { hasFaceId: false, shifts: [], staffName: '', storeName: '' };
+        const accountId = '@User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value';
+
+        // ===== CLOCK =====
+        const dayNames = ['CHỦ NHẬT', 'THỨ HAI', 'THỨ BA', 'THỨ TƯ', 'THỨ NĂM', 'THỨ SÁU', 'THỨ BẢY'];
+        function updateClock() {
+            const now = new Date();
+            const h = String(now.getHours()).padStart(2, '0');
+            const m = String(now.getMinutes()).padStart(2, '0');
+            const s = String(now.getSeconds()).padStart(2, '0');
+            document.getElementById('clock').innerHTML = `${h}:${m}<span class="seconds">:${s}</span>`;
+            document.getElementById('dayBadge').textContent = dayNames[now.getDay()];
+            document.getElementById('dateText').textContent = now.toLocaleDateString('vi-VN', { year: 'numeric', month: 'long', day: 'numeric' });
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // ===== PAGE LOAD: GỌI API LẤY DỮ LIỆU =====
+        $(document).ready(function() {
+            if (!accountId || accountId === '') {
+                document.getElementById('shiftTimeline').innerHTML = '<div class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i> Không xác định được tài khoản.</div>';
+                return;
+            }
+            loadKioskData();
+        });
+
+        function loadKioskData() {
+            $.ajax({
+                url: `/api/Attendance/GetKioskData?accountId=${accountId}`,
+                type: 'GET',
+                success: function(res) {
+                    if (res.success && res.data) {
+                        kioskState = res.data;
+                        renderKioskData(res.data);
+                    }
+                },
+                error: function(xhr) {
+                    const msg = xhr.responseJSON?.message || 'Không thể tải dữ liệu.';
+                    document.getElementById('shiftTimeline').innerHTML = `<div class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle me-2"></i> ${msg}</div>`;
+                }
+            });
+        }
+
+        function renderKioskData(data) {
+            // Store info
+            document.getElementById('storeName').textContent = data.storeName || 'CafeChain';
+            document.getElementById('storeAddress').textContent = data.storeAddress || '';
+            document.getElementById('headerStoreName').textContent = data.storeName || 'N/A';
+
+            // Footer
+            document.getElementById('footerCheckIn').textContent = data.checkInTime || '--:--';
+
+            // Shift Timeline
+            const container = document.getElementById('shiftTimeline');
+            if (!data.shifts || data.shifts.length === 0) {
+                container.innerHTML = `<div class="text-center text-muted py-4">
+                    <i class="fas fa-calendar-times me-2" style="font-size:24px; color:#d1d5db;"></i><br>
+                    <strong>Bạn không có ca làm việc nào trong khung giờ này</strong><br>
+                    <small>Vui lòng kiểm tra lại lịch làm việc hoặc liên hệ Quản lý.</small>
+                </div>`;
+                document.getElementById('totalHours').textContent = '00:00';
+                return;
+            }
+
+            let html = '';
+            let totalHours = 0;
+            data.shifts.forEach(shift => {
+                totalHours += parseFloat(shift.hours) || 0;
+                const statusLabels = { completed: '✅ ĐÃ HOÀN THÀNH', current: '🔥 HIỆN TẠI', upcoming: '⏰ SẮP TỚI' };
+                html += `
+                    <div class="shift-item ${shift.uiStatus}">
+                        <div class="shift-status">${statusLabels[shift.uiStatus] || shift.statusName}</div>
+                        <div class="shift-name">${shift.shiftName}</div>
+                        <div class="shift-desc">${shift.statusCode === 'CHECKED_IN' ? 'Đang trong ca làm việc' : shift.statusCode === 'COMPLETED' ? 'Ca đã kết thúc' : 'Chưa bắt đầu'}</div>
+                        <div class="shift-time">${shift.startTime} - ${shift.endTime}</div>
+                        <div class="shift-hours">${shift.hours}h</div>
+                    </div>`;
+            });
+            container.innerHTML = html;
+            document.getElementById('totalHours').textContent = `${totalHours.toFixed(1)}h`;
+
+            // Face ID Warning Banner (nếu chưa đăng ký)
+            if (!data.hasFaceId) {
+                const banner = document.createElement('div');
+                banner.style.cssText = 'background: #fef3c7; border: 1px solid #f59e0b; border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; align-items: center; gap: 12px;';
+                banner.innerHTML = `
+                    <i class="fas fa-exclamation-triangle" style="color: #d97706; font-size: 20px;"></i>
+                    <div style="flex: 1;">
+                        <strong style="color: #92400e; font-size: 13px;">Chưa đăng ký Face ID</strong>
+                        <div style="color: #a16207; font-size: 12px;">Bạn cần đăng ký khuôn mặt trước khi chấm công.</div>
+                    </div>
+                    <button onclick="openRegistration()" style="background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; cursor: pointer;">Đăng ký</button>
+                `;
+                container.parentElement.insertBefore(banner, container);
+            }
+        }
+
+        // ===== ACTION HANDLER (có PRE-CHECK Face ID) =====
+        function handleAction(action) {
+            if (!accountId || accountId === '') {
+                Swal.fire("Lỗi", "Không xác định được tài khoản. Vui lòng đăng nhập lại.", "error");
+                return;
+            }
+
+            // 🔥 PRE-CHECK: Nếu chưa đăng ký Face ID → CHẶN, yêu cầu đăng ký trước
+            if (!kioskState.hasFaceId) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Chưa Đăng Ký Face ID',
+                    html: 'Bạn phải đăng ký sinh trắc học khuôn mặt <b>trước</b> khi có thể chấm công.',
+                    confirmButtonText: 'Đăng Ký Face ID Ngay',
+                    confirmButtonColor: '#e8643c',
+                    showCancelButton: true,
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) openRegistration();
+                });
+                return;
+            }
+
+            // 🔥 PRE-CHECK: Hôm nay không có ca → CHẶN
+            if (!kioskState.shifts || kioskState.shifts.length === 0) {
+                Swal.fire({ icon: 'info', title: 'Không có ca', text: 'Hôm nay bạn không được xếp ca làm việc.' });
+                return;
+            }
+
+            currentAction = action;
+            isRegistrationMode = false;
+            document.getElementById('faceidTitle').textContent = 'Xác Thực Khuôn Mặt';
+            document.getElementById('faceidSubtitle').textContent = `Hành động: ${getActionLabel(action)}`;
+            document.getElementById('stepIndicators').style.display = 'none';
+            document.getElementById('readyBadge').textContent = 'READY TO SCAN';
+            document.getElementById('scanMsg').textContent = '';
+            document.getElementById('btnScan').textContent = 'Bắt đầu Quét Khuôn Mặt';
+            document.getElementById('btnScan').disabled = false;
+
+            resetCameraUI();
+            const modal = new bootstrap.Modal(document.getElementById('faceModal'));
+            modal.show();
+        }
+
+        function getActionLabel(action) {
+            const labels = { 'CheckIn': 'VÀO CA', 'CheckOut': 'TAN CA', 'StartBreak': 'BẮT ĐẦU NGHỈ', 'EndBreak': 'KẾT THÚC NGHỈ' };
+            return labels[action] || action;
+        }
+
+        function resetCameraUI() {
+            document.getElementById('facePlaceholder').style.display = 'block';
+            document.getElementById('face-video').style.display = 'none';
+            document.querySelectorAll('#faceFrame canvas').forEach(c => c.remove());
+        }
+
+        let regStep = 0;
+        let regVectors = [];
+        let scanTimer = 0;
+
+        // ===== FACE SCAN (FIX: Canvas khớp container, không dùng native resolution) =====
+        async function startScan() {
+            document.getElementById('btnScan').disabled = true;
+            document.getElementById('scanMsg').textContent = 'Đang tải AI Model...';
+
+            regStep = 0;
+            regVectors = [];
+            scanTimer = 0;
+            
+            // Xóa active/done cũ
+            document.querySelectorAll('.step-dot').forEach(el => {
+                el.classList.remove('active', 'done');
+            });
+            if (isRegistrationMode) {
+                document.getElementById('step1').classList.add('active');
+            }
+
+            try {
+                if (!isModelLoaded) {
+                    await Promise.all([
+                        faceapi.nets.ssdMobilenetv1.loadFromUri('/aifx'),
+                        faceapi.nets.faceLandmark68Net.loadFromUri('/aifx'),
+                        faceapi.nets.faceRecognitionNet.loadFromUri('/aifx')
+                    ]);
+                    isModelLoaded = true;
+                }
+
+                document.getElementById('scanMsg').textContent = 'Đang mở camera...';
+                const video = document.getElementById('face-video');
+                const frame = document.getElementById('faceFrame');
+
+                // Yêu cầu camera với constraints linh hoạt (mobile-friendly), fallback cho desktop/laptop
+                try {
+                    videoStream = await navigator.mediaDevices.getUserMedia({
+                        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } }
+                    });
+                } catch (e) {
+                    videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                }
+                video.srcObject = videoStream;
+                video.style.display = 'block';
+                document.getElementById('facePlaceholder').style.display = 'none';
+
+                video.addEventListener('loadeddata', () => {
+                    // 🔥 FIX: Dùng kích thước CONTAINER (CSS) thay vì video native resolution
+                    const frameW = frame.clientWidth;
+                    const frameH = frame.clientHeight;
+                    const displaySize = { width: frameW, height: frameH };
+
+                    const canvas = document.createElement('canvas');
+                    canvas.width = frameW;
+                    canvas.height = frameH;
+                    frame.appendChild(canvas);
+                    faceapi.matchDimensions(canvas, displaySize);
+
+                    document.getElementById('scanMsg').textContent = 'Đang quét khuôn mặt... Nhìn thẳng vào camera.';
+                    document.getElementById('readyBadge').innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> SCANNING...';
+
+                    faceDetectionInterval = setInterval(async () => {
+                        try {
+                            const detection = await faceapi.detectSingleFace(video,
+                                new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 })
+                            ).withFaceLandmarks().withFaceDescriptor();
+
+                            const ctx = canvas.getContext('2d');
+                            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                            if (detection) {
+                                const resized = faceapi.resizeResults(detection, displaySize);
+                                faceapi.draw.drawDetections(canvas, resized);
+                                faceapi.draw.drawFaceLandmarks(canvas, resized);
+
+                                const faceVector = Array.from(detection.descriptor);
+
+                                if (isRegistrationMode) {
+                                    // Chế độ 3 Bước (Nhìn thẳng, Trái, Phải)
+                                    scanTimer++;
+                                    if (regStep === 0 && scanTimer > 3) {
+                                        regVectors.push(faceVector);
+                                        regStep = 1;
+                                        scanTimer = 0;
+                                        document.getElementById('step1').classList.remove('active');
+                                        document.getElementById('step1').classList.add('done');
+                                        document.getElementById('step2').classList.add('active');
+                                        document.getElementById('scanMsg').textContent = 'Khá tốt! Quay mặt HƠI SANG TRÁI (Giữ 2s)...';
+                                    } else if (regStep === 1 && scanTimer > 3) {
+                                        regVectors.push(faceVector);
+                                        regStep = 2;
+                                        scanTimer = 0;
+                                        document.getElementById('step2').classList.remove('active');
+                                        document.getElementById('step2').classList.add('done');
+                                        document.getElementById('step3').classList.add('active');
+                                        document.getElementById('scanMsg').textContent = 'Tiếp tục quay mặt HƠI SANG PHẢI (Giữ 2s)...';
+                                    } else if (regStep === 2 && scanTimer > 3) {
+                                        regVectors.push(faceVector);
+                                        document.getElementById('step3').classList.remove('active');
+                                        document.getElementById('step3').classList.add('done');
+                                        clearInterval(faceDetectionInterval);
+                                        
+                                        document.getElementById('scanMsg').textContent = 'Đang tổng hợp Vector 3D sinh trắc học...';
+                                        document.getElementById('readyBadge').innerHTML = '<i class="fas fa-check-circle me-1"></i> HOÀN XONG';
+                                        
+                                        // Tính trung bình 3 góc độ (giúp check-in chính xác hơn nhiều)
+                                        let avgVector = new Array(128).fill(0);
+                                        for(let i = 0; i < 128; i++) {
+                                            avgVector[i] = (regVectors[0][i] + regVectors[1][i] + regVectors[2][i]) / 3.0;
+                                        }
+                                        submitRegistration(JSON.stringify(avgVector));
+                                    } else {
+                                        if (scanTimer <= 3) {
+                                            let actions = ["Nhìn thẳng", "Quay trái", "Quay phải"];
+                                            document.getElementById('scanMsg').textContent = `Đang phân tích: ${actions[regStep]}... (giữ tĩnh)`;
+                                        }
+                                    }
+                                } else {
+                                    // Chế độ Check In: Xác thực nhanh
+                                    clearInterval(faceDetectionInterval);
+                                    document.getElementById('scanMsg').textContent = 'Đang xác minh sự khớp nối với Server...';
+                                    document.getElementById('readyBadge').innerHTML = '<i class="fas fa-check-circle me-1"></i> FACE DETECTED';
+                                    submitAttendance(accountId, currentAction, JSON.stringify(faceVector));
+                                }
+                            }
+                        } catch(e) { /* skip frame errors */ }
+                    }, 500);
+                }, { once: true });
+
+            } catch (err) {
+                let errMsg = 'Lỗi Camera: ';
+                if (err.name === 'NotAllowedError') errMsg += 'Trình duyệt không cho phép truy cập Camera. Hãy cấp quyền.';
+                else if (err.name === 'NotFoundError') errMsg += 'Không tìm thấy Camera trên thiết bị.';
+                else errMsg += err.message;
+                document.getElementById('scanMsg').textContent = errMsg;
+                document.getElementById('btnScan').disabled = false;
+            }
+        }
+
+        // ===== SUBMIT CHẤM CÔNG =====
+        function submitAttendance(accId, action, vectorJson) {
+            const formData = new FormData();
+            formData.append('accountId', accId);
+            formData.append('actionType', action);
+            formData.append('faceDescriptor', vectorJson);
+
+            $.ajax({
+                url: '/api/Attendance/SubmitTimeAction',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(res) {
+                    stopCamera();
+                    bootstrap.Modal.getInstance(document.getElementById('faceModal'))?.hide();
+                    Swal.fire({ icon: 'success', title: 'Thành Công!', text: res.message, timer: 3000, showConfirmButton: false });
+                    // Reload lại dữ liệu ca sau khi chấm công thành công
+                    setTimeout(() => loadKioskData(), 1500);
+                },
+                error: function(xhr) {
+                    stopCamera();
+                    bootstrap.Modal.getInstance(document.getElementById('faceModal'))?.hide();
+                    
+                    let errorMsg = xhr.responseJSON?.message || 'Xác thực thất bại.';
+                    if (errorMsg.includes("Khuôn mặt không khớp")) {
+                        Swal.fire({ 
+                            icon: 'error', 
+                            title: 'Thất Bại!', 
+                            text: errorMsg + "\n\nKhuôn mặt bạn lúc đăng ký bị nhòe hoặc sai góc. Bạn có muốn Đăng Ký Lại Khuôn Mặt chuẩn không?",
+                            showCancelButton: true,
+                            confirmButtonText: '<i class="fas fa-redo"></i> Đăng Ký Lại Khung Mặt',
+                            cancelButtonText: 'Đóng',
+                            confirmButtonColor: '#e8643c'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                openRegistration();
+                            }
+                        });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Thất Bại!', text: errorMsg });
+                    }
+                }
+            });
+        }
+
+        // ===== FACE ID REGISTRATION =====
+        function openRegistration() {
+            isRegistrationMode = true;
+            currentAction = '';
+            document.getElementById('faceidTitle').textContent = 'Face ID Registration';
+            document.getElementById('faceidSubtitle').textContent = 'Thiết lập bảo mật nhận diện khuôn mặt';
+            document.getElementById('stepIndicators').style.display = 'flex';
+            document.getElementById('readyBadge').textContent = 'READY TO SCAN';
+            document.getElementById('scanMsg').textContent = '';
+            document.getElementById('btnScan').textContent = 'Bắt đầu Quét Khuôn Mặt';
+            document.getElementById('btnScan').disabled = false;
+
+            resetCameraUI();
+            const modal = new bootstrap.Modal(document.getElementById('faceModal'));
+            modal.show();
+        }
+
+        function submitRegistration(vectorJson) {
+            $.ajax({
+                url: '/api/Attendance/RegisterFace',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ accountId: parseInt(accountId), faceDescriptor: vectorJson }),
+                success: function(res) {
+                    stopCamera();
+                    bootstrap.Modal.getInstance(document.getElementById('faceModal'))?.hide();
+                    Swal.fire({ icon: 'success', title: 'Đăng Ký Face ID Thành Công!', text: res.message, timer: 3000, showConfirmButton: false });
+                    // Cập nhật state local + reload dữ liệu
+                    kioskState.hasFaceId = true;
+                    setTimeout(() => loadKioskData(), 1500);
+                },
+                error: function(xhr) {
+                    stopCamera();
+                    bootstrap.Modal.getInstance(document.getElementById('faceModal'))?.hide();
+                    Swal.fire({ icon: 'error', title: 'Lỗi Đăng Ký', text: xhr.responseJSON?.message || 'Có lỗi xảy ra.' });
+                }
+            });
+        }
+
+        // ===== CAMERA CLEANUP =====
+        function stopCamera() {
+            if (faceDetectionInterval) clearInterval(faceDetectionInterval);
+            if (videoStream) { videoStream.getTracks().forEach(t => t.stop()); videoStream = null; }
+            document.querySelectorAll('#faceFrame canvas').forEach(c => c.remove());
+        }
+        function cancelScan() {
+            stopCamera();
+            resetCameraUI();
+            document.getElementById('scanMsg').textContent = '';
+            document.getElementById('readyBadge').textContent = 'READY TO SCAN';
+            document.getElementById('btnScan').disabled = false;
+        }
+        document.getElementById('faceModal').addEventListener('hidden.bs.modal', stopCamera);
+    </script>
+</body>
+</html>

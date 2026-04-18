@@ -16,6 +16,9 @@ namespace CafeChain.Application.Interfaces.Admin.Staffs
         // 🔥 Thin Controller: Master data cho dropdown forms
         Task<StaffFormMasterDataVM> GetMasterDataForFormAsync(ClaimsPrincipal user);
 
+        // 🔥 Thin Controller: Dynamic data cho dropdown
+        Task<IEnumerable<object>> GetScopeReferencesAsync(int scopeTypeId, int? parentId = null);
+
         // 🔥 Thin Controller: Avatar upload logic di chuyển xuống Service
         Task<string> SaveAvatarAsync(IFormFile file);
     }

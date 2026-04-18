@@ -1,0 +1,110 @@
+@model List<CafeChain.Models.Stores.StoreIP>
+@{
+    ViewData["Title"] = "Quản lý Địa chỉ IP";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h3 class="fw-bold mb-1">Quản lý Địa chỉ IP</h3>
+        <p class="text-muted mb-0" style="font-size: 13px;">Hệ thống quản lý IP trung tâm của CafeChain</p>
+    </div>
+    <a asp-action="Create" class="btn btn-danger px-4 py-2" style="border-radius: 10px; font-weight: 600;">
+        <i class="fas fa-plus me-2"></i> Thêm IP mới
+    </a>
+</div>
+
+<!-- Stats Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted text-uppercase" style="font-size: 11px; font-weight: 600; letter-spacing: 1px;">TỔNG IP ĐÃ CẤP</div>
+                    <div class="fw-bold" style="font-size: 28px;">@Model.Count</div>
+                </div>
+                <div style="width: 44px; height: 44px; background: #f8f9fa; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-network-wired text-secondary"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted text-uppercase" style="font-size: 11px; font-weight: 600; letter-spacing: 1px;">ĐANG HOẠT ĐỘNG</div>
+                    <div class="fw-bold text-success" style="font-size: 28px;">@Model.Count(x => x.IsActive)</div>
+                </div>
+                <div style="width: 44px; height: 44px; background: #d1fae5; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check-circle text-success"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 14px;">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted text-uppercase" style="font-size: 11px; font-weight: 600; letter-spacing: 1px;">VÔ HIỆU HÓA</div>
+                    <div class="fw-bold text-danger" style="font-size: 28px;">@Model.Count(x => !x.IsActive)</div>
+                </div>
+                <div style="width: 44px; height: 44px; background: #fee2e2; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-ban text-danger"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Table -->
+<div class="card border-0 shadow-sm" style="border-radius: 14px;">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0" style="font-size: 14px;">
+            <thead style="background: #f8f9fa;">
+                <tr>
+                    <th class="py-3 ps-4" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280;">Tên Chi Nhánh / Vị Trí</th>
+                    <th class="py-3" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280;">Địa Chỉ IP</th>
+                    <th class="py-3" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280;">Ngày Tạo</th>
+                    <th class="py-3" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280;">Trạng Thái</th>
+                    <th class="py-3 pe-4 text-end" style="font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: #6b7280;">Thao Tác</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="py-3 ps-4">
+                            <div class="fw-bold">@(item.Store?.Name ?? "N/A")</div>
+                            <div class="text-muted" style="font-size: 12px;">@(item.IsPublicNetwork ? "Public IP" : "Local Network")</div>
+                        </td>
+                        <td class="py-3">
+                            <code style="background: #f1f5f9; padding: 4px 10px; border-radius: 6px; font-size: 13px; color: #e8643c;">@item.IPAddress</code>
+                        </td>
+                        <td class="py-3 text-muted">@item.CreatedAt.ToString("dd/MM/yyyy")</td>
+                        <td class="py-3">
+                            @if (item.IsActive)
+                            {
+                                <span class="badge" style="background: #d1fae5; color: #059669; font-weight: 600; padding: 5px 12px; border-radius: 6px;">● Hoạt động</span>
+                            }
+                            else
+                            {
+                                <span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 600; padding: 5px 12px; border-radius: 6px;">● Vô hiệu hóa</span>
+                            }
+                        </td>
+                        <td class="py-3 pe-4 text-end">
+                            <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary me-1" style="border-radius: 8px;" title="Sửa"><i class="fas fa-pen"></i></a>
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc muốn xóa IP này?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="btn btn-sm btn-outline-danger" style="border-radius: 8px;" title="Xóa"><i class="fas fa-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                @if (!Model.Any())
+                {
+                    <tr><td colspan="5" class="text-center text-muted py-5"><i class="fas fa-database me-2"></i> Chưa có địa chỉ IP nào được cấu hình.</td></tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

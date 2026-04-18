@@ -203,6 +203,9 @@ builder.Services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryServi
 
 // Security
 builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain.Application.Services.Attendance.AttendanceSecurityService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
 
 var app = builder.Build();
 
@@ -215,7 +218,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseStaticFiles();
+app.UseStaticFiles(new StaticFileOptions
+{
+    ServeUnknownFileTypes = true,
+    DefaultContentType = "application/octet-stream"
+});
 
 app.UseRouting();
 
@@ -254,6 +261,12 @@ using (var scope = app.Services.CreateScope())
     var conn = dbContext.Database.GetDbConnection();
     try
     {
+        // Tự động Apply Migration
+        dbContext.Database.Migrate();
+
+        // Tự động Khởi tạo dữ liệu Seeds Tỉnh Thành
+        await CafeChain.Data.Seeds.DbInitializer.InitializeAsync(dbContext, app.Environment);
+
         conn.Open();
         using var cmd = conn.CreateCommand();
         cmd.CommandText = @"

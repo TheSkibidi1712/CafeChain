@@ -19,6 +19,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
         Task<List<Store>> GetActiveStoresAsync();
         Task<List<ScopeType>> GetScopeTypesAsync();
         Task<Store> GetStoreByIdAsync(int storeId);
+        Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync();
+        Task<List<CafeChain.Models.Locations.District>> GetDistrictsAsync(int provinceId);
 
         // === WRITE (TRANSACTION) ===
         Task CreateStaffTransactionAsync(
@@ -27,7 +29,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses);
+            List<StaffAddress> staffAddresses,
+            List<StaffBank> staffBanks);
 
         Task UpdateStaffTransactionAsync(
             Models.Staffs.Staff staff,
@@ -35,7 +38,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses);
+            List<StaffAddress> staffAddresses,
+            List<StaffBank> staffBanks);
 
         Task UpdateStaffAvatarAsync(int staffId, string avatarUrl);
 

@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Admin.DrinkToppings;
+using CafeChain.Application.DTOs.Admin.DrinkToppings;
 using CafeChain.Application.DTOs.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.DrinkToppings;
 using CafeChain.Application.Interfaces.Admin.Toppings;
@@ -7,8 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using CafeChain.ViewModels.Admin.DrinkToppings;
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminToppingController : Controller
+    public class AdminToppingController : AdminBaseController
     {
         private readonly IAdminToppingService _service;
         private readonly IAdminDrinkToppingService _drinkToppingService;
@@ -193,3 +192,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

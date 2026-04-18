@@ -1,0 +1,65 @@
+@model CafeChain.Models.Stores.StoreIP
+@{
+    ViewData["Title"] = "Thêm Địa chỉ IP mới";
+    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
+}
+
+<div class="mb-4">
+    <a asp-action="Index" class="text-muted text-decoration-none" style="font-size: 13px;"><i class="fas fa-arrow-left me-2"></i> Quay lại danh sách</a>
+</div>
+
+<div class="card border-0 shadow-sm" style="border-radius: 14px; max-width: 600px;">
+    <div class="card-body p-4">
+        <h4 class="fw-bold mb-1">Thêm Địa chỉ IP mới</h4>
+        <p class="text-muted mb-4" style="font-size: 13px;">Cấu hình IP cho hệ thống chấm công Kiosk tại cửa hàng</p>
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="font-size: 13px;">Cửa hàng <span class="text-danger">*</span></label>
+                <select asp-for="StoreId" class="form-select" style="border-radius: 10px;">
+                    <option value="">-- Chọn cửa hàng --</option>
+                    @if (stores != null)
+                    {
+                        @foreach (var s in stores)
+                        {
+                            <option value="@s.StoreId">@s.Name</option>
+                        }
+                    }
+                </select>
+                <span asp-validation-for="StoreId" class="text-danger" style="font-size: 12px;"></span>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold" style="font-size: 13px;">Địa chỉ IP <span class="text-danger">*</span></label>
+                <input asp-for="IPAddress" class="form-control" placeholder="VD: 192.168.1.* hoặc 113.161.2.45" style="border-radius: 10px;" />
+                <div class="form-text">Hỗ trợ IP cố định hoặc dải IP (dùng * cho subnet)</div>
+                <span asp-validation-for="IPAddress" class="text-danger" style="font-size: 12px;"></span>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input asp-for="IsPublicNetwork" class="form-check-input" type="checkbox" />
+                    <label class="form-check-label fw-bold" style="font-size: 13px;">Đây là IP Public (bên ngoài mạng nội bộ)</label>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <div class="form-check form-switch">
+                    <input asp-for="IsActive" class="form-check-input" type="checkbox" checked />
+                    <label class="form-check-label fw-bold" style="font-size: 13px;">Kích hoạt ngay</label>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold" style="font-size: 13px;">Ghi chú</label>
+                <textarea asp-for="Notes" class="form-control" rows="2" placeholder="VD: WiFi tầng 2, Router chính..." style="border-radius: 10px;"></textarea>
+            </div>
+
+            <button type="submit" class="btn btn-danger w-100 py-2" style="border-radius: 10px; font-weight: 600;">
+                <i class="fas fa-plus me-2"></i> Tạo mới
+            </button>
+        </form>
+    </div>
+</div>
