@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.Accounts.VerifyOtpViewModel
+@model CafeChain.ViewModels.Accounts.VerifyOtpViewModel
 
 @{
     Layout = null;
@@ -10,8 +10,16 @@
     <meta charset="utf-8" />
     <title>Xác minh OTP</title>
     <link rel="stylesheet" href="~/css/otp.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <style>
+        #cc-toast-container { position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; gap: 12px; }
+        .cc-toast { display: flex; align-items: flex-start; gap: 12px; min-width: 280px; padding: 14px 16px; border-radius: 12px; background: #fff; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border-left: 4px solid #fd7e14; opacity: 0; transform: translateY(16px); transition: all 0.25s ease; }
+        .cc-toast.cc-show { opacity: 1; transform: translateY(0); }
+        .cc-toast-msg { font-size: 0.85rem; color: #444; }
+    </style>
 </head>
 <body>
+    <div id="cc-toast-container"></div>
 
     <div class="otp-container">
         <h2>Xác minh OTP</h2>
@@ -38,7 +46,6 @@
             <button type="submit">Xác nhận</button>
         </form>
 
-        <!-- 🔥 RESEND -->
         <div class="resend">
             <span id="countdown">05:00</span>
             <button id="resendBtn" disabled>Gửi lại OTP</button>
@@ -46,107 +53,72 @@
     </div>
 
     <script>
-            const inputs = document.querySelectorAll(".otp-input");
-            const hiddenInput = document.getElementById("OtpCode");
-            const form = document.getElementById("otpForm");
+        // Minimal inline Toast for standalone pages (no Layout)
+        window.showToast = function(msg, type) {
+            var c = document.getElementById('cc-toast-container');
+            var t = document.createElement('div');
+            t.className = 'cc-toast';
+            t.style.borderLeftColor = type === 'error' ? '#dc3545' : type === 'success' ? '#28a745' : '#fd7e14';
+            t.innerHTML = '<div class="cc-toast-msg">' + msg + '</div>';
+            c.appendChild(t);
+            requestAnimationFrame(function(){ requestAnimationFrame(function(){ t.classList.add('cc-show'); }); });
+            setTimeout(function(){ t.style.opacity='0'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); }, 300); }, 3500);
+        };
 
-            // ================= OTP INPUT =================
-            inputs.forEach((input, index) => {
+        const inputs = document.querySelectorAll(".otp-input");
+        const hiddenInput = document.getElementById("OtpCode");
+        const form = document.getElementById("otpForm");
 
-                input.addEventListener("input", (e) => {
-                    let value = e.target.value;
-
-                    // chỉ cho chữ + số
-                    if (!/^[a-zA-Z0-9]$/.test(value)) {
-                        input.value = "";
-                        return;
-                    }
-
-                    // 🔥 FORCE UPPERCASE
-                    value = value.toUpperCase();
-                    input.value = value;
-
-                    // auto next
-                    if (value && index < inputs.length - 1) {
-                        inputs[index + 1].focus();
-                    }
-
-                    updateOtp();
-                });
-
-                input.addEventListener("keydown", (e) => {
-                    if (e.key === "Backspace" && !input.value && index > 0) {
-                        inputs[index - 1].focus();
-                    }
-                });
+        inputs.forEach((input, index) => {
+            input.addEventListener("input", (e) => {
+                let value = e.target.value;
+                if (!/^[a-zA-Z0-9]$/.test(value)) { input.value = ""; return; }
+                value = value.toUpperCase();
+                input.value = value;
+                if (value && index < inputs.length - 1) inputs[index + 1].focus();
+                updateOtp();
             });
+            input.addEventListener("keydown", (e) => {
+                if (e.key === "Backspace" && !input.value && index > 0) inputs[index - 1].focus();
+            });
+        });
 
-            function updateOtp() {
-                let otp = "";
-                inputs.forEach(i => otp += i.value);
+        function updateOtp() {
+            let otp = "";
+            inputs.forEach(i => otp += i.value);
+            hiddenInput.value = otp;
+        }
 
-                hiddenInput.value = otp;
+        form.addEventListener("submit", function (e) {
+            if (hiddenInput.value.length !== 6) {
+                e.preventDefault();
+                showToast('Vui lòng nhập đủ 6 ký tự OTP!', 'warning');
             }
+        });
 
-            // ================= CLIENT VALIDATE =================
-            form.addEventListener("submit", function (e) {
-                if (hiddenInput.value.length !== 6) {
-                    e.preventDefault();
-                    alert("Vui lòng nhập đủ 6 ký tự OTP");
-                }
-            });
+        const storageKey = "otp_expire_" + '@Model.Email';
+        if (!localStorage.getItem(storageKey)) {
+            localStorage.setItem(storageKey, new Date().getTime() + 5 * 60 * 1000);
+        }
 
-            // ================= COUNTDOWN (FIX KHÔNG RESET) =================
-
-            // key theo email để tránh conflict
-            const storageKey = "otp_expire_" + '@Model.Email';
-
-            // nếu chưa có thì set thời gian hết hạn
-            if (!localStorage.getItem(storageKey)) {
-                const expireTime = new Date().getTime() + 5 * 60 * 1000;
-                localStorage.setItem(storageKey, expireTime);
+        const countdownEl = document.getElementById("countdown");
+        const resendBtn = document.getElementById("resendBtn");
+        const timer = setInterval(() => {
+            const timeLeft = Math.floor((parseInt(localStorage.getItem(storageKey)) - new Date().getTime()) / 1000);
+            if (timeLeft <= 0) {
+                clearInterval(timer);
+                countdownEl.innerText = "00:00";
+                resendBtn.disabled = false;
+                localStorage.removeItem(storageKey);
+                return;
             }
+            countdownEl.innerText = String(Math.floor(timeLeft / 60)).padStart(2, '0') + ":" + String(timeLeft % 60).padStart(2, '0');
+        }, 1000);
 
-            const countdownEl = document.getElementById("countdown");
-            const resendBtn = document.getElementById("resendBtn");
-
-            const timer = setInterval(() => {
-
-                const now = new Date().getTime();
-                const expireTime = parseInt(localStorage.getItem(storageKey));
-
-                let timeLeft = Math.floor((expireTime - now) / 1000);
-
-                if (timeLeft <= 0) {
-                    clearInterval(timer);
-                    countdownEl.innerText = "00:00";
-                    resendBtn.disabled = false;
-
-                    // hết hạn thì xoá luôn
-                    localStorage.removeItem(storageKey);
-                    return;
-                }
-
-                let minutes = Math.floor(timeLeft / 60);
-                let seconds = timeLeft % 60;
-
-                countdownEl.innerText =
-                    String(minutes).padStart(2, '0') + ":" +
-                    String(seconds).padStart(2, '0');
-
-            }, 1000);
-
-            // ================= RESEND =================
-            resendBtn.addEventListener("click", () => {
-
-                // reset timer mới
-                const newExpire = new Date().getTime() + 5 * 60 * 1000;
-                localStorage.setItem(storageKey, newExpire);
-
-                window.location.href = '/Password/ForgotPassword?email=' + '@Model.Email';
-            });
-
+        resendBtn.addEventListener("click", () => {
+            localStorage.setItem(storageKey, new Date().getTime() + 5 * 60 * 1000);
+            window.location.href = '/Password/ForgotPassword?email=' + '@Model.Email';
+        });
     </script>
-
 </body>
 </html>

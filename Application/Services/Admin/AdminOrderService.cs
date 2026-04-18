@@ -1,0 +1,301 @@
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin;
+using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces.Admin;
+using CafeChain.Data;
+using CafeChain.Hubs;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+
+namespace CafeChain.Application.Services.Admin
+{
+    public class AdminOrderService : IAdminOrderService
+    {
+        private readonly AppDbContext _context;
+        private readonly IHubContext<OrderHub> _hubContext;
+        private readonly IInventoryService _inventoryService;
+
+        public AdminOrderService(
+            AppDbContext context,
+            IHubContext<OrderHub> hubContext,
+            IInventoryService inventoryService)
+        {
+            _context = context;
+            _hubContext = hubContext;
+            _inventoryService = inventoryService;
+        }
+
+        public async Task<List<AdminOrderKanbanDto>> GetKanbanOrdersAsync()
+        {
+            var activeStatuses = new[] {
+                SystemConstants.OrderStatuses.Pending,
+                SystemConstants.OrderStatuses.Preparing,
+                SystemConstants.OrderStatuses.Ready,
+                SystemConstants.OrderStatuses.Delivering
+            };
+
+            var activeOrders = await _context.Orders
+                .Include(o => o.OrderType)
+                .Include(o => o.Customer)
+                .Where(o => activeStatuses.Contains(o.OrderStatusId))
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new AdminOrderKanbanDto
+                {
+                    OrderId = o.OrderId,
+                    CreatedAt = o.CreatedAt,
+                    OrderStatusId = o.OrderStatusId,
+                    Total = o.Total,
+                    OrderTypeId = o.OrderTypeId,
+                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "N/A",
+                    Note = o.Note,
+                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Guest")
+                })
+                .ToListAsync();
+
+            var historyStatuses = new[] {
+                SystemConstants.OrderStatuses.Completed,
+                SystemConstants.OrderStatuses.Cancelled
+            };
+            
+            var today = DateTime.Today;
+
+            var historyOrders = await _context.Orders
+                .Include(o => o.OrderType)
+                .Include(o => o.Customer)
+                .Where(o => historyStatuses.Contains(o.OrderStatusId) && o.CreatedAt >= today)
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(20)
+                .Select(o => new AdminOrderKanbanDto
+                {
+                    OrderId = o.OrderId,
+                    CreatedAt = o.CreatedAt,
+                    OrderStatusId = o.OrderStatusId,
+                    Total = o.Total,
+                    OrderTypeId = o.OrderTypeId,
+                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "N/A",
+                    Note = o.Note,
+                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Guest")
+                })
+                .ToListAsync();
+
+            return activeOrders.Concat(historyOrders).ToList();
+        }
+
+        public async Task<AdminOrderDetailDto> GetOrderDetailsAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.OrderType)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.Drink)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.Size)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings).ThenInclude(ot => ot.Topping)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null) return null;
+
+            return new AdminOrderDetailDto
+            {
+                OrderId = order.OrderId,
+                ReceiverName = order.ReceiverName,
+                ReceiverPhone = order.ReceiverPhone,
+                DeliveryAddress = order.DeliveryAddress,
+                Note = order.Note,
+                Total = order.Total,
+                OrderStatusId = order.OrderStatusId,
+                OrderTypeId = order.OrderTypeId,
+                OrderTypeName = order.OrderType?.Name,
+                Items = order.OrderDetails.Select(od => new AdminOrderItemDto
+                {
+                    DrinkName = od.Drink?.Name,
+                    SizeName = od.Size?.Name,
+                    Quantity = od.Quantity,
+                    Price = od.Price,
+                    Note = od.Note,
+                    Toppings = od.OrderToppings.Select(ot => ot.Topping.Name).ToList()
+                }).ToList()
+            };
+        }
+
+        public async Task AcceptOrderAsync(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            if (order.OrderStatusId != SystemConstants.OrderStatuses.Pending)
+            {
+                throw new Exception($"Không thể duyệt đơn #{orderId}. Trạng thái hiện tại không hợp lệ.");
+            }
+
+            order.OrderStatusId = SystemConstants.OrderStatuses.Preparing;
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group("AdminDashboard")
+                .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+        }
+
+        public async Task ReadyForPickupAsync(int orderId)
+        {
+            var order = await _context.Orders.FindAsync(orderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            if (order.OrderStatusId != SystemConstants.OrderStatuses.Preparing)
+            {
+                throw new Exception($"Không thể đánh dấu xong món cho đơn #{orderId}.");
+            }
+
+            order.OrderStatusId = SystemConstants.OrderStatuses.Ready;
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group("AdminDashboard")
+                .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+        }
+
+        public async Task<List<DTOs.Admin.ShipperDto>> GetShippersAsync()
+        {
+            var shippers = await _context.Set<CafeChain.Models.Staffs.Staff>()
+                .Where(s => s.Active)
+                .Select(s => new DTOs.Admin.ShipperDto
+                {
+                    Id = s.StaffId,
+                    Name = s.FullName
+                })
+                .ToListAsync();
+
+            return shippers;
+        }
+
+        public async Task DispatchOrderAsync(CafeChain.Application.DTOs.Admin.DispatchOrderRequest request)
+        {
+            var order = await _context.Orders.FindAsync(request.OrderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            if (order.OrderStatusId != SystemConstants.OrderStatuses.Ready)
+            {
+                throw new Exception($"Không thể giao shipper cho đơn #{request.OrderId}.");
+            }
+
+            // ===== ZERO-TRUST VALIDATION DỰA TRÊN SHIPPER TYPE =====
+            if (request.ShipperType == "INTERNAL")
+            {
+                if (!request.InternalShipperId.HasValue || request.InternalShipperId.Value <= 0)
+                {
+                    throw new Exception("Vui lòng chọn nhân viên giao hàng nội bộ.");
+                }
+
+                // Shipper nội bộ: Kiểm tra ID thực sự tồn tại và đang Active
+                var staffExists = await _context.Set<CafeChain.Models.Staffs.Staff>()
+                    .AnyAsync(s => s.StaffId == request.InternalShipperId.Value && s.Active);
+
+                if (!staffExists)
+                    throw new Exception($"Nhân viên giao hàng ID #{request.InternalShipperId.Value} không tồn tại hoặc đã ngưng hoạt động.");
+
+                order.StaffId = request.InternalShipperId.Value;
+                order.Note = (order.Note ?? "") + " | [SHIPPER_NỘI_BỘ]";
+            }
+            else if (request.ShipperType == "EXTERNAL")
+            {
+                if (string.IsNullOrWhiteSpace(request.DeliveryPartner))
+                {
+                    throw new Exception("Vui lòng chọn đối tác giao hàng (Grab, ShopeeFood, etc).");
+                }
+
+                string partnerInfo = request.DeliveryPartner;
+                if (!string.IsNullOrWhiteSpace(request.PartnerOrderCode))
+                {
+                    partnerInfo += $" - Mã đơn: {request.PartnerOrderCode.Trim()}";
+                }
+
+                order.Note = (order.Note ?? "") + $" | [SHIPPER_NGOÀI]: {partnerInfo}";
+                // Đối tác ngoài thì StaffId có thể null
+                order.StaffId = null;
+            }
+            else
+            {
+                throw new Exception("Loại giao hàng không hợp lệ.");
+            }
+
+            order.OrderStatusId = SystemConstants.OrderStatuses.Delivering;
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group("AdminDashboard")
+                .SendAsync("ReceiveOrderStatusUpdate", request.OrderId, order.OrderStatusId);
+        }
+
+
+
+        public async Task CompleteOrderAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Payments)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            if (order.OrderStatusId != SystemConstants.OrderStatuses.Ready &&
+                order.OrderStatusId != SystemConstants.OrderStatuses.Delivering)
+            {
+                throw new Exception($"Không thể hoàn thành đơn #{orderId}.");
+            }
+
+            order.OrderStatusId = SystemConstants.OrderStatuses.Completed;
+
+            // COD: Khi giao thành công → đánh dấu đã thu tiền
+            var payment = order.Payments.FirstOrDefault();
+            if (payment != null && payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+            {
+                payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
+            }
+
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group("AdminDashboard")
+                .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+        }
+
+        public async Task CancelOrderAsync(int orderId, string reason)
+        {
+            var order = await _context.Orders
+                .Include(o => o.Payments)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+            if (order == null) throw new Exception("Đơn hàng không tồn tại.");
+
+            var cancellableStatuses = new[]
+            {
+                SystemConstants.OrderStatuses.Pending,
+                SystemConstants.OrderStatuses.Preparing,
+                SystemConstants.OrderStatuses.Ready,
+                SystemConstants.OrderStatuses.Delivering
+            };
+
+            if (!cancellableStatuses.Contains(order.OrderStatusId))
+            {
+                throw new Exception($"Không thể hủy đơn #{orderId}. Đơn đã hoàn thành hoặc đã bị hủy trước đó.");
+            }
+
+            order.OrderStatusId = SystemConstants.OrderStatuses.Cancelled;
+
+            if (!string.IsNullOrEmpty(reason))
+            {
+                order.Note = (order.Note ?? "") + " | [ADMIN_CANCEL]: " + reason;
+            }
+
+            var payment = order.Payments.FirstOrDefault();
+            if (payment != null)
+            {
+                if (payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
+                    payment.PaymentStatusId = SystemConstants.PaymentStatuses.Refunded;
+                else
+                    payment.PaymentStatusId = SystemConstants.PaymentStatuses.Failed;
+            }
+
+            await _inventoryService.ReleaseInventoryForOrderAsync(orderId);
+
+            await _context.SaveChangesAsync();
+
+            await _hubContext.Clients.Group("AdminDashboard")
+                .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+        }
+    }
+}

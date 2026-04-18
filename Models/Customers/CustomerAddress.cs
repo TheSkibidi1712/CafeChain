@@ -33,6 +33,7 @@ namespace CafeChain.Models.Customers
         public decimal? Longitude { get; set; }
 
         public bool IsDefault { get; set; } = false;
+        public bool IsDeleted { get; set; } = false;
 
         // ─── Navigation Properties ────────────────────────────────────────────────
         public virtual Customer Customer { get; set; } = null!;

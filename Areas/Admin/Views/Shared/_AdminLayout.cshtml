@@ -131,7 +131,7 @@
         <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân sự</a>
         <a href="#" class="@Html.IsActive("AdminInventory")"><i class="fas fa-box"></i> Quản lý tồn kho</a>
         <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
-        <a href="#" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+        <a asp-area="Admin" asp-controller="AdminOrder" asp-action="Index" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
         <a href="#" class="@Html.IsActive("AdminSetting")"><i class="fas fa-cog"></i> Cài đặt</a>
     </div>
 

@@ -853,7 +853,7 @@
             let name = option.text.split(' (+')[0];
 
             if (state.optionalToppings.some(t => t.id === id)) {
-                alert("Bạn đã chọn Topping này rồi!");
+                showToast('Bạn đã chọn Topping này rồi!', 'warning');
                 select.selectedIndex = 0;
                 return;
             }
@@ -917,7 +917,7 @@
 
              let activeSizeBtn = document.querySelector('.size-btn.active');
              if (!activeSizeBtn) {
-                 alert("Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!");
+                 showToast('Vui lòng chọn Size trước khi thêm vào giỏ hàng nhé!', 'warning');
                  return;
              }
 
@@ -953,18 +953,12 @@
                          badge.innerText = data.totalCount;
                          badge.classList.remove('d-none');
                      }
-                     alert("Đã thêm món vào giỏ hàng thành công!");
-                     // ==========================================================
-                    // 🔥 THÊM ĐOẠN NÀY ĐỂ XÓA TRẮNG FORM SAU KHI THÊM 🔥
-                    // ==========================================================
-                    // 1. Xóa trắng ô ghi chú
-                    let noteElement = document.getElementById('drinkNote');
-                    if (noteElement) noteElement.value = '';
-
-                    // 2. (Tùy chọn) Đưa số lượng về lại 1 cho chuẩn bài
-                    document.getElementById('quantity').value = 1;
-                    // ==========================================================
-                 } else { alert("Lỗi: " + data.message); }
+                     showToast('Đã thêm món vào giỏ hàng!', 'success');
+                     // Reset form sau khi thêm
+                     let noteElement = document.getElementById('drinkNote');
+                     if (noteElement) noteElement.value = '';
+                     document.getElementById('quantity').value = 1;
+                 } else { showToast('Lỗi: ' + data.message, 'error'); }
              })
              .catch(error => console.error('Error:', error))
              .finally(() => {
@@ -982,7 +976,7 @@
             
             if (input.files) {
                 if (input.files.length > 5) {
-                    alert("Chỉ được tải lên tối đa 5 ảnh.");
+                    showToast('Chỉ được tải lên tối đa 5 ảnh.', 'warning');
                     input.value = '';
                     return;
                 }
@@ -990,7 +984,7 @@
                 for (let i = 0; i < input.files.length; i++) {
                     let file = input.files[i];
                     if (file.size > 1024 * 1024) {
-                        alert(`Ảnh thứ ${i+1} vượt quá 1MB. Vui lòng chọn ảnh nhỏ hơn.`);
+                        showToast(`Ảnh thứ ${i+1} vượt quá 1MB. Vui lòng chọn ảnh nhỏ hơn.`, 'warning');
                         input.value = '';
                         previewContainer.innerHTML = '';
                         pendingReviewImages = [];
@@ -1080,8 +1074,8 @@
             let stars = starsHiddenInput ? starsHiddenInput.value : "0";
             let comment = document.getElementById('reviewComment').value.trim();
 
-            if(stars == "0") { alert("Vui lòng chọn số sao đánh giá!"); return; }
-            if(comment == "" && pendingReviewImages.length === 0) { alert("Vui lòng nhập nhận xét hoặc đính kèm ảnh!"); return; }
+            if(stars == "0") { showToast('Vui lòng chọn số sao đánh giá!', 'warning'); return; }
+            if(comment == "" && pendingReviewImages.length === 0) { showToast('Vui lòng nhập nhận xét hoặc đính kèm ảnh!', 'warning'); return; }
 
             const drinkId = document.querySelector('input[name="DrinkId"]').value;
 
@@ -1106,9 +1100,9 @@
             .then(res => res.json())
             .then(data => {
                 if(data.success) {
-                    alert(data.message);
-                    location.reload();
-                } else { alert("Lỗi: " + data.message); }
+                    showToast(data.message, 'success');
+                    setTimeout(() => location.reload(), 1800);
+                } else { showToast('Lỗi: ' + data.message, 'error'); }
             })
             .catch(err => console.error("Lỗi:", err))
             .finally(() => {
@@ -1155,7 +1149,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 401) { requireAuth(); return; }
-                if (data.status === 429) { alert(data.message); return; } // Spam alert
+                if (data.status === 429) { showToast(data.message, 'warning'); return; }
                 
                 if (data.success) {
                     if (wrapper) {
@@ -1184,7 +1178,7 @@
                         if(tooltip) tooltip.style.visibility = ''; 
                     }
                 } else {
-                    alert(data.message);
+                    showToast(data.message, 'error');
                 }
             })
             .catch(err => console.error(err));
@@ -1246,7 +1240,7 @@
                 
                 // Thuật Validate size JS: 2MB
                 if(file.size > 2 * 1024 * 1024) {
-                    alert("Kích thước hình ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.");
+                    showToast('Kích thước hình ảnh quá lớn! Vui lòng chọn ảnh dưới 2MB.', 'warning');
                     input.value = ""; return;
                 }
                 
@@ -1276,7 +1270,7 @@
             let drinkId = document.querySelector('input[name="DrinkId"]').value; // Của form cha
 
             if(comment.trim() === "" && !replyImageFile) {
-                alert("Vui lòng nhập nội dung hoặc đính kèm một hình ảnh!");
+                showToast('Vui lòng nhập nội dung hoặc đính kèm một hình ảnh!', 'warning');
                 return;
             }
 
@@ -1299,13 +1293,12 @@
             .then(res => res.json())
             .then(data => {
                 if (data.status === 401) { requireAuth(); return; }
-                if (data.status === 429) { alert(data.message); return; }
+                if (data.status === 429) { showToast(data.message, 'warning'); return; }
                 
                 if(data.success) {
-                    // Load lại cái mịa nó cho đỡ lằng nhằng DOM :)))
                     window.location.reload();
                 } else {
-                    alert("Lỗi: " + data.message);
+                    showToast('Lỗi: ' + data.message, 'error');
                 }
             })
             .catch(err => console.error("Lỗi:", err))

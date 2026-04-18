@@ -2,19 +2,26 @@ using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Exceptions;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace CafeChain.Infrastrusture.Repositories.Accounts
 {
     public class AccountRepository : IAccountRepository
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private const string ROLE_CACHE_KEY = "SystemRolesCache";
 
-        public AccountRepository(AppDbContext context)
+        public AccountRepository(AppDbContext context, IMemoryCache cache)
         {
             _context = context;
+            _cache = cache;
         }
 
         public async Task<bool> EmailExistsAsync(string email)
@@ -60,10 +67,11 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                 });
 
                 // ===== 4. ROLE =====
+                var customerRoleId = await GetRoleIdByNameAsync(RoleConstants.Customer);
                 _context.AccountRoles.Add(new AccountRole
                 {
                     AccountId = account.AccountId,
-                    RoleId = 6 // ⚠️ nhớ check DB có tồn tại
+                    RoleId = customerRoleId
                 });
 
                 await _context.SaveChangesAsync();
@@ -90,6 +98,30 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                 .Include(x => x.AccountRoles)
                     .ThenInclude(ar => ar.Role)
                 .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+        }
+
+        /// <summary>
+        /// 🔥 Thread-safe Lazy Loading Roles into Cache
+        /// Tránh query DB liên tục mỗi khi có user Register
+        /// </summary>
+        private async Task<int> GetRoleIdByNameAsync(string roleName)
+        {
+            var roleMap = await _cache.GetOrCreateAsync(ROLE_CACHE_KEY, async entry =>
+            {
+                entry.SlidingExpiration = TimeSpan.FromDays(1); // Cache 1 ngày
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
+                
+                return await _context.Roles
+                    .AsNoTracking()
+                    .ToDictionaryAsync(r => r.Name, r => r.RoleId);
+            });
+
+            if (roleMap != null && roleMap.TryGetValue(roleName, out int roleId))
+            {
+                return roleId;
+            }
+
+            throw new RoleNotFoundException(roleName);
         }
     }
 }

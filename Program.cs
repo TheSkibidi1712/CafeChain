@@ -4,9 +4,11 @@ using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Services;
 using CafeChain.Application.Services.Accounts;
 using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Services.Cart;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Hubs;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
@@ -55,6 +57,7 @@ var builder = WebApplication.CreateBuilder(args);
 // =======================
 builder.Services.AddControllersWithViews();
 builder.Services.AddMemoryCache();
+builder.Services.AddSignalR();
 // =======================
 // 2. Database
 // =======================
@@ -139,6 +142,18 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 // Home
 builder.Services.AddScoped<IDrinkService, DrinkService>();
 builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+// Inventory Abstraction
+builder.Services.AddScoped<IInventoryService, CafeChain.Application.Services.Inventory.MockInventoryService>();
+
+// Workers
+builder.Services.AddHostedService<CafeChain.Application.Workers.OrderCleanupWorker>();
+builder.Services.AddHostedService<CafeChain.Application.Services.Workers.PaymentCleanupWorker>();
+
+// PayOS Integration
+builder.Services.AddScoped<CafeChain.Application.Services.PayOSIntegration.IPayOSService, CafeChain.Application.Services.PayOSIntegration.PayOSService>();
+
 // Đăng ký FileService
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
@@ -180,8 +195,18 @@ builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
 builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
+// Admin Orders Dashboard
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.IAdminOrderService, CafeChain.Application.Services.Admin.AdminOrderService>();
+
 // Security
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Security.IScopeAuthorizationService, CafeChain.Application.Services.Security.ScopeAuthorizationService>();
+
+// Trong Program.cs, chỗ builder.Services...
+builder.Services.AddSingleton(new Net.payOS.PayOS(
+    builder.Configuration["PayOS:ClientId"], 
+    builder.Configuration["PayOS:ApiKey"], 
+    builder.Configuration["PayOS:ChecksumKey"]
+));
 
 var app = builder.Build();
 
@@ -225,6 +250,8 @@ app.MapControllerRoute(
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
+
+app.MapHub<OrderHub>("/orderHub");
 
 // === 🚀 DIAGNOSTIC SCRIPT (TỰ ĐỘNG CHẨN ĐOÁN LỖI DATABASE) ===
 using (var scope = app.Services.CreateScope())

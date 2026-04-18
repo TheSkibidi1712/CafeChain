@@ -8,7 +8,8 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
-    [Authorize] // 🔥 CHẶN ĐỨNG MỌI HÀNH VI VÀO GIỎ HÀNG KHI CHƯA LOGIN 🔥
+    // ✅ [FIX 1] Bỏ [Authorize] khỏi class. Khách vãng lai được phép xem giỏ hàng và thêm sản phẩm (Session-based).
+    // Chỉ CheckoutController mới cần [Authorize] để bắt buộc đăng nhập trước khi đặt hàng.
     public class CartController : Controller
     {
         private readonly ICartService _cartService;

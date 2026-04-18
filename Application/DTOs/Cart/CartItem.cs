@@ -1,4 +1,4 @@
-﻿namespace CafeChain.Application.DTOs
+namespace CafeChain.Application.DTOs
 {
     public class CartItem
     {
@@ -12,9 +12,12 @@
         public int Quantity { get; set; }
 
         public string SizeName { get; set; }
+        public int SizeId { get; set; } // 🔥 Thêm để Zero-Trust
 
         // 🔥 CHỈ SỬA CHỖ NÀY: Đổi string thành List để View dễ vẽ UI
         public List<string> AddedToppings { get; set; } = new List<string>();   // VD: ["Trân châu trắng (+5.000đ)", "Khúc bạch (+7.000đ)"]
+        public List<int> ToppingIds { get; set; } = new List<int>(); // 🔥 Thêm để Zero-Trust
+        
         public List<string> RemovedToppings { get; set; } = new List<string>(); // VD: ["Phô mai viên", "Thạch trái cây"]
 
         public decimal Total => Price * Quantity;

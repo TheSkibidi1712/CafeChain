@@ -96,6 +96,10 @@ namespace CafeChain.Data.Configurations
                     PointsUsed = 0,
                     Total = 45000,
 
+                    ReceiverName = "Khách vãng lai",
+                    ReceiverPhone = "0000000000",
+                    DeliveryAddress = "Tại quầy",
+
                     CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0)
                 },
                 new Order
@@ -116,6 +120,10 @@ namespace CafeChain.Data.Configurations
                     PointsUsed = 0,
                     Total = 60000,
 
+                    ReceiverName = "Khách vãng lai",
+                    ReceiverPhone = "0000000000",
+                    DeliveryAddress = "Mang đi",
+
                     CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0)
                 },
                 new Order
@@ -135,6 +143,10 @@ namespace CafeChain.Data.Configurations
                     PointDiscount = 0,
                     PointsUsed = 0,
                     Total = 70000,
+
+                    ReceiverName = "Khách vãng lai",
+                    ReceiverPhone = "0000000000",
+                    DeliveryAddress = "Giao hàng tận nơi",
 
                     CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0)
                 }
@@ -296,14 +308,7 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.Name)
                 .IsUnique();
 
-            entity.HasData(
-                new OrderStatus { OrderStatusId = 1, Name = "Pending" },        // mới tạo
-                new OrderStatus { OrderStatusId = 2, Name = "Confirmed" },      // đã xác nhận
-                new OrderStatus { OrderStatusId = 3, Name = "Preparing" },      // đang pha chế
-                new OrderStatus { OrderStatusId = 4, Name = "Ready" },          // đã xong, chờ lấy
-                new OrderStatus { OrderStatusId = 5, Name = "Completed" },      // hoàn tất
-                new OrderStatus { OrderStatusId = 6, Name = "Cancelled" }       // hủy
-            );
+
         }
     }
 

@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Linq;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Staff;
 using CafeChain.Application.Results;
@@ -19,21 +20,17 @@ namespace CafeChain.Application.Services.Admin.Staff
         private readonly IWebHostEnvironment _env;
         private readonly IScopeAuthorizationService _scopeAuthorizationService;
 
-        // 🔥 Role ID Constants (CHÍNH XÁC theo Seed Data)
-        private const int ROLE_SUPER_ADMIN = 1;
-        private const int ROLE_CEO = 2;
-        private const int ROLE_CFO = 3;
-        private const int ROLE_MARKETING = 4;
-        private const int ROLE_OPERATIONS = 5;
-        private const int ROLE_HR = 6;
-        private const int ROLE_AREA_MANAGER = 7;
-        private const int ROLE_STORE_MANAGER = 8;
-        private const int ROLE_SHIFT_SUPERVISOR = 9;
-        private const int ROLE_CASHIER = 10;
-        private const int ROLE_CUSTOMER = 11;
-
-        // 🔥 Forbidden roles cho Store Manager (tất cả role ≥ Store Manager)
-        private static readonly int[] FORBIDDEN_ROLES_FOR_STORE_MANAGER = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        // 🔥 Role Name-based Forbidden roles cho Store Manager (Chỉ được quản lý nhân viên cấp dưới)
+        private static readonly string[] FORBIDDEN_ROLES_FOR_STORE_MANAGER = { 
+            RoleConstants.SuperAdmin, 
+            RoleConstants.CEO, 
+            RoleConstants.CFO, 
+            RoleConstants.MarketingManager, 
+            RoleConstants.OperationsManager, 
+            RoleConstants.HRManager, 
+            RoleConstants.AreaManager, 
+            RoleConstants.StoreManager 
+        };
 
         public AdminStaffService(IAdminStaffRepository repository, IWebHostEnvironment env, IScopeAuthorizationService scopeAuthorizationService)
         {
@@ -50,21 +47,22 @@ namespace CafeChain.Application.Services.Admin.Staff
             var staffIdClaim = user.FindFirst("StaffId")?.Value;
             if (staffIdClaim != null) int.TryParse(staffIdClaim, out currentStaffId);
 
-            // Filter Roles dựa theo quyền hạn thực tế (UX Filter như Tech Lead yêu cầu)
-            var roles = await _repository.GetRolesForDropdownAsync(null);
+            // Filter Roles dựa theo quyền hạn thực tế (Business Logic Layer)
+            var allRoles = await _repository.GetRolesForDropdownAsync();
             
-            // Bỏ trường Khách hàng ra khỏi form Quản lý Nhân sự (nhân sự không bao giờ là Khách hàng)
-            roles = roles.Where(r => r.RoleId != ROLE_CUSTOMER).ToList();
+            // ❌ Bỏ trường Khách hàng ra khỏi form Quản lý Nhân sự
+            var roles = allRoles.Where(r => r.Name != RoleConstants.Customer).ToList();
 
             if (isStoreManager && !isAdmin)
             {
-                // Store Manager chỉ được tạo: Shift Supervisor (9) và Cashier (10)
-                roles = roles.Where(r => r.RoleId == ROLE_SHIFT_SUPERVISOR || r.RoleId == ROLE_CASHIER).ToList();
+                // Store Manager chỉ được tạo: Shift Supervisor và Cashier
+                roles = roles.Where(r => r.Name == RoleConstants.ShiftSupervisor || r.Name == RoleConstants.Cashier).ToList();
             }
             else if (!isAdmin)
             {
-                // Các role trung gian (Area Manager...) chỉ tạo được Store Manager trở xuống
-                roles = roles.Where(r => r.RoleId >= ROLE_STORE_MANAGER && r.RoleId != ROLE_CUSTOMER).ToList();
+                // Rule: Không cho phép tạo Role ngang hàng hoặc cao hơn (dựa trên tên hoặc logic cấp bậc)
+                // Tuy nhiên, yêu cầu cơ bản là loại bỏ Customer và giữ nguyên logic cho Admin System
+                roles = roles.Where(r => r.Name != RoleConstants.Customer).ToList();
             }
 
             var result = new StaffFormMasterDataVM
@@ -128,13 +126,16 @@ namespace CafeChain.Application.Services.Admin.Staff
             var (total, active, inactive) = await _repository.GetStaffCountsAsync(storeId);
 
             var viewModels = items.Select(s => {
-                var roleIds = s.Account?.AccountRoles?.Select(ar => ar.RoleId).ToList() ?? new List<int>();
+                var rolesData = s.Account?.AccountRoles?.Select(ar => ar.Role).ToList() ?? new List<Role>();
+                var roleNames = rolesData.Select(r => r?.Name ?? "").ToList();
+                var roleIds = rolesData.Select(r => r?.RoleId ?? 0).ToList();
                 
                 // 🔥 FIX: role ≤ Store Manager = cấp cao → không cho Store Manager edit
                 bool canEdit = true;
                 if (isStoreManager && !isAdmin)
                 {
-                    if (roleIds.Any(r => r <= ROLE_STORE_MANAGER)) canEdit = false;
+                    // Chống Store Manager sửa tài khoản cấp trên bằng cách check danh sách tên cấm
+                    if (roleNames.Any(name => FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(name))) canEdit = false;
                     if (s.StoreId != currentStoreId) canEdit = false;
                 }
 
@@ -145,7 +146,7 @@ namespace CafeChain.Application.Services.Admin.Staff
                     Email = s.Account?.Email ?? "",
                     AvatarUrl = s.AvatarUrl ?? "/Images/avatars/avtdf.jpg",
                     StoreName = s.Store?.Name ?? "",
-                    RoleNames = s.Account?.AccountRoles?.Select(ar => ar.Role?.Name ?? "").ToList() ?? new List<string>(),
+                    RoleNames = roleNames,
                     RoleIds = roleIds,
                     Active = s.Active,
                     DefaultPhone = s.StaffPhones?.FirstOrDefault(p => p.IsDefault)?.Phone ?? "",
@@ -181,7 +182,7 @@ namespace CafeChain.Application.Services.Admin.Staff
                 Salary = staff.Salary,
                 DateOfBirth = staff.DateOfBirth,
                 StoreId = staff.StoreId,
-                SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? ROLE_CASHIER,
+                SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? 0,
                 ScopeTypeId = staff.StaffScopes?.FirstOrDefault()?.ScopeTypeId ?? 4,
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
@@ -211,14 +212,23 @@ namespace CafeChain.Application.Services.Admin.Staff
             // === BƯỚC 3: 🔥 RULE 2 — Security Check: Chặn leo quyền ===
             if (isStoreManager && !isAdmin)
             {
-                if (FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(model.SelectedRoleId))
+                var allRolesForCheck = await _repository.GetRolesForDropdownAsync();
+                var targetRoleMapping = allRolesForCheck.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+                
+                if (targetRoleMapping != null && FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(targetRoleMapping.Name))
                 {
                     return ServiceResult.Failure("Hành vi không hợp lệ! Bạn không có quyền cấp phát chức vụ này.");
                 }
             }
 
             // === BƯỚC 4: 🔥 RULE 3 (Advanced) — Role-Scope Alignment ===
-            if (model.SelectedRoleId == ROLE_CASHIER || model.SelectedRoleId == ROLE_SHIFT_SUPERVISOR || model.SelectedRoleId == ROLE_STORE_MANAGER)
+            var allRolesData = await _repository.GetRolesForDropdownAsync();
+            var selectedRole = allRolesData.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+            var selectedRoleName = selectedRole?.Name ?? "";
+
+            if (selectedRoleName == RoleConstants.Cashier || 
+                selectedRoleName == RoleConstants.ShiftSupervisor || 
+                selectedRoleName == RoleConstants.StoreManager)
             {
                 model.ScopeTypeId = 4;
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
@@ -320,7 +330,10 @@ namespace CafeChain.Application.Services.Admin.Staff
                 CreatedAt = DateTime.Now
             };
 
-            var accountRoles = model.SelectedRoleId != ROLE_CUSTOMER
+            var allRolesDataForCreate = await _repository.GetRolesForDropdownAsync();
+            var targetRoleForCreate = allRolesDataForCreate.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+
+            var accountRoles = (targetRoleForCreate != null && targetRoleForCreate.Name != RoleConstants.Customer)
                 ? new List<AccountRole> { new AccountRole { RoleId = model.SelectedRoleId } }
                 : new List<AccountRole>();
 
@@ -365,11 +378,13 @@ namespace CafeChain.Application.Services.Admin.Staff
                 return ServiceResult.Failure("Không tìm thấy nhân viên.");
 
             // === 🔥 FIX: Bảo mật - Chặn Leo Quyền (Cross-check Target Staff) ===
-            var targetRoleIds = existingStaff.Account?.AccountRoles?.Select(ar => ar.RoleId).ToList() ?? new List<int>();
+            var targetRoles = existingStaff.Account?.AccountRoles?.Select(ar => ar.Role).ToList() ?? new List<Role>();
+            var targetRoleNames = targetRoles.Select(r => r?.Name ?? "").ToList();
+
             if (isStoreManager && !isAdmin)
             {
-                // Nếu nhân viên đang bị chỉnh sửa có role ≤ Store Manager → cấp cao
-                if (targetRoleIds.Any(r => r <= ROLE_STORE_MANAGER))
+                // Nếu nhân viên đang bị chỉnh sửa có role thuộc diện cấm → cấp cao
+                if (targetRoleNames.Any(name => FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(name)))
                 {
                     throw new UnauthorizedAccessException("Bạn không có quyền chỉnh sửa tài khoản cấp cao hơn hoặc ngang hàng!");
                 }
@@ -389,17 +404,24 @@ namespace CafeChain.Application.Services.Admin.Staff
                 model.ScopeRefId = currentStoreId;
             }
 
+            // === 🔥 MASTER DATA FOR VALIDATION ===
+            var allRolesForUpdate = await _repository.GetRolesForDropdownAsync();
+            var selectedRoleForUpdate = allRolesForUpdate.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+            var selectedRoleNameForUpdate = selectedRoleForUpdate?.Name ?? "";
+
             // === 🔥 RULE 2 — Security Check ===
             if (isStoreManager && !isAdmin)
             {
-                if (FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(model.SelectedRoleId))
+                if (selectedRoleForUpdate != null && FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(selectedRoleNameForUpdate))
                 {
                     return ServiceResult.Failure("Hành vi không hợp lệ! Bạn không có quyền cấp phát chức vụ này.");
                 }
             }
 
             // === 🔥 RULE 3 (Advanced) — Role-Scope Alignment ===
-            if (model.SelectedRoleId == ROLE_CASHIER || model.SelectedRoleId == ROLE_SHIFT_SUPERVISOR || model.SelectedRoleId == ROLE_STORE_MANAGER)
+            if (selectedRoleNameForUpdate == RoleConstants.Cashier || 
+                selectedRoleNameForUpdate == RoleConstants.ShiftSupervisor || 
+                selectedRoleNameForUpdate == RoleConstants.StoreManager)
             {
                 model.ScopeTypeId = 4;
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
@@ -412,7 +434,11 @@ namespace CafeChain.Application.Services.Admin.Staff
             bool isAreaManager = rolesStr.Contains(RoleConstants.AreaManager);
             if (isAreaManager && !isAdmin)
             {
-                if (model.SelectedRoleId >= 1 && model.SelectedRoleId <= 7)
+                var allRolesForCheckArea = await _repository.GetRolesForDropdownAsync();
+                var selectedRoleForArea = allRolesForCheckArea.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+                var selectedRoleAreaName = selectedRoleForArea?.Name ?? "";
+
+                if (FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(selectedRoleAreaName))
                 {
                     throw new UnauthorizedAccessException("Bạn không có quyền sửa đổi cấp phát Role ngang hàng hoặc cấp cao hơn!");
                 }
@@ -491,7 +517,9 @@ namespace CafeChain.Application.Services.Admin.Staff
                 existingStaff.Account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(model.NewPassword);
             }
 
-            var accountRoles = model.SelectedRoleId != ROLE_CUSTOMER
+            var targetRoleForFinalUpdate = allRolesForUpdate.FirstOrDefault(r => r.RoleId == model.SelectedRoleId);
+
+            var accountRoles = (targetRoleForFinalUpdate != null && targetRoleForFinalUpdate.Name != RoleConstants.Customer)
                 ? new List<AccountRole> { new AccountRole { RoleId = model.SelectedRoleId } }
                 : new List<AccountRole>();
 
@@ -531,11 +559,13 @@ namespace CafeChain.Application.Services.Admin.Staff
                 return ServiceResult.Failure("Không tìm thấy nhân viên.");
 
             // === 🔥 FIX: Bảo mật - Chặn Leo Quyền (Cross-check Target Staff) ===
-            var targetRoleIds = staff.Account?.AccountRoles?.Select(ar => ar.RoleId).ToList() ?? new List<int>();
+            var targetRolesForStatus = staff.Account?.AccountRoles?.Select(ar => ar.Role).ToList() ?? new List<Role>();
+            var targetRoleNamesForStatus = targetRolesForStatus.Select(r => r?.Name ?? "").ToList();
+
             if (isStoreManager && !isAdmin)
             {
-                // Nếu nhân viên có role ≤ Store Manager → cấp cao
-                if (targetRoleIds.Any(r => r <= ROLE_STORE_MANAGER))
+                // Nếu nhân viên có role thuộc diện cấm → cấp cao
+                if (targetRoleNamesForStatus.Any(name => FORBIDDEN_ROLES_FOR_STORE_MANAGER.Contains(name)))
                 {
                     throw new UnauthorizedAccessException("Bạn không có quyền khóa/mở khóa tài khoản cấp cao hơn hoặc ngang hàng!");
                 }

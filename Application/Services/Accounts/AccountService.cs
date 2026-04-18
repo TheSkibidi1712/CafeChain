@@ -3,10 +3,12 @@ using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Results;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
+using CafeChain.Application.Constants;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.Accounts
@@ -124,24 +126,55 @@ namespace CafeChain.Application.Services.Accounts
                 else if (allRoles.Any(r => r.Contains("Cashier")))
                     primaryRole = allRoles.First(r => r.Contains("Cashier"));
                 else
-                    primaryRole = allRoles.FirstOrDefault() ?? "Customer";
+                    primaryRole = allRoles.FirstOrDefault() ?? RoleConstants.Customer;
 
                 // ===== FULL NAME =====
                 var fullName = account.Customer?.FullName
                                ?? account.Staff?.FullName
                                ?? account.Email.Split('@')[0];
 
+                // ===== BUILD CLAIMS (Centralized Logic) =====
+                var claims = new List<Claim>
+                {
+                    new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString()),
+                    new Claim(ClaimTypes.Name, fullName),
+                    new Claim(ClaimTypes.Email, account.Email),
+                };
+
+                foreach (var roleName in allRoles)
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, roleName));
+                }
+
+                if (!allRoles.Any())
+                {
+                    claims.Add(new Claim(ClaimTypes.Role, RoleConstants.Customer));
+                }
+
+                if (account.Customer?.CustomerId != null)
+                    claims.Add(new Claim("CustomerId", account.Customer.CustomerId.ToString()));
+
+                if (account.Staff?.StaffId != null)
+                    claims.Add(new Claim("StaffId", account.Staff.StaffId.ToString()));
+
+                if (account.Staff?.StoreId != null)
+                    claims.Add(new Claim("StoreId", account.Staff.StoreId.ToString()));
+
+                var avatarUrl = account.Customer?.AvatarUrl ?? account.Staff?.AvatarUrl ?? "/Images/Upload/avtdf.jpg";
+                claims.Add(new Claim("AvatarUrl", avatarUrl));
+
                 var response = new LoginResponseDto
                 {
                     Email = account.Email,
                     FullName = fullName,
                     Role = primaryRole,
-                    AllRoles = allRoles, // 🔥 TẤT CẢ roles cho Claims
+                    AllRoles = allRoles,
                     AccountId = account.AccountId,
                     CustomerId = account.Customer?.CustomerId,
                     StaffId = account.Staff?.StaffId,
                     StoreId = account.Staff?.StoreId,
-                    AvatarUrl = account.Customer?.AvatarUrl ?? account.Staff?.AvatarUrl
+                    AvatarUrl = avatarUrl,
+                    Claims = claims // 🔥 Trả về Claims hoàn chỉnh
                 };
 
                 return ServiceResult<LoginResponseDto>.Success(response, "Đăng nhập thành công!");

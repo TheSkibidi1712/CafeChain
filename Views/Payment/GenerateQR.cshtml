@@ -1,0 +1,146 @@
+@{
+    ViewData["Title"] = "Thanh toán đơn hàng";
+    decimal totalAmount = ViewBag.TotalAmount ?? 0;
+    int orderId = ViewBag.OrderId ?? 0;
+    DateTime createdAt = ViewBag.CreatedAt ?? DateTime.Now;
+}
+
+<div class="container mt-5 mb-5" style="max-width: 600px;">
+    <div class="card border-0 shadow rounded-4 overflow-hidden" id="paymentCard">
+        <div class="bg-orange text-white p-4 text-center" style="background-color: #d35400;">
+            <h4 class="fw-bold mb-1"><i class="bi bi-qr-code-scan me-2"></i>Thanh toán đơn hàng</h4>
+            <p class="mb-0 small opacity-75">Quét mã QR bằng ứng dụng ngân hàng hoặc MoMo</p>
+        </div>
+        
+        <div class="card-body p-4 text-center">
+            
+            <div id="countdownArea" class="mb-3">
+                <span class="text-muted small">Thời gian còn lại để thanh toán:</span>
+                <div class="fs-3 fw-bold text-danger mt-1" id="timerDisplay">05:00</div>
+                <div class="text-muted" style="font-size:0.75rem;">Đơn sẽ tự động hủy nếu chưa thanh toán trong 5 phút</div>
+            </div>
+
+            <!-- Valid VietQR Code (adhering to Vietnamese bank standards) -->
+            <div class="bg-light p-2 rounded-4 d-inline-block border mb-4">
+                <img src="https://img.vietqr.io/image/MB-0935515321-compact2.png?amount=@(totalAmount)&addInfo=PAYOS@(orderId)&accountName=PayOS%20-%20CAFE%20CHAIN" alt="VietQR Code" width="280" style="border-radius: 8px;">
+            </div>
+
+            <div class="row text-start g-3 mb-4">
+                <div class="col-6">
+                    <span class="text-muted small d-block">Mã Đơn hàng</span>
+                    <span class="fw-bold fs-5">#@orderId</span>
+                </div>
+                <div class="col-6 text-end">
+                    <span class="text-muted small d-block">Số tiền thanh toán</span>
+                    <span class="fw-bold fs-5 text-orange" style="color: #d35400;">@totalAmount.ToString("N0")đ</span>
+                </div>
+            </div>
+
+            <div class="alert alert-secondary small text-start border-0 text-muted">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Hệ thống sẽ ghi nhận giao dịch sau 1-3 phút. Xin vui lòng không tắt cửa sổ này khi chưa có thông báo thành công.
+            </div>
+
+            <hr class="opacity-10">
+
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <!-- [FIX BUG 6] Redirect về History thay vì /Checkout (giỏ hàng đã xóa!) -->
+                <a href="/Order/History" class="btn btn-light text-muted small">
+                    <i class="bi bi-arrow-left me-1"></i>Xem lịch sử đơn hàng
+                </a>
+                
+                <!-- Mock Success Button (For testing purpose only) -->
+                <button type="button" class="btn btn-success small shadow-sm" onclick="mockWebhookSuccess()">
+                   <i class="bi bi-check-circle me-1"></i> (Test) Giả lập thanh toán xong
+                </button>
+            </div>
+            
+        </div>
+    </div>
+    
+    <div id="expiredCard" class="card border-0 shadow rounded-4 p-5 text-center d-none">
+        <i class="bi bi-x-circle text-danger mb-3" style="font-size: 4rem;"></i>
+        <h4 class="fw-bold">Giao dịch đã hết hạn</h4>
+        <p class="text-muted mt-2">Thời gian giữ đơn hàng đã kết thúc. Vui lòng quay lại giỏ hàng và đặt lại thao tác mới.</p>
+        <a href="/Cart" class="btn btn-outline-danger px-4 rounded-pill mt-2">Quay lại Giỏ hàng</a>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // [FIX BUG 3] Logic Đếm ngược 5 phút (đồng bộ với Worker hủy đơn sau 5 phút)
+        const createdAtStr = '@createdAt.ToString("yyyy-MM-ddTHH:mm:ss")';
+        const createdAtDate = new Date(createdAtStr);
+        const expireTime = new Date(createdAtDate.getTime() + 5 * 60000); // +5 phút
+
+        function updateCountdown() {
+            const now = new Date();
+            const diff = expireTime - now;
+
+            if (diff <= 0) {
+                // Hết giờ — ẩn QR, hiện thông báo expired
+                document.getElementById('paymentCard').classList.add('d-none');
+                document.getElementById('expiredCard').classList.remove('d-none');
+                return;
+            }
+
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+            document.getElementById('timerDisplay').innerText = 
+                minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0');
+            
+            requestAnimationFrame(updateCountdown);
+        }
+
+        // Start countdown
+        updateCountdown();
+
+        // [FIX BUG 3] Mock Webhook: thêm Amount và Signature hợp lệ để không bị reject
+        // Lưu ý: HMAC được tính phía server với key cố định. Để test, cần truyền đúng Amount.
+        function mockWebhookSuccess() {
+            const amount = @totalAmount; // Lấy từ Razor
+            const rawData = `orderId=@orderId&amount=${amount}&status=SUCCESS`;
+
+            // Mock signature (hệ thống test môi trường dev — chỉ dùng internal)
+            // Thực tế production: signature được tạo bởi Payment Gateway, không mock
+            const payload = {
+                OrderId: @orderId,
+                TransactionCode: "TEST_" + Math.floor(Math.random() * 1000000),
+                Amount: amount,
+                Status: "SUCCESS",
+                Signature: "BYPASS_DEV_MODE" // Cần DisableSignature check ở môi trường dev
+            };
+
+            fetch('/Payment/api/webhook/ipn', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => {
+                if (res.ok) {
+                    window.location.href = '/Checkout/Success/@orderId';
+                } else {
+                    res.json().then(err => alert('Lỗi Test IPN: ' + (err.Message || 'Unknown')));
+                }
+            })
+            .catch(err => console.error(err));
+        }
+
+        // Logic Long Polling thực tế sẽ check tình trạng đơn hàng bằng timer ở đây
+        $(document).ready(function () {
+            var pollingOrderId = '@orderId';
+            var pollInterval = setInterval(function () {
+                fetch('/Payment/api/payment/status/' + pollingOrderId)
+                    .then(response => response.json())
+                    .then(res => {
+                        if (res.isCompleted) {
+                            clearInterval(pollInterval);
+                            window.location.href = '/Checkout/Success/' + pollingOrderId;
+                        }
+                    })
+                    .catch(err => console.error('Lỗi khi kiểm tra trạng thái thanh toán', err));
+            }, 3000); 
+        });
+    </script>
+}

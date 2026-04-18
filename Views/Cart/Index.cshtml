@@ -82,64 +82,6 @@
         </div>
 
         <div class="col-lg-4">
-            <!-- AC1: Customer Identity -->
-            <div class="card border-0 shadow-sm rounded-4 bg-white mb-3">
-                <div class="card-body p-4">
-                    <h6 class="fw-bold mb-3"><i class="bi bi-person-badge text-orange me-2"></i>Khách hàng & Ưu đãi</h6>
-
-                    <!-- SĐT Lookup -->
-                    <div class="input-group mb-3" id="phoneLookupSection">
-                        <input type="text" id="customerPhone" class="form-control border-end-0 rounded-start-pill px-3" placeholder="Nhập số điện thoại...">
-                        <button class="btn btn-outline-secondary border-start-0 rounded-end-pill px-3" type="button" id="lookupBtn">
-                            <i class="bi bi-search"></i>
-                        </button>
-                    </div>
-
-                    <!-- Customer Info (Hidden by default) -->
-                    <div id="customerInfo" class="d-none mb-3">
-                        <div class="alert alert-light border-orange-subtle rounded-4 d-flex align-items-center justify-content-between">
-                            <div>
-                                <div class="small text-muted">Xin chào,</div>
-                                <div class="fw-bold text-orange" id="customerName">--</div>
-                                <div class="badge bg-orange-light text-orange fw-normal" id="customerRank">--</div>
-                            </div>
-                            <div class="text-end">
-                                <div class="small text-muted">Điểm tích lũy</div>
-                                <div class="fw-bold fs-5" id="customerPointsDisplay">0</div>
-                            </div>
-                        </div>
-
-                        <!-- AC2: Point Toggle -->
-                        <div class="form-check form-switch mt-3 d-flex justify-content-between align-items-center ps-0">
-                            <label class="form-check-label fw-bold small" for="usePoints">Sử dụng điểm tích lũy thanh toán</label>
-                            <input class="form-check-input ms-0 mt-0" type="checkbox" role="switch" id="usePoints" style="width: 2.5em; height: 1.25em; cursor: pointer;">
-                        </div>
-                        <div id="pointUsageInfo" class="small text-muted d-none mt-1">
-                            Quy đổi: <span class="fw-bold">1đ = 1 VNĐ</span>. Đã giảm: <span class="text-success fw-bold" id="pointDiscountValue">0đ</span>
-                        </div>
-                    </div>
-
-                    <!-- Register Prompt (Hidden) -->
-                    <div id="registerPrompt" class="d-none text-center py-2">
-                        <p class="small text-muted mb-2">Chưa là thành viên?</p>
-                        <button type="button" class="btn btn-sm btn-outline-orange rounded-pill px-4" data-bs-toggle="modal" data-bs-target="#quickRegisterModal">
-                            Đăng ký ngay
-                        </button>
-                    </div>
-
-                    <hr class="opacity-10 my-4 text-orange">
-
-                    <!-- AC3: Promo Code -->
-                    <div class="mb-0">
-                        <label class="fw-bold small mb-2 text-muted">Mã giảm giá (Săn voucher / Quét QR)</label>
-                        <div class="input-group mb-2">
-                            <input type="text" id="promoCodeInput" class="form-control rounded-start-pill px-3" placeholder="Ví dụ: COFFEE2024">
-                            <button class="btn btn-orange rounded-end-pill px-3 fw-bold" type="button" id="applyVoucherBtn">ÁP DỤNG</button>
-                        </div>
-                        <div id="voucherStatus" class="small text-danger d-none"></div>
-                    </div>
-                </div>
-            </div>
 
             <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
                 <div class="card-body p-4">
@@ -176,9 +118,9 @@
                         <span class="fw-bold fs-4 text-orange"><span id="finalTotalText">@finalTotal.ToString("N0")</span>đ</span>
                     </div>
 
-                    <button class="btn btn-orange w-100 rounded-3 py-3 fw-bold mb-3 shadow-sm border-0" @(!Model.Items.Any() ? "disabled" : "")>
-                        THANH TOÁN NGAY
-                    </button>
+                    <a href="/Checkout" class="btn btn-orange w-100 rounded-3 py-3 fw-bold mb-3 shadow-sm border-0 @(!Model.Items.Any() ? "disabled" : "")">
+                        TIẾN HÀNH THANH TOÁN
+                    </a>
 
                     <div class="text-center text-muted" style="font-size: 0.7rem;">
                         <i class="bi bi-shield-check text-success me-1"></i> THANH TOÁN AN TOÀN & BẢO MẬT
@@ -273,7 +215,7 @@
         $(document).on('click', '#confirmRegisterBtn', function() {
             const name = $('#regFullName').val();
             const phone = $('#regPhone').val();
-            if(!name) { alert('Vui lòng nhập tên'); return; }
+            if(!name) { showToast('Vui lòng nhập tên khách hàng!', 'warning'); return; }
 
             $.ajax({
                 url: '/api/Pos/quick-register',
@@ -338,11 +280,18 @@
         }
 
         function removeItem(cartItemId) {
-            if(confirm('Xóa món này khỏi giỏ hàng?')) {
-                $.post('/Cart/RemoveItem', { id: cartItemId }, function (res) {
-                    if (res.success) { location.reload(); }
-                });
-            }
+            showConfirm({
+                title: 'Xóa món khỏi giỏ hàng',
+                message: 'Bạn có chắc muốn xóa món này không? Hành động này không thể hoàn tác.',
+                type: 'danger',
+                okText: 'Xóa ngay',
+                cancelText: 'Giữ lại',
+                onConfirm: function() {
+                    $.post('/Cart/RemoveItem', { id: cartItemId }, function (res) {
+                        if (res.success) { location.reload(); }
+                    });
+                }
+            });
         }
     </script>
 

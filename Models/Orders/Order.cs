@@ -1,9 +1,10 @@
-﻿using CafeChain.Models.Customers;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using CafeChain.Models.Loyalties;
+using System.ComponentModel.DataAnnotations;
 namespace CafeChain.Models.Orders
 {
     public class Order
@@ -13,12 +14,30 @@ namespace CafeChain.Models.Orders
         public int? CustomerId { get; set; }
         public int StoreId { get; set; }
         public int OrderStatusId { get; set; }
+        public int PaymentStatusId { get; set; }
         public int OrderTypeId { get; set; }
         public int? TableId { get; set; }
         public int? StaffId { get; set; }
 
-        public string Source { get; set; }
-        public string Note { get; set; }
+        public string? Source { get; set; }
+        public string? Note { get; set; }
+        public string? PaymentReference { get; set; }
+
+        
+        // ====== RECEIVER INFORMATION (Zero-Trust Delivery) ======
+        [Required(ErrorMessage = "Vui lòng nhập tên người nhận")]
+        [MaxLength(100)]
+        public string ReceiverName { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại")]
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
+        public string ReceiverPhone { get; set; }
+
+        [Required(ErrorMessage = "Vui lòng nhập địa chỉ giao hàng")]
+        public string DeliveryAddress { get; set; }
+
+        [Required]
+        public decimal ShippingFee { get; set; }
 
         // ====== MONEY BREAKDOWN ======
         public decimal SubTotal { get; set; }          // Tổng tiền gốc (chưa giảm)
@@ -34,6 +53,7 @@ namespace CafeChain.Models.Orders
         public virtual Store Store { get; set; }
         public virtual Staff Staff { get; set; }
         public virtual OrderStatus OrderStatus { get; set; }
+        public virtual PaymentStatus PaymentStatus { get; set; }
         public virtual OrderType OrderType { get; set; }
 
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
