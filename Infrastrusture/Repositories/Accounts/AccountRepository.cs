@@ -72,6 +72,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                 {
                     AccountId = account.AccountId,
                     RoleId = customerRoleId
+
                 });
 
                 await _context.SaveChangesAsync();

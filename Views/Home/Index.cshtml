@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.HomeViewModel
+@model CafeChain.ViewModels.HomeViewModel
 
 @{
     ViewData["Title"] = "Trang chủ";
@@ -85,8 +85,245 @@
     }
 </div>
 
+@if (Model.ActiveWheel != null)
+{
+    <!-- Premium Lucky Wheel Button -->
+    <div class="wheel-fab-container position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center" 
+         style="cursor: pointer; width: 75px; height: 75px; border-radius: 50%; z-index: 1030;" onclick="openWheel()">
+        <div class="position-relative">
+            <div class="wheel-pulse"></div>
+            <div class="wheel-icon shadow-lg d-flex align-items-center justify-content-center spin-animation" 
+                 style="width: 75px; height: 75px; border: 4px solid #fcd34d; background: radial-gradient(circle, #f43f5e 0%, #9f1239 100%); border-radius: 50%; box-shadow: 0 0 35px rgba(225, 29, 72, 0.6);">
+                <i class="fas fa-dharmachakra fa-2x text-white"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lucky Wheel Modal -->
+    <div class="modal fade" id="luckyWheelModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 bg-transparent shadow-none">
+                <div class="modal-body p-0 text-center position-relative">
+                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"></button>
+                    
+                    <div class="wheel-outer-frame shadow-lg p-3 mx-auto" style="width: 400px; height: 400px; background: radial-gradient(circle, #fcd34d 0%, #d97706 100%); border-radius: 50%; border: 12px solid #343a40; position: relative; box-shadow: 0 0 50px rgba(217, 61, 32, 0.4);">
+                        <!-- Lights around the wheel -->
+                        <div class="wheel-lights"></div>
+                        <!-- Premium Pointer -->
+                        <div class="wheel-pointer-wrap" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 100;">
+                            <div style="width: 30px; height: 30px; background: #343a40; border-radius: 50%; border: 4px solid #fcd34d; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0 auto; position: relative; z-index: 2;"></div>
+                            <div style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #d93d20; margin: -8px auto 0; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4)); position: relative; z-index: 1;"></div>
+                        </div>
+
+                        <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
+                            
+                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);"></canvas>
+                            
+                            <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
+                                    style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
+                                    onclick="spinTheWheel()">
+                                QUAY
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-white p-4 rounded-4 shadow-lg mx-auto border" style="max-width: 380px; border-top: 5px solid #d93d20;">
+                        <h4 class="fw-bold mb-1 text-dark">Vòng quay may mắn</h4>
+                        <div id="accountInfo" class="d-none badge bg-light text-dark p-2 rounded-3 mb-3 border w-100 fs-6">
+                            <i class="fas fa-coins text-warning me-2"></i> Điểm: <span id="userPoints" class="fw-bold text-danger">0</span>
+                        </div>
+                        <p class="small fw-semibold text-muted mb-0" id="wheelTypeMsg">Đăng nhập ngay để nhận Voucher miễn phí!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <style>
+        .spin-animation { animation: rotate 15s linear infinite; }
+        @@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .wheel-fab-container { transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 50%; overflow: visible; background: transparent; }
+        .wheel-fab-container:hover { transform: scale(1.1); box-shadow: 0 10px 30px rgba(217, 61, 32, 0.5); }
+        
+        .wheel-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 75px;
+            background: rgba(244, 63, 94, 0.4);
+            border-radius: 50%;
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+            z-index: -1;
+        }
+
+        @@keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+        }
+
+        .product-slider { -ms-overflow-style: none; scrollbar-width: none; }
+        .product-slider::-webkit-scrollbar { display: none; }
+        .wheel-outer-frame::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 3px dashed rgba(255,255,255,0.4); pointer-events: none; }
+    </style>
+}
+
 @section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     <script>
+        let wheelModal;
+        let canvas = document.getElementById('wheelCanvas');
+        let ctx = canvas ? canvas.getContext('2d') : null;
+        let sectors = [];
+        let isSpinning = false;
+
+        @if (Model.ActiveWheel != null)
+        {
+            @: sectors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveWheel.Prizes.OrderBy(p => p.SlotIndex).Select(p => new { label = p.IsLose ? "Xịt" : (p.Voucher != null ? p.Voucher.Code : "Quà"), color = (p.SlotIndex % 2 == 0) ? "#f43f5e" : "#fb7185", textColor = "#fff" })));
+        }
+
+        $(document).ready(function() {
+            if (canvas) {
+                drawWheel();
+                wheelModal = new bootstrap.Modal(document.getElementById('luckyWheelModal'));
+            }
+        });
+
+        function drawWheel() {
+            if (!ctx) return;
+            let numSectors = sectors.length;
+            let arc = (2 * Math.PI) / numSectors;
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+            let radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSectors; i++) {
+                let angle = i * arc;
+                
+                // Vẽ ô với gradient nhẹ
+                let grad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, radius);
+                grad.addColorStop(0, sectors[i].color);
+                grad.addColorStop(1, i % 2 === 0 ? "#be123c" : "#e11d48");
+                
+                ctx.beginPath();
+                ctx.fillStyle = grad;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arc);
+                ctx.lineTo(centerX, centerY);
+                ctx.fill();
+
+                // Thêm viền trắng mờ giữa các ô
+                ctx.strokeStyle = "rgba(255,255,255,0.2)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                // Vẽ text
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = sectors[i].textColor;
+                ctx.font = "bold 13px Inter, sans-serif";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(sectors[i].label, radius - 20, 5);
+                ctx.restore();
+            }
+        }
+
+        function openWheel() {
+            $.get('/LuckyWheel/GetUserInfo', function(res) {
+                if (res.isAuthenticated) {
+                    $('#accountInfo').removeClass('d-none');
+                    $('#userPoints').text(res.points.toLocaleString());
+                    if (res.isNewUser) {
+                        $('#wheelTypeMsg').html('<span class="text-danger fw-bold">🎁 CHÀO MỪNG! BẠN CÓ 1 LẦN QUAY MIỄN PHÍ!</span>');
+                    } else {
+                        $('#wheelTypeMsg').text(`Mỗi lượt quay kế tiếp tốn ${res.spinCost} điểm.`);
+                    }
+                } else {
+                    $('#wheelTypeMsg').text('Đăng nhập để nhận phần thưởng ngay!');
+                }
+                wheelModal.show();
+            });
+        }
+
+        function spinTheWheel() {
+            if (isSpinning) return;
+            
+            $.post('/LuckyWheel/Spin', function(res) {
+                if (!res.success) {
+                    Swal.fire({
+                        title: 'Thông báo',
+                        text: res.message,
+                        icon: 'info',
+                        confirmButtonColor: '#d93d20'
+                    }).then(() => {
+                        if (res.notLoggedIn) window.location.href = '/Account/Login';
+                    });
+                    return;
+                }
+
+                isSpinning = true;
+                $('#spinBtn').css('opacity', '0.5');
+                
+                let numSectors = sectors.length;
+                let sectorArc = 360 / numSectors;
+                
+                let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
+                let totalRotation = 360 * 8 + stopAngle; // Quay 8 vòng cho kịch tính
+                
+                canvas.style.transform = `rotate(${totalRotation}deg)`;
+                
+                setTimeout(() => {
+                    isSpinning = false;
+                    $('#spinBtn').css('opacity', '1');
+
+                    if (!res.isLose) {
+                        // Hiệu ứng pháo hoa khi thắng
+                        confetti({
+                            particleCount: 150,
+                            spread: 100,
+                            origin: { y: 0.6 },
+                            colors: ['#f43f5e', '#fb7185', '#fbbf24']
+                        });
+
+                        Swal.fire({
+                            title: '<h3 class="fw-bold" style="color:#d93d20">CHÚC MỪNG!</h3>',
+                            html: `Bạn đã trúng Voucher: <b class="fs-4 text-dark">${res.voucherCode}</b><br><small class="text-muted">Mã đã được lưu vào giỏ hàng của bạn!</small>`,
+                            imageUrl: '/Images/Icons/gift-box.png',
+                            imageWidth: 80,
+                            confirmButtonText: 'TUYỆT VỜI',
+                            confirmButtonColor: '#d93d20'
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Tiếc quá!',
+                            text: 'Chúc bạn may mắn lần sau nhé!',
+                            icon: 'info',
+                            confirmButtonColor: '#343a40'
+                        });
+                    }
+
+                    if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
+                    
+                    // Reset rotation visual
+                    setTimeout(() => {
+                        canvas.style.transition = 'none';
+                        canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
+                        setTimeout(() => { canvas.style.transition = 'transform 5s cubic-bezier(0.15, 0, 0.1, 1)'; }, 50);
+                    }, 500);
+                }, 5000);
+            });
+        }
+
         console.log("Kiểm tra: Hàm scrollSlider đã tồn tại chưa?");
         console.log(typeof scrollSlider);
     </script>

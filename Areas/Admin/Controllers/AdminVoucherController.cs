@@ -5,8 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Authorize(Roles = "Admin System,Store Manager")]
-    public class AdminVoucherController : AdminBaseController
+    [Area("Admin")]
+    public class AdminVoucherController : Controller
     {
         private readonly IAdminVoucherService _voucherService;
 
@@ -51,9 +51,17 @@ namespace CafeChain.Areas.Admin.Controllers
         public IActionResult Create() => View();
 
         [HttpPost]
-        public async Task<IActionResult> Create(int? VoucherId, string Code, int? DiscountPercent, decimal? DiscountAmount, decimal? MaxDiscount, decimal? MinOrderValue, DateTime StartDate, DateTime EndDate, int? MaxUsage, int? MaxUsagePerUser)
+        public async Task<IActionResult> Create(int? VoucherId, string Code, int? DiscountPercent, decimal? DiscountAmount, decimal? MaxDiscount, decimal? MinOrderValue, DateTime? StartDate, DateTime? EndDate, int? MaxUsage, int? MaxUsagePerUser, string? DaysOfWeek, TimeSpan? StartHour, TimeSpan? EndHour)
         {
-            if (EndDate < StartDate)
+            // Kiểm tra trùng mã
+            var allVouchers = await _voucherService.GetAllVouchersAsync();
+            if (allVouchers.Any(v => v.Code.Equals(Code, StringComparison.OrdinalIgnoreCase) && v.VoucherId != (VoucherId ?? 0)))
+            {
+                TempData["Error"] = $"Mã Voucher '{Code}' đã tồn tại trong hệ thống!";
+                return RedirectToAction(nameof(Index));
+            }
+
+            if (StartDate.HasValue && EndDate.HasValue && EndDate < StartDate)
             {
                 TempData["Error"] = "Ngày kết thúc không thể nhỏ hơn ngày bắt đầu!";
                 return RedirectToAction(nameof(Index));
@@ -73,6 +81,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     existing.EndDate = EndDate;
                     existing.MaxUsage = MaxUsage;
                     existing.MaxUsagePerUser = MaxUsagePerUser;
+                    existing.DaysOfWeek = DaysOfWeek;
+                    existing.StartHour = StartHour;
+                    existing.EndHour = EndHour;
                     await _voucherService.UpdateVoucherAsync(existing);
                     return RedirectToAction(nameof(Index));
                 }
@@ -89,6 +100,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 EndDate = EndDate,
                 MaxUsage = MaxUsage,
                 MaxUsagePerUser = MaxUsagePerUser,
+                DaysOfWeek = DaysOfWeek,
+                StartHour = StartHour,
+                EndHour = EndHour,
                 Active = true
             };
 
@@ -134,10 +148,13 @@ namespace CafeChain.Areas.Admin.Controllers
                 discountAmount = voucher.DiscountAmount,
                 maxDiscount = voucher.MaxDiscount,
                 minOrderValue = voucher.MinOrderValue,
-                startDate = voucher.StartDate,
-                endDate = voucher.EndDate,
+                startDate = voucher.StartDate?.ToString("yyyy-MM-dd"),
+                endDate = voucher.EndDate?.ToString("yyyy-MM-dd"),
                 maxUsage = voucher.MaxUsage,
-                maxUsagePerUser = voucher.MaxUsagePerUser
+                maxUsagePerUser = voucher.MaxUsagePerUser,
+                daysOfWeek = voucher.DaysOfWeek,
+                startHour = voucher.StartHour?.ToString(@"hh\:mm"),
+                endHour = voucher.EndHour?.ToString(@"hh\:mm")
             });
         }
     }

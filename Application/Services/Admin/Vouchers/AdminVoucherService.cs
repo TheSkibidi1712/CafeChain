@@ -31,7 +31,8 @@ namespace CafeChain.Application.Services.Admin.Vouchers
 
             // 2. Thời gian hiện tại có nằm trong hiệu lực [StartDate - EndDate] không?
             var now = DateTime.Now;
-            if (now < voucher.StartDate || now > voucher.EndDate)
+            if ((voucher.StartDate.HasValue && now < voucher.StartDate.Value) || 
+                (voucher.EndDate.HasValue && now > voucher.EndDate.Value))
                 return (false, "Voucher này đã hết hạn hoặc chưa đến ngày bắt đầu.", null);
 
             // 3. Tổng tiền gốc (SubTotal) có đạt MinOrderValue không?
@@ -52,6 +53,23 @@ namespace CafeChain.Application.Services.Admin.Vouchers
             var totalUsed = await _context.VoucherUsages.CountAsync(u => u.VoucherId == voucher.VoucherId);
             if (voucher.MaxUsage.HasValue && totalUsed >= voucher.MaxUsage.Value)
                 return (false, "Mã voucher này đã hết lượt sử dụng.", null);
+
+            // 5. Check ngày trong tuần
+            if (!string.IsNullOrEmpty(voucher.DaysOfWeek))
+            {
+                var currentDay = (int)now.DayOfWeek;
+                int vnDay = currentDay == 0 ? 8 : currentDay + 1;
+                if (!voucher.DaysOfWeek.Split(',').Contains(vnDay.ToString()))
+                    return (false, "Voucher không áp dụng cho ngày hôm nay.", null);
+            }
+
+            // 6. Check khung giờ
+            if (voucher.StartHour.HasValue && voucher.EndHour.HasValue)
+            {
+                var currentTime = now.TimeOfDay;
+                if (currentTime < voucher.StartHour.Value || currentTime > voucher.EndHour.Value)
+                    return (false, $"Voucher chỉ áp dụng từ {voucher.StartHour?.ToString(@"hh\:mm")} đến {voucher.EndHour?.ToString(@"hh\:mm")}.", null);
+            }
 
             return (true, "Áp dụng thành công!", voucher);
         }
