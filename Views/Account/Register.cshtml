@@ -336,10 +336,10 @@
             <h2 class="form-title">Đăng ký tài khoản</h2>
 
             <form asp-action="Register" method="post">
-                @if (!ViewData.ModelState.IsValid && ViewData.ModelState.ErrorCount > 0)
+                @if (!ViewData.ModelState.IsValid)
                 {
                     <div class="validation-summary">
-                        <div asp-validation-summary="ModelOnly"></div>
+                        <div asp-validation-summary="All"></div>
                     </div>
                 }
 
@@ -404,17 +404,10 @@
                 </div>
 
                 <div class="form-group">
-                    <div class="checkbox-group">
-                        <!-- Hidden input fallback: gửi false kị cả khi không check -->
-                        <input type="hidden" name="AcceptTerms" value="false" />
-                        <input type="checkbox"
-                           name="AcceptTerms"
-                           id="terms"
-                           value="true" />
+                        <input asp-for="AcceptTerms" id="terms" type="checkbox" />
                         <label for="terms" class="checkbox-label">
                         Tôi đồng ý với <span>điều khoản thành viên</span> và chính sách bảo mật của CafeChain.
                         </label>
-                    </div>
                     <span asp-validation-for="AcceptTerms" class="text-danger"></span>
                 </div>
                 <button type="submit" class="submit-btn">

@@ -63,7 +63,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                 _context.AccountRoles.Add(new AccountRole
                 {
                     AccountId = account.AccountId,
-                    RoleId = 6 // ⚠️ nhớ check DB có tồn tại
+                    RoleId = 11 // 🔥 Đã cập nhật cho phù hợp với DB (Khách hàng = 11)
                 });
 
                 await _context.SaveChangesAsync();

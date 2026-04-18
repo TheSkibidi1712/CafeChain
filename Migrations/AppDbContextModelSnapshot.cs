@@ -5259,14 +5259,20 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("DaysOfWeek")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("DiscountPercent")
                         .HasColumnType("int");
 
-                    b.Property<DateTime>("EndDate")
+                    b.Property<DateTime?>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan?>("EndHour")
+                        .HasColumnType("time");
 
                     b.Property<decimal?>("MaxDiscount")
                         .HasColumnType("decimal(18,2)");
@@ -5280,8 +5286,11 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("MinOrderValue")
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<DateTime>("StartDate")
+                    b.Property<DateTime?>("StartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<TimeSpan?>("StartHour")
+                        .HasColumnType("time");
 
                     b.HasKey("VoucherId");
 
@@ -5306,11 +5315,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 16, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8922),
+                            EndDate = new DateTime(2026, 5, 18, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7308),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 9, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8904)
+                            StartDate = new DateTime(2026, 4, 11, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7270)
                         },
                         new
                         {
@@ -5318,10 +5327,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 1, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8927),
+                            EndDate = new DateTime(2026, 5, 3, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7319),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8926)
+                            StartDate = new DateTime(2026, 4, 17, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7317)
                         },
                         new
                         {
@@ -5329,11 +5338,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930),
+                            EndDate = new DateTime(2026, 6, 17, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7329),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 17, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930)
+                            StartDate = new DateTime(2026, 3, 19, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7327)
                         });
                 });
 

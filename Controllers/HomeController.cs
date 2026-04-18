@@ -1,4 +1,4 @@
-﻿using CafeChain.Data;
+using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.ViewModels;
 using Microsoft.AspNetCore.Mvc;
@@ -9,10 +9,12 @@ namespace CafeChain.Controllers
     public class HomeController : Controller
     {
         private readonly AppDbContext _context;
+        private readonly CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService _wheelService;
 
-        public HomeController(AppDbContext context)
+        public HomeController(AppDbContext context, CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService wheelService)
         {
             _context = context;
+            _wheelService = wheelService;
         }
 
         public async Task<IActionResult> Index()
@@ -30,7 +32,9 @@ namespace CafeChain.Controllers
                     //.Include(d => d.Category) // Nạp thêm Category để render theo từng cụm (Nước, Bánh...)
                     .Where(d => d.Active)
                     .Take(6)
-                    .ToListAsync()
+                    .ToListAsync(),
+                
+                ActiveWheel = await _wheelService.GetActiveConfigAsync()
             };
 
             return View(viewModel);

@@ -28,7 +28,7 @@
         <h2 style="font-weight: 700; color: #343a40;">Quản lý Voucher</h2>
         <p class="text-muted" style="font-size: 14px;">Thiết lập chương trình ưu đãi và hạng thành viên</p>
     </div>
-    <button type="button" class="btn text-white shadow-sm" data-bs-toggle="modal" data-bs-target="#addVoucherModal" style="background-color: #d93d20; border-radius: 8px; padding: 10px 20px; font-weight: 600;">
+    <button type="button" class="btn text-white shadow-sm" onclick="prepareAddVoucher()" style="background-color: #d93d20; border-radius: 8px; padding: 10px 20px; font-weight: 600;">
         <i class="fas fa-plus me-2"></i>Thêm Voucher mới
     </button>
 </div>
@@ -69,29 +69,61 @@
                             }
                         </td>
                         <td class="py-3 text-muted">
-                            <i class="far fa-calendar-alt me-1"></i> @v.StartDate.ToString("dd/MM") - @v.EndDate.ToString("dd/MM/yyyy")
+                            <div>
+                                <i class="far fa-calendar-alt me-1"></i> 
+                                @(v.StartDate?.ToString("dd/MM") ?? "∞") - @(v.EndDate?.ToString("dd/MM/yyyy") ?? "∞")
+                            </div>
+                            @if (!string.IsNullOrEmpty(v.DaysOfWeek) || v.StartHour.HasValue)
+                            {
+                                <div class="small mt-1">
+                                    <i class="far fa-clock me-1"></i>
+                                    @if (!string.IsNullOrEmpty(v.DaysOfWeek))
+                                    {
+                                        <span>@v.DaysOfWeek.Replace("2","T2").Replace("3","T3").Replace("4","T4").Replace("5","T5").Replace("6","T6").Replace("7","T7").Replace("8","CN")</span>
+                                    }
+                                    @if (v.StartHour.HasValue)
+                                    {
+                                        <span class="ms-1">(@v.StartHour?.ToString(@"hh\:mm") - @v.EndHour?.ToString(@"hh\:mm"))</span>
+                                    }
+                                </div>
+                            }
                         </td>
                         <td class="py-3 text-end">
                             <span class="fw-bold">@v.VoucherUsages?.Count</span> / @(v.MaxUsage?.ToString("N0") ?? "∞")
                         </td>
                         <td class="py-3 text-center">
+                            @{
+                                var now = DateTime.Now;
+                                var currentDay = (int)now.DayOfWeek;
+                                int vnDay = currentDay == 0 ? 8 : currentDay + 1;
+                                var isCorrectDay = string.IsNullOrEmpty(v.DaysOfWeek) || v.DaysOfWeek.Split(',').Contains(vnDay.ToString());
+                                var isCorrectTime = !v.StartHour.HasValue || (now.TimeOfDay >= v.StartHour && now.TimeOfDay <= v.EndHour);
+                            }
+
                             @if (!v.Active)
                             {
                                 <span class="badge bg-light text-danger" style="padding: 6px 12px; border-radius: 6px;">Đã khóa</span>
                             }
-                            else if (v.EndDate < DateTime.Now)
+                            else if (v.EndDate.HasValue && v.EndDate < now)
                             {
                                 <span class="badge bg-light text-muted" style="padding: 6px 12px; border-radius: 6px;">Hết hạn</span>
                             }
-                            else if (v.StartDate > DateTime.Now)
+                            else if (v.StartDate.HasValue && v.StartDate > now)
                             {
                                 <span class="badge bg-light text-warning" style="padding: 6px 12px; border-radius: 6px; color: #f08c00;">Sắp diễn ra</span>
+                            }
+                            else if (!isCorrectDay)
+                            {
+                                <span class="badge bg-light text-info" style="padding: 6px 12px; border-radius: 6px; color: #0c85d0;">Chờ tới ngày</span>
+                            }
+                            else if (!isCorrectTime)
+                            {
+                                <span class="badge bg-light text-secondary" style="padding: 6px 12px; border-radius: 6px;">Ngoài khung giờ</span>
                             }
                             else
                             {
                                 <span class="badge" style="background-color: #e6fcf5; color: #0ca678; padding: 6px 12px; border-radius: 6px; font-weight: 500;">Đang hoạt động</span>
                             }
-
                         </td>
                         <td class="text-end px-4 py-3">
                             <button class="btn btn-sm text-primary p-1" onclick="editVoucher(@v.VoucherId)" title="Sửa"><i class="fas fa-pen"></i></button>
@@ -238,11 +270,36 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Ngày bắt đầu</label>
-                            <input type="date" name="StartDate" id="vStart" class="form-control rounded-3" required>
+                            <input type="date" name="StartDate" id="vStart" class="form-control rounded-3">
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small fw-bold">Ngày kết thúc</label>
-                            <input type="date" name="EndDate" id="vEnd" class="form-control rounded-3" required>
+                            <input type="date" name="EndDate" id="vEnd" class="form-control rounded-3">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Ngày áp dụng trong tuần</label>
+                        <div class="d-flex flex-wrap gap-2" id="dayPicker">
+                            <input type="hidden" name="DaysOfWeek" id="vDaysOfWeek">
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="2">T2</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="3">T3</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="4">T4</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="5">T5</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="6">T6</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="7">T7</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill day-btn" data-day="8">CN</button>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Giờ bắt đầu</label>
+                            <input type="time" name="StartHour" id="vStartHour" class="form-control rounded-3">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Giờ kết thúc</label>
+                            <input type="time" name="EndHour" id="vEndHour" class="form-control rounded-3">
                         </div>
                     </div>
 
@@ -325,6 +382,7 @@
         .uppercase { text-transform: uppercase; }
         .form-control:focus, .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.25rem rgba(217, 61, 32, 0.1); }
         .btn-orange:hover { background-color: #b32e18 !important; }
+        .day-btn.active { background-color: #d93d20 !important; color: white !important; border-color: #d93d20 !important; }
     </style>
 }
 
@@ -349,9 +407,32 @@
                     $('#vMaxDiscount').val(''); // Clear max discount when fixed amount
                 }
             });
+
+            $('.day-btn').on('click', function() {
+                $(this).toggleClass('active');
+                updateDaysOfWeek();
+            });
+
+            function updateDaysOfWeek() {
+                var selectedDays = [];
+                $('.day-btn.active').each(function() {
+                    selectedDays.push($(this).data('day'));
+                });
+                $('#vDaysOfWeek').val(selectedDays.join(','));
+            }
         });
 
         const formatter = new Intl.NumberFormat('en-US');
+        
+        function prepareAddVoucher() {
+            $('#voucherModalTitle').text('Thêm Voucher mới');
+            $('#vId').val('');
+            $('#voucherForm')[0].reset();
+            $('.day-btn').removeClass('active');
+            $('#vDaysOfWeek').val('');
+            $('#discountType').val('percent').trigger('change');
+            $('#addVoucherModal').modal('show');
+        }
 
         function editVoucher(id) {
             $.get('/Admin/AdminVoucher/GetVoucherJson/' + id, function(data) {
@@ -367,10 +448,26 @@
                 }
                 $('#vMaxDiscount').val(data.maxDiscount);
                 $('#vMinOrder').val(data.minOrderValue);
-                $('#vStart').val(data.startDate.split('T')[0]);
-                $('#vEnd').val(data.endDate.split('T')[0]);
+                $('#vStart').val(data.startDate || '');
+                $('#vEnd').val(data.endDate || '');
                 $('#vMaxUsage').val(data.maxUsage);
                 $('#vMaxPerUser').val(data.maxUsagePerUser);
+                
+                // Set days
+                $('.day-btn').removeClass('active');
+                if (data.daysOfWeek) {
+                    var days = data.daysOfWeek.split(',');
+                    days.forEach(function(d) {
+                        $('.day-btn[data-day="' + d + '"]').addClass('active');
+                    });
+                    $('#vDaysOfWeek').val(data.daysOfWeek);
+                } else {
+                    $('#vDaysOfWeek').val('');
+                }
+
+                $('#vStartHour').val(data.startHour);
+                $('#vEndHour').val(data.endHour);
+
                 $('#addVoucherModal').modal('show');
             });
         }

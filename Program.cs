@@ -188,6 +188,7 @@ builder.Services.AddScoped<IAdminDrinkService, AdminDrinkService>();
 
 // Admin Voucher
 builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
+builder.Services.AddScoped<IAdminWheelService, AdminWheelService>();
 
 // Admin Staff
 builder.Services.AddScoped<IAdminStaffRepository, AdminStaffRepository>();

@@ -327,9 +327,12 @@ namespace CafeChain.Migrations
                     MinOrderValue = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     MaxUsage = table.Column<int>(type: "int", nullable: true),
                     MaxUsagePerUser = table.Column<int>(type: "int", nullable: true),
-                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    DaysOfWeek = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    StartHour = table.Column<TimeSpan>(type: "time", nullable: true),
+                    EndHour = table.Column<TimeSpan>(type: "time", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2058,12 +2061,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Vouchers",
-                columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
+                columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 16, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8922), 20000m, 100, null, 40000m, new DateTime(2026, 4, 9, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8904) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 5, 1, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8927), null, 500, null, 50000m, new DateTime(2026, 4, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8926) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 15, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930), 100000m, 1000, null, 0m, new DateTime(2026, 3, 17, 12, 19, 30, 295, DateTimeKind.Local).AddTicks(8930) }
+                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 18, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7308), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 11, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7270), null },
+                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 3, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7319), null, null, 500, null, 50000m, new DateTime(2026, 4, 17, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7317), null },
+                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 17, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7329), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 19, 14, 3, 8, 56, DateTimeKind.Local).AddTicks(7327), null }
                 });
 
             migrationBuilder.InsertData(

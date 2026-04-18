@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Drinks;
+using CafeChain.Models.Drinks;
 
 namespace CafeChain.ViewModels
 {
@@ -9,5 +9,7 @@ namespace CafeChain.ViewModels
 
         // Danh sách các món nước để hiện ở lưới sản phẩm
         public List<Drink> Drinks { get; set; }
+
+        public CafeChain.Models.Vouchers.WheelConfig? ActiveWheel { get; set; }
     }
 }
