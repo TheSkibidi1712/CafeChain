@@ -1,10 +1,8 @@
-﻿const TYPE = {
-    IMPORT: "1"
-};
-
+﻿
 let currentSupplier = null;
 let ingredientsBySupplier = [];
 
+// ================= INIT =================
 export function initImport() {
     const supplier = document.getElementById("supplier");
 
@@ -17,7 +15,7 @@ export function getCurrentSupplier() {
     return currentSupplier;
 }
 
-// ================= LOAD INGREDIENT =================
+// ================= LOAD INGREDIENT BY SUPPLIER =================
 async function loadIngredientsBySupplier() {
     const supplierSelect = document.getElementById("supplier");
     const supplierId = supplierSelect.value;
@@ -27,30 +25,37 @@ async function loadIngredientsBySupplier() {
 
     if (!supplierId) return;
 
-    // 🔥 LẤY NAME
     const selectedOption = supplierSelect.selectedOptions[0];
+
     currentSupplier = {
         id: supplierId,
-        name: selectedOption.text
+        name: selectedOption?.text || ""
     };
 
     try {
         const r = await fetch(`/api/admin/inventory-documents/ingredient-suppliers?supplierId=${supplierId}`);
-
         if (!r.ok) throw new Error();
 
         const data = await r.json();
-
         ingredientsBySupplier = Array.isArray(data) ? data : [];
 
     } catch {
-        toast("Không tải được nguyên liệu", "error");
+        toast("Không tải được nguyên liệu từ nhà cung cấp", "error");
     }
 }
 
 // ================= ADD ROW =================
 export function addImportRow() {
-    if (!ingredientsBySupplier || ingredientsBySupplier.length === 0) {
+
+    const purpose = Number(document.getElementById("importPurposeSelect").value);
+
+    // ❌ chỉ cho nhập purchase
+    if (purpose !== PURPOSE.IMPORT_PURCHASE) {
+        toast("Chỉ áp dụng cho nhập từ nhà cung cấp", "error");
+        return;
+    }
+
+    if (!ingredientsBySupplier.length) {
         toast("Vui lòng chọn nhà cung cấp trước", "error");
         return;
     }
@@ -61,7 +66,7 @@ export function addImportRow() {
         <td><select class="ingredient"></select></td>
         <td><select class="unit" disabled></select></td>
         <td><input type="number" class="qty" value="1" min="1"></td>
-        <td><input class="price" readonly></td>
+        <td><input type="number" class="price" readonly></td>
         <td><span class="rowTotal">0</span></td>
         <td><input class="note"></td>
         <td><button type="button">X</button></td>
@@ -73,7 +78,7 @@ export function addImportRow() {
     const unitSelect = tr.querySelector(".unit");
     const priceInput = tr.querySelector(".price");
 
-    // ✅ FIX FIELD CHUẨN
+    // ================= LOAD INGREDIENT =================
     ingSelect.innerHTML =
         `<option value="">-- Chọn nguyên liệu --</option>` +
         ingredientsBySupplier.map(x =>
@@ -84,7 +89,8 @@ export function addImportRow() {
 
     // chọn nguyên liệu
     ingSelect.addEventListener("change", async () => {
-        // reset unit + price
+
+        // reset UI
         unitSelect.innerHTML = "";
         priceInput.value = "";
         tr.querySelector(".rowTotal").innerText = "0";
@@ -92,7 +98,7 @@ export function addImportRow() {
         await loadImportUnitPrice(tr);
     });
 
-    // thay đổi số lượng
+    // đổi số lượng
     tr.querySelector(".qty").addEventListener("input", () => calcRow(tr));
 
     // xóa dòng
@@ -104,6 +110,7 @@ export function addImportRow() {
 
 // ================= LOAD UNIT + PRICE =================
 async function loadImportUnitPrice(tr) {
+
     const ingId = tr.querySelector(".ingredient").value;
     const supplierId = document.getElementById("supplier").value;
 
@@ -111,25 +118,62 @@ async function loadImportUnitPrice(tr) {
 
     try {
         const r = await fetch(`/api/admin/inventory-documents/import-info?ingredientId=${ingId}&supplierId=${supplierId}`);
-
         if (!r.ok) throw new Error();
 
         const data = await r.json();
 
+        if (!data) {
+            toast("Nguyên liệu chưa có cấu hình giá nhập", "warning");
+            return;
+        }
+
         const unitSelect = tr.querySelector(".unit");
         const priceInput = tr.querySelector(".price");
 
-        // ✅ check data tránh undefined
-        if (!data) return;
-
+        // ✅ khóa unit (base unit từ NCC)
         unitSelect.innerHTML =
             `<option value="${data.unitId}">${data.unitName}</option>`;
 
-        priceInput.value = data.price || 0;
+        // 👉 lưu base unit vào dataset (backup cho submit)
+        tr.dataset.unitId = data.unitId;
+
+        // ✅ khóa giá
+        priceInput.value = data.price ?? 0;
 
         calcRow(tr);
 
     } catch {
-        toast("Không lấy được giá", "error");
+        toast("Không lấy được giá nhập từ nhà cung cấp", "error");
     }
-} 
+}
+
+// ================= CALC =================
+function calcRow(tr) {
+    const qty = parseFloat(tr.querySelector(".qty").value || 0);
+    const price = parseFloat(tr.querySelector(".price").value || 0);
+
+    const total = qty * price;
+
+    tr.querySelector(".rowTotal").innerText = formatVND(total);
+
+    calcTotal();
+}
+
+function calcTotal() {
+    let sum = 0;
+
+    document.querySelectorAll(".rowTotal").forEach(x => {
+        sum += parseMoney(x.innerText);
+    });
+
+    document.getElementById("grandTotal").innerText = formatVND(sum);
+}
+
+// ================= UTIL =================
+function formatVND(n) {
+    return Number(n || 0).toLocaleString("vi-VN");
+}
+
+function parseMoney(str) {
+    return parseFloat((str || "0").replace(/[^\d]/g, "")) || 0;
+}

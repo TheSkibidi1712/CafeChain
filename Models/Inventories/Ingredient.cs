@@ -16,5 +16,6 @@ namespace CafeChain.Models.Inventories
         public virtual ICollection<UnitConversion> UnitConversions { get; set; }
         public virtual ICollection<StoreInventory> StoreInventories { get; set; }
         public virtual ICollection<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
+        public virtual ICollection<InventoryTransferDetail> InventoryTransferDetails { get; set; }
     }
 }

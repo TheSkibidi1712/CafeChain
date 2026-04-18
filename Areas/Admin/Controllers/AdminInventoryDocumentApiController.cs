@@ -1,4 +1,5 @@
 ﻿using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
 using CafeChain.ViewModels.Admin.InventoryDocuments;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,10 +11,12 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminInventoryDocumentApiController : Controller
     {
         private readonly IAdminInventoryDocumentService _service;
+        private readonly IAdminInventoryTransferService _transferService;
 
-        public AdminInventoryDocumentApiController(IAdminInventoryDocumentService service)
+        public AdminInventoryDocumentApiController(IAdminInventoryDocumentService service, IAdminInventoryTransferService transferService)
         {
             _service = service;
+            _transferService = transferService;
         }
 
         // ================= GET CREATE DATA =================
@@ -115,6 +118,84 @@ namespace CafeChain.Areas.Admin.Controllers
                 }
             });
         }
+
+        // ================= INTERNAL TRANSFER =================
+        [HttpPost("internal-transfer")]
+        public async Task<IActionResult> CreateInternalTransfer([FromBody] InventoryTransferCreateVM model)
+        {
+            if (model == null || model.Items == null || !model.Items.Any())
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Dữ liệu không hợp lệ"
+                });
+            }
+
+            try
+            {
+                await _transferService.CreateInternalTransferAsync(model);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Tạo phiếu chuyển kho thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.InnerException?.Message ?? ex.Message
+                });
+            }
+        }
+
+        [HttpPost("internal-transfer/{id}/receive")]
+        public async Task<IActionResult> ReceiveTransfer(int id, [FromBody] List<InventoryTransferReceiveItemVM> items)
+        {
+            try
+            {
+                await _transferService.ReceiveTransferAsync(id, items);
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost("internal-transfer/{id}/confirm")]
+        public async Task<IActionResult> ConfirmTransfer(int id)
+        {
+            try
+            {
+                await _transferService.ConfirmTransferReceiveAsync(id);
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+
+        [HttpGet("transfer-sources")]
+        public async Task<IActionResult> GetTransferSources(int storeId)
+        {
+            var stores = await _transferService.GetAvailableTransferSources(storeId);
+
+            return Ok(stores.Select(x => new
+            {
+                storeId = x.StoreId,
+                name = x.Name
+            }));
+        }
+
+        //  ============================== CÁC METHOD PHỤ DÙNG CHO CREATE/EDIT ==============================
 
         // ================= STOCK =================
         [HttpGet("stock")]

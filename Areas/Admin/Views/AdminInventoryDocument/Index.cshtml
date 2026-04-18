@@ -154,6 +154,20 @@
                     <input type="text" id="partnerName" />
                 </div>
 
+                <div id="importPurpose" style="display:none">
+                    <label>📌 Mục đích</label>
+                    <select id="importPurposeSelect">
+                        <option value="">-- Chọn --</option>
+                        <option value="1">Nhập hàng</option>
+                        <option value="2">Nhập nội bộ</option>
+                        <option value="3">Điều chỉnh tăng tồn kho</option>
+                    </select>
+                </div>
+                <div id="fromStoreBox" style="display:none">
+                    <label>🏬 Kho xuất</label>
+                    <select id="fromStore"></select>
+                </div>
+
                 <div id="exportPurpose" style="display:none">
                     <label>📌 Mục đích</label>
                     <select id="purpose">
@@ -162,9 +176,14 @@
                         <option value="6">Xuất nội bộ</option>
                         <option value="7">Tặng</option>
                         <option value="8">Cho nợ</option>
+                        <option value="9">Xuất dùng thử</option>
+                        <option value="10">Điều chỉnh giảm tồn kho</option>
                     </select>
                 </div>
-
+                <div id="toStoreBox" style="display:none">
+                    <label>🏬 Kho nhận</label>
+                    <select id="toStore"></select>
+                </div>
                 <!-- WASTE -->
                 <div id="wastePurpose" style="display:none">
                     <label>🗑️ Lý do hủy</label>

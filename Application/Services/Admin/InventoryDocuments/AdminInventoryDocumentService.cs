@@ -59,7 +59,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     IngredientCode = x.Details.FirstOrDefault()?.Ingredient.Code ?? "",
                     Purpose = x.Purpose,
                     Type = x.Type,
-                    Status = x.Status.ToString().ToUpper(),
+                    Status = x.Status,
                     Date = x.DocumentDate,
                     Note = x.Note,
                     TotalQuantity = x.Details.Sum(d => d.BaseQuantity),
@@ -102,8 +102,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 Purpose = x.Purpose,
 
 
-                Type = x.Type.ToString(),
-                Status = x.Status.ToString(),
+                Type = x.Type,
+                Status = x.Status,
                 Date = x.DocumentDate,
                 Note = x.Note,
 
@@ -164,7 +164,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 await tran.RollbackAsync();
                 throw;
             }
-        }
+        }        
 
 
         // ======================== IMPORT INFO ========================
@@ -541,7 +541,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 case InventoryDocumentPurpose.IMPORT_INTERNAL:
                     if (vm.PartnerId == null)
-                        throw new Exception("Nhập nội bộ phải có kho nguồn");
+                        throw new Exception("Nhập nội bộ phải có kho nguồn"); // cần UI sau
                     break;
 
                 // ================= EXPORT =================
@@ -652,5 +652,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             if (!valid)
                 throw new Exception("Type và Purpose không hợp lệ");
         }
+
+        
     }
 }

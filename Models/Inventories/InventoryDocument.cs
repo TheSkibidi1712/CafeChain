@@ -32,11 +32,6 @@ namespace CafeChain.Models.Inventories
 
         public int? SupplierId { get; set; }
 
-        // ================= REVERSAL =================
-
-        public int? RefDocumentId { get; set; } // phiếu gốc
-        public bool IsReversal { get; set; }    // có phải phiếu đảo
-
         public string? Note { get; set; }
 
         // ================= NAVIGATION =================
@@ -48,5 +43,7 @@ namespace CafeChain.Models.Inventories
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
         public virtual ICollection<InventoryDebt> Debts { get; set; } = new List<InventoryDebt>();
+        public virtual InventoryTransfer ExportTransfer { get; set; }
+        public virtual InventoryTransfer ImportTransfer { get; set; }
     }
 }

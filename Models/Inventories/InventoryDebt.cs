@@ -14,6 +14,8 @@ namespace CafeChain.Models.Inventories
 
         public decimal Amount { get; set; } // tổng tiền nợ
         public decimal PaidAmount { get; set; }
+        public decimal RemainingAmount => Amount - PaidAmount;
+
 
         public DateTime CreatedAt { get; set; }
         public DateTime? PaidAt { get; set; }

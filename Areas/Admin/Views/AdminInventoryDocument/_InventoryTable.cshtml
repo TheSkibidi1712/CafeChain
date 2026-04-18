@@ -12,6 +12,7 @@
                 <th>Đối tượng</th>
             }
             <th>Loại</th>
+            <th>Trạng thái</th>
             <th>Ngày</th>
             <th>Tổng SL</th>
             @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT || x.Type == InventoryDocumentType.EXPORT))
@@ -53,7 +54,19 @@
                           "Hủy kho")
                     </span>
                 </td>
+                <td>
+                    <span class="badge-status
+                        @(item.Status == InventoryDocumentStatus.DRAFT ? "draft" :
+                                    item.Status == InventoryDocumentStatus.CONFIRMED ? "confirmed" :
+                                    item.Status == InventoryDocumentStatus.CANCELLED ? "cancelled" :
+                                    "")">
 
+                        @(item.Status == InventoryDocumentStatus.DRAFT ? "Nháp" :
+                          item.Status == InventoryDocumentStatus.CONFIRMED ? "Đã duyệt" :
+                          item.Status == InventoryDocumentStatus.CANCELLED ? "Đã hủy" :
+                          item.Status.ToString())
+                    </span>
+                </td>
                 <td>@item.Date.ToString("dd/MM/yyyy")</td>
 
                 <td>@($"{item.TotalQuantity:N0} {item.BaseUnitName}")</td>
@@ -61,6 +74,7 @@
                 {
                     <td>@item.TotalAmount.ToString("N0")</td>
                 }
+
 
                 <td>@item.Note</td>
 

@@ -373,3 +373,24 @@ input, select {
 .hidden {
     display: none;
 }
+.badge-status {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+    .badge-status.draft {
+        background: #ccc;
+        color: #333;
+    }
+
+    .badge-status.confirmed {
+        background: #4caf50;
+        color: white;
+    }
+
+    .badge-status.cancelled {
+        background: #f44336;
+        color: white;
+    }

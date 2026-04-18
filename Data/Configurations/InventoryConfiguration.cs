@@ -39,12 +39,22 @@ namespace CafeChain.Data.Configurations
             builder.HasIndex(x => x.InventoryDocumentId);
 
             builder.HasIndex(x => new { x.PartnerType, x.PartnerId });
+            builder.HasIndex(x => x.PaidAmount);
 
             // ================= RELATION =================
             builder.HasOne<InventoryDocument>()
                 .WithMany(x => x.Debts)
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= CONSTRAINT =================
+
+            builder.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
+                t.HasCheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
+                t.HasCheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
+            });
         }
     }
 
@@ -89,16 +99,6 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.PartnerName)
                 .HasMaxLength(200);
 
-            // ================= REVERSAL =================
-
-            entity.Property(x => x.IsReversal)
-                .HasDefaultValue(false);
-
-            // self reference
-            entity.HasOne<InventoryDocument>()
-                .WithMany()
-                .HasForeignKey(x => x.RefDocumentId)
-                .OnDelete(DeleteBehavior.Restrict); // ❌ không cascade
 
             // ================= RELATION =================
 
@@ -117,6 +117,20 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.SupplierId)
                 .OnDelete(DeleteBehavior.SetNull); // 🔥 đúng
 
+            // ================= TRANSFER =================
+
+            // export document (1-1)
+            entity.HasOne(x => x.ExportTransfer)
+                .WithOne(x => x.ExportDocument)
+                .HasForeignKey<InventoryTransfer>(x => x.ExportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // import document (1-1)
+            entity.HasOne(x => x.ImportTransfer)
+                .WithOne(x => x.ImportDocument)
+                .HasForeignKey<InventoryTransfer>(x => x.ImportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => new { x.StoreId, x.DocumentDate });
@@ -124,7 +138,6 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.Type);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.SupplierId);
-            entity.HasIndex(x => x.RefDocumentId);
         }
     }
 
@@ -171,8 +184,111 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+
             // ================= INDEX =================
             entity.HasIndex(x => x.InventoryDocumentId);
+        }
+    }
+
+    // ================================ INVENTORY TRANSFER ============================
+    public class InventoryTransferConfiguration : IEntityTypeConfiguration<InventoryTransfer>
+    {
+        public void Configure(EntityTypeBuilder<InventoryTransfer> entity)
+        {
+            entity.ToTable("InventoryTransfers");
+
+            entity.HasKey(x => x.InventoryTransferId);
+
+            // ================= BASIC =================
+
+            entity.Property(x => x.Status)
+                .IsRequired()
+                .HasConversion<int>(); // 🔥 enum -> int
+
+            entity.Property(x => x.TotalExportQty)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.TotalReceivedQty)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            // ================= RELATION: DOCUMENT =================
+
+            entity.HasOne(x => x.ExportDocument)
+                .WithOne(d => d.ExportTransfer)
+                .HasForeignKey<InventoryTransfer>(x => x.ExportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ImportDocument)
+                .WithOne(d => d.ImportTransfer)
+                .HasForeignKey<InventoryTransfer>(x => x.ImportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= RELATION: STORE =================
+
+            entity.HasOne(x => x.FromStore)
+                .WithMany(s => s.ExportTransfers)
+                .HasForeignKey(x => x.FromStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ToStore)
+                .WithMany(s => s.ImportTransfers)
+                .HasForeignKey(x => x.ToStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= RELATION: DETAILS =================
+            entity.HasMany(x => x.Details)
+                .WithOne(d => d.InventoryTransfer)
+                .HasForeignKey(d => d.InventoryTransferId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ================= INDEX =================
+
+            entity.HasIndex(x => x.ExportDocumentId)
+                .IsUnique(); // mỗi export chỉ có 1 transfer
+
+            entity.HasIndex(x => x.ImportDocumentId)
+                .IsUnique()
+                .HasFilter("[ImportDocumentId] IS NOT NULL");
+
+            entity.HasIndex(x => x.Status);
+
+            entity.HasIndex(x => new { x.FromStoreId, x.ToStoreId });
+        }
+    }
+
+    // ================================ InventoryTransferDetail ============================
+    public class InventoryTransferDetailConfig : IEntityTypeConfiguration<InventoryTransferDetail>
+    {
+        public void Configure(EntityTypeBuilder<InventoryTransferDetail> builder)
+        {
+            builder.HasKey(x => x.InventoryTransferDetailId);
+
+            builder.Property(x => x.ExportQuantity)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            builder.Property(x => x.ReceivedQuantity)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            builder.Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.Note)
+                .HasMaxLength(500);
+
+            // ===== RELATION =====
+            builder.HasOne(x => x.Ingredient)
+                .WithMany(i => i.InventoryTransferDetails)
+                .HasForeignKey(x => x.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔥 UNIQUE (1 ingredient / transfer)
+            builder.HasIndex(x => new { x.InventoryTransferId, x.IngredientId })
+                .IsUnique();
         }
     }
 
