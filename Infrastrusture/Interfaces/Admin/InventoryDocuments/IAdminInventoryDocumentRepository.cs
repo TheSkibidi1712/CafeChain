@@ -10,21 +10,20 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
     public interface IAdminInventoryDocumentRepository
     {
         // ================= LOOKUP =================
-        Task<List<Store>> GetStoresAsync();
-        Task<List<Staff>> GetStaffsAsync();
-        Task<int?> GetStoreIdByStaffAsync(int staffId);
+        Task<List<Store>> GetStoresByStaffAsync(int staffId);
+        Task<bool> CheckStaffHasStoreAsync(int staffId, int storeId);
         Task<List<Supplier>> GetSuppliersAsync();
-        Task<List<Ingredient>> GetIngredientsAsync();
-        Task<List<Unit>> GetUnitsAsync();
-
+        Task<Supplier?> GetSupplierByIdAsync(int id);
         // ================= DOCUMENT =================
         Task<(List<InventoryDocument>, int)> GetPagedAsync(InventoryDocumentFilterDTO filter);
         Task<InventoryDocument?> GetDetailAsync(int id);
         Task AddAsync(InventoryDocument document);
 
+        Task AddDebtAsync(InventoryDebt debt);
+        Task<InventoryDebt?> GetDebtByDocumentIdAsync(int documentId);
         // ================= INGREDIENT =================
         Task<Ingredient?> GetIngredientAsync(int ingredientId);
-        Task<List<IngredientSupplier>> GetIngredientSuppliersAsync(int ingredientId, int? supplierId);
+        Task<IngredientSupplier?> GetIngredientSupplierAsync(int ingredientId, int supplierId);
         Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId);
         // ================= STORE INVENTORY =================
         Task<StoreInventory?> GetStoreInventoryAsync(int storeId, int ingredientId);
@@ -34,8 +33,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Unit>> GetUnitsByIngredientAsync(int ingredientId);
 
         // ================= STORE INVENTORY =================
-        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
-
+        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId, bool onlyAvailable = false);
         // ================= TRANSACTION =================
         Task AddTransactionAsync(InventoryTransaction transaction);
 

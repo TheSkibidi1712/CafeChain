@@ -11,6 +11,7 @@
             <input type="text" name="search" value="@ViewBag.Search" placeholder="Tìm nguyên liệu..." />
             <button type="submit">Tìm</button>
         </form>
+
         <button class="btn-view-all" onclick="openTransactionModal()">
             📜 Xem toàn bộ lịch sử
         </button>
@@ -23,9 +24,14 @@
                 <th title="Tổng số lượng trong kho">Tồn kho</th>
                 <th title="Số lượng đã được giữ cho đơn hàng / phiếu">Đang giữ</th>
                 <th title="Số lượng có thể sử dụng ngay">Khả dụng</th>
+
+                <th>Giá gần nhất</th>
+                <th>NCC</th>
+
                 <th>Cập nhật</th>
             </tr>
         </thead>
+
         <tbody>
             @foreach (var item in Model.Items)
             {
@@ -44,6 +50,23 @@
 
                     <td class="usable @(available <= 0 ? "danger" : "")">
                         @($"{available:N0} {item.UnitCode}")
+                    </td>
+
+                    <td>
+                        @if (item.LastUnitPrice != null)
+                        {
+                            @($"{item.LastUnitPrice:N0} đ")
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @(!string.IsNullOrEmpty(item.LastSupplierName)
+                            ? item.LastSupplierName
+                            : "-")
                     </td>
 
                     <td>@item.LastUpdated.ToString("dd/MM/yyyy HH:mm")</td>
@@ -89,7 +112,9 @@
 <!-- MODAL -->
 <div id="transactionModal" class="modal">
     <div class="modal-content">
-        <span class="close" onclick="closeModal()">&times;</span>
+        <div class="modal-close" onclick="closeModal()">
+            <i class="fa fa-times"></i>
+        </div>
         <h3>Lịch sử giao dịch</h3>
 
         <div id="transactionContent">

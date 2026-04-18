@@ -41,60 +41,7 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.CustomerId);
 
             // ===== CLEAN SLATE: Tất cả PointTransaction → Customer 111 =====
-            entity.HasData(
-                new PointTransaction
-                {
-                    PointTransactionId = 1,
-                    CustomerId = 111,
-                    OrderId = 1,
-                    Points = 50,
-                    PointTransactionTypeId = 1, // EARN
-                    BalanceAfter = 50,
-                    CreatedAt = new DateTime(2025, 5, 1),
-                    ExpiredAt = new DateTime(2025, 11, 1)
-                },
-                new PointTransaction
-                {
-                    PointTransactionId = 2,
-                    CustomerId = 111,
-                    OrderId = 2,
-                    Points = 30,
-                    PointTransactionTypeId = 1, // EARN
-                    BalanceAfter = 80,
-                    CreatedAt = new DateTime(2025, 5, 1),
-                    ExpiredAt = new DateTime(2025, 11, 1)
-                },
-                new PointTransaction
-                {
-                    PointTransactionId = 3,
-                    CustomerId = 111,
-                    OrderId = 2,
-                    Points = 20,
-                    PointTransactionTypeId = 2, // SPEND
-                    BalanceAfter = 60,
-                    CreatedAt = new DateTime(2025, 5, 1)
-                },
-                new PointTransaction
-                {
-                    PointTransactionId = 4,
-                    CustomerId = 111,
-                    OrderId = 3,
-                    Points = 100,
-                    PointTransactionTypeId = 1,
-                    BalanceAfter = 100,
-                    CreatedAt = new DateTime(2025, 5, 1),
-                    ExpiredAt = new DateTime(2025, 11, 1)
-                },
-                new PointTransaction
-                {
-                    PointTransactionId = 5,
-                    CustomerId = 111,
-                    Points = 50,
-                    PointTransactionTypeId = 3, // EXPIRE
-                    BalanceAfter = 50,
-                    CreatedAt = new DateTime(2025, 5, 1)
-                }
-            );
+            
         }
     }
 

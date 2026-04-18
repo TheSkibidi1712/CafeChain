@@ -58,21 +58,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InventoryTransactionTypes",
-                columns: table => new
-                {
-                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    IsSystem = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryTransactionTypes", x => x.InventoryTransactionTypeId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "MemberLevels",
                 columns: table => new
                 {
@@ -1047,13 +1032,24 @@ namespace CafeChain.Migrations
                     IngredientId = table.Column<int>(type: "int", nullable: true),
                     ChildRecipeId = table.Column<int>(type: "int", nullable: true),
                     Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    UnitId = table.Column<int>(type: "int", nullable: false),
-                    UnitId1 = table.Column<int>(type: "int", nullable: true)
+                    UnitId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RecipeDetails", x => x.RecipeDetailId);
                     table.CheckConstraint("CK_RecipeDetail_OnlyOneSource", "(IngredientId IS NOT NULL AND ChildRecipeId IS NULL)\r\n                    OR (IngredientId IS NULL AND ChildRecipeId IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_RecipeDetail_ChildRecipe",
+                        column: x => x.ChildRecipeId,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RecipeDetail_Recipe",
+                        column: x => x.RecipeId,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_RecipeDetails_Ingredients_IngredientId",
                         column: x => x.IngredientId,
@@ -1061,28 +1057,11 @@ namespace CafeChain.Migrations
                         principalColumn: "IngredientId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_RecipeDetails_Recipes_ChildRecipeId",
-                        column: x => x.ChildRecipeId,
-                        principalTable: "Recipes",
-                        principalColumn: "RecipeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_RecipeDetails_Recipes_RecipeId",
-                        column: x => x.RecipeId,
-                        principalTable: "Recipes",
-                        principalColumn: "RecipeId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
                         name: "FK_RecipeDetails_Units_UnitId",
                         column: x => x.UnitId,
                         principalTable: "Units",
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_RecipeDetails_Units_UnitId1",
-                        column: x => x.UnitId1,
-                        principalTable: "Units",
-                        principalColumn: "UnitId");
                 });
 
             migrationBuilder.CreateTable(
@@ -1394,19 +1373,11 @@ namespace CafeChain.Migrations
                     PartnerId = table.Column<int>(type: "int", nullable: true),
                     PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SupplierId = table.Column<int>(type: "int", nullable: true),
-                    RefDocumentId = table.Column<int>(type: "int", nullable: true),
-                    IsReversal = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_InventoryDocuments", x => x.InventoryDocumentId);
-                    table.ForeignKey(
-                        name: "FK_InventoryDocuments_InventoryDocuments_RefDocumentId",
-                        column: x => x.RefDocumentId,
-                        principalTable: "InventoryDocuments",
-                        principalColumn: "InventoryDocumentId",
-                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryDocuments_Staffs_StaffId",
                         column: x => x.StaffId,
@@ -1630,6 +1601,42 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InventoryDebts",
+                columns: table => new
+                {
+                    InventoryDebtId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
+                    PartnerType = table.Column<int>(type: "int", nullable: false),
+                    PartnerId = table.Column<int>(type: "int", nullable: true),
+                    PartnerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PaidAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    InventoryDocumentId1 = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryDebts", x => x.InventoryDebtId);
+                    table.CheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
+                    table.CheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
+                    table.CheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryDebts_InventoryDocuments_InventoryDocumentId",
+                        column: x => x.InventoryDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryDebts_InventoryDocuments_InventoryDocumentId1",
+                        column: x => x.InventoryDocumentId1,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InventoryDocumentDetails",
                 columns: table => new
                 {
@@ -1641,7 +1648,8 @@ namespace CafeChain.Migrations
                     BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     UnitId = table.Column<int>(type: "int", nullable: false),
                     UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1673,7 +1681,7 @@ namespace CafeChain.Migrations
                     InventoryTransactionId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StoreInventoryId = table.Column<int>(type: "int", nullable: false),
-                    InventoryTransactionTypeId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     BeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     AfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
@@ -1691,16 +1699,54 @@ namespace CafeChain.Migrations
                         principalColumn: "InventoryDocumentId",
                         onDelete: ReferentialAction.SetNull);
                     table.ForeignKey(
-                        name: "FK_InventoryTransactions_InventoryTransactionTypes_InventoryTransactionTypeId",
-                        column: x => x.InventoryTransactionTypeId,
-                        principalTable: "InventoryTransactionTypes",
-                        principalColumn: "InventoryTransactionTypeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
                         name: "FK_InventoryTransactions_StoreInventories_StoreInventoryId",
                         column: x => x.StoreInventoryId,
                         principalTable: "StoreInventories",
                         principalColumn: "StoreInventoryId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryTransfers",
+                columns: table => new
+                {
+                    InventoryTransferId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ExportDocumentId = table.Column<int>(type: "int", nullable: false),
+                    ImportDocumentId = table.Column<int>(type: "int", nullable: true),
+                    FromStoreId = table.Column<int>(type: "int", nullable: false),
+                    ToStoreId = table.Column<int>(type: "int", nullable: false),
+                    TotalExportQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalReceivedQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTransfers", x => x.InventoryTransferId);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransfers_InventoryDocuments_ExportDocumentId",
+                        column: x => x.ExportDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransfers_InventoryDocuments_ImportDocumentId",
+                        column: x => x.ImportDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransfers_Stores_FromStoreId",
+                        column: x => x.FromStoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransfers_Stores_ToStoreId",
+                        column: x => x.ToStoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -1856,6 +1902,36 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InventoryTransferDetails",
+                columns: table => new
+                {
+                    InventoryTransferDetailId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryTransferId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: false),
+                    ExportQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ReceivedQuantity = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTransferDetails", x => x.InventoryTransferDetailId);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_InventoryTransfers_InventoryTransferId",
+                        column: x => x.InventoryTransferId,
+                        principalTable: "InventoryTransfers",
+                        principalColumn: "InventoryTransferId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "OrderToppings",
                 columns: table => new
                 {
@@ -1914,17 +1990,6 @@ namespace CafeChain.Migrations
                     { 1, true, "Coffee" },
                     { 2, true, "Trà sữa" },
                     { 3, true, "Nước ngọt" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "InventoryTransactionTypes",
-                columns: new[] { "InventoryTransactionTypeId", "Code", "IsSystem", "Name" },
-                values: new object[,]
-                {
-                    { 1, "IMPORT", true, "Nhập kho" },
-                    { 2, "EXPORT", true, "Xuất kho" },
-                    { 3, "ADJUST", true, "Điều chỉnh" },
-                    { 4, "WASTE", true, "Hao hụt" }
                 });
 
             migrationBuilder.InsertData(
@@ -2142,9 +2207,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 18, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2365), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 11, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2357), null },
-                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 3, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2367), null, null, 500, null, 50000m, new DateTime(2026, 4, 17, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2367), null },
-                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 17, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2369), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 19, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2369), null }
+                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 19, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(94), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 12, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(86), null },
+                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 4, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(98), null, null, 500, null, 50000m, new DateTime(2026, 4, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(97), null },
+                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(100), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 20, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(99), null }
                 });
 
             migrationBuilder.InsertData(
@@ -2205,8 +2270,8 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "RecipeDetails",
-                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId", "UnitId1" },
-                values: new object[] { 21, 5, null, 1m, 3, 1, null });
+                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
+                values: new object[] { 21, 5, null, 1m, 3, 1 });
 
             migrationBuilder.InsertData(
                 table: "Shifts",
@@ -2496,45 +2561,30 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Orders",
-                columns: new[] { "OrderId", "CreatedAt", "CustomerId", "DeliveryAddress", "Note", "OrderStatusId", "OrderTypeId", "PaymentReference", "PaymentStatusId", "ReceiverName", "ReceiverPhone", "ShippingFee", "Source", "StaffId", "StoreId", "StoreId1", "SubTotal", "TableId", "Total" },
-                values: new object[,]
-                {
-                    { 1, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 111, "Tại quầy", "", 3, 1, null, 0, "Khách vãng lai", "0000000000", 0m, "POS", 108, 1, null, 45000m, 1, 45000m },
-                    { 2, new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), 111, "Mang đi", "Ít đá", 2, 2, null, 0, "Khách vãng lai", "0000000000", 0m, "APP", 109, 1, null, 60000m, null, 60000m },
-                    { 3, new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified), 111, "Giao hàng tận nơi", "", 1, 3, null, 0, "Khách vãng lai", "0000000000", 0m, "POS", 110, 2, null, 70000m, 3, 70000m }
-                });
-
-            migrationBuilder.InsertData(
-                table: "PointTransactions",
-                columns: new[] { "PointTransactionId", "BalanceAfter", "CreatedAt", "CustomerId", "CustomerId1", "ExpiredAt", "OrderId", "PointTransactionTypeId", "Points" },
-                values: new object[] { 5, 50, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 111, null, null, null, 3, 50 });
-
-            migrationBuilder.InsertData(
                 table: "RecipeDetails",
-                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId", "UnitId1" },
+                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, null, 1, 50m, 1, 3, null },
-                    { 2, null, 2, 30m, 1, 3, null },
-                    { 3, null, 7, 100m, 1, 3, null },
-                    { 4, null, 1, 60m, 2, 3, null },
-                    { 5, null, 7, 100m, 2, 3, null },
-                    { 6, null, 3, 80m, 3, 3, null },
-                    { 7, null, 4, 40m, 3, 3, null },
-                    { 8, null, 6, 20m, 3, 3, null },
-                    { 9, null, 7, 100m, 3, 3, null },
-                    { 10, null, 3, 70m, 4, 3, null },
-                    { 11, null, 4, 40m, 4, 3, null },
-                    { 12, null, 5, 20m, 4, 3, null },
-                    { 13, null, 6, 20m, 4, 3, null },
-                    { 14, null, 7, 100m, 4, 3, null },
-                    { 15, null, 11, 100m, 5, 1, null },
-                    { 16, null, 12, 50m, 5, 1, null },
-                    { 17, null, 13, 60m, 5, 3, null },
-                    { 18, null, 11, 100m, 6, 1, null },
-                    { 19, null, 6, 40m, 6, 1, null },
-                    { 20, null, 13, 60m, 6, 3, null }
+                    { 1, null, 1, 50m, 1, 3 },
+                    { 2, null, 2, 30m, 1, 3 },
+                    { 3, null, 7, 100m, 1, 3 },
+                    { 4, null, 1, 60m, 2, 3 },
+                    { 5, null, 7, 100m, 2, 3 },
+                    { 6, null, 3, 80m, 3, 3 },
+                    { 7, null, 4, 40m, 3, 3 },
+                    { 8, null, 6, 20m, 3, 3 },
+                    { 9, null, 7, 100m, 3, 3 },
+                    { 10, null, 3, 70m, 4, 3 },
+                    { 11, null, 4, 40m, 4, 3 },
+                    { 12, null, 5, 20m, 4, 3 },
+                    { 13, null, 6, 20m, 4, 3 },
+                    { 14, null, 7, 100m, 4, 3 },
+                    { 15, null, 11, 100m, 5, 1 },
+                    { 16, null, 12, 50m, 5, 1 },
+                    { 17, null, 13, 60m, 5, 3 },
+                    { 18, null, 11, 100m, 6, 1 },
+                    { 19, null, 6, 40m, 6, 1 },
+                    { 20, null, 13, 60m, 6, 3 }
                 });
 
             migrationBuilder.InsertData(
@@ -2587,8 +2637,10 @@ namespace CafeChain.Migrations
                     { 106, 1, 1, 106 },
                     { 107, 1, 2, 107 },
                     { 108, 1, 4, 108 },
-                    { 109, 1, 4, 109 },
-                    { 110, 1, 4, 110 }
+                    { 109, 2, 4, 108 },
+                    { 110, 3, 4, 108 },
+                    { 111, 1, 4, 109 },
+                    { 112, 1, 4, 110 }
                 });
 
             migrationBuilder.InsertData(
@@ -2654,48 +2706,6 @@ namespace CafeChain.Migrations
                     { 70, 1m, 10, 8, 750m, 3 },
                     { 71, 1m, 11, 2, 300m, 3 },
                     { 72, 1m, 11, 13, 500m, 3 }
-                });
-
-            migrationBuilder.InsertData(
-                table: "OrderDetails",
-                columns: new[] { "OrderDetailId", "DrinkId", "DrinkName", "Note", "OrderId", "Price", "Quantity", "SizeId", "SizeName" },
-                values: new object[,]
-                {
-                    { 1, 1, "Cà phê sữa", "", 1, 25000m, 1, 2, "M" },
-                    { 2, 2, "Cà phê đen", "", 1, 20000m, 1, 2, "M" },
-                    { 3, 3, "Trà sữa trân châu", "Ít đá", 2, 60000m, 1, 3, "L" }
-                });
-
-            migrationBuilder.InsertData(
-                table: "Payments",
-                columns: new[] { "PaymentId", "Amount", "CashSessionId", "OrderId", "PaidAt", "PaymentMethodId", "PaymentStatusId", "TransactionCode" },
-                values: new object[,]
-                {
-                    { 1, 30000m, 1, 1, new DateTime(2025, 1, 1, 8, 10, 0, 0, DateTimeKind.Unspecified), 1, 2, null },
-                    { 2, 50000m, null, 2, new DateTime(2025, 1, 1, 9, 10, 0, 0, DateTimeKind.Unspecified), 3, 2, "MOMO_001" },
-                    { 3, 45000m, null, 3, null, 2, 1, null },
-                    { 4, 60000m, null, 1, null, 5, 3, "VNPAY_FAIL_01" },
-                    { 5, 40000m, 2, 2, new DateTime(2025, 1, 1, 7, 0, 0, 0, DateTimeKind.Unspecified), 1, 4, null }
-                });
-
-            migrationBuilder.InsertData(
-                table: "PointTransactions",
-                columns: new[] { "PointTransactionId", "BalanceAfter", "CreatedAt", "CustomerId", "CustomerId1", "ExpiredAt", "OrderId", "PointTransactionTypeId", "Points" },
-                values: new object[,]
-                {
-                    { 1, 50, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 111, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, 1, 50 },
-                    { 2, 80, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 111, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, 1, 30 },
-                    { 3, 60, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 111, null, null, 2, 2, 20 },
-                    { 4, 100, new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 111, null, new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, 1, 100 }
-                });
-
-            migrationBuilder.InsertData(
-                table: "OrderToppings",
-                columns: new[] { "OrderToppingId", "OrderDetailId", "Price", "ToppingId", "ToppingName" },
-                values: new object[,]
-                {
-                    { 1, 3, 5000m, 1, "Trân châu đen" },
-                    { 2, 3, 5000m, 2, "Trân châu trắng" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -2874,6 +2884,26 @@ namespace CafeChain.Migrations
                 column: "UnitId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryDebts_InventoryDocumentId",
+                table: "InventoryDebts",
+                column: "InventoryDocumentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDebts_InventoryDocumentId1",
+                table: "InventoryDebts",
+                column: "InventoryDocumentId1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDebts_PaidAmount",
+                table: "InventoryDebts",
+                column: "PaidAmount");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryDebts_PartnerType_PartnerId",
+                table: "InventoryDebts",
+                columns: new[] { "PartnerType", "PartnerId" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocumentDetails_IngredientId",
                 table: "InventoryDocumentDetails",
                 column: "IngredientId");
@@ -2893,11 +2923,6 @@ namespace CafeChain.Migrations
                 table: "InventoryDocuments",
                 column: "Code",
                 unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryDocuments_RefDocumentId",
-                table: "InventoryDocuments",
-                column: "RefDocumentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocuments_StaffId",
@@ -2935,11 +2960,6 @@ namespace CafeChain.Migrations
                 column: "InventoryDocumentId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_InventoryTransactions_InventoryTransactionTypeId",
-                table: "InventoryTransactions",
-                column: "InventoryTransactionTypeId");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactions_StoreInventoryId",
                 table: "InventoryTransactions",
                 column: "StoreInventoryId");
@@ -2950,10 +2970,48 @@ namespace CafeChain.Migrations
                 columns: new[] { "StoreInventoryId", "CreatedAt" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_InventoryTransactionTypes_Code",
-                table: "InventoryTransactionTypes",
-                column: "Code",
+                name: "IX_InventoryTransactions_Type",
+                table: "InventoryTransactions",
+                column: "Type");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_IngredientId",
+                table: "InventoryTransferDetails",
+                column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_InventoryTransferId_IngredientId",
+                table: "InventoryTransferDetails",
+                columns: new[] { "InventoryTransferId", "IngredientId" },
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransfers_ExportDocumentId",
+                table: "InventoryTransfers",
+                column: "ExportDocumentId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransfers_FromStoreId_ToStoreId",
+                table: "InventoryTransfers",
+                columns: new[] { "FromStoreId", "ToStoreId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransfers_ImportDocumentId",
+                table: "InventoryTransfers",
+                column: "ImportDocumentId",
+                unique: true,
+                filter: "[ImportDocumentId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransfers_Status",
+                table: "InventoryTransfers",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransfers_ToStoreId",
+                table: "InventoryTransfers",
+                column: "ToStoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MemberLevels_Name",
@@ -3208,11 +3266,6 @@ namespace CafeChain.Migrations
                 name: "IX_RecipeDetails_UnitId",
                 table: "RecipeDetails",
                 column: "UnitId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_RecipeDetails_UnitId1",
-                table: "RecipeDetails",
-                column: "UnitId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Recipes_DrinkId",
@@ -3570,10 +3623,16 @@ namespace CafeChain.Migrations
                 name: "IngredientSuppliers");
 
             migrationBuilder.DropTable(
+                name: "InventoryDebts");
+
+            migrationBuilder.DropTable(
                 name: "InventoryDocumentDetails");
 
             migrationBuilder.DropTable(
                 name: "InventoryTransactions");
+
+            migrationBuilder.DropTable(
+                name: "InventoryTransferDetails");
 
             migrationBuilder.DropTable(
                 name: "MemberLevels");
@@ -3654,13 +3713,10 @@ namespace CafeChain.Migrations
                 name: "Roles");
 
             migrationBuilder.DropTable(
-                name: "InventoryDocuments");
-
-            migrationBuilder.DropTable(
-                name: "InventoryTransactionTypes");
-
-            migrationBuilder.DropTable(
                 name: "StoreInventories");
+
+            migrationBuilder.DropTable(
+                name: "InventoryTransfers");
 
             migrationBuilder.DropTable(
                 name: "OrderDetails");
@@ -3696,10 +3752,10 @@ namespace CafeChain.Migrations
                 name: "WheelPrizes");
 
             migrationBuilder.DropTable(
-                name: "Suppliers");
+                name: "Ingredients");
 
             migrationBuilder.DropTable(
-                name: "Ingredients");
+                name: "InventoryDocuments");
 
             migrationBuilder.DropTable(
                 name: "Orders");
@@ -3718,6 +3774,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Units");
+
+            migrationBuilder.DropTable(
+                name: "Suppliers");
 
             migrationBuilder.DropTable(
                 name: "Customers");

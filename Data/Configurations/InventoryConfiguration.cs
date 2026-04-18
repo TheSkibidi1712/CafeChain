@@ -7,6 +7,57 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CafeChain.Data.Configurations
 {
+    // ================================ Inventory Debt ============================
+    public class InventoryDebtConfiguration : IEntityTypeConfiguration<InventoryDebt>
+    {
+        public void Configure(EntityTypeBuilder<InventoryDebt> builder)
+        {
+            builder.ToTable("InventoryDebts");
+
+            // ================= PRIMARY KEY =================
+            builder.HasKey(x => x.InventoryDebtId);
+
+            // ================= PROPERTIES =================
+            builder.Property(x => x.PartnerName)
+                .HasMaxLength(255);
+
+            builder.Property(x => x.Amount)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            builder.Property(x => x.PaidAmount)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            builder.Property(x => x.CreatedAt)
+                .IsRequired();
+
+            builder.Property(x => x.PaidAt)
+                .IsRequired(false);
+
+            // ================= INDEX =================
+            builder.HasIndex(x => x.InventoryDocumentId);
+
+            builder.HasIndex(x => new { x.PartnerType, x.PartnerId });
+            builder.HasIndex(x => x.PaidAmount);
+
+            // ================= RELATION =================
+            builder.HasOne<InventoryDocument>()
+                .WithMany(x => x.Debts)
+                .HasForeignKey(x => x.InventoryDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= CONSTRAINT =================
+
+            builder.ToTable(t =>
+            {
+                t.HasCheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
+                t.HasCheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
+                t.HasCheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
+            });
+        }
+    }
+
     // ================================ Inventory Document ============================
     public class InventoryDocumentConfiguration : IEntityTypeConfiguration<InventoryDocument>
     {
@@ -48,16 +99,6 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.PartnerName)
                 .HasMaxLength(200);
 
-            // ================= REVERSAL =================
-
-            entity.Property(x => x.IsReversal)
-                .HasDefaultValue(false);
-
-            // self reference
-            entity.HasOne<InventoryDocument>()
-                .WithMany()
-                .HasForeignKey(x => x.RefDocumentId)
-                .OnDelete(DeleteBehavior.Restrict); // ❌ không cascade
 
             // ================= RELATION =================
 
@@ -76,6 +117,7 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.SupplierId)
                 .OnDelete(DeleteBehavior.SetNull); // 🔥 đúng
 
+
             // ================= INDEX =================
 
             entity.HasIndex(x => new { x.StoreId, x.DocumentDate });
@@ -83,7 +125,6 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.Type);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.SupplierId);
-            entity.HasIndex(x => x.RefDocumentId);
         }
     }
 
@@ -107,6 +148,9 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.TotalAmount)
+                .HasColumnType("decimal(18,2)");
+
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
@@ -127,8 +171,111 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+
             // ================= INDEX =================
             entity.HasIndex(x => x.InventoryDocumentId);
+        }
+    }
+
+    // ================================ INVENTORY TRANSFER ============================
+    public class InventoryTransferConfiguration : IEntityTypeConfiguration<InventoryTransfer>
+    {
+        public void Configure(EntityTypeBuilder<InventoryTransfer> entity)
+        {
+            entity.ToTable("InventoryTransfers");
+
+            entity.HasKey(x => x.InventoryTransferId);
+
+            // ================= BASIC =================
+
+            entity.Property(x => x.Status)
+                .IsRequired()
+                .HasConversion<int>(); // 🔥 enum -> int
+
+            entity.Property(x => x.TotalExportQty)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.TotalReceivedQty)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            // ================= RELATION: DOCUMENT =================
+
+            entity.HasOne(x => x.ExportDocument)
+                .WithOne(d => d.ExportTransfer)
+                .HasForeignKey<InventoryTransfer>(x => x.ExportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ImportDocument)
+                .WithOne(d => d.ImportTransfer)
+                .HasForeignKey<InventoryTransfer>(x => x.ImportDocumentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= RELATION: STORE =================
+
+            entity.HasOne(x => x.FromStore)
+                .WithMany(s => s.ExportTransfers)
+                .HasForeignKey(x => x.FromStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ToStore)
+                .WithMany(s => s.ImportTransfers)
+                .HasForeignKey(x => x.ToStoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // ================= RELATION: DETAILS =================
+            entity.HasMany(x => x.Details)
+                .WithOne(d => d.InventoryTransfer)
+                .HasForeignKey(d => d.InventoryTransferId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // ================= INDEX =================
+
+            entity.HasIndex(x => x.ExportDocumentId)
+                .IsUnique(); // mỗi export chỉ có 1 transfer
+
+            entity.HasIndex(x => x.ImportDocumentId)
+                .IsUnique()
+                .HasFilter("[ImportDocumentId] IS NOT NULL");
+
+            entity.HasIndex(x => x.Status);
+
+            entity.HasIndex(x => new { x.FromStoreId, x.ToStoreId });
+        }
+    }
+
+    // ================================ InventoryTransferDetail ============================
+    public class InventoryTransferDetailConfig : IEntityTypeConfiguration<InventoryTransferDetail>
+    {
+        public void Configure(EntityTypeBuilder<InventoryTransferDetail> builder)
+        {
+            builder.HasKey(x => x.InventoryTransferDetailId);
+
+            builder.Property(x => x.ExportQuantity)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired();
+
+            builder.Property(x => x.ReceivedQuantity)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            builder.Property(x => x.UnitPrice)
+                .HasColumnType("decimal(18,2)");
+
+            builder.Property(x => x.Note)
+                .HasMaxLength(500);
+
+            // ===== RELATION =====
+            builder.HasOne(x => x.Ingredient)
+                .WithMany(i => i.InventoryTransferDetails)
+                .HasForeignKey(x => x.IngredientId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // 🔥 UNIQUE (1 ingredient / transfer)
+            builder.HasIndex(x => new { x.InventoryTransferId, x.IngredientId })
+                .IsUnique();
         }
     }
 
@@ -374,7 +521,7 @@ namespace CafeChain.Data.Configurations
                 .HasColumnType("decimal(18,3)");
 
             // Ingredient
-            entity.HasOne(x => x.Ingredients)
+            entity.HasOne(x => x.Ingredient)
                 .WithMany(i => i.UnitConversions)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Cascade);
@@ -482,11 +629,6 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.StoreInventoryId)
                 .OnDelete(DeleteBehavior.Restrict); // 🔥 FIX: tránh mất lịch sử
 
-            entity.HasOne(x => x.TransactionType)
-                .WithMany(x => x.InventoryTransactions)
-                .HasForeignKey(x => x.InventoryTransactionTypeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.InventoryDocument)
                 .WithMany(x => x.InventoryTransactions)
                 .HasForeignKey(x => x.InventoryDocumentId)
@@ -496,46 +638,13 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.StoreInventoryId);
 
-            entity.HasIndex(x => x.InventoryTransactionTypeId);
+            entity.HasIndex(x => x.Type);
 
             entity.HasIndex(x => x.InventoryDocumentId);
 
             entity.HasIndex(x => x.CreatedAt); // 🔥 query timeline
 
             entity.HasIndex(x => new { x.StoreInventoryId, x.CreatedAt }); // 🔥 history theo kho
-        }
-    }
-
-    public class InventoryTransactionTypeConfiguration : IEntityTypeConfiguration<InventoryTransactionType>
-    {
-        public void Configure(EntityTypeBuilder<InventoryTransactionType> entity)
-        {
-            entity.ToTable("InventoryTransactionTypes");
-
-            entity.HasKey(x => x.InventoryTransactionTypeId);
-
-            entity.Property(x => x.Code)
-                .IsRequired()
-                .HasMaxLength(50);
-
-            entity.Property(x => x.IsSystem)
-                .HasDefaultValue(false);
-
-            entity.Property(x => x.Name)
-                .IsRequired()
-                .HasMaxLength(200);
-
-            entity.HasIndex(x => x.Code)
-                .IsUnique(); // 🔥 rất quan trọng
-
-            
-
-            entity.HasData(
-                new InventoryTransactionType { InventoryTransactionTypeId = 1, Code = "IMPORT", Name = "Nhập kho", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 2, Code = "EXPORT", Name = "Xuất kho", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 3, Code = "ADJUST", Name = "Điều chỉnh", IsSystem = true },
-                new InventoryTransactionType { InventoryTransactionTypeId = 4, Code = "WASTE", Name = "Hao hụt", IsSystem = true }
-            );
         }
     }
 

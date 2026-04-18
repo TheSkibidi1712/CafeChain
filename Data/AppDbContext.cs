@@ -1,3 +1,4 @@
+using CafeChain.Models; 
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories;
@@ -9,7 +10,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Models; 
+using CafeChain.Data.Configurations;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -71,10 +72,12 @@ namespace CafeChain.Data
         public DbSet<StoreIP> StoreIPs { get; set; }
 
         // ========================= INVENTORY =========================
+        public DbSet<InventoryDebt> InventoryDebts { get; set; }
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
         public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
-        public DbSet<InventoryTransactionType> InventoryTransactionTypes { get; set; }
+        public DbSet<InventoryTransfer> InventoryTransfers { get; set; }
+        public DbSet<InventoryTransferDetail> InventoryTransferDetails { get; set; }
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
         // Supplier
@@ -114,45 +117,13 @@ namespace CafeChain.Data
 
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
-        // ========================= CONFIG =========================
-       protected override void OnModelCreating(ModelBuilder modelBuilder)
-{
-    base.OnModelCreating(modelBuilder);
+        // ========================= CONFIGURATION =========================
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
 
-    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+        }
 
-    // Cấu hình tường minh quan hệ 1-Nhiều giữa Recipe và RecipeDetail
-    modelBuilder.Entity<CafeChain.Models.Drinks.RecipeDetail>(entity =>
-    {
-        entity.HasOne(d => d.Recipe)             // RecipeDetail có 1 Recipe
-              .WithMany(p => p.RecipeDetails)    // Recipe có nhiều RecipeDetails
-              .HasForeignKey(d => d.RecipeId)    // Liên kết qua cột RecipeId
-              .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Cascade); // Xóa công thức thì xóa luôn chi tiết
-              
-        entity.HasOne(d => d.ChildRecipe)
-              .WithMany() // Assuming ChildRecipe doesn't have a reverse navigation
-              .HasForeignKey(d => d.ChildRecipeId)
-              .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Restrict);
-    });
-
-    // 1. Nạp dữ liệu cho PaymentStatus (Trục Dòng Tiền)
-    modelBuilder.Entity<PaymentStatus>().HasData(
-        new PaymentStatus { PaymentStatusId = 1, Name = "Chưa thanh toán", Code = "UNPAID", BadgeColor = "badge bg-warning text-dark" },
-        new PaymentStatus { PaymentStatusId = 2, Name = "Đã thanh toán", Code = "PAID", BadgeColor = "badge bg-success" },
-        new PaymentStatus { PaymentStatusId = 3, Name = "Đã hoàn tiền", Code = "REFUNDED", BadgeColor = "badge bg-info text-dark" },
-        new PaymentStatus { PaymentStatusId = 4, Name = "Lỗi thanh toán", Code = "FAILED", BadgeColor = "badge bg-danger" }
-    );
-
-    // 2. Nạp dữ liệu cho OrderStatus (Trục Vận Hành F&B)
-    modelBuilder.Entity<OrderStatus>().HasData(
-        new OrderStatus { OrderStatusId = 7, Name = "Chờ thanh toán", BadgeColor = "badge bg-warning" },
-        new OrderStatus { OrderStatusId = 1, Name = "Chờ xác nhận", BadgeColor = "badge bg-secondary" },
-        new OrderStatus { OrderStatusId = 2, Name = "Đang pha chế", BadgeColor = "badge bg-primary" },
-        new OrderStatus { OrderStatusId = 3, Name = "Chờ lấy hàng", BadgeColor = "badge bg-info text-dark" },
-        new OrderStatus { OrderStatusId = 4, Name = "Đang giao hàng", BadgeColor = "badge bg-warning text-dark" },
-        new OrderStatus { OrderStatusId = 5, Name = "Hoàn thành", BadgeColor = "badge bg-success" },
-        new OrderStatus { OrderStatusId = 6, Name = "Đã hủy", BadgeColor = "badge bg-danger" }
-    );
-}
     }
 }

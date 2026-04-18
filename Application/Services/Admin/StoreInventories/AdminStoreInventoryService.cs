@@ -18,38 +18,36 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
         {
             var storeId = await GetStoreIdFromStaff(accountId);
 
-            var (data, total) = await _repo.GetPagedAsync(storeId, search, page, pageSize);
-
-            var result = data.Select(x => new InventoryDTO
-            {
-                StoreInventoryId = x.StoreInventoryId,
-                IngredientName = x.Ingredient.Name,
-                AvailableQty = x.AvailableQty,
-                ReservedQty = x.ReservedQty,
-                LastUpdated = x.LastUpdated,
-                UnitCode = x.Ingredient.BaseUnit.UnitCode
-            }).ToList();
-
-            return (result, total);
+            return await _repo.GetPagedAsync(storeId, search, page, pageSize);
         }
 
         // ================= TRANSACTION =================
         public async Task<(List<InventoryTransactionDTO>, int total)> GetTransactionsByInventoryAsync(int accountId, int storeInventoryId, int page, int pageSize)
         {
-            await GetStoreIdFromStaff(accountId); // validate quyền
+            await GetStoreIdFromStaff(accountId);
 
             var (data, total) = await _repo
                 .GetTransactionsByInventoryIdAsync(storeInventoryId, page, pageSize);
 
-            var result = data.Select(x => new InventoryTransactionDTO
+            var result = data.Select(x =>
             {
-                IngredientName = x.StoreInventory.Ingredient.Name,
-                TypeName = x.TransactionType.Name,
-                Quantity = x.Quantity,
-                BeforeQty = x.BeforeQty,
-                AfterQty = x.AfterQty,
-                CreatedAt = x.CreatedAt,
-                UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode
+                var detail = x.InventoryDocument?.Details?
+                    .Where(d => d.IngredientId == x.StoreInventory.IngredientId)
+                    .OrderByDescending(d => x.InventoryDocument.DocumentDate)
+                    .FirstOrDefault();
+
+                return new InventoryTransactionDTO
+                {
+                    IngredientName = x.StoreInventory.Ingredient.Name,
+                    TypeName = x.Type.ToString(),
+                    Quantity = x.Quantity,
+                    BeforeQty = x.BeforeQty,
+                    AfterQty = x.AfterQty,
+                    CreatedAt = x.CreatedAt,
+                    UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode,
+
+                    UnitPrice = detail?.UnitPrice
+                };
             }).ToList();
 
             return (result, total);
@@ -63,15 +61,26 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             var (data, total) = await _repo
                 .GetTransactionsByStoreIdAsync(storeId, page, pageSize);
 
-            var result = data.Select(x => new InventoryTransactionDTO
+            var result = data.Select(x =>
             {
-                IngredientName = x.StoreInventory.Ingredient.Name,
-                TypeName = x.TransactionType.Name,
-                Quantity = x.Quantity,
-                BeforeQty = x.BeforeQty,
-                AfterQty = x.AfterQty,
-                CreatedAt = x.CreatedAt,
-                UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode
+                var detail = x.InventoryDocument?.Details?
+                    .Where(d => d.IngredientId == x.StoreInventory.IngredientId)
+                    .FirstOrDefault();
+
+                return new InventoryTransactionDTO
+                {
+                    IngredientName = x.StoreInventory.Ingredient.Name,
+                    TypeName = x.Type.ToString(),
+                    Quantity = x.Quantity,
+                    BeforeQty = x.BeforeQty,
+                    AfterQty = x.AfterQty,
+                    CreatedAt = x.CreatedAt,
+                    UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode,
+
+                    // 🔥 NEW
+                    UnitPrice = detail?.UnitPrice,
+                    TotalAmount = detail?.TotalAmount,
+                };
             }).ToList();
 
             return (result, total);

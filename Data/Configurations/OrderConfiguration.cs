@@ -1,7 +1,9 @@
 using CafeChain.Models;
 using CafeChain.Models.Orders;
+using CafeChain.Models.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Reflection.Emit;
 
 namespace CafeChain.Data.Configurations
 {
@@ -76,81 +78,7 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
 
-            // ================= SEED DATA (FIX LẠI) =================
-            entity.HasData(
-                new Order
-                {
-                    OrderId = 1,
-                    CustomerId = 111,
-                    StoreId = 1,
-                    OrderStatusId = 3,
-                    OrderTypeId = 1,
-                    TableId = 1,
-                    StaffId = 108,
-                    Source = "POS",
-                    Note = "",
-
-                    SubTotal = 45000,
-                    VoucherDiscount = 0,
-                    PointDiscount = 0,
-                    PointsUsed = 0,
-                    Total = 45000,
-
-                    ReceiverName = "Khách vãng lai",
-                    ReceiverPhone = "0000000000",
-                    DeliveryAddress = "Tại quầy",
-
-                    CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0)
-                },
-                new Order
-                {
-                    OrderId = 2,
-                    CustomerId = 111,
-                    StoreId = 1,
-                    OrderStatusId = 2,
-                    OrderTypeId = 2,
-                    TableId = null,
-                    StaffId = 109,
-                    Source = "APP",
-                    Note = "Ít đá",
-
-                    SubTotal = 60000,
-                    VoucherDiscount = 0,
-                    PointDiscount = 0,
-                    PointsUsed = 0,
-                    Total = 60000,
-
-                    ReceiverName = "Khách vãng lai",
-                    ReceiverPhone = "0000000000",
-                    DeliveryAddress = "Mang đi",
-
-                    CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0)
-                },
-                new Order
-                {
-                    OrderId = 3,
-                    CustomerId = 111,
-                    StoreId = 2,
-                    OrderStatusId = 1,
-                    OrderTypeId = 3,
-                    TableId = 3,
-                    StaffId = 110,
-                    Source = "POS",
-                    Note = "",
-
-                    SubTotal = 70000,
-                    VoucherDiscount = 0,
-                    PointDiscount = 0,
-                    PointsUsed = 0,
-                    Total = 70000,
-
-                    ReceiverName = "Khách vãng lai",
-                    ReceiverPhone = "0000000000",
-                    DeliveryAddress = "Giao hàng tận nơi",
-
-                    CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0)
-                }
-            );
+           
         }
     }
 
@@ -200,44 +128,7 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.DrinkId);
             entity.HasIndex(x => x.SizeId);
 
-            entity.HasData(
-                new OrderDetail
-                {
-                    OrderDetailId = 1,
-                    OrderId = 1,
-                    DrinkId = 1,
-                    SizeId = 2,
-                    DrinkName = "Cà phê sữa",
-                    SizeName = "M",
-                    Price = 25000,
-                    Quantity = 1,
-                    Note = ""
-                },
-                new OrderDetail
-                {
-                    OrderDetailId = 2,
-                    OrderId = 1,
-                    DrinkId = 2,
-                    SizeId = 2,
-                    DrinkName = "Cà phê đen",
-                    SizeName = "M",
-                    Price = 20000,
-                    Quantity = 1,
-                    Note = ""
-                },
-                new OrderDetail
-                {
-                    OrderDetailId = 3,
-                    OrderId = 2,
-                    DrinkId = 3,
-                    SizeId = 3,
-                    DrinkName = "Trà sữa trân châu",
-                    SizeName = "L",
-                    Price = 60000,
-                    Quantity = 1,
-                    Note = "Ít đá"
-                }
-            );
+           
 
         }
     }
@@ -271,24 +162,6 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => new { x.OrderDetailId, x.ToppingId })
                 .IsUnique();
 
-            entity.HasData(
-                new OrderTopping
-                {
-                    OrderToppingId = 1,
-                    OrderDetailId = 3,
-                    ToppingId = 1,
-                    ToppingName = "Trân châu đen",
-                    Price = 5000
-                },
-                new OrderTopping
-                {
-                    OrderToppingId = 2,
-                    OrderDetailId = 3,
-                    ToppingId = 2,
-                    ToppingName = "Trân châu trắng",
-                    Price = 5000
-                }
-            );
         }
     }
 
@@ -308,7 +181,15 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.Name)
                 .IsUnique();
 
-
+            entity.HasData(
+                new OrderStatus { OrderStatusId = 7, Name = "Chờ thanh toán", BadgeColor = "badge bg-warning" },
+                new OrderStatus { OrderStatusId = 1, Name = "Chờ xác nhận", BadgeColor = "badge bg-secondary" },
+                new OrderStatus { OrderStatusId = 2, Name = "Đang pha chế", BadgeColor = "badge bg-primary" },
+                new OrderStatus { OrderStatusId = 3, Name = "Chờ lấy hàng", BadgeColor = "badge bg-info text-dark" },
+                new OrderStatus { OrderStatusId = 4, Name = "Đang giao hàng", BadgeColor = "badge bg-warning text-dark" },
+                new OrderStatus { OrderStatusId = 5, Name = "Hoàn thành", BadgeColor = "badge bg-success" },
+                new OrderStatus { OrderStatusId = 6, Name = "Đã hủy", BadgeColor = "badge bg-danger" }
+            );
         }
     }
 

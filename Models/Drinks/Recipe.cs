@@ -1,4 +1,6 @@
-﻿namespace CafeChain.Models.Drinks
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CafeChain.Models.Drinks
 {
     public class Recipe
     {
@@ -12,5 +14,8 @@
         public bool Active { get; set; }
 
         public virtual ICollection<RecipeDetail> RecipeDetails { get; set; }
+
+        public virtual ICollection<RecipeDetail> ChildRecipeDetails { get; set; }     // dùng ChildRecipeId
+
     }
 }

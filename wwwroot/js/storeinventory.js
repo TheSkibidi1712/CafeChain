@@ -27,7 +27,6 @@ function loadTransactionPage(page) {
 function closeModal() {
     document.getElementById("transactionModal").style.display = "none";
 }
-
 // CLICK OUTSIDE
 window.onclick = function (event) {
     let modal = document.getElementById("transactionModal");

@@ -516,23 +516,27 @@ namespace CafeChain.Data.Configurations
 
             // ================= RELATIONSHIPS =================
 
+            // 🔥 Quan hệ chính
             entity.HasOne(x => x.Recipe)
                 .WithMany(x => x.RecipeDetails)
                 .HasForeignKey(x => x.RecipeId)
+                .HasConstraintName("FK_RecipeDetail_Recipe") // 👈 thêm để rõ ràng
                 .OnDelete(DeleteBehavior.Cascade);
+
+            // 🔥 Quan hệ self-reference
+            entity.HasOne(x => x.ChildRecipe)
+                .WithMany(x => x.ChildRecipeDetails)
+                .HasForeignKey(x => x.ChildRecipeId)
+                .HasConstraintName("FK_RecipeDetail_ChildRecipe") // 👈 QUAN TRỌNG
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Ingredient)
                 .WithMany(x => x.RecipeDetails)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(x => x.ChildRecipe)
-                .WithMany()
-                .HasForeignKey(x => x.ChildRecipeId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             entity.HasOne(x => x.Unit)
-                .WithMany()
+                .WithMany(x => x.RecipeDetails)
                 .HasForeignKey(x => x.UnitId)
                 .OnDelete(DeleteBehavior.Restrict);
 

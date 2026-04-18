@@ -298,7 +298,7 @@
                             <div class="d-flex align-items-center ms-3">
                                 @if (User.IsInRole(RoleConstants.Customer))
                                 {
-                                    <a href="/Customer/Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                    <a asp-controller="Customer" asp-action="Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
                                         <img id="headerAvatar"
                                              src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
                                              onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
@@ -400,8 +400,8 @@
         </div>
     </footer>
 
-    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     <script>

@@ -1,4 +1,5 @@
 ﻿using CafeChain.Models.Inventories;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CafeChain.Models.Drinks
 {

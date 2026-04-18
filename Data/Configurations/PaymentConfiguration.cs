@@ -2,6 +2,7 @@ using CafeChain.Models;
 using CafeChain.Models.Payments;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using System.Reflection.Emit;
 
 namespace CafeChain.Data.Configurations
 {
@@ -49,57 +50,6 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.PaymentStatusId);
 
-            entity.HasData(
-                new Payment
-                {
-                    PaymentId = 1,
-                    OrderId = 1,
-                    Amount = 30000m,
-                    PaymentMethodId = 1,
-                    PaymentStatusId = 2,
-                    CashSessionId = 1,
-                    PaidAt = new DateTime(2025, 1, 1, 8, 10, 0)
-                },
-                new Payment
-                {
-                    PaymentId = 2,
-                    OrderId = 2,
-                    Amount = 50000m,
-                    PaymentMethodId = 3,
-                    PaymentStatusId = 2,
-                    TransactionCode = "MOMO_001",
-                    PaidAt = new DateTime(2025, 1, 1, 9, 10, 0)
-                },
-                new Payment
-                {
-                    PaymentId = 3,
-                    OrderId = 3,
-                    Amount = 45000m,
-                    PaymentMethodId = 2,
-                    PaymentStatusId = 1
-                },
-
-                // ✅ FIX: dùng lại OrderId hợp lệ
-                new Payment
-                {
-                    PaymentId = 4,
-                    OrderId = 1,
-                    Amount = 60000m,
-                    PaymentMethodId = 5,
-                    PaymentStatusId = 3,
-                    TransactionCode = "VNPAY_FAIL_01"
-                },
-                new Payment
-                {
-                    PaymentId = 5,
-                    OrderId = 2,
-                    Amount = 40000m,
-                    PaymentMethodId = 1,
-                    PaymentStatusId = 4,
-                    CashSessionId = 2,
-                    PaidAt = new DateTime(2025, 1, 1, 7, 0, 0)
-                }
-            );
         }
     }
 
@@ -120,6 +70,13 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(50);
 
             entity.HasIndex(x => x.Code).IsUnique();
+
+            entity.HasData(
+                new PaymentStatus { PaymentStatusId = 1, Name = "Chưa thanh toán", Code = "UNPAID", BadgeColor = "badge bg-warning text-dark" },
+                new PaymentStatus { PaymentStatusId = 2, Name = "Đã thanh toán", Code = "PAID", BadgeColor = "badge bg-success" },
+                new PaymentStatus { PaymentStatusId = 3, Name = "Đã hoàn tiền", Code = "REFUNDED", BadgeColor = "badge bg-info text-dark" },
+                new PaymentStatus { PaymentStatusId = 4, Name = "Lỗi thanh toán", Code = "FAILED", BadgeColor = "badge bg-danger" }
+            );
 
         }
     }

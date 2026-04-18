@@ -1,4 +1,6 @@
-﻿namespace CafeChain.Models.Inventories
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace CafeChain.Models.Inventories
 {
     public class UnitConversion
     {
@@ -15,8 +17,10 @@
         public decimal ToQuantity { get; set; }   // ví dụ: 1000
 
         // Navigation
-        public virtual Ingredient Ingredients { get; set; } = null!;
+        public virtual Ingredient Ingredient { get; set; } = null!;
+
         public virtual Unit FromUnit { get; set; } = null!;
+
         public virtual Unit ToUnit { get; set; } = null!;
     }
 }

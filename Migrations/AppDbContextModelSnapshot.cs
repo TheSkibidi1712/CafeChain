@@ -1434,9 +1434,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("UnitId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("UnitId1")
-                        .HasColumnType("int");
-
                     b.HasKey("RecipeDetailId");
 
                     b.HasIndex("ChildRecipeId");
@@ -1444,8 +1441,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("UnitId");
-
-                    b.HasIndex("UnitId1");
 
                     b.HasIndex("RecipeId", "ChildRecipeId")
                         .IsUnique()
@@ -2064,6 +2059,65 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDebt", b =>
+                {
+                    b.Property<int>("InventoryDebtId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDebtId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InventoryDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryDocumentId1")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("PaidAmount")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PartnerId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PartnerName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("PartnerType")
+                        .HasColumnType("int");
+
+                    b.HasKey("InventoryDebtId");
+
+                    b.HasIndex("InventoryDocumentId");
+
+                    b.HasIndex("InventoryDocumentId1");
+
+                    b.HasIndex("PaidAmount");
+
+                    b.HasIndex("PartnerType", "PartnerId");
+
+                    b.ToTable("InventoryDebts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
+
+                            t.HasCheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
+
+                            t.HasCheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
                 {
                     b.Property<int>("InventoryDocumentId")
@@ -2082,11 +2136,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<bool>("IsReversal")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -2104,9 +2153,6 @@ namespace CafeChain.Migrations
                         .HasDefaultValue(0);
 
                     b.Property<int>("Purpose")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("RefDocumentId")
                         .HasColumnType("int");
 
                     b.Property<int>("StaffId")
@@ -2128,8 +2174,6 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Code")
                         .IsUnique();
-
-                    b.HasIndex("RefDocumentId");
 
                     b.HasIndex("StaffId");
 
@@ -2168,6 +2212,9 @@ namespace CafeChain.Migrations
 
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("TotalAmount")
+                        .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("UnitId")
                         .HasColumnType("int");
@@ -2208,13 +2255,13 @@ namespace CafeChain.Migrations
                     b.Property<int?>("InventoryDocumentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("InventoryTransactionTypeId")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
                     b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
                         .HasColumnType("int");
 
                     b.HasKey("InventoryTransactionId");
@@ -2223,9 +2270,9 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("InventoryDocumentId");
 
-                    b.HasIndex("InventoryTransactionTypeId");
-
                     b.HasIndex("StoreInventoryId");
+
+                    b.HasIndex("Type");
 
                     b.HasIndex("StoreInventoryId", "CreatedAt");
 
@@ -2235,65 +2282,95 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransfer", b =>
                 {
-                    b.Property<int>("InventoryTransactionTypeId")
+                    b.Property<int>("InventoryTransferId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransactionTypeId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransferId"));
 
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsSystem")
+                    b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<int>("ExportDocumentId")
+                        .HasColumnType("int");
 
-                    b.HasKey("InventoryTransactionTypeId");
+                    b.Property<int>("FromStoreId")
+                        .HasColumnType("int");
 
-                    b.HasIndex("Code")
+                    b.Property<int?>("ImportDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ToStoreId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalExportQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalReceivedQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("InventoryTransferId");
+
+                    b.HasIndex("ExportDocumentId")
                         .IsUnique();
 
-                    b.ToTable("InventoryTransactionTypes", (string)null);
+                    b.HasIndex("ImportDocumentId")
+                        .IsUnique()
+                        .HasFilter("[ImportDocumentId] IS NOT NULL");
 
-                    b.HasData(
-                        new
-                        {
-                            InventoryTransactionTypeId = 1,
-                            Code = "IMPORT",
-                            IsSystem = true,
-                            Name = "Nhập kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 2,
-                            Code = "EXPORT",
-                            IsSystem = true,
-                            Name = "Xuất kho"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 3,
-                            Code = "ADJUST",
-                            IsSystem = true,
-                            Name = "Điều chỉnh"
-                        },
-                        new
-                        {
-                            InventoryTransactionTypeId = 4,
-                            Code = "WASTE",
-                            IsSystem = true,
-                            Name = "Hao hụt"
-                        });
+                    b.HasIndex("Status");
+
+                    b.HasIndex("ToStoreId");
+
+                    b.HasIndex("FromStoreId", "ToStoreId");
+
+                    b.ToTable("InventoryTransfers", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransferDetail", b =>
+                {
+                    b.Property<int>("InventoryTransferDetailId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryTransferDetailId"));
+
+                    b.Property<decimal>("ExportQuantity")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryTransferId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("ReceivedQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<decimal?>("UnitPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.HasKey("InventoryTransferDetailId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("InventoryTransferId", "IngredientId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryTransferDetails");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Supplier", b =>
@@ -3242,60 +3319,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("PointTransactionTypeId");
 
                     b.ToTable("PointTransactions", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            PointTransactionId = 1,
-                            BalanceAfter = 50,
-                            CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            OrderId = 1,
-                            PointTransactionTypeId = 1,
-                            Points = 50
-                        },
-                        new
-                        {
-                            PointTransactionId = 2,
-                            BalanceAfter = 80,
-                            CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            OrderId = 2,
-                            PointTransactionTypeId = 1,
-                            Points = 30
-                        },
-                        new
-                        {
-                            PointTransactionId = 3,
-                            BalanceAfter = 60,
-                            CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            OrderId = 2,
-                            PointTransactionTypeId = 2,
-                            Points = 20
-                        },
-                        new
-                        {
-                            PointTransactionId = 4,
-                            BalanceAfter = 100,
-                            CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            ExpiredAt = new DateTime(2025, 11, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            OrderId = 3,
-                            PointTransactionTypeId = 1,
-                            Points = 100
-                        },
-                        new
-                        {
-                            PointTransactionId = 5,
-                            BalanceAfter = 50,
-                            CreatedAt = new DateTime(2025, 5, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            PointTransactionTypeId = 3,
-                            Points = 50
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Loyalties.PointTransactionType", b =>
@@ -3456,76 +3479,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreId1");
 
                     b.ToTable("Orders", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            OrderId = 1,
-                            CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            DeliveryAddress = "Tại quầy",
-                            Note = "",
-                            OrderStatusId = 3,
-                            OrderTypeId = 1,
-                            PaymentStatusId = 0,
-                            PointDiscount = 0m,
-                            PointsUsed = 0,
-                            ReceiverName = "Khách vãng lai",
-                            ReceiverPhone = "0000000000",
-                            ShippingFee = 0m,
-                            Source = "POS",
-                            StaffId = 108,
-                            StoreId = 1,
-                            SubTotal = 45000m,
-                            TableId = 1,
-                            Total = 45000m,
-                            VoucherDiscount = 0m
-                        },
-                        new
-                        {
-                            OrderId = 2,
-                            CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            DeliveryAddress = "Mang đi",
-                            Note = "Ít đá",
-                            OrderStatusId = 2,
-                            OrderTypeId = 2,
-                            PaymentStatusId = 0,
-                            PointDiscount = 0m,
-                            PointsUsed = 0,
-                            ReceiverName = "Khách vãng lai",
-                            ReceiverPhone = "0000000000",
-                            ShippingFee = 0m,
-                            Source = "APP",
-                            StaffId = 109,
-                            StoreId = 1,
-                            SubTotal = 60000m,
-                            Total = 60000m,
-                            VoucherDiscount = 0m
-                        },
-                        new
-                        {
-                            OrderId = 3,
-                            CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified),
-                            CustomerId = 111,
-                            DeliveryAddress = "Giao hàng tận nơi",
-                            Note = "",
-                            OrderStatusId = 1,
-                            OrderTypeId = 3,
-                            PaymentStatusId = 0,
-                            PointDiscount = 0m,
-                            PointsUsed = 0,
-                            ReceiverName = "Khách vãng lai",
-                            ReceiverPhone = "0000000000",
-                            ShippingFee = 0m,
-                            Source = "POS",
-                            StaffId = 110,
-                            StoreId = 2,
-                            SubTotal = 70000m,
-                            TableId = 3,
-                            Total = 70000m,
-                            VoucherDiscount = 0m
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderDetail", b =>
@@ -3574,44 +3527,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("SizeId");
 
                     b.ToTable("OrderDetails", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            OrderDetailId = 1,
-                            DrinkId = 1,
-                            DrinkName = "Cà phê sữa",
-                            Note = "",
-                            OrderId = 1,
-                            Price = 25000m,
-                            Quantity = 1,
-                            SizeId = 2,
-                            SizeName = "M"
-                        },
-                        new
-                        {
-                            OrderDetailId = 2,
-                            DrinkId = 2,
-                            DrinkName = "Cà phê đen",
-                            Note = "",
-                            OrderId = 1,
-                            Price = 20000m,
-                            Quantity = 1,
-                            SizeId = 2,
-                            SizeName = "M"
-                        },
-                        new
-                        {
-                            OrderDetailId = 3,
-                            DrinkId = 3,
-                            DrinkName = "Trà sữa trân châu",
-                            Note = "Ít đá",
-                            OrderId = 2,
-                            Price = 60000m,
-                            Quantity = 1,
-                            SizeId = 3,
-                            SizeName = "L"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderStatus", b =>
@@ -3713,24 +3628,6 @@ namespace CafeChain.Migrations
                         .IsUnique();
 
                     b.ToTable("OrderToppings", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            OrderToppingId = 1,
-                            OrderDetailId = 3,
-                            Price = 5000m,
-                            ToppingId = 1,
-                            ToppingName = "Trân châu đen"
-                        },
-                        new
-                        {
-                            OrderToppingId = 2,
-                            OrderDetailId = 3,
-                            Price = 5000m,
-                            ToppingId = 2,
-                            ToppingName = "Trân châu trắng"
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderType", b =>
@@ -3876,55 +3773,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("PaymentStatusId");
 
                     b.ToTable("Payments", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            PaymentId = 1,
-                            Amount = 30000m,
-                            CashSessionId = 1,
-                            OrderId = 1,
-                            PaidAt = new DateTime(2025, 1, 1, 8, 10, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethodId = 1,
-                            PaymentStatusId = 2
-                        },
-                        new
-                        {
-                            PaymentId = 2,
-                            Amount = 50000m,
-                            OrderId = 2,
-                            PaidAt = new DateTime(2025, 1, 1, 9, 10, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethodId = 3,
-                            PaymentStatusId = 2,
-                            TransactionCode = "MOMO_001"
-                        },
-                        new
-                        {
-                            PaymentId = 3,
-                            Amount = 45000m,
-                            OrderId = 3,
-                            PaymentMethodId = 2,
-                            PaymentStatusId = 1
-                        },
-                        new
-                        {
-                            PaymentId = 4,
-                            Amount = 60000m,
-                            OrderId = 1,
-                            PaymentMethodId = 5,
-                            PaymentStatusId = 3,
-                            TransactionCode = "VNPAY_FAIL_01"
-                        },
-                        new
-                        {
-                            PaymentId = 5,
-                            Amount = 40000m,
-                            CashSessionId = 2,
-                            OrderId = 2,
-                            PaidAt = new DateTime(2025, 1, 1, 7, 0, 0, 0, DateTimeKind.Unspecified),
-                            PaymentMethodId = 1,
-                            PaymentStatusId = 4
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Payments.PaymentMethod", b =>
@@ -4979,13 +4827,27 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffScopeId = 109,
+                            ScopeRefId = 2,
+                            ScopeTypeId = 4,
+                            StaffId = 108
+                        },
+                        new
+                        {
+                            StaffScopeId = 110,
+                            ScopeRefId = 3,
+                            ScopeTypeId = 4,
+                            StaffId = 108
+                        },
+                        new
+                        {
+                            StaffScopeId = 111,
                             ScopeRefId = 1,
                             ScopeTypeId = 4,
                             StaffId = 109
                         },
                         new
                         {
-                            StaffScopeId = 110,
+                            StaffScopeId = 112,
                             ScopeRefId = 1,
                             ScopeTypeId = 4,
                             StaffId = 110
@@ -5640,11 +5502,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 18, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2365),
+                            EndDate = new DateTime(2026, 5, 19, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(94),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 11, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2357)
+                            StartDate = new DateTime(2026, 4, 12, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(86)
                         },
                         new
                         {
@@ -5652,10 +5514,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 3, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2367),
+                            EndDate = new DateTime(2026, 5, 4, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(98),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 17, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2367)
+                            StartDate = new DateTime(2026, 4, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(97)
                         },
                         new
                         {
@@ -5663,11 +5525,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 17, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2369),
+                            EndDate = new DateTime(2026, 6, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(100),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 19, 22, 42, 6, 698, DateTimeKind.Local).AddTicks(2369)
+                            StartDate = new DateTime(2026, 3, 20, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(99)
                         });
                 });
 
@@ -6058,9 +5920,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Drinks.RecipeDetail", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Recipe", "ChildRecipe")
-                        .WithMany()
+                        .WithMany("ChildRecipeDetails")
                         .HasForeignKey("ChildRecipeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("FK_RecipeDetail_ChildRecipe");
 
                     b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
                         .WithMany("RecipeDetails")
@@ -6071,17 +5934,14 @@ namespace CafeChain.Migrations
                         .WithMany("RecipeDetails")
                         .HasForeignKey("RecipeId")
                         .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .IsRequired()
+                        .HasConstraintName("FK_RecipeDetail_Recipe");
 
                     b.HasOne("CafeChain.Models.Inventories.Unit", "Unit")
-                        .WithMany()
+                        .WithMany("RecipeDetails")
                         .HasForeignKey("UnitId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Inventories.Unit", null)
-                        .WithMany("RecipeDetails")
-                        .HasForeignKey("UnitId1");
 
                     b.Navigation("ChildRecipe");
 
@@ -6130,13 +5990,25 @@ namespace CafeChain.Migrations
                     b.Navigation("Unit");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDebt", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.InventoryDocument", null)
-                        .WithMany()
-                        .HasForeignKey("RefDocumentId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .WithMany("Debts")
+                        .HasForeignKey("InventoryDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", "InventoryDocument")
+                        .WithMany()
+                        .HasForeignKey("InventoryDocumentId1")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryDocument");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
+                {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("InventoryDocuments")
                         .HasForeignKey("StaffId")
@@ -6195,12 +6067,6 @@ namespace CafeChain.Migrations
                         .HasForeignKey("InventoryDocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CafeChain.Models.Inventories.InventoryTransactionType", "TransactionType")
-                        .WithMany("InventoryTransactions")
-                        .HasForeignKey("InventoryTransactionTypeId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
                     b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("StoreInventoryId")
@@ -6210,8 +6076,59 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocument");
 
                     b.Navigation("StoreInventory");
+                });
 
-                    b.Navigation("TransactionType");
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransfer", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", "ExportDocument")
+                        .WithOne("ExportTransfer")
+                        .HasForeignKey("CafeChain.Models.Inventories.InventoryTransfer", "ExportDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "FromStore")
+                        .WithMany("ExportTransfers")
+                        .HasForeignKey("FromStoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.InventoryDocument", "ImportDocument")
+                        .WithOne("ImportTransfer")
+                        .HasForeignKey("CafeChain.Models.Inventories.InventoryTransfer", "ImportDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "ToStore")
+                        .WithMany("ImportTransfers")
+                        .HasForeignKey("ToStoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ExportDocument");
+
+                    b.Navigation("FromStore");
+
+                    b.Navigation("ImportDocument");
+
+                    b.Navigation("ToStore");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransferDetail", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
+                        .WithMany("InventoryTransferDetails")
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.InventoryTransfer", "InventoryTransfer")
+                        .WithMany("Details")
+                        .HasForeignKey("InventoryTransferId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("InventoryTransfer");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.SupplierBankAccount", b =>
@@ -6255,7 +6172,7 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredients")
+                    b.HasOne("CafeChain.Models.Inventories.Ingredient", "Ingredient")
                         .WithMany("UnitConversions")
                         .HasForeignKey("IngredientId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -6269,7 +6186,7 @@ namespace CafeChain.Migrations
 
                     b.Navigation("FromUnit");
 
-                    b.Navigation("Ingredients");
+                    b.Navigation("Ingredient");
 
                     b.Navigation("ToUnit");
                 });
@@ -6827,6 +6744,8 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
                 {
+                    b.Navigation("ChildRecipeDetails");
+
                     b.Navigation("RecipeDetails");
                 });
 
@@ -6850,6 +6769,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("InventoryDocumentDetails");
 
+                    b.Navigation("InventoryTransferDetails");
+
                     b.Navigation("RecipeDetails");
 
                     b.Navigation("StoreInventories");
@@ -6859,14 +6780,21 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.InventoryDocument", b =>
                 {
+                    b.Navigation("Debts");
+
                     b.Navigation("Details");
+
+                    b.Navigation("ExportTransfer")
+                        .IsRequired();
+
+                    b.Navigation("ImportTransfer");
 
                     b.Navigation("InventoryTransactions");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransactionType", b =>
+            modelBuilder.Entity("CafeChain.Models.Inventories.InventoryTransfer", b =>
                 {
-                    b.Navigation("InventoryTransactions");
+                    b.Navigation("Details");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Supplier", b =>
@@ -6998,6 +6926,10 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
                     b.Navigation("CashSessions");
+
+                    b.Navigation("ExportTransfers");
+
+                    b.Navigation("ImportTransfers");
 
                     b.Navigation("InventoryDocuments");
 

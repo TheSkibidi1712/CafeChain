@@ -4,17 +4,27 @@
     {
         NONE = 0,
 
-        // ===== NHẬP =====
-        PURCHASE = 1,        // nhập mua
+        // ================= NHẬP KHO =================
+        IMPORT_PURCHASE = 1,     // nhập từ NCC
+        IMPORT_INTERNAL = 2,     // nhập nội bộ
+        IMPORT_ADJUSTMENT = 3,   // điều chỉnh tăng
 
-        // ===== XUẤT =====
-        SALE = 2,            // bán hàng
-        INTERNAL = 3,        // chuyển nội bộ
-        GIFT = 4,            // tặng
-        DEBT = 5,            // cho nợ
+        // ================= XUẤT KHO =================
+        SALE = 5,
+        INTERNAL_OUT = 6,
+        GIFT = 7,
+        DEBT = 8,
+        SAMPLE = 9,
+        ADJUSTMENT_OUT = 10,
 
-        // ===== HỦY =====
-        DAMAGED = 6,
-        EXPIRED = 7
+        // ================= KIỂM KÊ =================
+        STOCK_TAKE = 11,         // kiểm kê (chung)
+
+        // ================= HỦY =================
+        DAMAGED = 12,
+        EXPIRED = 13,
+        BROKEN = 14,
+        CONTAMINATED = 15,
+        LOST = 16
     }
 }

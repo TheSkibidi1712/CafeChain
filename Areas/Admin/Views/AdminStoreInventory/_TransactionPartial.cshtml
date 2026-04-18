@@ -5,6 +5,8 @@
         <tr>
             <th>Loại</th>
             <th>Số lượng</th>
+            <th>Giá</th>
+            <th>Thành tiền</th>
             <th>Trước</th>
             <th>Sau</th>
             <th>Ngày</th>
@@ -23,6 +25,27 @@
                     else
                     {
                         <span class="minus">@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                    }
+                </td>
+                <td>
+                    @if (item.UnitPrice != null)
+                    {
+                        @($"{item.UnitPrice:N0} đ")
+                    }
+                    else
+                    {
+                        <span>-</span>
+                    }
+                </td>
+
+                <td>
+                    @if (item.TotalAmount != null)
+                    {
+                        @($"{item.TotalAmount:N0} đ")
+                    }
+                    else
+                    {
+                        <span>-</span>
                     }
                 </td>
                 <td>@($"{item.BeforeQty:N0} {item.UnitCode}")</td>

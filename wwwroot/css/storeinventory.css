@@ -222,3 +222,34 @@
         border-radius: 6px;
         padding: 4px 8px;
     }
+
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f5f5f5;
+    color: #555;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 2000; /* 🔥 đảm bảo nổi trên cùng */
+
+    transition: all 0.25s ease;
+}
+
+    /* 🔥 hover chắc chắn ăn */
+    .modal-close:hover {
+        background: #f44336 !important;
+        color: white !important;
+        transform: rotate(90deg) scale(1.1);
+    }
+
+    /* 🔥 click feedback */
+    .modal-close:active {
+        transform: scale(0.9);
+    }

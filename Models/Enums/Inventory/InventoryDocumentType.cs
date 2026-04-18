@@ -4,7 +4,7 @@
     {
         IMPORT = 1,
         EXPORT = 2,
-        STOCK_TAKE = 3,
-        WASTE = 4
+        WASTE = 3,
+        STOCK_TAKE = 4
     }
 }

@@ -9,8 +9,9 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments
     {
         public InventoryDocumentVM Form { get; set; } = new();
 
+        // ✅ chỉ store mà staff được quyền
         public List<Store> Stores { get; set; } = new();
-        public List<Staff> Staffs { get; set; } = new();
+
         public List<Supplier> Suppliers { get; set; } = new();
 
         public List<IngredientDropdownDTO> Ingredients { get; set; } = new();

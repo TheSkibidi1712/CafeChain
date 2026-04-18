@@ -59,6 +59,10 @@ using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Services.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
+using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Application.Services.Admin.InventoryTransfers;
+using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -214,6 +218,7 @@ builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
 
 // Admin Inventory Documents
+builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
 builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
 
@@ -227,6 +232,10 @@ builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
 
 // Admin Orders Dashboard
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.IAdminOrderService, CafeChain.Application.Services.Admin.AdminOrderService>();
+
+// Admin Inventory Transfers
+builder.Services.AddScoped<IAdminInventoryTransferRepository, AdminInventoryTransferRepository>();
+builder.Services.AddScoped<IAdminInventoryTransferService, AdminInventoryTransferService>();
 
 // Security
 builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();

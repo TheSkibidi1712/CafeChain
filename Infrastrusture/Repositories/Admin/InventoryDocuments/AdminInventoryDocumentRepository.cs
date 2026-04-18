@@ -18,29 +18,37 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         }
 
         // ======================== LOOKUP ========================
-        public async Task<List<Store>> GetStoresAsync()
-            => await _context.Stores.AsNoTracking().ToListAsync();
-
-        public async Task<List<Staff>> GetStaffsAsync()
-            => await _context.Staffs.AsNoTracking().ToListAsync();
-
-        public async Task<int?> GetStoreIdByStaffAsync(int staffId)
+        public async Task<List<Store>> GetStoresByStaffAsync(int staffId)
         {
-            return await _context.Staffs
-                .Where(x => x.StaffId == staffId)
-                .Select(x => x.StoreId)
-                .FirstOrDefaultAsync();
+            var storeIds = await _context.StaffScopes
+                .Where(x => x.StaffId == staffId && x.ScopeTypeId == 4) // STORE
+                .Select(x => x.ScopeRefId)
+                .ToListAsync();
+
+            return await _context.Stores
+                .Where(x => storeIds.Contains(x.StoreId))
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
+        public async Task<bool> CheckStaffHasStoreAsync(int staffId, int storeId)
+        {
+            return await _context.StaffScopes
+                .AnyAsync(x =>
+                    x.StaffId == staffId &&
+                    x.ScopeTypeId == 4 &&
+                    x.ScopeRefId == storeId);
         }
 
         public async Task<List<Supplier>> GetSuppliersAsync()
             => await _context.Suppliers.AsNoTracking().ToListAsync();
 
-        public async Task<List<Ingredient>> GetIngredientsAsync()
-            => await _context.Ingredients.AsNoTracking().ToListAsync();
-
-        public async Task<List<Unit>> GetUnitsAsync()
-            => await _context.Units.AsNoTracking().ToListAsync();
-
+        public async Task<Supplier?> GetSupplierByIdAsync(int id)
+        {
+            return await _context.Suppliers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.SupplierId == id);
+        }
 
         // ======================== GET PAGED ========================
         public async Task<(List<InventoryDocument>, int)> GetPagedAsync(InventoryDocumentFilterDTO f)
@@ -52,6 +60,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Supplier)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Ingredient)
+                        .ThenInclude(i => i.BaseUnit)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Unit)
                 .AsQueryable();
@@ -93,6 +102,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Supplier)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Ingredient)
+                        .ThenInclude(i => i.BaseUnit)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Unit)
                 .FirstOrDefaultAsync(x => x.InventoryDocumentId == id);
@@ -105,6 +115,23 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             await _context.InventoryDocuments.AddAsync(document);
         }
 
+        public async Task AddDebtAsync(InventoryDebt debt)
+        {
+            await _context.InventoryDebts.AddAsync(debt);
+        }
+
+        public async Task<InventoryDebt?> GetDebtByDocumentIdAsync(int documentId)
+        {
+            return await _context.InventoryDebts
+                .FirstOrDefaultAsync(x => x.InventoryDocumentId == documentId);
+        }
+
+        // ======================== UPDATE STOCK ========================
+        public async Task UpdateStoreInventoryAsync(StoreInventory stock)
+        {
+            _context.StoreInventories.Update(stock);
+            await Task.CompletedTask;
+        }
 
         // ======================== INGREDIENT ========================
         public async Task<Ingredient?> GetIngredientAsync(int ingredientId)
@@ -113,17 +140,15 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .FirstOrDefaultAsync(x => x.IngredientId == ingredientId);
         }
 
-        public async Task<List<IngredientSupplier>> GetIngredientSuppliersAsync(int ingredientId, int? supplierId)
+        public async Task<IngredientSupplier?> GetIngredientSupplierAsync(int ingredientId, int supplierId)
         {
-            var query = _context.IngredientSuppliers
+            return await _context.IngredientSuppliers
                 .Include(x => x.Unit)
-                .Where(x => x.IngredientId == ingredientId);
-
-            if (supplierId.HasValue)
-                query = query.Where(x => x.SupplierId == supplierId);
-
-            return await query.AsNoTracking().ToListAsync();
+                .FirstOrDefaultAsync(x =>
+                    x.IngredientId == ingredientId &&
+                    x.SupplierId == supplierId);
         }
+
 
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
         {
@@ -185,13 +210,21 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         }
 
         // ======================== GET STORE INVENTORIES ========================
-        public async Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId)
+        public async Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId, bool onlyAvailable = false)
         {
-            return await _context.StoreInventories
+            var query = _context.StoreInventories
                 .Include(x => x.Ingredient)
-                .Where(x => x.StoreId == storeId && x.AvailableQty > 0)
+                    .ThenInclude(i => i.BaseUnit)
+                .Where(x => x.StoreId == storeId);
+
+            if (onlyAvailable)
+                query = query.Where(x => x.AvailableQty > 0);
+
+            return await query
+                .AsNoTracking()
                 .ToListAsync();
         }
+
 
         // ======================== TRANSACTION ========================
         public async Task AddTransactionAsync(InventoryTransaction transaction)

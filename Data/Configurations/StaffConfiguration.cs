@@ -157,8 +157,10 @@ namespace CafeChain.Data.Configurations
 
                 // ===== STORE LEVEL (Store Manager, Shift Supervisor, Cashier) =====
                 new StaffScope { StaffScopeId = 108, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 109, StaffId = 109, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 110, StaffId = 110, ScopeTypeId = 4, ScopeRefId = 1 }
+                new StaffScope { StaffScopeId = 109, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 2 },
+                new StaffScope { StaffScopeId = 110, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 3 },
+                new StaffScope { StaffScopeId = 111, StaffId = 109, ScopeTypeId = 4, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 112, StaffId = 110, ScopeTypeId = 4, ScopeRefId = 1 }
             );
         }
     }

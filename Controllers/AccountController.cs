@@ -142,33 +142,49 @@ namespace CafeChain.Controllers
 
             TempData["SuccessMessage"] = "Đăng nhập thành công!";
 
-            // ===== REDIRECT dựa trên Role ưu tiên cao nhất =====
-            var role = result.Data.Role ?? "";
+            // ===== REDIRECT ROLE =====
+            var role = (result.Data.Role ?? "").Trim();
 
-            // 🔥 RULE: Ưu tiên điều hướng Local ReturnURL trước nếu hợp lệ (Chống Open Redirect Attack)
+            // Ưu tiên returnUrl
             if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
 
-            // Fallback Role-based Redirect (Sử dụng tên Role TIẾNG VIỆT chính xác từ Database)
-            // Nhóm Management: Quản lý cấp cao → Admin Dashboard
-            if (role.Contains("Super Admin") || role.Contains("CEO") || role.Contains("Ban Giám đốc") 
-                || role.Contains("Kế toán trưởng") || role.Contains("Nhân sự") 
-                || role.Contains("Giám đốc") || role.Contains("Quản lý") 
-                || role.Contains("Cửa hàng trưởng"))
+            // ===== ADMIN =====
+            if (
+                role == "Super Admin" ||
+                role == "CEO / Ban Giám đốc" ||
+                role == "Kế toán trưởng / Tài chính" ||
+                role == "Giám đốc Marketing" ||
+                role == "Giám đốc Vận hành" ||
+                role == "Quản lý Nhân sự" ||
+                role == "Quản lý Khu vực" ||
+                role == "Cửa hàng trưởng"
+            )
             {
                 return RedirectToAction("Index", "AdminStaff", new { area = "Admin" });
             }
-            // Nhóm Operations: Ca trưởng, Thu ngân → Kiosk Chấm Công
-            else if (role.Contains("Ca trưởng") || role.Contains("Thu ngân"))
+
+            // ===== KIOSK =====
+            if (
+                role == "Ca trưởng" ||
+                role == "Thu ngân" ||
+                role == "Thủ kho" ||
+                role == "Nhân viên chung"
+            )
             {
                 return RedirectToAction("Index", "Kiosk");
             }
-            else
+
+            // ===== CUSTOMER =====
+            if (role == "Khách hàng")
             {
                 return RedirectToAction("Index", "Home");
             }
+
+            // fallback
+            return RedirectToAction("Index", "Home");
         }
 
         // ========================= LOGOUT =========================

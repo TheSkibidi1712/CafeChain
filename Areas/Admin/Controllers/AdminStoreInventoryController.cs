@@ -36,7 +36,11 @@ namespace CafeChain.Areas.Admin.Controllers
                     AvailableQty = x.AvailableQty,
                     ReservedQty = x.ReservedQty,
                     LastUpdated = x.LastUpdated,
-                    UnitCode = x.UnitCode
+                    UnitCode = x.UnitCode,
+
+                    // 🔥 NEW
+                    LastUnitPrice = x.LastUnitPrice,
+                    LastSupplierName = x.LastSupplierName
                 }).ToList()
             };
 
@@ -68,7 +72,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 BeforeQty = x.BeforeQty,
                 AfterQty = x.AfterQty,
                 CreatedAt = x.CreatedAt,
-                UnitCode = x.UnitCode
+                UnitCode = x.UnitCode,
+                UnitPrice = x.UnitPrice,
+                TotalAmount = x.TotalAmount
             }).ToList();
 
             return PartialView("_TransactionPartial", vm);

@@ -330,13 +330,18 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 
         // ==================== MASTER DATA (Thin Controller) ====================
 
-        public async Task<List<Role>> GetRolesForDropdownAsync()
+        public async Task<List<Role>> GetRolesForDropdownAsync(int? storeManagerStoreId)
         {
-            // Repository chỉ làm nhiệm vụ trả về dữ liệu thô (Active roles)
-            // Logic lọc quyền (Business Rule) sẽ do Service đảm nhận
+            if (storeManagerStoreId.HasValue)
+            {
+                // Store Manager: CHỈ được chọn Cashier (RoleId = 1)
+                return await _context.Roles
+                    .Where(r => r.RoleId == 1 && r.Active)
+                    .ToListAsync();
+            }
+            // Admin System: Loại bỏ Customer (RoleId = 6)
             return await _context.Roles
-                .Where(r => r.Active)
-                .OrderBy(r => r.RoleId)
+                .Where(r => r.RoleId != 6 && r.Active)
                 .ToListAsync();
         }
 
