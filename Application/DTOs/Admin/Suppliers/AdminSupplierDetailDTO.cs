@@ -8,9 +8,18 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string Name { get; set; } = "";
         public string? TaxCode { get; set; }
         public string? Website { get; set; }
-        public string? Address { get; set; }
+        public string? Address { get; set; }  // Địa chỉ đầy đủ (gộp 3 cấp)
         public decimal DebtAmount { get; set; }
         public bool Active { get; set; }
+
+        // Địa chỉ 3 cấp (dùng fill form Edit)
+        public int? ProvinceId { get; set; }
+        public string? ProvinceName { get; set; }
+        public int? DistrictId { get; set; }
+        public string? DistrictName { get; set; }
+        public int? WardId { get; set; }
+        public string? WardName { get; set; }
+        public string? StreetAddress { get; set; }
 
         public List<AdminSupplierPhoneDTO> Phones { get; set; } = new();
         public List<AdminSupplierBankAccountDTO> BankAccounts { get; set; } = new();

@@ -87,6 +87,37 @@
     letter-spacing: .5px;
 }
 
+/* ---------- CODE AUTO-BADGE (readonly display in modals) ---------- */
+.sup-code-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1d4ed8;
+    border: 1.5px solid #bfdbfe;
+    padding: 7px 12px;
+    border-radius: 8px;
+    font-size: .875rem;
+    font-weight: 700;
+    letter-spacing: .6px;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 39px;
+    user-select: none;
+}
+
+/* Disabled select styling (khi chưa chọn cấp trên) */
+.sup-select:disabled {
+    background: #f8fafc;
+    color: #94a3b8;
+    cursor: not-allowed;
+    border-color: #e2e8f0;
+}
+.sup-select.bg-light {
+    background: #f8fafc;
+    color: #94a3b8;
+}
+
 /* ---------- BADGE ---------- */
 .sup-badge {
     display: inline-block;
@@ -511,4 +542,19 @@
     font-size: .82rem;
     color: #94a3b8;
     font-style: italic;
+}
+
+/* ---------- INPUT ERROR FLASH (khi gõ ký tự không hợp lệ) ---------- */
+@keyframes supInputShake {
+    0%   { transform: translateX(0);  border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.18); }
+    25%  { transform: translateX(-4px); }
+    50%  { transform: translateX(4px); }
+    75%  { transform: translateX(-3px); }
+    100% { transform: translateX(0); border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.18); }
+}
+
+.input-error-flash {
+    animation: supInputShake .4s ease;
+    border-color: #dc2626 !important;
+    box-shadow: 0 0 0 3px rgba(220,38,38,.18) !important;
 }

@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -30,6 +31,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Json(new { success = false, message = "Không tìm thấy nhà cung cấp" });
 
             return Json(new { success = true, data });
+        }
+
+        // ===== GET NEXT CODE (auto-generate NCC code) =====
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNextCode()
+        {
+            var code = await _service.GenerateNextCodeAsync();
+            return Json(new { success = true, code });
         }
 
         // ===== CREATE =====
@@ -171,6 +181,35 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        // ===================== LOCATION ENDPOINTS =====================
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetProvinces()
+        {
+            var provinces = await _service.GetProvincesAsync();
+            var data = provinces.Select(p => new { code = p.ProvinceId, name = p.Name }).ToList();
+            return Json(data);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetDistricts(int provinceId)
+        {
+            var districts = await _service.GetDistrictsByProvinceAsync(provinceId);
+            var data = districts.Select(d => new { code = d.DistrictId, name = d.Name }).ToList();
+            return Json(data);
+        }
+
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetWards(int districtId)
+        {
+            var wards = await _service.GetWardsByDistrictAsync(districtId);
+            var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
+            return Json(data);
         }
     }
 }

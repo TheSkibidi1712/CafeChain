@@ -3,20 +3,23 @@ using System.ComponentModel.DataAnnotations;
 namespace CafeChain.Application.DTOs.Admin.Suppliers
 {
     // DTO cập nhật thông tin cơ bản của NCC
+    // Code là readonly (không đổi sau khi tạo)
     public class AdminSupplierUpdateDTO
     {
         public int SupplierId { get; set; }
-
-        [Required(ErrorMessage = "Mã NCC không được để trống")]
-        public string Code { get; set; } = "";
 
         [Required(ErrorMessage = "Tên NCC không được để trống")]
         public string Name { get; set; } = "";
 
         public string? TaxCode { get; set; }
         public string? Website { get; set; }
-        public string? Address { get; set; }
         public bool Active { get; set; }
+
+        // ===== ĐỊA CHỈ 3 CẤP =====
+        public int? ProvinceId { get; set; }
+        public int? DistrictId { get; set; }
+        public int? WardId { get; set; }
+        public string? StreetAddress { get; set; }
     }
 
     // DTO thêm số điện thoại phụ

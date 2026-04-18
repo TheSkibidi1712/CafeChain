@@ -53,6 +53,35 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
             await _context.Suppliers.AddAsync(supplier);
         }
 
+        // ===== GENERATE NEXT CODE =====
+        // Format: NCC00001, NCC00002, ... (5 chữ số, có thể mở rộng nếu vượt 99999)
+        public async Task<string> GenerateNextCodeAsync()
+        {
+            const string PREFIX = "NCC";
+            // Lấy tất cả mã bắt đầu bằng PREFIX
+            var existingCodes = await _context.Suppliers
+                .Where(s => s.Code != null && s.Code.StartsWith(PREFIX))
+                .Select(s => s.Code!)
+                .ToListAsync();
+
+            int maxNum = 0;
+            foreach (var code in existingCodes)
+            {
+                // Cắt bỏ PREFIX và parse phần số
+                var numPart = code.Substring(PREFIX.Length);
+                if (int.TryParse(numPart, out int num) && num > maxNum)
+                    maxNum = num;
+            }
+
+            int nextNum = maxNum + 1;
+            // Format 5 chữ số, tự động mở rộng nếu vượt 99999
+            string paddedNum = nextNum <= 99999
+                ? nextNum.ToString("D5")
+                : nextNum.ToString();
+
+            return PREFIX + paddedNum;
+        }
+
         // ===== CHECK CODE =====
         public async Task<bool> IsCodeExists(string code, int? excludeId = null)
         {

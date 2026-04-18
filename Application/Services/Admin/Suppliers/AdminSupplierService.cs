@@ -1,17 +1,22 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Models.Inventories;
+using CafeChain.Models.Locations;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Application.Services.Admin.Suppliers
 {
     public class AdminSupplierService : IAdminSupplierService
     {
         private readonly IAdminSupplierRepository _repo;
+        private readonly AppDbContext _context;
 
-        public AdminSupplierService(IAdminSupplierRepository repo)
+        public AdminSupplierService(IAdminSupplierRepository repo, AppDbContext context)
         {
-            _repo = repo;
+            _repo    = repo;
+            _context = context;
         }
 
         // ===== GET ALL =====
@@ -26,27 +31,36 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null) return null;
-            return MapToDetailDTO(entity);
+            return await MapToDetailDTOAsync(entity);
+        }
+
+        // ===== GENERATE NEXT CODE =====
+        public async Task<string> GenerateNextCodeAsync()
+        {
+            return await _repo.GenerateNextCodeAsync();
         }
 
         // ===== CREATE =====
         public async Task<int> CreateAsync(AdminSupplierCreateDTO dto)
         {
-            dto.Code = Normalize(dto.Code).ToUpper();
             dto.Name = Normalize(dto.Name);
 
-            if (await _repo.IsCodeExists(dto.Code))
-                throw new Exception("Mã nhà cung cấp đã tồn tại");
+            // Sinh mã tự động
+            var code = await _repo.GenerateNextCodeAsync();
+
+            // Ghép địa chỉ đầy đủ từ 3 cấp
+            string? fullAddress = await BuildFullAddressAsync(
+                dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
 
             var supplier = new Supplier
             {
-                Code           = dto.Code,
-                Name           = dto.Name,
-                TaxCode        = dto.TaxCode?.Trim(),
-                Website        = dto.Website?.Trim(),
-                Address        = dto.Address?.Trim(),
-                DebtAmount     = 0,
-                Active         = true,
+                Code       = code,
+                Name       = dto.Name,
+                TaxCode    = dto.TaxCode?.Trim(),
+                Website    = dto.Website?.Trim(),
+                Address    = fullAddress,
+                DebtAmount = 0,
+                Active     = true,
 
                 // Số điện thoại chính
                 Phones = new List<SupplierPhone>
@@ -96,17 +110,16 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (entity == null)
                 throw new Exception("Không tìm thấy nhà cung cấp");
 
-            dto.Code = Normalize(dto.Code).ToUpper();
             dto.Name = Normalize(dto.Name);
 
-            if (await _repo.IsCodeExists(dto.Code, dto.SupplierId))
-                throw new Exception("Mã nhà cung cấp đã tồn tại");
+            // Ghép địa chỉ đầy đủ từ 3 cấp
+            string? fullAddress = await BuildFullAddressAsync(
+                dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
 
-            entity.Code    = dto.Code;
             entity.Name    = dto.Name;
             entity.TaxCode = dto.TaxCode?.Trim();
             entity.Website = dto.Website?.Trim();
-            entity.Address = dto.Address?.Trim();
+            entity.Address = fullAddress;
             entity.Active  = dto.Active;
 
             await _repo.SaveChangesAsync();
@@ -193,9 +206,64 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             await _repo.SaveChangesAsync();
         }
 
+        // ===== LOCATION =====
+        public async Task<List<Province>> GetProvincesAsync()
+        {
+            return await _context.Provinces.OrderBy(p => p.Name).ToListAsync();
+        }
+
+        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
+        {
+            return await _context.Districts
+                .Where(d => d.ProvinceId == provinceId)
+                .OrderBy(d => d.Name)
+                .ToListAsync();
+        }
+
+        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
+        {
+            return await _context.Wards
+                .Where(w => w.DistrictId == districtId)
+                .OrderBy(w => w.Name)
+                .ToListAsync();
+        }
+
         // =============================================================
         // ==================== PRIVATE HELPERS ========================
         // =============================================================
+
+        /// <summary>
+        /// Ghép địa chỉ đầy đủ từ 3 cấp + số nhà.
+        /// Ví dụ: "123 Nguyễn Văn Linh, Phường Bình Chánh, Quận 8, TP. Hồ Chí Minh"
+        /// </summary>
+        private async Task<string?> BuildFullAddressAsync(
+            int? provinceId, int? districtId, int? wardId, string? streetAddress)
+        {
+            var parts = new List<string>();
+
+            if (!string.IsNullOrWhiteSpace(streetAddress))
+                parts.Add(streetAddress.Trim());
+
+            if (wardId.HasValue)
+            {
+                var ward = await _context.Wards.FindAsync(wardId.Value);
+                if (ward != null) parts.Add(ward.Name);
+            }
+
+            if (districtId.HasValue)
+            {
+                var district = await _context.Districts.FindAsync(districtId.Value);
+                if (district != null) parts.Add(district.Name);
+            }
+
+            if (provinceId.HasValue)
+            {
+                var province = await _context.Provinces.FindAsync(provinceId.Value);
+                if (province != null) parts.Add(province.Name);
+            }
+
+            return parts.Count > 0 ? string.Join(", ", parts) : null;
+        }
 
         private static AdminSupplierDTO MapToListDTO(Supplier x)
         {
@@ -221,18 +289,33 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             };
         }
 
-        private static AdminSupplierDetailDTO MapToDetailDTO(Supplier x)
+        private async Task<AdminSupplierDetailDTO> MapToDetailDTOAsync(Supplier x)
         {
+            // Parse lại địa chỉ để lấy ID từng cấp (nếu có)
+            // Vì Address là chuỗi ghép, ta không reverse-parse; thay vào đó
+            // cần lưu ID riêng → hiện tại ta dùng lookup ngược theo tên (best-effort).
+            // Cách chính xác hơn: lưu riêng ProvinceId/DistrictId/WardId vào Supplier entity.
+            // Tạm thời trả về null cho các ID để FE biết cần chọn lại nếu muốn thay đổi địa chỉ.
             return new AdminSupplierDetailDTO
             {
-                SupplierId  = x.SupplierId,
-                Code        = x.Code   ?? "",
-                Name        = x.Name   ?? "",
-                TaxCode     = x.TaxCode,
-                Website     = x.Website,
-                Address     = x.Address,
-                DebtAmount  = x.DebtAmount,
-                Active      = x.Active,
+                SupplierId    = x.SupplierId,
+                Code          = x.Code   ?? "",
+                Name          = x.Name   ?? "",
+                TaxCode       = x.TaxCode,
+                Website       = x.Website,
+                Address       = x.Address,
+                DebtAmount    = x.DebtAmount,
+                Active        = x.Active,
+
+                // Location IDs — null vì Supplier model chưa lưu riêng
+                // Frontend sẽ hiển thị Address text và cho phép chọn lại 3 cấp khi edit
+                ProvinceId    = null,
+                ProvinceName  = null,
+                DistrictId    = null,
+                DistrictName  = null,
+                WardId        = null,
+                WardName      = null,
+                StreetAddress = null,
 
                 Phones = x.Phones.Select(p => new AdminSupplierPhoneDTO
                 {

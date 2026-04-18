@@ -11,6 +11,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
         // ===== SUPPLIER =====
         Task CreateAsync(Supplier supplier);
         Task<bool> IsCodeExists(string code, int? excludeId = null);
+        Task<string> GenerateNextCodeAsync();   // Sinh mã NCC tự động: NCC00001, NCC00002, ...
         Task ToggleStatus(int id);
 
         // ===== PHONES =====

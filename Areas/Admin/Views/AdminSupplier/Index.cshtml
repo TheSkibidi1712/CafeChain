@@ -102,8 +102,11 @@
         <div class="sup-modal-body">
             <div class="sup-grid-2">
                 <div>
-                    <label>Mã NCC <span class="req">*</span></label>
-                    <input id="c-code" class="sup-input" placeholder="SUP00001" />
+                    <label>Mã NCC</label>
+                    <div class="sup-code-badge" id="c-code-display">
+                        <i class="fa fa-tag"></i> đang tải...
+                    </div>
+                    <input type="hidden" id="c-code" />
                 </div>
                 <div>
                     <label>Tên NCC <span class="req">*</span></label>
@@ -111,21 +114,41 @@
                 </div>
                 <div>
                     <label>Mã số thuế</label>
-                    <input id="c-taxcode" class="sup-input" placeholder="Mã số thuế" />
+                    <input id="c-taxcode" class="sup-input" placeholder="10 hoặc 13 chữ số" maxlength="13" inputmode="numeric" />
                 </div>
                 <div>
                     <label>Website</label>
                     <input id="c-website" class="sup-input" placeholder="https://..." />
                 </div>
-                <div class="sup-col-2">
-                    <label>Địa chỉ chính</label>
-                    <input id="c-address" class="sup-input" placeholder="Địa chỉ" />
+
+                @* ĐỊA CHỈ 3 CẤP *@
+                <div>
+                    <label>Tỉnh / Thành phố</label>
+                    <select id="c-province" class="sup-select">
+                        <option value="">— Chọn Tỉnh/Thành phố —</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Quận / Huyện</label>
+                    <select id="c-district" class="sup-select" disabled>
+                        <option value="">— Chọn Quận/Huyện —</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Phường / Xã</label>
+                    <select id="c-ward" class="sup-select" disabled>
+                        <option value="">— Chọn Phường/Xã —</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Số nhà / Tên đường</label>
+                    <input id="c-street" class="sup-input" placeholder="VD: 123 Nguyễn Văn Linh" />
                 </div>
             </div>
 
             <hr class="sup-divider" />
             <h6 class="sup-section-title"><i class="fa fa-phone"></i> Số điện thoại chính</h6>
-            <input id="c-phone" class="sup-input" placeholder="Số điện thoại chính *" />
+            <input id="c-phone" class="sup-input" placeholder="SĐT chính (10-11 số, bắt đầu 0) *" maxlength="11" inputmode="numeric" />
 
             <hr class="sup-divider" />
             <h6 class="sup-section-title"><i class="fa fa-building-columns"></i> Tài khoản ngân hàng chính</h6>
@@ -146,7 +169,7 @@
                 </div>
                 <div>
                     <label>Số tài khoản <span class="req">*</span></label>
-                    <input id="c-accnumber" class="sup-input" placeholder="Số tài khoản" />
+                    <input id="c-accnumber" class="sup-input" placeholder="Chỉ nhập số (tối thiểu 6 số)" maxlength="20" inputmode="numeric" />
                 </div>
                 <div>
                     <label>Chủ tài khoản <span class="req">*</span></label>
@@ -167,11 +190,11 @@
                 </div>
                 <div>
                     <label>SĐT người liên hệ</label>
-                    <input id="c-cphone" class="sup-input" placeholder="SĐT" />
+                    <input id="c-cphone" class="sup-input" placeholder="10-11 số, bắt đầu bằng 0" maxlength="11" inputmode="numeric" />
                 </div>
                 <div>
                     <label>Email</label>
-                    <input id="c-cemail" class="sup-input" placeholder="Email" />
+                    <input id="c-cemail" class="sup-input" placeholder="vd: ten@congty.com" type="email" autocomplete="email" />
                 </div>
             </div>
         </div>
@@ -193,8 +216,10 @@
             <input type="hidden" id="e-id" />
             <div class="sup-grid-2">
                 <div>
-                    <label>Mã NCC <span class="req">*</span></label>
-                    <input id="e-code" class="sup-input" />
+                    <label>Mã NCC</label>
+                    <div class="sup-code-badge" id="e-code-display">
+                        <i class="fa fa-tag"></i> <span id="e-code-text"></span>
+                    </div>
                 </div>
                 <div>
                     <label>Tên NCC <span class="req">*</span></label>
@@ -202,16 +227,42 @@
                 </div>
                 <div>
                     <label>Mã số thuế</label>
-                    <input id="e-taxcode" class="sup-input" />
+                    <input id="e-taxcode" class="sup-input" placeholder="10 hoặc 13 chữ số" maxlength="13" inputmode="numeric" />
                 </div>
                 <div>
                     <label>Website</label>
                     <input id="e-website" class="sup-input" />
                 </div>
-                <div class="sup-col-2">
-                    <label>Địa chỉ chính</label>
-                    <input id="e-address" class="sup-input" />
+
+                <div>
+                    <label>Tỉnh / Thành phố</label>
+                    <select id="e-province" class="sup-select">
+                        <option value="">— Chọn Tỉnh/Thành phố —</option>
+                    </select>
                 </div>
+                <div>
+                    <label>Quận / Huyện</label>
+                    <select id="e-district" class="sup-select" disabled>
+                        <option value="">— Chọn Quận/Huyện —</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Phường / Xã</label>
+                    <select id="e-ward" class="sup-select" disabled>
+                        <option value="">— Chọn Phường/Xã —</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Số nhà / Tên đường</label>
+                    <input id="e-street" class="sup-input" placeholder="VD: 123 Nguyễn Văn Linh" />
+                </div>
+
+                <div class="sup-col-2">
+                    <label>Tạm thời địa chỉ hiện tại (cũ)</label>
+                    <input id="e-address-current" class="sup-input" disabled placeholder="Địa chỉ đã lưu" />
+                    <small class="text-muted">Chọn lại 3 cấp ở trên để cập nhật địa chỉ</small>
+                </div>
+
                 <div class="sup-col-2">
                     <label>Trạng thái</label>
                     <select id="e-active" class="sup-select">
@@ -248,7 +299,7 @@
             <!-- TAB: PHONES -->
             <div id="tabPhones" class="sup-tab-panel active">
                 <div class="sup-sub-add">
-                    <input id="ph-number" class="sup-input" placeholder="Số điện thoại phụ" />
+                    <input id="ph-number" class="sup-input" placeholder="SĐT phụ (10-11 số, bắt đầu 0)" maxlength="11" inputmode="numeric" />
                     <button class="sup-btn sup-btn-primary" id="btnAddPhone"><i class="fa fa-plus"></i> Thêm</button>
                 </div>
                 <table class="sup-table mt-2">
@@ -271,7 +322,7 @@
                         </div>
                         <input type="hidden" id="bk-name" />
                     </div>
-                    <input id="bk-number" class="sup-input" placeholder="Số tài khoản" />
+                    <input id="bk-number" class="sup-input" placeholder="Số TK (chỉ nhập số)" maxlength="20" inputmode="numeric" />
                     <input id="bk-holder" class="sup-input" placeholder="Chủ tài khoản" />
                 </div>
                 <div class="text-end mb-2">
@@ -288,8 +339,8 @@
                 <div class="sup-sub-add sup-grid-2">
                     <input id="ct-name" class="sup-input" placeholder="Họ tên *" />
                     <input id="ct-position" class="sup-input" placeholder="Chức vụ" />
-                    <input id="ct-phone" class="sup-input" placeholder="SĐT" />
-                    <input id="ct-email" class="sup-input" placeholder="Email" />
+                    <input id="ct-phone" class="sup-input" placeholder="SĐT (10-11 số, bắt đầu 0)" maxlength="11" inputmode="numeric" />
+                    <input id="ct-email" class="sup-input" placeholder="Email (vd: ten@congty.com)" type="email" autocomplete="email" />
                 </div>
                 <div class="text-end mb-2">
                     <button class="sup-btn sup-btn-primary" id="btnAddContact"><i class="fa fa-plus"></i> Thêm liên hệ</button>

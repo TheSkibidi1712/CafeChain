@@ -5,6 +5,134 @@
 
 const SUP_BASE = '/Admin/AdminSupplier';
 
+// ===================== VALIDATION HELPERS =====================
+
+/** Số điện thoại VN: 10-11 số, bắt đầu bằng 0 */
+function isValidPhone(val) { return /^0\d{9,10}$/.test(val); }
+
+/** Mã số thuế VN: 10 hoặc 13 chữ số */
+function isValidTaxCode(val) { return /^\d{10}(\d{3})?$/.test(val); }
+
+/** Email chuẩn doanh nghiệp: bắt buộc có @ và domain hợp lệ */
+function isValidEmail(val) {
+    return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val);
+}
+
+/** Số tài khoản ngân hàng: chỉ số, tối thiểu 6 ký tự */
+function isValidBankNumber(val) { return /^\d{6,}$/.test(val); }
+
+/** Họ tên: chỉ chữ cái (có dấu VN) và khoảng trắng, không ký tự đặc biệt */
+function isValidName(val) {
+    return val.trim().length > 0 &&
+           /^[\p{L}\s]+$/u.test(val.trim());
+}
+
+// ─── BLOCK KEYS: Chặn ngay từ bàn phím ─────────────────────────────────────
+
+/**
+ * Chặn nhập ký tự không phải số (keydown + paste).
+ * Cho phép: 0-9, Backspace, Delete, Tab, mũi tên, Ctrl+A/C/V/X
+ */
+function blockNonNumeric(selector) {
+    const ALLOWED_KEYS = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End'];
+
+    $(document).on('keydown', selector, function (e) {
+        if (ALLOWED_KEYS.includes(e.key)) return;
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x'].includes(e.key.toLowerCase())) return;
+        if (!/^\d$/.test(e.key)) {
+            e.preventDefault();
+            supFlashError(this);
+        }
+    });
+
+    // Chặn paste chứa ký tự không phải số
+    $(document).on('paste', selector, function (e) {
+        e.preventDefault();
+        const pasted = (e.originalEvent.clipboardData || window.clipboardData)
+                       .getData('text').replace(/[^\d]/g, '');
+        const el = this;
+        const start = el.selectionStart, end = el.selectionEnd;
+        const cur = $(this).val();
+        const maxLen = parseInt($(this).attr('maxlength')) || 999;
+        const newVal = (cur.slice(0, start) + pasted + cur.slice(end)).slice(0, maxLen);
+        $(this).val(newVal);
+    });
+
+    // Backup cho mobile (input event)
+    $(document).on('input', selector, function () {
+        const cur = $(this).val();
+        const clean = cur.replace(/[^\d]/g, '');
+        if (cur !== clean) $(this).val(clean);
+    });
+}
+
+/**
+ * Chặn nhập ký tự đặc biệt cho trường Họ tên.
+ * Cho phép: chữ cái (kể cả có dấu VN), khoảng trắng.
+ */
+function blockSpecialCharsInName(selector) {
+    const ALLOWED_KEYS = ['Backspace','Delete','Tab','ArrowLeft','ArrowRight','Home','End',' '];
+
+    $(document).on('keydown', selector, function (e) {
+        if (ALLOWED_KEYS.includes(e.key)) return;
+        if ((e.ctrlKey || e.metaKey) && ['a','c','v','x'].includes(e.key.toLowerCase())) return;
+        // Cho phép ký tự là chữ cái Unicode (kể cả tiếng Việt có dấu)
+        if (/^\p{L}$/u.test(e.key)) return;
+        e.preventDefault();
+        supFlashError(this);
+    });
+
+    $(document).on('paste', selector, function (e) {
+        e.preventDefault();
+        const pasted = (e.originalEvent.clipboardData || window.clipboardData)
+                       .getData('text').replace(/[^\p{L}\s]/gu, '');
+        const el = this;
+        const start = el.selectionStart, end = el.selectionEnd;
+        const cur = $(this).val();
+        const newVal = cur.slice(0, start) + pasted + cur.slice(end);
+        $(this).val(newVal);
+    });
+
+    $(document).on('input', selector, function () {
+        const cur = $(this).val();
+        const clean = cur.replace(/[^\p{L}\s]/gu, '');
+        if (cur !== clean) $(this).val(clean);
+    });
+}
+
+/**
+ * Hiệu ứng flash đỏ khi nhập ký tự không hợp lệ
+ */
+function supFlashError(el) {
+    $(el).addClass('input-error-flash');
+    setTimeout(() => $(el).removeClass('input-error-flash'), 400);
+}
+
+// ─── ÁP DỤNG RÀNG BUỘC SAU KHI DOM READY ───────────────────────────────────
+$(function () {
+    // Chỉ nhập số: Mã số thuế
+    blockNonNumeric('#c-taxcode');
+    blockNonNumeric('#e-taxcode');
+
+    // Chỉ nhập số: SĐT NCC chính (modal tạo mới)
+    blockNonNumeric('#c-phone');
+
+    // Chỉ nhập số: SĐT phụ (tab Chi tiết > Điện thoại)
+    blockNonNumeric('#ph-number');
+
+    // Chỉ nhập số: SĐT người liên hệ (modal tạo + tab Chi tiết > Liên hệ)
+    blockNonNumeric('#c-cphone');
+    blockNonNumeric('#ct-phone');
+
+    // Chỉ nhập số: Số tài khoản ngân hàng (modal tạo + tab Chi tiết > Ngân hàng)
+    blockNonNumeric('#c-accnumber');
+    blockNonNumeric('#bk-number');
+
+    // Chỉ chữ cái + khoảng trắng: Họ tên người liên hệ
+    blockSpecialCharsInName('#c-cname');
+    blockSpecialCharsInName('#ct-name');
+});
+
 // ===================== TOAST =====================
 function supToast(msg, type = 'success') {
     const el = $('<div class="sup-toast-item sup-toast-' + type + '">' + msg + '</div>');
@@ -159,24 +287,126 @@ $(function () {
     initBankPicker('bk-bankpicker-display', 'bk-bankpicker-val', 'bk-bankpicker-dropdown', 'bk-bankpicker-list', 'bk-name');
 });
 
+// ===================== LOCATION CASCADE =====================
+function initLocationCascade(provId, distId, wardId) {
+    const $prov = $('#' + provId);
+    const $dist = $('#' + distId);
+    const $ward = $('#' + wardId);
+
+    // Load provinces once on page load
+    if ($prov.find('option').length <= 1) {
+        fetch(SUP_BASE + '/GetProvinces')
+            .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+            .then(data => {
+                data.forEach(p => {
+                    const code = p.code ?? p.Code ?? p.ProvinceId;
+                    const name = p.name ?? p.Name;
+                    $prov.append(`<option value="${code}">${name}</option>`);
+                });
+            })
+            .catch(e => console.error("Lỗi tải Tỉnh/Thành:", e));
+    }
+
+    $prov.off('change.loc').on('change.loc', function () {
+        $dist.html('<option value="">— Chọn Quận/Huyện —</option>').prop('disabled', true);
+        $ward.html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
+        const pid = $(this).val();
+        if (!pid) return;
+        
+        $dist.addClass('bg-light');
+        fetch(SUP_BASE + '/GetDistricts?provinceId=' + pid)
+            .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+            .then(data => {
+                data.forEach(d => {
+                    const code = d.code ?? d.Code ?? d.DistrictId;
+                    const name = d.name ?? d.Name;
+                    $dist.append(`<option value="${code}">${name}</option>`);
+                });
+                $dist.prop('disabled', false).removeClass('bg-light');
+            })
+            .catch(e => {
+                console.error("Lỗi tải Quận/Huyện:", e);
+                supToast("Lỗi tải dữ liệu. Vui lòng thử lại.", "error");
+                $dist.prop('disabled', false).removeClass('bg-light'); // Unlock anyway
+            });
+    });
+
+    $dist.off('change.loc').on('change.loc', function () {
+        $ward.html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
+        const did = $(this).val();
+        if (!did) return;
+        
+        $ward.addClass('bg-light');
+        fetch(SUP_BASE + '/GetWards?districtId=' + did)
+            .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+            .then(data => {
+                data.forEach(w => {
+                    const code = w.code ?? w.Code ?? w.WardId;
+                    const name = w.name ?? w.Name;
+                    $ward.append(`<option value="${code}">${name}</option>`);
+                });
+                $ward.prop('disabled', false).removeClass('bg-light');
+            })
+            .catch(e => {
+                console.error("Lỗi tải Phường/Xã:", e);
+                supToast("Lỗi tải dữ liệu. Vui lòng thử lại.", "error");
+                $ward.prop('disabled', false).removeClass('bg-light'); // Unlock anyway
+            });
+    });
+}
+
+// Khởi tạo cascade cho cả 2 modal
+$(function () {
+    initLocationCascade('c-province', 'c-district', 'c-ward');
+    initLocationCascade('e-province', 'e-district', 'e-ward');
+});
+
 // ===================== CREATE =====================
 $('#btnCreate').on('click', function () {
-    // reset form
-    $('#c-code,#c-name,#c-taxcode,#c-website,#c-address').val('');
+    // Reset form
+    $('#c-name,#c-taxcode,#c-website,#c-street').val('');
     $('#c-phone').val('');
     resetBankPicker('c-bankpicker-val', 'c-bankname');
     $('#c-accnumber,#c-accholder').val('');
     $('#c-cname,#c-cposition,#c-cphone,#c-cemail').val('');
+
+    // Reset địa chỉ
+    $('#c-province').val('');
+    $('#c-district').html('<option value="">— Chọn Quận/Huyện —</option>').prop('disabled', true);
+    $('#c-ward').html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
+
+    // Tải mã NCC tự động
+    $('#c-code-display').html('<i class="fa fa-spinner fa-spin"></i> Đang tạo mã...');
+    $('#c-code').val('');
+    fetch(SUP_BASE + '/GetNextCode')
+        .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
+        .then(res => {
+            if (res.success) {
+                $('#c-code').val(res.code);
+                $('#c-code-display').html('<i class="fa fa-tag"></i> ' + res.code);
+            } else {
+                throw new Error(res.message);
+            }
+        })
+        .catch(e => {
+            console.error("Lỗi tải mã:", e);
+            $('#c-code-display').html('<i class="fa fa-exclamation-triangle" style="color:red"></i> Lỗi tạo mã');
+            supToast("Không thể tạo mã NCC. Kiểm tra kết nối máy chủ.", "error");
+        });
+
     supOpen('createModal');
 });
 
 $('#btnSaveCreate').on('click', function () {
     const dto = {
-        code: $('#c-code').val().trim(),
-        name: $('#c-name').val().trim(),
-        taxCode: $('#c-taxcode').val().trim() || null,
-        website: $('#c-website').val().trim() || null,
-        address: $('#c-address').val().trim() || null,
+        name:      $('#c-name').val().trim(),
+        taxCode:   $('#c-taxcode').val().trim() || null,
+        website:   $('#c-website').val().trim() || null,
+
+        provinceId:    parseInt($('#c-province').val()) || null,
+        districtId:    parseInt($('#c-district').val()) || null,
+        wardId:        parseInt($('#c-ward').val())     || null,
+        streetAddress: $('#c-street').val().trim() || null,
 
         primaryPhone: $('#c-phone').val().trim(),
 
@@ -190,11 +420,42 @@ $('#btnSaveCreate').on('click', function () {
         primaryContactEmail:    $('#c-cemail').val().trim() || null,
     };
 
-    if (!dto.code || !dto.name || !dto.primaryPhone ||
-        !dto.primaryBankName || !dto.primaryAccountNumber || !dto.primaryAccountHolder ||
-        !dto.primaryContactName) {
-        supToast('Vui lòng điền đầy đủ các trường bắt buộc (*)', 'error');
-        return;
+    // --- Validate bắt buộc ---
+    if (!dto.name) {
+        supToast('Tên NCC không được để trống', 'error'); return;
+    }
+    if (!dto.primaryPhone) {
+        supToast('SĐT chính không được để trống', 'error'); return;
+    }
+    if (!isValidPhone(dto.primaryPhone)) {
+        supToast('SĐT chính không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return;
+    }
+    if (dto.taxCode && !isValidTaxCode(dto.taxCode)) {
+        supToast('Mã số thuế không hợp lệ (10 hoặc 13 chữ số)', 'error'); return;
+    }
+    if (!dto.primaryBankName) {
+        supToast('Vui lòng chọn ngân hàng', 'error'); return;
+    }
+    if (!dto.primaryAccountNumber) {
+        supToast('Số tài khoản không được để trống', 'error'); return;
+    }
+    if (!isValidBankNumber(dto.primaryAccountNumber)) {
+        supToast('Số tài khoản chỉ được chứa chữ số (tối thiểu 6 số)', 'error'); return;
+    }
+    if (!dto.primaryAccountHolder) {
+        supToast('Chủ tài khoản không được để trống', 'error'); return;
+    }
+    if (!dto.primaryContactName) {
+        supToast('Họ tên người liên hệ không được để trống', 'error'); return;
+    }
+    if (!isValidName(dto.primaryContactName)) {
+        supToast('Họ tên không được chứa số hay ký tự đặc biệt', 'error'); return;
+    }
+    if (dto.primaryContactPhone && !isValidPhone(dto.primaryContactPhone)) {
+        supToast('SĐT người liên hệ không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return;
+    }
+    if (dto.primaryContactEmail && !isValidEmail(dto.primaryContactEmail)) {
+        supToast('Email người liên hệ không đúng định dạng (vd: ten@congty.com)', 'error'); return;
     }
 
     $.ajax({
@@ -222,12 +483,21 @@ $(document).on('click', '.edit-btn', function () {
         if (!res.success) { supToast(res.message, 'error'); return; }
         const d = res.data;
         $('#e-id').val(d.supplierId);
-        $('#e-code').val(d.code);
+        $('#e-code-text').text(d.code);
         $('#e-name').val(d.name);
         $('#e-taxcode').val(d.taxCode || '');
         $('#e-website').val(d.website || '');
-        $('#e-address').val(d.address || '');
         $('#e-active').val(d.active.toString());
+
+        // Hiển thị địa chỉ cũ (text)
+        $('#e-address-current').val(d.address || '');
+
+        // Reset 3 cấp về mặc định (chưa chọn)
+        $('#e-province').val('');
+        $('#e-district').html('<option value="">— Chọn Quận/Huyện —</option>').prop('disabled', true);
+        $('#e-ward').html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
+        $('#e-street').val('');
+
         supOpen('editModal');
     });
 });
@@ -235,17 +505,22 @@ $(document).on('click', '.edit-btn', function () {
 $('#btnSaveEdit').on('click', function () {
     const dto = {
         supplierId: parseInt($('#e-id').val()),
-        code:       $('#e-code').val().trim(),
         name:       $('#e-name').val().trim(),
         taxCode:    $('#e-taxcode').val().trim() || null,
         website:    $('#e-website').val().trim() || null,
-        address:    $('#e-address').val().trim() || null,
-        active:     $('#e-active').val() === 'true'
+        active:     $('#e-active').val() === 'true',
+
+        provinceId:    parseInt($('#e-province').val()) || null,
+        districtId:    parseInt($('#e-district').val()) || null,
+        wardId:        parseInt($('#e-ward').val())     || null,
+        streetAddress: $('#e-street').val().trim() || null,
     };
 
-    if (!dto.code || !dto.name) {
-        supToast('Mã và Tên NCC không được để trống', 'error');
-        return;
+    if (!dto.name) {
+        supToast('Tên NCC không được để trống', 'error'); return;
+    }
+    if (dto.taxCode && !isValidTaxCode(dto.taxCode)) {
+        supToast('Mã số thuế không hợp lệ (10 hoặc 13 chữ số)', 'error'); return;
     }
 
     $.ajax({
@@ -327,6 +602,7 @@ function renderPhones(phones) {
 $('#btnAddPhone').on('click', function () {
     const phone = $('#ph-number').val().trim();
     if (!phone) { supToast('Nhập số điện thoại', 'error'); return; }
+    if (!isValidPhone(phone)) { supToast('SĐT không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
     $.ajax({
         url: SUP_BASE + '/AddPhone',
         method: 'POST',
@@ -377,9 +653,10 @@ $('#btnAddBank').on('click', function () {
     const accountNumber = $('#bk-number').val().trim();
     const accountHolder = $('#bk-holder').val().trim();
 
-    if (!bankName || !accountNumber || !accountHolder) {
-        supToast('Vui lòng điền đầy đủ thông tin ngân hàng', 'error'); return;
-    }
+    if (!bankName) { supToast('Vui lòng chọn ngân hàng', 'error'); return; }
+    if (!accountNumber) { supToast('Số tài khoản không được để trống', 'error'); return; }
+    if (!isValidBankNumber(accountNumber)) { supToast('Số tài khoản chỉ được chứa chữ số (tối thiểu 6 số)', 'error'); return; }
+    if (!accountHolder) { supToast('Chủ tài khoản không được để trống', 'error'); return; }
 
     $.ajax({
         url: SUP_BASE + '/AddBankAccount',
@@ -435,6 +712,9 @@ $('#btnAddContact').on('click', function () {
     const email    = $('#ct-email').val().trim() || null;
 
     if (!name) { supToast('Nhập tên người liên hệ', 'error'); return; }
+    if (!isValidName(name)) { supToast('Họ tên không được chứa số hay ký tự đặc biệt', 'error'); return; }
+    if (phone && !isValidPhone(phone)) { supToast('SĐT người liên hệ không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
+    if (email && !isValidEmail(email)) { supToast('Email không đúng định dạng (vd: ten@congty.com)', 'error'); return; }
 
     $.ajax({
         url: SUP_BASE + '/AddContact',

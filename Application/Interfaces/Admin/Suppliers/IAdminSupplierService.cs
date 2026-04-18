@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
+using CafeChain.Models.Locations;
 
 namespace CafeChain.Application.Interfaces.Admin.Suppliers
 {
@@ -9,6 +10,7 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<AdminSupplierDetailDTO?> GetByIdAsync(int id);
 
         // ===== CRUD MAIN =====
+        Task<string> GenerateNextCodeAsync();   // Trả về mã NCC tiếp theo (NCC00001)
         Task<int> CreateAsync(AdminSupplierCreateDTO dto);
         Task UpdateAsync(AdminSupplierUpdateDTO dto);
         Task ToggleStatusAsync(int id);
@@ -24,5 +26,10 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         // ===== CONTACTS =====
         Task AddContactAsync(AdminSupplierContactCreateDTO dto);
         Task DeleteContactAsync(int supplierContactId);
+
+        // ===== LOCATION =====
+        Task<List<Province>> GetProvincesAsync();
+        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
+        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
     }
 }
