@@ -94,7 +94,8 @@ namespace CafeChain.Migrations
                 {
                     OrderStatusId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    BadgeColor = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -154,7 +155,8 @@ namespace CafeChain.Migrations
                     PaymentStatusId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    BadgeColor = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -298,6 +300,25 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Toppings", x => x.ToppingId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TransactionLogs",
+                columns: table => new
+                {
+                    TransactionLogId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    TransactionId = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    RawPayload = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TransactionLogs", x => x.TransactionLogId);
                 });
 
             migrationBuilder.CreateTable(
@@ -1074,7 +1095,8 @@ namespace CafeChain.Migrations
                     ProvinceId = table.Column<int>(type: "int", nullable: true),
                     Latitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true),
                     Longitude = table.Column<decimal>(type: "decimal(9,6)", nullable: true),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false)
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1411,11 +1433,17 @@ namespace CafeChain.Migrations
                     CustomerId = table.Column<int>(type: "int", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     OrderStatusId = table.Column<int>(type: "int", nullable: false),
+                    PaymentStatusId = table.Column<int>(type: "int", nullable: false),
                     OrderTypeId = table.Column<int>(type: "int", nullable: false),
                     TableId = table.Column<int>(type: "int", nullable: true),
                     StaffId = table.Column<int>(type: "int", nullable: true),
-                    Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    PaymentReference = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ShippingFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     VoucherDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
@@ -1445,6 +1473,12 @@ namespace CafeChain.Migrations
                         principalTable: "OrderTypes",
                         principalColumn: "OrderTypeId",
                         onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Orders_PaymentStatuses_PaymentStatusId",
+                        column: x => x.PaymentStatusId,
+                        principalTable: "PaymentStatuses",
+                        principalColumn: "PaymentStatusId",
+                        onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_Orders_Staffs_StaffId",
                         column: x => x.StaffId,
@@ -1902,15 +1936,16 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "OrderStatuses",
-                columns: new[] { "OrderStatusId", "Name" },
+                columns: new[] { "OrderStatusId", "BadgeColor", "Name" },
                 values: new object[,]
                 {
-                    { 1, "Pending" },
-                    { 2, "Confirmed" },
-                    { 3, "Preparing" },
-                    { 4, "Ready" },
-                    { 5, "Completed" },
-                    { 6, "Cancelled" }
+                    { 1, "badge bg-secondary", "Chờ xác nhận" },
+                    { 2, "badge bg-primary", "Đang pha chế" },
+                    { 3, "badge bg-info text-dark", "Chờ lấy hàng" },
+                    { 4, "badge bg-warning text-dark", "Đang giao hàng" },
+                    { 5, "badge bg-success", "Hoàn thành" },
+                    { 6, "badge bg-danger", "Đã hủy" },
+                    { 7, "badge bg-warning", "Chờ thanh toán" }
                 });
 
             migrationBuilder.InsertData(
@@ -1937,13 +1972,13 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "PaymentStatuses",
-                columns: new[] { "PaymentStatusId", "Code", "Name" },
+                columns: new[] { "PaymentStatusId", "BadgeColor", "Code", "Name" },
                 values: new object[,]
                 {
-                    { 1, "PENDING", "Đang chờ" },
-                    { 2, "SUCCESS", "Thành công" },
-                    { 3, "FAILED", "Thất bại" },
-                    { 4, "REFUND", "Đã hoàn tiền" }
+                    { 1, "badge bg-warning text-dark", "UNPAID", "Chưa thanh toán" },
+                    { 2, "badge bg-success", "PAID", "Đã thanh toán" },
+                    { 3, "badge bg-info text-dark", "REFUNDED", "Đã hoàn tiền" },
+                    { 4, "badge bg-danger", "FAILED", "Lỗi thanh toán" }
                 });
 
             migrationBuilder.InsertData(
@@ -2104,9 +2139,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DiscountAmount", "DiscountPercent", "EndDate", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 18, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5846), 20000m, 100, null, 40000m, new DateTime(2026, 4, 11, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5838) },
-                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 5, 3, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5850), null, 500, null, 50000m, new DateTime(2026, 4, 17, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5849) },
-                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 17, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5852), 100000m, 1000, null, 0m, new DateTime(2026, 3, 19, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5851) }
+                    { 1, true, "CAFECHAIN50", null, 50, new DateTime(2026, 5, 18, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8058), 20000m, 100, null, 40000m, new DateTime(2026, 4, 11, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8051) },
+                    { 2, true, "GIAM10K", 10000m, null, new DateTime(2026, 5, 3, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8060), null, 500, null, 50000m, new DateTime(2026, 4, 17, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8060) },
+                    { 3, true, "NEWUSER", null, 20, new DateTime(2026, 6, 17, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8062), 100000m, 1000, null, 0m, new DateTime(2026, 3, 19, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8061) }
                 });
 
             migrationBuilder.InsertData(
@@ -2279,8 +2314,8 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "CustomerAddresses",
-                columns: new[] { "CustomerAddressId", "Address", "CustomerId", "DistrictId", "IsDefault", "Latitude", "Longitude", "ProvinceId", "WardId" },
-                values: new object[] { 1, "987 Đường P", 111, null, false, null, null, null, null });
+                columns: new[] { "CustomerAddressId", "Address", "CustomerId", "DistrictId", "IsDefault", "IsDeleted", "Latitude", "Longitude", "ProvinceId", "WardId" },
+                values: new object[] { 1, "987 Đường P", 111, null, false, false, null, null, null, null });
 
             migrationBuilder.InsertData(
                 table: "CustomerBanks",
@@ -2459,12 +2494,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Orders",
-                columns: new[] { "OrderId", "CreatedAt", "CustomerId", "Note", "OrderStatusId", "OrderTypeId", "Source", "StaffId", "StoreId", "StoreId1", "SubTotal", "TableId", "Total" },
+                columns: new[] { "OrderId", "CreatedAt", "CustomerId", "DeliveryAddress", "Note", "OrderStatusId", "OrderTypeId", "PaymentReference", "PaymentStatusId", "ReceiverName", "ReceiverPhone", "ShippingFee", "Source", "StaffId", "StoreId", "StoreId1", "SubTotal", "TableId", "Total" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 111, "", 3, 1, "POS", 108, 1, null, 45000m, 1, 45000m },
-                    { 2, new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), 111, "Ít đá", 2, 2, "APP", 109, 1, null, 60000m, null, 60000m },
-                    { 3, new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified), 111, "", 1, 3, "POS", 110, 2, null, 70000m, 3, 70000m }
+                    { 1, new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified), 111, "Tại quầy", "", 3, 1, null, 0, "Khách vãng lai", "0000000000", 0m, "POS", 108, 1, null, 45000m, 1, 45000m },
+                    { 2, new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified), 111, "Mang đi", "Ít đá", 2, 2, null, 0, "Khách vãng lai", "0000000000", 0m, "APP", 109, 1, null, 60000m, null, 60000m },
+                    { 3, new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified), 111, "Giao hàng tận nơi", "", 1, 3, null, 0, "Khách vãng lai", "0000000000", 0m, "POS", 110, 2, null, 70000m, 3, 70000m }
                 });
 
             migrationBuilder.InsertData(
@@ -2957,6 +2992,11 @@ namespace CafeChain.Migrations
                 name: "IX_Orders_OrderTypeId",
                 table: "Orders",
                 column: "OrderTypeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Orders_PaymentStatusId",
+                table: "Orders",
+                column: "PaymentStatusId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_StaffId",
@@ -3596,6 +3636,9 @@ namespace CafeChain.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
+                name: "TransactionLogs");
+
+            migrationBuilder.DropTable(
                 name: "UnitConversions");
 
             migrationBuilder.DropTable(
@@ -3624,9 +3667,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PaymentMethods");
-
-            migrationBuilder.DropTable(
-                name: "PaymentStatuses");
 
             migrationBuilder.DropTable(
                 name: "PointTransactionTypes");
@@ -3684,6 +3724,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderTypes");
+
+            migrationBuilder.DropTable(
+                name: "PaymentStatuses");
 
             migrationBuilder.DropTable(
                 name: "Staffs");

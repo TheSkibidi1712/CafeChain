@@ -91,6 +91,7 @@ namespace CafeChain.Data
         public DbSet<PaymentMethod> PaymentMethods { get; set; }
         public DbSet<PaymentStatus> PaymentStatuses { get; set; }
         public DbSet<CashSession> CashSessions { get; set; }
+        public DbSet<TransactionLog> TransactionLogs { get; set; }
 
         // ========================= VOUCHER =========================
         public DbSet<Voucher> Vouchers { get; set; }
@@ -114,12 +115,44 @@ namespace CafeChain.Data
         public DbSet<SystemSetting> SystemSettings { get; set; }
 
         // ========================= CONFIG =========================
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
+       protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
 
-            modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
 
-        }
+    // Cấu hình tường minh quan hệ 1-Nhiều giữa Recipe và RecipeDetail
+    modelBuilder.Entity<CafeChain.Models.Drinks.RecipeDetail>(entity =>
+    {
+        entity.HasOne(d => d.Recipe)             // RecipeDetail có 1 Recipe
+              .WithMany(p => p.RecipeDetails)    // Recipe có nhiều RecipeDetails
+              .HasForeignKey(d => d.RecipeId)    // Liên kết qua cột RecipeId
+              .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Cascade); // Xóa công thức thì xóa luôn chi tiết
+              
+        entity.HasOne(d => d.ChildRecipe)
+              .WithMany() // Assuming ChildRecipe doesn't have a reverse navigation
+              .HasForeignKey(d => d.ChildRecipeId)
+              .OnDelete(Microsoft.EntityFrameworkCore.DeleteBehavior.Restrict);
+    });
+
+    // 1. Nạp dữ liệu cho PaymentStatus (Trục Dòng Tiền)
+    modelBuilder.Entity<PaymentStatus>().HasData(
+        new PaymentStatus { PaymentStatusId = 1, Name = "Chưa thanh toán", Code = "UNPAID", BadgeColor = "badge bg-warning text-dark" },
+        new PaymentStatus { PaymentStatusId = 2, Name = "Đã thanh toán", Code = "PAID", BadgeColor = "badge bg-success" },
+        new PaymentStatus { PaymentStatusId = 3, Name = "Đã hoàn tiền", Code = "REFUNDED", BadgeColor = "badge bg-info text-dark" },
+        new PaymentStatus { PaymentStatusId = 4, Name = "Lỗi thanh toán", Code = "FAILED", BadgeColor = "badge bg-danger" }
+    );
+
+    // 2. Nạp dữ liệu cho OrderStatus (Trục Vận Hành F&B)
+    modelBuilder.Entity<OrderStatus>().HasData(
+        new OrderStatus { OrderStatusId = 7, Name = "Chờ thanh toán", BadgeColor = "badge bg-warning" },
+        new OrderStatus { OrderStatusId = 1, Name = "Chờ xác nhận", BadgeColor = "badge bg-secondary" },
+        new OrderStatus { OrderStatusId = 2, Name = "Đang pha chế", BadgeColor = "badge bg-primary" },
+        new OrderStatus { OrderStatusId = 3, Name = "Chờ lấy hàng", BadgeColor = "badge bg-info text-dark" },
+        new OrderStatus { OrderStatusId = 4, Name = "Đang giao hàng", BadgeColor = "badge bg-warning text-dark" },
+        new OrderStatus { OrderStatusId = 5, Name = "Hoàn thành", BadgeColor = "badge bg-success" },
+        new OrderStatus { OrderStatusId = 6, Name = "Đã hủy", BadgeColor = "badge bg-danger" }
+    );
+}
     }
 }

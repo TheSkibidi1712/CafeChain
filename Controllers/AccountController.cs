@@ -123,38 +123,8 @@ namespace CafeChain.Controllers
                 return View(model);
             }
 
-            // ===== CLAIMS =====
-            var claims = new List<Claim>
-            {
-                new Claim(ClaimTypes.NameIdentifier, result.Data.AccountId.ToString()),
-                new Claim(ClaimTypes.Name, result.Data.FullName),
-                new Claim(ClaimTypes.Email, result.Data.Email),
-            };
-
-            // 🔥 Thêm TẤT CẢ roles vào Claims (không chỉ 1 role)
-            foreach (var roleName in result.Data.AllRoles)
-            {
-                claims.Add(new Claim(ClaimTypes.Role, roleName));
-            }
-            // Nếu không có role nào, gán mặc định Customer
-            if (!result.Data.AllRoles.Any())
-            {
-                claims.Add(new Claim(ClaimTypes.Role, "Customer"));
-            }
-
-            if (result.Data.CustomerId.HasValue)
-                claims.Add(new Claim("CustomerId", result.Data.CustomerId.ToString()));
-
-            if (result.Data.StaffId.HasValue)
-                claims.Add(new Claim("StaffId", result.Data.StaffId.ToString()));
-
-            // 🔥 BẮT BUỘC cho Decentralized RBAC: StoreId Claim
-            if (result.Data.StoreId.HasValue)
-                claims.Add(new Claim("StoreId", result.Data.StoreId.Value.ToString()));
-
-            // Avatar Claim (hỗ trợ cả Customer & Staff)
-            var avatarUrl = result.Data.AvatarUrl ?? "/Images/Upload/avtdf.jpg";
-            claims.Add(new Claim("AvatarUrl", avatarUrl));
+            // ===== CLAIMS (Managed by Service) =====
+            var claims = result.Data.Claims;
 
             var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
 

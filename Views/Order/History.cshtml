@@ -1,0 +1,272 @@
+@model CafeChain.ViewModels.Shared.PagedResult<CafeChain.ViewModels.Orders.OrderHistoryViewModel>
+@using CafeChain.Application.Constants
+@{
+    ViewData["Title"] = "Lịch sử mua hàng";
+    var activeGroup = ViewBag.CurrentStatusGroup as string;
+}
+
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/Customer/Profile" class="text-muted text-decoration-none">Hồ sơ cá nhân</a></li>
+            <li class="breadcrumb-item active text-orange fw-semibold" aria-current="page">Lịch sử đơn hàng</li>
+        </ol>
+    </nav>
+
+    <h2 class="fw-bold mb-4">Lịch sử đơn hàng</h2>
+
+    <!-- ========== TABS PHÂN LOẠI TRẠNG THÁI ========== -->
+    <ul class="nav nav-pills mb-4 border-bottom pb-3 flex-nowrap overflow-auto" style="scrollbar-width: none;">
+        <li class="nav-item">
+            <a class="nav-link fw-semibold rounded-pill @(string.IsNullOrEmpty(activeGroup) ? "active bg-orange" : "text-dark")" href="/Order/History">
+                <i class="bi bi-list-ul me-1"></i>Tất cả
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link fw-semibold rounded-pill @(activeGroup == "pending" ? "active bg-orange" : "text-dark")" href="/Order/History?statusGroup=pending">
+                <i class="bi bi-hourglass-split me-1"></i>Chờ xác nhận
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link fw-semibold rounded-pill @(activeGroup == "processing" ? "active bg-orange" : "text-dark")" href="/Order/History?statusGroup=processing">
+                <i class="bi bi-fire me-1"></i>Đang xử lý
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link fw-semibold rounded-pill @(activeGroup == "completed" ? "active bg-orange" : "text-dark")" href="/Order/History?statusGroup=completed">
+                <i class="bi bi-check-circle me-1"></i>Hoàn thành
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link fw-semibold rounded-pill @(activeGroup == "cancelled" ? "active bg-orange" : "text-dark")" href="/Order/History?statusGroup=cancelled">
+                <i class="bi bi-x-circle me-1"></i>Đã hủy
+            </a>
+        </li>
+    </ul>
+
+    <!-- ========== DANH SÁCH ĐƠN HÀNG ========== -->
+    @if (Model.Items.Any())
+    {
+        <div class="row g-3">
+            @foreach (var order in Model.Items)
+            {
+                <div class="col-12">
+                    <div class="card border-0 shadow-sm rounded-4 p-4 text-decoration-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="fw-bold text-dark fs-5 me-2">@order.FormattedOrderId</span>
+                                <span class="text-muted small">@order.CreatedAt.ToString("dd/MM/yyyy HH:mm")</span>
+                            </div>
+                            
+                        @{
+                            // 1. Đồng bộ Badge Mapping theo quy tắc "Badge Specificity" [1-6]
+                            string badgeClass = "", badgeText = "", badgeIcon = "";
+
+                            if (order.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment)
+                            {
+                                badgeClass = "bg-warning bg-opacity-10 text-warning border border-warning-subtle shadow-sm";
+                                badgeText  = "Chờ thanh toán";
+                                badgeIcon  = "bi-credit-card";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Pending)
+                            {
+                                badgeClass = "bg-info bg-opacity-10 text-info border border-info-subtle shadow-sm";
+                                badgeText  = "Chờ xác nhận";
+                                badgeIcon  = "bi-hourglass-split";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Preparing)
+                            {
+                                badgeClass = "bg-cyan-badge text-info border border-info-subtle shadow-sm";
+                                badgeText  = "Đang pha chế";
+                                badgeIcon  = "bi-fire";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Ready)
+                            {
+                                badgeClass = "bg-orange-badge shadow-sm";
+                                badgeText  = "Chờ nhận/giao";
+                                badgeIcon  = "bi-box-seam";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
+                            {
+                                badgeClass = "bg-primary bg-opacity-10 text-primary border border-primary-subtle shadow-sm";
+                                badgeText  = "Đang giao hàng";
+                                badgeIcon  = "bi-truck";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Completed)
+                            {
+                                badgeClass = "bg-success bg-opacity-10 text-success border border-success-subtle shadow-sm";
+                                badgeText  = "Hoàn thành";
+                                badgeIcon  = "bi-check-circle-fill";
+                            }
+                            else if (order.OrderStatusId == SystemConstants.OrderStatuses.Cancelled)
+                            {
+                                badgeClass = "bg-danger bg-opacity-10 text-danger border border-danger-subtle shadow-sm";
+                                badgeText  = "Đã hủy";
+                                badgeIcon  = "bi-x-circle";
+                            }
+                            else
+                            {
+                                badgeClass = "bg-secondary bg-opacity-10 text-secondary";
+                                badgeText  = order.StatusName;
+                                badgeIcon  = "bi-question-circle";
+                            }
+                        }
+                        <span class="badge rounded-pill @badgeClass px-3 py-2">
+                            <i class="bi @badgeIcon me-1"></i>@badgeText
+                        </span>
+
+                        </div>
+
+                        <div class="d-flex w-100 mb-3 pb-3 border-bottom-dashed">
+                            <!-- Ảnh Thumbnail -->
+                            <div style="width: 64px; height: 64px; flex-shrink: 0;" class="me-3">
+                                <img src="@order.FirstItemImageUrl" alt="@order.FirstItemName" loading="lazy" style="width: 100%; height: 100%; object-fit: cover; border-radius: 8px; border: 1px solid #e0e0e0;">
+                            </div>
+                            
+                            <!-- Thông tin -->
+                            <div class="me-auto d-flex flex-column justify-content-center">
+                                <div class="fw-bold text-dark fs-6">
+                                    @order.FirstItemName
+                                </div>
+                                @if(order.AdditionalItemsCount > 0)
+                                {
+                                    <div class="text-muted mt-1" style="font-size: 0.85rem;">
+                                        Xem thêm @order.AdditionalItemsCount sản phẩm khác
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                        
+                        <div class="d-flex justify-content-between align-items-end">
+                            <div>
+                                @if(!string.IsNullOrEmpty(order.StoreName))
+                                {
+                                    <div class="small text-muted mb-1"><i class="bi bi-shop me-1"></i> Mua tại: <span class="fw-bold">@order.StoreName</span></div>
+                                }
+                                <div class="fs-5 fw-bold text-orange">@order.TotalAmount.ToString("N0")đ</div>
+                            </div>
+                            <div class="d-flex gap-2 align-items-center">
+                                @* LOGIC NÚT BẤM - PHASE FIX 5 *@
+                                
+                                @* 1. Nút Thanh toán ngay và Hủy đơn (Awaiting Payment) *@
+                                @if (order.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment)
+                                {
+                                    <div class="d-flex flex-column align-items-end gap-2">
+                                        <div class="small text-danger fw-bold">
+                                            <i class="bi bi-clock-history me-1"></i> Vui lòng thanh toán trước @order.CreatedAt.AddMinutes(2).ToString("HH:mm")
+                                        </div>
+                                        <div class="d-flex gap-2">
+                                            <form asp-controller="Payment" asp-action="ResumePayment" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                                <button type="submit" class="btn btn-primary btn-sm rounded-pill fw-bold px-3">
+                                                    <i class="bi bi-credit-card me-1"></i>Thanh toán ngay
+                                                </button>
+                                            </form>
+
+                                            <form asp-controller="Order" asp-action="CancelOrder" method="post" class="d-inline">
+                                                @Html.AntiForgeryToken()
+                                                <input type="hidden" name="orderId" value="@order.OrderId" />
+                                                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill fw-bold"
+                                                        onclick="showConfirm({ title: 'Hủy đơn hàng', message: 'Bạn có chắc muốn hủy đơn hàng @order.FormattedOrderId?', type: 'danger', okText: 'Hủy đơn', cancelText: 'Giữ lại', onConfirm: () => this.closest('form').submit() })">
+                                                    <i class="bi bi-x-lg me-1"></i>Hủy đơn
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                }
+                                else if (order.OrderStatusId == SystemConstants.OrderStatuses.Pending)
+                                {
+                                    <form asp-controller="Order" asp-action="CancelOrder" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@order.OrderId" />
+                                        <button type="button" class="btn btn-outline-danger btn-sm rounded-pill fw-bold"
+                                                onclick="showConfirm({ title: 'Hủy đơn hàng', message: 'Bạn có chắc muốn hủy đơn hàng @order.FormattedOrderId? Hành động này không thể hoàn tác.', type: 'danger', okText: 'Hủy đơn', cancelText: 'Giữ lại', onConfirm: () => this.closest('form').submit() })">
+                                            <i class="bi bi-x-lg me-1"></i>Hủy đơn
+                                        </button>
+                                    </form>
+                                }
+
+                                @* 2. Nút Mua lại (Tất cả đơn đã xong hoặc hủy) *@
+                                @if (order.OrderStatusId == SystemConstants.OrderStatuses.Completed 
+                                  || order.OrderStatusId == SystemConstants.OrderStatuses.Cancelled)
+                                {
+                                    <form asp-action="ReOrder" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="orderId" value="@order.OrderId" />
+                                        <button type="button" class="btn btn-outline-success btn-sm rounded-pill fw-bold px-3"
+                                                onclick="showConfirm({ title: 'Mua lại đơn hàng', message: 'Giỏ hàng hiện tại đang có sản phẩm. Thao tác này sẽ xóa giỏ hiện tại để đổ đơn cũ vào. Bạn có chắc không?', type: 'warning', okText: 'Mua lại ngay', cancelText: 'Hủy bỏ', onConfirm: () => this.closest('form').submit() })">
+                                            <i class="bi bi-arrow-repeat me-1"></i>Mua lại
+                                        </button>
+                                    </form>
+                                }
+
+                                <a href="/Order/Detail/@order.OrderId" class="btn btn-outline-orange rounded-pill fw-bold px-3">Chi tiết <i class="bi bi-arrow-right ms-1"></i></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- ========== PHÂN TRANG ========== -->
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="mt-5">
+                <ul class="pagination justify-content-center">
+                    <li class="page-item @(Model.HasPreviousPage ? "" : "disabled")">
+                        <a class="page-link shadow-sm border-0 rounded-start-pill text-dark" 
+                           href="@(Model.HasPreviousPage ? $"/Order/History?page={Model.PageIndex - 1}&statusGroup={activeGroup}" : "#")">Trước</a>
+                    </li>
+                    @for (int i = 1; i <= Model.TotalPages; i++)
+                    {
+                        <li class="page-item @(Model.PageIndex == i ? "active" : "")">
+                            <a class="page-link shadow-sm border-0 text-dark @(Model.PageIndex == i ? "bg-orange text-white" : "")" 
+                               href="/Order/History?page=@i&statusGroup=@activeGroup">@i</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.HasNextPage ? "" : "disabled")">
+                        <a class="page-link shadow-sm border-0 rounded-end-pill text-dark" 
+                           href="@(Model.HasNextPage ? $"/Order/History?page={Model.PageIndex + 1}&statusGroup={activeGroup}" : "#")">Tiếp</a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+    else
+    {
+        <!-- ========== EMPTY STATE ========== -->
+        <div class="text-center py-5 bg-white rounded-4 shadow-sm">
+            @{
+                var (emptyIcon, emptyTitle, emptyDesc) = (activeGroup ?? "") switch {
+                    "pending"    => ("bi-hourglass",  "Không có đơn chờ xác nhận",  "Các đơn chờ thanh toán hoặc chờ quán xác nhận sẽ hiển thị ở đây."),
+                    "processing" => ("bi-fire",       "Không có đơn đang xử lý",    "Các đơn đang pha chế, sẵn sàng giao hoặc đang giao hàng sẽ hiển thị ở đây."),
+                    "completed"  => ("bi-bag-check",  "Chưa có đơn hoàn thành",     "Đơn hàng đã giao thành công sẽ hiển thị tại đây."),
+                    "cancelled"  => ("bi-x-octagon",  "Không có đơn đã hủy",        "Các đơn bị hủy sẽ hiển thị tại đây."),
+                    _            => ("bi-receipt",     "Chưa có đơn hàng nào",       "Bắt đầu đặt món để trải nghiệm CafeChain nhé!")
+                };
+            }
+            <i class="bi @emptyIcon text-muted opacity-25" style="font-size: 4rem;"></i>
+            <h5 class="fw-bold text-muted mt-3">@emptyTitle</h5>
+            <p class="text-secondary small mb-4">@emptyDesc</p>
+            <a href="/Drink/Menu" class="btn btn-orange rounded-pill px-4 py-2 fw-bold shadow-sm">Bắt đầu đặt món ngay</a>
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <style>
+        .text-orange { color: #d35400; }
+        .bg-orange { background-color: #d35400 !important; color: white !important; }
+        .btn-orange { background-color: #d35400; color: white; transition: 0.3s; }
+        .btn-orange:hover { background-color: #a04000; color: white; transform: translateY(-2px); }
+        .btn-outline-orange { color: #d35400; border-color: #d35400; transition: 0.3s; }
+        .btn-outline-orange:hover { background-color: #d35400; color: white; }
+        .border-bottom-dashed { border-bottom: 1px dashed #dee2e6; }
+        .bg-orange-badge { background-color: #fff3ed; color: #d35400; border: 1px solid #ffccb3; }
+        .bg-cyan-badge { background-color: #e0faff; color: #0891b2; border: 1px solid #a5f3fc; }
+
+        /* Scrollable tabs trên mobile */
+        .nav-pills::-webkit-scrollbar { display: none; }
+    </style>
+}

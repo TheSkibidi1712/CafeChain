@@ -86,6 +86,7 @@ namespace CafeChain.Application.Services
                 Name = drink.Name,
                 ImageUrl = drink.DrinkImages.FirstOrDefault()?.ImageUrl,
                 Price = drink.DrinkSizes.FirstOrDefault()?.Price ?? 0,
+                SizeId = drink.DrinkSizes.FirstOrDefault()?.SizeId ?? 0, // 🔥 Lưu SizeId
                 Quantity = 1
             };
 
@@ -118,8 +119,10 @@ namespace CafeChain.Application.Services
                 ImageUrl = drink.DrinkImages.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg",
                 Quantity = request.Quantity,
                 SizeName = size.Size.Name,
+                SizeId = size.SizeId, // 🔥 Lưu SizeId
                 // Khởi tạo 2 List rỗng
                 AddedToppings = new List<string>(),
+                ToppingIds = new List<int>(), // 🔥 Khởi tạo List IDs
                 RemovedToppings = new List<string>(),
                 // 🔥 1. CHUẨN HÓA GHI CHÚ: Cắt khoảng trắng dư thừa, nếu null thì gán chuỗi rỗng để dễ so sánh
                 Note = string.IsNullOrWhiteSpace(request.Note) ? "" : request.Note.Trim()
@@ -139,6 +142,7 @@ namespace CafeChain.Application.Services
                     }
                     unitPrice += t.Topping.Price; // Cộng tiền
                     item.AddedToppings.Add($"{t.Topping.Name} (+{t.Topping.Price.ToString("N0")}đ)"); // Nhét vào mảng Added
+                    item.ToppingIds.Add(t.ToppingId); // 🔥 Lưu ToppingId cho Zero-Trust
                 }
             }
 

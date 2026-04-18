@@ -1,0 +1,66 @@
+using CafeChain.Data;
+using CafeChain.Application.Constants;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+
+namespace CafeChain.Application.Services.Workers
+{
+    public class PaymentCleanupWorker : BackgroundService
+    {
+        private readonly ILogger<PaymentCleanupWorker> _logger;
+        private readonly IServiceProvider _serviceProvider;
+
+        public PaymentCleanupWorker(ILogger<PaymentCleanupWorker> logger, IServiceProvider serviceProvider)
+        {
+            _logger = logger;
+            _serviceProvider = serviceProvider;
+        }
+
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            _logger.LogInformation("Payment Cleanup Worker started.");
+
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    await CleanupExpiredPaymentsAsync(stoppingToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error occurred executing Payment Cleanup Worker.");
+                }
+
+                // Chạy mỗi phút (60 giây)
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            }
+        }
+
+        private async Task CleanupExpiredPaymentsAsync(CancellationToken stoppingToken)
+        {
+            using var scope = _serviceProvider.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var expiryTime = DateTime.Now.AddMinutes(-2);
+
+            var expiredOrders = await context.Orders
+                .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment 
+                         && o.CreatedAt <= expiryTime)
+                .ToListAsync(stoppingToken);
+
+            if (expiredOrders.Any())
+            {
+                foreach (var order in expiredOrders)
+                {
+                    order.OrderStatusId = SystemConstants.OrderStatuses.Cancelled;
+                    order.Note = (string.IsNullOrEmpty(order.Note) ? "" : order.Note + " | ") + "Hủy tự động: Quá hạn thanh toán";
+                }
+
+                await context.SaveChangesAsync(stoppingToken);
+                _logger.LogInformation($"Cancelled {expiredOrders.Count} expired orders.");
+            }
+        }
+    }
+}

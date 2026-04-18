@@ -45,7 +45,7 @@
 
                 <div class="text-start profile-menu">
                     <a href="#" class="nav-link active rounded-3 p-3 mb-2"><i class="bi bi-person me-3"></i> Hồ sơ cá nhân</a>
-                    <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-clock-history me-3"></i> Lịch sử đơn hàng</a>
+                    <a href="#addressBookSection" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-journal-bookmark me-3"></i> Sổ địa chỉ</a>
                     <a href="#" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-gift me-3"></i> Ưu đãi của tôi</a>
                     <hr class="my-3 opacity-10">
                     <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0 p-0">
@@ -172,6 +172,38 @@
                     </div>
                 </div>
             </div>
+
+            <!-- QUẢN LÝ SỔ ĐỊA CHỈ -->
+            <div id="addressBookSection" class="card border-0 shadow-sm rounded-4 p-4 p-md-5 mt-4">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h4 class="fw-bold mb-0">Sổ địa chỉ giao hàng</h4>
+                </div>
+                
+                <div class="list-group list-group-flush border-top">
+                    @foreach(var addr in Model.Customer.CustomerAddresses.Where(a => !a.IsDeleted).OrderByDescending(a => a.IsDefault))
+                    {
+                        <div class="list-group-item py-3 px-0 border-bottom d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong class="d-block mb-1 text-dark">
+                                    @Model.Customer.FullName 
+                                    @if(addr.IsDefault) { <span class="badge border border-orange text-orange ms-2 fw-normal">Mặc định</span> }
+                                </strong>
+                                <div class="text-muted small"><i class="bi bi-geo-alt-fill opacity-50 me-1"></i>@addr.DisplayAddress</div>
+                            </div>
+                            <div class="text-end" style="min-width: 90px;">
+                                @if(!addr.IsDefault) {
+                                    <button class="btn btn-sm btn-light text-muted d-block mb-1 w-100" onclick="setDefaultAddress(@addr.CustomerAddressId)">Thiết lập Mặc định</button>
+                                }
+                                <button class="btn btn-sm btn-danger text-white w-100" onclick="deleteAddressAjax(@addr.CustomerAddressId)"><i class="bi bi-trash3"></i> Xóa</button>
+                            </div>
+                        </div>
+                    }
+                    @if(!Model.Customer.CustomerAddresses.Any(a => !a.IsDeleted))
+                    {
+                        <div class="text-center py-4 text-muted">Bạn chưa có địa chỉ giao hàng nào.</div>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -237,9 +269,6 @@
 
 @section Scripts {
     <style>
-        /* BƯỚC 2: CHÈN CSS NÀY VÀO TRONG THẺ <style> */
-
-        /* Container chính của Avatar */
         .avatar-wrapper {
             width: 120px;
             height: 120px;
@@ -247,32 +276,29 @@
             transition: all 0.3s ease;
         }
 
-            /* Hiệu ứng khi rê chuột vào cả cụm: Ảnh tối đi 1 tí để nổi bật icon */
             .avatar-wrapper:hover #avatarImage {
                 filter: brightness(0.8);
             }
 
-        /* 🔥 ĐỊNH VỊ ICON CAMERA DÍNH LIỀN 🔥 */
         .avatar-upload-icon {
             position: absolute;
-            bottom: 0px; /* Dính sát đáy ảnh */
-            right: 0px; /* Dính sát bên phải ảnh */
-            background-color: #f0f2f5; /* Màu nền xám nhạt */
-            color: #1c1e21; /* Màu icon tối */
+            bottom: 0px;
+            right: 0px;
+            background-color: #f0f2f5;
+            color: #1c1e21;
             width: 36px;
             height: 36px;
-            border-radius: 50%; /* Bo tròn 100% */
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.2rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-            border: 2px solid #fff; /* Viền trắng để tách biệt với ảnh */
+            border: 2px solid #fff;
             transition: all 0.2s ease;
-            z-index: 10; /* Đảm bảo luôn nằm trên ảnh */
+            z-index: 10;
         }
 
-            /* Hiệu ứng khi rê chuột vào riêng Icon: Phóng to và đổi màu nền */
             .avatar-upload-icon:hover {
                 background-color: #e4e6eb;
                 transform: scale(1.1);
@@ -293,7 +319,6 @@
             font-weight: bold;
         }
 
-        /* Thêm viền cam khi ô input được mở khóa */
         .profile-input:not([readonly]):not([disabled]) {
             background-color: #fff !important;
             border: 1px solid #d35400 !important;
@@ -305,13 +330,12 @@
         let myPhoneModal;
         let myAddressModal;
         let initialState = {};
-        let provinceData = []; // Dữ liệu API Nội bộ
+        let provinceData = [];
 
         window.addEventListener('DOMContentLoaded', (event) => {
             myPhoneModal = new bootstrap.Modal(document.getElementById('addPhoneModal'));
             myAddressModal = new bootstrap.Modal(document.getElementById('addAddressModal'));
 
-            // Load danh sách Tỉnh/Thành phố từ DB của mình
             fetch('/Customer/GetProvinces')
                 .then(res => res.json())
                 .then(data => {
@@ -333,7 +357,6 @@
                 address: document.getElementById('addressSelect').value
             };
 
-            // Logic đồng bộ dd/MM/yyyy cho Profile
             const $dobDisplay = $('#inputDobDisplay');
             const $dobActual = $('#inputDob');
             const $dobIcon = $('#iconDob');
@@ -342,7 +365,6 @@
             function toISO(vn) { if (!vn || vn.indexOf('/') === -1) return vn; let p = vn.split('/'); return p[2] + '-' + p[1] + '-' + p[0]; }
 
             $dobDisplay.add($dobIcon).add($dobActual).on('click', function () {
-                // Nếu đang ở chế độ xem, tự động bật chế độ sửa
                 if ($dobDisplay.prop('readonly')) {
                     enableEditMode();
                 }
@@ -354,7 +376,6 @@
                 if (v) $dobDisplay.val(toVN(v));
             });
 
-            // Nếu người dùng gõ tay
             $dobDisplay.on('input', function () {
                 let v = $(this).val();
                 if (v && v.length === 10) {
@@ -385,9 +406,8 @@
             const option = select.options[select.selectedIndex];
             
             const addrId = option.value;
-            // Nếu là địa chỉ mới thêm (ID âm), alert thông báo chức năng chưa cập nhật cho địa chỉ tạm
             if (parseInt(addrId) < 0) {
-                alert("Đây là địa chỉ mới, vui lòng lưu lại trước khi sửa!");
+                showToast('Đây là địa chỉ mới, vui lòng lưu lại trước khi sửa!', 'warning');
                 return;
             }
 
@@ -416,7 +436,6 @@
                 document.getElementById('districtSelect').disabled = true;
                 document.getElementById('wardSelect').innerHTML = '<option value="">Chọn Phường/Xã</option>';
                 document.getElementById('wardSelect').disabled = true;
-                // Nhắc user tỉnh cũ
             }
             
             myAddressModal.show();
@@ -426,41 +445,34 @@
 
         function submitNewPhone() {
             const input = document.getElementById('newPhoneInput');
-            let phone = input.value.trim().replace(/\s/g, ''); // Loại bỏ khoảng trắng nếu có
+            let phone = input.value.trim().replace(/\s/g, '');
 
-            // 1. Kiểm tra trống
             if (phone === "") { 
-                alert("Vui lòng nhập số điện thoại!"); 
+                showToast('Vui lòng nhập số điện thoại!', 'warning'); 
                 return; 
             }
 
-            // 2. Regex kiểm tra định dạng SĐT Việt Nam (10 số, bắt đầu bằng 03, 05, 07, 08, 09)
             const vnf_regex = /((09|03|07|08|05)+([0-9]{8})\b)/g;
-            
             if (!vnf_regex.test(phone)) {
-                alert("Số điện thoại không đúng định dạng Việt Nam! (Phải đủ 10 số và bắt đầu bằng 03, 05, 07, 08, 09)");
+                showToast('Số điện thoại không đúng định dạng Việt Nam!', 'warning');
                 input.focus();
                 return;
             }
 
-            // 3. Kiểm tra trùng lặp trong danh sách hiện tại (tránh khách nhập 2 số giống hệt nhau)
             const select = document.getElementById('phoneSelect');
             let isExist = false;
             for (let i = 0; i < select.options.length; i++) {
-                // So sánh chỉ lấy phần số để tránh sai lệch
-                const existingVal = select.options[i].value.trim().replace(/\s/g, '');
-                if (existingVal === phone) {
+                if (select.options[i].value.trim().replace(/\s/g, '') === phone) {
                     isExist = true;
                     break;
                 }
             }
             
             if (isExist) {
-                alert("Số điện thoại này đã tồn tại trong hồ sơ của bạn!");
+                showToast('Số điện thoại này đã tồn tại trong hồ sơ!', 'warning');
                 return;
             }
 
-            // Nếu vượt qua tất cả, tiến hành thêm vào UI list tạm thời
             const option = document.createElement("option");
             option.text = phone; 
             option.value = phone;
@@ -470,8 +482,6 @@
             pendingData.phones.push(phone);
             input.value = "";
             myPhoneModal.hide();
-
-            // Tự động bật chế độ Edit để khách biết phải bấm Lưu
             enableEditMode();
         }
 
@@ -484,11 +494,9 @@
             districtSelect.disabled = true;
             wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
             wardSelect.disabled = true;
-            
             if (!provinceCode) return;
             
             districtSelect.disabled = false;
-            
             try {
                 const res = await fetch('/Customer/GetDistricts?provinceId=' + provinceCode);
                 const data = await res.json();
@@ -506,16 +514,10 @@
         async function fetchWardsAsync() {
             const districtCode = document.getElementById('districtSelect').value;
             const wardSelect = document.getElementById('wardSelect');
-            
             wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
-            
-            if (!districtCode) {
-                wardSelect.disabled = true;
-                return;
-            }
+            if (!districtCode) { wardSelect.disabled = true; return; }
             
             wardSelect.disabled = false;
-            
             try {
                 const res = await fetch('/Customer/GetWards?districtId=' + districtCode);
                 const data = await res.json();
@@ -528,9 +530,7 @@
             } catch(err) { console.error("Lỗi:", err); }
         }
         
-        function fetchWards() {
-            fetchWardsAsync();
-        }
+        function fetchWards() { fetchWardsAsync(); }
 
         function submitNewAddress() {
             const provinceSelect = document.getElementById('provinceSelect');
@@ -542,27 +542,19 @@
             const dCode = districtSelect.value;
             const wCode = wardSelect.value;
             const street = streetInput.value.trim();
-            
             if (!pCode || !dCode || !wCode || street === "") {
-                alert("Vui lòng nhập đầy đủ Tỉnh/Thành, Quận/Huyện, Phường/Xã và Số nhà!");
+                showToast('Vui lòng nhập đầy đủ địa chỉ!', 'warning');
                 return;
             }
             
-            // Lấy tên để hiển thị tạm thời trên UI
             const provinceName = provinceSelect.options[provinceSelect.selectedIndex].text;
             const districtName = districtSelect.options[districtSelect.selectedIndex].text;
             const wardName = wardSelect.options[wardSelect.selectedIndex].text;
             const fullLabel = `${street}, ${wardName}, ${districtName}, ${provinceName}`;
 
             if (editingAddressId != null) {
-                // Xử lý CẬP NHẬT ĐỊA CHỈ CŨ
-                if (!pendingData.updatedAddresses) {
-                    pendingData.updatedAddresses = [];
-                }
-                
-                // Loại bỏ nếu đã edit address này trước đó
+                if (!pendingData.updatedAddresses) pendingData.updatedAddresses = [];
                 pendingData.updatedAddresses = pendingData.updatedAddresses.filter(x => x.customerAddressId != parseInt(editingAddressId));
-                
                 pendingData.updatedAddresses.push({
                     customerAddressId: parseInt(editingAddressId),
                     street: street,
@@ -571,7 +563,6 @@
                     provinceId: parseInt(pCode)
                 });
 
-                // Cập nhật lại UI Option đang có
                 const select = document.getElementById('addressSelect');
                 for(let i=0; i<select.options.length; i++){
                     if(select.options[i].value == editingAddressId){
@@ -580,7 +571,6 @@
                     }
                 }
             } else {
-                // Xử lý THÊM ĐỊA CHỈ MỚI
                 const tempId = -1 - pendingData.addresses.length;
                 const select = document.getElementById('addressSelect');
                 const option = document.createElement("option");
@@ -598,19 +588,16 @@
                 });
             }
             
-            // Reset dữ liệu Modal
             streetInput.value = "";
             provinceSelect.selectedIndex = 0;
             districtSelect.innerHTML = '<option value="">Chọn Quận/Huyện</option>';
             districtSelect.disabled = true;
             wardSelect.innerHTML = '<option value="">Chọn Phường/Xã</option>';
             wardSelect.disabled = true;
-            
             myAddressModal.hide();
             enableEditMode();
         }
 
-        // 🔥 HÀM MỞ KHÓA EDIT MODE 🔥
         function enableEditMode() {
             document.querySelectorAll('.profile-input, #inputDobDisplay').forEach(el => {
                 el.removeAttribute('readonly');
@@ -618,7 +605,6 @@
             });
             document.getElementById('btnEditProfile').classList.add('d-none');
             document.getElementById('btnSaveProfile').classList.remove('d-none');
-            // focus vào họ tên nếu chưa có focus
             if (document.activeElement.tagName !== 'INPUT') {
                 document.getElementById('inputFullName').focus();
             }
@@ -653,18 +639,16 @@
             .then(res => res.json())
             .then(data => {
                  if(data.success || data.message === "Không có thay đổi nào được lưu.") {
-                     alert("Tuyệt vời! Dữ liệu đã được lưu thành công.");
-                     location.reload();
+                     showToast('Tuyệt vời! Dữ liệu đã được lưu.', 'success');
+                     setTimeout(() => location.reload(), 1500);
                  } else {
-                     alert("Lỗi: " + data.message);
-                     btn.innerHTML = originalHtml;
-                     btn.disabled = false;
+                     showToast('Lỗi: ' + data.message, 'error');
+                     btn.innerHTML = originalHtml; btn.disabled = false;
                  }
             })
             .catch(err => {
-                console.error("Lỗi kết nối server:", err);
-                btn.innerHTML = originalHtml;
-                btn.disabled = false;
+                console.error("Lỗi server:", err);
+                btn.innerHTML = originalHtml; btn.disabled = false;
             });
         }
 
@@ -672,7 +656,6 @@
             if (input.files && input.files[0]) {
                 let formData = new FormData();
                 formData.append("avatarFile", input.files[0]);
-
                 let reader = new FileReader();
                 reader.onload = e => {
                     document.getElementById('avatarImage').src = e.target.result;
@@ -680,13 +663,48 @@
                     if(headerImg) headerImg.src = e.target.result;
                 };
                 reader.readAsDataURL(input.files[0]);
-
                 fetch('/Customer/UpdateAvatar', { method: 'POST', body: formData })
-                .then(res => res.json())
-                .then(data => {
-                    if(data.isReused) console.log("Ảnh cũ dùng lại, không tốn ổ cứng!");
-                });
+                .then(res => res.json());
             }
+        }
+
+        // ============================================
+        // LOGIC SỔ ĐỊA CHỈ AJAX ĐỘC LẬP (SHOPEE MODEL)
+        // ============================================
+        document.addEventListener('DOMContentLoaded', function () {
+            // Logic for potential standalone modals or sections could go here
+            // Re-adding deleted/missing parts if needed.
+        });
+
+        function setDefaultAddress(id) {
+            const fd = new FormData();
+            fd.append('id', id);
+            fetch('/CustomerAddress/SetDefaultAddress', { method: 'POST', body: fd })
+                .then(r => r.json())
+                .then(res => {
+                    if(res.success) location.reload();
+                    else showToast(res.message, 'error');
+                });
+        }
+
+        function deleteAddressAjax(id) {
+            showConfirm({
+                title: 'Xóa địa chỉ',
+                message: 'Bạn có chắc muốn xóa địa chỉ giao hàng này không?',
+                type: 'danger',
+                okText: 'Xóa địa chỉ',
+                cancelText: 'Giữ lại',
+                onConfirm: function() {
+                    const fd = new FormData();
+                    fd.append('id', id);
+                    fetch('/CustomerAddress/DeleteAddress', { method: 'POST', body: fd })
+                        .then(r => r.json())
+                        .then(res => {
+                            if(res.success) location.reload();
+                            else showToast(res.message, 'error');
+                        });
+                }
+            });
         }
     </script>
 }

@@ -121,12 +121,6 @@ namespace CafeChain.Data.Configurations
 
             entity.HasIndex(x => x.Code).IsUnique();
 
-            entity.HasData(
-                new PaymentStatus { PaymentStatusId = 1, Name = "Đang chờ", Code = "PENDING" },
-                new PaymentStatus { PaymentStatusId = 2, Name = "Thành công", Code = "SUCCESS" },
-                new PaymentStatus { PaymentStatusId = 3, Name = "Thất bại", Code = "FAILED" },
-                new PaymentStatus { PaymentStatusId = 4, Name = "Đã hoàn tiền", Code = "REFUND" }
-            );
         }
     }
 

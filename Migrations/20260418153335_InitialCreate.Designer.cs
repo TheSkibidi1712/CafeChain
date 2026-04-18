@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260418143217_InitialCreate")]
+    [Migration("20260418153335_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -316,6 +316,9 @@ namespace CafeChain.Migrations
                     b.Property<bool>("IsDefault")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<decimal?>("Latitude")
                         .HasColumnType("decimal(9,6)");
 
@@ -346,7 +349,8 @@ namespace CafeChain.Migrations
                             CustomerAddressId = 1,
                             Address = "987 Đường P",
                             CustomerId = 111,
-                            IsDefault = false
+                            IsDefault = false,
+                            IsDeleted = false
                         });
                 });
 
@@ -3365,8 +3369,11 @@ namespace CafeChain.Migrations
                     b.Property<int?>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<string>("Note")
+                    b.Property<string>("DeliveryAddress")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -3374,6 +3381,12 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("OrderTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentReference")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PaymentStatusId")
                         .HasColumnType("int");
 
                     b.Property<decimal>("PointDiscount")
@@ -3386,8 +3399,19 @@ namespace CafeChain.Migrations
                         .HasColumnType("int")
                         .HasDefaultValue(0);
 
-                    b.Property<string>("Source")
+                    b.Property<string>("ReceiverName")
                         .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ReceiverPhone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("ShippingFee")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Source")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
@@ -3426,6 +3450,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("OrderTypeId");
 
+                    b.HasIndex("PaymentStatusId");
+
                     b.HasIndex("StaffId");
 
                     b.HasIndex("StoreId");
@@ -3440,11 +3466,16 @@ namespace CafeChain.Migrations
                             OrderId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 8, 0, 0, 0, DateTimeKind.Unspecified),
                             CustomerId = 111,
+                            DeliveryAddress = "Tại quầy",
                             Note = "",
                             OrderStatusId = 3,
                             OrderTypeId = 1,
+                            PaymentStatusId = 0,
                             PointDiscount = 0m,
                             PointsUsed = 0,
+                            ReceiverName = "Khách vãng lai",
+                            ReceiverPhone = "0000000000",
+                            ShippingFee = 0m,
                             Source = "POS",
                             StaffId = 108,
                             StoreId = 1,
@@ -3458,11 +3489,16 @@ namespace CafeChain.Migrations
                             OrderId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 9, 0, 0, 0, DateTimeKind.Unspecified),
                             CustomerId = 111,
+                            DeliveryAddress = "Mang đi",
                             Note = "Ít đá",
                             OrderStatusId = 2,
                             OrderTypeId = 2,
+                            PaymentStatusId = 0,
                             PointDiscount = 0m,
                             PointsUsed = 0,
+                            ReceiverName = "Khách vãng lai",
+                            ReceiverPhone = "0000000000",
+                            ShippingFee = 0m,
                             Source = "APP",
                             StaffId = 109,
                             StoreId = 1,
@@ -3475,11 +3511,16 @@ namespace CafeChain.Migrations
                             OrderId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 10, 0, 0, 0, DateTimeKind.Unspecified),
                             CustomerId = 111,
+                            DeliveryAddress = "Giao hàng tận nơi",
                             Note = "",
                             OrderStatusId = 1,
                             OrderTypeId = 3,
+                            PaymentStatusId = 0,
                             PointDiscount = 0m,
                             PointsUsed = 0,
+                            ReceiverName = "Khách vãng lai",
+                            ReceiverPhone = "0000000000",
+                            ShippingFee = 0m,
                             Source = "POS",
                             StaffId = 110,
                             StoreId = 2,
@@ -3584,6 +3625,10 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderStatusId"));
 
+                    b.Property<string>("BadgeColor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -3599,33 +3644,45 @@ namespace CafeChain.Migrations
                     b.HasData(
                         new
                         {
+                            OrderStatusId = 7,
+                            BadgeColor = "badge bg-warning",
+                            Name = "Chờ thanh toán"
+                        },
+                        new
+                        {
                             OrderStatusId = 1,
-                            Name = "Pending"
+                            BadgeColor = "badge bg-secondary",
+                            Name = "Chờ xác nhận"
                         },
                         new
                         {
                             OrderStatusId = 2,
-                            Name = "Confirmed"
+                            BadgeColor = "badge bg-primary",
+                            Name = "Đang pha chế"
                         },
                         new
                         {
                             OrderStatusId = 3,
-                            Name = "Preparing"
+                            BadgeColor = "badge bg-info text-dark",
+                            Name = "Chờ lấy hàng"
                         },
                         new
                         {
                             OrderStatusId = 4,
-                            Name = "Ready"
+                            BadgeColor = "badge bg-warning text-dark",
+                            Name = "Đang giao hàng"
                         },
                         new
                         {
                             OrderStatusId = 5,
-                            Name = "Completed"
+                            BadgeColor = "badge bg-success",
+                            Name = "Hoàn thành"
                         },
                         new
                         {
                             OrderStatusId = 6,
-                            Name = "Cancelled"
+                            BadgeColor = "badge bg-danger",
+                            Name = "Đã hủy"
                         });
                 });
 
@@ -3939,6 +3996,10 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaymentStatusId"));
 
+                    b.Property<string>("BadgeColor")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -3960,27 +4021,69 @@ namespace CafeChain.Migrations
                         new
                         {
                             PaymentStatusId = 1,
-                            Code = "PENDING",
-                            Name = "Đang chờ"
+                            BadgeColor = "badge bg-warning text-dark",
+                            Code = "UNPAID",
+                            Name = "Chưa thanh toán"
                         },
                         new
                         {
                             PaymentStatusId = 2,
-                            Code = "SUCCESS",
-                            Name = "Thành công"
+                            BadgeColor = "badge bg-success",
+                            Code = "PAID",
+                            Name = "Đã thanh toán"
                         },
                         new
                         {
                             PaymentStatusId = 3,
-                            Code = "FAILED",
-                            Name = "Thất bại"
+                            BadgeColor = "badge bg-info text-dark",
+                            Code = "REFUNDED",
+                            Name = "Đã hoàn tiền"
                         },
                         new
                         {
                             PaymentStatusId = 4,
-                            Code = "REFUND",
-                            Name = "Đã hoàn tiền"
+                            BadgeColor = "badge bg-danger",
+                            Code = "FAILED",
+                            Name = "Lỗi thanh toán"
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Payments.TransactionLog", b =>
+                {
+                    b.Property<int>("TransactionLogId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TransactionLogId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RawPayload")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("TransactionId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("TransactionLogId");
+
+                    b.ToTable("TransactionLogs");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
@@ -5531,11 +5634,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 18, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5846),
+                            EndDate = new DateTime(2026, 5, 18, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8058),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 11, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5838)
+                            StartDate = new DateTime(2026, 4, 11, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8051)
                         },
                         new
                         {
@@ -5543,10 +5646,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 3, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5850),
+                            EndDate = new DateTime(2026, 5, 3, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8060),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 17, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5849)
+                            StartDate = new DateTime(2026, 4, 17, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8060)
                         },
                         new
                         {
@@ -5554,11 +5657,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 17, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5852),
+                            EndDate = new DateTime(2026, 6, 17, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8062),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 19, 21, 32, 17, 135, DateTimeKind.Local).AddTicks(5851)
+                            StartDate = new DateTime(2026, 3, 19, 22, 33, 34, 556, DateTimeKind.Local).AddTicks(8061)
                         });
                 });
 
@@ -6244,6 +6347,12 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Payments.PaymentStatus", "PaymentStatus")
+                        .WithMany()
+                        .HasForeignKey("PaymentStatusId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany()
                         .HasForeignKey("StaffId")
@@ -6264,6 +6373,8 @@ namespace CafeChain.Migrations
                     b.Navigation("OrderStatus");
 
                     b.Navigation("OrderType");
+
+                    b.Navigation("PaymentStatus");
 
                     b.Navigation("Staff");
 

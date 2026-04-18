@@ -15,7 +15,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
         Task<(int Total, int Active, int Inactive)> GetStaffCountsAsync(int? storeId);
 
         // === MASTER DATA (cho Thin Controller) ===
-        Task<List<Role>> GetRolesForDropdownAsync(int? storeManagerStoreId);
+        Task<List<Role>> GetRolesForDropdownAsync();
         Task<List<Store>> GetActiveStoresAsync();
         Task<List<ScopeType>> GetScopeTypesAsync();
         Task<Store> GetStoreByIdAsync(int storeId);

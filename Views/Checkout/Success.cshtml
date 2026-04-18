@@ -1,0 +1,51 @@
+@{
+    ViewData["Title"] = "Đặt hàng thành công";
+}
+
+<div class="container mt-5 py-5 text-center">
+    <!-- Icon Thành công -->
+    <div class="mb-4">
+        <div class="d-inline-flex bg-success bg-opacity-10 text-success rounded-circle p-4 animate__animated animate__zoomIn">
+            <i class="bi bi-check-circle-fill display-1"></i>
+        </div>
+    </div>
+
+    <!-- Nội dung -->
+    <h2 class="fw-bold mb-3">Đặt hàng thành công!</h2>
+    <p class="text-muted mb-4 px-3" style="max-width: 500px; margin: 0 auto;">
+        Cảm ơn bạn đã tin tưởng CafeChain. Đơn hàng <strong>#@ViewBag.OrderId</strong> của bạn đang được xử lý và sẽ sớm được giao đến bạn.
+    </p>
+
+    <!-- Nút hành động -->
+    <div class="d-flex flex-column flex-md-row gap-3 justify-content-center mt-4 pt-2">
+        <a href="/Drink/Menu" class="btn btn-orange rounded-pill px-5 py-2 fw-bold shadow-sm">
+            <i class="bi bi-cup-hot me-2"></i>TIẾP TỤC MUA SẮM
+        </a>
+        <a href="/Order/History" class="btn btn-outline-orange rounded-pill px-5 py-2 fw-bold shadow-sm position-relative">
+            <i class="bi bi-receipt me-2"></i>XEM ĐƠN HÀNG
+        </a>
+    </div>
+
+    <!-- Thông tin bảo mật -->
+    <div class="mt-5 pt-5 text-muted small border-top pt-4" style="border-top-style: dashed !important; opacity: 0.6;">
+        <i class="bi bi-shield-lock me-1"></i> Giao dịch của bạn đã được bảo vệ bởi Zero-Trust Security System.
+    </div>
+</div>
+
+<style>
+    .text-orange { color: #d35400; }
+    .btn-orange { background-color: #d35400; color: white; border: none; transition: 0.3s; }
+    .btn-orange:hover { background-color: #a04000; color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4) !important; }
+    .btn-outline-orange { background-color: transparent; border: 2px solid #d35400; color: #d35400; transition: 0.3s; }
+    .btn-outline-orange:hover { background-color: #d35400; color: white; transform: translateY(-2px); box-shadow: 0 4px 15px rgba(211, 84, 0, 0.4) !important; }
+
+    /* CSS Animation thư viện Animate.css (giả lập đơn giản) */
+    .animate__zoomIn {
+        animation: zoomIn 0.6s ease-out;
+    }
+
+    @@keyframes zoomIn {
+        from { opacity: 0; transform: scale3d(0.3, 0.3, 0.3); }
+        50% { opacity: 1; }
+    }
+</style>
