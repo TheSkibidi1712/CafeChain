@@ -12,7 +12,18 @@ namespace CafeChain.Models.Staffs
         public string FullName { get; set; }
         public string? TaxCode { get; set; }
         public string? CCCD { get; set; }
-        public decimal? Salary { get; set; }
+        public int Gender { get; set; } // 0=Nữ, 1=Nam, 2=Khác
+        public DateTime? StartDate { get; set; }
+        public int EmployeeStatus { get; set; } // 1=Thử việc, 2=Chính thức, 3=Nghỉ việc
+        public int SalaryType { get; set; } // 1=Fixed, 2=Hourly
+        public decimal BaseSalary { get; set; }
+        public decimal Allowance { get; set; }
+        public decimal ProbationRate { get; set; }
+        public decimal OvertimeRate { get; set; }
+        public string? SocialInsuranceNumber { get; set; }
+        public int DependentCount { get; set; }
+        public string? DependentTaxCode { get; set; }
+        public string? FaceDescriptor { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int StoreId { get; set; }
 

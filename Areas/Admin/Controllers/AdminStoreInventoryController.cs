@@ -1,12 +1,11 @@
-﻿using CafeChain.Application.Interfaces.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.ViewModels.Admin.StoreInventories;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminStoreInventoryController : Controller
+    public class AdminStoreInventoryController : AdminBaseController
     {
         private readonly IAdminStoreInventoryService _service;
 
@@ -89,3 +88,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

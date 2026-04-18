@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Admin.DrinkSizes;
+using CafeChain.Application.DTOs.Admin.DrinkSizes;
 using CafeChain.Application.DTOs.Admin.Sizes;
 using CafeChain.Application.Interfaces.Admin.DrinkSizes;
 using CafeChain.Application.Interfaces.Admin.Sizes;
@@ -8,8 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminSizeController : Controller
+    public class AdminSizeController : AdminBaseController
     {
         private readonly IAdminSizeService _adminsizeService;
         private readonly IAdminDrinkSizeService _drinkSizeService;
@@ -155,3 +154,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

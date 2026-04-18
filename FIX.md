@@ -1,0 +1,1 @@
+Hiện tại tôi đang sử dụng mạng LAN có đuôi IP là 14, hãy phân tích các hình ảnh mà tôi đã gửi, tôi đã gán địa chỉ IP vô CafeChain thủ dầu 1 rồi tại sao 2 nhân viên này vẫn đang không vô được hãy phân tích lại và tìm hiểu chỗ gây lỗi cho tôi

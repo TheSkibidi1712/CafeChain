@@ -260,13 +260,13 @@
         @if (TempData["Success"] != null)
         {
             <text>
-            Swal.fire({ title: 'Thành công!', text: '@Html.Raw(TempData["Success"])', icon: 'success', timer: 2000, showConfirmButton: false });
+            Swal.fire({ title: 'Thành công!', html: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Success"])), icon: 'success', timer: 2000, showConfirmButton: false });
             </text>
         }
         @if (TempData["Error"] != null)
         {
             <text>
-            Swal.fire({ title: 'Lỗi!', text: '@Html.Raw(TempData["Error"])', icon: 'error' });
+            Swal.fire({ title: 'Lỗi!', html: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(TempData["Error"])), icon: 'error' });
             </text>
         }
     </script>

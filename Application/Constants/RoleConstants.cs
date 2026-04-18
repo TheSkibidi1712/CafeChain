@@ -13,5 +13,7 @@ namespace CafeChain.Application.Constants
         public const string ShiftSupervisor = "Ca trưởng";
         public const string Cashier = "Thu ngân";
         public const string Customer = "Khách hàng";
+        public const string WarehouseKeeper = "Thủ kho";
+        public const string GeneralStaff = "Nhân viên chung";
     }
 }

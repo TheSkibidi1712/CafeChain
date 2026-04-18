@@ -70,6 +70,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 .Include(s => s.Store)
                 .Include(s => s.StaffPhones)
                 .Include(s => s.StaffAddresses)
+                .Include(s => s.StaffBanks)
                 .Include(s => s.StaffScopes)
                     .ThenInclude(ss => ss.ScopeType)
                 .FirstOrDefaultAsync(s => s.StaffId == staffId);
@@ -88,6 +89,17 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             return (total, active, total - active);
         }
 
+
+        public Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync()
+        {
+            return _context.Provinces.OrderBy(p => p.Name).ToListAsync();
+        }
+
+        public Task<List<CafeChain.Models.Locations.District>> GetDistrictsAsync(int provinceId)
+        {
+            return _context.Districts.Where(d => d.ProvinceId == provinceId).OrderBy(d => d.Name).ToListAsync();
+        }
+
         // ==================== WRITE (TRANSACTION) ====================
 
         // 🔥 RULE 3: Transaction bắt buộc cho Create
@@ -97,7 +109,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses)
+            List<StaffAddress> staffAddresses,
+            List<StaffBank> staffBanks)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -141,6 +154,14 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 if (staffAddresses.Any())
                     await _context.StaffAddresses.AddRangeAsync(staffAddresses);
 
+                // 7. Insert StaffBanks
+                foreach (var bank in staffBanks)
+                {
+                    bank.StaffId = staff.StaffId;
+                }
+                if (staffBanks.Any())
+                    await _context.StaffBanks.AddRangeAsync(staffBanks);
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
             }
@@ -158,7 +179,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<AccountRole> accountRoles,
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
-            List<StaffAddress> staffAddresses)
+            List<StaffAddress> staffAddresses,
+            List<StaffBank> staffBanks)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -218,6 +240,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 }
                 if (staffAddresses.Any())
                     await _context.StaffAddresses.AddRangeAsync(staffAddresses);
+
+                // 7. Clear & Replace StaffBanks
+                var oldBanks = await _context.StaffBanks
+                    .Where(b => b.StaffId == staff.StaffId)
+                    .ToListAsync();
+                _context.StaffBanks.RemoveRange(oldBanks);
+
+                foreach (var bank in staffBanks)
+                {
+                    bank.StaffId = staff.StaffId;
+                }
+                if (staffBanks.Any())
+                    await _context.StaffBanks.AddRangeAsync(staffBanks);
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();

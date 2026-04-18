@@ -98,7 +98,7 @@ namespace CafeChain.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Login(LoginViewModel model)
+        public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
@@ -175,13 +175,25 @@ namespace CafeChain.Controllers
             // ===== REDIRECT dựa trên Role ưu tiên cao nhất =====
             var role = result.Data.Role ?? "";
 
-            if (role.Contains("Admin") || role.Contains("Manager"))
+            // 🔥 RULE: Ưu tiên điều hướng Local ReturnURL trước nếu hợp lệ (Chống Open Redirect Attack)
+            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            // Fallback Role-based Redirect (Sử dụng tên Role TIẾNG VIỆT chính xác từ Database)
+            // Nhóm Management: Quản lý cấp cao → Admin Dashboard
+            if (role.Contains("Super Admin") || role.Contains("CEO") || role.Contains("Ban Giám đốc") 
+                || role.Contains("Kế toán trưởng") || role.Contains("Nhân sự") 
+                || role.Contains("Giám đốc") || role.Contains("Quản lý") 
+                || role.Contains("Cửa hàng trưởng"))
             {
                 return RedirectToAction("Index", "AdminStaff", new { area = "Admin" });
             }
-            else if (role.Contains("Cashier"))
+            // Nhóm Operations: Ca trưởng, Thu ngân → Kiosk Chấm Công
+            else if (role.Contains("Ca trưởng") || role.Contains("Thu ngân"))
             {
-                return RedirectToAction("Index", "Pos", new { area = "Cashier" });
+                return RedirectToAction("Index", "Kiosk");
             }
             else
             {

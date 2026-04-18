@@ -7,8 +7,7 @@ using System.Linq;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminStoreController : Controller
+    public class AdminStoreController : AdminBaseController
     {
         private readonly AppDbContext _context;
 
@@ -141,3 +140,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

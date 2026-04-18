@@ -31,9 +31,22 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private const int ROLE_SHIFT_SUPERVISOR = 9;
         private const int ROLE_CASHIER = 10;
         private const int ROLE_CUSTOMER = 11;
+        private const int ROLE_WAREHOUSE_KEEPER = 12;
+        private const int ROLE_GENERAL_STAFF = 13;
 
-        // 🔥 Forbidden roles cho Store Manager (tất cả role ≥ Store Manager)
+        // 🔥 Forbidden roles cho Store Manager (cấp HQ + Area + chính mình)
         private static readonly int[] FORBIDDEN_ROLES_FOR_STORE_MANAGER = { 1, 2, 3, 4, 5, 6, 7, 8 };
+
+        /// <summary>
+        /// SOLID Helper: Ánh xạ cứng Role → ScopeType bắt buộc.
+        /// Thay thế toàn bộ chuỗi if/else rải rác trong Create/Update.
+        /// </summary>
+        private static int GetRequiredScopeTypeForRole(int roleId) => roleId switch
+        {
+            >= 1 and <= 6 => 1,   // COUNTRY (HQ-level)
+            7 => 2,                // PROVINCE (Area Manager)
+            _ => 4                 // STORE (Store Manager, Ca trưởng, Thu ngân, Thủ kho, NV chung)
+        };
 
         public AdminStaffService(IAdminStaffRepository repository, IWebHostEnvironment env, IScopeAuthorizationService scopeAuthorizationService)
         {
@@ -56,10 +69,11 @@ namespace CafeChain.Application.Services.Admin.Staffs
             // Bỏ trường Khách hàng ra khỏi form Quản lý Nhân sự (nhân sự không bao giờ là Khách hàng)
             roles = roles.Where(r => r.RoleId != ROLE_CUSTOMER).ToList();
 
+
             if (isStoreManager && !isAdmin)
             {
-                // Store Manager chỉ được tạo: Shift Supervisor (9) và Cashier (10)
-                roles = roles.Where(r => r.RoleId == ROLE_SHIFT_SUPERVISOR || r.RoleId == ROLE_CASHIER).ToList();
+                // Store Manager chỉ được tạo: Shift Supervisor (9), Cashier (10), Thủ kho (12), NV chung (13)
+                roles = roles.Where(r => r.RoleId == ROLE_SHIFT_SUPERVISOR || r.RoleId == ROLE_CASHIER || r.RoleId == ROLE_WAREHOUSE_KEEPER || r.RoleId == ROLE_GENERAL_STAFF).ToList();
             }
             else if (!isAdmin)
             {
@@ -117,6 +131,39 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
 
             return $"/Images/avatars/{fileName}";
+        }
+
+        // ==================== DROPDOWN DATA (AJAX) ====================
+        public async Task<IEnumerable<object>> GetScopeReferencesAsync(int scopeTypeId, int? parentId = null)
+        {
+            try
+            {
+                if (scopeTypeId == 1) // HQ
+                {
+                    return new[] { new { id = 1, name = "Trụ sở chính" } };
+                }
+                if (scopeTypeId == 4) // Store
+                {
+                    var stores = await _repository.GetActiveStoresAsync();
+                    return stores.Select(s => new { id = s.StoreId, name = s.Name });
+                }
+                if (scopeTypeId == 2) // Province
+                {
+                    var provinces = await _repository.GetProvincesAsync();
+                    return provinces.Select(p => new { id = p.ProvinceId, name = p.Name });
+                }
+                if (scopeTypeId == 3 && parentId.HasValue) // District
+                {
+                    var districts = await _repository.GetDistrictsAsync(parentId.Value);
+                    return districts.Select(d => new { id = d.DistrictId, name = d.Name });
+                }
+                return new object[] { };
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Lỗi fetch DB locations: " + ex.Message);
+                return new object[] { };
+            }
         }
 
         // ==================== INDEX ====================
@@ -178,7 +225,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 Email = staff.Account?.Email ?? "",
                 TaxCode = staff.TaxCode ?? "",
                 CCCD = staff.CCCD ?? "",
-                Salary = staff.Salary,
+                BaseSalary = staff.BaseSalary,
                 DateOfBirth = staff.DateOfBirth,
                 StoreId = staff.StoreId,
                 SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? ROLE_CASHIER,
@@ -186,6 +233,9 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
                 Addresses = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).Select(a => a.Address).ToList() ?? new List<string>(),
+                BankName = staff.StaffBanks?.FirstOrDefault()?.BankName,
+                AccountNumber = staff.StaffBanks?.FirstOrDefault()?.AccountNumber,
+                AccountHolderName = staff.StaffBanks?.FirstOrDefault()?.AccountHolderName,
                 CurrentAvatarUrl = staff.AvatarUrl ?? "/Images/avatars/avtdf.jpg",
                 Active = staff.Active
             };
@@ -217,14 +267,21 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 }
             }
 
-            // === BƯỚC 4: 🔥 RULE 3 (Advanced) — Role-Scope Alignment ===
-            if (model.SelectedRoleId == ROLE_CASHIER || model.SelectedRoleId == ROLE_SHIFT_SUPERVISOR || model.SelectedRoleId == ROLE_STORE_MANAGER)
+            // === BƯỚC 4: 🔥 RULE 3 — Role-Scope Alignment (SOLID Helper) ===
+            int requiredScope = GetRequiredScopeTypeForRole(model.SelectedRoleId);
+            model.ScopeTypeId = requiredScope;
+
+            if (requiredScope == 1) // HQ-level: tự gán
             {
-                model.ScopeTypeId = 4;
+                model.ScopeRefId = 1;
+            }
+            else if (requiredScope == 4) // Store-level: bắt buộc chọn cửa hàng
+            {
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
                     return ServiceResult.Failure("Vai trò này yêu cầu phải chọn một Cửa hàng vật lý cụ thể.");
                 model.ScopeRefId = model.StoreId.Value;
             }
+            // Province-level (Area Manager): ScopeRefId do form frontend gửi lên (dropdown Tỉnh/TP)
 
             // === GUARD CLAUSE AREA MANAGER ===
             var rolesStr = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
@@ -289,8 +346,13 @@ namespace CafeChain.Application.Services.Admin.Staffs
             var password = model.Password;
             if (string.IsNullOrWhiteSpace(password))
             {
-                var defaultPhone = validPhones.FirstOrDefault() ?? "0000000000";
-                password = $"Cfc@{defaultPhone}";
+                string suffix = "0000";
+                if (!string.IsNullOrWhiteSpace(model.CCCD) && model.CCCD.Length >= 4)
+                    suffix = model.CCCD.Substring(model.CCCD.Length - 4);
+                else if (validPhones.Any() && validPhones[0].Length >= 4)
+                    suffix = validPhones[0].Substring(validPhones[0].Length - 4);
+                
+                password = $"CafeChain@{suffix}";
             }
 
             // === BƯỚC 7: Avatar Upload (xử lý trong Service, không phải Controller) ===
@@ -304,6 +366,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 Email = model.Email,
                 PasswordHash = passwordHash,
                 Active = true,
+                RequiresPasswordChange = true, // Bắt buộc đổi pass lần đầu theo yêu cầu Kiosk Security
                 CreatedAt = DateTime.Now
             };
 
@@ -312,7 +375,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 FullName = model.FullName,
                 TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim(),
                 CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim(),
-                Salary = model.Salary,
+                BaseSalary = model.BaseSalary,
                 DateOfBirth = model.DateOfBirth,
                 StoreId = model.StoreId ?? 1,
                 Active = true,
@@ -346,8 +409,20 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 IsDefault = index == 0
             }).ToList();
 
+            // Build StaffBanks
+            var staffBanks = new List<StaffBank>();
+            if (!string.IsNullOrWhiteSpace(model.BankName) || !string.IsNullOrWhiteSpace(model.AccountNumber) || !string.IsNullOrWhiteSpace(model.AccountHolderName))
+            {
+                staffBanks.Add(new StaffBank
+                {
+                    BankName = model.BankName,
+                    AccountNumber = model.AccountNumber,
+                    AccountHolderName = model.AccountHolderName
+                });
+            }
+
             // === BƯỚC 9: Gọi Repository (Transaction) ===
-            await _repository.CreateStaffTransactionAsync(staff, account, accountRoles, staffScopes, staffPhones, staffAddresses);
+            await _repository.CreateStaffTransactionAsync(staff, account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks);
 
             return ServiceResult.Success("Thêm nhân viên thành công!");
         }
@@ -398,14 +473,21 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 }
             }
 
-            // === 🔥 RULE 3 (Advanced) — Role-Scope Alignment ===
-            if (model.SelectedRoleId == ROLE_CASHIER || model.SelectedRoleId == ROLE_SHIFT_SUPERVISOR || model.SelectedRoleId == ROLE_STORE_MANAGER)
+            // === 🔥 RULE 3 — Role-Scope Alignment (SOLID Helper) ===
+            int requiredScopeEdit = GetRequiredScopeTypeForRole(model.SelectedRoleId);
+            model.ScopeTypeId = requiredScopeEdit;
+
+            if (requiredScopeEdit == 1) // HQ-level: tự gán
             {
-                model.ScopeTypeId = 4;
+                model.ScopeRefId = 1;
+            }
+            else if (requiredScopeEdit == 4) // Store-level: bắt buộc chọn cửa hàng
+            {
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
                     return ServiceResult.Failure("Vai trò này yêu cầu phải chọn một Cửa hàng vật lý cụ thể.");
                 model.ScopeRefId = model.StoreId.Value;
             }
+            // Province-level (Area Manager): ScopeRefId do form frontend gửi lên (dropdown Tỉnh/TP)
 
             // === GUARD CLAUSE AREA MANAGER KHÔNG XIN PHÉP (Lớp 1 & Lớp 2) ===
             var rolesStr = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
@@ -432,7 +514,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             // === 🔥 RULE 3 (Advanced) — Salary Lock cho Store Manager ===
             if (isStoreManager && !isAdmin)
             {
-                model.Salary = existingStaff.Salary; // Ép cứng salary cũ
+                model.BaseSalary = existingStaff.BaseSalary; // Ép cứng salary cũ
             }
 
             // === Identity Integrity ===
@@ -479,7 +561,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             existingStaff.FullName = model.FullName;
             existingStaff.TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim();
             existingStaff.CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim();
-            existingStaff.Salary = model.Salary;
+            existingStaff.BaseSalary = model.BaseSalary;
             existingStaff.DateOfBirth = model.DateOfBirth;
             existingStaff.StoreId = model.StoreId ?? existingStaff.StoreId;
 
@@ -516,7 +598,18 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 IsDefault = index == 0
             }).ToList();
 
-            await _repository.UpdateStaffTransactionAsync(existingStaff, existingStaff.Account, accountRoles, staffScopes, staffPhones, staffAddresses);
+            var staffBanks = new List<StaffBank>();
+            if (!string.IsNullOrWhiteSpace(model.BankName) || !string.IsNullOrWhiteSpace(model.AccountNumber) || !string.IsNullOrWhiteSpace(model.AccountHolderName))
+            {
+                staffBanks.Add(new StaffBank
+                {
+                    BankName = model.BankName,
+                    AccountNumber = model.AccountNumber,
+                    AccountHolderName = model.AccountHolderName
+                });
+            }
+
+            await _repository.UpdateStaffTransactionAsync(existingStaff, existingStaff.Account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks);
 
             return ServiceResult.Success("Cập nhật nhân viên thành công!");
         }

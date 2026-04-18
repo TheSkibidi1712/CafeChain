@@ -6,8 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminIngredientController : Controller
+    public class AdminIngredientController : AdminBaseController
     {
         private readonly IAdminIngredientService _service;
 
@@ -101,3 +100,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

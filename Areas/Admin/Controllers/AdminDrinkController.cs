@@ -6,8 +6,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    public class AdminDrinkController : Controller
+    public class AdminDrinkController : AdminBaseController
     {
         private readonly IAdminDrinkService _drinkService;
 
@@ -232,3 +231,4 @@ namespace CafeChain.Areas.Admin.Controllers
         }
     }
 }
+

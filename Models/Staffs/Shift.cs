@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Stores;
+using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Staffs
 {
@@ -16,6 +16,8 @@ namespace CafeChain.Models.Staffs
         public bool Active { get; set; }
 
         public int StoreId { get; set; } // 🔥 thuộc store nào
+
+        public string? Notes { get; set; } // Ghi chú của quản lý cho ca này
 
         public virtual Store Store { get; set; }
 

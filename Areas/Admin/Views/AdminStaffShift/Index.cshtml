@@ -1,0 +1,452 @@
+@using CafeChain.Models.Staffs
+@model dynamic
+@{
+    ViewData["Title"] = "Lịch Làm Việc";
+    var startDate = ViewBag.StartDate as DateTime? ?? DateTime.Today;
+    var dates = new List<DateTime>();
+    for (int i = 0; i < 7; i++) {
+        dates.Add(startDate.AddDays(i));
+    }
+}
+
+@section Styles {
+    <style>
+        :root { --accent: #e8643c; --accent-light: #fff3ef; }
+
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+        .page-header h4 { font-weight: 700; color: #1e293b; margin: 0; }
+        .page-header h4 i { color: var(--accent); margin-right: 8px; }
+
+        .week-nav { display: flex; align-items: center; gap: 8px; }
+        .week-nav .btn-nav { background: white; border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 16px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all 0.2s; color: #475569; }
+        .week-nav .btn-nav:hover { border-color: var(--accent); color: var(--accent); }
+        .week-nav .week-label { background: var(--accent-light); color: var(--accent); padding: 8px 18px; border-radius: 10px; font-weight: 700; font-size: 13px; }
+
+        .roster-container { background: #fff; border-radius: 14px; box-shadow: 0 4px 20px rgba(0,0,0,0.06); overflow-x: auto; }
+        .roster-table { width: 100%; min-width: 1100px; border-collapse: separate; border-spacing: 0; table-layout: fixed; }
+        .roster-table th { background: #f8fafc; color: #64748b; text-align: center; font-weight: 600; font-size: 12px; padding: 14px 10px; border-bottom: 2px solid #e2e8f0; text-transform: uppercase; letter-spacing: 0.5px; }
+        .roster-table th.today-col { background: var(--accent-light); color: var(--accent); }
+        .roster-table td { border-bottom: 1px solid #f1f5f9; border-right: 1px solid #f1f5f9; padding: 10px; vertical-align: top; height: 110px; position: relative; }
+
+        .roster-table .staff-col { width: 230px; background: #fff; text-align: left; position: sticky; left: 0; z-index: 2; box-shadow: 3px 0 8px rgba(0,0,0,0.03); vertical-align: middle; border-right: 2px solid #e2e8f0; }
+
+        .staff-info { display: flex; align-items: center; gap: 12px; }
+        .staff-info img { width: 44px; height: 44px; border-radius: 12px; object-fit: cover; border: 2px solid #f1f5f9; }
+        .staff-info .name { font-weight: 700; color: #1e293b; margin-bottom: 1px; font-size: 13px; }
+        .staff-info .hours { font-size: 11px; color: #94a3b8; }
+
+        .shift-card { background: var(--accent-light); border-left: 3px solid var(--accent); color: #9a3412; padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; font-size: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); transition: all 0.2s; cursor: pointer; }
+        .shift-card:hover { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(232,100,60,0.15); }
+        .shift-card .shift-time { font-weight: 700; display: block; font-size: 13px; margin-bottom: 1px; }
+        .shift-card .shift-label { font-size: 11px; color: #b45309; }
+
+        .empty-slot { width: 100%; height: 100%; min-height: 70px; border: 2px dashed transparent; border-radius: 10px; display: flex; align-items: center; justify-content: center; transition: all 0.2s; cursor: pointer; }
+        .empty-slot span { display: none; color: var(--accent); font-size: 1.3rem; font-weight: bold; }
+        .empty-slot:hover { border-color: var(--accent); background: var(--accent-light); }
+        .empty-slot:hover span { display: block; }
+
+        .empty-state { text-align: center; padding: 60px 20px; color: #94a3b8; }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; color: #cbd5e1; }
+
+        /* Modal Styling */
+        .modal-header.accent { background: var(--accent); color: white; border: none; border-radius: 14px 14px 0 0; }
+        .modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+
+        /* Shift Config Panel */
+        .shift-config { background: #f8fafc; border-radius: 14px; padding: 20px; margin-top: 20px; }
+        .shift-config h5 { font-weight: 700; font-size: 15px; margin-bottom: 16px; color: #1e293b; }
+        .shift-config .shift-row { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: white; border-radius: 10px; margin-bottom: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.04); }
+        .shift-config .shift-row .shift-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
+        .shift-config .shift-row .shift-name { font-weight: 600; font-size: 13px; flex: 1; }
+        .shift-config .shift-row input[type="time"] { border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 8px; font-size: 13px; width: 110px; }
+        .shift-config .shift-row input[type="text"] { border: 1px solid #e2e8f0; border-radius: 8px; padding: 4px 8px; font-size: 12px; flex: 1; }
+        .shift-config .shift-row .btn-save-shift { background: var(--accent); color: white; border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; }
+        .shift-config .shift-row .btn-save-shift:hover { background: #d4572f; }
+
+        .scale-in { animation: scaleIn 0.3s ease-out forwards; }
+        @@keyframes scaleIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    </style>
+}
+
+<div class="container-fluid py-3">
+    <div class="page-header">
+        <div class="d-flex align-items-center gap-3">
+            <h4><i class="fa-regular fa-calendar-days"></i> Lịch Làm Việc</h4>
+            
+            @if (ViewBag.IsSuperAdmin == true && ViewBag.Stores != null)
+            {
+                <form id="storeForm" method="get" class="d-flex align-items-center m-0">
+                    <!-- Giữ nguyên ngày hiện tại -->
+                    <input type="hidden" name="startDate" value="@startDate.ToString("yyyy-MM-dd")" />
+                    <select name="targetStoreId" class="form-select form-select-sm fw-bold" style="border-radius: 10px; border-color: var(--accent); color: var(--accent); width: auto; background-color: var(--accent-light);" onchange="document.getElementById('storeForm').submit();">
+                        @foreach (var store in ViewBag.Stores)
+                        {
+                            if (ViewBag.ActiveStoreId == store.StoreId)
+                            {
+                                <option value="@store.StoreId" selected="selected">@store.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@store.StoreId">@store.Name</option>
+                            }
+                        }
+                    </select>
+                </form>
+            }
+            else
+            {
+                <!-- Dành cho Quản lý cửa hàng -> Dấu targetStoreId ẩn (mặc dù controller cũng tự get từ Claim) -->
+                <input type="hidden" id="currentTargetStore" value="@ViewBag.ActiveStoreId" />
+                <input type="hidden" id="currentTargetStoreName" value="@ViewBag.ActiveStoreName" />
+            }
+        </div>
+        
+        <div class="week-nav">
+            <button class="btn-nav" onclick="navigateWeek(-7)"><i class="fa-solid fa-chevron-left me-1"></i> Tuần trước</button>
+            <div class="week-label">@dates[0].ToString("dd/MM") — @dates[6].ToString("dd/MM/yyyy")</div>
+            <button class="btn-nav" onclick="navigateWeek(7)">Tuần sau <i class="fa-solid fa-chevron-right ms-1"></i></button>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <div class="roster-container">
+        <table class="roster-table">
+            <thead>
+                <tr>
+                    <th class="staff-col">Nhân viên</th>
+                    @foreach(var d in dates)
+                    {
+                        var isToday = d.Date == DateTime.Today;
+                        <th class="@(isToday ? "today-col" : "")">
+                            @d.ToString("ddd").ToUpper() <br/>
+                            <span style="font-size: 14px; font-weight: 700; color: @(isToday ? "var(--accent)" : "#1e293b");">@d.ToString("dd/MM")</span>
+                        </th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model != null && Model.Count > 0)
+                {
+                    foreach(var item in Model)
+                    {
+                        var staff = item.Key;
+                        var shifts = item.Value as List<CafeChain.Models.Staffs.StaffShift>;
+                        
+                        <tr>
+                            <td class="staff-col">
+                                <div class="staff-info">
+                                    <img src="@(staff.AvatarUrl ?? "/images/avatars/default.png")" alt="Avatar" onerror="this.src='https://ui-avatars.com/api/?name=@staff.FullName&background=F97316&color=fff&rounded=true'" />
+                                    <div>
+                                        <p class="name">@staff.FullName</p>
+                                        <span class="hours">@shifts.Count ca tuần này</span>
+                                    </div>
+                                </div>
+                            </td>
+
+                            @for (int j = 0; j < 7; j++)
+                            {
+                                var currentCellDate = dates[j].ToString("yyyy-MM-dd");
+                                var shiftInDay = shifts.Where(s => s.WorkDate.Date == dates[j].Date).ToList();
+                                bool isLocked = dates[j].Date < DateTime.Today.AddDays(-3) || !staff.Active || staff.EmployeeStatus == 3;
+                                var escapedName = staff.FullName.Replace("'", "\\'");
+                                string onClickAction = isLocked ? "" : $"onclick=\"openAssignModal({staff.StaffId}, '{currentCellDate}', '{escapedName}', this)\"";
+                                string disabledStyle = isLocked ? "opacity: 0.3; cursor: not-allowed;" : "";
+
+                                <td>
+                                    @if(shiftInDay.Any())
+                                    {
+                                        foreach(var r in shiftInDay)
+                                        {
+                                            <div class="shift-card">
+                                                <span class="shift-time">@(r.CustomStartTime?.ToString(@"hh\:mm") ?? r.Shift?.StartTime.ToString(@"hh\:mm") ?? "00:00") - @(r.CustomEndTime?.ToString(@"hh\:mm") ?? r.Shift?.EndTime.ToString(@"hh\:mm") ?? "00:00")</span>
+                                                <span class="shift-label">@(r.Shift?.Name ?? "Ca làm việc")</span>
+                                            </div>
+                                        }
+                                        if (!isLocked)
+                                        {
+                                            <div class="empty-slot" style="min-height:25px; margin-top:3px; @disabledStyle" @Html.Raw(onClickAction)>
+                                                <span style="font-size:0.9rem">+</span>
+                                            </div>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="empty-slot" style="@disabledStyle" @Html.Raw(onClickAction)>
+                                            <span>+</span>
+                                        </div>
+                                    }
+                                </td>
+                            }
+                        </tr>
+                    }
+                }
+                else
+                {
+                    <tr>
+                        <td colspan="8">
+                            <div class="empty-state">
+                                <i class="fa-solid fa-folder-open"></i><br/>
+                                <strong>Không có dữ liệu</strong><br/>
+                                <span style="font-size: 13px;">Không tìm thấy nhân viên hoặc ca làm việc tại cửa hàng này.</span>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Shift Config Panel -->
+    <div class="shift-config" id="shiftConfig">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5><i class="fas fa-cog me-2" style="color: var(--accent);"></i> Thiết lập Ca Làm Việc</h5>
+            <span class="text-muted" style="font-size: 12px;">Quản lý có thể thay đổi giờ và ghi chú cho từng ca</span>
+        </div>
+        <div id="shiftConfigList">
+            <div class="text-center text-muted py-3"><i class="fas fa-spinner fa-spin me-2"></i> Đang tải danh sách ca...</div>
+        </div>
+    </div>
+</div>
+
+<!-- Assign Shift Modal -->
+<div class="modal fade" id="assignShiftModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header accent">
+                <h5 class="modal-title"><i class="fas fa-plus me-2"></i> Gán Ca Mới</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <input type="hidden" id="modalStaffId" />
+                <input type="hidden" id="modalDate" />
+
+                <!-- Thông tin ngữ cảnh: Nhân viên + Ngày -->
+                <div class="mb-3 p-3" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="fas fa-user-circle" style="color: var(--accent); font-size: 14px;"></i>
+                        <span style="font-size: 13px; color: #64748b;">Nhân viên:</span>
+                        <strong id="modalStaffName" style="font-size: 13px; color: #1e293b;">—</strong>
+                    </div>
+                    <div class="d-flex align-items-center gap-2 mb-1">
+                        <i class="fas fa-calendar-day" style="color: var(--accent); font-size: 14px;"></i>
+                        <span style="font-size: 13px; color: #64748b;">Ngày:</span>
+                        <strong id="modalDateDisplay" style="font-size: 13px; color: #1e293b;">—</strong>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fas fa-map-marker-alt" style="color: var(--accent); font-size: 14px;"></i>
+                        <span style="font-size: 13px; color: #64748b;">Cửa hàng:</span>
+                        <strong id="modalStoreName" style="font-size: 13px; color: #1e293b;">—</strong>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 13px;">Chọn Ca Làm</label>
+                    <select id="modalShiftSelect" class="form-select" style="border-radius: 10px;">
+                        <option value="">-- Chọn ca làm việc --</option>
+                    </select>
+                </div>
+                <div class="row g-2 mb-3" id="customTimeBox" style="display: none;">
+                    <div class="col-6">
+                        <label class="form-label fw-bold" style="font-size: 12px;"><i class="fas fa-clock me-1" style="color: var(--accent);"></i>Giờ bắt đầu</label>
+                        <input type="time" id="modalCustomStart" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-bold" style="font-size: 12px;"><i class="fas fa-clock me-1" style="color: var(--accent);"></i>Giờ kết thúc</label>
+                        <input type="time" id="modalCustomEnd" class="form-control" style="border-radius: 8px;">
+                    </div>
+                    <div class="col-12">
+                        <small class="text-muted" style="font-size: 11px;"><i class="fas fa-info-circle me-1"></i>Có thể tuỳ chỉnh giờ cho nhân viên Part-time. Để trống nếu muốn dùng giờ mặc định của ca.</small>
+                    </div>
+                </div>
+                <div id="modalShiftInfo" style="font-size: 12px; color: #64748b; display: none;">
+                    <i class="fas fa-info-circle me-1"></i> <span id="modalShiftInfoText"></span>
+                </div>
+            </div>
+            <div class="modal-footer border-0 d-flex justify-content-between px-4 pb-4">
+                <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn px-4" style="background: var(--accent); color: white; border-radius: 10px; font-weight: 600;" onclick="submitAssignShift()"><i class="fa-solid fa-plus me-1"></i> Thêm Ca</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        let currentTargetCell = null;
+
+        // ===== Week Navigation =====
+        function navigateWeek(daysOffset) {
+            let baseUrl = window.location.href.split('?')[0];
+            let currentStr = '@startDate.ToString("yyyy-MM-dd")';
+            let currentDate = new Date(currentStr);
+            currentDate.setDate(currentDate.getDate() + daysOffset);
+            let targetDateStr = currentDate.toISOString().split('T')[0];
+            
+            // Get targetStoreId if existed in form
+            const storeSelect = $('select[name="targetStoreId"]').val();
+            let url = baseUrl + '?startDate=' + targetDateStr;
+            if (storeSelect) url += '&targetStoreId=' + storeSelect;
+            
+            window.location.href = url;
+        }
+
+        // Target Store Helper
+        function getTargetStoreId() {
+            let val = $('select[name="targetStoreId"]').val();
+            if (!val) val = $('#currentTargetStore').val();
+            return val;
+        }
+
+        // ===== Load real shifts on page ready =====
+        $(document).ready(function() {
+            loadShiftConfig();
+            loadShiftDropdown();
+        });
+
+        function loadShiftDropdown() {
+            const storeId = getTargetStoreId();
+            $.get('/Admin/AdminStaffShift/GetShifts?targetStoreId=' + storeId, function(shifts) {
+                const select = $('#modalShiftSelect');
+                select.empty();
+                select.append('<option value="">-- Chọn ca làm việc --</option>');
+                if (shifts.length === 0) {
+                    select.append('<option value="" disabled>Chưa có ca nào</option>');
+                    return;
+                }
+                window.shiftsData = shifts;
+                shifts.forEach(s => {
+                    select.append(`<option value="${s.shiftId}">${s.name} (${s.startTime} - ${s.endTime})</option>`);
+                });
+
+                $('#modalShiftSelect').off('change').on('change', function() {
+                    var val = $(this).val();
+                    if(val) {
+                        var shift = window.shiftsData.find(s => s.shiftId == val);
+                        if(shift) {
+                            $('#customTimeBox').fadeIn(200);
+                            $('#modalCustomStart').val(shift.startTime);
+                            $('#modalCustomEnd').val(shift.endTime);
+                        }
+                    } else {
+                        $('#customTimeBox').hide();
+                    }
+                });
+            });
+        }
+
+        function loadShiftConfig() {
+            const storeId = getTargetStoreId();
+            $.get('/Admin/AdminStaffShift/GetShifts?targetStoreId=' + storeId, function(shifts) {
+                const container = $('#shiftConfigList');
+                if (!shifts || shifts.length === 0) {
+                    container.html('<div class="text-center text-muted py-3">Chưa có ca làm việc nào.</div>');
+                    return;
+                }
+                let html = '';
+                shifts.forEach(s => {
+                    html += `
+                        <div class="shift-row" id="shiftRow_${s.shiftId}">
+                            <span class="shift-dot"></span>
+                            <span class="shift-name">${s.name}</span>
+                            <input type="time" value="${s.startTime}" id="start_${s.shiftId}" />
+                            <span style="color:#94a3b8;">→</span>
+                            <input type="time" value="${s.endTime}" id="end_${s.shiftId}" />
+                            <input type="text" placeholder="Ghi chú..." value="${s.notes || ''}" id="note_${s.shiftId}" />
+                            <button class="btn-save-shift" onclick="saveShift(${s.shiftId})"><i class="fas fa-save"></i></button>
+                        </div>`;
+                });
+                container.html(html);
+            });
+        }
+
+        function saveShift(shiftId) {
+            const start = $(`#start_${shiftId}`).val();
+            const end = $(`#end_${shiftId}`).val();
+            const notes = $(`#note_${shiftId}`).val();
+            const token = $("input[name='__RequestVerificationToken']").val();
+
+            $.ajax({
+                url: '/Admin/AdminStaffShift/UpdateShift',
+                type: 'POST',
+                data: { shiftId, startTime: start, endTime: end, notes },
+                headers: { "RequestVerificationToken": token },
+                success: function(res) {
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
+                    loadShiftDropdown();
+                },
+                error: function(xhr) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: xhr.responseJSON?.message || 'Không thể cập nhật.' });
+                }
+            });
+        }
+
+        // ===== Helper: Lấy tên Cửa hàng đang hiển thị =====
+        function getActiveStoreName() {
+            // SuperAdmin: lấy text từ dropdown Store
+            var storeSelect = $('select[name="targetStoreId"]');
+            if (storeSelect.length > 0) {
+                return storeSelect.find('option:selected').text();
+            }
+            // Store Manager: lấy từ hidden input
+            return $('#currentTargetStoreName').val() || 'N/A';
+        }
+
+        // ===== Assign Modal =====
+        function openAssignModal(staffId, dateStr, staffName, cellElement) {
+            $('#modalStaffId').val(staffId);
+            $('#modalDate').val(dateStr);
+
+            // Hiển thị ngữ cảnh: Tên nhân viên + Ngày đã format + Cửa hàng
+            $('#modalStaffName').text(staffName);
+            var parts = dateStr.split('-'); // yyyy-MM-dd
+            $('#modalDateDisplay').text(parts[2] + '/' + parts[1] + '/' + parts[0]);
+            $('#modalStoreName').text(getActiveStoreName());
+
+            // Reset form về trạng thái ban đầu
+            $('#modalShiftSelect').val('').trigger('change');
+            $('#customTimeBox').hide();
+            $('#modalCustomStart').val('');
+            $('#modalCustomEnd').val('');
+            currentTargetCell = cellElement;
+            new bootstrap.Modal(document.getElementById('assignShiftModal')).show();
+        }
+
+        function submitAssignShift() {
+            var staffId = $('#modalStaffId').val();
+            var date = $('#modalDate').val();
+            var shiftId = $('#modalShiftSelect').val();
+            var shiftText = $("#modalShiftSelect option:selected").text();
+            var token = $("input[name='__RequestVerificationToken']").val();
+            var storeId = getTargetStoreId();
+
+            if (!shiftId) {
+                Swal.fire({ icon: 'warning', title: 'Chọn ca', text: 'Vui lòng chọn 1 ca làm việc.' });
+                return;
+            }
+
+            var customStart = $('#modalCustomStart').val();
+            var customEnd = $('#modalCustomEnd').val();
+            var displayTime = customStart + " - " + customEnd;
+            var shiftName = shiftText.split('(')[0];
+
+            $.ajax({
+                url: '/Admin/AdminStaffShift/AssignShift',
+                type: 'POST',
+                data: { staffId, shiftId, date, targetStoreId: storeId, customStart, customEnd },
+                headers: { "RequestVerificationToken": token },
+                success: function(res) {
+                    $('#assignShiftModal').modal('hide');
+                    // Reload page or dynamically prepend
+                    let newHtml = `<div class="shift-card scale-in"><span class="shift-time">${displayTime}</span><span class="shift-label">${shiftName}</span></div>`;
+                    $(currentTargetCell).parent().prepend(newHtml);
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã gán ca thành công', showConfirmButton: false, timer: 1500 });
+                },
+                error: function(xhr) {
+                    $('#assignShiftModal').modal('hide');
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: xhr.responseJSON?.message || 'Không thể gán ca.' });
+                }
+            });
+        }
+    </script>
+}

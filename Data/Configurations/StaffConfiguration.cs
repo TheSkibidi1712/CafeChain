@@ -28,7 +28,7 @@ namespace CafeChain.Data.Configurations
                 .HasMaxLength(12)
                 .IsFixedLength(true);
 
-            entity.Property(x => x.Salary)
+            entity.Property(x => x.BaseSalary)
                 .HasColumnType("decimal(18,2)");
 
             entity.Property(x => x.DateOfBirth);
@@ -69,16 +69,16 @@ namespace CafeChain.Data.Configurations
                 .HasFilter("[CCCD] IS NOT NULL AND [CCCD] <> ''");
 
             entity.HasData(
-                new Staff { StaffId = 101, AccountId = 101, FullName = "Super Admin System", TaxCode = "TAX101", Salary = 50000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 102, AccountId = 102, FullName = "CEO Director", TaxCode = "TAX102", Salary = 100000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 103, AccountId = 103, FullName = "CFO Finance", TaxCode = "TAX103", Salary = 80000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 104, AccountId = 104, FullName = "Marketing Manager", TaxCode = "TAX104", Salary = 40000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 105, AccountId = 105, FullName = "Operations Manager", TaxCode = "TAX105", Salary = 45000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 106, AccountId = 106, FullName = "HR Manager", TaxCode = "TAX106", Salary = 35000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", Salary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", Salary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", Salary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", Salary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
+                new Staff { StaffId = 101, AccountId = 101, FullName = "Super Admin System", TaxCode = "TAX101", BaseSalary = 50000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 102, AccountId = 102, FullName = "CEO Director", TaxCode = "TAX102", BaseSalary = 100000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 103, AccountId = 103, FullName = "CFO Finance", TaxCode = "TAX103", BaseSalary = 80000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 104, AccountId = 104, FullName = "Marketing Manager", TaxCode = "TAX104", BaseSalary = 40000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 105, AccountId = 105, FullName = "Operations Manager", TaxCode = "TAX105", BaseSalary = 45000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 106, AccountId = 106, FullName = "HR Manager", TaxCode = "TAX106", BaseSalary = 35000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", BaseSalary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", BaseSalary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", BaseSalary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
             );
         }
     }

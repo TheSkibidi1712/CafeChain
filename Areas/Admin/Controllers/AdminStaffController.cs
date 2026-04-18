@@ -8,9 +8,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    [Area("Admin")]
-    [Authorize(Policy = "RequireAdminPanelAccess")]
-    public class AdminStaffController : Controller
+    public class AdminStaffController : AdminBaseController
     {
         private readonly IAdminStaffService _staffService;
         private readonly AppDbContext _dbContext;
@@ -60,8 +58,11 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!ModelState.IsValid)
             {
-                await SetViewBagFromMasterData(User);
-                return PartialView("_CreateStaffModal", model);
+                var errors = string.Join("<br/>", ModelState.Values
+                                        .SelectMany(v => v.Errors)
+                                        .Select(e => e.ErrorMessage));
+                TempData["Error"] = "Dữ liệu không hợp lệ:<br/>" + errors;
+                return RedirectToAction(nameof(Index));
             }
 
             var result = await _staffService.CreateStaffAsync(model, User, model.AvatarFile);
@@ -95,8 +96,11 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (!ModelState.IsValid)
             {
-                await SetViewBagFromMasterData(User);
-                return View(model);
+                var errors = string.Join("<br/>", ModelState.Values
+                                        .SelectMany(v => v.Errors)
+                                        .Select(e => e.ErrorMessage));
+                TempData["Error"] = "Cập nhật thất bại:<br/>" + errors;
+                return RedirectToAction(nameof(Index));
             }
 
             try
@@ -137,33 +141,31 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
         
+        // ==================== MANUAL PASSWORD RESET (AJAX) ====================
+        [HttpPost]
+        public async Task<IActionResult> ManualResetPassword([FromBody] ManualResetRequest req)
+        {
+            var account = await _dbContext.Accounts.FindAsync(req.AccountId);
+            if (account == null)
+                return Json(new { success = false, message = "Không tìm thấy hồ sơ cá nhân của nhân sự này!" });
+
+            // Using BCrypt to match standard hashing
+            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+            
+            _dbContext.Update(account);
+            await _dbContext.SaveChangesAsync();
+
+            return Json(new { success = true, message = "Đã cập nhật mật khẩu mới và mã hóa thành công!" });
+        }
+
         // ==================== DYNAMIC DROPDOWN API ====================
         [HttpGet]
-        public async Task<IActionResult> GetScopeReferences(int scopeTypeId)
+        public async Task<IActionResult> GetScopeReferences(int scopeTypeId, int? parentId = null)
         {
             try
             {
-                if (scopeTypeId == 1) // HQ
-                {
-                    return Json(new[] { new { id = 1, name = "Trụ sở chính" } });
-                }
-                else if (scopeTypeId == 2) // Province
-                {
-                    var provinces = await _dbContext.Provinces.Select(p => new { id = p.ProvinceId, name = p.Name }).ToListAsync();
-                    return Json(provinces);
-                }
-                else if (scopeTypeId == 3) // Ward
-                {
-                    var wards = await _dbContext.Wards.Select(w => new { id = w.WardId, name = w.Name }).ToListAsync();
-                    return Json(wards);
-                }
-                else if (scopeTypeId == 4) // Store
-                {
-                    var stores = await _dbContext.Stores.Where(s => s.Active).Select(s => new { id = s.StoreId, name = s.Name }).ToListAsync();
-                    return Json(stores);
-                }
-
-                return Json(new object[] { });
+                var data = await _staffService.GetScopeReferencesAsync(scopeTypeId, parentId);
+                return Json(data);
             }
             catch
             {
@@ -171,4 +173,10 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
     }
+
+    public class ManualResetRequest {
+        public int AccountId { get; set; }
+        public string NewPassword { get; set; }
+    }
 }
+
