@@ -52,16 +52,56 @@ namespace CafeChain.Controllers
                 TotalPages = data.TotalPages
             };
 
+            // Check availability for each drink (StoreId = 1 as default)
+            foreach (var drink in viewModel.Drinks)
+            {
+                viewModel.Availability[drink.DrinkId] = await _drinkService.CheckDrinkAvailabilityAsync(drink.DrinkId, 1);
+            }
+
             return View(viewModel);
         }
         [HttpGet]
         [AllowAnonymous]
         public async Task<IActionResult> Detail(int id)
         {
-            var viewModel = await _drinkService.GetDrinkDetailAsync(id);
-            if (viewModel == null) return NotFound();
+            try 
+            {
+                // [DIAGNOSTIC LOG]
+                Console.WriteLine($">>>>> HIT DETAIL ACTION FOR DRINK ID: {id} <<<<<");
 
-            return View(viewModel);
+                var viewModel = await _drinkService.GetDrinkDetailAsync(id);
+                if (viewModel == null) 
+                {
+                    Console.WriteLine($">>>>> DRINK NOT FOUND FOR ID: {id} <<<<<");
+                    return NotFound();
+                }
+
+                // Đảm bảo IsAvailable được khởi tạo trước khi gọi logic check
+                viewModel.IsAvailable = true; 
+
+                // Check availability (StoreId = 1 as default)
+                try 
+                {
+                    viewModel.IsAvailable = await _drinkService.CheckDrinkAvailabilityAsync(id, 1);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($">>>>> ERROR IN CheckDrinkAvailabilityAsync: {ex.Message} <<<<<");
+                    // Fallback: Nếu lỗi logic check thì cứ cho là còn hàng để không chặn người dùng
+                    viewModel.IsAvailable = true; 
+                }
+                
+                // ViewBag để backup theo yêu cầu FIX.md
+                ViewBag.IsAvailable = viewModel.IsAvailable;
+
+                return View(viewModel);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($">>>>> CRITICAL ERROR IN DETAIL ACTION: {ex.Message} <<<<<");
+                Console.WriteLine(ex.StackTrace);
+                return StatusCode(500, "Internal Server Error: " + ex.Message);
+            }
         }
 
         private int? GetCurrentCustomerId()

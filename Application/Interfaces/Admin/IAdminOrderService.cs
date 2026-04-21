@@ -59,5 +59,30 @@ namespace CafeChain.Application.Interfaces.Admin
         /// Guard: Chỉ chấp nhận đơn đang ở status 2-6 (chưa hoàn thành/chưa hủy).
         /// </summary>
         Task CancelOrderAsync(int orderId, string reason);
+        
+        /// <summary>
+        /// Mô phỏng việc Partner Webhook trả về kết quả thành công cho toàn bộ đơn Đang Giao.
+        /// </summary>
+        Task<int> SimulateWebhookAsync();
+
+        // ===================================================
+        // ORDER HISTORY — DataTables Server-Side Processing
+        // ===================================================
+
+        /// <summary>
+        /// Lấy danh sách đơn hàng với DataTables server-side processing (phân trang, sắp xếp, lọc).
+        /// </summary>
+        Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request);
+
+        /// <summary>
+        /// Lấy chi tiết đơn hàng cho Modal trong trang Lịch sử đơn hàng.
+        /// </summary>
+        Task<AdminOrderHistoryDetailDto> GetOrderHistoryDetailAsync(int orderId);
+
+        /// <summary>
+        /// Xuất dữ liệu đơn hàng đã lọc cho mục đích báo cáo (Export).
+        /// </summary>
+        Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
+            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter);
     }
 }

@@ -478,14 +478,23 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            entity.HasOne<Drink>()
+                .WithMany(d => d.Recipes)
+                .HasForeignKey(x => x.DrinkId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne<Topping>()
+                .WithMany()
+                .HasForeignKey(x => x.ToppingId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasData(
-                new Recipe { RecipeId = 1, Name = "Recipe CF Sữa", Active = true },
-                new Recipe { RecipeId = 2, Name = "Recipe CF Đen", Active = true },
-                new Recipe { RecipeId = 3, Name = "Recipe Trà sữa", Active = true },
-                new Recipe { RecipeId = 4, Name = "Recipe Trà sữa socola", Active = true },
-                new Recipe { RecipeId = 5, Name = "Trân châu đen", Active = true },
-                new Recipe { RecipeId = 6, Name = "Trân châu trắng", Active = true }
+                new Recipe { RecipeId = 1, Name = "Recipe CF Sữa", Active = true, DrinkId = 1 },
+                new Recipe { RecipeId = 2, Name = "Recipe CF Đen", Active = true, DrinkId = 2 },
+                new Recipe { RecipeId = 3, Name = "Recipe Trà sữa", Active = true, DrinkId = 3 },
+                new Recipe { RecipeId = 4, Name = "Recipe Trà sữa socola", Active = true, DrinkId = 4 },
+                new Recipe { RecipeId = 5, Name = "Trân châu đen", Active = true, ToppingId = 1 },
+                new Recipe { RecipeId = 6, Name = "Trân châu trắng", Active = true, ToppingId = 2 }
             );
         }
     }

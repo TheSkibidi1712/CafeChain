@@ -34,7 +34,14 @@
         <div class="col-md-6 mb-4">
             <div class="mb-3 position-relative" id="mainImageContainer">
                 <img id="mainImage" src="@(Model.Drink.DrinkImages?.FirstOrDefault()?.ImageUrl ?? "/images/default.jpg")"
-                     class="img-fluid rounded-4 w-100 object-fit-cover shadow-sm" style="aspect-ratio: 1/1;" alt="@Model.Drink.Name" data-current-index="0">
+                     class="img-fluid rounded-4 w-100 object-fit-cover shadow-sm @(!Model.IsAvailable ? "filter-grayscale" : "")" style="aspect-ratio: 1/1;" alt="@Model.Drink.Name" data-current-index="0">
+
+                @if (ViewBag.IsAvailable == false)
+                {
+                    <div class="position-absolute top-50 start-50 translate-middle w-100 text-center">
+                        <span class="badge rounded-pill bg-dark bg-opacity-75 px-4 py-3 fs-4">HẾT HÀNG</span>
+                    </div>
+                }
 
                 @if (Model.Drink.DrinkImages != null && Model.Drink.DrinkImages.Count > 1)
                 {
@@ -186,8 +193,13 @@
                         <button type="button" class="btn text-muted shadow-none border-0 fw-bold fs-5" onclick="updateQty(1)">+</button>
                     </div>
 
-                    <button type="button" class="btn btn-orange flex-grow-1 fw-bold rounded-pill shadow d-flex align-items-center justify-content-center" style="height: 52px; transition: all 0.3s ease; transform: translateY(0);" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform='translateY(0)'" onclick="addToCartDetail()">
-                        <i class="bi bi-cart-plus me-2 fs-5"></i> Thêm vào giỏ hàng
+                    <button type="button" 
+                            class="btn btn-orange flex-grow-1 fw-bold rounded-pill shadow d-flex align-items-center justify-content-center @(ViewBag.IsAvailable == false ? "disabled opacity-50 pe-none" : "")" 
+                            style="height: 52px; transition: all 0.3s ease; transform: translateY(0);" 
+                            onmouseover="this.style.transform='translateY(-2px)'" 
+                            onmouseout="this.style.transform='translateY(0)'" 
+                            onclick="@(ViewBag.IsAvailable != false ? "addToCartDetail()" : "void(0)")">
+                        <i class="bi bi-cart-plus me-2 fs-5"></i> @(ViewBag.IsAvailable != false ? "Thêm vào giỏ hàng" : "Tạm hết hàng")
                     </button>
                 </div>
             </form>
@@ -618,15 +630,14 @@
             transition: all 0.3s ease;
         }
 
-        .hover-shadow:hover {
-            box-shadow: 0 10px 25px rgba(211, 84, 0, 0.1) !important;
-            transform: translateY(-2px);
-        }
-
         @@media (min-width: 768px) {
             .border-end-md {
                 border-right: 1px solid #dee2e6 !important;
             }
+        }
+
+        .filter-grayscale {
+            filter: grayscale(1);
         }
     </style>
     

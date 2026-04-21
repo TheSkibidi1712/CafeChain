@@ -1,5 +1,6 @@
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
 @{
-    ViewData["Title"] = "Order Management";
+    ViewData["Title"] = "Bảng điều phối đơn hàng";
 }
 
 @section Styles {
@@ -25,7 +26,7 @@
         }
 
         .kanban-col {
-            flex: 0 0 300px;
+            flex: 0 0 270px; /* [FIX UI] Thu nhỏ để vừa 5 cột */
             background-color: var(--kanban-col-bg);
             border-radius: 10px;
             display: flex;
@@ -133,31 +134,71 @@
             background-color: var(--orange-main);
             border-color: var(--orange-main);
         }
+
+        /* [Phase 1] Item summary on card */
+        .item-summary-list {
+            border-top: 1px dashed #e0e0e0;
+            padding-top: 6px;
+        }
+        .item-summary-row {
+            font-size: 0.95rem; /* [FIX UI] Tăng size ưu tiên tên đồ uống */
+            font-weight: 600;   /* [FIX UI] In đậm tên đồ uống */
+            color: #2c3e50;
+            padding: 3px 0;
+            line-height: 1.4;
+            border-bottom: 1px dotted #f0f0f0;
+        }
+        .item-summary-row:last-child { border-bottom: none; }
+
+        .quick-actions .btn { font-size: 0.78rem; }
+
+        /* [Phase 1] Print styles */
+        @@media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 80mm; font-size: 12px; }
+        }
+        /* [Fix UI] Order Type Badges */
+        .badge-delivery {
+            background-color: #ffe8d6 !important;
+            color: #d35400 !important;
+        }
+        .badge-pickup {
+            background-color: #d1fae5 !important;
+            color: #065f46 !important;
+        }
+        .badge-dinein {
+            background-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
     </style>
 }
 
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-4 px-3">
+    @* <div class="d-flex justify-content-between align-items-center mb-4 px-3">
         <div class="d-flex align-items-center gap-4 bg-white p-2 px-3 rounded-pill shadow-sm">
-            @* <div class="form-check form-switch m-0">
-                @* <input class="form-check-input" type="checkbox" id="soundToggle">
-                <label class="form-check-label fw-bold small text-muted" for="soundToggle">
-                    <i class="bi bi-volume-up-fill"></i> Âm thanh thông báo
-                </label> 
-            </div> *@
-            @* <div id="connectionStatus" class="small text-muted">
+             <div id="connectionStatus" class="small text-muted">
                 <span class="badge bg-secondary rounded-pill">Đang kết nối...</span>
-            </div> *@
+            </div>
         </div>
+        
+        @if (env.IsDevelopment())
+        {
+            <!-- [Phase 2] Giả lập Webhook -->
+            <button class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" onclick="simulateWebhook()">
+                <i class="bi bi-robot me-1"></i> [Test] Simulate Partner Webhook
+            </button>
+        }
+    </div> *@
+    <div style=" margin: 10px;color: var(--orange-main);"> <h2>Quản lý đơn hàng<h2>
     </div>
-
     @Html.AntiForgeryToken()
 
     <div class="kanban-board">
         <!-- Đơn Mới (1) -->
         <div class="kanban-col" id="col-new">
             <div class="kanban-col-header">
-                <span>Đơn Mới</span>
+                <span class="text-primary"><i class="bi bi-star-fill me-2"></i>Đơn Mới</span>
                 <span class="badge bg-primary rounded-pill count">0</span>
             </div>
             <div class="kanban-col-body" data-statuses="1"></div>
@@ -166,28 +207,40 @@
         <!-- Đang Pha Chế (2) -->
         <div class="kanban-col" id="col-preparing">
             <div class="kanban-col-header">
-                <span>Đang Pha Chế</span>
+                <span class="text-warning"><i class="bi bi-cup-hot-fill me-2"></i>Đang Pha Chế</span>
                 <span class="badge bg-warning text-dark rounded-pill count">0</span>
             </div>
             <div class="kanban-col-body" data-statuses="2"></div>
         </div>
 
-        <!-- Chờ Lấy / Giao (3,4) -->
-        <div class="kanban-col" id="col-shipping">
+        <!-- Chờ Lấy / Giao (3) -->
+        <div class="kanban-col" id="col-ready">
             <div class="kanban-col-header">
-                <span>Chờ Lấy / Giao</span>
+                <span class="text-info"><i class="bi bi-box-seam-fill me-2"></i>Chờ Lấy/Giao</span>
                 <span class="badge bg-info text-dark rounded-pill count">0</span>
             </div>
-            <div class="kanban-col-body" data-statuses="3,4"></div>
+            <div class="kanban-col-body" data-statuses="3"></div>
         </div>
 
-        <!-- Lịch Sử (5,6) -->
+        <!-- Đang Giao (4) -->
+        <div class="kanban-col" id="col-delivering">
+            <div class="kanban-col-header">
+                <span class="text-indigo" style="color: #6610f2;"><i class="bi bi-truck me-2"></i>Đang Giao</span>
+                <span class="badge rounded-pill count" style="background-color: #6610f2;">0</span>
+            </div>
+            <div class="kanban-col-body" data-statuses="4"></div>
+        </div>
+
+        <!-- Hoàn Thành (5) -->
         <div class="kanban-col" id="col-history">
             <div class="kanban-col-header">
-                <span>Lịch Sử (20 đơn gần nhất)</span>
-                <span class="badge bg-secondary rounded-pill count">0</span>
+                <span class="text-success"><i class="bi bi-check-circle-fill me-2"></i>HOÀN THÀNH</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success rounded-pill count">0</span>
+                    <a asp-area="Admin" asp-action="History" asp-controller="AdminOrder" class="text-decoration-none small fw-bold" style="font-size: 10px; color: var(--orange-main);">Xem tất cả ➔</a>
+                </div>
             </div>
-            <div class="kanban-col-body" data-statuses="5,6"></div>
+            <div class="kanban-col-body" data-statuses="5"></div>
         </div>
     </div>
 </div>
@@ -211,6 +264,18 @@
     </div>
 </div>
 
+<!-- [Phase 1] Hidden Print Area for Receipt -->
+<div id="printArea" style="display:none;">
+    <div style="text-align:center; font-family:monospace; padding:10px;">
+        <h3 style="margin:0;">CAFECHAIN</h3>
+        <p style="margin:4px 0; font-size:11px;">Phiếu pha chế</p>
+        <hr style="border-top:1px dashed #000;">
+        <div id="printContent"></div>
+        <hr style="border-top:1px dashed #000;">
+        <p style="font-size:10px; margin-top:8px;">Cảm ơn quý khách!</p>
+    </div>
+</div>
+
 @section Scripts {
     <!-- SignalR Client -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
@@ -220,13 +285,13 @@
     <script>
         $(document).ready(function () {
             const statusMap = {
-                Pending: 2,
-                WaitingForApproval: 3,
-                Preparing: 4,
-                WaitingForPickUp: 5,
-                Delivering: 6,
-                Completed: 7,
-                Cancel: 8
+                Pending: 1,
+                Preparing: 2,
+                Ready: 3,
+                Delivering: 4,
+                Completed: 5,
+                Cancelled: 6,
+                AwaitingPayment: 7
             };
 
             const orderTypes = {
@@ -239,14 +304,18 @@
             const notificationSound = new Audio(soundPath);
             let isSoundEnabled = false;
 
-            // Chống autoplay policy: user phải click toggle để cấp quyền play audio rỗng
-            $('#soundToggle').on('change', function() {
-                isSoundEnabled = $(this).is(':checked');
+            // [Phase 3] Sound Toggle via Global Bell Icon
+            $('#globalSoundToggle').on('click', function() {
+                isSoundEnabled = !isSoundEnabled;
+                const $icon = $('#globalSoundIcon');
                 if(isSoundEnabled) {
+                    $icon.removeClass('fa-bell-slash text-muted').addClass('fa-bell text-danger');
                     notificationSound.play().then(() => {
                         notificationSound.pause();
                         notificationSound.currentTime = 0;
                     }).catch(e => console.error("Sound init failed:", e));
+                } else {
+                    $icon.removeClass('fa-bell text-danger').addClass('fa-bell-slash text-muted');
                 }
             });
 
@@ -279,14 +348,47 @@
             });
 
             connection.on("ReceiveOrderStatusUpdate", function (orderId, newStatusId) {
+                // [Phase 4] Thông báo Toast khi đơn hoàn thành (giả lập xong)
+                if (newStatusId === 5) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'success',
+                        title: `Đơn hàng #${orderId} đã giao thành công!`
+                    });
+                }
+
+                // [YÊU CẦU 1] Thông báo khi đơn chuyển sang "Chờ lấy/giao" (Pha chế xong)
+                if (newStatusId === 3) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'info',
+                        title: `🛵 Đang giao đơn cho shipper...`
+                    });
+                }
+
                 // Tối ưu Rendering: Kiểm tra xem Card đã ở đúng cột chưa
                 const $existingCard = $(`.order-card[data-id="${orderId}"]`);
                 if ($existingCard.length > 0) {
-                    const currentColStatuses = $existingCard.closest('.kanban-col-body').data('statuses').toString().split(',').map(Number);
-                    if (currentColStatuses.includes(newStatusId)) {
-                        // Đã ở đúng cột (có thể do user này vừa thao tác), bỏ qua không render lại để tránh giật
-                        console.log(`Order ${orderId} already in correct column. Skipping re-render.`);
-                        return;
+                    const $colBody = $existingCard.closest('.kanban-col-body');
+                    const statusesAttr = $colBody.attr('data-statuses');
+                    if (statusesAttr) {
+                        const currentColStatuses = statusesAttr.toString().split(',').map(Number);
+                        if (currentColStatuses.includes(newStatusId)) {
+                            console.log(`Order ${orderId} already in correct column. Skipping re-render.`);
+                            return;
+                        }
                     }
                 }
                 loadOrders(); // Nếu chưa đúng hoặc chưa có thì load lại
@@ -312,8 +414,9 @@
             function getTargetColumn(statusId) {
                 if (statusId === 1) return 'new';
                 if (statusId === 2) return 'preparing';
-                if ([3, 4].includes(statusId)) return 'shipping';
-                if ([5, 6].includes(statusId)) return 'history';
+                if (statusId === 3) return 'ready';
+                if (statusId === 4) return 'delivering';
+                if (statusId === 5) return 'history';
                 return null;
             }
 
@@ -321,21 +424,82 @@
                 const isWarning = order.note && order.note.includes("[CẢNH BÁO: CHUYỂN THIẾU TIỀN]");
                 const typeIcon = order.orderTypeId === 1 ? 'bi-shop' : (order.orderTypeId === 2 ? 'bi-bag-check' : 'bi-truck');
                 
-                // Trả về card với data-created để JS update timeago
+                // [Phase 1] Build item summary HTML
+                let itemsHtml = '';
+                if (order.itemSummaries && order.itemSummaries.length > 0) {
+                    itemsHtml = '<div class="item-summary-list mt-2 mb-2">';
+                    order.itemSummaries.forEach(s => {
+                        itemsHtml += `<div class="item-summary-row"><i class="bi bi-cup-hot-fill me-1 text-muted" style="font-size:0.65rem;"></i>${s}</div>`;
+                    });
+                    if (order.totalItemCount > order.itemSummaries.length) {
+                        itemsHtml += `<div class="item-summary-row text-muted fst-italic">...và ${order.totalItemCount - order.itemSummaries.length} món khác</div>`;
+                    }
+                    itemsHtml += '</div>';
+                }
+
+                // [Phase 4] Quick action buttons
+                let quickActionsHtml = '';
+                if (order.orderStatusId === 1) {
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1 fw-bold" onclick="event.stopPropagation(); quickAccept(this, ${order.orderId})">
+                                <i class="bi bi-check-circle me-1"></i> Nhận Đơn
+                            </button>
+                        </div>`;
+                } else if (order.orderStatusId === 2) {
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-success btn-sm px-2 fw-bold" style="width: auto; font-size: 11px;" onclick="event.stopPropagation(); quickComplete(this, ${order.orderId})" title="Xong món">
+                                <i class="bi bi-check-lg"></i> Xong
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold text-nowrap" style="font-size: 11px;" onclick="event.stopPropagation(); printOrder(${order.orderId})">
+                                <i class="bi bi-printer me-1"></i> In hóa đơn
+                            </button>
+                        </div>`;
+                } else if (order.orderStatusId === 3 && order.orderTypeId === 3) {
+                    // [Phase 2] Quick action for Handover to Partner
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1 fw-bold" onclick="event.stopPropagation(); dispatch1Click(this, ${order.orderId})">
+                                🛵 Giao cho Tài xế
+                            </button>
+                        </div>`;
+                }
+
+                // [FIX UI] Việt hóa và style cho badge loại đơn
+                let typeBadgeName = order.orderTypeName;
+                let typeBadgeClass = "bg-light text-dark border";
+                
+                if (order.orderTypeName === "Delivery") {
+                    typeBadgeName = "Giao tận nơi";
+                    typeBadgeClass = "badge-delivery border-0";
+                } else if (order.orderTypeName === "Takeaway" || order.orderTypeName === "Pickup") {
+                    typeBadgeName = "Tự đến lấy";
+                    typeBadgeClass = "badge-pickup border-0";
+                } else if (order.orderTypeName === "Dine In" || order.orderTypeName === "Dine-In") {
+                    typeBadgeName = "Nhận tại quán";
+                    typeBadgeClass = "badge-dinein border-0";
+                }
+
                 return $(`
                     <div class="order-card ${isWarning ? 'card-warning' : ''}" data-id="${order.orderId}" data-created="${order.createdAt}" onclick="viewDetails(${order.orderId})">
-                        <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
                             <span class="order-id">#${order.orderId}</span>
                             <i class="bi ${typeIcon} order-type-icon"></i>
                         </div>
-                        <div class="order-total mb-2">${order.total.toLocaleString()}đ</div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="order-total text-muted fw-normal" style="font-size: 0.85rem;">${order.total.toLocaleString()}đ</span>
+                            <span class="badge small ${typeBadgeClass}">${typeBadgeName}</span>
+                        </div>
+                        ${itemsHtml}
                         <div class="d-flex justify-content-between align-items-center">
                             <span class="order-time">
                                 <i class="bi bi-clock me-1"></i>
                                 <span class="time-text">Đang tính...</span>
                             </span>
-                            <span class="badge bg-light text-dark small border">${order.orderTypeName}</span>
+                            <span class="small text-muted">${order.customerName || ''}</span>
                         </div>
+                        ${quickActionsHtml}
                     </div>
                 `);
             }
@@ -446,7 +610,7 @@
                     $container.append(`<button class="btn btn-success w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'ReadyForPickup')">XONG MÓN</button>`);
                 } else if (status === 3) { // Ready
                     if (type === 3) {
-                        $container.append(`<button class="btn btn-warning w-100 py-2 fw-bold text-dark" onclick="processOrder(this, ${order.orderId}, 'DispatchOrder')"><i class="bi bi-box-seam me-1"></i> GIAO CHO SHIPPER</button>`);
+                        $container.append(`<button class="btn btn-primary w-100 py-2 fw-bold" onclick="dispatch1Click(this, ${order.orderId})">🛵 GIAO CHO TÀI XẾ (1-CLICK)</button>`);
                     } else {
                         $container.append(`<button class="btn btn-dark w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'CompleteOrder')">HOÀN THÀNH</button>`);
                     }
@@ -474,100 +638,6 @@
                     });
                     if (!reason) return;
                     params.reason = reason;
-                } else if (action === 'DispatchOrder') {
-                    let shippersOptions = '<option value="">-- Chọn nhân viên (nếu có) --</option>';
-                    try {
-                        const shippers = await $.get('/api/AdminOrder/GetShippers');
-                        shippers.forEach(s => {
-                            shippersOptions += `<option value="${s.id}">${s.name}</option>`;
-                        });
-                    } catch(e) { console.error("Lỗi lấy danh sách shipper", e); }
-
-                    const result = await Swal.fire({
-                        title: 'Thông tin Giao Hàng',
-                        html: `
-                            <div class="text-start mt-3">
-                                <div class="form-check mb-2">
-                                  <input class="form-check-input" type="radio" name="shipperType" id="typeInternal" value="INTERNAL" checked>
-                                  <label class="form-check-label fw-bold" for="typeInternal">Giao Nội Bộ</label>
-                                </div>
-                                <div id="internalSection" class="mb-3 ps-4">
-                                    <select id="internalShipper" class="form-select">
-                                        ${shippersOptions}
-                                    </select>
-                                </div>
-
-                                <div class="form-check mb-2 mt-4">
-                                  <input class="form-check-input" type="radio" name="shipperType" id="typeExternal" value="EXTERNAL">
-                                  <label class="form-check-label fw-bold" for="typeExternal">Đối Tác Ngoài</label>
-                                </div>
-                                <div id="externalSection" class="ps-4" style="display:none;">
-                                    <label class="form-label small text-muted">Nền tảng giao hàng:</label>
-                                    <select id="deliveryPartner" class="form-select mb-2">
-                                        <option value="">-- Chọn nền tảng --</option>
-                                        <option value="ShopeeFood">ShopeeFood</option>
-                                        <option value="GrabFood">GrabFood</option>
-                                        <option value="BeFood">BeFood</option>
-                                        <option value="Khác">Khác</option>
-                                    </select>
-                                    <label class="form-label small text-muted">Mã đơn (Tùy chọn):</label>
-                                    <input id="partnerOrderCode" type="text" class="form-control" placeholder="VD: SF-123456">
-                                </div>
-                            </div>
-                        `,
-                        didOpen: () => {
-                            const internalRadio = document.getElementById('typeInternal');
-                            const externalRadio = document.getElementById('typeExternal');
-                            const internalSection = document.getElementById('internalSection');
-                            const externalSection = document.getElementById('externalSection');
-
-                            const toggleUI = () => {
-                                if (internalRadio.checked) {
-                                    internalSection.style.display = 'block';
-                                    externalSection.style.display = 'none';
-                                } else {
-                                    internalSection.style.display = 'none';
-                                    externalSection.style.display = 'block';
-                                }
-                            };
-
-                            internalRadio.addEventListener('change', toggleUI);
-                            externalRadio.addEventListener('change', toggleUI);
-                        },
-                        showCancelButton: true,
-                        confirmButtonColor: '#d35400',
-                        confirmButtonText: 'Xác nhận Giao Hàng',
-                        cancelButtonText: 'Hủy',
-                        preConfirm: () => {
-                            const isInternal = document.getElementById('typeInternal').checked;
-                            const internalShipperId = document.getElementById('internalShipper').value;
-                            const deliveryPartner = document.getElementById('deliveryPartner').value;
-                            const partnerOrderCode = document.getElementById('partnerOrderCode').value;
-
-                            if (isInternal && !internalShipperId) {
-                                Swal.showValidationMessage('Vui lòng chọn nhân viên giao hàng nội bộ.');
-                                return false;
-                            }
-                            if (!isInternal && !deliveryPartner) {
-                                Swal.showValidationMessage('Vui lòng chọn nền tảng đối tác ngoài.');
-                                return false;
-                            }
-
-                            return {
-                                orderId: orderId,
-                                shipperType: isInternal ? "INTERNAL" : "EXTERNAL",
-                                internalShipperId: isInternal ? parseInt(internalShipperId) : null,
-                                deliveryPartner: !isInternal ? deliveryPartner : null,
-                                partnerOrderCode: !isInternal ? partnerOrderCode : null
-                            };
-                        }
-                    });
-
-                    if (!result.isConfirmed) return;
-
-                    action = 'Dispatched';
-                    // We now use payload instead of params
-                    var payload = result.value;
                 }
 
                 // Idempotency: Disable button and show spinner
@@ -590,15 +660,114 @@
                     }
                 };
 
-                // Customize for Dispatched action (JSON payload) vs others (URL params)
-                if (action === 'Dispatched') {
-                    ajaxOptions.contentType = 'application/json';
-                    ajaxOptions.data = JSON.stringify(payload);
-                } else if (Object.keys(params).length > 0) {
+                if (Object.keys(params).length > 0) {
                     ajaxOptions.url += '?' + $.param(params);
                 }
 
                 $.ajax(ajaxOptions);
+            };
+
+            // [Phase 2] 1-Click Handover for Partners
+            window.dispatch1Click = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang xử lý...');
+                
+                var payload = {
+                    orderId: orderId,
+                    shipperType: "EXTERNAL",
+                    deliveryPartner: "Nền tảng đối tác (AhaMove/Grab)",
+                    partnerOrderCode: ""
+                };
+
+                $.ajax({
+                    url: '/api/AdminOrder/Dispatched',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { 
+                        const panel = document.getElementById('orderDetailPanel');
+                        if (panel && panel.classList.contains('show')) {
+                            bootstrap.Offcanvas.getInstance(panel).hide();
+                        }
+                        loadOrders(); 
+                    },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('🛵 Giao cho Tài xế');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 2] Simulate Partner Webhook
+            window.simulateWebhook = function() {
+                Swal.fire({
+                    title: 'Giả lập Webhook?',
+                    text: "Chuyển tất cả đơn đang giao (InDelivery) sang hoàn thành (Completed).",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Chạy giả lập',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('/api/AdminOrder/SimulateWebhook', function(res) {
+                            Swal.fire('Thành công', res, 'success');
+                            loadOrders();
+                        }).fail(function(xhr) {
+                            Swal.fire('Lỗi', xhr.responseText, 'error');
+                        });
+                    }
+                });
+            };
+
+            // [Phase 4] Quick Accept — gọi AcceptOrder trực tiếp từ card
+            window.quickAccept = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                $.ajax({
+                    url: `/api/AdminOrder/AcceptOrder/${orderId}`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { loadOrders(); },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Nhận Đơn');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 1] Quick Complete — gọi ReadyForPickup trực tiếp từ card
+            window.quickComplete = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                $.ajax({
+                    url: `/api/AdminOrder/ReadyForPickup/${orderId}`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { loadOrders(); },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xong');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 1] Print Order — fetch detail rồi in
+            window.printOrder = function(orderId) {
+                $.get(`/api/AdminOrder/GetOrderDetails/${orderId}`, function(order) {
+                    let html = `<p style="text-align:left;"><strong>Đơn #${order.orderId}</strong></p>`;
+                    html += '<table style="width:100%; font-size:11px; text-align:left;">';
+                    order.items.forEach(item => {
+                        let toppings = item.toppings.length > 0 ? ' + ' + item.toppings.join(', ') : '';
+                        html += `<tr><td>${item.quantity}x ${item.drinkName} (${item.sizeName})${toppings}</td></tr>`;
+                    });
+                    html += '</table>';
+                    html += `<p style="text-align:right; font-weight:bold; margin-top:8px;">Tổng: ${order.total.toLocaleString()}đ</p>`;
+                    $('#printContent').html(html);
+                    $('#printArea').show();
+                    window.print();
+                    $('#printArea').hide();
+                });
             };
         });
     </script>

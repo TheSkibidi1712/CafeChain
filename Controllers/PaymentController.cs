@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Threading.Tasks;
 using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
@@ -14,12 +15,21 @@ namespace CafeChain.Controllers
         private readonly AppDbContext _context;
         private readonly Net.payOS.PayOS _payOS;
         private readonly CafeChain.Application.Services.PayOSIntegration.IPayOSService _payOSService;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.OrderHub> _orderHubContext;
+        private readonly Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.PaymentHub> _paymentHubContext;
 
-        public PaymentController(AppDbContext context, Net.payOS.PayOS payOS, CafeChain.Application.Services.PayOSIntegration.IPayOSService payOSService)
+        public PaymentController(
+            AppDbContext context, 
+            Net.payOS.PayOS payOS, 
+            CafeChain.Application.Services.PayOSIntegration.IPayOSService payOSService,
+            Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.OrderHub> orderHubContext,
+            Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.PaymentHub> paymentHubContext)
         {
             _context = context;
             _payOS = payOS;
             _payOSService = payOSService;
+            _orderHubContext = orderHubContext;
+            _paymentHubContext = paymentHubContext;
         }
 
         // Action hiển thị View chuyển khoản (QR code)
@@ -30,7 +40,7 @@ namespace CafeChain.Controllers
                 .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
 
-            if (order == null || order.OrderStatusId != SystemConstants.OrderStatuses.Pending)
+            if (order == null || (order.OrderStatusId != SystemConstants.OrderStatuses.Pending && order.OrderStatusId != SystemConstants.OrderStatuses.AwaitingPayment))
             {
                 TempData["ErrorMessage"] = order == null
                     ? "Đơn hàng không tồn tại."
@@ -62,6 +72,25 @@ namespace CafeChain.Controllers
                 await _context.SaveChangesAsync();
             }
 
+            try
+            {
+                // [FIX] Gọi dịch vụ PayOS để lấy thông tin mã QR thật sự
+                var linkResult = await _payOSService.CreatePaymentLinkAsync(orderId);
+                
+                // Truyền thông tin xuống View để sinh ảnh VietQR
+                ViewBag.Bin = linkResult.Bin;
+                ViewBag.AccountNumber = linkResult.AccountNumber;
+                ViewBag.AccountName = linkResult.AccountName;
+                ViewBag.Description = linkResult.Description;
+                ViewBag.Amount = linkResult.Amount > 0 ? linkResult.Amount : payment.Amount;
+                ViewBag.CheckoutUrl = linkResult.CheckoutUrl; 
+            }
+            catch (Exception ex)
+            {
+                TempData["ErrorMessage"] = ex.Message;
+                return RedirectToAction("History", "Order");
+            }
+
             // Trả dữ liệu cho View QR
             ViewBag.OrderId = orderId;
             ViewBag.TotalAmount = payment.Amount;
@@ -69,23 +98,7 @@ namespace CafeChain.Controllers
             return View();
         }
 
-        [HttpPost("ResumePayment")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ResumePayment(int orderId)
-        {
-            try
-            {
-                var linkResult = await _payOSService.CreatePaymentLinkAsync(orderId);
-                return Redirect(linkResult.CheckoutUrl);
-            }
-            catch (Exception ex)
-            {
-                TempData["ErrorMessage"] = ex.Message;
-                return RedirectToAction("History", "Order");
-            }
-        }
-
-        [HttpGet("api/payment/status/{orderId}")]
+        [HttpGet("~/api/payment/status/{orderId}")]
         public async Task<IActionResult> CheckPaymentStatus(int orderId)
         {
             var status = await _context.Payments
@@ -96,31 +109,38 @@ namespace CafeChain.Controllers
             return Json(new { IsCompleted = (status == SystemConstants.PaymentStatuses.Paid) });
         }
 
-        // ================= Webhook API (PayOS - TIỀN THẬT) =================
+        // ================= [BƯỚC 2] Xử lý Webhook (Zero-Trust Logic) =================
         [HttpPost("payos-payment")] 
         [IgnoreAntiforgeryToken] 
-        public async Task<IActionResult> WebhookIpn([FromBody] Net.payOS.Types.WebhookType body)
+        public async Task<IActionResult> ReceiveWebhook([FromBody] Net.payOS.Types.WebhookType body)
         {
+            Console.WriteLine(">>>>> [WEBHOOK] Đã nhận request từ PayOS <<<<<");
             try
             {
-                // Verify chữ ký bằng SDK PayOS
+                // 1. Xác thực chữ ký (Signature) bằng SDK PayOS
                 Net.payOS.Types.WebhookData verifiedData = _payOS.verifyPaymentWebhookData(body);
+                Console.WriteLine(">>>>> [WEBHOOK] Verify chữ ký THÀNH CÔNG.");
 
                 string orderCodeStr = verifiedData.orderCode.ToString();
-                int orderId = int.Parse(orderCodeStr.Substring(0, orderCodeStr.Length - 10)); // Unix time is 10 chars
+                // [Logic tách OrderId từ OrderCode]
+                int orderId = int.Parse(orderCodeStr.Substring(0, orderCodeStr.Length - 9)); 
                 
+                // 2. Lấy Order từ DB lên kiểm tra (Zero-Trust)
                 var payment = await _context.Payments
-                    .Include(p => p.Order)
+                    .Include(p => p.Order).ThenInclude(o => o.OrderDetails)
                     .FirstOrDefaultAsync(p => p.OrderId == orderId);
 
                 if (payment == null) 
+                {
+                    Console.WriteLine($">>>>> [WEBHOOK] KHÔNG tìm thấy Payment cho OrderId: {orderId} <<<<<");
                     return Ok(new { success = false, message = "Order not found" });
+                }
 
-                // Idempotency: Đã Paid rồi thì bỏ qua
+                // Idempotency: Đã Paid rồi thì bỏ qua nhưng vẫn trả về thành công cho PayOS
                 if (payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
                     return Ok(new { success = true, message = "Already processed" });
 
-                // Zero-Trust: Kiểm tra số tiền
+                // 3. Kiểm tra số tiền và cập nhật trạng thái
                 if (verifiedData.amount >= (int)payment.Amount)
                 {
                     payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
@@ -128,15 +148,36 @@ namespace CafeChain.Controllers
                     payment.PaidAt = DateTime.Now;
 
                     if (payment.Order != null)
-                        payment.Order.OrderStatusId = SystemConstants.OrderStatuses.Pending; // Chuyển từ AwaitingPayment -> Pending
+                        payment.Order.OrderStatusId = SystemConstants.OrderStatuses.Pending; // AwaitingPayment -> Pending
                 }
                 
                 await _context.SaveChangesAsync();
+
+                // 4. Bắn tín hiệu SignalR ReceivePaymentSuccess kèm receiptData
+                var receiptData = new {
+                    OrderId = orderId,
+                    TotalAmount = payment.Amount,
+                    ItemCount = payment.Order?.OrderDetails.Sum(d => d.Quantity) ?? 0,
+                    PaymentMethod = "Chuyển khoản VietQR - PayOS",
+                    PaidAt = DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")
+                };
+
+                Console.WriteLine($">>>>> [WEBHOOK] Chuẩn bị bắn SignalR cho Order: {orderId} <<<<<");
+                
+                // Gửi tới khách hàng qua PaymentHub
+                await _paymentHubContext.Clients.Group(orderId.ToString()).SendAsync("ReceivePaymentSuccess", receiptData);
+                
+                // Gửi tới Admin qua OrderHub (như cũ để giữ tính năng Kanban)
+                await _orderHubContext.Clients.Group("AdminDashboard").SendAsync("ReceiveNewOrder", orderId);
+                
+                Console.WriteLine($">>>>> [WEBHOOK] Đã bắn SignalR thành công cho Order: {orderId} <<<<<");
+
                 return Ok(new { success = true });
             }
             catch (Exception ex)
             {
-                Console.WriteLine("PayOS Webhook Error: " + ex.Message);
+                Console.WriteLine(">>>>> [WEBHOOK ERROR] LỖI XỬ LÝ WEBHOOK <<<<<");
+                Console.WriteLine("Message: " + ex.Message);
                 return Ok(new { success = false, message = ex.Message });
             }
         }

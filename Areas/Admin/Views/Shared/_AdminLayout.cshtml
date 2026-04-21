@@ -143,7 +143,8 @@
             <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà cung cấp</a>
             <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
             <a asp-area="Admin" asp-controller="AdminWheel" asp-action="Index" class="@Html.IsActive("AdminWheel")"><i class="fas fa-dharmachakra"></i> Quản lý vòng quay</a>
-            <a asp-area="Admin" asp-controller="AdminOrder" asp-action="Index" class="@Html.IsActive("AdminOrder")"><i class="fas fa-receipt"></i> Quản lý đơn hàng</a>
+            <a asp-area="Admin" asp-controller="AdminOrder" asp-action="Index" class="@Html.IsActive("AdminOrder", "Index")"><i class="fas fa-columns"></i> Bảng điều phối</a>
+            <a asp-area="Admin" asp-controller="AdminOrder" asp-action="History" class="@Html.IsActive("AdminOrder", "History")"><i class="fas fa-history"></i> Lịch sử đơn hàng</a>
         }
         
         <!-- Nhân sự (Link trực tiếp) -->
@@ -184,7 +185,11 @@
 
     <div class="main-content">
         <div class="topbar">
-            <i class="fas fa-bell text-muted"></i>
+            <!-- Notification Sound Toggle -->
+            <button id="globalSoundToggle" class="btn btn-link text-muted shadow-none p-0 me-3" title="Âm thanh thông báo">
+                <i class="fas fa-bell-slash" id="globalSoundIcon"></i>
+            </button>
+            <i class="fas fa-user-circle text-muted fs-4"></i>
         </div>
         @RenderBody()
     </div>

@@ -16,6 +16,13 @@ namespace CafeChain.Application.Services.PayOSIntegration
         public string CheckoutUrl { get; set; }
         public string QrCode { get; set; }
         public long OrderCode { get; set; }
+        
+        // [FIX] Thêm các trường để tự generate VietQR trên trang nội bộ
+        public string Bin { get; set; }
+        public string AccountNumber { get; set; }
+        public string AccountName { get; set; }
+        public string Description { get; set; }
+        public int Amount { get; set; }
     }
 
     /// <summary>
@@ -37,6 +44,7 @@ namespace CafeChain.Application.Services.PayOSIntegration
     {
         private readonly AppDbContext _context;
         private readonly IConfiguration _config;
+        private readonly IHttpClientFactory _httpClientFactory;
 
         // PayOS config keys from appsettings.json
         private string ClientId => _config["PayOS:ClientId"];
@@ -45,10 +53,11 @@ namespace CafeChain.Application.Services.PayOSIntegration
         private string ReturnUrl => _config["PayOS:ReturnUrl"];
         private string CancelUrl => _config["PayOS:CancelUrl"];
 
-        public PayOSService(AppDbContext context, IConfiguration config)
+        public PayOSService(AppDbContext context, IConfiguration config, IHttpClientFactory httpClientFactory)
         {
             _context = context;
             _config = config;
+            _httpClientFactory = httpClientFactory;
         }
 
         public async Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId)
@@ -60,7 +69,8 @@ namespace CafeChain.Application.Services.PayOSIntegration
             if (order == null)
                 throw new Exception($"Đơn hàng #{orderId} không tồn tại.");
 
-            string orderCodeStr = $"{order.OrderId}{DateTimeOffset.UtcNow.ToUnixTimeSeconds()}";
+            // [Phase 4] Fix PayOS Error 231 bằng cách nối OrderId với thời gian (đến mili-giây)
+            string orderCodeStr = $"{order.OrderId}{DateTime.Now.ToString("HHmmssfff")}";
             long orderCode = long.Parse(orderCodeStr);
 
             order.PaymentReference = orderCodeStr;
@@ -105,14 +115,8 @@ namespace CafeChain.Application.Services.PayOSIntegration
                 "application/json"
             );
 
-            // Bỏ qua SSL validation (fix lỗi "The SSL connection could not be established")
-            var handler = new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback = (sender, cert, chain, sslPolicyErrors) => true,
-                SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13
-            };
-
-            using var httpClient = new HttpClient(handler);
+            // Sử dụng HttpClient từ Factory đã cấu hình SSL Bypass trong Program.cs
+            using var httpClient = _httpClientFactory.CreateClient("PayOS");
             httpClient.DefaultRequestHeaders.Add("x-client-id", ClientId);
             httpClient.DefaultRequestHeaders.Add("x-api-key", ApiKey);
 
@@ -139,7 +143,12 @@ namespace CafeChain.Application.Services.PayOSIntegration
                 {
                     CheckoutUrl = data.GetProperty("checkoutUrl").GetString(),
                     QrCode = data.TryGetProperty("qrCode", out var qr) ? qr.GetString() : null,
-                    OrderCode = orderCode
+                    OrderCode = orderCode,
+                    Bin = data.TryGetProperty("bin", out var bin) ? bin.GetString() : null,
+                    AccountNumber = data.TryGetProperty("accountNumber", out var accNo) ? accNo.GetString() : null,
+                    AccountName = data.TryGetProperty("accountName", out var accName) ? accName.GetString() : null,
+                    Description = data.TryGetProperty("description", out var descVal) ? descVal.GetString() : null,
+                    Amount = data.TryGetProperty("amount", out var amt) ? amt.GetInt32() : 0
                 };
             }
             catch (Exception ex)

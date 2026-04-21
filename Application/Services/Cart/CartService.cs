@@ -90,6 +90,21 @@ namespace CafeChain.Application.Services
                 Quantity = 1
             };
 
+            // Fetch and apply default toppings so price and ToppingIds are accurate
+            var defaultToppings = await _context.DrinkDefaultToppings
+                .Include(dt => dt.Topping)
+                .Where(dt => dt.DrinkId == drinkId)
+                .ToListAsync();
+
+            foreach (var dt in defaultToppings)
+            {
+                if (dt.Topping != null)
+                {
+                    item.Price += dt.Topping.Price;
+                    item.ToppingIds.Add(dt.ToppingId);
+                }
+            }
+
             // Tận dụng lại hàm AddToCart cũ bác đã viết để xử lý Session
             AddToCart(item);
             return true;
@@ -160,8 +175,9 @@ namespace CafeChain.Application.Services
                 }
                 else
                 {
-                    // Nếu KHÔNG bị bỏ -> Cộng tiền vào giá ly nước
+                    // Nếu KHÔNG bị bỏ -> Cộng tiền vào giá ly nước và thêm vào ToppingIds cho Zero-Trust validation
                     unitPrice += dt.Topping.Price;
+                    item.ToppingIds.Add(dt.ToppingId);
                 }
             }
 

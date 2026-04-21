@@ -56,5 +56,10 @@ namespace CafeChain.Application.Interfaces
         /// Bọc trong DbContextTransaction để bảo toàn tồn kho.
         /// </summary>
         Task<bool> CancelOrderAsync(int orderId, int customerId);
+
+        /// <summary>
+        /// Module giả lập tài xế tự động (Auto-Driver Simulation)
+        /// </summary>
+        Task SimulateDeliveryAsync(int orderId);
     }
 }

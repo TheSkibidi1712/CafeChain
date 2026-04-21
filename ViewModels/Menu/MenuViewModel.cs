@@ -18,5 +18,7 @@ namespace CafeChain.ViewModels
         // Phân trang
         public int CurrentPage { get; set; } = 1;
         public int TotalPages { get; set; }
+
+        public Dictionary<int, bool> Availability { get; set; } = new();
     }
 }

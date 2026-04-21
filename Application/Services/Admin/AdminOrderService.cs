@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Admin;
 using CafeChain.Data;
 using CafeChain.Hubs;
+using CafeChain.Models.Orders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System;
@@ -18,15 +19,18 @@ namespace CafeChain.Application.Services.Admin
         private readonly AppDbContext _context;
         private readonly IHubContext<OrderHub> _hubContext;
         private readonly IInventoryService _inventoryService;
+        private readonly IOrderService _orderService;
 
         public AdminOrderService(
             AppDbContext context,
             IHubContext<OrderHub> hubContext,
-            IInventoryService inventoryService)
+            IInventoryService inventoryService,
+            IOrderService orderService)
         {
             _context = context;
             _hubContext = hubContext;
             _inventoryService = inventoryService;
+            _orderService = orderService;
         }
 
         public async Task<List<AdminOrderKanbanDto>> GetKanbanOrdersAsync()
@@ -41,24 +45,13 @@ namespace CafeChain.Application.Services.Admin
             var activeOrders = await _context.Orders
                 .Include(o => o.OrderType)
                 .Include(o => o.Customer)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
                 .Where(o => activeStatuses.Contains(o.OrderStatusId))
                 .OrderByDescending(o => o.CreatedAt)
-                .Select(o => new AdminOrderKanbanDto
-                {
-                    OrderId = o.OrderId,
-                    CreatedAt = o.CreatedAt,
-                    OrderStatusId = o.OrderStatusId,
-                    Total = o.Total,
-                    OrderTypeId = o.OrderTypeId,
-                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "N/A",
-                    Note = o.Note,
-                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Guest")
-                })
                 .ToListAsync();
 
             var historyStatuses = new[] {
-                SystemConstants.OrderStatuses.Completed,
-                SystemConstants.OrderStatuses.Cancelled
+                SystemConstants.OrderStatuses.Completed
             };
             
             var today = DateTime.Today;
@@ -66,23 +59,51 @@ namespace CafeChain.Application.Services.Admin
             var historyOrders = await _context.Orders
                 .Include(o => o.OrderType)
                 .Include(o => o.Customer)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
                 .Where(o => historyStatuses.Contains(o.OrderStatusId) && o.CreatedAt >= today)
                 .OrderByDescending(o => o.CreatedAt)
                 .Take(20)
-                .Select(o => new AdminOrderKanbanDto
-                {
-                    OrderId = o.OrderId,
-                    CreatedAt = o.CreatedAt,
-                    OrderStatusId = o.OrderStatusId,
-                    Total = o.Total,
-                    OrderTypeId = o.OrderTypeId,
-                    OrderTypeName = o.OrderType != null ? o.OrderType.Name : "N/A",
-                    Note = o.Note,
-                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Guest")
-                })
                 .ToListAsync();
 
-            return activeOrders.Concat(historyOrders).ToList();
+            var allOrders = activeOrders.Concat(historyOrders).ToList();
+
+            return allOrders.Select(o => new AdminOrderKanbanDto
+            {
+                OrderId = o.OrderId,
+                CreatedAt = o.CreatedAt,
+                OrderStatusId = o.OrderStatusId,
+                Total = o.Total,
+                OrderTypeId = o.OrderTypeId,
+                OrderTypeName = o.OrderType != null ? o.OrderType.Name : "N/A",
+                Note = o.Note,
+                CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Guest"),
+                TotalItemCount = o.OrderDetails?.Count ?? 0,
+                ItemSummaries = BuildItemSummaries(o.OrderDetails, maxItems: 4)
+            }).ToList();
+        }
+
+        /// <summary>
+        /// [Phase 1] Tạo danh sách tóm tắt món cho Kanban Card.
+        /// Format: "2x Cà phê sữa (S) + Trân châu đen, Phô mai viên"
+        /// Giới hạn maxItems dòng để card không quá dài.
+        /// </summary>
+        private List<string> BuildItemSummaries(ICollection<OrderDetail> details, int maxItems = 4)
+        {
+            if (details == null || !details.Any()) return new List<string>();
+
+            return details.Take(maxItems).Select(od =>
+            {
+                var summary = $"{od.Quantity}x {od.DrinkName ?? "N/A"}";
+                if (!string.IsNullOrEmpty(od.SizeName))
+                    summary += $" ({od.SizeName})";
+
+                if (od.OrderToppings != null && od.OrderToppings.Any())
+                {
+                    var toppingNames = od.OrderToppings.Select(ot => ot.ToppingName).ToList();
+                    summary += " + " + string.Join(", ", toppingNames);
+                }
+                return summary;
+            }).ToList();
         }
 
         public async Task<AdminOrderDetailDto> GetOrderDetailsAsync(int orderId)
@@ -151,6 +172,12 @@ namespace CafeChain.Application.Services.Admin
 
             await _hubContext.Clients.Group("AdminDashboard")
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+
+            // [Simulation] Tự động bắt đầu luồng giả lập tài xế nếu là đơn Giao Hàng (Type=3)
+            if (order.OrderTypeId == SystemConstants.OrderTypes.Delivery)
+            {
+                await _orderService.SimulateDeliveryAsync(orderId);
+            }
         }
 
         public async Task<List<DTOs.Admin.ShipperDto>> GetShippersAsync()
@@ -296,6 +323,209 @@ namespace CafeChain.Application.Services.Admin
 
             await _hubContext.Clients.Group("AdminDashboard")
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+        }
+
+        public async Task<int> SimulateWebhookAsync()
+        {
+            var deliveringOrders = await _context.Orders
+                .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
+                .ToListAsync();
+
+            if (!deliveringOrders.Any()) return 0;
+
+            foreach (var order in deliveringOrders)
+            {
+                order.OrderStatusId = SystemConstants.OrderStatuses.Completed;
+            }
+
+            await _context.SaveChangesAsync();
+
+            foreach (var order in deliveringOrders)
+            {
+                await _hubContext.Clients.Group("AdminDashboard")
+                    .SendAsync("ReceiveOrderStatusUpdate", order.OrderId, order.OrderStatusId);
+            }
+
+            return deliveringOrders.Count;
+        }
+
+        // ===================================================
+        // ORDER HISTORY — DataTables Server-Side Processing
+        // ===================================================
+
+        public async Task<DataTablesResponse<AdminOrderHistoryRowDto>> GetOrderHistoryAsync(DataTablesRequest request)
+        {
+            var query = BuildHistoryQuery(request.SearchKeyword, request.DateFrom, request.DateTo, request.StatusFilter, request.PaymentMethodFilter);
+
+            int totalRecords = await _context.Orders.CountAsync();
+            int filteredRecords = await query.CountAsync();
+
+            // Sorting
+            var sortColumnIndex = request.Order?.FirstOrDefault()?.Column ?? 0;
+            var sortDir = request.Order?.FirstOrDefault()?.Dir ?? "desc";
+            var sortColumn = request.Columns?.ElementAtOrDefault(sortColumnIndex)?.Data ?? "createdAt";
+
+            query = sortColumn.ToLower() switch
+            {
+                "orderId" or "orderid" => sortDir == "asc" ? query.OrderBy(o => o.OrderId) : query.OrderByDescending(o => o.OrderId),
+                "total" => sortDir == "asc" ? query.OrderBy(o => o.Total) : query.OrderByDescending(o => o.Total),
+                "orderStatusName" or "orderstatusname" => sortDir == "asc" ? query.OrderBy(o => o.OrderStatus.Name) : query.OrderByDescending(o => o.OrderStatus.Name),
+                _ => sortDir == "asc" ? query.OrderBy(o => o.CreatedAt) : query.OrderByDescending(o => o.CreatedAt),
+            };
+
+            var data = await query
+                .Skip(request.Start)
+                .Take(request.Length)
+                .Select(o => new AdminOrderHistoryRowDto
+                {
+                    OrderId = o.OrderId,
+                    CreatedAt = o.CreatedAt,
+                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
+                    CustomerPhone = o.ReceiverPhone ?? "",
+                    Total = o.Total,
+                    PaymentMethodId = o.Payments.Any() ? o.Payments.First().PaymentMethodId : 0,
+                    PaymentMethodName = o.Payments.Any() ? o.Payments.First().PaymentMethod.Name : "N/A",
+                    OrderStatusId = o.OrderStatusId,
+                    OrderStatusName = o.OrderStatus.Name,
+                    OrderStatusBadge = o.OrderStatus.BadgeColor
+                })
+                .ToListAsync();
+
+            return new DataTablesResponse<AdminOrderHistoryRowDto>
+            {
+                Draw = request.Draw,
+                RecordsTotal = totalRecords,
+                RecordsFiltered = filteredRecords,
+                Data = data
+            };
+        }
+
+        public async Task<AdminOrderHistoryDetailDto> GetOrderHistoryDetailAsync(int orderId)
+        {
+            var order = await _context.Orders
+                .AsSplitQuery()
+                .Include(o => o.Customer)
+                .Include(o => o.OrderStatus)
+                .Include(o => o.OrderType)
+                .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
+                .Include(o => o.Payments).ThenInclude(p => p.PaymentStatus)
+                .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+            if (order == null) return null;
+
+            var payment = order.Payments.FirstOrDefault();
+
+            return new AdminOrderHistoryDetailDto
+            {
+                OrderId = order.OrderId,
+                CreatedAt = order.CreatedAt,
+                CustomerName = order.Customer?.FullName ?? order.ReceiverName ?? "Khách vãng lai",
+                CustomerPhone = order.ReceiverPhone,
+                DeliveryAddress = order.DeliveryAddress,
+                Note = order.Note,
+                Source = order.Source,
+                OrderStatusId = order.OrderStatusId,
+                OrderStatusName = order.OrderStatus?.Name,
+                OrderStatusBadge = order.OrderStatus?.BadgeColor,
+                OrderTypeName = order.OrderType?.Name,
+                PaymentMethodName = payment?.PaymentMethod?.Name ?? "N/A",
+                PaymentStatusName = payment?.PaymentStatus?.Name ?? "N/A",
+                SubTotal = order.SubTotal,
+                ShippingFee = order.ShippingFee,
+                VoucherDiscount = order.VoucherDiscount,
+                PointDiscount = order.PointDiscount,
+                Total = order.Total,
+                Items = order.OrderDetails.Select(od => new AdminOrderHistoryItemDto
+                {
+                    DrinkName = od.DrinkName ?? "N/A",
+                    SizeName = od.SizeName,
+                    Quantity = od.Quantity,
+                    Price = od.Price,
+                    Note = od.Note,
+                    Toppings = od.OrderToppings.Select(ot => new AdminOrderHistoryToppingDto
+                    {
+                        Name = ot.ToppingName,
+                        Price = ot.Price
+                    }).ToList()
+                }).ToList()
+            };
+        }
+
+        public async Task<List<AdminOrderHistoryRowDto>> GetFilteredOrdersForExportAsync(
+            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter)
+        {
+            var query = BuildHistoryQuery(searchKeyword, dateFrom, dateTo, statusFilter, paymentMethodFilter);
+
+            return await query
+                .OrderByDescending(o => o.CreatedAt)
+                .Select(o => new AdminOrderHistoryRowDto
+                {
+                    OrderId = o.OrderId,
+                    CreatedAt = o.CreatedAt,
+                    CustomerName = o.Customer != null ? o.Customer.FullName : (o.ReceiverName ?? "Khách vãng lai"),
+                    CustomerPhone = o.ReceiverPhone ?? "",
+                    Total = o.Total,
+                    PaymentMethodId = o.Payments.Any() ? o.Payments.First().PaymentMethodId : 0,
+                    PaymentMethodName = o.Payments.Any() ? o.Payments.First().PaymentMethod.Name : "N/A",
+                    OrderStatusId = o.OrderStatusId,
+                    OrderStatusName = o.OrderStatus.Name,
+                    OrderStatusBadge = o.OrderStatus.BadgeColor
+                })
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Xây dựng IQueryable chung cho cả DataTables lẫn Export — DRY Principle.
+        /// </summary>
+        private IQueryable<Order> BuildHistoryQuery(
+            string searchKeyword, string dateFrom, string dateTo, int? statusFilter, int? paymentMethodFilter)
+        {
+            var query = _context.Orders
+                .Include(o => o.Customer)
+                .Include(o => o.OrderStatus)
+                .Include(o => o.Payments).ThenInclude(p => p.PaymentMethod)
+                .AsQueryable();
+
+            // Text search: OrderId, Customer name, Phone
+            if (!string.IsNullOrWhiteSpace(searchKeyword))
+            {
+                var keyword = searchKeyword.Trim().ToLower();
+
+                // Check if searching by OrderId number
+                bool isNumeric = int.TryParse(keyword.Replace("#cc", "").Replace("#", ""), out int searchId);
+
+                query = query.Where(o =>
+                    (isNumeric && o.OrderId == searchId) ||
+                    (o.ReceiverPhone != null && o.ReceiverPhone.Contains(keyword)) ||
+                    (o.ReceiverName != null && o.ReceiverName.ToLower().Contains(keyword)) ||
+                    (o.Customer != null && o.Customer.FullName.ToLower().Contains(keyword))
+                );
+            }
+
+            // Date range
+            if (!string.IsNullOrWhiteSpace(dateFrom) && DateTime.TryParse(dateFrom, out var from))
+            {
+                query = query.Where(o => o.CreatedAt >= from);
+            }
+            if (!string.IsNullOrWhiteSpace(dateTo) && DateTime.TryParse(dateTo, out var to))
+            {
+                query = query.Where(o => o.CreatedAt < to.AddDays(1));
+            }
+
+            // Status
+            if (statusFilter.HasValue && statusFilter.Value > 0)
+            {
+                query = query.Where(o => o.OrderStatusId == statusFilter.Value);
+            }
+
+            // Payment method
+            if (paymentMethodFilter.HasValue && paymentMethodFilter.Value > 0)
+            {
+                query = query.Where(o => o.Payments.Any(p => p.PaymentMethodId == paymentMethodFilter.Value));
+            }
+
+            return query;
         }
     }
 }

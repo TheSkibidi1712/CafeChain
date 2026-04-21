@@ -16,6 +16,7 @@ using CafeChain.Hubs;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeChain.Application.Services.Cart
 {
@@ -25,17 +26,20 @@ namespace CafeChain.Application.Services.Cart
         private readonly IMemoryCache _cache;
         private readonly IInventoryService _inventoryService;
         private readonly IHubContext<OrderHub> _hubContext;
+        private readonly IServiceScopeFactory _scopeFactory;
 
         public OrderService(
             AppDbContext context, 
             IMemoryCache cache, 
             IInventoryService inventoryService,
-            IHubContext<OrderHub> hubContext)
+            IHubContext<OrderHub> hubContext,
+            IServiceScopeFactory scopeFactory)
         {
             _context = context;
             _cache = cache;
             _inventoryService = inventoryService;
             _hubContext = hubContext;
+            _scopeFactory = scopeFactory;
         }
 
         public async Task<int> PlaceOrderAsync(CheckoutViewModel model, int? customerId, List<CartItemViewModel> sessionCart)
@@ -111,11 +115,8 @@ namespace CafeChain.Application.Services.Cart
                 int defaultStoreId = 1;
 
                 // 3. Gọi abstraction Của Inventory Service (Reserve Inventory)
-                bool isReserved = await _inventoryService.ReserveInventoryForOrderAsync(defaultStoreId, sessionCart);
-                if (!isReserved)
-                {
-                    throw new Exception("Quá trình trừ kho thất bại, một số nguyên liệu đã hết hàng.");
-                }
+                // Hệ thống sẽ ném Exception kèm tên nguyên liệu nếu không đủ hàng
+                await _inventoryService.ReserveInventoryForOrderAsync(defaultStoreId, sessionCart);
 
                 // 4. Khởi tạo State ban đầu cho mọi loại đơn hàng
                 int orderStatusId = SystemConstants.OrderStatuses.Pending; // Status 1: Chờ xác nhận
@@ -563,6 +564,77 @@ namespace CafeChain.Application.Services.Cart
                 await transaction.RollbackAsync();
                 throw; // Đẩy lỗi ra Controller để bắt
             }
+        }
+
+        public async Task SimulateDeliveryAsync(int orderId)
+        {
+            // Chạy ngầm hoàn toàn để Bartender không phải chờ
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    // Chờ 10 giây: "Tài xế đang đến..."
+                    await Task.Delay(10000);
+
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OrderHub>>();
+                        
+                        var order = await context.Orders
+                            .Include(o => o.Payments)
+                            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+                        if (order != null && order.OrderStatusId == SystemConstants.OrderStatuses.Ready)
+                        {
+                            // Bước 1: Chuyển sang Đang giao
+                            order.OrderStatusId = SystemConstants.OrderStatuses.Delivering;
+                            string[] drivers = { "Gia Phuc Speed", "Anh Ship Than Toc", "Robot Shipper v1", "Sieu Nhan Giao Hang" };
+                            string randomDriver = drivers[new Random().Next(drivers.Length)];
+                            order.Note = (order.Note ?? "") + $" | [AUTO-DRIVER]: {randomDriver} đã lấy hàng.";
+                            
+                            await context.SaveChangesAsync();
+                            await hub.Clients.Group("AdminDashboard").SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+                        }
+                    }
+
+                    // Chờ thêm 30 giây: "Tài xế đang đi giao..."
+                    await Task.Delay(30000);
+
+                    using (var scope = _scopeFactory.CreateScope())
+                    {
+                        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+                        var hub = scope.ServiceProvider.GetRequiredService<IHubContext<OrderHub>>();
+                        
+                        var order = await context.Orders
+                            .Include(o => o.Payments)
+                            .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+                        if (order != null && order.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
+                        {
+                            // Bước 2: Hoàn thành đơn
+                            order.OrderStatusId = SystemConstants.OrderStatuses.Completed;
+                            order.Note = (order.Note ?? "") + " | [AUTO-DRIVER]: Giao hàng thành công.";
+                            
+                            // Cập nhật thanh toán nếu là đơn COD (Unpaid)
+                            var payment = order.Payments.FirstOrDefault(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid);
+                            if (payment != null)
+                            {
+                                payment.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
+                                payment.PaidAt = DateTime.Now;
+                            }
+
+                            await context.SaveChangesAsync();
+                            await hub.Clients.Group("AdminDashboard").SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Ghi log lỗi nếu có
+                    Console.WriteLine($"[SIMULATION ERROR] Order #{orderId}: {ex.Message}");
+                }
+            });
         }
     }
 }

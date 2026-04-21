@@ -49,8 +49,8 @@ namespace CafeChain.Application.Workers
                 var dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
                 var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
 
-                // Đơn quá 5 phút chưa thanh toán → hết hạn
-                var targetTime = DateTime.Now.AddMinutes(-5);
+                // [Phase 4] Đơn quá 2 phút chưa thanh toán → hết hạn
+                var targetTime = DateTime.Now.AddMinutes(-2);
 
                 // Load đơn hết hạn kèm Payment để update bằng EF (tránh Raw SQL FK error)
                 var expiredOrders = await dbContext.Orders

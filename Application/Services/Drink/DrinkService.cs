@@ -2,18 +2,34 @@ using CafeChain.Application.Interfaces;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Inventories;
 using CafeChain.ViewModels;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 
 namespace CafeChain.Application.Services
 {
     public class DrinkService : IDrinkService
     {
         private readonly AppDbContext _context;
+        private readonly IMemoryCache _cache;
+        private readonly ILogger<DrinkService> _logger;
+        private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _env;
 
-        public DrinkService(AppDbContext context)
+        public DrinkService(AppDbContext context, IMemoryCache cache, ILogger<DrinkService> logger, Microsoft.AspNetCore.Hosting.IWebHostEnvironment env)
         {
             _context = context;
+            _cache = cache;
+            _logger = logger;
+            _env = env;
         }
 
         public async Task<(List<DrinkCategory> Categories, List<Drink> Drinks, int TotalPages)> GetMenuDataAsync(
@@ -74,7 +90,7 @@ namespace CafeChain.Application.Services
 
             return (categories, drinks, totalPages == 0 ? 1 : totalPages);
         }
-        public async Task<DrinkDetailViewModel> GetDrinkDetailAsync(int drinkId)
+        public async Task<DrinkDetailViewModel?> GetDrinkDetailAsync(int drinkId)
         {
             var drink = await _context.Drinks
                 .Include(d => d.DrinkImages)
@@ -328,6 +344,149 @@ namespace CafeChain.Application.Services
             {
                 await transaction.RollbackAsync();
                 return (false, "Lỗi hệ thống: " + ex.Message, null, null);
+            }
+        }
+
+        public async Task<bool> CheckDrinkAvailabilityAsync(int drinkId, int storeId)
+        {
+            _logger.LogWarning(">>>>>> ĐÃ VÀO HÀM CHECK TỒN KHO CHO DRINK ID: {DrinkId} <<<<<<", drinkId);
+            // 1. Kiểm tra Hardcode StoreId: Nếu storeId == 0, ép nó bằng 1 (StoreId mặc định)
+            if (storeId <= 0) storeId = 1;
+
+            string cacheKey = $"DrinkAvailability_{storeId}_{drinkId}";
+            
+            // 2. Kiểm tra Cache (Set 1s để debug theo FIX.md)
+            if (_cache.TryGetValue(cacheKey, out bool isAvailable))
+            {
+                return isAvailable;
+            }
+
+            try
+            {
+                var requiredIngredients = new Dictionary<int, decimal>();
+                var recipes = await _context.Recipes
+                    .Include(r => r.RecipeDetails)
+                    .Where(r => r.DrinkId == drinkId)
+                    .ToListAsync();
+
+                // Nếu không có công thức, coi như luôn sẵn sàng
+                if (!recipes.Any()) return true;
+
+                var ingredientCache = new Dictionary<int, CafeChain.Models.Inventories.Ingredient>();
+
+                foreach (var recipe in recipes)
+                {
+                    await ProcessRecipeDetailsRecursiveAsync(recipe.RecipeDetails, 1, requiredIngredients, ingredientCache);
+                }
+
+                if (!requiredIngredients.Any()) return true;
+
+                var ingredientIds = requiredIngredients.Keys.ToList();
+                var inventories = await _context.StoreInventories
+                    .Where(si => si.StoreId == storeId && ingredientIds.Contains(si.IngredientId))
+                    .ToDictionaryAsync(si => si.IngredientId);
+
+                isAvailable = true;
+                foreach (var req in requiredIngredients)
+                {
+                    int ingredientId = req.Key;
+                    decimal requiredQty = req.Value;
+
+                    if (!inventories.TryGetValue(ingredientId, out var inv))
+                    {
+                        // 1. Ghi log cụ thể khi thiếu bản ghi (Missing Inventory Record)
+                        _logger.LogWarning("Missing Inventory Record: StoreId {StoreId} does not have an entry for IngredientId {IngredientId}", storeId, ingredientId);
+                        
+                        // 2. Cơ chế Bỏ qua nguyên liệu phụ (Chỉ dành cho môi trường Dev)
+                        if (_env.IsDevelopment())
+                        {
+                            _logger.LogInformation("[DEV BYPASS] Missing inventory record for IngredientId {IngredientId} - Bypassing sold out check.", ingredientId);
+                            continue; // Coi như còn hàng ở môi trường Dev
+                        }
+
+                        isAvailable = false;
+                        break;
+                    }
+                    
+                    if (inv.AvailableQty < requiredQty)
+                    {
+                        _logger.LogWarning("[SOLD OUT DETECTED] DrinkId: {DrinkId} | StoreId: {StoreId} | Failed at IngredientId: {IngredientId} | Required: {Required} | Available: {Available}", 
+                            drinkId, storeId, ingredientId, requiredQty, inv.AvailableQty);
+                        isAvailable = false;
+                        break;
+                    }
+                }
+
+                // Lưu cache 1 giây để phục vụ debug live
+                _cache.Set(cacheKey, isAvailable, TimeSpan.FromSeconds(1));
+                return isAvailable;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking availability for DrinkId {DrinkId} at StoreId {StoreId}", drinkId, storeId);
+                return false;
+            }
+        }
+
+        private async Task ProcessRecipeDetailsRecursiveAsync(
+            IEnumerable<RecipeDetail> details,
+            int multiplier,
+            Dictionary<int, decimal> result,
+            Dictionary<int, CafeChain.Models.Inventories.Ingredient> ingredientCache,
+            int depth = 0)
+        {
+            // 4. Xử lý Đệ quy an toàn: Chống lặp vô tận (max 10 level)
+            if (depth > 10) return;
+
+            foreach (var detail in details)
+            {
+                if (detail.IngredientId.HasValue)
+                {
+                    int ingredientId = detail.IngredientId.Value;
+                    if (!ingredientCache.TryGetValue(ingredientId, out var ingredient))
+                    {
+                        ingredient = await _context.Ingredients
+                            .Include(i => i.UnitConversions)
+                            .FirstOrDefaultAsync(i => i.IngredientId == ingredientId);
+
+                        if (ingredient != null) ingredientCache[ingredientId] = ingredient;
+                    }
+
+                    decimal quantityInBaseUnit = detail.Quantity;
+
+                    // 3. Rà soát Quy đổi đơn vị (Unit Conversion)
+                    if (ingredient != null && detail.UnitId != ingredient.BaseUnitId)
+                    {
+                        var conversion = ingredient.UnitConversions
+                            .FirstOrDefault(c => c.FromUnitId == detail.UnitId && c.ToUnitId == ingredient.BaseUnitId);
+
+                        if (conversion != null && conversion.FromQuantity != 0)
+                        {
+                            quantityInBaseUnit = (detail.Quantity / conversion.FromQuantity) * conversion.ToQuantity;
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[UNIT CONVERSION MISSING] IngredientId: {IngredientId} needs conversion from UnitId {FromUnit} to {ToBaseUnit}", 
+                                ingredientId, detail.UnitId, ingredient.BaseUnitId);
+                        }
+                    }
+
+                    if (result.ContainsKey(ingredientId))
+                        result[ingredientId] += quantityInBaseUnit * multiplier;
+                    else
+                        result[ingredientId] = quantityInBaseUnit * multiplier;
+                }
+                else if (detail.ChildRecipeId.HasValue)
+                {
+                    var childRecipe = await _context.Recipes
+                        .Include(r => r.RecipeDetails)
+                        .FirstOrDefaultAsync(r => r.RecipeId == detail.ChildRecipeId.Value);
+
+                    if (childRecipe != null)
+                    {
+                        await ProcessRecipeDetailsRecursiveAsync(childRecipe.RecipeDetails, multiplier, result, ingredientCache, depth + 1);
+                    }
+                }
             }
         }
     }

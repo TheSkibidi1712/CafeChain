@@ -9,8 +9,8 @@ namespace CafeChain.Application.Interfaces.Admin.Staffs
     {
         Task<StaffIndexPageVM> GetStaffIndexPageAsync(int page, int pageSize, int? storeId, string search, int? roleFilter, ClaimsPrincipal user);
         Task<StaffEditVM> GetStaffForEditAsync(int staffId);
-        Task<ServiceResult> CreateStaffAsync(StaffCreateVM model, ClaimsPrincipal user, IFormFile avatarFile);
-        Task<ServiceResult> UpdateStaffAsync(StaffEditVM model, ClaimsPrincipal user, IFormFile avatarFile);
+        Task<ServiceResult> CreateStaffAsync(StaffCreateVM model, ClaimsPrincipal user, IFormFile file);
+        Task<ServiceResult> UpdateStaffAsync(StaffEditVM model, ClaimsPrincipal user, IFormFile file);
         Task<ServiceResult> ToggleStaffStatusAsync(int staffId, ClaimsPrincipal user);
 
         // 🔥 Thin Controller: Master data cho dropdown forms

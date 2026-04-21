@@ -388,7 +388,7 @@
                     data: JSON.stringify({ 
                         code: code, 
                         customerId: 0, // Sẽ kiểm tra lại ở Backend sau
-                        subTotal: totalWithShip // Validate trên tổng có ship
+                        subTotal: subtotal // Validate trên Tạm tính (không có phí ship)
                     }),
                     success: function(res) {
                         const statusEl = $('#voucherStatus');
