@@ -2,6 +2,8 @@
 {
     public class InventoryTransactionVM
     {
+        public int StoreId { get; set; }
+        public string StoreName { get; set; }
         public string IngredientName { get; set; }
         public string TypeName { get; set; }
         public decimal Quantity { get; set; }

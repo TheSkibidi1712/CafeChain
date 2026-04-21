@@ -1,8 +1,50 @@
 ﻿@model List<CafeChain.ViewModels.Admin.StoreInventories.InventoryTransactionVM>
 
+@using CafeChain.ViewModels.Admin.StoreInventories
+
+@{
+    var currentStoreId = ViewBag.StoreId != null
+        ? (int)ViewBag.StoreId
+        : 0;
+
+    List<InventoryStoreTabVM> storeTabs = Model?
+        .GroupBy(x => new
+        {
+            x.StoreId,
+            x.StoreName
+        })
+        .Select(x => new InventoryStoreTabVM
+        {
+            StoreId = x.Key.StoreId,
+            StoreName = x.Key.StoreName
+        })
+        .OrderBy(x => x.StoreName)
+        .ToList()
+        ?? new List<InventoryStoreTabVM>();
+}
+
+<!-- STORE TABS IN MODAL -->
+<div class="store-tabs">
+
+    @if (storeTabs.Any())
+    {
+        foreach (var store in storeTabs)
+        {
+            <button type="button"
+                    class="store-tab @(store.StoreId == currentStoreId ? "active" : "")"
+                    onclick="loadTransactionPage(1, @store.StoreId)">
+                @store.StoreName
+            </button>
+        }
+    }
+
+</div>
+
+<!-- TRANSACTION TABLE -->
 <table class="transaction-table">
     <thead>
         <tr>
+            <th>Nguyên liệu</th>
             <th>Loại</th>
             <th>Số lượng</th>
             <th>Giá</th>
@@ -12,56 +54,111 @@
             <th>Ngày</th>
         </tr>
     </thead>
+
     <tbody>
-        @foreach (var item in Model)
+        @if (Model != null && Model.Any())
+        {
+            foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @item.IngredientName
+                    </td>
+
+                    <td>
+                        @item.TypeName
+                    </td>
+
+                    <td>
+                        @if (item.Quantity > 0)
+                        {
+                            <span class="plus">
+                                +@($"{item.Quantity:N0} {item.UnitCode}")
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="minus">
+                                @($"{item.Quantity:N0} {item.UnitCode}")
+                            </span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (item.UnitPrice != null)
+                        {
+                            @($"{item.UnitPrice:N0} đ")
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (item.TotalAmount != null)
+                        {
+                            @($"{item.TotalAmount:N0} đ")
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @($"{item.BeforeQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td>
+                        @($"{item.AfterQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td>
+                        @item.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </td>
+                </tr>
+            }
+        }
+        else
         {
             <tr>
-                <td>@item.TypeName</td>
-                <td>
-                    @if (item.Quantity > 0)
-                    {
-                        <span class="plus">+@($"{item.Quantity:N0} {item.UnitCode}")</span>
-                    }
-                    else
-                    {
-                        <span class="minus">@($"{item.Quantity:N0} {item.UnitCode}")</span>
-                    }
+                <td colspan="8" class="empty-data">
+                    Không có lịch sử giao dịch
                 </td>
-                <td>
-                    @if (item.UnitPrice != null)
-                    {
-                        @($"{item.UnitPrice:N0} đ")
-                    }
-                    else
-                    {
-                        <span>-</span>
-                    }
-                </td>
-
-                <td>
-                    @if (item.TotalAmount != null)
-                    {
-                        @($"{item.TotalAmount:N0} đ")
-                    }
-                    else
-                    {
-                        <span>-</span>
-                    }
-                </td>
-                <td>@($"{item.BeforeQty:N0} {item.UnitCode}")</td>
-                <td>@($"{item.AfterQty:N0} {item.UnitCode}")</td>
-                <td>@item.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
             </tr>
         }
     </tbody>
 </table>
 
+<!-- PAGINATION -->
 <div class="pagination">
+
+    @if (ViewBag.Page > 1)
+    {
+        <button type="button"
+                class="page-btn"
+                onclick="loadTransactionPage(@(ViewBag.Page - 1), @currentStoreId)">
+            ←
+        </button>
+    }
+
     @for (int i = 1; i <= ViewBag.TotalPages; i++)
     {
-        <button class="page-btn"
-                onclick="loadTransactionPage(@i)">
+        <button type="button"
+                class="page-btn @(i == ViewBag.Page ? "active" : "")"
+                onclick="loadTransactionPage(@i, @currentStoreId)">
             @i
         </button>
     }
+
+    @if (ViewBag.Page < ViewBag.TotalPages)
+    {
+        <button type="button"
+                class="page-btn"
+                onclick="loadTransactionPage(@(ViewBag.Page + 1), @currentStoreId)">
+            →
+        </button>
+    }
+
 </div>

@@ -1,36 +1,75 @@
-﻿let currentInventoryId = 0;
+﻿let currentStoreId = 0;
 
+// =====================================================
 // OPEN MODAL
-function openTransactionModal() {
+// =====================================================
+
+function openTransactionModal(storeId) {
+    currentStoreId = storeId || 0;
+
     const modal = document.getElementById("transactionModal");
     const content = document.getElementById("transactionContent");
 
-    modal.style.display = "block";
-    content.innerHTML = "Đang tải...";
+    if (!modal || !content) return;
 
-    loadTransactionPage(1);
+    modal.style.display = "block";
+    content.innerHTML = "Đang tải dữ liệu...";
+
+    loadTransactionPage(1, currentStoreId);
 }
 
-// LOAD PAGE (AJAX)
-function loadTransactionPage(page) {
-    fetch(`/Admin/AdminStoreInventory/Transactions?page=${page}`)
-        .then(res => res.text())
+// =====================================================
+// LOAD PAGE
+// =====================================================
+
+function loadTransactionPage(page, storeId) {
+    currentStoreId = storeId || currentStoreId || 0;
+
+    const content = document.getElementById("transactionContent");
+
+    if (!content) return;
+
+    content.innerHTML = "Đang tải dữ liệu...";
+
+    fetch(`/Admin/AdminStoreInventory/Transactions?page=${page}&storeId=${currentStoreId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error("Load failed");
+            }
+
+            return response.text();
+        })
         .then(html => {
-            document.getElementById("transactionContent").innerHTML = html;
+            content.innerHTML = html;
         })
         .catch(() => {
-            document.getElementById("transactionContent").innerHTML = "Lỗi tải dữ liệu";
+            content.innerHTML =
+                "<div class='empty-data'>Lỗi tải dữ liệu</div>";
         });
 }
 
+// =====================================================
 // CLOSE MODAL
+// =====================================================
+
 function closeModal() {
-    document.getElementById("transactionModal").style.display = "none";
+    const modal = document.getElementById("transactionModal");
+
+    if (!modal) return;
+
+    modal.style.display = "none";
 }
+
+// =====================================================
 // CLICK OUTSIDE
+// =====================================================
+
 window.onclick = function (event) {
-    let modal = document.getElementById("transactionModal");
+    const modal = document.getElementById("transactionModal");
+
+    if (!modal) return;
+
     if (event.target === modal) {
-        modal.style.display = "none";
+        closeModal();
     }
 };
