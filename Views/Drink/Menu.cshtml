@@ -98,7 +98,7 @@
                     @foreach (var drink in Model.Drinks)
                     {
                         <div class="col-6 col-md-4 col-lg-4">
-                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" view-data='@new ViewDataDictionary(ViewData) { { "IsSoldOut", !Model.Availability[drink.DrinkId] } }' />
                         </div>
                     }
                 }

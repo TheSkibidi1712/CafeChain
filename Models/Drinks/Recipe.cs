@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CafeChain.Models.Drinks
 {
@@ -12,6 +12,10 @@ namespace CafeChain.Models.Drinks
         // hao hụt: 95% nghĩa là mất 5%
 
         public bool Active { get; set; }
+        
+        // Relationships for inventory lookup
+        public int? DrinkId { get; set; }
+        public int? ToppingId { get; set; }
 
         public virtual ICollection<RecipeDetail> RecipeDetails { get; set; }
 

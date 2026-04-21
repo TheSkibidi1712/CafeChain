@@ -46,16 +46,28 @@ namespace CafeChain.Application.Services.Workers
             var expiryTime = DateTime.Now.AddMinutes(-2);
 
             var expiredOrders = await context.Orders
+                .Include(o => o.Payments)
                 .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment 
                          && o.CreatedAt <= expiryTime)
                 .ToListAsync(stoppingToken);
 
             if (expiredOrders.Any())
             {
+                var inventoryService = scope.ServiceProvider.GetRequiredService<CafeChain.Application.Interfaces.IInventoryService>();
+
                 foreach (var order in expiredOrders)
                 {
                     order.OrderStatusId = SystemConstants.OrderStatuses.Cancelled;
                     order.Note = (string.IsNullOrEmpty(order.Note) ? "" : order.Note + " | ") + "Hủy tự động: Quá hạn thanh toán";
+                    
+                    // [Phase 4] Cập nhật PaymentStatus
+                    foreach (var p in order.Payments.Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid))
+                    {
+                        p.PaymentStatusId = SystemConstants.PaymentStatuses.Failed;
+                    }
+
+                    // [Phase 4] Hoàn kho
+                    await inventoryService.ReleaseInventoryForOrderAsync(order.OrderId);
                 }
 
                 await context.SaveChangesAsync(stoppingToken);

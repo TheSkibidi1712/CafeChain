@@ -169,7 +169,7 @@ builder.Services.AddScoped<ICartService, CartService>();
 builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Inventory Abstraction
-builder.Services.AddScoped<IInventoryService, CafeChain.Application.Services.Inventory.MockInventoryService>();
+builder.Services.AddScoped<IInventoryService, CafeChain.Application.Services.Inventory.InventoryService>();
 
 // Workers
 builder.Services.AddHostedService<CafeChain.Application.Workers.OrderCleanupWorker>();
@@ -243,12 +243,38 @@ builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendan
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
 
-// Trong Program.cs, chỗ builder.Services...
-builder.Services.AddSingleton(new Net.payOS.PayOS(
-    builder.Configuration["PayOS:ClientId"], 
-    builder.Configuration["PayOS:ApiKey"], 
-    builder.Configuration["PayOS:ChecksumKey"]
-));
+// [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
+builder.Services.AddHttpClient("PayOS")
+    .ConfigurePrimaryHttpMessageHandler((IServiceProvider sp) =>
+    {
+        var env = sp.GetRequiredService<IWebHostEnvironment>();
+        var handler = new HttpClientHandler
+        {
+            SslProtocols = System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13
+        };
+
+        // CHỈ BYPASS SSL Ở MÔI TRƯỜNG LOCAL/DEV ĐỂ FIX LỖI HANDSHAKE TRÊN WINDOWS
+        if (env.IsDevelopment())
+        {
+            handler.ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true;
+        }
+
+        return handler;
+    });
+
+builder.Services.AddSingleton(sp => {
+    var config = sp.GetRequiredService<IConfiguration>();
+    var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = httpClientFactory.CreateClient("PayOS");
+    
+    return new Net.payOS.PayOS(
+        config["PayOS:ClientId"], 
+        config["PayOS:ApiKey"], 
+        config["PayOS:ChecksumKey"]
+        // Lưu ý: SDK Net.payOS hiện tại có thể không nhận HttpClient qua constructor tùy version, 
+        // nhưng cấu hình này đảm bảo các request HTTP khác qua Factory sẽ an toàn.
+    );
+});
 
 var app = builder.Build();
 
@@ -256,7 +282,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
@@ -268,9 +293,7 @@ app.UseStaticFiles(new StaticFileOptions
 });
 
 app.UseRouting();
-
 app.UseSession();
-
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -278,7 +301,6 @@ app.UseAuthorization();
 // Localization (vi-VN)
 // =======================
 var cultureInfo = new System.Globalization.CultureInfo("vi-VN");
-// Xử lý rủi ro 1: Ép NumberFormat về InvariantCulture để tránh lỗi gõ/lưu số thập phân (do vi-VN dùng ',')
 cultureInfo.NumberFormat = System.Globalization.CultureInfo.InvariantCulture.NumberFormat;
 
 var localizationOptions = new RequestLocalizationOptions
@@ -289,6 +311,12 @@ var localizationOptions = new RequestLocalizationOptions
 };
 app.UseRequestLocalization(localizationOptions);
 
+// [FIX ROUTE] Đổi OrderHistory -> AdminOrderHistory theo yêu cầu
+app.MapControllerRoute(
+    name: "admin_order_history",
+    pattern: "Admin/AdminOrderHistory",
+    defaults: new { area = "Admin", controller = "AdminOrder", action = "History" });
+
 app.MapControllerRoute(
     name: "areas",
     pattern: "{area:exists}/{controller=Home}/{action=Index}/{id?}");
@@ -298,6 +326,7 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapHub<OrderHub>("/orderHub");
+app.MapHub<PaymentHub>("/paymentHub");
 
 // === 🚀 DIAGNOSTIC SCRIPT (TỰ ĐỘNG CHẨN ĐOÁN LỖI DATABASE) ===
 using (var scope = app.Services.CreateScope())

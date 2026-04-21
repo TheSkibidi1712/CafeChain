@@ -13,6 +13,17 @@ namespace CafeChain.Application.DTOs.Admin
         public int OrderTypeId { get; set; }
         public string Note { get; set; }
         public string CustomerName { get; set; }
+
+        /// <summary>
+        /// Danh sách tóm tắt món ăn hiển thị trực tiếp trên card (Phase 1).
+        /// Format: "[Qty]x [DrinkName] - [Size] - [Topping1, Topping2]"
+        /// </summary>
+        public List<string> ItemSummaries { get; set; } = new();
+
+        /// <summary>
+        /// Tổng số món (dùng hiển thị "...và X món khác" nếu cắt bớt)
+        /// </summary>
+        public int TotalItemCount { get; set; }
     }
 
     public class AdminOrderDetailDto

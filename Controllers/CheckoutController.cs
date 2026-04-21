@@ -116,7 +116,7 @@ namespace CafeChain.Controllers
                     Name = c.Name 
                 }).ToList();
 
-                // 1. Tạo đơn hàng vào Database (Lúc này OrderStatus = Draft, PaymentStatus = Pending)
+                // 1. Tạo đơn hàng vào Database (Lúc này OrderStatus = AwaitingPayment nếu là chuyển khoản, PaymentStatus = Unpaid)
                 int orderId = await _orderService.PlaceOrderAsync(model, customerId, sessionCart);
 
                 // 2. Thành công: Xóa giỏ hàng (Session-based — nằm ngoài DB Transaction theo Skill.md §4.1)

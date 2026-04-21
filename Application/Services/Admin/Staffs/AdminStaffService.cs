@@ -242,7 +242,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         }
 
         // ==================== CREATE ====================
-        public async Task<ServiceResult> CreateStaffAsync(StaffCreateVM model, ClaimsPrincipal user, IFormFile avatarFile)
+        public async Task<ServiceResult> CreateStaffAsync(StaffCreateVM model, ClaimsPrincipal user, IFormFile file)
         {
             model.TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim();
             model.CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim();
@@ -356,7 +356,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
 
             // === BƯỚC 7: Avatar Upload (xử lý trong Service, không phải Controller) ===
-            var avatarUrl = await SaveAvatarAsync(avatarFile);
+            var avatarUrl = await SaveAvatarAsync(file);
 
             // === BƯỚC 8: Build Entities ===
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(password);
@@ -428,7 +428,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         }
 
         // ==================== UPDATE ====================
-        public async Task<ServiceResult> UpdateStaffAsync(StaffEditVM model, ClaimsPrincipal user, IFormFile avatarFile)
+        public async Task<ServiceResult> UpdateStaffAsync(StaffEditVM model, ClaimsPrincipal user, IFormFile file)
         {
             model.TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim();
             model.CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim();
@@ -552,9 +552,9 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
 
             // === Avatar Upload (xử lý trong Service) ===
-            if (avatarFile != null && avatarFile.Length > 0)
+            if (file != null && file.Length > 0)
             {
-                existingStaff.AvatarUrl = await SaveAvatarAsync(avatarFile);
+                existingStaff.AvatarUrl = await SaveAvatarAsync(file);
             }
 
             // === Update entities ===
