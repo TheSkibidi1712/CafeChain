@@ -1,0 +1,1 @@
+vậy hiện tại có cách nào để tạo công thức mới không, theo như mình thấy hiện tại chỉ được phép tạo công thức dựa trên bán thành phẩm set công thức cho các bán thành phẩm đó và sản phẩm POS, không có cách nào để quản lý công thức riêng sau đó set nguyên liệu cấu thành cho các công thức đó hả

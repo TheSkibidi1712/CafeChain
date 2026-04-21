@@ -4,8 +4,9 @@
 }
 
 <div class="container text-center mt-4">
-    <h4 class="fw-bold">Ca Làm Việc Của: @ViewBag.StaffName</h4>
+    <h4 class="fw-bold">Ca Làm Việc Của: @ViewBag.StaffName — <span class="text-primary">@ViewBag.StoreName</span></h4>
     <h1 id="clock" class="display-3 fw-bold text-primary my-3">--:--:--</h1>
+    <h3 id="tracker" class="fw-bold text-success" style="display:none;">Tổng giờ làm: <span id="tracker-time">00:00:00</span></h3>
     
     <div class="mx-auto shadow rounded-4 overflow-hidden mb-3" style="width: 300px; height: 350px; position: relative; background:#000;">
         <video id="videoElement" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
@@ -14,34 +15,95 @@
     <p id="status-msg" class="fw-bold text-warning">Đang khởi động Camera... Vui lòng cho phép quyền truy cập.</p>
     
     <div class="row g-3 px-3">
-        <div class="col-6">
-            <button class="btn btn-success w-100 py-3 rounded-4 fw-bold shadow-sm action-btn" onclick="captureAndSubmit('CheckIn')" disabled><i class="fas fa-sign-in-alt d-block mb-1 fs-4"></i> VÀO CA</button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-danger w-100 py-3 rounded-4 fw-bold shadow-sm action-btn" onclick="captureAndSubmit('CheckOut')" disabled><i class="fas fa-sign-out-alt d-block mb-1 fs-4"></i> TAN CA</button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-warning w-100 py-3 rounded-4 fw-bold shadow-sm text-dark action-btn" onclick="captureAndSubmit('StartBreak')" disabled><i class="fas fa-mug-hot d-block mb-1 fs-4"></i> BẮT ĐẦU NGHỈ</button>
-        </div>
-        <div class="col-6">
-            <button class="btn btn-info w-100 py-3 rounded-4 fw-bold shadow-sm text-white action-btn" onclick="captureAndSubmit('EndBreak')" disabled><i class="fas fa-rotate-left d-block mb-1 fs-4"></i> KẾT THÚC NGHỈ</button>
+        <!-- SINGLE TOGGLE BUTTON -->
+        <div class="col-12">
+            <button class="btn btn-success w-100 py-4 rounded-4 fw-bold shadow transition-all action-btn" 
+                    id="btnAttendanceToggle" 
+                    onclick="handleAttendanceToggle()" disabled>
+                <i class="fas fa-sign-in-alt d-block mb-2" style="font-size: 2rem;"></i> 
+                <span id="btnToggleText" style="font-size: 1.25rem;">VÀO CA</span>
+            </button>
         </div>
     </div>
 </div>
 
 @section Scripts {
 <script src="/js/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const video = document.getElementById('videoElement');
     const msg = document.getElementById('status-msg');
     const actionBtns = document.querySelectorAll('.action-btn');
+    const btnToggle = document.getElementById('btnAttendanceToggle');
+    const btnToggleText = document.getElementById('btnToggleText');
+    const btnToggleIcon = btnToggle.querySelector('i');
 
-    // Đồng hồ thời gian thực
-    setInterval(() => document.getElementById('clock').innerText = new Date().toLocaleTimeString('vi-VN'), 1000);
+    let checkInTimestamp = null;
+    let localDelta = 0;
+    let currentAction = 'CheckIn';
 
-    // Boot Face-API & Camera
+    // ═══════════════════════════════════════════════════════
+    // UI STATE: Switch between Pre-Shift and In-Shift (Single Button Toggle)
+    // ═══════════════════════════════════════════════════════
+    function switchToInShiftState() {
+        currentAction = 'CheckOut';
+        btnToggle.className = 'btn btn-danger w-100 py-4 rounded-4 fw-bold shadow transition-all action-btn';
+        btnToggleIcon.className = 'fas fa-sign-out-alt d-block mb-2';
+        btnToggleText.innerText = 'TAN CA';
+        tracker.style.display = 'block';
+    }
+
+    function switchToPreShiftState() {
+        currentAction = 'CheckIn';
+        btnToggle.className = 'btn btn-success w-100 py-4 rounded-4 fw-bold shadow transition-all action-btn';
+        btnToggleIcon.className = 'fas fa-sign-in-alt d-block mb-2';
+        btnToggleText.innerText = 'VÀO CA';
+        tracker.style.display = 'none';
+    }
+
+    function handleAttendanceToggle() {
+        captureAndSubmit(currentAction);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // REAL-TIME CLOCK + SERVER-SYNCED TRACKER (Zero-Trust)
+    // ═══════════════════════════════════════════════════════
+    setInterval(() => {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString('vi-VN');
+        if (checkInTimestamp) {
+            const nowServer = new Date(Date.now() + localDelta);
+            const elapsed = nowServer - checkInTimestamp;
+            if (elapsed > 0) {
+                const s = Math.floor(elapsed / 1000);
+                const h = String(Math.floor(s / 3600)).padStart(2, '0');
+                const m = String(Math.floor((s % 3600) / 60)).padStart(2, '0');
+                const sec = String(s % 60).padStart(2, '0');
+                document.getElementById('tracker-time').innerText = `${h}:${m}:${sec}`;
+            }
+        }
+    }, 1000);
+
+    // ═══════════════════════════════════════════════════════
+    // BOOT: Face-API + Camera + Initial State
+    // ═══════════════════════════════════════════════════════
     async function initBYOD() {
         try {
+            const resData = await fetch(`/api/Attendance/GetKioskData?accountId=${'@ViewBag.AccountId'}`);
+            const dataObj = await resData.json();
+
+            if (dataObj.success && dataObj.data) {
+                const data = dataObj.data;
+                const svIso = new Date(data.serverTimeIso);
+                localDelta = svIso.getTime() - Date.now();
+
+                if (data.checkInIso) {
+                    checkInTimestamp = new Date(data.checkInIso);
+                    switchToInShiftState();
+                } else {
+                    switchToPreShiftState();
+                }
+            }
+
             await Promise.all([
                 faceapi.nets.ssdMobilenetv1.loadFromUri('/aifx'),
                 faceapi.nets.faceLandmark68Net.loadFromUri('/aifx'),
@@ -54,7 +116,7 @@
                     video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 640 } }
                 });
             } catch(e) {
-                stream = await navigator.mediaDevices.getUserMedia({ video: true }); // Fallback laptop webcam
+                stream = await navigator.mediaDevices.getUserMedia({ video: true });
             }
             video.srcObject = stream;
             
@@ -69,7 +131,10 @@
         }
     }
 
-    async function captureAndSubmit(actionType) {
+    // ═══════════════════════════════════════════════════════
+    // CAPTURE & SUBMIT (with Force Clock-in / Ad-hoc)
+    // ═══════════════════════════════════════════════════════
+    async function captureAndSubmit(actionType, forceSave = false) {
         actionBtns.forEach(b => b.disabled = true);
         msg.innerText = "Đang trích xuất dữ liệu khuôn mặt...";
         msg.className = "fw-bold text-warning";
@@ -86,28 +151,58 @@
             }
 
             msg.innerText = "Đang khớp số liệu toán học...";
-            const faceVectorJson = JSON.stringify(Array.from(detection.descriptor)); // 128 chiều
+            const faceVectorJson = JSON.stringify(Array.from(detection.descriptor));
 
             const formData = new FormData();
             formData.append('accountId', '@ViewBag.AccountId');
             formData.append('actionType', actionType);
             formData.append('faceDescriptor', faceVectorJson);
+            formData.append('forceSave', forceSave);
 
-            // Fetch tới API SubmitTimeAction đã có sẵn trong AttendanceActionService
             const res = await fetch('/api/Attendance/SubmitTimeAction', { method: 'POST', body: formData });
             const result = await res.json();
 
             if (result.success) {
-                alert("Chấm công thành công!\n" + result.message);
-                video.srcObject.getTracks().forEach(track => track.stop()); // Tắt camera tiết kiệm pin
-                window.location.reload(); 
-            } else {
-                alert("Thất bại: " + result.message);
-                msg.innerText = "Chấm công thất bại!";
+                Swal.fire("Thành công", result.message, "success");
+                msg.innerText = result.message;
+                msg.className = "fw-bold text-success";
+
+                // REALTIME UI TOGGLE: No full page reload needed
+                if (actionType === 'CheckIn') {
+                    checkInTimestamp = new Date(Date.now() + localDelta);
+                    switchToInShiftState();
+                } else if (actionType === 'CheckOut') {
+                    checkInTimestamp = null;
+                    switchToPreShiftState();
+                    // Stop camera to save battery after checkout
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
                 actionBtns.forEach(b => b.disabled = false);
+            } else {
+                if (result.errorCode === 'AD_HOC_CONFIRMATION_REQUIRED') {
+                    Swal.fire({
+                        title: "Cảnh báo",
+                        text: result.message,
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonText: "Lưu (Ca Tự Do)",
+                        cancelButtonText: "Đóng"
+                    }).then((swalRes) => {
+                        if (swalRes.isConfirmed) {
+                            captureAndSubmit(actionType, true);
+                        } else {
+                            msg.innerText = "Đã bỏ qua VÀO CA phát sinh.";
+                            actionBtns.forEach(b => b.disabled = false);
+                        }
+                    });
+                } else {
+                    Swal.fire("Thất bại", result.message, "error");
+                    msg.innerText = "Chấm công thất bại!";
+                    actionBtns.forEach(b => b.disabled = false);
+                }
             }
         } catch (e) {
-            alert("Lỗi thực thi dữ liệu: " + e.message);
+            Swal.fire("Lỗi dữ liệu", "Lỗi thực thi: " + e.message, "error");
             actionBtns.forEach(b => b.disabled = false);
         }
     }

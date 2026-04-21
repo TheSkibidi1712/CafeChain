@@ -32,7 +32,7 @@ namespace CafeChain.Application.Services.Attendance
             return (float)Math.Sqrt(sum);
         }
 
-        public async Task<ServiceResult> SubmitTimeActionAsync(int accountId, string actionType, string faceDescriptor)
+        public async Task<ServiceResult> SubmitTimeActionAsync(int accountId, string actionType, string faceDescriptor, bool forceSave = false)
         {
             if (string.IsNullOrEmpty(actionType))
                 return ServiceResult.Failure("Loại hành động không hợp lệ");
@@ -90,7 +90,33 @@ namespace CafeChain.Application.Services.Attendance
                 }
 
                 if (todayShift == null)
-                    return ServiceResult.Failure("Không tìm thấy ca làm việc phù hợp cho hành động này (Có thể bạn chưa được xếp ca hoặc đã hoàn thành lịch hôm nay)!");
+                {
+                    if (actionType != "CheckIn")
+                        return ServiceResult.Failure("Không tìm thấy ca làm việc phù hợp cho hành động này!");
+
+                    if (!forceSave)
+                    {
+                        return ServiceResult.Failure(
+                            "Không tìm thấy lịch trực trong hệ thống. Nếu bạn bấm LƯU, hệ thống sẽ ghi nhận đây là Ca Tự Do (OT/Ad-hoc). Bạn có chắc chắn không?", 
+                            null, 
+                            "AD_HOC_CONFIRMATION_REQUIRED");
+                    }
+
+                    // Force Save: Tạo ca Ad-hoc
+                    todayShift = new StaffShift
+                    {
+                        StaffId = staff.StaffId,
+                        ShiftId = null,
+                        IsAdHoc = true,
+                        WorkDate = today,
+                        ActualCheckIn = DateTime.Now,
+                        StatusId = 2 // In Progress
+                    };
+                    _context.StaffShifts.Add(todayShift);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return ServiceResult.Success($"Ghi nhận Ca Tự Do thành công lúc {DateTime.Now:HH:mm:ss}");
+                }
 
                 var currentTime = DateTime.Now;
 
@@ -105,6 +131,18 @@ namespace CafeChain.Application.Services.Attendance
                         if (!todayShift.ActualCheckIn.HasValue) return ServiceResult.Failure("Bạn phải Vào Ca trước khi Tan Ca!");
                         todayShift.ActualCheckOut = currentTime;
                         todayShift.StatusId = 3; // Completed
+
+                        // 🔥 15-MIN ROUNDING: Payroll block rounding algorithm
+                        var checkIn = todayShift.ActualCheckIn.Value;
+                        var checkOut = currentTime;
+
+                        // Night Shift boundary: if checkout < checkin, it crossed midnight
+                        if (checkOut < checkIn)
+                            checkOut = checkOut.AddDays(1);
+
+                        var totalMinutes = (checkOut - checkIn).TotalMinutes;
+                        var roundedMinutes = Math.Round(totalMinutes / 15.0, MidpointRounding.AwayFromZero) * 15;
+                        todayShift.PayrollHours = Math.Round((decimal)(roundedMinutes / 60.0), 2);
                         break;
                     case "StartBreak":
                         if (!todayShift.ActualCheckIn.HasValue) return ServiceResult.Failure("Chưa Vào Ca, không thể nghỉ!");
@@ -194,19 +232,26 @@ namespace CafeChain.Application.Services.Attendance
 
                     return new
                     {
-                        shiftName = ss.Shift?.Name ?? "N/A",
-                        startTime = ss.Shift != null ? ss.Shift.StartTime.ToString(@"hh\:mm") : "00:00",
-                        endTime = ss.Shift != null ? ss.Shift.EndTime.ToString(@"hh\:mm") : "00:00",
+                        shiftName = ss.Shift?.Name ?? (ss.IsAdHoc ? "Ca Tự Do" : "N/A"),
+                        startTime = ss.Shift != null ? ss.Shift.StartTime.ToString(@"hh\:mm") : (ss.ActualCheckIn.HasValue ? ss.ActualCheckIn.Value.ToString("HH:mm") : "--:--"),
+                        endTime = ss.Shift != null ? ss.Shift.EndTime.ToString(@"hh\:mm") : (ss.ActualCheckOut.HasValue ? ss.ActualCheckOut.Value.ToString("HH:mm") : "--:--"),
                         statusCode = ss.Status?.Code ?? "PLANNED",
                         statusName = ss.Status?.Name ?? "Planned",
                         uiStatus = status,
                         actualCheckIn = ss.ActualCheckIn.HasValue ? ss.ActualCheckIn.Value.ToString("HH:mm") : null,
                         actualCheckOut = ss.ActualCheckOut.HasValue ? ss.ActualCheckOut.Value.ToString("HH:mm") : null,
-                        hours = ss.Shift != null ? (ss.Shift.EndTime - ss.Shift.StartTime).TotalHours.ToString("F1") : "0"
+                        actualCheckInIso = ss.ActualCheckIn.HasValue ? ss.ActualCheckIn.Value.ToUniversalTime().ToString("O") : null,
+                        hours = ss.Shift != null && ss.Shift.Duration.HasValue ? ss.Shift.Duration.Value.TotalHours.ToString("F1") : 
+                               (ss.Shift != null ? (ss.Shift.EndTime - ss.Shift.StartTime).TotalHours.ToString("F1") : "0")
                     };
                 }).ToList();
 
                 // 5. Tổng hợp kết quả
+                // Lấy tổng số giây đã làm hoàn tất
+                var completedSeconds = shiftsToday
+                    .Where(s => s.ActualCheckIn.HasValue && s.ActualCheckOut.HasValue && s.ActualCheckOut > s.ActualCheckIn)
+                    .Sum(s => (s.ActualCheckOut.Value - s.ActualCheckIn.Value).TotalSeconds);
+
                 var kioskData = new
                 {
                     staffName = staff.FullName,
@@ -215,8 +260,11 @@ namespace CafeChain.Application.Services.Attendance
                     storeAddress = staff.Store?.Address ?? "Hệ thống CafeChain",
                     hasFaceId = hasFaceId,
                     shifts = shiftDtos,
-                    checkInTime = shiftsToday.FirstOrDefault(s => s.ActualCheckIn.HasValue)?.ActualCheckIn?.ToString("HH:mm"),
-                    totalShifts = shiftDtos.Count
+                    checkInTime = shiftsToday.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue)?.ActualCheckIn?.ToString("HH:mm"),
+                    checkInIso = shiftsToday.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue)?.ActualCheckIn?.ToUniversalTime().ToString("O"),
+                    serverTimeIso = DateTime.UtcNow.ToString("O"),
+                    totalShifts = shiftDtos.Count,
+                    completedWorkingSeconds = completedSeconds
                 };
 
                 return ServiceResult<object>.Success(kioskData);

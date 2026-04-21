@@ -30,7 +30,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
             List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks);
+            List<StaffBank> staffBanks,
+            List<StaffDependent> staffDependents);
 
         Task UpdateStaffTransactionAsync(
             Models.Staffs.Staff staff,
@@ -39,7 +40,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Staffs
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
             List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks);
+            List<StaffBank> staffBanks,
+            List<StaffDependent> staffDependents);
 
         Task UpdateStaffAvatarAsync(int staffId, string avatarUrl);
 

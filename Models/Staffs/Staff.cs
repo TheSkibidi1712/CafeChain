@@ -2,6 +2,7 @@ using CafeChain.Models.Inventories;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Customers;
+using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Staffs
 {
@@ -20,9 +21,11 @@ namespace CafeChain.Models.Staffs
         public decimal Allowance { get; set; }
         public decimal ProbationRate { get; set; }
         public decimal OvertimeRate { get; set; }
+
         public string? SocialInsuranceNumber { get; set; }
-        public int DependentCount { get; set; }
-        public string? DependentTaxCode { get; set; }
+        [StringLength(15, MinimumLength = 10, ErrorMessage = "Mã số BHYT phải từ 10 đến 15 ký tự")]
+        public string? HealthInsuranceNumber { get; set; }
+
         public string? FaceDescriptor { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int StoreId { get; set; }
@@ -40,5 +43,6 @@ namespace CafeChain.Models.Staffs
         public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; }
         public virtual ICollection<StaffPhone> StaffPhones { get; set; }
         public virtual ICollection<StaffAddress> StaffAddresses { get; set; }
+        public virtual ICollection<StaffDependent> StaffDependents { get; set; }
     }
 }

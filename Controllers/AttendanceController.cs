@@ -42,14 +42,14 @@ namespace CafeChain.Controllers
         }
 
         [HttpPost("SubmitTimeAction")]
-        public async Task<IActionResult> SubmitTimeAction(int accountId, [FromForm] string actionType, [FromForm] string faceDescriptor)
+        public async Task<IActionResult> SubmitTimeAction(int accountId, [FromForm] string actionType, [FromForm] string faceDescriptor, [FromForm] bool forceSave = false)
         {
-            var result = await _actionService.SubmitTimeActionAsync(accountId, actionType, faceDescriptor);
+            var result = await _actionService.SubmitTimeActionAsync(accountId, actionType, faceDescriptor, forceSave);
 
             if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
+                return BadRequest(new { success = false, errorCode = result.ErrorCode, message = result.Message });
 
-            return Ok(new { success = true, message = result.Message });
+            return Ok(new { success = true, errorCode = result.ErrorCode, message = result.Message });
         }
 
         [HttpPost("RegisterFace")]
@@ -121,6 +121,7 @@ namespace CafeChain.Controllers
             }
 
             ViewBag.StaffName = staff.FullName;
+            ViewBag.StoreName = staff.Store?.Name ?? "CafeChain";
             ViewBag.AccountId = accountId;
             return View("~/Views/Attendance/MyBYOD.cshtml");
         }

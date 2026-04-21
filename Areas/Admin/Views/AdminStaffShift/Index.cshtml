@@ -148,7 +148,7 @@
                             {
                                 var currentCellDate = dates[j].ToString("yyyy-MM-dd");
                                 var shiftInDay = shifts.Where(s => s.WorkDate.Date == dates[j].Date).ToList();
-                                bool isLocked = dates[j].Date < DateTime.Today.AddDays(-3) || !staff.Active || staff.EmployeeStatus == 3;
+                                bool isLocked = !staff.Active || staff.EmployeeStatus == 3;
                                 var escapedName = staff.FullName.Replace("'", "\\'");
                                 string onClickAction = isLocked ? "" : $"onclick=\"openAssignModal({staff.StaffId}, '{currentCellDate}', '{escapedName}', this)\"";
                                 string disabledStyle = isLocked ? "opacity: 0.3; cursor: not-allowed;" : "";
@@ -158,9 +158,16 @@
                                     {
                                         foreach(var r in shiftInDay)
                                         {
-                                            <div class="shift-card">
-                                                <span class="shift-time">@(r.CustomStartTime?.ToString(@"hh\:mm") ?? r.Shift?.StartTime.ToString(@"hh\:mm") ?? "00:00") - @(r.CustomEndTime?.ToString(@"hh\:mm") ?? r.Shift?.EndTime.ToString(@"hh\:mm") ?? "00:00")</span>
-                                                <span class="shift-label">@(r.Shift?.Name ?? "Ca làm việc")</span>
+                                            bool hasCheckedIn = r.ActualCheckIn.HasValue;
+                                            string cStartStr = r.CustomStartTime?.ToString(@"hh\:mm") ?? "";
+                                            string cEndStr = r.CustomEndTime?.ToString(@"hh\:mm") ?? "";
+                                            string editAction = isLocked ? "" : $"onclick=\"openEditAssignModal({r.StaffShiftId}, {staff.StaffId}, '{currentCellDate}', '{escapedName}', {r.ShiftId ?? 0}, '{cStartStr}', '{cEndStr}', {(hasCheckedIn ? "true" : "false")}, this)\"";
+
+                                            <div class="shift-card" @Html.Raw(editAction)>
+                                                <span class="shift-time">
+                                                    @(r.CustomStartTime?.ToString(@"hh\:mm") ?? r.Shift?.StartTime.ToString(@"hh\:mm") ?? (hasCheckedIn ? r.ActualCheckIn.Value.ToString("HH:mm") : "--:--")) - @(r.CustomEndTime?.ToString(@"hh\:mm") ?? r.Shift?.EndTime.ToString(@"hh\:mm") ?? (r.ActualCheckOut.HasValue ? r.ActualCheckOut.Value.ToString("HH:mm") : "--:--"))
+                                                </span>
+                                                <span class="shift-label">@(r.Shift?.Name ?? (r.IsAdHoc ? "Ca Tự Do" : "Ca làm việc"))</span>
                                             </div>
                                         }
                                         if (!isLocked)
@@ -219,10 +226,14 @@
             </div>
             <div class="modal-body p-4">
                 <input type="hidden" id="modalStaffId" />
+                <input type="hidden" id="modalStaffShiftId" /> <!-- Added for Editing -->
                 <input type="hidden" id="modalDate" />
 
                 <!-- Thông tin ngữ cảnh: Nhân viên + Ngày -->
                 <div class="mb-3 p-3" style="background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0;">
+                    <div id="wageTheftWarning" class="alert alert-danger" style="display:none; font-size:12px; font-weight:bold;">
+                        <i class="fas fa-lock me-1"></i> Nhân viên đã chấm công. Không thể sửa Ca làm việc và thời gian để chống gian lận!
+                    </div>
                     <div class="d-flex align-items-center gap-2 mb-1">
                         <i class="fas fa-user-circle" style="color: var(--accent); font-size: 14px;"></i>
                         <span style="font-size: 13px; color: #64748b;">Nhân viên:</span>
@@ -265,7 +276,10 @@
             </div>
             <div class="modal-footer border-0 d-flex justify-content-between px-4 pb-4">
                 <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Hủy</button>
-                <button type="button" class="btn px-4" style="background: var(--accent); color: white; border-radius: 10px; font-weight: 600;" onclick="submitAssignShift()"><i class="fa-solid fa-plus me-1"></i> Thêm Ca</button>
+                <div class="d-flex gap-2">
+                    <button type="button" id="btnAssignShift" class="btn px-4" style="background: var(--accent); color: white; border-radius: 10px; font-weight: 600;" onclick="submitAssignShift()"><i class="fa-solid fa-plus me-1"></i> Thêm Ca</button>
+                    <button type="button" id="btnUpdateShift" class="btn px-4" style="background: #10b981; color: white; border-radius: 10px; font-weight: 600; display:none;" onclick="submitUpdateShift()"><i class="fa-solid fa-save me-1"></i> Cập Nhật Ca</button>
+                </div>
             </div>
         </div>
     </div>
@@ -393,21 +407,57 @@
         }
 
         // ===== Assign Modal =====
-        function openAssignModal(staffId, dateStr, staffName, cellElement) {
+        function setupModalForStaff(staffId, dateStr, staffName) {
             $('#modalStaffId').val(staffId);
             $('#modalDate').val(dateStr);
-
-            // Hiển thị ngữ cảnh: Tên nhân viên + Ngày đã format + Cửa hàng
             $('#modalStaffName').text(staffName);
             var parts = dateStr.split('-'); // yyyy-MM-dd
             $('#modalDateDisplay').text(parts[2] + '/' + parts[1] + '/' + parts[0]);
             $('#modalStoreName').text(getActiveStoreName());
+            
+            // Un-lock Everything by Default
+            $('#modalShiftSelect').prop('disabled', false);
+            $('#modalCustomStart').prop('disabled', false);
+            $('#modalCustomEnd').prop('disabled', false);
+            $('#wageTheftWarning').hide();
+        }
 
-            // Reset form về trạng thái ban đầu
+        function openAssignModal(staffId, dateStr, staffName, cellElement) {
+            setupModalForStaff(staffId, dateStr, staffName);
+
             $('#modalShiftSelect').val('').trigger('change');
             $('#customTimeBox').hide();
             $('#modalCustomStart').val('');
             $('#modalCustomEnd').val('');
+            
+            $('#btnAssignShift').show();
+            $('#btnUpdateShift').hide();
+            
+            currentTargetCell = cellElement;
+            new bootstrap.Modal(document.getElementById('assignShiftModal')).show();
+        }
+
+        function openEditAssignModal(staffShiftId, staffId, dateStr, staffName, shiftId, customStart, customEnd, hasCheckedIn, cellElement) {
+            setupModalForStaff(staffId, dateStr, staffName);
+            
+            $('#modalStaffShiftId').val(staffShiftId);
+            
+            // Set value
+            $('#modalShiftSelect').val(shiftId).trigger('change');
+            if (customStart || customEnd) {
+                $('#customTimeBox').show();
+                $('#modalCustomStart').val(customStart);
+                $('#modalCustomEnd').val(customEnd);
+            }
+
+            $('#btnAssignShift').hide();
+            $('#btnUpdateShift').show();
+
+            // KHOÁ CHỐNG GIAN LẬN TIỀN LƯƠNG ĐÃ BỊ TẮT ĐỂ HR TỰ DO CHỈNH SỬA
+            if (hasCheckedIn) {
+                // Đã cho phép HR sửa kể cả khi có chấm công.
+            }
+            
             currentTargetCell = cellElement;
             new bootstrap.Modal(document.getElementById('assignShiftModal')).show();
         }
@@ -416,19 +466,16 @@
             var staffId = $('#modalStaffId').val();
             var date = $('#modalDate').val();
             var shiftId = $('#modalShiftSelect').val();
-            var shiftText = $("#modalShiftSelect option:selected").text();
             var token = $("input[name='__RequestVerificationToken']").val();
             var storeId = getTargetStoreId();
 
             if (!shiftId) {
-                Swal.fire({ icon: 'warning', title: 'Chọn ca', text: 'Vui lòng chọn 1 ca làm việc.' });
+                Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng chọn 1 ca làm việc.' });
                 return;
             }
 
             var customStart = $('#modalCustomStart').val();
             var customEnd = $('#modalCustomEnd').val();
-            var displayTime = customStart + " - " + customEnd;
-            var shiftName = shiftText.split('(')[0];
 
             $.ajax({
                 url: '/Admin/AdminStaffShift/AssignShift',
@@ -437,14 +484,40 @@
                 headers: { "RequestVerificationToken": token },
                 success: function(res) {
                     $('#assignShiftModal').modal('hide');
-                    // Reload page or dynamically prepend
-                    let newHtml = `<div class="shift-card scale-in"><span class="shift-time">${displayTime}</span><span class="shift-label">${shiftName}</span></div>`;
-                    $(currentTargetCell).parent().prepend(newHtml);
-                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã gán ca thành công', showConfirmButton: false, timer: 1500 });
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã gán ca thành công', showConfirmButton: false, timer: 1500 })
+                        .then(() => window.location.reload());
                 },
                 error: function(xhr) {
-                    $('#assignShiftModal').modal('hide');
                     Swal.fire({ icon: 'error', title: 'Lỗi', text: xhr.responseJSON?.message || 'Không thể gán ca.' });
+                }
+            });
+        }
+
+        function submitUpdateShift() {
+            var staffShiftId = $('#modalStaffShiftId').val();
+            var shiftId = $('#modalShiftSelect').val();
+            var token = $("input[name='__RequestVerificationToken']").val();
+
+            var customStart = $('#modalCustomStart').val();
+            var customEnd = $('#modalCustomEnd').val();
+
+            if (!shiftId) {
+                Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng chọn 1 ca làm việc.' });
+                return;
+            }
+
+            $.ajax({
+                url: '/Admin/AdminStaffShift/UpdateStaffShift',
+                type: 'POST',
+                data: { staffShiftId, shiftId, customStart, customEnd },
+                headers: { "RequestVerificationToken": token },
+                success: function(res) {
+                    $('#assignShiftModal').modal('hide');
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Đã cập nhật ca thành công', showConfirmButton: false, timer: 1500 })
+                        .then(() => window.location.reload());
+                },
+                error: function(xhr) {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: xhr.responseJSON?.message || 'Không thể cập nhật ca.' });
                 }
             });
         }

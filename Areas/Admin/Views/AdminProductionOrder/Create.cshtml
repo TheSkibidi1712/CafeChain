@@ -1,0 +1,231 @@
+@model CafeChain.ViewModels.Admin.Productions.ProductionOrderVM
+
+@{
+    ViewData["Title"] = "Lệnh Sơ Chế (Production Order)";
+}
+
+<style>
+    .po-card { border: 1px solid #e2e8f0; border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07); background: white; }
+    .po-header { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border-radius: 12px 12px 0 0; padding: 20px; }
+    .btn-po-primary { background-color: #f97316; border-color: #f97316; color: white; font-weight: 600; }
+    .btn-po-primary:hover { background-color: #ea580c; border-color: #ea580c; color: white; }
+    .btn-po-success { background: linear-gradient(135deg, #16a34a, #15803d); border: none; color: white; font-weight: 600; }
+    .btn-po-success:hover { background: linear-gradient(135deg, #15803d, #166534); color: white; }
+    .table-po th { background-color: #f1f5f9; color: #475569; font-weight: 600; text-transform: uppercase; font-size: 0.75rem; }
+    .table-po td { vertical-align: middle; }
+    .badge-nvl { background: #3b82f6; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .badge-btp { background: #f97316; color: white; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; }
+    .result-section { display: none; }
+    .frozen-banner { background: linear-gradient(135deg, #fef3c7, #fde68a); border: 1px solid #f59e0b; border-radius: 8px; padding: 12px 20px; color: #92400e; font-size: 0.9rem; }
+</style>
+
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fas fa-fire-burner me-2" style="color: #f97316;"></i>Lệnh Sơ Chế
+                <span class="badge bg-info ms-2" style="font-size: 0.6rem;">Preview</span>
+            </h3>
+            <p class="text-muted mb-0">Tính toán nguyên liệu tiêu hao cho 1 mẻ sơ chế</p>
+        </div>
+        <a href="#" class="btn btn-light border shadow-sm"><i class="fas fa-arrow-left me-1"></i> Quay lại</a>
+    </div>
+
+    <!-- Frozen Banner -->
+    <div class="frozen-banner mb-4">
+        <i class="fas fa-snowflake me-2"></i>
+        <strong>Chế độ Preview:</strong> Module Kho đang được phát triển song song. Lệnh sơ chế hiện tại chỉ tính toán nguyên liệu, <u>chưa trừ kho thực tế</u>.
+    </div>
+
+    <form asp-action="Create" method="post" id="productionForm">
+        @Html.AntiForgeryToken()
+
+        <!-- SECTION 1: Chọn công thức + Số mẻ -->
+        <div class="po-card mb-4">
+            <div class="po-header">
+                <h5 class="mb-0"><i class="fas fa-clipboard-list me-2"></i>Thông tin mẻ nấu</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Công thức sơ chế <span class="text-danger">*</span></label>
+                        <select name="TargetRecipeId" id="recipeSelect" class="form-select" required>
+                            <option value="">-- Chọn công thức --</option>
+                            @if (ViewBag.SubRecipes != null)
+                            {
+                                foreach (dynamic rec in ViewBag.SubRecipes)
+                                {
+                                    <option value="@rec.RecipeId">@rec.Name</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Số mẻ nấu <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" step="0.01" min="0.01" name="PlannedBatches" id="batchInput"
+                                   class="form-control form-control-lg text-center fw-bold" value="1" required />
+                            <span class="input-group-text">mẻ</span>
+                        </div>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <button type="button" class="btn btn-po-primary btn-lg w-100" id="btnCalculate">
+                            <i class="fas fa-calculator me-2"></i>Tính toán nguyên liệu tiêu hao
+                        </button>
+                    </div>
+                </div>
+                <div class="row g-4 mt-2">
+                    <div class="col-md-5">
+                        <label class="form-label fw-bold">Ghi chú Bếp trưởng</label>
+                        <input type="text" name="Notes" class="form-control" placeholder="VD: Nấu cho ngày mai, pha đặc hơn bình thường..." />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-bold">Ngày thực hiện</label>
+                        <input type="datetime-local" name="ProductionDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: Kết quả tính toán (AJAX) -->
+        <div class="po-card mb-4 result-section" id="resultSection">
+            <div class="card-body p-0">
+                <div class="p-3 d-flex justify-content-between align-items-center border-bottom bg-light">
+                    <h6 class="mb-0 fw-bold text-dark">
+                        <i class="fas fa-list-check me-2 text-primary"></i>
+                        Nguyên liệu cần cho: <span id="resultRecipeName" class="text-primary"></span>
+                        × <span id="resultBatches" class="text-danger"></span> mẻ
+                    </h6>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-po mb-0">
+                        <thead>
+                            <tr>
+                                <th width="5%" class="text-center">#</th>
+                                <th width="25%">Thành phần</th>
+                                <th width="10%">Loại</th>
+                                <th width="12%" class="text-end">Định lượng / mẻ</th>
+                                <th width="12%" class="text-end">× Số mẻ</th>
+                                <th width="10%">ĐVT</th>
+                                <th width="10%" class="text-center">Thu hồi %</th>
+                                <th width="15%" class="text-end fw-bold">Thực cần dùng</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultTableBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 3: Action -->
+        <div class="result-section" id="actionSection">
+            <div class="d-flex justify-content-end gap-3 mb-5">
+                <button type="button" class="btn btn-light border px-4 shadow-sm" onclick="window.location.reload()">Hủy</button>
+                <button type="submit" class="btn btn-po-success px-5 shadow-sm btn-lg" id="btnComplete">
+                    <i class="fas fa-check-circle me-2"></i>Hoàn tất mẻ nấu
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            // Select2
+            $('#recipeSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm công thức sơ chế --', width: '100%' });
+
+            // ===== TÍNH TOÁN NGUYÊN LIỆU (AJAX) =====
+            $('#btnCalculate').click(function () {
+                const recipeId = $('#recipeSelect').val();
+                const batches = parseFloat($('#batchInput').val()) || 0;
+
+                if (!recipeId || batches <= 0) {
+                    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn công thức và nhập số mẻ nấu.', confirmButtonColor: '#f97316' });
+                    return;
+                }
+
+                const btn = $(this);
+                btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Đang tính toán...');
+
+                $.getJSON('@Url.Action("CalculateIngredients", "AdminProductionOrder", new { area = "Admin" })',
+                    { recipeId: recipeId, batches: batches },
+                    function (response) {
+                        btn.prop('disabled', false).html('<i class="fas fa-calculator me-2"></i>Tính toán nguyên liệu tiêu hao');
+
+                        if (!response.success) {
+                            Swal.fire({ icon: 'error', title: 'Lỗi', text: response.message, confirmButtonColor: '#f97316' });
+                            return;
+                        }
+
+                        // Fill header
+                        $('#resultRecipeName').text(response.recipeName);
+                        $('#resultBatches').text(batches);
+
+                        // Fill table
+                        const tbody = $('#resultTableBody');
+                        tbody.empty();
+
+                        if (response.data.length === 0) {
+                            tbody.append('<tr><td colspan="8" class="text-center text-muted py-4">Công thức chưa có chi tiết BOM</td></tr>');
+                        } else {
+                            response.data.forEach(function (item, idx) {
+                                const typeBadge = item.itemType === 'Nguyên liệu'
+                                    ? '<span class="badge-nvl">Nguyên liệu</span>'
+                                    : '<span class="badge-btp">Bán thành phẩm</span>';
+
+                                tbody.append(`
+                                    <tr>
+                                        <td class="text-center text-muted fw-bold">${idx + 1}</td>
+                                        <td class="fw-bold">${item.itemName}</td>
+                                        <td>${typeBadge}</td>
+                                        <td class="text-end">${item.baseQuantity}</td>
+                                        <td class="text-end text-primary fw-bold">${item.totalQuantity}</td>
+                                        <td>${item.unitName}</td>
+                                        <td class="text-center">${item.yieldPercentage}%</td>
+                                        <td class="text-end fw-bold text-danger fs-6">${item.actualQuantity} ${item.unitName}</td>
+                                    </tr>
+                                `);
+                            });
+                        }
+
+                        // Show results
+                        $('#resultSection, #actionSection').slideDown(300);
+                    }
+                ).fail(function () {
+                    btn.prop('disabled', false).html('<i class="fas fa-calculator me-2"></i>Tính toán nguyên liệu tiêu hao');
+                    Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối Server.', confirmButtonColor: '#f97316' });
+                });
+            });
+
+            // ===== HOÀN TẤT MẺ NẤU (SweetAlert confirm) =====
+            $('#btnComplete').click(function (e) {
+                e.preventDefault();
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Xác nhận hoàn tất mẻ nấu?',
+                    html: '<p>Hành động này sẽ ghi nhận lệnh sơ chế vào hệ thống.</p><p class="text-muted small"><i class="fas fa-snowflake me-1"></i>Chế độ Preview: Chưa trừ kho thực tế.</p>',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Hoàn tất',
+                    cancelButtonText: 'Hủy',
+                    confirmButtonColor: '#16a34a',
+                    cancelButtonColor: '#94a3b8'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $('#productionForm').submit();
+                    }
+                });
+            });
+
+            // SweetAlert success
+            @if (TempData["SuccessMsg"] != null)
+            {
+                <text>
+                Swal.fire({ icon: 'success', title: 'Ghi nhận thành công!', text: '@TempData["SuccessMsg"]', confirmButtonColor: '#f97316' });
+                </text>
+            }
+        });
+    </script>
+}

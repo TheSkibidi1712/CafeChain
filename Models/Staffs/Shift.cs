@@ -13,6 +13,9 @@ namespace CafeChain.Models.Staffs
 
         public bool IsOvernight { get; set; } // 🔥 ca qua đêm
 
+        public bool IsFreeShift { get; set; } // Ca tự do (24h)
+        public TimeSpan? Duration { get; set; } // Lưu thời lượng chi tiết cho template
+
         public bool Active { get; set; }
 
         public int StoreId { get; set; } // 🔥 thuộc store nào

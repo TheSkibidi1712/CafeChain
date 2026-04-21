@@ -42,6 +42,7 @@ namespace CafeChain.Data
         public DbSet<StaffShiftStatus> StaffShiftStatuses { get; set; }
         public DbSet<StaffPhone> StaffPhones { get; set; }
         public DbSet<StaffAddress> StaffAddresses { get; set; }
+        public DbSet<StaffDependent> StaffDependents { get; set; }
 
         // ========================= ORDER =========================
         public DbSet<Order> Orders { get; set; }

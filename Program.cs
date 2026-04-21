@@ -216,6 +216,9 @@ builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
 builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
 builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
+// Admin Recipes (BOM Module)
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeService, CafeChain.Application.Services.Admin.Recipes.AdminRecipeService>();
+
 
 // Admin Inventory Documents
 builder.Services.AddScoped<IUserContext, UserContext>();
@@ -242,6 +245,9 @@ builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain.Application.Services.Attendance.AttendanceSecurityService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
+
+// Settings
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Settings.IAdminSettingService, CafeChain.Application.Services.Admin.Settings.AdminSettingService>();
 
 // Trong Program.cs, chỗ builder.Services...
 builder.Services.AddSingleton(new Net.payOS.PayOS(

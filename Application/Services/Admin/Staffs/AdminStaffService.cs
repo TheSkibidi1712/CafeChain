@@ -233,9 +233,14 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
                 Addresses = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).Select(a => a.Address).ToList() ?? new List<string>(),
-                BankName = staff.StaffBanks?.FirstOrDefault()?.BankName,
-                AccountNumber = staff.StaffBanks?.FirstOrDefault()?.AccountNumber,
-                AccountHolderName = staff.StaffBanks?.FirstOrDefault()?.AccountHolderName,
+                Banks = staff.StaffBanks?.Select((b, index) => new StaffBankVM
+                {
+                    BankName = b.BankName,
+                    AccountNumber = b.AccountNumber,
+                    AccountHolderName = b.AccountHolderName,
+                    IsPrimary = b.IsPrimary
+                }).ToList() ?? new List<StaffBankVM>(),
+                PrimaryBankIndex = staff.StaffBanks?.ToList().FindIndex(b => b.IsPrimary) ?? 0,
                 CurrentAvatarUrl = staff.AvatarUrl ?? "/Images/avatars/avtdf.jpg",
                 Active = staff.Active
             };
@@ -411,18 +416,41 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
             // Build StaffBanks
             var staffBanks = new List<StaffBank>();
-            if (!string.IsNullOrWhiteSpace(model.BankName) || !string.IsNullOrWhiteSpace(model.AccountNumber) || !string.IsNullOrWhiteSpace(model.AccountHolderName))
+            if (model.Banks != null && model.Banks.Any())
             {
-                staffBanks.Add(new StaffBank
+                staffBanks = model.Banks.Select((b, index) => new StaffBank
                 {
-                    BankName = model.BankName,
-                    AccountNumber = model.AccountNumber,
-                    AccountHolderName = model.AccountHolderName
-                });
+                    BankName = b.BankName,
+                    AccountNumber = b.AccountNumber,
+                    AccountHolderName = b.AccountHolderName,
+                    IsPrimary = index == model.PrimaryBankIndex
+                }).ToList();
+            }
+
+            // Build StaffDependents
+            var staffDependents = new List<StaffDependent>();
+            if (model.Dependents != null && model.Dependents.Any())
+            {
+                staffDependents = model.Dependents.Select(d => new StaffDependent
+                {
+                    FullName = d.FullName,
+                    DateOfBirth = d.DateOfBirth,
+                    TaxCode = d.TaxCode,
+                    Relationship = d.Relationship,
+                    CreatedAt = DateTime.Now
+                }).ToList();
             }
 
             // === BƯỚC 9: Gọi Repository (Transaction) ===
-            await _repository.CreateStaffTransactionAsync(staff, account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks);
+            try
+            {
+                await _repository.CreateStaffTransactionAsync(staff, account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks, staffDependents);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // 🔥 Bắt lỗi trùng lặp dữ liệu từ Repository (Duplicate Key)
+                return ServiceResult.Failure(ex.Message);
+            }
 
             return ServiceResult.Success("Thêm nhân viên thành công!");
         }
@@ -599,17 +627,40 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }).ToList();
 
             var staffBanks = new List<StaffBank>();
-            if (!string.IsNullOrWhiteSpace(model.BankName) || !string.IsNullOrWhiteSpace(model.AccountNumber) || !string.IsNullOrWhiteSpace(model.AccountHolderName))
+            if (model.Banks != null && model.Banks.Any())
             {
-                staffBanks.Add(new StaffBank
+                staffBanks = model.Banks.Select((b, index) => new StaffBank
                 {
-                    BankName = model.BankName,
-                    AccountNumber = model.AccountNumber,
-                    AccountHolderName = model.AccountHolderName
-                });
+                    BankName = b.BankName,
+                    AccountNumber = b.AccountNumber,
+                    AccountHolderName = b.AccountHolderName,
+                    IsPrimary = index == model.PrimaryBankIndex
+                }).ToList();
             }
 
-            await _repository.UpdateStaffTransactionAsync(existingStaff, existingStaff.Account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks);
+            // Build StaffDependents
+            var staffDependents = new List<StaffDependent>();
+            if (model.Dependents != null && model.Dependents.Any())
+            {
+                staffDependents = model.Dependents.Select(d => new StaffDependent
+                {
+                    FullName = d.FullName,
+                    DateOfBirth = d.DateOfBirth,
+                    TaxCode = d.TaxCode,
+                    Relationship = d.Relationship,
+                    CreatedAt = DateTime.Now
+                }).ToList();
+            }
+
+            try
+            {
+                await _repository.UpdateStaffTransactionAsync(existingStaff, existingStaff.Account, accountRoles, staffScopes, staffPhones, staffAddresses, staffBanks, staffDependents);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // 🔥 Bắt lỗi trùng lặp dữ liệu từ Repository (Duplicate Key)
+                return ServiceResult.Failure(ex.Message);
+            }
 
             return ServiceResult.Success("Cập nhật nhân viên thành công!");
         }
