@@ -104,6 +104,7 @@ namespace CafeChain.Areas.Admin.Controllers
                     data.Status,
                     data.Date,
                     data.Note,
+                    data.InventoryTransferId,
                     details = data.Details.Select(d => new
                     {
                         d.IngredientCode,
@@ -182,17 +183,76 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-
-        [HttpGet("transfer-sources")]
-        public async Task<IActionResult> GetTransferSources(int storeId)
+        [HttpPost("internal-transfer/{id}/confirm-all")]
+        public async Task<IActionResult> ConfirmAll(int id)
         {
-            var stores = await _transferService.GetAvailableTransferSources(storeId);
-
-            return Ok(stores.Select(x => new
+            try
             {
-                storeId = x.StoreId,
-                name = x.Name
+                await _transferService.ConfirmAllAsync(id);
+
+                return Ok(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet("pending-internal-exports")]
+        public async Task<IActionResult> GetPendingInternalExports(int storeId)
+        {
+            var transfers = await _transferService.GetPendingTransfersToStore(storeId);
+
+            return Ok(transfers.Select(x => new
+            {
+                transferId = x.InventoryTransferId,
+
+                exportDocumentId = x.ExportDocumentId,
+
+                code = x.ExportDocument != null
+                    ? x.ExportDocument.Code
+                    : null,
+
+                fromStore = x.FromStore != null
+                    ? x.FromStore.Name
+                    : null,
+
+                date = x.CreatedAt,
+
+                status = x.Status,
+
+                totalExportQty = x.TotalExportQty,
+
+                totalReceivedQty = x.TotalReceivedQty
             }));
+        }
+
+        [HttpGet("transfer/{id}")]
+        public async Task<IActionResult> GetTransferDetail(int id)
+        {
+            var transfer = await _transferService.GetTransferByIdAsync(id);
+
+            if (transfer == null)
+                return NotFound();
+
+            return Ok(new
+            {
+                transferId = transfer.InventoryTransferId,
+                fromStoreId = transfer.FromStoreId,
+                fromStoreName = transfer.FromStore.Name,
+
+                items = transfer.Details.Select(x => new
+                {
+                    ingredientId = x.IngredientId,
+                    ingredientName = x.Ingredient.Name,
+                    unitId = x.Ingredient.BaseUnitId,
+                    unitName = x.Ingredient.BaseUnit.Name,
+                    quantity = x.ExportQuantity,
+                    received = x.ReceivedQuantity,
+                    remainingQuantity = x.ExportQuantity - x.ReceivedQuantity,
+                    unitPrice = 0
+                })
+            });
         }
 
         //  ============================== CÁC METHOD PHỤ DÙNG CHO CREATE/EDIT ==============================
@@ -224,11 +284,30 @@ namespace CafeChain.Areas.Admin.Controllers
             }));
         }
 
+        // ================= LAST PRICE =================
+        [HttpGet("last-price")]
+        public async Task<IActionResult> GetLastPrice(int storeId, int ingredientId)
+        {
+            var price = await _service.GetLastPriceAsync(storeId, ingredientId);
+
+            return Ok(new
+            {
+                storeId,
+                ingredientId,
+                lastPrice = price ?? 0
+            });
+        }
+
         // ================= IMPORT INFO =================
         [HttpGet("import-info")]
         public async Task<IActionResult> GetImportInfo(int ingredientId, int supplierId)
         {
             var data = await _service.GetImportInfoAsync(ingredientId, supplierId);
+            if (data == null)
+            {
+                return Ok(null);
+            } 
+                
 
             return Ok(new
             {
@@ -266,5 +345,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 unitName = x.Ingredient.BaseUnit.Name
             }));
         }
+
+
     }
 }

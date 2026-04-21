@@ -1,5 +1,5 @@
 ﻿export function loadStockTakeTable() {
-    const storeId = document.getElementById("store").value;
+    const storeId = Number(document.getElementById("store").value);
 
     if (!storeId) {
         console.warn("Chưa chọn kho");
@@ -42,7 +42,7 @@
                 </td>
 
                 <td>
-                    <input type="number" class="qty realQty" min="0">
+                    <input type="number" class="qty realQty" min="0" value="0">
                 </td>
 
                 <td>
@@ -72,14 +72,19 @@ export function addStockTakeRow() {
 }
 
 function calcDiff(tr) {
-    const stock = parseFloat(tr.querySelector(".stock").innerText || 0);
-    const real = parseFloat(tr.querySelector(".realQty").value || 0);
+    const stock = Number(tr.querySelector(".stock").innerText || 0);
+    const real = Number(tr.querySelector(".realQty").value || 0);
+
+    if (real < 0) {
+        toast("Số lượng không hợp lệ", "error");
+        return;
+    }
 
     const diff = real - stock; // ✅ tính trước
 
     const diffEl = tr.querySelector(".diff");
 
-    diffEl.innerText = isNaN(diff) ? 0 : diff;
+    diffEl.innerText = Number.isNaN(diff) ? 0 : diff;
 
     // 🎨 màu trực quan
     diffEl.style.color =

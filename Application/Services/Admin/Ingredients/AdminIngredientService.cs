@@ -15,11 +15,15 @@ namespace CafeChain.Application.Services.Admin.Ingredients
             _repo = repo;
         }
 
-        // ================= GET ALL =================
-        public async Task<List<AdminIngredientDTO>> GetAllAsync(string? search, bool? status)
+        // ================= GET Paged =================
+        public async Task<(List<AdminIngredientDTO> Items, int Total)> GetPagedAsync(string? search, bool? status, int page, int pageSize)
         {
-            var data = await _repo.GetAllAsync(search, status);
-            return data.Select(MapToListDTO).ToList();
+            var (data, total) = await _repo.GetPagedAsync(search, status, page, pageSize);
+
+            return (
+                data.Select(MapToListDTO).ToList(),
+                total
+            );
         }
 
         // ================= GET BY ID =================

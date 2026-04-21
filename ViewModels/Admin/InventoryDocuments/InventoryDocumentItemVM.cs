@@ -21,7 +21,7 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments
 
         public DateTime Date { get; set; }
         public string? Note { get; set; }
-
+        public int? InventoryTransferId { get; set; }
         public decimal TotalQuantity { get; set; }
         public decimal TotalAmount { get; set; }
 

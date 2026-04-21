@@ -14,6 +14,8 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments
 
         public string? SupplierName { get; set; }
         public string? PartnerName { get; set; }
+        public int? InventoryTransferId { get; set; }
+
         public InventoryDocumentPurpose Purpose { get; set; }
         public InventoryDocumentType Type { get; set; }
         public InventoryDocumentStatus Status { get; set; }

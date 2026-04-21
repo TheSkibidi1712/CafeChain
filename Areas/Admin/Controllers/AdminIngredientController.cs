@@ -16,9 +16,22 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ================= INDEX =================
-        public async Task<IActionResult> Index(string? search, bool? status)
+        // ================= INDEX =================
+        public async Task<IActionResult> Index(string? search, bool? status, int page = 1)
         {
-            var data = await _service.GetAllAsync(search, status);
+            int pageSize = 10;
+
+            var (data, total) = await _service.GetPagedAsync(
+                search,
+                status,
+                page,
+                pageSize);
+
+            ViewBag.Page = page;
+            ViewBag.TotalPages = (int)Math.Ceiling((double)total / pageSize);
+            ViewBag.Search = search;
+            ViewBag.Status = status;
+
             return View(data);
         }
 

@@ -1,5 +1,5 @@
 ﻿export function addExportRow() {
-    const storeId = document.getElementById("store").value;
+    const storeId = Number(document.getElementById("store").value);
 
     if (!storeId) {
         toast("Chọn kho trước", "error");
@@ -22,7 +22,7 @@
         </td>
 
         <td>
-            <input type="number" class="qty" value="1" min="0">
+            <input type="number" class="qty" value="1" min="1">
         </td>
 
         <!-- EXPORT KHÔNG DÙNG GIÁ -->
@@ -66,7 +66,7 @@
 
     // ================= CHỌN NGUYÊN LIỆU =================
    ingSelect.addEventListener("change", () => {
-       const ingId = ingSelect.value;
+       const ingId = Number(ingSelect.value);
 
        if (!ingId) {
            unitSelect.innerHTML = `<option value="">-- Đơn vị --</option>`;
@@ -91,7 +91,7 @@
 
         if (!selected || !selected.value) return;
 
-        const stock = Number(selected.getAttribute("data-stock") || 0);
+        const stock = +selected.dataset.stock || 0;
         let qty = Number(qtyInput.value || 0);
 
         if (qty < 0) {
@@ -105,14 +105,12 @@
 
         qtyInput.value = qty;
 
-        // vẫn gọi để đồng bộ (dù export không dùng tiền)
-        calcRow(tr);
     });
 }
 
 // ================= LOAD UNIT (OPTIONAL) =================
 export function loadExportUnits(tr) {
-    const ingId = tr.querySelector(".ingredient").value;
+    const ingId = Number(tr.querySelector(".ingredient").value);
 
     if (!ingId) return;
 

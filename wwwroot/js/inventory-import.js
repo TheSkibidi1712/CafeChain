@@ -1,5 +1,4 @@
-﻿import { PURPOSE } from "./inventorydocument.js";
-
+﻿import { PURPOSE } from "./constants/inventory-constants.js";
 
 let currentSupplier = null;
 let ingredientsBySupplier = [];
@@ -30,7 +29,7 @@ async function loadIngredientsBySupplier() {
     const selectedOption = supplierSelect.selectedOptions[0];
 
     currentSupplier = {
-        id: supplierId,
+        id: Number(supplierId),
         name: selectedOption?.text || ""
     };
 
@@ -47,11 +46,166 @@ async function loadIngredientsBySupplier() {
 }
 
 // ================= ADD ROW =================
-export function addImportRow() {
+export async function addImportRow() {
 
     const purpose = Number(document.getElementById("importPurposeSelect").value);
 
-    // ❌ chỉ cho nhập purchase
+    // chưa chọn mục đích
+    if (!purpose) {
+        toast("Vui lòng chọn mục đích nhập", "error");
+        return;
+    }
+
+    // ❌ nhập nội bộ không được add tay
+    if (purpose === PURPOSE.IMPORT_INTERNAL) {
+        toast("Nhập nội bộ không thêm dòng thủ công", "warning");
+        return;
+    }
+
+    // ================= ĐIỀU CHỈNH TĂNG =================
+    if (purpose === PURPOSE.IMPORT_ADJUSTMENT) {
+        const storeId = Number(document.getElementById("store").value);
+
+        if (!storeId) {
+            toast("Vui lòng chọn kho trước", "error");
+            return;
+        }
+
+        const tr = document.createElement("tr");
+
+        tr.innerHTML = `
+            <td>
+                <select class="ingredient"></select>
+            </td>
+
+            <td>
+                <select class="unit" disabled></select>
+            </td>
+
+            <td>
+                <input type="number" class="qty" value="1" min="1">
+            </td>
+
+            <td>
+                <input type="number" class="price" value="0" min="0">
+            </td>
+
+            <td>
+                <span class="rowTotal">0</span>
+            </td>
+
+            <td>
+                <input class="note">
+            </td>
+
+            <td>
+                <button type="button">X</button>
+            </td>
+        `;
+
+        document.querySelector("#detailTable tbody").appendChild(tr);
+
+        const ingSelect = tr.querySelector(".ingredient");
+        const unitSelect = tr.querySelector(".unit");
+        const qtyInput = tr.querySelector(".qty");
+        const priceInput = tr.querySelector(".price");
+
+        // ================= LOAD INGREDIENT THEO STORE =================
+        try {
+            const r = await fetch(
+                `/api/admin/inventory-documents/store-inventories?storeId=${storeId}`
+            );
+
+            if (!r.ok) throw new Error();
+
+            const data = await r.json();
+
+            ingSelect.innerHTML =
+                `<option value="">-- Chọn nguyên liệu --</option>` +
+                data.map(x => `
+                    <option value="${x.ingredientId}">
+                        ${x.name}
+                    </option>
+                `).join("");
+
+        } catch {
+            toast("Không tải được nguyên liệu trong kho", "error");
+        }
+
+        // ================= CHANGE INGREDIENT =================
+        ingSelect.addEventListener("change", async () => {
+            const ingredientId = Number(ingSelect.value);
+
+            unitSelect.innerHTML = "";
+            priceInput.value = 0;
+            tr.querySelector(".rowTotal").innerText = "0";
+
+            if (!ingredientId) return;
+
+            try {
+                // 🔥 LOAD UNIT
+                const r = await fetch(
+                    `/api/admin/inventory-documents/units?ingredientId=${ingredientId}`
+                );
+
+                if (!r.ok) throw new Error();
+
+                const units = await r.json();
+
+                if (!units || !units.length) {
+                    toast("Không tìm thấy đơn vị", "warning");
+                    return;
+                }
+
+                const baseUnit = units[0];
+
+                unitSelect.innerHTML = `
+                    <option value="${baseUnit.unitId}">
+                        ${baseUnit.name}
+                    </option>
+                `;
+
+                // 🔥 backup để submit
+                tr.dataset.unitId = baseUnit.unitId;
+
+                // 🔥 LOAD LAST PRICE (chuẩn cho điều chỉnh tồn)
+                try {
+                    const priceRes = await fetch(
+                        `/api/admin/inventory-documents/last-price?storeId=${storeId}&ingredientId=${ingredientId}`
+                    );
+
+                    if (!priceRes.ok) throw new Error();
+
+                    const priceData = await priceRes.json();
+
+                    priceInput.value = priceData?.lastPrice || 0;
+
+                } catch {
+                    priceInput.value = 0;
+                }
+
+                calcRow(tr);
+
+            } catch {
+                toast("Không tải được đơn vị", "error");
+            }
+        });
+
+        // ================= EVENTS =================
+        qtyInput.addEventListener("input", () => calcRow(tr));
+        priceInput.addEventListener("input", () => calcRow(tr));
+
+        tr.querySelector("button").addEventListener("click", () => {
+            tr.remove();
+            calcTotal();
+        });
+
+        calcRow(tr);
+
+        return;
+    }
+
+    // ================= NHẬP TỪ NCC =================
     if (purpose !== PURPOSE.IMPORT_PURCHASE) {
         toast("Chỉ áp dụng cho nhập từ nhà cung cấp", "error");
         return;
@@ -92,7 +246,6 @@ export function addImportRow() {
     // chọn nguyên liệu
     ingSelect.addEventListener("change", async () => {
 
-        // reset UI
         unitSelect.innerHTML = "";
         priceInput.value = "";
         tr.querySelector(".rowTotal").innerText = "0";
@@ -108,13 +261,15 @@ export function addImportRow() {
         tr.remove();
         calcTotal();
     });
+
+    calcRow(tr);
 }
 
 // ================= LOAD UNIT + PRICE =================
 async function loadImportUnitPrice(tr) {
 
-    const ingId = tr.querySelector(".ingredient").value;
-    const supplierId = document.getElementById("supplier").value;
+    const ingId = Number(tr.querySelector(".ingredient").value);
+    const supplierId = Number(document.getElementById("supplier").value);
 
     if (!ingId || !supplierId) return;
 

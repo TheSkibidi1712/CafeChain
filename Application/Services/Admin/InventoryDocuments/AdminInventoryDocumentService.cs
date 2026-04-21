@@ -7,6 +7,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 namespace CafeChain.Application.Services.Admin.InventoryDocuments
 {
     public class AdminInventoryDocumentService : IAdminInventoryDocumentService
@@ -62,6 +63,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     Status = x.Status,
                     Date = x.DocumentDate,
                     Note = x.Note,
+                    InventoryTransferId = x.ExportTransfer != null ? x.ExportTransfer.InventoryTransferId : x.ImportTransfer != null ? x.ImportTransfer.InventoryTransferId : null,
+
                     TotalQuantity = x.Details.Sum(d => d.BaseQuantity),
                     BaseUnitName = x.Details.FirstOrDefault()?.Ingredient.BaseUnit.Name ?? "",
                     TotalAmount = x.Details.Sum(d => d.TotalAmount ?? 0),
@@ -81,7 +84,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 TotalRecords = total,
                 Page = filter.Page,
-                PageSize = filter.PageSize
+                PageSize = 10
             };
         }
 
@@ -101,6 +104,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 PartnerName = x.PartnerName,
                 Purpose = x.Purpose,
 
+                InventoryTransferId = x.ExportTransfer != null ? x.ExportTransfer.InventoryTransferId : x.ImportTransfer != null ? x.ImportTransfer.InventoryTransferId : null,
 
                 Type = x.Type,
                 Status = x.Status,
@@ -164,8 +168,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 await tran.RollbackAsync();
                 throw;
             }
-        }        
+        }
 
+        // ======================== LAST PRICE ========================
+        public async Task<decimal?> GetLastPriceAsync(int storeId, int ingredientId)
+        {
+            return await _repository.GetLastPriceAsync(storeId, ingredientId);
+        }
 
         // ======================== IMPORT INFO ========================
         public async Task<ImportInfoDTO> GetImportInfoAsync(int ingredientId, int supplierId)
@@ -247,7 +256,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 InventoryDocumentType.IMPORT => "NK",
                 InventoryDocumentType.EXPORT => "XK",
                 InventoryDocumentType.WASTE => "HK",
-                _ => "DOC"
+                InventoryDocumentType.STOCK_TAKE => "KK"
             };
 
             return $"{prefix}-{DateTime.Now:yyyyMMddHHmmssfff}";
@@ -281,7 +290,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // XỬ LÝ NHẬP KHO
         private async Task<InventoryDocument> ProcessImport(InventoryDocumentVM vm, int staffId, List<(InventoryDocumentDetailCreateVM item, decimal baseQty)> items)
         {
-            var document = CreateDocument(vm, staffId, items);
+            var document = await CreateDocument(vm, staffId, items);
 
             await _repository.AddAsync(document);
             await _repository.SaveChangesAsync();
@@ -296,7 +305,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             await ValidateStock(vm.StoreId, items);
 
-            var document = CreateDocument(vm, staffId, items);
+            var document = await CreateDocument(vm, staffId, items);
 
             await _repository.AddAsync(document);
             await _repository.SaveChangesAsync();
@@ -313,7 +322,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             await ValidateStock(vm.StoreId, items);
 
-            var document = CreateDocument(vm, staffId, items);
+            var document = await CreateDocument(vm, staffId, items);
 
             await _repository.AddAsync(document);
             await _repository.SaveChangesAsync();
@@ -326,7 +335,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // XỬ LÝ KIỂM KÊ TỒN KHO
         private async Task<InventoryDocument> ProcessStockTake(InventoryDocumentVM vm, int staffId, List<(InventoryDocumentDetailCreateVM item, decimal baseQty)> items)
         {
-            var document = CreateDocument(vm, staffId, items);
+            var document = await CreateDocument(vm, staffId, items);
 
             await _repository.AddAsync(document);
             await _repository.SaveChangesAsync();
@@ -381,7 +390,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         }
 
         // TẠO PHIẾU NHẬP/XUẤT/HỦY
-        private InventoryDocument CreateDocument(InventoryDocumentVM vm, int staffId, List<(InventoryDocumentDetailCreateVM item, decimal baseQty)> items)
+        private async Task<InventoryDocument> CreateDocument(InventoryDocumentVM vm, int staffId, List<(InventoryDocumentDetailCreateVM item, decimal baseQty)> items)
         {
             var document = new InventoryDocument
             {
@@ -402,10 +411,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             foreach (var (item, baseQty) in items)
             {
-                var unitPrice = vm.Type == InventoryDocumentType.IMPORT
-                    || vm.Purpose == InventoryDocumentPurpose.DEBT
-                        ? item.UnitPrice
-                        : null;
+                decimal? unitPrice = null;
+
+                if (vm.Type == InventoryDocumentType.IMPORT || vm.Purpose == InventoryDocumentPurpose.DEBT)
+                {
+                    unitPrice = item.UnitPrice;
+                }
+                else if (vm.Type == InventoryDocumentType.EXPORT)
+                {
+                    unitPrice = await _repository.GetLastPriceAsync(vm.StoreId, item.IngredientId);
+                }
 
                 var totalAmount = unitPrice.HasValue 
                     ? unitPrice.Value * item.Quantity 
@@ -547,6 +562,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 // ================= EXPORT =================
                 case InventoryDocumentPurpose.SALE:
                 case InventoryDocumentPurpose.DEBT:
+                case InventoryDocumentPurpose.GIFT:
                     if (vm.PartnerId == null && string.IsNullOrEmpty(vm.PartnerName))
                         throw new Exception("Xuất bán phải có khách hàng");
                     break;
@@ -597,6 +613,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     break;
 
                 case InventoryDocumentPurpose.GIFT:
+                    vm.PartnerType = InventoryPartnerType.CUSTOMER;
+
+                    if (string.IsNullOrWhiteSpace(vm.PartnerName))
+                        throw new Exception("Tặng phải có người nhận");
+
+                    vm.PartnerId = null; // optional
+                    break;
                 case InventoryDocumentPurpose.SAMPLE:
                 case InventoryDocumentPurpose.ADJUSTMENT_OUT:
                     vm.PartnerType = InventoryPartnerType.NONE;

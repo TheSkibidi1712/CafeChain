@@ -4,7 +4,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Ingredients
 {
     public interface IAdminIngredientRepository
     {
-        Task<List<Ingredient>> GetAllAsync(string? search, bool? status);
+        Task<(List<Ingredient> Items, int Total)> GetPagedAsync(string? search, bool? status, int page, int pageSize); 
         Task<Ingredient?> GetByIdAsync(int id);
 
         Task CreateAsync(Ingredient ingredient);

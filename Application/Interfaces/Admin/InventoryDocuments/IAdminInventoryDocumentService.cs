@@ -15,9 +15,10 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         // ================= TẠO PHIẾU=================
         Task CreateAsync(InventoryDocumentVM vm);
-        
+
 
         // PHỤ
+        Task<decimal?> GetLastPriceAsync(int storeId, int ingredientId);
         Task<ImportInfoDTO> GetImportInfoAsync(int ingredientId, int supplierId);
         Task<decimal> GetStockAsync(int storeId, int ingredientId);
         Task<List<Unit>> GetUnitsByIngredientAsync(int ingredientId);

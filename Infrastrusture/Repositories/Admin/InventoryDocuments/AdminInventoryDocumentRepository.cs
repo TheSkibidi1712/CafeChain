@@ -1,6 +1,7 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -58,6 +59,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Store)
                 .Include(x => x.Staff)
                 .Include(x => x.Supplier)
+                .Include(x => x.ExportTransfer)
+                .Include(x => x.ImportTransfer)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Ingredient)
                         .ThenInclude(i => i.BaseUnit)
@@ -65,27 +68,43 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     .ThenInclude(d => d.Unit)
                 .AsQueryable();
 
+            // ================= FILTER KEYWORD =================
             if (!string.IsNullOrEmpty(f.Keyword))
+            {
                 query = query.Where(x => x.Code.Contains(f.Keyword));
+            }
 
+            // ================= FILTER STORE =================
             if (f.StoreId.HasValue)
+            {
                 query = query.Where(x => x.StoreId == f.StoreId);
+            }
 
+            // ================= FILTER TYPE (QUAN TRỌNG) =================
             if (f.Type.HasValue)
+            {
                 query = query.Where(x => x.Type == f.Type);
+            }
 
+            // ================= FILTER DATE =================
             if (f.FromDate.HasValue)
+            {
                 query = query.Where(x => x.DocumentDate >= f.FromDate);
+            }
 
             if (f.ToDate.HasValue)
+            {
                 query = query.Where(x => x.DocumentDate <= f.ToDate);
+            }
 
+            // ================= TOTAL =================
             var total = await query.CountAsync();
 
+            // ================= PAGING =================
             var data = await query
                 .OrderByDescending(x => x.DocumentDate)
-                .Skip((f.Page - 1) * f.PageSize)
-                .Take(f.PageSize)
+                .Skip((f.Page - 1) * 10)
+                .Take(10)
                 .ToListAsync();
 
             return (data, total);
@@ -100,6 +119,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Store)
                 .Include(x => x.Staff)
                 .Include(x => x.Supplier)
+                .Include(x => x.ExportTransfer)
+                .Include(x => x.ImportTransfer)
                 .Include(x => x.Details)
                     .ThenInclude(d => d.Ingredient)
                         .ThenInclude(i => i.BaseUnit)
@@ -149,6 +170,20 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     x.SupplierId == supplierId);
         }
 
+        public async Task<decimal?> GetLastPriceAsync(int storeId, int ingredientId)
+        {
+            return await _context.InventoryDocumentDetails
+                .Where(d =>
+                    d.IngredientId == ingredientId &&
+                    d.UnitPrice != null &&
+                    d.InventoryDocument.Type == InventoryDocumentType.IMPORT &&
+                    d.InventoryDocument.StoreId == storeId &&
+                    d.InventoryDocument.Status == InventoryDocumentStatus.CONFIRMED
+                )
+                .OrderByDescending(d => d.InventoryDocument.DocumentDate)
+                .Select(d => d.UnitPrice)
+                .FirstOrDefaultAsync();
+        }
 
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
         {

@@ -13,17 +13,32 @@
     <!-- FILTER -->
     <div class="row mb-3">
         <div class="col-md-4">
-            <input id="searchBox" class="form-control" placeholder="Tìm..." />
+            <input id="searchBox"
+                   class="form-control"
+                   placeholder="Tìm..."
+                   value="@ViewBag.Search" />
         </div>
+
         <div class="col-md-3">
             <select id="statusFilter" class="form-select">
                 <option value="">-- Trạng thái --</option>
-                <option value="true">Hoạt động</option>
-                <option value="false">Ngưng</option>
+
+                <option value="true"
+                        selected="@(ViewBag.Status?.ToString() == "True")">
+                    Hoạt động
+                </option>
+
+                <option value="false"
+                        selected="@(ViewBag.Status?.ToString() == "False")">
+                    Ngưng
+                </option>
             </select>
         </div>
+
         <div class="col-md-2">
-            <button class="btn btn-dark w-100" id="btnFilter">Lọc</button>
+            <button class="btn btn-dark w-100" id="btnFilter">
+                Lọc
+            </button>
         </div>
     </div>
 
@@ -61,6 +76,33 @@
             }
         </tbody>
     </table>
+    <div class="pagination">
+
+        @if (ViewBag.Page > 1)
+        {
+            <a class="page-btn"
+                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)">
+                ←
+            </a>
+        }
+
+        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+        {
+            <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
+                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i">
+                @i
+            </a>
+        }
+
+        @if (ViewBag.Page < ViewBag.TotalPages)
+        {
+            <a class="page-btn"
+                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)">
+                →
+            </a>
+        }
+
+    </div>
 </div>
 
 <!-- MODAL -->

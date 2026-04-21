@@ -15,13 +15,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients
         }
 
         // ================= GET ALL =================
-        public async Task<List<Ingredient>> GetAllAsync(string? search, bool? status)
+        public async Task<(List<Ingredient> Items, int Total)> GetPagedAsync(string? search, bool? status, int page, int pageSize)
         {
             var query = _context.Ingredients
                 .Include(x => x.BaseUnit)
                 .AsQueryable();
 
-            // 🔍 SEARCH (code + name)
+            // SEARCH
             if (!string.IsNullOrWhiteSpace(search))
             {
                 search = search.Trim().ToLower();
@@ -31,15 +31,21 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients
                     x.Name.ToLower().Contains(search));
             }
 
-            // 🔥 FILTER STATUS
+            // FILTER STATUS
             if (status.HasValue)
             {
                 query = query.Where(x => x.Active == status.Value);
             }
 
-            return await query
+            var total = await query.CountAsync();
+
+            var data = await query
                 .OrderBy(x => x.IngredientId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
+
+            return (data, total);
         }
 
         // ================= GET BY ID =================

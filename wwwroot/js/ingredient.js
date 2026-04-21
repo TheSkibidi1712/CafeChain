@@ -174,23 +174,25 @@ function updateRowDOM(d) {
 
 // ===== FILTER =====
 function applyFilter() {
+    const search = $("#searchBox").val();
+    const status = $("#statusFilter").val();
 
-    let search = $("#searchBox").val().toLowerCase();
-    let status = $("#statusFilter").val();
+    let url = "/Admin/AdminIngredient?";
 
-    $("#ingredientTable tr").each(function () {
+    // giữ search
+    if (search && search.trim() !== "") {
+        url += `search=${encodeURIComponent(search.trim())}&`;
+    }
 
-        let text = $(this).text().toLowerCase();
-        let isActive = $(this).find(".badge").text().includes("Hoạt động");
+    // giữ status
+    if (status !== "") {
+        url += `status=${status}&`;
+    }
 
-        let matchSearch = text.includes(search);
-        let matchStatus =
-            !status ||
-            (status === "true" && isActive) ||
-            (status === "false" && !isActive);
+    // luôn quay về page 1 khi lọc
+    url += "page=1";
 
-        $(this).toggle(matchSearch && matchStatus);
-    });
+    window.location.href = url;
 }
 
 

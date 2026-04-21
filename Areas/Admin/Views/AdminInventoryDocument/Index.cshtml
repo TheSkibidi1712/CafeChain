@@ -1,6 +1,8 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.InventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
-
+@{
+    var selectedType = ViewBag.Type?.ToString();
+}
 <link rel="stylesheet" href="~/css/inventorydocument.css" />
 
 <div class="inventory-container">
@@ -18,28 +20,28 @@
 
             <div class="filter-item">
                 <label>Mã phiếu</label>
-                <input id="search" placeholder="Nhập mã..." />
+                <input id="search" value="@ViewBag.Keyword" placeholder="Nhập mã..." />
             </div>
 
             <div class="filter-item">
                 <label>Loại phiếu</label>
                 <select id="filterType">
                     <option value="">-- Tất cả --</option>
-                    <option value="1">Nhập kho</option>
-                    <option value="2">Xuất kho</option>
-                    <option value="3">Hủy kho</option>
-                    <option value="4">Kiểm kê</option>
+                    <option value="1" selected="@(selectedType == "1" ? "selected" : null)">Nhập kho</option>
+                    <option value="2" selected="@(selectedType == "2" ? "selected" : null)">Xuất kho</option>
+                    <option value="3" selected="@(selectedType == "3" ? "selected" : null)">Hủy kho</option>
+                    <option value="4" selected="@(selectedType == "4" ? "selected" : null)">Kiểm kê</option>
                 </select>
             </div>
 
             <div class="filter-item">
                 <label>Từ ngày</label>
-                <input type="date" id="fromDate" />
+                <input type="date" id="fromDate" value="@ViewBag.FromDate?.ToString("yyyy-MM-dd")" />
             </div>
 
             <div class="filter-item">
                 <label>Đến ngày</label>
-                <input type="date" id="toDate" />
+                <input type="date" id="toDate" value="@ViewBag.ToDate?.ToString("yyyy-MM-dd")"/>
             </div>
 
             <div class="filter-actions">
@@ -58,6 +60,7 @@
         <button type="button" class="tab-btn" onclick="switchTab(event,'wasteTab')">🗑️ Hủy kho</button>
     </div>
 
+
     <!-- ================= IMPORT ================= -->
     <div id="importTab" class="tab-content active">
         <div class="header">
@@ -66,10 +69,8 @@
             </button>
         </div>
 
-        @Html.Partial("_InventoryTable",
-            Model.Items.Where(x => x.Type == InventoryDocumentType.IMPORT).ToList())
+        @Html.Partial("_InventoryTable", Model.Items.ToList())
     </div>
-
     <!-- ================= EXPORT ================= -->
     <div id="exportTab" class="tab-content">
         <div class="header">
@@ -78,8 +79,7 @@
             </button>
         </div>
 
-        @Html.Partial("_InventoryTable",
-            Model.Items.Where(x => x.Type == InventoryDocumentType.EXPORT).ToList())
+        @Html.Partial("_InventoryTable", Model.Items.ToList())
     </div>
 
     <!-- ================= STOCK ================= -->
@@ -90,8 +90,7 @@
             </button>
         </div>
 
-        @Html.Partial("_InventoryTable",
-            Model.Items.Where(x => x.Type == InventoryDocumentType.STOCK_TAKE).ToList())
+        @Html.Partial("_InventoryTable", Model.Items.ToList())
     </div>
 
     <!-- ================= WASTE ================= -->
@@ -102,19 +101,78 @@
             </button>
         </div>
 
-        @Html.Partial("_InventoryTable",
-            Model.Items.Where(x => x.Type == InventoryDocumentType.WASTE).ToList())
+        @Html.Partial("_InventoryTable", Model.Items.ToList())
     </div>
+    @{
+        int currentPage = ViewBag.CurrentPage ?? 1;
+        int totalPages = ViewBag.TotalPages ?? 1;
 
+        string keyword = ViewBag.Keyword ?? "";
+        string type = ViewBag.Type?.ToString() ?? "";
+        string fromDate = ViewBag.FromDate != null
+            ? ((DateTime)ViewBag.FromDate).ToString("yyyy-MM-dd")
+            : "";
+
+        string toDate = ViewBag.ToDate != null
+            ? ((DateTime)ViewBag.ToDate).ToString("yyyy-MM-dd")
+            : "";
+
+        string BuildUrl(int page)
+        {
+            return Url.Action("Index", "AdminInventoryDocument", new
+            {
+                area = "Admin",
+                keyword = keyword,
+                type = type,
+                fromDate = fromDate,
+                toDate = toDate,
+                page = page,
+                pageSize = 10
+            }) ?? "#";
+        }
+    }
+
+    @if (totalPages > 1)
+    {
+        <div class="pagination">
+
+            @if (currentPage > 1)
+            {
+                <a class="page-btn" href="@BuildUrl(currentPage - 1)">
+                    ←
+                </a>
+            }
+
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <a class="page-btn @(i == currentPage ? "active" : "")"
+                       href="@BuildUrl(i)">
+                    @i
+                </a>
+            }
+
+            @if (currentPage < totalPages)
+            {
+                <a class="page-btn" href="@BuildUrl(currentPage + 1)">
+                    →
+                </a>
+            }
+
+        </div>
+    }
 </div>
 
 <!-- ================= DETAIL MODAL ================= -->
 <div id="detailModal" class="modal">
     <div class="modal-content">
+        <div class="modal-close" onclick="closeModal('detailModal')">
+            <i class="fa fa-times"></i>
+        </div>
+
         <div class="modal-header">
             <h3>📄 Chi tiết phiếu</h3>
-            <span onclick="closeModal('detailModal')" class="close">×</span>
         </div>
+
         <div id="detailContent"></div>
     </div>
 </div>
@@ -159,13 +217,12 @@
                     <select id="importPurposeSelect">
                         <option value="">-- Chọn --</option>
                         <option value="1">Nhập hàng</option>
-                        <option value="2">Nhập nội bộ</option>
                         <option value="3">Điều chỉnh tăng tồn kho</option>
                     </select>
                 </div>
-                <div id="fromStoreBox" style="display:none">
-                    <label>🏬 Kho xuất</label>
-                    <select id="fromStore"></select>
+                <div id="transferDocumentBox" style="display:none">
+                    <label>📄 Phiếu chuyển kho</label>
+                    <select id="transferDocument"></select>
                 </div>
 
                 <div id="exportPurpose" style="display:none">
@@ -175,7 +232,6 @@
                         <option value="5">Bán hàng</option>
                         <option value="6">Xuất nội bộ</option>
                         <option value="7">Tặng</option>
-                        <option value="8">Cho nợ</option>
                         <option value="9">Xuất dùng thử</option>
                         <option value="10">Điều chỉnh giảm tồn kho</option>
                     </select>
@@ -242,4 +298,4 @@
     </div>
 </div>
 
-<script type="module" src="`/js/inventorydocument.js"></script>
+<script type="module" src="~/js/inventorydocument.js"></script>

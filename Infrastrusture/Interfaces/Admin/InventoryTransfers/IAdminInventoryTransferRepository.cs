@@ -11,6 +11,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task<InventoryTransfer?> GetTransferByIdAsync(int id);
         Task<InventoryDocument> GetDocumentWithDetailsAsync(int id);
         Task<List<Store>> GetStoresByIdsAsync(List<int> ids);
-        Task<List<Store>> GetStoresHasPendingTransferToStore(int storeId);
+        Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId);
     }
 }

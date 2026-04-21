@@ -14,7 +14,6 @@
             <th>Loại</th>
             <th>Trạng thái</th>
             <th>Ngày</th>
-            <th>Tổng SL</th>
             @if (Model.Any(x => x.Type == InventoryDocumentType.IMPORT))
             {
                 <th>Tổng tiền</th>
@@ -69,7 +68,6 @@
                 </td>
                 <td>@item.Date.ToString("dd/MM/yyyy")</td>
 
-                <td>@($"{item.TotalQuantity:N0} {item.BaseUnitName}")</td>
                 @if (item.Type == InventoryDocumentType.IMPORT )
                 {
                     <td>@item.TotalAmount.ToString("N0")</td>
@@ -83,6 +81,15 @@
                             onclick="event.stopPropagation(); openDetail(@item.Id)">
                         Chi tiết
                     </button>
+
+                    @if (item.Type == InventoryDocumentType.IMPORT && item.Purpose == InventoryDocumentPurpose.IMPORT_INTERNAL && item.Status != InventoryDocumentStatus.CONFIRMED)
+                    {
+                        <button type="button"
+                                class="btn-confirm"
+                                onclick="confirmAll(@item.InventoryTransferId)">
+                            Confirm nhận hết
+                        </button>
+                    }
                 </td>
             </tr>
         }

@@ -24,8 +24,15 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
         {
             return await _context.InventoryTransfers
                 .Include(x => x.Details)
+                    .ThenInclude(x => x.Ingredient)
+                        .ThenInclude(x => x.BaseUnit)
+
                 .Include(x => x.ExportDocument)
                 .Include(x => x.ImportDocument)
+
+                .Include(x => x.FromStore)
+                .Include(x => x.ToStore)
+
                 .FirstOrDefaultAsync(x => x.InventoryTransferId == id);
         }
 
@@ -43,15 +50,22 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .ToListAsync();
         }
 
-        public async Task<List<Store>> GetStoresHasPendingTransferToStore(int storeId)
+        public async Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId)
         {
             return await _context.InventoryTransfers
-                .Where(x => x.ToStoreId == storeId
-                         && x.Status != InventoryTransferStatus.COMPLETED
-                         && x.Status != InventoryTransferStatus.CANCELLED)
-                .Select(x => x.FromStore)
-                .Distinct()
+                .Include(x => x.ExportDocument)
+                .Include(x => x.ImportDocument)
+                .Include(x => x.FromStore)
+                .Include(x => x.ToStore)
+                .Include(x => x.Details)
+                .Where(x =>
+                    x.ToStoreId == storeId &&
+                    x.Status != InventoryTransferStatus.COMPLETED &&
+                    x.Status != InventoryTransferStatus.CANCELLED
+                )
+                .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
         }
+
     }
 }
