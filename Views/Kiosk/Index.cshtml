@@ -206,8 +206,8 @@
                     <div>
                         <h3>Lịch làm việc hôm nay</h3>
                         <div class="staff-badge">
-                            <i class="fas fa-user"></i> Nhân viên trực: <strong>@User.Identity?.Name</strong>
-                            <a href="#" onclick="openRegistration()" class="ms-2" style="font-size: 11px; color: var(--warning); text-decoration: none;"><i class="fas fa-redo"></i> Quét lại FaceID</a>
+                            <i class="fas fa-user-circle" style="font-size:16px; margin-right:4px;"></i> <strong style="font-size:15px;">@User.Identity?.Name</strong>
+                            <a href="#" onclick="openRegistration()" class="ms-3" style="font-size: 11px; color: var(--warning); text-decoration: none;"><i class="fas fa-redo"></i> Cập nhật FaceID</a>
                         </div>
                     </div>
                     <div class="total-hours text-center">
@@ -337,14 +337,13 @@
                     <strong>Bạn không có ca làm việc nào trong khung giờ này</strong><br>
                     <small>Vui lòng kiểm tra lại lịch làm việc hoặc liên hệ Quản lý.</small>
                 </div>`;
-                document.getElementById('totalHours').textContent = '00:00';
+                document.getElementById('totalHours').textContent = '00:00:00';
+                if (window.kioskWorkingTimer) clearInterval(window.kioskWorkingTimer);
                 return;
             }
 
             let html = '';
-            let totalHours = 0;
             data.shifts.forEach(shift => {
-                totalHours += parseFloat(shift.hours) || 0;
                 const statusLabels = { completed: '✅ ĐÃ HOÀN THÀNH', current: '🔥 HIỆN TẠI', upcoming: '⏰ SẮP TỚI' };
                 html += `
                     <div class="shift-item ${shift.uiStatus}">
@@ -356,7 +355,32 @@
                     </div>`;
             });
             container.innerHTML = html;
-            document.getElementById('totalHours').textContent = `${totalHours.toFixed(1)}h`;
+
+            // Live Stopwatch Logic cho TỔNG GIỜ LÀM VIỆC
+            if (window.kioskWorkingTimer) clearInterval(window.kioskWorkingTimer);
+            
+            let totalCompletedSecs = data.completedWorkingSeconds || 0;
+            let checkInIso = data.checkInIso ? new Date(data.checkInIso) : null;
+            let serverIso = data.serverTimeIso ? new Date(data.serverTimeIso) : new Date();
+            let localDelta = serverIso.getTime() - Date.now();
+
+            function updateKioskTotalHours() {
+                let currentSecs = totalCompletedSecs;
+                if (checkInIso) {
+                    let nowServer = new Date(Date.now() + localDelta);
+                    let elapsed = Math.max(0, (nowServer - checkInIso) / 1000);
+                    currentSecs += elapsed;
+                }
+                const h = String(Math.floor(currentSecs / 3600)).padStart(2, '0');
+                const m = String(Math.floor((currentSecs % 3600) / 60)).padStart(2, '0');
+                const s = String(Math.floor(currentSecs % 60)).padStart(2, '0');
+                
+                if(isNaN(currentSecs)) { document.getElementById('totalHours').textContent = "00:00:00"; return; }
+                document.getElementById('totalHours').textContent = `${h}:${m}:${s}`;
+            }
+
+            window.kioskWorkingTimer = setInterval(updateKioskTotalHours, 1000);
+            updateKioskTotalHours();
 
             // Face ID Warning Banner (nếu chưa đăng ký)
             if (!data.hasFaceId) {
@@ -397,11 +421,8 @@
                 return;
             }
 
-            // 🔥 PRE-CHECK: Hôm nay không có ca → CHẶN
-            if (!kioskState.shifts || kioskState.shifts.length === 0) {
-                Swal.fire({ icon: 'info', title: 'Không có ca', text: 'Hôm nay bạn không được xếp ca làm việc.' });
-                return;
-            }
+            // 🔥 Bỏ PRE-CHECK "Không có ca" tại đây để truyền request xuống Server. 
+            // Server sẽ kiểm tra và trả về mã lỗi AD_HOC_CONFIRMATION_REQUIRED nếu cần tạo Ca Tự Do.
 
             currentAction = action;
             isRegistrationMode = false;
@@ -594,7 +615,43 @@
                     bootstrap.Modal.getInstance(document.getElementById('faceModal'))?.hide();
                     
                     let errorMsg = xhr.responseJSON?.message || 'Xác thực thất bại.';
-                    if (errorMsg.includes("Khuôn mặt không khớp")) {
+                    let errorCode = xhr.responseJSON?.errorCode;
+
+                    if (errorCode === 'AD_HOC_CONFIRMATION_REQUIRED') {
+                        Swal.fire({
+                            title: "Cảnh báo",
+                            text: errorMsg,
+                            icon: "warning",
+                            showCancelButton: true,
+                            confirmButtonText: "Lưu (Ca Tự Do)",
+                            cancelButtonText: "Đóng"
+                        }).then((swalRes) => {
+                            if (swalRes.isConfirmed) {
+                                // Gọi lại API truyền forceSave = true
+                                const newFormData = new FormData();
+                                newFormData.append('accountId', accId);
+                                newFormData.append('actionType', action);
+                                newFormData.append('faceDescriptor', vectorJson);
+                                newFormData.append('forceSave', true);
+
+                                $.ajax({
+                                    url: '/api/Attendance/SubmitTimeAction',
+                                    type: 'POST',
+                                    data: newFormData,
+                                    processData: false,
+                                    contentType: false,
+                                    success: function(res) {
+                                        Swal.fire({ icon: 'success', title: 'Thành Công!', text: res.message, timer: 3000, showConfirmButton: false });
+                                        setTimeout(() => loadKioskData(), 1500);
+                                    },
+                                    error: function(retryXhr) {
+                                        Swal.fire({ icon: 'error', title: 'Thất Bại!', text: retryXhr.responseJSON?.message || 'Chấm công thất bại' });
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    else if (errorMsg.includes("Khuôn mặt không khớp")) {
                         Swal.fire({ 
                             icon: 'error', 
                             title: 'Thất Bại!', 

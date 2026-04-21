@@ -160,6 +160,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ==================== DYNAMIC DROPDOWN API ====================
         [HttpGet]
+        [AllowAnonymous]
         public async Task<IActionResult> GetScopeReferences(int scopeTypeId, int? parentId = null)
         {
             try

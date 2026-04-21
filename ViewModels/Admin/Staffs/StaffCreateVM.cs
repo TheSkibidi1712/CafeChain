@@ -32,12 +32,13 @@ namespace CafeChain.ViewModels.Admin.Staffs
         public decimal OvertimeRate { get; set; }
 
         public string? SocialInsuranceNumber { get; set; }
-        public int DependentCount { get; set; }
-        public string? DependentTaxCode { get; set; }
+        [StringLength(15, MinimumLength = 10, ErrorMessage = "Mã số BHYT phải từ 10 đến 15 ký tự")]
+        public string? HealthInsuranceNumber { get; set; }
 
-        public string? BankName { get; set; }
-        public string? AccountNumber { get; set; }
-        public string? AccountHolderName { get; set; }
+        public List<StaffDependentVM> Dependents { get; set; } = new();
+
+        public List<StaffBankVM> Banks { get; set; } = new();
+        public int PrimaryBankIndex { get; set; }
 
         public DateTime? DateOfBirth { get; set; }
 

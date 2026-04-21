@@ -843,7 +843,8 @@ namespace CafeChain.Migrations
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 100m),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    DrinkId = table.Column<int>(type: "int", nullable: true)
+                    DrinkId = table.Column<int>(type: "int", nullable: true),
+                    ToppingId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -852,7 +853,14 @@ namespace CafeChain.Migrations
                         name: "FK_Recipes_Drinks_DrinkId",
                         column: x => x.DrinkId,
                         principalTable: "Drinks",
-                        principalColumn: "DrinkId");
+                        principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Recipes_Toppings_ToppingId",
+                        column: x => x.ToppingId,
+                        principalTable: "Toppings",
+                        principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1156,6 +1164,8 @@ namespace CafeChain.Migrations
                     StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
                     EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
                     IsOvernight = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    IsFreeShift = table.Column<bool>(type: "bit", nullable: false),
+                    Duration = table.Column<TimeSpan>(type: "time", nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(max)", nullable: true)
@@ -1190,8 +1200,7 @@ namespace CafeChain.Migrations
                     ProbationRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     OvertimeRate = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     SocialInsuranceNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DependentCount = table.Column<int>(type: "int", nullable: false),
-                    DependentTaxCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    HealthInsuranceNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     FaceDescriptor = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
@@ -1501,7 +1510,8 @@ namespace CafeChain.Migrations
                     StaffId = table.Column<int>(type: "int", nullable: true),
                     BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    AccountHolderName = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                    AccountHolderName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1512,6 +1522,30 @@ namespace CafeChain.Migrations
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffDependents",
+                columns: table => new
+                {
+                    StaffDependentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    TaxCode = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Relationship = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffDependents", x => x.StaffDependentId);
+                    table.ForeignKey(
+                        name: "FK_StaffDependents_Staffs_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1569,12 +1603,14 @@ namespace CafeChain.Migrations
                     StaffShiftId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     StaffId = table.Column<int>(type: "int", nullable: false),
-                    ShiftId = table.Column<int>(type: "int", nullable: false),
+                    ShiftId = table.Column<int>(type: "int", nullable: true),
+                    IsAdHoc = table.Column<bool>(type: "bit", nullable: false),
                     CustomStartTime = table.Column<TimeSpan>(type: "time", nullable: true),
                     CustomEndTime = table.Column<TimeSpan>(type: "time", nullable: true),
                     WorkDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ActualCheckIn = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ActualCheckOut = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PayrollHours = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     StatusId = table.Column<int>(type: "int", nullable: false, defaultValue: 1)
                 },
                 constraints: table =>
@@ -2070,19 +2106,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Recipes",
-                columns: new[] { "RecipeId", "Active", "DrinkId", "Name", "YieldPercentage" },
-                values: new object[,]
-                {
-                    { 1, true, null, "Recipe CF Sữa", 100m },
-                    { 2, true, null, "Recipe CF Đen", 100m },
-                    { 3, true, null, "Recipe Trà sữa", 100m },
-                    { 4, true, null, "Recipe Trà sữa socola", 100m },
-                    { 5, true, null, "Trân châu đen", 100m },
-                    { 6, true, null, "Trân châu trắng", 100m }
-                });
-
-            migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "Active", "CreatedAt", "IsStoreLevel", "Name" },
                 values: new object[,]
@@ -2207,9 +2230,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 19, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(94), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 12, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(86), null },
-                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 4, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(98), null, null, 500, null, 50000m, new DateTime(2026, 4, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(97), null },
-                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 18, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(100), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 20, 0, 33, 50, 76, DateTimeKind.Local).AddTicks(99), null }
+                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 21, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5432), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 14, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5409), null },
+                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 6, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5438), null, null, 500, null, 50000m, new DateTime(2026, 4, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5437), null },
+                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5442), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 22, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5441), null }
                 });
 
             migrationBuilder.InsertData(
@@ -2269,39 +2292,43 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "RecipeDetails",
-                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
-                values: new object[] { 21, 5, null, 1m, 3, 1 });
+                table: "Recipes",
+                columns: new[] { "RecipeId", "Active", "DrinkId", "Name", "ToppingId", "YieldPercentage" },
+                values: new object[,]
+                {
+                    { 5, true, null, "Trân châu đen", 1, 100m },
+                    { 6, true, null, "Trân châu trắng", 2, 100m }
+                });
 
             migrationBuilder.InsertData(
                 table: "Shifts",
-                columns: new[] { "ShiftId", "EndTime", "Name", "Notes", "StartTime", "StoreId" },
+                columns: new[] { "ShiftId", "Duration", "EndTime", "IsFreeShift", "Name", "Notes", "StartTime", "StoreId" },
                 values: new object[,]
                 {
-                    { 1, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 1 },
-                    { 2, new TimeSpan(0, 18, 0, 0, 0), "Ca chiều", null, new TimeSpan(0, 12, 0, 0, 0), 1 },
-                    { 3, new TimeSpan(0, 23, 0, 0, 0), "Ca tối", null, new TimeSpan(0, 18, 0, 0, 0), 1 },
-                    { 4, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 2 },
-                    { 5, new TimeSpan(0, 18, 0, 0, 0), "Ca chiều", null, new TimeSpan(0, 12, 0, 0, 0), 2 },
-                    { 6, new TimeSpan(0, 12, 0, 0, 0), "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 3 },
-                    { 7, new TimeSpan(0, 23, 0, 0, 0), "Ca tối", null, new TimeSpan(0, 18, 0, 0, 0), 3 }
+                    { 1, null, new TimeSpan(0, 12, 0, 0, 0), false, "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 1 },
+                    { 2, null, new TimeSpan(0, 18, 0, 0, 0), false, "Ca chiều", null, new TimeSpan(0, 12, 0, 0, 0), 1 },
+                    { 3, null, new TimeSpan(0, 23, 0, 0, 0), false, "Ca tối", null, new TimeSpan(0, 18, 0, 0, 0), 1 },
+                    { 4, null, new TimeSpan(0, 12, 0, 0, 0), false, "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 2 },
+                    { 5, null, new TimeSpan(0, 18, 0, 0, 0), false, "Ca chiều", null, new TimeSpan(0, 12, 0, 0, 0), 2 },
+                    { 6, null, new TimeSpan(0, 12, 0, 0, 0), false, "Ca sáng", null, new TimeSpan(0, 6, 0, 0, 0), 3 },
+                    { 7, null, new TimeSpan(0, 23, 0, 0, 0), false, "Ca tối", null, new TimeSpan(0, 18, 0, 0, 0), 3 }
                 });
 
             migrationBuilder.InsertData(
                 table: "Staffs",
-                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "DependentCount", "DependentTaxCode", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "OvertimeRate", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
+                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "HealthInsuranceNumber", "OvertimeRate", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
                 values: new object[,]
                 {
-                    { 101, 101, true, 0m, "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Super Admin System", 0, 0m, 0m, 0, null, null, 1, "TAX101" },
-                    { 102, 102, true, 0m, "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "CEO Director", 0, 0m, 0m, 0, null, null, 1, "TAX102" },
-                    { 103, 103, true, 0m, "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "CFO Finance", 0, 0m, 0m, 0, null, null, 1, "TAX103" },
-                    { 104, 104, true, 0m, "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Marketing Manager", 0, 0m, 0m, 0, null, null, 1, "TAX104" },
-                    { 105, 105, true, 0m, "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Operations Manager", 0, 0m, 0m, 0, null, null, 1, "TAX105" },
-                    { 106, 106, true, 0m, "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "HR Manager", 0, 0m, 0m, 0, null, null, 1, "TAX106" },
-                    { 107, 107, true, 0m, "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Area Manager HCM", 0, 0m, 0m, 0, null, null, 1, "TAX107" },
-                    { 108, 108, true, 0m, "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Store Manager D1", 0, 0m, 0m, 0, null, null, 1, "TAX108" },
-                    { 109, 109, true, 0m, "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Shift Supervisor", 0, 0m, 0m, 0, null, null, 1, "TAX109" },
-                    { 110, 110, true, 0m, "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, 0, null, "Cashier Staff", 0, 0m, 0m, 0, null, null, 1, "TAX110" }
+                    { 101, 101, true, 0m, "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Super Admin System", 0, null, 0m, 0m, 0, null, null, 1, "TAX101" },
+                    { 102, 102, true, 0m, "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CEO Director", 0, null, 0m, 0m, 0, null, null, 1, "TAX102" },
+                    { 103, 103, true, 0m, "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CFO Finance", 0, null, 0m, 0m, 0, null, null, 1, "TAX103" },
+                    { 104, 104, true, 0m, "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Marketing Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX104" },
+                    { 105, 105, true, 0m, "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Operations Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX105" },
+                    { 106, 106, true, 0m, "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "HR Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX106" },
+                    { 107, 107, true, 0m, "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, 0m, 0, null, null, 1, "TAX107" },
+                    { 108, 108, true, 0m, "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, 0m, 0, null, null, 1, "TAX108" },
+                    { 109, 109, true, 0m, "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, 0m, 0, null, null, 1, "TAX109" },
+                    { 110, 110, true, 0m, "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Cashier Staff", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" }
                 });
 
             migrationBuilder.InsertData(
@@ -2565,26 +2592,23 @@ namespace CafeChain.Migrations
                 columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, null, 1, 50m, 1, 3 },
-                    { 2, null, 2, 30m, 1, 3 },
-                    { 3, null, 7, 100m, 1, 3 },
-                    { 4, null, 1, 60m, 2, 3 },
-                    { 5, null, 7, 100m, 2, 3 },
-                    { 6, null, 3, 80m, 3, 3 },
-                    { 7, null, 4, 40m, 3, 3 },
-                    { 8, null, 6, 20m, 3, 3 },
-                    { 9, null, 7, 100m, 3, 3 },
-                    { 10, null, 3, 70m, 4, 3 },
-                    { 11, null, 4, 40m, 4, 3 },
-                    { 12, null, 5, 20m, 4, 3 },
-                    { 13, null, 6, 20m, 4, 3 },
-                    { 14, null, 7, 100m, 4, 3 },
                     { 15, null, 11, 100m, 5, 1 },
                     { 16, null, 12, 50m, 5, 1 },
                     { 17, null, 13, 60m, 5, 3 },
                     { 18, null, 11, 100m, 6, 1 },
                     { 19, null, 6, 40m, 6, 1 },
                     { 20, null, 13, 60m, 6, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Recipes",
+                columns: new[] { "RecipeId", "Active", "DrinkId", "Name", "ToppingId", "YieldPercentage" },
+                values: new object[,]
+                {
+                    { 1, true, 1, "Recipe CF Sữa", null, 100m },
+                    { 2, true, 2, "Recipe CF Đen", null, 100m },
+                    { 3, true, 3, "Recipe Trà sữa", null, 100m },
+                    { 4, true, 4, "Recipe Trà sữa socola", null, 100m }
                 });
 
             migrationBuilder.InsertData(
@@ -2599,12 +2623,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "StaffBanks",
-                columns: new[] { "StaffBankId", "AccountHolderName", "AccountNumber", "BankName", "StaffId" },
+                columns: new[] { "StaffBankId", "AccountHolderName", "AccountNumber", "BankName", "IsPrimary", "StaffId" },
                 values: new object[,]
                 {
-                    { 1, null, "123456789", "Vietcombank", 101 },
-                    { 2, null, "987654321", "ACB", 102 },
-                    { 3, null, "456123789", "Techcombank", 103 }
+                    { 1, null, "123456789", "Vietcombank", false, 101 },
+                    { 2, null, "987654321", "ACB", false, 102 },
+                    { 3, null, "456123789", "Techcombank", false, 103 }
                 });
 
             migrationBuilder.InsertData(
@@ -2645,12 +2669,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "StaffShifts",
-                columns: new[] { "StaffShiftId", "ActualCheckIn", "ActualCheckOut", "CustomEndTime", "CustomStartTime", "ShiftId", "StaffId", "StatusId", "WorkDate" },
+                columns: new[] { "StaffShiftId", "ActualCheckIn", "ActualCheckOut", "CustomEndTime", "CustomStartTime", "IsAdHoc", "PayrollHours", "ShiftId", "StaffId", "StatusId", "WorkDate" },
                 values: new object[,]
                 {
-                    { 1, null, null, null, null, 1, 108, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 2, null, null, null, null, 2, 109, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 3, null, null, null, null, 4, 110, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                    { 1, null, null, null, null, false, null, 1, 108, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, null, null, null, null, false, null, 2, 109, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, null, null, null, null, false, null, 4, 110, 1, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
                 });
 
             migrationBuilder.InsertData(
@@ -2706,6 +2730,28 @@ namespace CafeChain.Migrations
                     { 70, 1m, 10, 8, 750m, 3 },
                     { 71, 1m, 11, 2, 300m, 3 },
                     { 72, 1m, 11, 13, 500m, 3 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "RecipeDetails",
+                columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
+                values: new object[,]
+                {
+                    { 1, null, 1, 50m, 1, 3 },
+                    { 2, null, 2, 30m, 1, 3 },
+                    { 3, null, 7, 100m, 1, 3 },
+                    { 4, null, 1, 60m, 2, 3 },
+                    { 5, null, 7, 100m, 2, 3 },
+                    { 6, null, 3, 80m, 3, 3 },
+                    { 7, null, 4, 40m, 3, 3 },
+                    { 8, null, 6, 20m, 3, 3 },
+                    { 9, null, 7, 100m, 3, 3 },
+                    { 10, null, 3, 70m, 4, 3 },
+                    { 11, null, 4, 40m, 4, 3 },
+                    { 12, null, 5, 20m, 4, 3 },
+                    { 13, null, 6, 20m, 4, 3 },
+                    { 14, null, 7, 100m, 4, 3 },
+                    { 21, 5, null, 1m, 3, 1 }
                 });
 
             migrationBuilder.CreateIndex(
@@ -3273,6 +3319,11 @@ namespace CafeChain.Migrations
                 column: "DrinkId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Recipes_ToppingId",
+                table: "Recipes",
+                column: "ToppingId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Roles_Name",
                 table: "Roles",
                 column: "Name",
@@ -3316,6 +3367,11 @@ namespace CafeChain.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_StaffBanks_StaffId",
                 table: "StaffBanks",
+                column: "StaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffDependents_StaffId",
+                table: "StaffDependents",
                 column: "StaffId");
 
             migrationBuilder.CreateIndex(
@@ -3373,7 +3429,8 @@ namespace CafeChain.Migrations
                 name: "IX_StaffShifts_StaffId_ShiftId_WorkDate",
                 table: "StaffShifts",
                 columns: new[] { "StaffId", "ShiftId", "WorkDate" },
-                unique: true);
+                unique: true,
+                filter: "[ShiftId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StaffShifts_StatusId",
@@ -3668,6 +3725,9 @@ namespace CafeChain.Migrations
                 name: "StaffBanks");
 
             migrationBuilder.DropTable(
+                name: "StaffDependents");
+
+            migrationBuilder.DropTable(
                 name: "StaffPhones");
 
             migrationBuilder.DropTable(
@@ -3746,9 +3806,6 @@ namespace CafeChain.Migrations
                 name: "StaffShiftStatuses");
 
             migrationBuilder.DropTable(
-                name: "Toppings");
-
-            migrationBuilder.DropTable(
                 name: "WheelPrizes");
 
             migrationBuilder.DropTable(
@@ -3765,6 +3822,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Drinks");
+
+            migrationBuilder.DropTable(
+                name: "Toppings");
 
             migrationBuilder.DropTable(
                 name: "Vouchers");

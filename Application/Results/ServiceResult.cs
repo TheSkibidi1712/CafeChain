@@ -6,6 +6,7 @@ namespace CafeChain.Application.Results
     {
         public bool IsSuccess { get; set; }
         public string Message { get; set; }
+        public string ErrorCode { get; set; }
         public List<string> Errors { get; set; } = new List<string>();
 
         public static ServiceResult Success(string message = null)
@@ -13,12 +14,13 @@ namespace CafeChain.Application.Results
             return new ServiceResult { IsSuccess = true, Message = message };
         }
 
-        public static ServiceResult Failure(string message, List<string> errors = null)
+        public static ServiceResult Failure(string message, List<string> errors = null, string errorCode = null)
         {
             return new ServiceResult 
             { 
                 IsSuccess = false, 
                 Message = message, 
+                ErrorCode = errorCode,
                 Errors = errors ?? new List<string>() 
             };
         }
@@ -33,12 +35,13 @@ namespace CafeChain.Application.Results
             return new ServiceResult<T> { IsSuccess = true, Data = data, Message = message };
         }
 
-        public new static ServiceResult<T> Failure(string message, List<string> errors = null)
+        public new static ServiceResult<T> Failure(string message, List<string> errors = null, string errorCode = null)
         {
             return new ServiceResult<T> 
             { 
                 IsSuccess = false, 
                 Message = message, 
+                ErrorCode = errorCode,
                 Errors = errors ?? new List<string>() 
             };
         }

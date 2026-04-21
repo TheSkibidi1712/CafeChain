@@ -4,6 +4,7 @@ using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 {
@@ -110,7 +111,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
             List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks)
+            List<StaffBank> staffBanks,
+            List<StaffDependent> staffDependents)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -162,8 +164,22 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 if (staffBanks.Any())
                     await _context.StaffBanks.AddRangeAsync(staffBanks);
 
+                // 8. Insert StaffDependents
+                foreach (var dep in staffDependents)
+                {
+                    dep.StaffId = staff.StaffId;
+                }
+                if (staffDependents.Any())
+                    await _context.StaffDependents.AddRangeAsync(staffDependents);
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                var message = ParseDuplicateErrorMessage(dbEx);
+                throw new InvalidOperationException(message, dbEx);
             }
             catch
             {
@@ -180,7 +196,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
             List<StaffScope> staffScopes,
             List<StaffPhone> staffPhones,
             List<StaffAddress> staffAddresses,
-            List<StaffBank> staffBanks)
+            List<StaffBank> staffBanks,
+            List<StaffDependent> staffDependents)
         {
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -254,8 +271,27 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                 if (staffBanks.Any())
                     await _context.StaffBanks.AddRangeAsync(staffBanks);
 
+                // 8. Clear & Replace StaffDependents
+                var oldDependents = await _context.StaffDependents
+                    .Where(d => d.StaffId == staff.StaffId)
+                    .ToListAsync();
+                _context.StaffDependents.RemoveRange(oldDependents);
+
+                foreach (var dep in staffDependents)
+                {
+                    dep.StaffId = staff.StaffId;
+                }
+                if (staffDependents.Any())
+                    await _context.StaffDependents.AddRangeAsync(staffDependents);
+
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
+            }
+            catch (DbUpdateException dbEx)
+            {
+                await transaction.RollbackAsync();
+                var message = ParseDuplicateErrorMessage(dbEx);
+                throw new InvalidOperationException(message, dbEx);
             }
             catch
             {
@@ -381,6 +417,29 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
                     s.CCCD == cccd && s.StaffId != excludeStaffId.Value);
 
             return await _context.Staffs.AnyAsync(s => s.CCCD == cccd);
+        }
+
+        // ==================== DUPLICATE ERROR PARSER ====================
+        /// <summary>
+        /// Phân tích lỗi DbUpdateException để trả về thông báo tiếng Việt thay vì crash.
+        /// Xử lý các trường hợp Unique Constraint Violation (SQL Error 2601/2627).
+        /// </summary>
+        private string ParseDuplicateErrorMessage(DbUpdateException dbEx)
+        {
+            if (dbEx.InnerException is SqlException sqlEx && (sqlEx.Number == 2601 || sqlEx.Number == 2627))
+            {
+                var msg = sqlEx.Message;
+                if (msg.Contains("Email", StringComparison.OrdinalIgnoreCase))
+                    return "Lỗi: Email đã tồn tại trong hệ thống. Vui lòng sử dụng email khác.";
+                if (msg.Contains("CCCD", StringComparison.OrdinalIgnoreCase))
+                    return "Lỗi: Số CCCD đã tồn tại trong hệ thống.";
+                if (msg.Contains("TaxCode", StringComparison.OrdinalIgnoreCase))
+                    return "Lỗi: Mã số thuế đã tồn tại trong hệ thống.";
+                if (msg.Contains("Phone", StringComparison.OrdinalIgnoreCase))
+                    return "Lỗi: Số điện thoại đã tồn tại trong hệ thống.";
+                return $"Lỗi: Dữ liệu bị trùng lặp trong hệ thống. Chi tiết: {msg}";
+            }
+            return "Lỗi lưu dữ liệu nhân viên. Vui lòng kiểm tra lại thông tin và thử lại.";
         }
     }
 }

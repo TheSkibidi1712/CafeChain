@@ -216,6 +216,9 @@ builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
 builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
 builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
+// Admin Recipes (BOM Module)
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeService, CafeChain.Application.Services.Admin.Recipes.AdminRecipeService>();
+
 
 // Admin Inventory Documents
 builder.Services.AddScoped<IUserContext, UserContext>();
@@ -275,6 +278,15 @@ builder.Services.AddSingleton(sp => {
         // nhưng cấu hình này đảm bảo các request HTTP khác qua Factory sẽ an toàn.
     );
 });
+// Settings
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Settings.IAdminSettingService, CafeChain.Application.Services.Admin.Settings.AdminSettingService>();
+
+// Trong Program.cs, chỗ builder.Services...
+builder.Services.AddSingleton(new Net.payOS.PayOS(
+    builder.Configuration["PayOS:ClientId"], 
+    builder.Configuration["PayOS:ApiKey"], 
+    builder.Configuration["PayOS:ChecksumKey"]
+));
 
 var app = builder.Build();
 

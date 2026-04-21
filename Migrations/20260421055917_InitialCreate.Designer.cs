@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260420031625_AddDrinkAndToppingIdToRecipes")]
-    partial class AddDrinkAndToppingIdToRecipes
+    [Migration("20260421055917_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -4153,8 +4153,14 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<TimeSpan?>("Duration")
+                        .HasColumnType("time");
+
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
+
+                    b.Property<bool>("IsFreeShift")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsOvernight")
                         .ValueGeneratedOnAdd()
@@ -4187,6 +4193,7 @@ namespace CafeChain.Migrations
                             ShiftId = 1,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
@@ -4197,6 +4204,7 @@ namespace CafeChain.Migrations
                             ShiftId = 2,
                             Active = false,
                             EndTime = new TimeSpan(0, 18, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca chiều",
                             StartTime = new TimeSpan(0, 12, 0, 0, 0),
@@ -4207,6 +4215,7 @@ namespace CafeChain.Migrations
                             ShiftId = 3,
                             Active = false,
                             EndTime = new TimeSpan(0, 23, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca tối",
                             StartTime = new TimeSpan(0, 18, 0, 0, 0),
@@ -4217,6 +4226,7 @@ namespace CafeChain.Migrations
                             ShiftId = 4,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
@@ -4227,6 +4237,7 @@ namespace CafeChain.Migrations
                             ShiftId = 5,
                             Active = false,
                             EndTime = new TimeSpan(0, 18, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca chiều",
                             StartTime = new TimeSpan(0, 12, 0, 0, 0),
@@ -4237,6 +4248,7 @@ namespace CafeChain.Migrations
                             ShiftId = 6,
                             Active = false,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca sáng",
                             StartTime = new TimeSpan(0, 6, 0, 0, 0),
@@ -4247,6 +4259,7 @@ namespace CafeChain.Migrations
                             ShiftId = 7,
                             Active = false,
                             EndTime = new TimeSpan(0, 23, 0, 0, 0),
+                            IsFreeShift = false,
                             IsOvernight = false,
                             Name = "Ca tối",
                             StartTime = new TimeSpan(0, 18, 0, 0, 0),
@@ -4294,12 +4307,6 @@ namespace CafeChain.Migrations
                     b.Property<DateTime?>("DateOfBirth")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DependentCount")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DependentTaxCode")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<int>("EmployeeStatus")
                         .HasColumnType("int");
 
@@ -4313,6 +4320,10 @@ namespace CafeChain.Migrations
 
                     b.Property<int>("Gender")
                         .HasColumnType("int");
+
+                    b.Property<string>("HealthInsuranceNumber")
+                        .HasMaxLength(15)
+                        .HasColumnType("nvarchar(15)");
 
                     b.Property<decimal>("OvertimeRate")
                         .HasColumnType("decimal(18,2)");
@@ -4363,7 +4374,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 50000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Super Admin System",
                             Gender = 0,
@@ -4382,7 +4392,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 100000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "CEO Director",
                             Gender = 0,
@@ -4401,7 +4410,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 80000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "CFO Finance",
                             Gender = 0,
@@ -4420,7 +4428,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 40000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Marketing Manager",
                             Gender = 0,
@@ -4439,7 +4446,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 45000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Operations Manager",
                             Gender = 0,
@@ -4458,7 +4464,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 35000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "HR Manager",
                             Gender = 0,
@@ -4477,7 +4482,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 30000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Area Manager HCM",
                             Gender = 0,
@@ -4496,7 +4500,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 20000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Store Manager D1",
                             Gender = 0,
@@ -4515,7 +4518,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 12000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Shift Supervisor",
                             Gender = 0,
@@ -4534,7 +4536,6 @@ namespace CafeChain.Migrations
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 8000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DependentCount = 0,
                             EmployeeStatus = 0,
                             FullName = "Cashier Staff",
                             Gender = 0,
@@ -4616,6 +4617,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("StaffId")
                         .HasColumnType("int");
 
@@ -4635,6 +4639,7 @@ namespace CafeChain.Migrations
                             StaffBankId = 1,
                             AccountNumber = "123456789",
                             BankName = "Vietcombank",
+                            IsPrimary = false,
                             StaffId = 101
                         },
                         new
@@ -4642,6 +4647,7 @@ namespace CafeChain.Migrations
                             StaffBankId = 2,
                             AccountNumber = "987654321",
                             BankName = "ACB",
+                            IsPrimary = false,
                             StaffId = 102
                         },
                         new
@@ -4649,8 +4655,43 @@ namespace CafeChain.Migrations
                             StaffBankId = 3,
                             AccountNumber = "456123789",
                             BankName = "Techcombank",
+                            IsPrimary = false,
                             StaffId = 103
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffDependent", b =>
+                {
+                    b.Property<int>("StaffDependentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StaffDependentId"));
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Relationship")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TaxCode")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("StaffDependentId");
+
+                    b.HasIndex("StaffId");
+
+                    b.ToTable("StaffDependents");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
@@ -4888,7 +4929,13 @@ namespace CafeChain.Migrations
                     b.Property<TimeSpan?>("CustomStartTime")
                         .HasColumnType("time");
 
-                    b.Property<int>("ShiftId")
+                    b.Property<bool>("IsAdHoc")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("PayrollHours")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("ShiftId")
                         .HasColumnType("int");
 
                     b.Property<int>("StaffId")
@@ -4911,7 +4958,8 @@ namespace CafeChain.Migrations
                     b.HasIndex("WorkDate");
 
                     b.HasIndex("StaffId", "ShiftId", "WorkDate")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[ShiftId] IS NOT NULL");
 
                     b.ToTable("StaffShifts", (string)null);
 
@@ -4919,6 +4967,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 1,
+                            IsAdHoc = false,
                             ShiftId = 1,
                             StaffId = 108,
                             StatusId = 1,
@@ -4927,6 +4976,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 2,
+                            IsAdHoc = false,
                             ShiftId = 2,
                             StaffId = 109,
                             StatusId = 1,
@@ -4935,6 +4985,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffShiftId = 3,
+                            IsAdHoc = false,
                             ShiftId = 4,
                             StaffId = 110,
                             StatusId = 1,
@@ -5516,11 +5567,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 20, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1356),
+                            EndDate = new DateTime(2026, 5, 21, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5432),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 13, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1337)
+                            StartDate = new DateTime(2026, 4, 14, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5409)
                         },
                         new
                         {
@@ -5528,10 +5579,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 5, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1362),
+                            EndDate = new DateTime(2026, 5, 6, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5438),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 19, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1360)
+                            StartDate = new DateTime(2026, 4, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5437)
                         },
                         new
                         {
@@ -5539,11 +5590,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 19, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1367),
+                            EndDate = new DateTime(2026, 6, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5442),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 21, 10, 16, 24, 330, DateTimeKind.Local).AddTicks(1365)
+                            StartDate = new DateTime(2026, 3, 22, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5441)
                         });
                 });
 
@@ -6473,6 +6524,17 @@ namespace CafeChain.Migrations
                     b.Navigation("Staff");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Staffs.StaffDependent", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
+                        .WithMany("StaffDependents")
+                        .HasForeignKey("StaffId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Staff");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffPhone", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
@@ -6508,8 +6570,7 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Staffs.Shift", "Shift")
                         .WithMany("StaffShifts")
                         .HasForeignKey("ShiftId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
                         .WithMany("StaffShifts")
@@ -6930,6 +6991,8 @@ namespace CafeChain.Migrations
                     b.Navigation("StaffAddresses");
 
                     b.Navigation("StaffBanks");
+
+                    b.Navigation("StaffDependents");
 
                     b.Navigation("StaffPhones");
 

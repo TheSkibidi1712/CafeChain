@@ -83,12 +83,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
         public async Task<ServiceResult> AssignShiftAsync(int staffId, int shiftId, DateTime date, TimeSpan? customStart = null, TimeSpan? customEnd = null)
         {
-            // 1. Áp dụng Rule Ân hạn (Grace Period: 3 ngày)
-            var gracePeriodDate = DateTime.Today.AddDays(-3);
-            if (date.Date < gracePeriodDate)
-            {
-                return ServiceResult.Failure("Lỗi: Thời điểm vượt quá giới hạn 3 ngày cho phép xếp ca trong quá khứ.");
-            }
+            // Không còn chặn xếp ca trong quá khứ theo yêu cầu mới.
 
             var staff = await _context.Staffs.FindAsync(staffId);
             if (staff == null || !staff.Active || staff.EmployeeStatus == 3) // Trạng thái 3 = Nghỉ việc
@@ -149,7 +144,52 @@ namespace CafeChain.Application.Services.Admin.Staffs
             await _context.StaffShifts.AddAsync(staffShift);
             await _context.SaveChangesAsync();
 
-            return ServiceResult.Success("Đã gán ca thành công!");
+            // ====================================================================
+            // RECONCILIATION: Tự động liên kết các bản ghi Ca Tự Do (Orphan)
+            // Khi Manager tạo ca mới cho ngày đã có chấm công Ad-hoc,
+            // hệ thống sẽ "nhận nuôi" bản ghi mồ côi đó vào ca chính thức.
+            // ====================================================================
+            var orphanRecords = await _context.StaffShifts
+                .Where(ss => ss.StaffId == staffId
+                           && ss.WorkDate.Date == date.Date
+                           && ss.IsAdHoc == true
+                           && ss.ShiftId == null
+                           && ss.StaffShiftId != staffShift.StaffShiftId)
+                .ToListAsync();
+
+            foreach (var orphan in orphanRecords)
+            {
+                orphan.ShiftId = shiftId;
+                orphan.IsAdHoc = false;
+
+                // Tính lại PayrollHours nếu đã có dữ liệu CheckIn/CheckOut
+                if (orphan.ActualCheckIn.HasValue && orphan.ActualCheckOut.HasValue)
+                {
+                    var checkIn = orphan.ActualCheckIn.Value;
+                    var checkOut = orphan.ActualCheckOut.Value;
+
+                    // Xử lý ca qua đêm
+                    if (checkOut < checkIn)
+                        checkOut = checkOut.AddDays(1);
+
+                    var totalMinutes = (checkOut - checkIn).TotalMinutes;
+                    var roundedMinutes = Math.Round(totalMinutes / 15.0, MidpointRounding.AwayFromZero) * 15;
+                    orphan.PayrollHours = Math.Round((decimal)(roundedMinutes / 60.0), 2);
+                }
+
+                _context.Update(orphan);
+            }
+
+            if (orphanRecords.Any())
+            {
+                await _context.SaveChangesAsync();
+            }
+
+            var reconcileMsg = orphanRecords.Any()
+                ? $" Đã tự động liên kết {orphanRecords.Count} bản ghi chấm công phát sinh."
+                : "";
+
+            return ServiceResult.Success($"Đã gán ca thành công!{reconcileMsg}");
         }
 
         // ====================================================================
@@ -167,19 +207,8 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 return ServiceResult.Failure("Lỗi: Bản ghi ca làm việc không tồn tại.");
             }
 
-            // ===== GUARD CLAUSE: Chống gian lận tiền lương (Wage Theft) =====
-            // Nếu nhân viên đã chấm công vào ca này → KHÔNG được phép sửa giờ
-            if (staffShift.ActualCheckIn != null)
-            {
-                return ServiceResult.Failure("Lỗi: Không thể sửa lịch của ca làm việc đã có dữ liệu chấm công.");
-            }
-
-            // Áp dụng Rule Ân hạn (Grace Period: 3 ngày)
-            var gracePeriodDate = DateTime.Today.AddDays(-3);
-            if (staffShift.WorkDate.Date < gracePeriodDate)
-            {
-                return ServiceResult.Failure("Lỗi: Thời điểm vượt quá giới hạn 3 ngày cho phép chỉnh sửa ca trong quá khứ.");
-            }
+            // Đã loại bỏ khoá chống gian lận tiền lương theo yêu cầu.
+            // Cho phép HR chỉnh sửa lại (CustomStart / CustomEnd) để tính toán PayrollHours phù hợp.
 
             var shift = await _context.Shifts.FindAsync(shiftId);
             if (shift == null || !shift.Active)
@@ -198,6 +227,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
             var (newStart, newEnd) = ResolveAbsoluteTime(staffShift.WorkDate, actualStart, actualEnd, isOvernightShift);
 
+            // ===== Chống trùng lặp — LOẠI TRỪ bản ghi đang sửa (Self-Overlap Fix) =====
             // ===== Chống trùng lặp — LOẠI TRỪ bản ghi đang sửa (Self-Overlap Fix) =====
             var existingShifts = await _context.StaffShifts
                 .Include(ss => ss.Shift)
@@ -220,10 +250,14 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 }
             }
 
-            // Cập nhật dữ liệu
             staffShift.ShiftId = shiftId;
             staffShift.CustomStartTime = customStart;
             staffShift.CustomEndTime = customEnd;
+
+            if (staffShift.ActualCheckIn.HasValue && staffShift.ActualCheckOut.HasValue)
+            {
+                staffShift.PayrollHours = (decimal)Math.Round((staffShift.ActualCheckOut.Value - staffShift.ActualCheckIn.Value).TotalHours, 2);
+            }
 
             _context.Update(staffShift);
             await _context.SaveChangesAsync();
@@ -236,7 +270,41 @@ namespace CafeChain.Application.Services.Admin.Staffs
             var shifts = await _context.Shifts
                 .Where(s => s.StoreId == storeId && s.Active)
                 .OrderBy(s => s.StartTime)
-                .Select(s => new
+                .ToListAsync();
+
+            // BẮT BUỘC (ENFORCE): Nếu chưa cóủ 4 ca chuẩn, tự động tạo và lưu trữ.
+            string[] requiredShifts = { "Ca 1", "Ca 2", "Ca 3", "Ca 4" };
+            bool hasChanges = false;
+
+            if (!shifts.Any(s => s.Name == "Ca 1"))
+            {
+                var ca1 = new Shift { Name = "Ca 1", StartTime = new TimeSpan(6, 0, 0), EndTime = new TimeSpan(12, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(6), Notes = "06:00 - 12:00" };
+                _context.Shifts.Add(ca1); shifts.Add(ca1); hasChanges = true;
+            }
+            if (!shifts.Any(s => s.Name == "Ca 2"))
+            {
+                var ca2 = new Shift { Name = "Ca 2", StartTime = new TimeSpan(12, 0, 0), EndTime = new TimeSpan(18, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(6), Notes = "12:00 - 18:00" };
+                _context.Shifts.Add(ca2); shifts.Add(ca2); hasChanges = true;
+            }
+            if (!shifts.Any(s => s.Name == "Ca 3"))
+            {
+                var ca3 = new Shift { Name = "Ca 3", StartTime = new TimeSpan(18, 0, 0), EndTime = new TimeSpan(23, 0, 0), IsOvernight = false, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(5), Notes = "18:00 - 23:00" };
+                _context.Shifts.Add(ca3); shifts.Add(ca3); hasChanges = true;
+            }
+            if (!shifts.Any(s => s.Name == "Ca 4"))
+            {
+                var ca4 = new Shift { Name = "Ca 4", StartTime = new TimeSpan(22, 0, 0), EndTime = new TimeSpan(6, 0, 0), IsOvernight = true, Active = true, StoreId = storeId, Duration = TimeSpan.FromHours(8), Notes = "22:00 - 06:00 (Hôm sau)" };
+                _context.Shifts.Add(ca4); shifts.Add(ca4); hasChanges = true;
+            }
+
+            if (hasChanges)
+            {
+                await _context.SaveChangesAsync();
+                // Sắp xếp lại
+                shifts = shifts.OrderBy(s => s.StartTime).ToList();
+            }
+
+            return shifts.Select(s => new
                 {
                     s.ShiftId,
                     s.Name,
@@ -245,8 +313,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                     s.IsOvernight,
                     s.Notes
                 })
-                .ToListAsync();
-            return shifts.Cast<object>().ToList();
+                .Cast<object>().ToList();
         }
 
         public async Task<ServiceResult> UpdateShiftAsync(int shiftId, TimeSpan startTime, TimeSpan endTime, string? notes)
@@ -254,12 +321,19 @@ namespace CafeChain.Application.Services.Admin.Staffs
             var shift = await _context.Shifts.FindAsync(shiftId);
             if (shift == null) return ServiceResult.Failure("Ca làm việc không tồn tại.");
 
-            if (startTime >= endTime && !shift.IsOvernight)
+            bool isOvernight = endTime <= startTime;
+            if (startTime >= endTime && !isOvernight)
                 return ServiceResult.Failure("Giờ bắt đầu phải trước giờ kết thúc (trừ ca qua đêm).");
 
             shift.StartTime = startTime;
             shift.EndTime = endTime;
+            shift.IsOvernight = isOvernight;
             shift.Notes = notes;
+
+            if (isOvernight)
+                shift.Duration = (TimeSpan.FromHours(24) - startTime) + endTime;
+            else
+                shift.Duration = endTime - startTime;
 
             _context.Update(shift);
             await _context.SaveChangesAsync();
