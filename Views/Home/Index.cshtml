@@ -104,7 +104,9 @@
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content border-0 bg-transparent shadow-none">
                 <div class="modal-body p-0 text-center position-relative">
-                    <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"></button>
+                    <button type="button" class="btn btn-light rounded-circle position-absolute z-3 shadow-lg d-flex align-items-center justify-content-center" style="top: 15px; right: 15px; width: 40px; height: 40px; border: 2px solid #dee2e6;" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times text-dark fs-5"></i>
+                    </button>
                     
                     <div class="wheel-outer-frame shadow-lg p-3 mx-auto" style="width: 400px; height: 400px; background: radial-gradient(circle, #fcd34d 0%, #d97706 100%); border-radius: 50%; border: 12px solid #343a40; position: relative; box-shadow: 0 0 50px rgba(217, 61, 32, 0.4);">
                         <!-- Lights around the wheel -->
@@ -117,7 +119,7 @@
 
                         <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
                             
-                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);"></canvas>
+                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%;"></canvas>
                             
                             <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
                                     style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
@@ -181,6 +183,10 @@
         let ctx = canvas ? canvas.getContext('2d') : null;
         let sectors = [];
         let isSpinning = false;
+        
+        let currentRotation = 0;
+        let isIdleSpinning = false;
+        let animationFrameId;
 
         @if (Model.ActiveWheel != null)
         {
@@ -191,8 +197,42 @@
             if (canvas) {
                 drawWheel();
                 wheelModal = new bootstrap.Modal(document.getElementById('luckyWheelModal'));
+                
+                // Khi mở modal thì bắt đầu quay nhẹ
+                document.getElementById('luckyWheelModal').addEventListener('show.bs.modal', function () {
+                    if (!isSpinning) {
+                        startIdleSpin();
+                    }
+                });
+                
+                // Khi đóng modal thì dừng quay nhẹ để tiết kiệm tài nguyên
+                document.getElementById('luckyWheelModal').addEventListener('hidden.bs.modal', function () {
+                    stopIdleSpin();
+                });
             }
         });
+        
+        function startIdleSpin() {
+            if (isIdleSpinning) return;
+            isIdleSpinning = true;
+            canvas.style.transition = 'none'; // Đảm bảo không có transition nào cản trở requestAnimationFrame
+            
+            function spin() {
+                if (!isIdleSpinning) return;
+                currentRotation += 0.5; // Tốc độ quay nhàn rỗi (độ/frame)
+                if (currentRotation >= 360) currentRotation -= 360;
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+                animationFrameId = requestAnimationFrame(spin);
+            }
+            spin();
+        }
+
+        function stopIdleSpin() {
+            isIdleSpinning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
 
         function drawWheel() {
             if (!ctx) return;
@@ -238,21 +278,60 @@
             }
         }
 
+        let countdownInterval;
+
         function openWheel() {
             $.get('/LuckyWheel/GetUserInfo', function(res) {
                 if (res.isAuthenticated) {
                     $('#accountInfo').removeClass('d-none');
                     $('#userPoints').text(res.points.toLocaleString());
-                    if (res.isNewUser) {
-                        $('#wheelTypeMsg').html('<span class="text-danger fw-bold">🎁 CHÀO MỪNG! BẠN CÓ 1 LẦN QUAY MIỄN PHÍ!</span>');
+                    
+                    if (!res.canSpinToday && res.nextSpinTime) {
+                        $('#spinBtn').prop('disabled', true);
+                        startCountdown(res.nextSpinTime);
                     } else {
-                        $('#wheelTypeMsg').text(`Mỗi lượt quay kế tiếp tốn ${res.spinCost} điểm.`);
+                        $('#spinBtn').prop('disabled', false);
+                        clearInterval(countdownInterval);
+                        if (res.isNewUser) {
+                            $('#wheelTypeMsg').html('<span class="text-danger fw-bold">🎁 CHÀO MỪNG! BẠN CÓ 1 LẦN QUAY MIỄN PHÍ!</span>');
+                        } else {
+                            $('#wheelTypeMsg').text(`Mỗi lượt quay kế tiếp tốn ${res.spinCost} điểm.`);
+                        }
                     }
                 } else {
+                    $('#spinBtn').prop('disabled', false);
+                    clearInterval(countdownInterval);
                     $('#wheelTypeMsg').text('Đăng nhập để nhận phần thưởng ngay!');
                 }
                 wheelModal.show();
             });
+        }
+
+        function startCountdown(targetTimeStr) {
+            clearInterval(countdownInterval);
+            const targetTime = new Date(targetTimeStr).getTime();
+            
+            countdownInterval = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = targetTime - now;
+                
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    $('#wheelTypeMsg').html('<span class="text-success fw-bold">Lượt quay mới đã sẵn sàng! Bạn có thể quay ngay.</span>');
+                    $('#spinBtn').prop('disabled', false);
+                    return;
+                }
+                
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                const h = hours < 10 ? "0" + hours : hours;
+                const m = minutes < 10 ? "0" + minutes : minutes;
+                const s = seconds < 10 ? "0" + seconds : seconds;
+                
+                $('#wheelTypeMsg').html(`Đã hết lượt hôm nay.<br/>Quay lại sau: <b class="text-danger fs-5">${h}:${m}:${s}</b>`);
+            }, 1000);
         }
 
         function spinTheWheel() {
@@ -271,20 +350,34 @@
                     return;
                 }
 
+                // Dừng quay nhàn rỗi
+                stopIdleSpin();
                 isSpinning = true;
-                $('#spinBtn').css('opacity', '0.5');
+                $('#spinBtn').prop('disabled', true);
                 
                 let numSectors = sectors.length;
                 let sectorArc = 360 / numSectors;
                 
                 let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
-                let totalRotation = 360 * 8 + stopAngle; // Quay 8 vòng cho kịch tính
                 
-                canvas.style.transform = `rotate(${totalRotation}deg)`;
+                // Tính toán góc quay mục tiêu sao cho vòng quay đi tiếp mượt mà từ vị trí hiện tại
+                // Bù lại phần góc đã bị lệch do currentRotation
+                let targetRotation = currentRotation + (360 * 12) + (stopAngle - (currentRotation % 360)); 
+                if (targetRotation < currentRotation + 360 * 10) {
+                    targetRotation += 360; // Đảm bảo luôn quay đủ số vòng kịch tính
+                }
+                
+                // Kích hoạt CSS transition để quay nhanh
+                canvas.style.transition = 'transform 6s cubic-bezier(0.2, 0, 0, 1)';
+                
+                // Force reflow để browser nhận diện transition trước khi set transform mới
+                canvas.offsetHeight; 
+                
+                canvas.style.transform = `rotate(${targetRotation}deg)`;
                 
                 setTimeout(() => {
                     isSpinning = false;
-                    $('#spinBtn').css('opacity', '1');
+                    $('#spinBtn').prop('disabled', false);
 
                     if (!res.isLose) {
                         // Hiệu ứng pháo hoa khi thắng
@@ -302,6 +395,10 @@
                             imageWidth: 80,
                             confirmButtonText: 'TUYỆT VỜI',
                             confirmButtonColor: '#d93d20'
+                        }).then(() => {
+                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
+                            currentRotation = targetRotation % 360;
+                            startIdleSpin();
                         });
                     } else {
                         Swal.fire({
@@ -309,18 +406,16 @@
                             text: 'Chúc bạn may mắn lần sau nhé!',
                             icon: 'info',
                             confirmButtonColor: '#343a40'
+                        }).then(() => {
+                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
+                            currentRotation = targetRotation % 360;
+                            startIdleSpin();
                         });
                     }
 
                     if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
                     
-                    // Reset rotation visual
-                    setTimeout(() => {
-                        canvas.style.transition = 'none';
-                        canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
-                        setTimeout(() => { canvas.style.transition = 'transform 5s cubic-bezier(0.15, 0, 0.1, 1)'; }, 50);
-                    }, 500);
-                }, 5000);
+                }, 6000);
             });
         }
 

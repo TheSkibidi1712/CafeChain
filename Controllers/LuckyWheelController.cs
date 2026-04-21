@@ -40,15 +40,30 @@ namespace CafeChain.Controllers
             var activeWheel = await _wheelService.GetActiveConfigAsync();
             if (activeWheel == null) return Json(new { isAuthenticated = true, points = 0 });
 
-            // Kiểm tra xem đã từng quay lần nào chưa (toàn hệ thống)
-            var hasSpun = await _context.WheelSpins
-                .AnyAsync(s => s.CustomerId == customer.CustomerId);
+            var totalSpins = await _context.WheelSpins
+                .CountAsync(s => s.CustomerId == customer.CustomerId);
+            var spinsToday = await _context.WheelSpins
+                .CountAsync(s => s.CustomerId == customer.CustomerId && s.CreatedAt.Date == DateTime.Today.Date);
+
+            bool isFreeSpin = (totalSpins == 0);
+            bool canSpinToday = true;
+
+            if (totalSpins > 1 && spinsToday >= 1) canSpinToday = false;
+            if (totalSpins == 1 && spinsToday > 1) canSpinToday = false;
+
+            DateTime? nextSpinTime = null;
+            if (!canSpinToday)
+            {
+                nextSpinTime = DateTime.Today.AddDays(1);
+            }
 
             return Json(new {
                 isAuthenticated = true,
                 points = customer.CustomerPoints.Sum(p => p.Points),
-                isNewUser = !hasSpun,
-                spinCost = hasSpun ? activeWheel.SpinCost : 0 // Hiển thị 0 nếu là lượt miễn phí
+                isNewUser = isFreeSpin,
+                spinCost = isFreeSpin ? 0 : activeWheel.SpinCost,
+                canSpinToday = canSpinToday,
+                nextSpinTime = nextSpinTime
             });
         }
 
@@ -73,12 +88,25 @@ namespace CafeChain.Controllers
                 return Json(new { success = false, message = "Vòng quay hiện đang đóng." });
             }
 
-            // Kiểm tra lượt quay miễn phí (chưa từng quay lần nào trong đời)
-            var hasSpun = await _context.WheelSpins
-                .AnyAsync(s => s.CustomerId == customer.CustomerId);
+            var totalSpins = await _context.WheelSpins
+                .CountAsync(s => s.CustomerId == customer.CustomerId);
+            var spinsToday = await _context.WheelSpins
+                .CountAsync(s => s.CustomerId == customer.CustomerId && s.CreatedAt.Date == DateTime.Today.Date);
+
+            // Logic giới hạn quay: 
+            // - Acc mới: 1 lần free, và được quay thêm 1 lần xài điểm trong ngày đầu tiên.
+            // - Các acc khác: Chỉ được quay 1 lần 1 ngày.
+            if (totalSpins > 1 && spinsToday >= 1)
+            {
+                return Json(new { success = false, message = "Bạn đã hết lượt quay ngày hôm nay. Hãy quay lại vào ngày mai nhé!" });
+            }
+            if (totalSpins == 1 && spinsToday > 1)
+            {
+                return Json(new { success = false, message = "Bạn đã hết lượt quay ngày hôm nay. Hãy quay lại vào ngày mai nhé!" });
+            }
 
             var totalPoints = customer.CustomerPoints.Sum(p => p.Points);
-            bool isFreeSpin = !hasSpun;
+            bool isFreeSpin = (totalSpins == 0);
 
             if (!isFreeSpin && totalPoints < activeWheel.SpinCost)
             {

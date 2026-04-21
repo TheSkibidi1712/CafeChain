@@ -113,7 +113,7 @@ namespace CafeChain.Application.Services.Admin.Vouchers
         public async Task<List<Voucher>> GetAvailableVouchersAsync()
         {
             return await _context.Vouchers
-                .Where(v => v.Active && v.EndDate >= DateTime.Now)
+                .Where(v => v.Active && (!v.EndDate.HasValue || v.EndDate >= DateTime.Now))
                 .ToListAsync();
         }
 
