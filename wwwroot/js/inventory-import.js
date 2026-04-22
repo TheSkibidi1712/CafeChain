@@ -98,8 +98,8 @@ export async function addImportRow() {
                 <input class="note">
             </td>
 
-            <td>
-                <button type="button">X</button>
+            <td class="col-action">
+                <button type="button" class="btn-remove-row">✕</button>
             </td>
         `;
 
@@ -185,7 +185,7 @@ export async function addImportRow() {
                 }
 
                 calcRow(tr);
-
+                refreshIngredientOptions();
             } catch {
                 toast("Không tải được đơn vị", "error");
             }
@@ -225,7 +225,9 @@ export async function addImportRow() {
         <td><input type="number" class="price" readonly></td>
         <td><span class="rowTotal">0</span></td>
         <td><input class="note"></td>
-        <td><button type="button">X</button></td>
+        <td class="col-action">
+            <button type="button" class="btn-remove-row">✕</button>
+        </td>
     `;
 
     document.querySelector("#detailTable tbody").appendChild(tr);
@@ -251,6 +253,7 @@ export async function addImportRow() {
         tr.querySelector(".rowTotal").innerText = "0";
 
         await loadImportUnitPrice(tr);
+        refreshIngredientOptions();
     });
 
     // đổi số lượng
@@ -260,9 +263,11 @@ export async function addImportRow() {
     tr.querySelector("button").addEventListener("click", () => {
         tr.remove();
         calcTotal();
+        refreshIngredientOptions();
     });
 
     calcRow(tr);
+    refreshIngredientOptions();
 }
 
 // ================= LOAD UNIT + PRICE =================
@@ -333,4 +338,33 @@ function formatVND(n) {
 
 function parseMoney(str) {
     return parseFloat((str || "0").replace(/[^\d]/g, "")) || 0;
+}
+
+function getSelectedIngredientIds() {
+    const ids = [];
+
+    document.querySelectorAll(".ingredient").forEach(sel => {
+        const val = Number(sel.value);
+        if (val) ids.push(val);
+    });
+
+    return ids;
+}
+
+function refreshIngredientOptions() {
+    const selectedIds = getSelectedIngredientIds();
+
+    document.querySelectorAll("#detailTable tbody tr").forEach(tr => {
+        const select = tr.querySelector(".ingredient");
+        const currentValue = Number(select.value);
+
+        Array.from(select.options).forEach(opt => {
+            const val = Number(opt.value);
+
+            if (!val) return;
+
+            // 🔥 Ẩn nếu đã chọn ở row khác
+            opt.hidden = selectedIds.includes(val) && val !== currentValue;
+        });
+    });
 }

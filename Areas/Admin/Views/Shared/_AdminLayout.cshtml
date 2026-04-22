@@ -1,4 +1,7 @@
 @using CafeChain.Helpers
+@{
+    var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+}
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -179,6 +182,16 @@
         <!-- Hồ sơ cá nhân (Cho TẤT CẢ roles) -->
         <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="@Html.IsActive("Profile")"><i class="fas fa-user-circle"></i> Hồ sơ của tôi</a>
 
+        @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
+        {
+
+            @if (isAdminArea)
+            {
+                <!-- 👉 ĐANG Ở ADMIN → VỀ CLIENT -->
+                <a asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door me-1"></i> Quay lại trang chủ</a>
+            }
+
+        }
         <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin-top:10px; border-top: 1px solid #e9ecef; padding-top: 10px;">
             @Html.AntiForgeryToken()
             <button type="submit" class="btn btn-link shadow-none" style="text-decoration:none; color:#dc3545; font-weight: 500; font-size:14px; padding: 12px 20px;">

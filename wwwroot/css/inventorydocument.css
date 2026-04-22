@@ -256,14 +256,14 @@ select {
 }
 
 #detailTable {
-    min-width: 1000px; /* ép bảng rộng hơn */
+    min-width: 1100px; /* ép bảng rộng hơn */
 }
     #detailTable td:nth-child(1) {
-        width: 25%;
+        width: 30%;
     }
     /* nguyên liệu */
     #detailTable td:nth-child(2) {
-        width: 15%;
+        width: 10%;
     }
     /* đơn vị */
     #detailTable td:nth-child(3) {
@@ -271,7 +271,7 @@ select {
     }
     /* số lượng */
     #detailTable td:nth-child(4) {
-        width: 15%;
+        width: 8%;
     }
 /* giá */
 
@@ -459,4 +459,32 @@ input, select {
         background: #333;
         color: white;
         border-color: #333;
+    }
+
+/* ===== REMOVE ROW BUTTON ===== */
+.col-action {
+    text-align: center;
+    width: 60px;
+}
+
+.btn-remove-row {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f5f5f5;
+    color: #555;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+    .btn-remove-row:hover {
+        background: #f44336;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .btn-remove-row:active {
+        transform: scale(0.9);
     }

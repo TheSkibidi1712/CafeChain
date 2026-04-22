@@ -1,4 +1,5 @@
 @using CafeChain.Application.Interfaces
+@using CafeChain.Helpers;
 @using CafeChain.Application.Constants
 @inject ICartService CartService
 @{
@@ -7,7 +8,10 @@
     var tempSuccess = TempData["SuccessMessage"]?.ToString();
     var tempError   = TempData["ErrorMessage"]?.ToString();
     var tempWarning = TempData["WarningMessage"]?.ToString();
+    var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+
 }
+
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -21,6 +25,9 @@
 
     <style>
         /* ============= CAFECHAIN TOAST SYSTEM ============= */
+        .no-underline{
+            text-decoration: none;
+        }
         #cc-toast-container {
             position: fixed;
             bottom: 24px;
@@ -276,22 +283,33 @@
                         <form asp-controller="Drink" asp-action="Menu" method="get" class="search-box position-relative d-none d-md-block" style="width: 200px;">
                             <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
                             <input type="text" name="keyword" class="form-control rounded-pill ps-5 border-0" placeholder="Tìm cà phê..." value="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Drink" ? Context.Request.Query["keyword"] : "")">
+                            
                         </form>
 
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
-                            <a href="~/Order/History" class="position-relative text-dark hover-orange transition-color" title="Lịch sử đơn hàng">
+                            <a asp-controller="Order" asp-action="History" class="position-relative text-dark hover-orange transition-color" title="Lịch sử đơn hàng">
                               <i class="fa fa-history" aria-hidden="true"></i>
                             </a>
                         }
 
-                        <a href="/Cart" class="position-relative text-dark hover-orange transition-color" title="Giỏ hàng">
+                        <a asp-controller="Cart" asp-action="Index" class="position-relative text-dark hover-orange transition-color" title="Giỏ hàng">
                             <i class="bi bi-cart2 fs-4"></i>
                             <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light @(cartCount > 0 ? "" : "d-none")" style="font-size: 0.65rem;">
                                 @cartCount
                                 <span class="visually-hidden">sản phẩm trong giỏ</span>
                             </span>
                         </a>
+                        @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
+                        {
+                            @if (!isAdminArea)
+                            {
+                                <!-- 👉 ĐANG Ở ADMIN → VỀ CLIENT -->
+                                <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="position-relative text-dark hover-orange transition-color no-underline">
+                                    <i class="bi bi-house-door me-1"></i> Quay lại Dashboard
+                                </a>
+                            }
+                        }
 
                         @if (User.Identity != null && User.Identity.IsAuthenticated)
                         {
@@ -310,7 +328,7 @@
                                 }
                                 else
                                 {
-                                    <span class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                    <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
                                         <img id="headerAvatar"
                                              src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
                                              onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
@@ -318,7 +336,7 @@
                                              style="width: 28px; height: 28px; border: 1px solid #d35400;"
                                              alt="Avatar">
                                         <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
-                                    </span>
+                                    </a>
                                 }
                             </div>
                         }
