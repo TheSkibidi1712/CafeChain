@@ -27,6 +27,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
         // ===== CONTACTS =====
         Task AddContactAsync(SupplierContact contact);
         Task<SupplierContact?> GetContactByIdAsync(int supplierContactId);
+        Task<List<SupplierContact>> GetContactsBySupplierIdAsync(int supplierId);
         Task DeleteContactAsync(SupplierContact contact);
 
         // ===== SAVE =====

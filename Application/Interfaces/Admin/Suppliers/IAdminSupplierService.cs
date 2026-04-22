@@ -26,6 +26,7 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         // ===== CONTACTS =====
         Task AddContactAsync(AdminSupplierContactCreateDTO dto);
         Task DeleteContactAsync(int supplierContactId);
+        Task SetPrimaryContactAsync(int supplierContactId);
 
         // ===== LOCATION =====
         Task<List<Province>> GetProvincesAsync();

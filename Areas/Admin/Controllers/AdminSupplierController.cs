@@ -183,6 +183,20 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> SetPrimaryContact(int supplierContactId)
+        {
+            try
+            {
+                await _service.SetPrimaryContactAsync(supplierContactId);
+                return Json(new { success = true, message = "Đã cập nhật người liên hệ chính" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
         // ===================== LOCATION ENDPOINTS =====================
 
         [HttpGet]

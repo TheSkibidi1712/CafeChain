@@ -40,5 +40,33 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string? PrimaryContactPhone { get; set; }
         public string? PrimaryContactEmail { get; set; }
         public string? PrimaryContactPosition { get; set; }
+
+        // ===== DANH SÁCH PHỤ (tuỳ chọn, thêm bao nhiêu cũng được) =====
+
+        /// <summary>Danh sách số điện thoại phụ (ngoài số chính)</summary>
+        public List<string> AdditionalPhones { get; set; } = new();
+
+        /// <summary>Danh sách tài khoản ngân hàng phụ</summary>
+        public List<AdminSupplierBankItemCreateDTO> AdditionalBankAccounts { get; set; } = new();
+
+        /// <summary>Danh sách người liên hệ phụ</summary>
+        public List<AdminSupplierContactItemCreateDTO> AdditionalContacts { get; set; } = new();
+    }
+
+    /// <summary>Thông tin 1 tài khoản ngân hàng phụ khi tạo NCC</summary>
+    public class AdminSupplierBankItemCreateDTO
+    {
+        public string BankName { get; set; } = "";
+        public string AccountNumber { get; set; } = "";
+        public string AccountHolder { get; set; } = "";
+    }
+
+    /// <summary>Thông tin 1 người liên hệ phụ khi tạo NCC</summary>
+    public class AdminSupplierContactItemCreateDTO
+    {
+        public string Name { get; set; } = "";
+        public string? Phone { get; set; }
+        public string? Email { get; set; }
+        public string? Position { get; set; }
     }
 }

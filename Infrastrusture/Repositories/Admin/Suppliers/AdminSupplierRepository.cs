@@ -147,6 +147,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
             return await _context.SupplierContacts.FindAsync(supplierContactId);
         }
 
+        public async Task<List<SupplierContact>> GetContactsBySupplierIdAsync(int supplierId)
+        {
+            return await _context.SupplierContacts
+                .Where(c => c.SupplierId == supplierId)
+                .ToListAsync();
+        }
+
         public Task DeleteContactAsync(SupplierContact contact)
         {
             _context.SupplierContacts.Remove(contact);
