@@ -273,7 +273,7 @@ namespace CafeChain.Data.Configurations
                 new DrinkSize { DrinkSizeId = 10, DrinkId = 4, SizeId = 3, Price = 35000m, Active = true },
                 new DrinkSize { DrinkSizeId = 11, DrinkId = 5, SizeId = 5, Price = 15000m, Active = true },
                 new DrinkSize { DrinkSizeId = 12, DrinkId = 5, SizeId = 6, Price = 20000m, Active = true },
-                new DrinkSize { DrinkSizeId = 13, DrinkId = 5, SizeId = 7, Price = 15000m, Active = true },
+                new DrinkSize { DrinkSizeId = 13, DrinkId = 5, SizeId = 7, Price = 25000m, Active = true },
                 new DrinkSize { DrinkSizeId = 14, DrinkId = 6, SizeId = 5, Price = 15000m, Active = true },
                 new DrinkSize { DrinkSizeId = 15, DrinkId = 6, SizeId = 6, Price = 20000m, Active = true },
                 new DrinkSize { DrinkSizeId = 16, DrinkId = 6, SizeId = 7, Price = 25000m, Active = true },

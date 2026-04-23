@@ -63,6 +63,10 @@ using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Application.Services.Admin.InventoryTransfers;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers;
+using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Services.Admin.Dashboard;
+using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
+using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -245,6 +249,10 @@ builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain.Application.Services.Attendance.AttendanceSecurityService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
+
+// Admin Dashboard
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 // [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
 builder.Services.AddHttpClient("PayOS")

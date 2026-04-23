@@ -78,7 +78,9 @@ namespace CafeChain.Data.Configurations
                 new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", BaseSalary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
                 new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", BaseSalary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
                 new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", BaseSalary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
+                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 111, AccountId = 122, FullName = "District Manager Bien Hoa", TaxCode = "TAX111", BaseSalary = 25000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
+
             );
         }
     }
@@ -144,7 +146,7 @@ namespace CafeChain.Data.Configurations
                 .IsUnique();
 
             entity.HasData(
-                // ===== SYSTEM LEVEL (Super Admin, CEO, CFO, Marketing, Operations, HR) =====
+                // ===== SYSTEM LEVEL =====
                 new StaffScope { StaffScopeId = 101, StaffId = 101, ScopeTypeId = 1, ScopeRefId = 1 },
                 new StaffScope { StaffScopeId = 102, StaffId = 102, ScopeTypeId = 1, ScopeRefId = 1 },
                 new StaffScope { StaffScopeId = 103, StaffId = 103, ScopeTypeId = 1, ScopeRefId = 1 },
@@ -152,15 +154,19 @@ namespace CafeChain.Data.Configurations
                 new StaffScope { StaffScopeId = 105, StaffId = 105, ScopeTypeId = 1, ScopeRefId = 1 },
                 new StaffScope { StaffScopeId = 106, StaffId = 106, ScopeTypeId = 1, ScopeRefId = 1 },
 
-                // ===== PROVINCE LEVEL (Area Manager HCM) =====
-                new StaffScope { StaffScopeId = 107, StaffId = 107, ScopeTypeId = 2, ScopeRefId = 1 },
+                // ===== PROVINCE LEVEL ===== (Đồng Nai = 75)
+                new StaffScope { StaffScopeId = 107, StaffId = 107, ScopeTypeId = 2, ScopeRefId = 75 },
 
-                // ===== STORE LEVEL (Store Manager, Shift Supervisor, Cashier) =====
-                new StaffScope { StaffScopeId = 108, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 109, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 2 },
-                new StaffScope { StaffScopeId = 110, StaffId = 108, ScopeTypeId = 4, ScopeRefId = 3 },
-                new StaffScope { StaffScopeId = 111, StaffId = 109, ScopeTypeId = 4, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 112, StaffId = 110, ScopeTypeId = 4, ScopeRefId = 1 }
+                // ===== DISTRICT LEVEL ===== (Biên Hòa = 731)
+                new StaffScope { StaffScopeId = 108, StaffId = 111, ScopeTypeId = 3, ScopeRefId = 731 },
+
+                // ===== STORE LEVEL ===== (⚠️ FIX: phải là 5)
+                new StaffScope { StaffScopeId = 109, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 110, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 2 },
+                new StaffScope { StaffScopeId = 111, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 3 },
+
+                new StaffScope { StaffScopeId = 112, StaffId = 109, ScopeTypeId = 5, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 113, StaffId = 110, ScopeTypeId = 5, ScopeRefId = 1 }
             );
         }
     }
@@ -191,8 +197,9 @@ namespace CafeChain.Data.Configurations
             entity.HasData(
                 new ScopeType { ScopeTypeId = 1, Code = "COUNTRY", Name = "Country" },
                 new ScopeType { ScopeTypeId = 2, Code = "PROVINCE", Name = "Province" },
-                new ScopeType { ScopeTypeId = 3, Code = "WARD", Name = "Ward" },
-                new ScopeType { ScopeTypeId = 4, Code = "STORE", Name = "Store" }
+                new ScopeType { ScopeTypeId = 3, Code = "DISTRICT", Name = "District" },
+                new ScopeType { ScopeTypeId = 4, Code = "WARD", Name = "Ward" },
+                new ScopeType { ScopeTypeId = 5, Code = "STORE", Name = "Store" }
             );
         }
     }

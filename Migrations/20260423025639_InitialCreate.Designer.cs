@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260421055917_InitialCreate")]
+    [Migration("20260423025639_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,6 +27,202 @@ namespace CafeChain.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.CashFlowDto", b =>
+                {
+                    b.Property<decimal>("CashIn")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("CashSessionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("CloseTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("NonCashIn")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime>("OpenTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal?>("StartCash")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalRevenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable("CashFlowDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.DashboardSummaryDto", b =>
+                {
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TodayOrders")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalCustomers")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.ToTable("DashboardSummaryDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.InventoryDto", b =>
+                {
+                    b.Property<decimal>("CurrentStock")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalExport")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalImport")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalWaste")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable("InventoryDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.PaymentMethodDto", b =>
+                {
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TotalTransactions")
+                        .HasColumnType("int");
+
+                    b.ToTable("PaymentMethodDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.RevenueByStoreDto", b =>
+                {
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.ToTable("RevenueByStoreDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.RevenueDto", b =>
+                {
+                    b.Property<DateTime>("Date")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.ToTable("RevenueDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.StaffPerformanceDto", b =>
+                {
+                    b.Property<string>("FullName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("StaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalOrders")
+                        .HasColumnType("int");
+
+                    b.ToTable("StaffPerformanceDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.TopDrinkDto", b =>
+                {
+                    b.Property<int>("DrinkId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DrinkName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("TotalSold")
+                        .HasColumnType("int");
+
+                    b.ToTable("TopDrinkDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.TopToppingDto", b =>
+                {
+                    b.Property<decimal>("Revenue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("ToppingId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ToppingName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("TotalUsed")
+                        .HasColumnType("int");
+
+                    b.ToTable("TopToppingDto");
+                });
+
+            modelBuilder.Entity("CafeChain.Application.DTOs.Admin.Dashboard.WasteDto", b =>
+                {
+                    b.Property<int>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IngredientName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("StoreName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("TotalWasteQty")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("TotalWasteValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.ToTable("WasteDto");
+                });
 
             modelBuilder.Entity("CafeChain.Models.Customers.Account", b =>
                 {
@@ -165,6 +361,15 @@ namespace CafeChain.Migrations
                             Email = "khachhang@gmail.com",
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
+                        },
+                        new
+                        {
+                            AccountId = 122,
+                            Active = true,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Email = "districtmanager@gmail.com",
+                            PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                            RequiresPasswordChange = true
                         });
                 });
 
@@ -237,6 +442,11 @@ namespace CafeChain.Migrations
                         {
                             AccountId = 111,
                             RoleId = 11
+                        },
+                        new
+                        {
+                            AccountId = 122,
+                            RoleId = 7
                         });
                 });
 
@@ -1155,7 +1365,7 @@ namespace CafeChain.Migrations
                             DrinkSizeId = 13,
                             Active = true,
                             DrinkId = 5,
-                            Price = 15000m,
+                            Price = 25000m,
                             SizeId = 7
                         },
                         new
@@ -4129,12 +4339,18 @@ namespace CafeChain.Migrations
                         new
                         {
                             ScopeTypeId = 3,
+                            Code = "DISTRICT",
+                            Name = "District"
+                        },
+                        new
+                        {
+                            ScopeTypeId = 4,
                             Code = "WARD",
                             Name = "Ward"
                         },
                         new
                         {
-                            ScopeTypeId = 4,
+                            ScopeTypeId = 5,
                             Code = "STORE",
                             Name = "Store"
                         });
@@ -4544,6 +4760,24 @@ namespace CafeChain.Migrations
                             SalaryType = 0,
                             StoreId = 1,
                             TaxCode = "TAX110"
+                        },
+                        new
+                        {
+                            StaffId = 111,
+                            AccountId = 122,
+                            Active = true,
+                            Allowance = 0m,
+                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            BaseSalary = 25000000m,
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            EmployeeStatus = 0,
+                            FullName = "District Manager Bien Hoa",
+                            Gender = 0,
+                            OvertimeRate = 0m,
+                            ProbationRate = 0m,
+                            SalaryType = 0,
+                            StoreId = 1,
+                            TaxCode = "TAX111"
                         });
                 });
 
@@ -4868,43 +5102,50 @@ namespace CafeChain.Migrations
                         new
                         {
                             StaffScopeId = 107,
-                            ScopeRefId = 1,
+                            ScopeRefId = 75,
                             ScopeTypeId = 2,
                             StaffId = 107
                         },
                         new
                         {
                             StaffScopeId = 108,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 4,
-                            StaffId = 108
+                            ScopeRefId = 731,
+                            ScopeTypeId = 3,
+                            StaffId = 111
                         },
                         new
                         {
                             StaffScopeId = 109,
-                            ScopeRefId = 2,
-                            ScopeTypeId = 4,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 5,
                             StaffId = 108
                         },
                         new
                         {
                             StaffScopeId = 110,
-                            ScopeRefId = 3,
-                            ScopeTypeId = 4,
+                            ScopeRefId = 2,
+                            ScopeTypeId = 5,
                             StaffId = 108
                         },
                         new
                         {
                             StaffScopeId = 111,
-                            ScopeRefId = 1,
-                            ScopeTypeId = 4,
-                            StaffId = 109
+                            ScopeRefId = 3,
+                            ScopeTypeId = 5,
+                            StaffId = 108
                         },
                         new
                         {
                             StaffScopeId = 112,
                             ScopeRefId = 1,
-                            ScopeTypeId = 4,
+                            ScopeTypeId = 5,
+                            StaffId = 109
+                        },
+                        new
+                        {
+                            StaffScopeId = 113,
+                            ScopeRefId = 1,
+                            ScopeTypeId = 5,
                             StaffId = 110
                         });
                 });
@@ -5567,11 +5808,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 21, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5432),
+                            EndDate = new DateTime(2026, 5, 23, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8598),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 14, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5409)
+                            StartDate = new DateTime(2026, 4, 16, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8587)
                         },
                         new
                         {
@@ -5579,10 +5820,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 6, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5438),
+                            EndDate = new DateTime(2026, 5, 8, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8603),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5437)
+                            StartDate = new DateTime(2026, 4, 22, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8602)
                         },
                         new
                         {
@@ -5590,11 +5831,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5442),
+                            EndDate = new DateTime(2026, 6, 22, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8605),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 22, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5441)
+                            StartDate = new DateTime(2026, 3, 24, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8605)
                         });
                 });
 

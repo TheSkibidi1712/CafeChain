@@ -31,6 +31,23 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "CashFlowDto",
+                columns: table => new
+                {
+                    CashSessionId = table.Column<int>(type: "int", nullable: false),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    OpenTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CloseTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    StartCash = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CashIn = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    NonCashIn = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalRevenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Countries",
                 columns: table => new
                 {
@@ -41,6 +58,19 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Countries", x => x.CountryId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DashboardSummaryDto",
+                columns: table => new
+                {
+                    TotalOrders = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalCustomers = table.Column<int>(type: "int", nullable: false),
+                    TodayOrders = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
                 });
 
             migrationBuilder.CreateTable(
@@ -55,6 +85,21 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DrinkCategories", x => x.CategoryId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryDto",
+                columns: table => new
+                {
+                    IngredientId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalImport = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalExport = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalWaste = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CurrentStock = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
                 });
 
             migrationBuilder.CreateTable(
@@ -120,6 +165,18 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PaymentMethodDto",
+                columns: table => new
+                {
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalTransactions = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PaymentMethods",
                 columns: table => new
                 {
@@ -178,6 +235,31 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "RevenueByStoreDto",
+                columns: table => new
+                {
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalOrders = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RevenueDto",
+                columns: table => new
+                {
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    TotalOrders = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -220,6 +302,19 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Sizes", x => x.SizeId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StaffPerformanceDto",
+                columns: table => new
+                {
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    FullName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalOrders = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
                 });
 
             migrationBuilder.CreateTable(
@@ -272,6 +367,19 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "TopDrinkDto",
+                columns: table => new
+                {
+                    DrinkId = table.Column<int>(type: "int", nullable: false),
+                    DrinkName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalSold = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Toppings",
                 columns: table => new
                 {
@@ -285,6 +393,19 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Toppings", x => x.ToppingId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TopToppingDto",
+                columns: table => new
+                {
+                    ToppingId = table.Column<int>(type: "int", nullable: false),
+                    ToppingName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalUsed = table.Column<int>(type: "int", nullable: false),
+                    Revenue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
                 });
 
             migrationBuilder.CreateTable(
@@ -347,6 +468,21 @@ namespace CafeChain.Migrations
                     table.PrimaryKey("PK_Vouchers", x => x.VoucherId);
                     table.CheckConstraint("CK_Voucher_Date", "[StartDate] <= [EndDate]");
                     table.CheckConstraint("CK_Voucher_Discount", "(DiscountPercent IS NOT NULL AND DiscountAmount IS NULL) OR (DiscountPercent IS NULL AND DiscountAmount IS NOT NULL)");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "WasteDto",
+                columns: table => new
+                {
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    StoreName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: false),
+                    IngredientName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    TotalWasteQty = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalWasteValue = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
                 });
 
             migrationBuilder.CreateTable(
@@ -2010,7 +2146,8 @@ namespace CafeChain.Migrations
                     { 108, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "storemanager@cafechain.vn", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 109, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "shiftsupervisor@cafechain.vn", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 110, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "cashier@cafechain.vn", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
-                    { 111, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "khachhang@gmail.com", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true }
+                    { 111, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "khachhang@gmail.com", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
+                    { 122, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "districtmanager@gmail.com", "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true }
                 });
 
             migrationBuilder.InsertData(
@@ -2132,8 +2269,9 @@ namespace CafeChain.Migrations
                 {
                     { 1, "COUNTRY", "Country" },
                     { 2, "PROVINCE", "Province" },
-                    { 3, "WARD", "Ward" },
-                    { 4, "STORE", "Store" }
+                    { 3, "DISTRICT", "District" },
+                    { 4, "WARD", "Ward" },
+                    { 5, "STORE", "Store" }
                 });
 
             migrationBuilder.InsertData(
@@ -2230,9 +2368,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 21, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5432), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 14, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5409), null },
-                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 6, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5438), null, null, 500, null, 50000m, new DateTime(2026, 4, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5437), null },
-                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5442), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 22, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5441), null }
+                    { 1, true, "CAFECHAIN50", null, null, 50, new DateTime(2026, 5, 23, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8598), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 16, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8587), null },
+                    { 2, true, "GIAM10K", null, 10000m, null, new DateTime(2026, 5, 8, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8603), null, null, 500, null, 50000m, new DateTime(2026, 4, 22, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8602), null },
+                    { 3, true, "NEWUSER", null, null, 20, new DateTime(2026, 6, 22, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8605), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 24, 9, 56, 36, 858, DateTimeKind.Local).AddTicks(8605), null }
                 });
 
             migrationBuilder.InsertData(
@@ -2250,7 +2388,8 @@ namespace CafeChain.Migrations
                     { 108, 8 },
                     { 109, 9 },
                     { 110, 10 },
-                    { 111, 11 }
+                    { 111, 11 },
+                    { 122, 7 }
                 });
 
             migrationBuilder.InsertData(
@@ -2328,7 +2467,8 @@ namespace CafeChain.Migrations
                     { 107, 107, true, 0m, "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, 0m, 0, null, null, 1, "TAX107" },
                     { 108, 108, true, 0m, "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, 0m, 0, null, null, 1, "TAX108" },
                     { 109, 109, true, 0m, "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, 0m, 0, null, null, 1, "TAX109" },
-                    { 110, 110, true, 0m, "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Cashier Staff", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" }
+                    { 110, 110, true, 0m, "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Cashier Staff", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" },
+                    { 111, 122, true, 0m, "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "District Manager Bien Hoa", 0, null, 0m, 0m, 0, null, null, 1, "TAX111" }
                 });
 
             migrationBuilder.InsertData(
@@ -2545,7 +2685,7 @@ namespace CafeChain.Migrations
                     { 10, true, 4, 35000m, 3 },
                     { 11, true, 5, 15000m, 5 },
                     { 12, true, 5, 20000m, 6 },
-                    { 13, true, 5, 15000m, 7 },
+                    { 13, true, 5, 25000m, 7 },
                     { 14, true, 6, 15000m, 5 },
                     { 15, true, 6, 20000m, 6 },
                     { 16, true, 6, 25000m, 7 },
@@ -2659,12 +2799,13 @@ namespace CafeChain.Migrations
                     { 104, 1, 1, 104 },
                     { 105, 1, 1, 105 },
                     { 106, 1, 1, 106 },
-                    { 107, 1, 2, 107 },
-                    { 108, 1, 4, 108 },
-                    { 109, 2, 4, 108 },
-                    { 110, 3, 4, 108 },
-                    { 111, 1, 4, 109 },
-                    { 112, 1, 4, 110 }
+                    { 107, 75, 2, 107 },
+                    { 108, 731, 3, 111 },
+                    { 109, 1, 5, 108 },
+                    { 110, 2, 5, 108 },
+                    { 111, 3, 5, 108 },
+                    { 112, 1, 5, 109 },
+                    { 113, 1, 5, 110 }
                 });
 
             migrationBuilder.InsertData(
@@ -3653,6 +3794,9 @@ namespace CafeChain.Migrations
                 name: "AccountRoles");
 
             migrationBuilder.DropTable(
+                name: "CashFlowDto");
+
+            migrationBuilder.DropTable(
                 name: "CustomerAddresses");
 
             migrationBuilder.DropTable(
@@ -3663,6 +3807,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "CustomerPoints");
+
+            migrationBuilder.DropTable(
+                name: "DashboardSummaryDto");
 
             migrationBuilder.DropTable(
                 name: "DrinkDefaultToppings");
@@ -3686,6 +3833,9 @@ namespace CafeChain.Migrations
                 name: "InventoryDocumentDetails");
 
             migrationBuilder.DropTable(
+                name: "InventoryDto");
+
+            migrationBuilder.DropTable(
                 name: "InventoryTransactions");
 
             migrationBuilder.DropTable(
@@ -3704,6 +3854,9 @@ namespace CafeChain.Migrations
                 name: "PasswordResetOtps");
 
             migrationBuilder.DropTable(
+                name: "PaymentMethodDto");
+
+            migrationBuilder.DropTable(
                 name: "Payments");
 
             migrationBuilder.DropTable(
@@ -3719,6 +3872,12 @@ namespace CafeChain.Migrations
                 name: "RecipeDetails");
 
             migrationBuilder.DropTable(
+                name: "RevenueByStoreDto");
+
+            migrationBuilder.DropTable(
+                name: "RevenueDto");
+
+            migrationBuilder.DropTable(
                 name: "StaffAddresses");
 
             migrationBuilder.DropTable(
@@ -3726,6 +3885,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StaffDependents");
+
+            migrationBuilder.DropTable(
+                name: "StaffPerformanceDto");
 
             migrationBuilder.DropTable(
                 name: "StaffPhones");
@@ -3758,6 +3920,12 @@ namespace CafeChain.Migrations
                 name: "SystemSettings");
 
             migrationBuilder.DropTable(
+                name: "TopDrinkDto");
+
+            migrationBuilder.DropTable(
+                name: "TopToppingDto");
+
+            migrationBuilder.DropTable(
                 name: "TransactionLogs");
 
             migrationBuilder.DropTable(
@@ -3765,6 +3933,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "VoucherUsages");
+
+            migrationBuilder.DropTable(
+                name: "WasteDto");
 
             migrationBuilder.DropTable(
                 name: "WheelSpins");

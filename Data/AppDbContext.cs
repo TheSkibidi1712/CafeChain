@@ -1,3 +1,5 @@
+using CafeChain.Application.DTOs.Admin.Dashboard;
+using CafeChain.Data.Configurations;
 using CafeChain.Models; 
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
@@ -10,7 +12,6 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Data.Configurations;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -121,6 +122,17 @@ namespace CafeChain.Data
         // ========================= CONFIGURATION =========================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<RevenueDto>().HasNoKey();
+            modelBuilder.Entity<RevenueByStoreDto>().HasNoKey();
+            modelBuilder.Entity<TopDrinkDto>().HasNoKey();
+            modelBuilder.Entity<TopToppingDto>().HasNoKey();
+            modelBuilder.Entity<PaymentMethodDto>().HasNoKey();
+            modelBuilder.Entity<StaffPerformanceDto>().HasNoKey();
+            modelBuilder.Entity<InventoryDto>().HasNoKey();
+            modelBuilder.Entity<WasteDto>().HasNoKey();
+            modelBuilder.Entity<CashFlowDto>().HasNoKey();
+            modelBuilder.Entity<DashboardSummaryDto>().HasNoKey();
+
             base.OnModelCreating(modelBuilder);
 
             modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);

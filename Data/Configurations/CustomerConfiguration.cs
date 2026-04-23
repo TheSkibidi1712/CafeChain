@@ -45,7 +45,8 @@ namespace CafeChain.Data.Configurations
                 new Account { AccountId = 108, Email = "storemanager@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
                 new Account { AccountId = 109, Email = "shiftsupervisor@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
                 new Account { AccountId = 110, Email = "cashier@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 111, Email = "khachhang@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) }
+                new Account { AccountId = 111, Email = "khachhang@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
+                new Account { AccountId = 122, Email = "districtmanager@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) }
             );
         }
     }
@@ -81,7 +82,8 @@ namespace CafeChain.Data.Configurations
                 new AccountRole { AccountId = 108, RoleId = 8 },
                 new AccountRole { AccountId = 109, RoleId = 9 },
                 new AccountRole { AccountId = 110, RoleId = 10 },
-                new AccountRole { AccountId = 111, RoleId = 11 }
+                new AccountRole { AccountId = 111, RoleId = 11 },
+                new AccountRole { AccountId = 122, RoleId = 7 }
             );
         }
     }
