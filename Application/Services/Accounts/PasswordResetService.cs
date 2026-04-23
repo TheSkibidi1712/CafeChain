@@ -1,4 +1,5 @@
-﻿using CafeChain.Application.Interfaces.Accounts;
+﻿using CafeChain.Application.DTOs.Accounts;
+using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Results;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
@@ -22,44 +23,74 @@ namespace CafeChain.Application.Services.Accounts
             _emailService = emailService;
         }
 
-        public async Task<ServiceResult> SendOtpAsync(string email)
+        public async Task<ServiceResult<SendOtpResponse>> SendOtpAsync(string email)
         {
-            email = email.Trim().ToLower();
-
-            var account = await _accountRepository.GetAccountByEmailAsync(email);
-            if (account == null)
-                return ServiceResult.Failure("Email không tồn tại");
-
-            // 🔥 1. CHẶN SPAM (30s)
-            var lastOtp = await _otpRepository.GetLatestOtpAsync(email);
-            if (lastOtp != null && lastOtp.CreatedAt > DateTime.UtcNow.AddSeconds(-30))
+            try
             {
-                return ServiceResult.Failure("Vui lòng đợi 30 giây trước khi gửi lại OTP");
+                email = email?.Trim().ToLower();
+
+                if (string.IsNullOrWhiteSpace(email))
+                    return ServiceResult<SendOtpResponse>.Failure("Email không hợp lệ");
+
+                var account = await _accountRepository.GetAccountByEmailAsync(email);
+                if (account == null)
+                    return ServiceResult<SendOtpResponse>.Failure("Email không tồn tại");
+
+                // ===== 1. CHẶN SPAM (30s) =====
+                var lastOtp = await _otpRepository.GetLatestOtpAsync(email);
+
+                if (lastOtp != null && lastOtp.CreatedAt > DateTime.UtcNow.AddSeconds(-30))
+                {
+                    var wait = (int)Math.Ceiling(
+                        (lastOtp.CreatedAt.AddSeconds(30) - DateTime.UtcNow).TotalSeconds
+                    );
+
+                    return ServiceResult<SendOtpResponse>.Failure(
+                        $"Vui lòng đợi {wait} giây trước khi gửi lại OTP"
+                    );
+                }
+
+                // ===== 2. INVALIDATE OTP CŨ =====
+                await _otpRepository.InvalidateOldOtpsAsync(email);
+
+                // ===== 3. GENERATE OTP =====
+                var code = GenerateOtp();
+
+                var otp = new PasswordResetOtp
+                {
+                    AccountId = account.AccountId,
+                    Email = email,
+                    CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
+                    CreatedAt = DateTime.UtcNow,
+                    ExpiredAt = DateTime.UtcNow.AddMinutes(5),
+                    IsUsed = false,
+                    FailedAttempts = 0 // 🔥 IMPORTANT
+                };
+
+                await _otpRepository.SaveOtpAsync(otp);
+
+                // ===== 4. SEND MAIL =====
+                var subject = "CafeChain | Mã OTP đặt lại mật khẩu";
+                var body = _emailService.BuildOtpEmail(code);
+
+                await _emailService.SendAsync(email, subject, body);
+
+                // ===== 5. RETURN =====
+                return ServiceResult<SendOtpResponse>.Success(
+                    new SendOtpResponse
+                    {
+                        ExpireAt = otp.ExpiredAt
+                    },
+                    "OTP đã được gửi"
+                );
             }
-
-            // 🔥 2. INVALIDATE OTP CŨ
-            await _otpRepository.InvalidateOldOtpsAsync(email);
-
-            var code = GenerateOtp();
-
-            var otp = new PasswordResetOtp
+            catch (Exception ex)
             {
-                AccountId = account.AccountId,
-                Email = email,
-                CodeHash = BCrypt.Net.BCrypt.HashPassword(code),
-                CreatedAt = DateTime.UtcNow,
-                ExpiredAt = DateTime.UtcNow.AddMinutes(5),
-                IsUsed = false
-            };
-
-            await _otpRepository.SaveOtpAsync(otp);
-
-            var subject = "CafeChain | Mã OTP đặt lại mật khẩu";
-            var body = _emailService.BuildOtpEmail(code);
-
-            await _emailService.SendAsync(email, subject, body);
-
-            return ServiceResult.Success("OTP đã được gửi");
+                return ServiceResult<SendOtpResponse>.Failure(
+                    "Lỗi hệ thống khi gửi OTP",
+                    new List<string> { ex.Message }
+                );
+            }
         }
 
         public async Task<ServiceResult> VerifyOtpAsync(string email, string code)

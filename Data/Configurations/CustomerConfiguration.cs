@@ -18,6 +18,9 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.PasswordHash).IsRequired().HasMaxLength(500);
             entity.Property(x => x.CreatedAt).HasDefaultValueSql("GETDATE()");
             entity.Property(x => x.Active).HasDefaultValue(true);
+            entity.Property(x => x.FailedLoginAttempts).HasDefaultValue(0);
+
+            entity.Property(x => x.LockoutEnd).IsRequired(false);
 
             entity.HasIndex(x => x.Email).IsUnique();
 
@@ -392,7 +395,7 @@ namespace CafeChain.Data.Configurations
 
             entity.Property(x => x.CodeHash)
                 .IsRequired()
-                .HasMaxLength(10);
+                .HasMaxLength(255);
 
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");

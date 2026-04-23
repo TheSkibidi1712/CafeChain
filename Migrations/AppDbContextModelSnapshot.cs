@@ -244,6 +244,14 @@ namespace CafeChain.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<int>("FailedLoginAttempts")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<DateTime?>("LockoutEnd")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -266,6 +274,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "superadmin@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -275,6 +284,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "ceo@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -284,6 +294,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "cfo@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -293,6 +304,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "marketing@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -302,6 +314,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "operations@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -311,6 +324,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "hr@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -320,6 +334,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "areamanager@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -329,6 +344,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "storemanager@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -338,6 +354,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "shiftsupervisor@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -347,6 +364,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "cashier@cafechain.vn",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -356,6 +374,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "khachhang@gmail.com",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         },
@@ -365,6 +384,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Email = "districtmanager@gmail.com",
+                            FailedLoginAttempts = 0,
                             PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                             RequiresPasswordChange = true
                         });
@@ -684,8 +704,8 @@ namespace CafeChain.Migrations
 
                     b.Property<string>("CodeHash")
                         .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -5982,11 +6002,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 23, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7478),
+                            EndDate = new DateTime(2026, 5, 23, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4958),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 16, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7469)
+                            StartDate = new DateTime(2026, 4, 16, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4945)
                         },
                         new
                         {
@@ -5994,10 +6014,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 8, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7485),
+                            EndDate = new DateTime(2026, 5, 8, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4961),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7484)
+                            StartDate = new DateTime(2026, 4, 22, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4960)
                         },
                         new
                         {
@@ -6005,11 +6025,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7487),
+                            EndDate = new DateTime(2026, 6, 22, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4963),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 24, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7486)
+                            StartDate = new DateTime(2026, 3, 24, 21, 48, 15, 984, DateTimeKind.Local).AddTicks(4962)
                         });
                 });
 

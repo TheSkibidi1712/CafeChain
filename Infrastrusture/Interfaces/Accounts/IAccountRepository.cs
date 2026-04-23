@@ -9,5 +9,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Accounts
         Task<bool> PhoneExistsAsync(string phone);
         Task<Account> CreateCustomerAccountAsync(Account account, string phone);
         Task<Account> GetAccountByEmailAsync(string email);
+        Task UpdateAsync(Account account);
+        Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email);
     }
 }

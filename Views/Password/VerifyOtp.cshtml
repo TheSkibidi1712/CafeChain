@@ -96,28 +96,75 @@
             }
         });
 
-        const storageKey = "otp_expire_" + '@Model.Email';
-        if (!localStorage.getItem(storageKey)) {
-            localStorage.setItem(storageKey, new Date().getTime() + 5 * 60 * 1000);
-        }
+         // ================== FIX COUNTDOWN ==================
+        const expireAtStr = '@(((DateTime)ViewBag.ExpireAt).ToString("o"))';
+        const expireAt = new Date(expireAtStr).getTime();
 
         const countdownEl = document.getElementById("countdown");
         const resendBtn = document.getElementById("resendBtn");
+
         const timer = setInterval(() => {
-            const timeLeft = Math.floor((parseInt(localStorage.getItem(storageKey)) - new Date().getTime()) / 1000);
+            const now = new Date().getTime();
+            const timeLeft = Math.floor((expireAt - now) / 1000);
+
             if (timeLeft <= 0) {
                 clearInterval(timer);
                 countdownEl.innerText = "00:00";
                 resendBtn.disabled = false;
-                localStorage.removeItem(storageKey);
                 return;
             }
-            countdownEl.innerText = String(Math.floor(timeLeft / 60)).padStart(2, '0') + ":" + String(timeLeft % 60).padStart(2, '0');
+
+            countdownEl.innerText =
+                String(Math.floor(timeLeft / 60)).padStart(2, '0') +
+                ":" +
+                String(timeLeft % 60).padStart(2, '0');
+
         }, 1000);
 
         resendBtn.addEventListener("click", () => {
-            localStorage.setItem(storageKey, new Date().getTime() + 5 * 60 * 1000);
-            window.location.href = '/Password/ForgotPassword?email=' + '@Model.Email';
+            resendBtn.disabled = true;
+
+            fetch('/Password/ResendOtp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify('@Model.Email')
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+
+                    showToast('OTP mới đã được gửi!', 'success');
+
+                    // RESET COUNTDOWN
+                    const newExpire = new Date(data.expireAt).getTime();
+
+                    const newTimer = setInterval(() => {
+                        const now = new Date().getTime();
+                        const timeLeft = Math.floor((newExpire - now) / 1000);
+
+                        if (timeLeft <= 0) {
+                            clearInterval(newTimer);
+                            countdownEl.innerText = "00:00";
+                            resendBtn.disabled = false;
+                            return;
+                        }
+
+                        countdownEl.innerText =
+                            String(Math.floor(timeLeft / 60)).padStart(2, '0') +
+                            ":" +
+                            String(timeLeft % 60).padStart(2, '0');
+
+                    }, 1000);
+
+                } else {
+                    showToast(data.message, 'error');
+                    resendBtn.disabled = false;
+                }
+            })
+            .catch(() => {
+                showToast('Lỗi gửi OTP', 'error');
+                resendBtn.disabled = false;
+            });
         });
     </script>
 </body>

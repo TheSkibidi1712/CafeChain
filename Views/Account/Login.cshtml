@@ -2,6 +2,7 @@
 @{
     ViewData["Title"] = "Đăng nhập";
     Layout = null;
+    var isLocked = ViewBag.IsLocked ?? false;
 }
 
 <!DOCTYPE html>
@@ -21,7 +22,6 @@
             --placeholder-color: #9ca3af;
         }
 
-        /* Ẩn con mắt mặc định của trình duyệt Edge để tránh trùng lặp */
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear {
             display: none;
@@ -134,11 +134,6 @@
             transform: translateY(-50%);
             cursor: pointer;
             color: var(--placeholder-color);
-            transition: color 0.2s;
-        }
-
-        .toggle-password:hover {
-            color: var(--primary-orange);
         }
 
         .action-row {
@@ -186,36 +181,9 @@
             letter-spacing: 1px;
         }
 
-        .submit-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 15px 30px rgba(211, 72, 23, 0.3);
-            filter: brightness(1.1);
-        }
-
-        .register-link {
-            font-size: 0.95rem;
-            color: #666;
-        }
-
-        .register-link a {
-            color: var(--primary-orange);
-            text-decoration: none;
-            font-weight: 700;
-        }
-
-        .card-footer {
-            margin-top: 3rem;
-            font-size: 0.75rem;
-            color: #aaa;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-
-        .text-danger {
-            color: #dc2626;
-            font-size: 0.85rem;
-            margin-top: 0.5rem;
-            display: block;
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
         }
 
         .validation-summary {
@@ -240,7 +208,16 @@
         </div>
 
         <form asp-action="Login" method="post">
-            @if (!ViewData.ModelState.IsValid)
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="returnUrl" value="@Context.Request.Query["returnUrl"]" />
+
+            @if (ViewBag.LockMessage != null)
+            {
+                <div class="validation-summary">
+                    @ViewBag.LockMessage
+                </div>
+            }
+            else if (!ViewData.ModelState.IsValid)
             {
                 <div class="validation-summary" asp-validation-summary="All"></div>
             }
@@ -249,7 +226,7 @@
                 <label class="form-label" asp-for="Email"></label>
                 <div class="input-wrapper">
                     <i class="far fa-envelope input-icon"></i>
-                    <input asp-for="Email" class="form-input" placeholder="username@email.com" />
+                    <input asp-for="Email" class="form-input" placeholder="username@email.com" readonly="@(isLocked ? "readonly" : null)" />
                 </div>
                 <span asp-validation-for="Email" class="text-danger"></span>
             </div>
@@ -258,7 +235,7 @@
                 <label class="form-label" asp-for="Password"></label>
                 <div class="input-wrapper">
                     <i class="fas fa-lock input-icon"></i>
-                    <input asp-for="Password" class="form-input" id="passwordInput" placeholder="••••••••" />
+                    <input asp-for="Password" type="password" class="form-input" id="passwordInput" placeholder="••••••••" readonly="@(isLocked ? "readonly" : null)" />
                     <i class="far fa-eye toggle-password" id="togglePassword"></i>
                 </div>
                 <span asp-validation-for="Password" class="text-danger"></span>
@@ -266,13 +243,15 @@
 
             <div class="action-row">
                 <div class="checkbox-group">
-                    <input type="checkbox" asp-for="RememberMe" id="rememberMe" />
+                    <input type="checkbox" asp-for="RememberMe" id="rememberMe" disabled="@(isLocked ? "disabled" : null)" />
                     <label for="rememberMe">Ghi nhớ đăng nhập</label>
                 </div>
                 <a asp-controller="Password" asp-action="ForgotPassword" class="forgot-password">Quên mật khẩu?</a>
             </div>
 
-            <button type="submit" class="submit-btn">Đăng nhập</button>
+            <button type="submit" class="submit-btn" disabled="@(isLocked ? "disabled" : null)">
+                @(isLocked ? "Đang bị khóa..." : "Đăng nhập")
+            </button>
 
             <p class="register-link">
                 Chưa có tài khoản? <a asp-action="Register">Đăng ký ngay</a>
@@ -285,18 +264,58 @@
     </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    <script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
-    <script src="~/lib/jquery-validation-unobtrusive/jquery.validate.unobtrusive.min.js"></script>
 
     <script>
-        $(document).ready(function() {
-            $('#togglePassword').click(function() {
-                const passwordInput = $('#passwordInput');
-                const type = passwordInput.attr('type') === 'password' ? 'text' : 'password';
-                passwordInput.attr('type', type);
-                
+        $(document).ready(function () {
+
+            // Toggle password
+            $('#togglePassword').click(function () {
+                const input = $('#passwordInput');
+                const type = input.attr('type') === 'password' ? 'text' : 'password';
+                input.attr('type', type);
                 $(this).toggleClass('fa-eye fa-eye-slash');
             });
+
+            // ===== COUNTDOWN LOCK =====
+                   const email = $('input[name="Email"]').val();
+
+            function updateLockUI(isLocked, remainingMinutes) {
+                const btn = $('.submit-btn');
+
+                if (isLocked) {
+                    $('input, button').prop('disabled', true);
+
+                    btn.text(`Thử lại sau ${remainingMinutes} phút`);
+                } else {
+                    $('input, button').prop('disabled', false);
+                    btn.text('Đăng nhập');
+                }
+            }
+
+            async function checkLock() {
+                if (!email) return;
+
+                try {
+                    const res = await fetch(`/Account/CheckLockStatus?email=${encodeURIComponent(email)}`);
+                    const data = await res.json();
+
+                    updateLockUI(data.isLocked, data.remainingMinutes);
+
+                    // 🔥 nếu đã unlock thì dừng polling
+                    if (!data.isLocked) {
+                        clearInterval(interval);
+                    }
+
+                } catch (err) {
+                    console.error('Check lock error:', err);
+                }
+            }
+
+            // 🔥 chạy ngay lần đầu
+            checkLock();
+
+            // 🔥 polling mỗi 5 giây
+            const interval = setInterval(checkLock, 5000);
         });
     </script>
 </body>

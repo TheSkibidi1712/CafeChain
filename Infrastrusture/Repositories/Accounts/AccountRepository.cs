@@ -124,5 +124,31 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
 
             throw new RoleNotFoundException(roleName);
         }
+
+        public async Task UpdateAsync(Account account)
+        {
+            _context.Accounts.Update(account);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email)
+        {
+            email = email.Trim().ToLower();
+
+            var account = await _context.Accounts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+
+            if (account == null)
+                return (false, 0);
+
+            if (account.LockoutEnd.HasValue && account.LockoutEnd > DateTime.UtcNow)
+            {
+                var remain = (account.LockoutEnd.Value - DateTime.UtcNow).TotalMinutes;
+                return (true, (int)Math.Ceiling(remain));
+            }
+
+            return (false, 0);
+        }
     }
 }

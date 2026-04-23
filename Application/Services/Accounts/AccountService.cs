@@ -92,7 +92,6 @@ namespace CafeChain.Application.Services.Accounts
         {
             try
             {
-                // ===== NORMALIZE =====
                 dto.Email = dto.Email?.Trim().ToLower();
 
                 if (string.IsNullOrWhiteSpace(dto.Email) || string.IsNullOrWhiteSpace(dto.Password))
@@ -105,35 +104,69 @@ namespace CafeChain.Application.Services.Accounts
                 if (account == null)
                     return ServiceResult<LoginResponseDto>.Failure("Email hoặc mật khẩu không chính xác.");
 
-                if (!BCrypt.Net.BCrypt.Verify(dto.Password, account.PasswordHash))
-                    return ServiceResult<LoginResponseDto>.Failure("Email hoặc mật khẩu không chính xác.");
-
                 if (!account.Active)
-                    return ServiceResult<LoginResponseDto>.Failure("Tài khoản bị khóa.");
+                    return ServiceResult<LoginResponseDto>.Failure("Tài khoản đã bị khóa.");
 
-                // ===== ROLE: Lấy TẤT CẢ roles =====
-                var allRoles = account.AccountRoles
-                    .Select(r => r.Role.Name)
-                    .ToList();
+                // ===== 🔥 RESET LOCK NẾU ĐÃ HẾT HẠN =====
+                if (account.LockoutEnd.HasValue && account.LockoutEnd <= DateTime.UtcNow)
+                {
+                    account.LockoutEnd = null;
+                    account.FailedLoginAttempts = 0;
 
-                // 🔥 Chọn role ưu tiên cao nhất cho redirect
-                // Thứ tự ưu tiên: Admin System > Store Manager > Ward/Province Manager > Cashier > Customer
-                string primaryRole;
-                if (allRoles.Any(r => r.Contains("Admin")))
-                    primaryRole = allRoles.First(r => r.Contains("Admin"));
-                else if (allRoles.Any(r => r.Contains("Manager")))
-                    primaryRole = allRoles.First(r => r.Contains("Manager"));
-                else if (allRoles.Any(r => r.Contains("Cashier")))
-                    primaryRole = allRoles.First(r => r.Contains("Cashier"));
-                else
-                    primaryRole = allRoles.FirstOrDefault() ?? RoleConstants.Customer;
+                    await _accountRepository.UpdateAsync(account);
+                }
 
-                // ===== FULL NAME =====
+                // ===== LOCK =====
+                if (account.LockoutEnd.HasValue && account.LockoutEnd > DateTime.UtcNow)
+                {
+                    var remain = (account.LockoutEnd.Value - DateTime.UtcNow).TotalMinutes;
+
+                    var result = ServiceResult<LoginResponseDto>.Failure("Tài khoản bị khóa", errorCode: "LOCKED");
+
+                    result.Data = new LoginResponseDto
+                    {
+                        IsLocked = true,
+                        LockRemainingMinutes = (int)Math.Ceiling(remain)
+                    };
+
+                    return result;
+                }
+
+                // ===== PASSWORD =====
+                if (!BCrypt.Net.BCrypt.Verify(dto.Password, account.PasswordHash))
+                {
+                    account.FailedLoginAttempts++;
+
+                    if (account.FailedLoginAttempts >= 5)
+                    {
+                        account.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
+                        account.FailedLoginAttempts = 0;
+                    }
+
+                    await _accountRepository.UpdateAsync(account);
+
+                    return ServiceResult<LoginResponseDto>.Failure("Email hoặc mật khẩu không chính xác.");
+                }
+
+                // ===== SUCCESS =====
+                account.FailedLoginAttempts = 0;
+                account.LockoutEnd = null;
+
+                await _accountRepository.UpdateAsync(account);
+
+                var allRoles = account.AccountRoles.Select(r => r.Role.Name).ToList();
+
+                string primaryRole =
+                    allRoles.FirstOrDefault(r => r.Contains("Admin")) ??
+                    allRoles.FirstOrDefault(r => r.Contains("Manager")) ??
+                    allRoles.FirstOrDefault(r => r.Contains("Cashier")) ??
+                    allRoles.FirstOrDefault() ??
+                    RoleConstants.Customer;
+
                 var fullName = account.Customer?.FullName
                                ?? account.Staff?.FullName
                                ?? account.Email.Split('@')[0];
 
-                // ===== BUILD CLAIMS (Centralized Logic) =====
                 var claims = new List<Claim>
                 {
                     new Claim(ClaimTypes.NameIdentifier, account.AccountId.ToString()),
@@ -141,15 +174,11 @@ namespace CafeChain.Application.Services.Accounts
                     new Claim(ClaimTypes.Email, account.Email),
                 };
 
-                foreach (var roleName in allRoles)
-                {
-                    claims.Add(new Claim(ClaimTypes.Role, roleName));
-                }
+                foreach (var role in allRoles)
+                    claims.Add(new Claim(ClaimTypes.Role, role));
 
                 if (!allRoles.Any())
-                {
                     claims.Add(new Claim(ClaimTypes.Role, RoleConstants.Customer));
-                }
 
                 if (account.Customer?.CustomerId != null)
                     claims.Add(new Claim("CustomerId", account.Customer.CustomerId.ToString()));
@@ -160,10 +189,13 @@ namespace CafeChain.Application.Services.Accounts
                 if (account.Staff?.StoreId != null)
                     claims.Add(new Claim("StoreId", account.Staff.StoreId.ToString()));
 
-                var avatarUrl = account.Customer?.AvatarUrl ?? account.Staff?.AvatarUrl ?? "/Images/Upload/avtdf.jpg";
+                var avatarUrl = account.Customer?.AvatarUrl
+                                ?? account.Staff?.AvatarUrl
+                                ?? "/Images/Upload/avtdf.jpg";
+
                 claims.Add(new Claim("AvatarUrl", avatarUrl));
 
-                var response = new LoginResponseDto
+                return ServiceResult<LoginResponseDto>.Success(new LoginResponseDto
                 {
                     Email = account.Email,
                     FullName = fullName,
@@ -174,15 +206,30 @@ namespace CafeChain.Application.Services.Accounts
                     StaffId = account.Staff?.StaffId,
                     StoreId = account.Staff?.StoreId,
                     AvatarUrl = avatarUrl,
-                    Claims = claims // 🔥 Trả về Claims hoàn chỉnh
-                };
-
-                return ServiceResult<LoginResponseDto>.Success(response, "Đăng nhập thành công!");
+                    Claims = claims
+                }, "Đăng nhập thành công!");
             }
             catch (Exception ex)
             {
-                return ServiceResult<LoginResponseDto>.Failure("Lỗi hệ thống khi đăng nhập: " + ex.Message);
+                return ServiceResult<LoginResponseDto>.Failure("Lỗi hệ thống: " + ex.Message);
             }
+        }
+
+        public async Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email)
+        {
+            var account = await _accountRepository.GetAccountByEmailAsync(email);
+
+            if (account == null)
+                return (false, 0);
+
+            if (account.LockoutEnd.HasValue && account.LockoutEnd > DateTime.UtcNow)
+            {
+                var remain = (account.LockoutEnd.Value - DateTime.UtcNow).TotalMinutes;
+
+                return (true, (int)Math.Ceiling(remain));
+            }
+
+            return (false, 0);
         }
 
         private string HashPassword(string password)

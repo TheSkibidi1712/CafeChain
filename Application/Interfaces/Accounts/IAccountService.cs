@@ -8,5 +8,6 @@ namespace CafeChain.Application.Interfaces.Accounts
     {
         Task<ServiceResult> RegisterCustomerAsync(RegisterDto dto);
         Task<ServiceResult<LoginResponseDto>> LoginAsync(LoginDto dto);
+        Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email);
     }
 }

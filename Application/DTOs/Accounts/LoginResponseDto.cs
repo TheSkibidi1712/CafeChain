@@ -17,5 +17,7 @@ namespace CafeChain.Application.DTOs.Accounts
         
         // 🔥 Danh sách Claims hoàn chỉnh được tạo từ Service
         public List<Claim> Claims { get; set; } = new();
+        public bool IsLocked { get; set; }
+        public int? LockRemainingMinutes { get; set; }
     }
 }

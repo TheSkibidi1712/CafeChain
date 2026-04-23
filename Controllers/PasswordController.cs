@@ -13,6 +13,7 @@ namespace CafeChain.Controllers
             _service = service;
         }
 
+        // ========================= FORGOT PASSWORD =========================
         [HttpGet]
         public IActionResult ForgotPassword()
         {
@@ -33,12 +34,16 @@ namespace CafeChain.Controllers
                 return View(vm);
             }
 
+            TempData["ExpireAt"] = result.Data.ExpireAt;
             return RedirectToAction("VerifyOtp", new { email = vm.Email });
         }
 
+        // ========================= VERIFY OTP =========================
         [HttpGet]
         public IActionResult VerifyOtp(string email)
         {
+            ViewBag.ExpireAt = TempData["ExpireAt"];
+            ViewBag.Email = email;
             return View(new VerifyOtpViewModel { Email = email });
         }
 
@@ -65,6 +70,32 @@ namespace CafeChain.Controllers
             return RedirectToAction("ResetPassword", new { email = vm.Email, code = vm.OtpCode });
         }
 
+        // ========================= RESEND OTP (AJAX) =========================
+        [HttpPost]
+        public async Task<IActionResult> ResendOtp([FromBody] string email)
+        {
+            if (string.IsNullOrWhiteSpace(email))
+                return Json(new { success = false, message = "Email không hợp lệ" });
+
+            var result = await _service.SendOtpAsync(email);
+
+            if (!result.IsSuccess)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = result.Message
+                });
+            }
+
+            return Json(new
+            {
+                success = true,
+                expireAt = result.Data.ExpireAt
+            });
+        }
+
+        // ========================= RESET PASSWORD =========================
         [HttpGet]
         public IActionResult ResetPassword(string email, string code)
         {

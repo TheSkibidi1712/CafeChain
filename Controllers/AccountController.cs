@@ -86,14 +86,33 @@ namespace CafeChain.Controllers
         // ========================= LOGIN =========================
 
         [HttpGet]
-        public IActionResult Login()
+        public async Task<IActionResult> Login(string? email = null)
         {
             if (User.Identity != null && User.Identity.IsAuthenticated)
             {
-                return RedirectToAction("Index", "Home"); // hoặc dashboard
+                return RedirectToAction("Index", "Home");
             }
 
-            return View(new LoginViewModel());
+            if (!string.IsNullOrEmpty(email))
+            {
+                var lockInfo = await _accountService.CheckLockAsync(email);
+
+                if (lockInfo.IsLocked)
+                {
+                    ViewBag.IsLocked = true;
+                    ViewBag.LockMinutes = lockInfo.RemainingMinutes;
+                    ViewBag.LockMessage = $"Tài khoản bị khóa. Thử lại sau {lockInfo.RemainingMinutes} phút";
+                }
+                else
+                {
+                    ViewBag.IsLocked = false;
+                }
+            }
+
+            return View(new LoginViewModel
+            {
+                Email = email
+            });
         }
 
         [HttpPost]
@@ -119,10 +138,19 @@ namespace CafeChain.Controllers
 
             if (!result.IsSuccess)
             {
-                ModelState.AddModelError(string.Empty, result.Message);
+                await Task.Delay(800); // 🔥 chống brute force
+
+                if (result.Data?.IsLocked == true)
+                {
+                    return RedirectToAction("Login", new { email = model.Email });
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, result.Message);
+                }
+
                 return View(model);
             }
-
             // ===== CLAIMS (Managed by Service) =====
             var claims = result.Data.Claims;
 
@@ -203,6 +231,19 @@ namespace CafeChain.Controllers
             }
 
             return RedirectToAction("Index", "Home");
+        }
+
+        // ========================= CHECK LOCK STATUS (AJAX) =========================
+        [HttpGet]
+        public async Task<IActionResult> CheckLockStatus(string email)
+        {
+            var lockInfo = await _accountService.CheckLockAsync(email);
+
+            return Json(new
+            {
+                isLocked = lockInfo.IsLocked,
+                remainingMinutes = lockInfo.RemainingMinutes
+            });
         }
 
         // ========================= ACCESS DENIED =========================
