@@ -22,7 +22,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<List<Store>> GetStoresByStaffAsync(int staffId)
         {
             var storeIds = await _context.StaffScopes
-                .Where(x => x.StaffId == staffId && x.ScopeTypeId == 4) // STORE
+                .Where(x => x.StaffId == staffId && x.ScopeTypeId == 5) // STORE
                 .Select(x => x.ScopeRefId)
                 .ToListAsync();
 
@@ -37,7 +37,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             return await _context.StaffScopes
                 .AnyAsync(x =>
                     x.StaffId == staffId &&
-                    x.ScopeTypeId == 4 &&
+                    x.ScopeTypeId == 5 &&
                     x.ScopeRefId == storeId);
         }
 

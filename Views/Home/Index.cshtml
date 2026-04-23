@@ -125,13 +125,9 @@
                         </div>
 
                         <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
-<<<<<<< HEAD
                             
                             <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%;"></canvas>
                             
-=======
-                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);"></canvas>
->>>>>>> feature/ViVoucher
                             <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
                                     style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
                                     onclick="spinTheWheel()">
@@ -366,10 +362,6 @@
                 let sectorArc = 360 / numSectors;
                 
                 let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
-<<<<<<< HEAD
-=======
-                let totalRotation = 360 * 8 + stopAngle;
->>>>>>> feature/ViVoucher
                 
                 // Tính toán góc quay mục tiêu sao cho vòng quay đi tiếp mượt mà từ vị trí hiện tại
                 // Bù lại phần góc đã bị lệch do currentRotation
@@ -424,17 +416,8 @@
                     }
 
                     if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
-                    
-<<<<<<< HEAD
                 }, 6000);
-=======
-                    setTimeout(() => {
-                        canvas.style.transition = 'none';
-                        canvas.style.transform = `rotate(${stopAngle % 360}deg)`;
-                        setTimeout(() => { canvas.style.transition = 'transform 5s cubic-bezier(0.15, 0, 0.1, 1)'; }, 50);
-                    }, 500);
-                }, 5000);
->>>>>>> feature/ViVoucher
+
             });
         }
 
