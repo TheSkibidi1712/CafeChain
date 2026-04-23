@@ -67,6 +67,8 @@
         <form asp-action="Edit">
             <input type="hidden" asp-for="StoreId" />
             <input type="hidden" asp-for="CreatedAt" />
+            <input type="hidden" id="Latitude" name="Latitude" value="@Model.Latitude" />
+            <input type="hidden" id="Longitude" name="Longitude" value="@Model.Longitude" />
 
             <div class="form-group mb-3">
                 <label asp-for="Name">Tên Cửa Hàng</label>
@@ -105,12 +107,12 @@
 
             <div class="row mb-3">
                 <div class="col-6">
-                    <label asp-for="Latitude">Vĩ độ (Latitude)</label>
-                    <input asp-for="Latitude" id="Latitude" class="form-control bg-light" readonly />
+                    <label>Vĩ độ (Latitude)</label>
+                    <input id="DisplayLatitude" value="@Model.Latitude" class="form-control bg-light" readonly />
                 </div>
                 <div class="col-6">
-                    <label asp-for="Longitude">Kinh độ (Longitude)</label>
-                    <input asp-for="Longitude" id="Longitude" class="form-control bg-light" readonly />
+                    <label>Kinh độ (Longitude)</label>
+                    <input id="DisplayLongitude" value="@Model.Longitude" class="form-control bg-light" readonly />
                 </div>
             </div>
 
@@ -406,8 +408,10 @@
 
             marker.on('dragend', function(e) {
                 var pos = marker.getLatLng();
-                $('#Latitude').val(pos.lat.toFixed(6));
-                $('#Longitude').val(pos.lng.toFixed(6));
+                document.getElementById('Latitude').value = pos.lat;
+                document.getElementById('Longitude').value = pos.lng;
+                $('#DisplayLatitude').val(pos.lat.toFixed(6));
+                $('#DisplayLongitude').val(pos.lng.toFixed(6));
 
                 // Tự động lấy lại địa chỉ khi kéo thả xong
                 performReverseGeocoding(pos.lat, pos.lng);
@@ -415,8 +419,10 @@
 
             map.on('click', function(e) {
                 marker.setLatLng(e.latlng);
-                $('#Latitude').val(e.latlng.lat.toFixed(6));
-                $('#Longitude').val(e.latlng.lng.toFixed(6));
+                document.getElementById('Latitude').value = e.latlng.lat;
+                document.getElementById('Longitude').value = e.latlng.lng;
+                $('#DisplayLatitude').val(e.latlng.lat.toFixed(6));
+                $('#DisplayLongitude').val(e.latlng.lng.toFixed(6));
 
                 // Tự động lấy địa chỉ khi click
                 performReverseGeocoding(e.latlng.lat, e.latlng.lng);
@@ -460,8 +466,10 @@
                                 var lonFound = feature.center[0];
                                 var latFound = feature.center[1];
                                 
-                                $('#Latitude').val(latFound.toFixed(6));
-                                $('#Longitude').val(lonFound.toFixed(6));
+                                document.getElementById('Latitude').value = latFound;
+                                document.getElementById('Longitude').value = lonFound;
+                                $('#DisplayLatitude').val(latFound.toFixed(6));
+                                $('#DisplayLongitude').val(lonFound.toFixed(6));
                                 
                                 map.flyTo([latFound, lonFound], 18, { duration: 1.5 });
                                 setTimeout(function() {

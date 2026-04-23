@@ -16,6 +16,10 @@
 
     <form asp-action="Index" method="post" id="checkoutForm">
         <input type="hidden" asp-for="CheckoutToken" />
+        <input type="hidden" asp-for="AssignedStoreId" id="AssignedStoreId" />
+        <input type="hidden" name="Latitude" id="Latitude" />
+        <input type="hidden" name="Longitude" id="Longitude" />
+        <input type="hidden" asp-for="ShippingFee" id="ShippingFeeInput" value="@Model.ShippingFee" />
         <div class="row">
             <!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & THANH TOÁN -->
             <div class="col-lg-8">
@@ -82,6 +86,28 @@
                                 <label asp-for="Note" class="form-label small fw-bold">Ghi chú đơn hàng (Tùy chọn)</label>
                                 <input asp-for="Note" class="form-control rounded-3" placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến...">
                             </div>
+
+                            <div class="col-12 mt-4">
+                                <label class="form-label small fw-bold mb-2"><i class="bi bi-map text-orange me-2"></i>Xác nhận vị trí giao hàng</label>
+                                <div class="alert alert-info small py-2 mb-2"><i class="bi bi-info-circle me-1"></i>Vui lòng di chuyển ghim đỏ (Marker) trên bản đồ đến đúng vị trí của bạn để chúng tôi tính phí giao hàng chính xác.</div>
+                                <div id="checkoutMap" class="rounded-3 shadow-sm border" style="height: 350px; width: 100%; z-index: 1;"></div>
+                                
+                                <div id="shippingInfoBox" class="mt-3 p-3 bg-light rounded-3 d-none border">
+                                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-shop text-orange me-2"></i>Cửa hàng phụ trách: <span id="lblStoreName" class="text-orange"></span></h6>
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span class="text-muted">Khoảng cách:</span>
+                                        <span class="fw-bold"><span id="lblDistance">0</span> km</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Phí giao hàng:</span>
+                                        <span class="fw-bold"><span id="lblCalculatedShippingFee">0</span>đ</span>
+                                    </div>
+                                </div>
+                                
+                                <div id="shippingError" class="alert alert-danger small mt-2 d-none fw-bold">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Rất tiếc, địa chỉ nằm ngoài vùng phục vụ (tối đa 30km).
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -108,21 +134,28 @@
                         <div class="mb-4">
                             <label class="small fw-bold mb-2">Mã giảm giá</label>
                             <div class="input-group">
-                                <select asp-for="VoucherCode" class="form-select rounded-start-pill px-3" id="VoucherCode">
+                                <select asp-for="SelectedVoucherId" class="form-select rounded-pill px-3" id="voucher-select">
                                     <option value="">-- Chọn mã giảm giá có sẵn --</option>
                                     @if(ViewBag.AvailableVouchers != null)
                                     {
-                                        // TODO: Cập nhật Namespace
                                         var vouchers = (List<CafeChain.Models.Vouchers.Voucher>)ViewBag.AvailableVouchers;
                                         foreach (var voucher in vouchers)
                                         {
+                                            bool isEligible = Model.SubTotal >= (voucher.MinOrderValue ?? 0);
                                             string text = voucher.DiscountAmount != null ? $"GIẢM {voucher.DiscountAmount:N0}đ" : $"GIẢM {voucher.DiscountPercent}%";
                                             if (voucher.MinOrderValue != null) text += $" - Đơn từ {voucher.MinOrderValue:N0}đ";
-                                            <option value="@voucher.Code">@text</option>
+                                            
+                                            if (isEligible)
+                                            {
+                                                <option value="@voucher.VoucherId">@voucher.Code - @voucher.Title | @text</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@voucher.VoucherId" disabled>@voucher.Code - @voucher.Title | @text (Chưa đạt đơn tối thiểu)</option>
+                                            }
                                         }
                                     }
                                 </select>
-                                <button type="button" class="btn btn-orange rounded-end-pill px-3 fw-bold small" id="applyVoucherBtn">ÁP DỤNG</button>
                             </div>
                             <div id="voucherStatus" class="small mt-2 d-none"></div>
                         </div>
@@ -135,7 +168,7 @@
                         </div>
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted small">Phí vận chuyển</span>
-                            <span class="fw-bold">@Model.ShippingFee.ToString("N0")đ</span>
+                            <span class="fw-bold" id="shippingFeeDisplay">@Model.ShippingFee.ToString("N0")đ</span>
                         </div>
                         <div class="d-flex justify-content-between mb-3 d-none" id="voucherRow">
                             <span class="text-muted small">Giảm giá</span>
@@ -262,6 +295,9 @@
 </div>
 
 @section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         .text-orange { color: #d35400; }
         .btn-orange { background-color: #d35400; color: white; transition: 0.3s; }
@@ -278,9 +314,31 @@
         .order-items-list::-webkit-scrollbar { width: 5px; }
         .order-items-list::-webkit-scrollbar-track { background: #f1f1f1; }
         .order-items-list::-webkit-scrollbar-thumb { background: #d35400; border-radius: 10px; }
+
+        /* Google-style Floating Action Button trên Map */
+        .leaflet-control-locate {
+            background: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .leaflet-control-locate:hover {
+            background: #f4f4f4;
+        }
+        .leaflet-control-locate i {
+            font-size: 1.3rem; 
+            color: #0d6efd; /* Blue Google-like color */
+        }
     </style>
 
-    <script>
+   <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Logic Cascading Dropdowns
             const provinceSelect = document.getElementById('provinceSelect');
@@ -344,21 +402,18 @@
                 $('#btnSaveAddress').prop('disabled', true);
 
                 const formData = new FormData(addForm);
-                // Xử lý checkbox isDefault (vì HTML form không gửi false)
                 formData.set('isDefault', document.getElementById('isDefaultCheck').checked);
 
                 fetch('/CustomerAddress/AddAddress', {
                     method: 'POST',
-                    body: formData // Form data auto adds verification tokens / params correctly if matching
+                    body: formData 
                 })
                 .then(res => res.json())
                 .then(res => {
                     if(res.success) {
-                        // Reload trang để model.SelectedAddressId tự focus vào cái vừa tạo
-                        // Thực tế ở Vue/React ta append DOM, MVC truyền thống thì Reload là chắc cốp sạch sẽ
                         window.location.reload(); 
                     } else {
-                        showToast('Lỗi thêm địa chỉ: ' + res.message, 'error');
+                        Swal.fire('Lỗi', res.message, 'error');
                         $('#saveAddrSpinner').addClass('d-none');
                         $('#btnSaveAddress').prop('disabled', false);
                     }
@@ -374,39 +429,206 @@
         $(document).ready(function() {
             let subtotal = @Model.SubTotal;
             let shippingFee = @Model.ShippingFee;
+            let currentVoucherDiscount = 0; // ĐÃ FIX TÊN BIẾN
 
-            $('#applyVoucherBtn').click(function() {
-                const code = $('#VoucherCode').val();
-                if(!code) return;
+            function updateTotal() {
+                const total = subtotal + shippingFee - currentVoucherDiscount;
+                // Đảm bảo tổng tiền không bị âm
+                const finalTotal = total < 0 ? 0 : total;
+                $('#totalText').text(finalTotal.toLocaleString('vi-VN') + 'đ');
+                $('#shippingFeeDisplay').text(shippingFee.toLocaleString('vi-VN') + 'đ');
+                $('#ShippingFeeInput').val(shippingFee);
+            }
 
-                const totalWithShip = subtotal + shippingFee;
+            // --- MAP & HARESINE LOGIC ---
+            var googleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            });
+
+            var googleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps Satellite'
+            });
+
+            let map = L.map('checkoutMap', {
+                center: [10.762622, 106.660172],
+                zoom: 16,
+                layers: [googleStreets]
+            });
+
+            var baseMaps = {
+                "🗺️ Bản đồ Đường xá": googleStreets,
+                "🌍 Ảnh vệ tinh": googleSat
+            };
+            L.control.layers(baseMaps).addTo(map);
+
+            let marker = L.marker([10.762622, 106.660172], { draggable: true }).addTo(map);
+
+            L.Control.Locate = L.Control.extend({
+                onAdd: function(map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    var button = L.DomUtil.create('a', 'leaflet-control-locate', container);
+                    button.innerHTML = '<i class="bi bi-crosshair"></i>';
+                    button.title = "Định vị vị trí của tôi";
+
+                    L.DomEvent.on(button, 'click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        L.DomEvent.preventDefault(e);
+                        locateUserOnly(map, button);
+                    });
+                    return container;
+                }
+            });
+            new L.Control.Locate({ position: 'bottomright' }).addTo(map);
+
+            function locateUserOnly(map, btn) {
+                if (!navigator.geolocation) return Swal.fire("Lỗi", "Thiết bị không hỗ trợ GPS", "error");
+                var oldIcon = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:1rem;height:1rem;"></span>';
+
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    var lt = pos.coords.latitude;
+                    var lg = pos.coords.longitude;
+                    map.flyTo([lt, lg], 17, { duration: 1.5 });
+                    marker.setLatLng([lt, lg]);
+                    calculateShipping(lt, lg);
+                    btn.innerHTML = oldIcon;
+                }, function(err) {
+                    Swal.fire("Cảnh báo", "Vui lòng cho phép quyền truy cập vị trí trong trình duyệt.", "warning");
+                    btn.innerHTML = oldIcon;
+                }, { enableHighAccuracy: true });
+            }
+
+            // Cố gắng định vị user lần đầu nếu trình duyệt hỗ trợ
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 17);
+                    marker.setLatLng([lat, lng]);
+                    calculateShipping(lat, lng);
+                }, function(err) {
+                    calculateShipping(10.762622, 106.660172);
+                });
+            } else {
+                calculateShipping(10.762622, 106.660172);
+            }
+
+            function calculateShipping(lat, lng) {
+                $.ajax({
+                    url: '/Checkout/CalculateShippingFee',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ lat: lat, lng: lng }),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#AssignedStoreId').val(res.storeId);
+                            $('#Latitude').val(lat);
+                            $('#Longitude').val(lng);
+                            
+                            $('#lblStoreName').text(res.storeName);
+                            $('#lblDistance').text(res.distance);
+                            $('#lblCalculatedShippingFee').text(res.shippingFee.toLocaleString('vi-VN'));
+                            $('#shippingInfoBox').removeClass('d-none');
+                            
+                            shippingFee = res.shippingFee;
+                            updateTotal();
+                            
+                            const btnSubmit = $('#btnSubmitCheckout');
+                            const errorBox = $('#shippingError');
+                            const noteBox = $('#Note');
+                            
+                            if (res.isOutOfRange) {
+                                btnSubmit.prop('disabled', true);
+                                errorBox.removeClass('d-none');
+                            } else if (res.isOrangeZone) {
+                                errorBox.addClass('d-none');
+                                btnSubmit.prop('disabled', true);
+                                
+                                Swal.fire({
+                                    title: '⚠️ THÔNG BÁO GIAO XA',
+                                    text: `Địa chỉ của bạn cách quán ${res.distance}km. Để đảm bảo chất lượng, thức uống sẽ được tách đá riêng và giao trong khoảng 60 phút. Bạn đồng ý tiếp tục chứ?`,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d35400',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: 'Đồng ý',
+                                    cancelButtonText: 'Hủy/Đổi địa chỉ',
+                                    allowOutsideClick: false
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        btnSubmit.prop('disabled', false);
+                                        let currentNote = noteBox.val();
+                                        const systemNote = '[HỆ THỐNG]: Đơn hàng giao xa - Tách đá riêng';
+                                        if (currentNote.indexOf(systemNote) === -1) {
+                                            noteBox.val(currentNote + (currentNote ? '\n' : '') + systemNote);
+                                        }
+                                    } else {
+                                        btnSubmit.prop('disabled', true);
+                                    }
+                                });
+                            } else {
+                                errorBox.addClass('d-none');
+                                btnSubmit.prop('disabled', false);
+                            }
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            }
+
+            marker.on('dragend', function (e) {
+                const latlng = marker.getLatLng();
+                calculateShipping(latlng.lat, latlng.lng);
+            });
+
+            // VOUCHER LOGIC - ĐÃ FIX
+            $('#voucher-select').change(function() {
+                const voucherId = $(this).val();
+                const statusEl = $('#voucherStatus');
+                
+                if(!voucherId) {
+                    currentVoucherDiscount = 0; // ĐÃ FIX
+                    $('#voucherRow').addClass('d-none');
+                    statusEl.addClass('d-none');
+                    updateTotal();
+                    return;
+                }
 
                 $.ajax({
-                    url: '/api/Pos/validate-voucher', // Dùng lại API cũ
+                    url: '/Checkout/CalculateDiscount',
                     type: 'POST',
                     contentType: 'application/json',
                     data: JSON.stringify({ 
-                        code: code, 
-                        customerId: 0, // Sẽ kiểm tra lại ở Backend sau
-                        subTotal: subtotal // Validate trên Tạm tính (không có phí ship)
+                        voucherId: parseInt(voucherId), 
+                        subTotal: subtotal 
                     }),
                     success: function(res) {
-                        const statusEl = $('#voucherStatus');
                         if(res.success) {
+                            currentVoucherDiscount = res.discountValue; // ĐÃ FIX
+                            $('#voucherValText').text(currentVoucherDiscount.toLocaleString('vi-VN'));
                             $('#voucherRow').removeClass('d-none');
-                            $('#voucherValText').text(res.discountAmount.toLocaleString());
-                            const total = totalWithShip - res.discountAmount;
-                            $('#totalText').text(total.toLocaleString() + 'đ');
-                            statusEl.text(res.message).removeClass('d-none text-danger').addClass('text-success');
+                            
+                            statusEl.removeClass('d-none text-danger').addClass('text-success').html('<i class="bi bi-check-circle-fill"></i> ' + res.message);
+                            updateTotal();
                         } else {
+                            Swal.fire('Cảnh báo', res.message, 'warning');
+                            $('#voucher-select').val('');
+                            currentVoucherDiscount = 0; // ĐÃ FIX
                             $('#voucherRow').addClass('d-none');
-                            statusEl.text(res.message).removeClass('d-none text-success').addClass('text-danger');
+                            statusEl.removeClass('d-none text-success').addClass('text-danger').html('<i class="bi bi-x-circle-fill"></i> ' + res.message);
+                            updateTotal();
                         }
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi', 'Lỗi kết nối khi kiểm tra mã giảm giá.', 'error');
                     }
                 });
             });
 
-            // Idempotency: Prevent double click on checkout form
+            // Ngăn chặn bấm nút Đặt hàng 2 lần (Idempotency)
             const checkoutForm = document.getElementById('checkoutForm');
             const btnSubmitCheckout = document.getElementById('btnSubmitCheckout');
             if(checkoutForm && btnSubmitCheckout) {

@@ -5,6 +5,8 @@ namespace CafeChain.Models.Vouchers
         public int VoucherId { get; set; }
 
         public string Code { get; set; }
+        public string? Title { get; set; }
+        public string? Description { get; set; }
 
         public int? DiscountPercent { get; set; }
         public decimal? DiscountAmount { get; set; }
@@ -26,5 +28,6 @@ namespace CafeChain.Models.Vouchers
 
         public virtual ICollection<OrderVoucher> OrderVouchers { get; set; }
         public virtual ICollection<VoucherUsage> VoucherUsages { get; set; }
+        public virtual ICollection<CustomerVoucher> CustomerVouchers { get; set; }
     }
 }

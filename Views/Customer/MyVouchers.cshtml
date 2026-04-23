@@ -1,0 +1,273 @@
+@model CafeChain.ViewModels.Customers.MyVouchersViewModel
+@{
+    ViewData["Title"] = "Ưu đãi của tôi";
+}
+
+<style>
+    /* Shopee style voucher card */
+    .voucher-card {
+        display: flex;
+        background: #fff;
+        border: 1px solid #e0e0e0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
+        position: relative;
+        min-height: 110px;
+    }
+    .voucher-card.disabled {
+        filter: grayscale(100%);
+        opacity: 0.7;
+    }
+    .voucher-left {
+        width: 100px;
+        background: #d35400; /* Orange */
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        position: relative;
+        border-right: 2px dashed #fff;
+    }
+    /* Zigzag border effect */
+    .voucher-left::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: -6px;
+        width: 12px;
+        height: 100%;
+        background-color: #fff;
+        background-size: 12px 12px;
+        background-position: 0 0, 0 6px, 6px -6px, -6px 0px;
+        background-image: 
+            radial-gradient(circle at 0 6px, transparent 4px, #fff 5px),
+            radial-gradient(circle at 12px 6px, transparent 4px, #fff 5px);
+        background-repeat: repeat-y;
+        z-index: 1;
+    }
+    .voucher-right {
+        flex-grow: 1;
+        padding: 12px 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+    }
+    .voucher-title {
+        font-weight: bold;
+        font-size: 1rem;
+        margin-bottom: 4px;
+        color: #333;
+    }
+    .voucher-min {
+        font-size: 0.85rem;
+        color: #666;
+        margin-bottom: 6px;
+    }
+    .voucher-date {
+        font-size: 0.75rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+    }
+    .btn-use-now {
+        position: absolute;
+        right: 16px;
+        bottom: 16px;
+        background-color: #d35400;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 4px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+    }
+    .btn-use-now:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+    }
+    
+    .gold-card {
+        background-color: #d35400;
+        box-shadow: 0 10px 20px rgba(211, 84, 0, 0.3);
+    }
+    .profile-menu .nav-link.active {
+        background-color: #fff3ed;
+        color: #d35400 !important;
+        font-weight: bold;
+    }
+    
+    /* Nav tabs style */
+    .nav-tabs .nav-link {
+        color: #666;
+        border: none;
+        border-bottom: 3px solid transparent;
+        border-radius: 0;
+        padding: 12px 16px;
+    }
+    .nav-tabs .nav-link.active {
+        color: #d35400 !important;
+        border-bottom: 3px solid #d35400;
+        background: transparent;
+    }
+</style>
+
+<div class="container my-5">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-4 mb-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 text-center">
+                <div class="d-flex flex-column align-items-center mb-3">
+                    <img src="@(Model.Profile.Customer.AvatarUrl ?? "/Images/Upload/avtdf.jpg")"
+                         onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                         class="rounded-circle object-fit-cover shadow"
+                         style="width: 120px; height: 120px; border: 4px solid #fff;"
+                         alt="Avatar">
+                </div>
+
+                <h4 class="fw-bold">@Model.Profile.Customer.FullName</h4>
+                <p class="text-orange mb-4 small">Khách hàng thân thiết</p>
+
+                <div class="gold-card text-white rounded-4 p-4 text-start mb-4 position-relative overflow-hidden">
+                    <p class="small text-uppercase mb-1 opacity-75 fw-semibold">Hạng thành viên</p>
+                    <h4 class="fw-bold mb-4">GOLD MEMBER</h4>
+                    <p class="small mb-1 opacity-75">Điểm tích lũy hiện tại</p>
+                    <h2 class="fw-bold mb-3">1,250 <span class="fs-6 fw-normal">điểm</span></h2>
+
+                    <div class="progress bg-white bg-opacity-25" style="height: 4px;">
+                        <div class="progress-bar bg-white" style="width: 70%"></div>
+                    </div>
+                    <p class="mt-2 mb-0 fw-light" style="font-size: 0.65rem;">CAFECHAIN ELITE</p>
+                </div>
+
+                <div class="text-start profile-menu">
+                    <a href="/Customer/Profile" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-person me-3"></i> Hồ sơ cá nhân</a>
+                    <a href="/Customer/Profile#addressBookSection" class="nav-link rounded-3 p-3 mb-2 text-muted"><i class="bi bi-journal-bookmark me-3"></i> Sổ địa chỉ</a>
+                    <a href="/Customer/MyVouchers" class="nav-link active rounded-3 p-3 mb-2"><i class="bi bi-gift me-3"></i> Ưu đãi của tôi</a>
+                    <hr class="my-3 opacity-10">
+                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="m-0 p-0">
+                        <button type="submit" class="btn btn-light w-100 rounded-3 py-2 text-danger fw-bold">
+                            <i class="bi bi-box-arrow-right me-2"></i> Đăng xuất tài khoản
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Content -->
+        <div class="col-md-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 p-md-5">
+                <h3 class="fw-bold mb-4">Ví Ưu Đãi Của Tôi</h3>
+
+                <ul class="nav nav-tabs nav-fill mb-4" id="voucherTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-bold" id="valid-tab" data-bs-toggle="tab" data-bs-target="#valid" type="button" role="tab">Có hiệu lực (@Model.ValidVouchers.Count)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="used-tab" data-bs-toggle="tab" data-bs-target="#used" type="button" role="tab">Đã sử dụng (@Model.UsedVouchers.Count)</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-bold" id="expired-tab" data-bs-toggle="tab" data-bs-target="#expired" type="button" role="tab">Đã hết hạn (@Model.ExpiredVouchers.Count)</button>
+                    </li>
+                </ul>
+
+                <div class="tab-content" id="voucherTabsContent">
+                    <!-- Valid Tab -->
+                    <div class="tab-pane fade show active" id="valid" role="tabpanel">
+                        <div class="row g-3">
+                            @foreach(var item in Model.ValidVouchers) {
+                                <div class="col-md-6">
+                                    <div class="voucher-card">
+                                        <div class="voucher-left">
+                                            <i class="bi bi-ticket-perforated" style="font-size: 2rem;"></i>
+                                            <span class="small fw-bold mt-1">@item.Voucher.Code</span>
+                                        </div>
+                                        <div class="voucher-right">
+                                            <div class="voucher-title text-truncate" title="@item.Voucher.Title">@(item.Voucher.Title ?? "Ưu đãi đặc biệt")</div>
+                                            <div class="voucher-min">Đơn tối thiểu @(item.Voucher.MinOrderValue?.ToString("N0") ?? "0")đ</div>
+                                            <div class="voucher-date">
+                                                <i class="bi bi-clock me-1 text-orange"></i>
+                                                HSD: @(item.Voucher.EndDate?.ToString("dd/MM/yyyy HH:mm") ?? "Vô hạn")
+                                            </div>
+                                            <a href="/Drink/Menu" class="btn-use-now text-decoration-none">Dùng ngay</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if(!Model.ValidVouchers.Any()) {
+                                <div class="col-12 text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">Bạn chưa có ưu đãi nào khả dụng.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                    
+                    <!-- Used Tab -->
+                    <div class="tab-pane fade" id="used" role="tabpanel">
+                        <div class="row g-3">
+                            @foreach(var item in Model.UsedVouchers) {
+                                <div class="col-md-6">
+                                    <div class="voucher-card disabled">
+                                        <div class="voucher-left">
+                                            <i class="bi bi-check-circle" style="font-size: 2rem;"></i>
+                                            <span class="small fw-bold mt-1">@item.Voucher.Code</span>
+                                        </div>
+                                        <div class="voucher-right">
+                                            <div class="voucher-title text-truncate">@(item.Voucher.Title ?? "Ưu đãi đặc biệt")</div>
+                                            <div class="voucher-min">Đơn tối thiểu @(item.Voucher.MinOrderValue?.ToString("N0") ?? "0")đ</div>
+                                            <div class="voucher-date">
+                                                <i class="bi bi-calendar-check me-1 text-success"></i>
+                                                Đã dùng: @(item.UsedDate?.ToString("dd/MM/yyyy") ?? "N/A")
+                                            </div>
+                                            <button class="btn-use-now" disabled>Đã sử dụng</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if(!Model.UsedVouchers.Any()) {
+                                <div class="col-12 text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">Chưa có ưu đãi nào đã sử dụng.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Expired Tab -->
+                    <div class="tab-pane fade" id="expired" role="tabpanel">
+                        <div class="row g-3">
+                            @foreach(var item in Model.ExpiredVouchers) {
+                                <div class="col-md-6">
+                                    <div class="voucher-card disabled">
+                                        <div class="voucher-left">
+                                            <i class="bi bi-x-circle" style="font-size: 2rem;"></i>
+                                            <span class="small fw-bold mt-1">@item.Voucher.Code</span>
+                                        </div>
+                                        <div class="voucher-right">
+                                            <div class="voucher-title text-truncate">@(item.Voucher.Title ?? "Ưu đãi đặc biệt")</div>
+                                            <div class="voucher-min">Đơn tối thiểu @(item.Voucher.MinOrderValue?.ToString("N0") ?? "0")đ</div>
+                                            <div class="voucher-date">
+                                                <i class="bi bi-clock-history me-1 text-danger"></i>
+                                                Đã hết hạn: @(item.Voucher.EndDate?.ToString("dd/MM/yyyy"))
+                                            </div>
+                                            <button class="btn-use-now" disabled>Hết hạn</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                            @if(!Model.ExpiredVouchers.Any()) {
+                                <div class="col-12 text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-1"></i>
+                                    <p class="mt-2">Không có ưu đãi nào hết hạn.</p>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

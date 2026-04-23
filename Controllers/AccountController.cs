@@ -194,6 +194,14 @@ namespace CafeChain.Controllers
         public async Task<IActionResult> Logout()
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+
+            // Dọn dẹp Session/Cookie của Giỏ hàng
+            HttpContext.Session.Clear(); 
+            if (Request.Cookies["Cart"] != null) 
+            {
+                Response.Cookies.Delete("Cart");
+            }
+
             return RedirectToAction("Index", "Home");
         }
 

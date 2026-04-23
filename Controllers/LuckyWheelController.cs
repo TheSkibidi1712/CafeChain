@@ -137,9 +137,14 @@ namespace CafeChain.Controllers
             // Nếu trúng Voucher, tặng cho User
             if (!prize.IsLose && prize.VoucherId.HasValue)
             {
-                // Logic tặng voucher (tùy thuộc vào cách hệ thống quản lý sở hữu voucher)
-                // Ở đây ta có thể tạo VoucherUsage hoặc chỉ đơn giản là báo trúng.
-                // Giả sử có bảng CustomerVouchers hoặc dùng chung VoucherUsage làm gift.
+                var customerVoucher = new CustomerVoucher
+                {
+                    CustomerId = customer.CustomerId,
+                    VoucherId = prize.VoucherId.Value,
+                    IsUsed = false,
+                    CollectedDate = DateTime.Now
+                };
+                _context.CustomerVouchers.Add(customerVoucher);
             }
 
             await _context.SaveChangesAsync();

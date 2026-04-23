@@ -8,6 +8,8 @@ using CafeChain.Application.Interfaces;
 using CafeChain.ViewModels.Cart;
 using CafeChain.ViewModels.Customers;
 using Microsoft.AspNetCore.Mvc;
+using CafeChain.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
@@ -80,8 +82,15 @@ namespace CafeChain.Controllers
             }
             ViewBag.SavedAddresses = savedAddresses;
 
-            // Lấy danh sách Voucher khả dụng
-            ViewBag.AvailableVouchers = await _orderService.GetAvailableVouchersAsync();
+            // Lấy danh sách Voucher khả dụng từ ví của khách hàng
+            if (int.TryParse(customerIdStr, out int cidForVoucher))
+            {
+                ViewBag.AvailableVouchers = await _orderService.GetCustomerValidVouchersAsync(cidForVoucher);
+            }
+            else
+            {
+                ViewBag.AvailableVouchers = new List<CafeChain.Models.Vouchers.Voucher>();
+            }
 
             return View(model);
         }
@@ -192,8 +201,150 @@ namespace CafeChain.Controllers
                 new { Id = 3, Name = "Ví MoMo", Code = "MOMO", Icon = "bi-wallet2" }
             };
 
-            // Lấy danh sách Voucher khả dụng
-            ViewBag.AvailableVouchers = await _orderService.GetAvailableVouchersAsync();
+            // Lấy danh sách Voucher khả dụng từ ví của khách hàng
+            if (int.TryParse(customerIdStr, out int cidForReloadVoucher))
+            {
+                ViewBag.AvailableVouchers = await _orderService.GetCustomerValidVouchersAsync(cidForReloadVoucher);
+            }
+            else
+            {
+                ViewBag.AvailableVouchers = new List<CafeChain.Models.Vouchers.Voucher>();
+            }
         }
+
+        [HttpPost]
+        public async Task<IActionResult> CalculateShippingFee([FromBody] LocationRequest model, [FromServices] AppDbContext context)
+        {
+            try
+            {
+                // 1. Truy vấn các Store đang Hoạt động (có tọa độ)
+                var activeStores = await context.Stores
+                    .Where(s => s.Active && s.Latitude != null && s.Longitude != null)
+                    .Select(s => new {
+                        s.StoreId,
+                        s.Name,
+                        Latitude = (double)s.Latitude,
+                        Longitude = (double)s.Longitude
+                    })
+                    .ToListAsync();
+
+                if (!activeStores.Any())
+                {
+                    return Json(new { success = false, message = "Không có cửa hàng nào đang hoạt động." });
+                }
+
+                // 2. Dùng GeoHelper quét khoảng cách từ khách tới từng Store -> Tìm ra Cửa hàng gần nhất.
+                var nearestStore = activeStores
+                    .Select(s => new {
+                        Store = s,
+                        Distance = CafeChain.Helpers.GeoHelper.CalculateDistance(model.Lat, model.Lng, s.Latitude, s.Longitude)
+                    })
+                    .OrderBy(x => x.Distance)
+                    .First();
+
+                var distance = nearestStore.Distance;
+                bool isOutOfRange = false;
+                bool isOrangeZone = false;
+
+                // 3. Phân vùng (Zone Logic)
+                if (distance > 30)
+                {
+                    isOutOfRange = true;
+                    isOrangeZone = false;
+                }
+                else if (distance > 10 && distance <= 30)
+                {
+                    isOrangeZone = true;
+                    isOutOfRange = false;
+                }
+                else
+                {
+                    isOrangeZone = false;
+                    isOutOfRange = false;
+                }
+
+                // 4. Tính phí ship
+                // - 3km đầu tiên: Cố định 15.000đ.
+                // - Từ km thứ 4 trở đi: Cộng thêm 5.000đ / km (Sử dụng Math.Ceiling cho phần dư).
+                double shippingFee = 0;
+                if (!isOutOfRange)
+                {
+                    if (distance <= 3)
+                    {
+                        shippingFee = 15000;
+                    }
+                    else
+                    {
+                        shippingFee = 15000 + Math.Ceiling(distance - 3) * 5000;
+                    }
+                }
+
+                // 5. Trả về JSON
+                return Json(new {
+                    success = true,
+                    storeId = nearestStore.Store.StoreId,
+                    storeName = nearestStore.Store.Name,
+                    storeLat = nearestStore.Store.Latitude,
+                    storeLng = nearestStore.Store.Longitude,
+                    distance = Math.Round(distance, 1),
+                    shippingFee = shippingFee,
+                    isOrangeZone = isOrangeZone,
+                    isOutOfRange = isOutOfRange
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CalculateDiscount([FromBody] CalculateDiscountRequest request, [FromServices] AppDbContext context)
+        {
+            var customerIdStr = User.FindFirstValue("CustomerId");
+            if (!int.TryParse(customerIdStr, out int customerId))
+                return Json(new { success = false, message = "Bạn cần đăng nhập để sử dụng mã giảm giá." });
+
+            var customerVoucher = await context.CustomerVouchers
+                .Include(cv => cv.Voucher)
+                .FirstOrDefaultAsync(cv => cv.VoucherId == request.VoucherId && cv.CustomerId == customerId);
+
+            if (customerVoucher == null || customerVoucher.IsUsed || !customerVoucher.Voucher.Active || customerVoucher.Voucher.EndDate < DateTime.Now)
+                return Json(new { success = false, message = "Mã giảm giá không hợp lệ hoặc đã hết hạn." });
+
+            var voucher = customerVoucher.Voucher;
+
+            if (voucher.MinOrderValue.HasValue && request.SubTotal < voucher.MinOrderValue.Value)
+                return Json(new { success = false, message = $"Giá trị các món nước phải đạt từ {voucher.MinOrderValue.Value:N0}đ để áp mã này." });
+
+            decimal discountValue = 0;
+            if (voucher.DiscountAmount.HasValue)
+            {
+                discountValue = voucher.DiscountAmount.Value;
+            }
+            else if (voucher.DiscountPercent.HasValue)
+            {
+                discountValue = (request.SubTotal * voucher.DiscountPercent.Value) / 100;
+                if (voucher.MaxDiscount.HasValue && discountValue > voucher.MaxDiscount.Value)
+                    discountValue = voucher.MaxDiscount.Value;
+            }
+
+            if (discountValue > request.SubTotal)
+                discountValue = request.SubTotal;
+
+            return Json(new { success = true, discountValue = discountValue, message = "Áp dụng mã thành công!" });
+        }
+    }
+
+    public class LocationRequest
+    {
+        public double Lat { get; set; }
+        public double Lng { get; set; }
+    }
+
+    public class CalculateDiscountRequest
+    {
+        public int VoucherId { get; set; }
+        public decimal SubTotal { get; set; }
     }
 }

@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Loyalties;
+using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Vouchers;
 namespace CafeChain.Models.Customers
@@ -23,5 +23,6 @@ namespace CafeChain.Models.Customers
         public virtual ICollection<CustomerPoint> CustomerPoints { get; set; }
         public virtual ICollection<PointTransaction> PointTransactions { get; set; }
         public virtual ICollection<VoucherUsage> VoucherUsages { get; set; }
+        public virtual ICollection<CustomerVoucher> CustomerVouchers { get; set; }
     }
 }

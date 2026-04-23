@@ -235,4 +235,32 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.CreatedAt);
         }
     }
+
+    public class CustomerVoucherConfiguration : IEntityTypeConfiguration<CustomerVoucher>
+    {
+        public void Configure(EntityTypeBuilder<CustomerVoucher> entity)
+        {
+            entity.ToTable("CustomerVouchers");
+
+            entity.HasKey(x => x.CustomerVoucherId);
+
+            entity.Property(x => x.IsUsed)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.CollectedDate)
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(x => x.Customer)
+                .WithMany(x => x.CustomerVouchers)
+                .HasForeignKey(x => x.CustomerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(x => x.Voucher)
+                .WithMany(x => x.CustomerVouchers)
+                .HasForeignKey(x => x.VoucherId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(x => new { x.CustomerId, x.VoucherId });
+        }
+    }
 }

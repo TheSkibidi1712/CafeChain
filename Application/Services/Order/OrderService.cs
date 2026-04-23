@@ -214,29 +214,22 @@ namespace CafeChain.Application.Services.Cart
 
                 order.SubTotal = subTotal;
 
-                // 6. Voucher Validation
+                // 6. Voucher Validation (Zero-Trust)
                 decimal voucherDiscount = 0;
-                if (!string.IsNullOrWhiteSpace(model.VoucherCode))
+                if (model.SelectedVoucherId.HasValue)
                 {
-                    var voucher = await _context.Vouchers
-                        .FirstOrDefaultAsync(v => v.Code == model.VoucherCode && v.Active && 
-                                                 v.StartDate <= DateTime.Now && v.EndDate >= DateTime.Now);
+                    var customerVoucher = await _context.CustomerVouchers
+                        .Include(cv => cv.Voucher)
+                        .FirstOrDefaultAsync(cv => cv.VoucherId == model.SelectedVoucherId.Value && cv.CustomerId == customerId.Value);
 
-                    if (voucher == null)
-                        throw new Exception("Mã giảm giá không hợp lệ hoặc đã hết hạn.");
+                    if (customerVoucher == null || customerVoucher.IsUsed || !customerVoucher.Voucher.Active || customerVoucher.Voucher.EndDate < DateTime.Now)
+                        throw new Exception("Mã giảm giá không hợp lệ, đã được sử dụng hoặc đã hết hạn.");
+
+                    var voucher = customerVoucher.Voucher;
 
                     // [FIX Voucher Strict SubTotal] Kiểm tra ngưỡng mua hàng CHỈ dựa vào tiền hàng (subTotal)
-                    // TUYỆT ĐỐI KHÔNG cộng Phí Ship vào để đội MinOrderValue
                     if (voucher.MinOrderValue.HasValue && subTotal < voucher.MinOrderValue.Value)
-                        throw new Exception($"Giá trị các món nước phải đạt từ {voucher.MinOrderValue.Value:N0}đ (đưa vào tiền hàng, chưa tính ship) để áp mã này.");
-
-                    // Kiểm tra giới hạn số lần sử dụng chung của Voucher
-                    if (voucher.MaxUsage.HasValue)
-                    {
-                        var currentUsages = await _context.VoucherUsages.CountAsync(vu => vu.VoucherId == voucher.VoucherId);
-                        if (currentUsages >= voucher.MaxUsage.Value) 
-                            throw new Exception("Mã giảm giá đã đạt giới hạn số lần sử dụng.");
-                    }
+                        throw new Exception($"Giá trị các món nước phải đạt từ {voucher.MinOrderValue.Value:N0}đ (chưa tính ship) để áp mã này.");
 
                     if (voucher.DiscountAmount.HasValue)
                     {
@@ -244,7 +237,7 @@ namespace CafeChain.Application.Services.Cart
                     }
                     else if (voucher.DiscountPercent.HasValue)
                     {
-                        // [FIX Voucher %] Tính % chiết khấu trên tiền hàng thuần (subTotal), KHÔNG phải totalWithShip
+                        // [FIX Voucher %] Tính % chiết khấu trên tiền hàng thuần (subTotal)
                         voucherDiscount = (subTotal * voucher.DiscountPercent.Value) / 100;
                         if (voucher.MaxDiscount.HasValue && voucherDiscount > voucher.MaxDiscount.Value)
                             voucherDiscount = voucher.MaxDiscount.Value;
@@ -262,15 +255,17 @@ namespace CafeChain.Application.Services.Cart
                         DiscountValue = voucherDiscount
                     });
 
-                    if (customerId.HasValue)
+                    // Cập nhật ví voucher của user
+                    customerVoucher.IsUsed = true;
+                    customerVoucher.UsedDate = DateTime.Now;
+
+                    // Lưu lịch sử sử dụng
+                    _context.VoucherUsages.Add(new VoucherUsage
                     {
-                        _context.VoucherUsages.Add(new VoucherUsage
-                        {
-                            VoucherId = voucher.VoucherId,
-                            CustomerId = customerId.Value,
-                            UsedAt = DateTime.Now
-                        });
-                    }
+                        VoucherId = voucher.VoucherId,
+                        CustomerId = customerId.Value,
+                        UsedAt = DateTime.Now
+                    });
                 }
 
                 // Tính Total tạm thời trước Point
@@ -389,6 +384,18 @@ namespace CafeChain.Application.Services.Cart
                             v.StartDate <= DateTime.Now && 
                             v.EndDate >= DateTime.Now &&
                             (!v.MaxUsage.HasValue || v.VoucherUsages.Count < v.MaxUsage))
+                .ToListAsync();
+        }
+
+        public async Task<List<Voucher>> GetCustomerValidVouchersAsync(int customerId)
+        {
+            return await _context.CustomerVouchers
+                .Include(cv => cv.Voucher)
+                .Where(cv => cv.CustomerId == customerId && 
+                             !cv.IsUsed && 
+                             cv.Voucher.Active &&
+                             cv.Voucher.EndDate >= DateTime.Now)
+                .Select(cv => cv.Voucher)
                 .ToListAsync();
         }
 
