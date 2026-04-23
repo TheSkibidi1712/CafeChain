@@ -22,7 +22,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ============================================================
-        // INDEX: Danh sách Công Thức
+        // INDEX: Danh sách Công Thức (Chỉ hiển thị Active)
         // ============================================================
         [HttpGet]
         public async Task<IActionResult> Index()
@@ -31,6 +31,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Include(r => r.ChildRecipeDetails) // Để xác định nó có phải Bán thành phẩm không
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(rd => rd.Ingredient)
+                .Where(r => r.Status == "Active") // Chỉ hiển thị bản Active
                 .OrderByDescending(r => r.RecipeId)
                 .ToListAsync();
 
@@ -59,7 +60,31 @@ namespace CafeChain.Areas.Admin.Controllers
             return Content(treeHtml, "text/html");
         }
 
-        // Đệ quy dựng HTML Tree cho BOM
+        // ============================================================
+        // VISUALIZE: Giao diện trực quan BOM Tree
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> Visualize(int recipeId)
+        {
+            var recipe = await _context.Recipes
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.Ingredient)
+                        .ThenInclude(i => i.BaseUnit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.Unit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.ChildRecipe)
+                .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
+
+            if (recipe == null)
+            {
+                return NotFound("Không tìm thấy công thức.");
+            }
+
+            return View(recipe);
+        }
+
+        // Đệ quy dựng HTML Tree cho BOM (dành cho API)
         private async Task<string> BuildTreeHtml(Models.Drinks.Recipe recipe)
         {
             var html = $"<ul class='list-group list-group-flush mb-0'>";
@@ -106,6 +131,9 @@ namespace CafeChain.Areas.Admin.Controllers
             return html;
         }
 
+        // ============================================================
+        // CREATE
+        // ============================================================
         [HttpGet]
         public IActionResult Create()
         {
@@ -114,25 +142,102 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(RecipeCreateVM model)
+        public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
             {
-                PopulateViewBagData();
-                return View(model);
+                var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ.", errors = errors });
             }
 
             var result = await _recipeService.CreateRecipeAsync(model);
             if (result.IsSuccess)
             {
-                TempData["SuccessMsg"] = result.Message;
-                return RedirectToAction(nameof(Create));
+                return Json(new { success = true, message = result.Message });
             }
 
+            return Json(new { success = false, message = result.Message });
+        }
+
+        // ============================================================
+        // EDIT: Chỉnh sửa BOM (Versioning — Insert mới, Archive cũ)
+        // ============================================================
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var recipe = await _context.Recipes
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.Ingredient)
+                        .ThenInclude(i => i.BaseUnit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.ChildRecipe)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(rd => rd.Unit)
+                .FirstOrDefaultAsync(r => r.RecipeId == id && r.Status == "Active");
+
+            if (recipe == null)
+            {
+                TempData["ErrorMsg"] = "Không tìm thấy công thức hoặc đã bị lưu trữ.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            // Map sang ViewModel
+            var vm = new RecipeCreateVM
+            {
+                RecipeType = recipe.DrinkId.HasValue ? "POS" : "SUBRECIPE",
+                DrinkId = recipe.DrinkId,
+                SubRecipeName = recipe.DrinkId.HasValue ? null : recipe.Name,
+                Active = recipe.Active,
+                EffectiveDate = recipe.EffectiveDate ?? System.DateTime.Today,
+                Details = recipe.RecipeDetails.Select(rd => new RecipeDetailVM
+                {
+                    ItemCode = rd.IngredientId.HasValue 
+                        ? $"ING_{rd.IngredientId}" 
+                        : $"REC_{rd.ChildRecipeId}",
+                    Quantity = rd.Quantity,
+                    UnitId = rd.UnitId,
+                    UnitName = rd.Unit?.Name ?? ""
+                }).ToList()
+            };
+
+            ViewBag.RecipeId = id;
+            ViewBag.RecipeName = recipe.Name;
+            PopulateViewBagData();
+            return View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, RecipeCreateVM model)
+        {
+            if (!ModelState.IsValid)
+            {
+                ViewBag.RecipeId = id;
+                PopulateViewBagData();
+                return View(model);
+            }
+
+            var result = await _recipeService.UpdateRecipeAsync(id, model);
+            if (result.IsSuccess)
+            {
+                TempData["SuccessMsg"] = result.Message;
+                return RedirectToAction(nameof(Index));
+            }
+
+            ViewBag.RecipeId = id;
             PopulateViewBagData();
             ModelState.AddModelError("", result.Message);
             return View(model);
+        }
+
+        // ============================================================
+        // DELETE: Xóa BOM (AJAX endpoint)
+        // ============================================================
+        [HttpPost]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var result = await _recipeService.DeleteRecipeAsync(id);
+            return Json(new { success = result.IsSuccess, message = result.Message });
         }
 
         // ============================================================
@@ -179,9 +284,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     UnitName = x.BaseUnit.Name
                 }).ToList<object>();
 
-            // Sub-recipes — giá vốn = 0 (tính toán sau từ BOM tree)
+            // Sub-recipes — chỉ lấy bản Active
             ViewBag.SubRecipes = _context.Recipes
-                .Where(x => x.Active)
+                .Where(x => x.Active && x.Status == "Active")
                 .Select(x => new
                 {
                     Id = x.RecipeId,

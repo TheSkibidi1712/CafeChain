@@ -421,12 +421,94 @@
 
             addRow();
 
-            @if (TempData["SuccessMsg"] != null)
-            {
-                <text>
-                Swal.fire({ icon: 'success', title: 'Thành công!', text: '@TempData["SuccessMsg"]', confirmButtonColor: '#f97316' });
-                </text>
-            }
+            // =================================================================
+            // 6. XỬ LÝ SUBMIT (AJAX + SWEETALERT2)
+            // =================================================================
+            $('#recipeForm').on('submit', function(e) {
+                e.preventDefault();
+
+                // Lấy data từ các input thủ công hoặc dùng map
+                const recipeType = $('input[name="RecipeType"]:checked').val();
+                
+                const drinkVal = $('#drinkSelect').val();
+                const sizeVal = $('#sizeSelect').val();
+                const outputUnitVal = $('#outputUnitSelect').val();
+                const expectedYieldVal = $('#expectedYieldInput').val();
+
+                const payload = {
+                    RecipeType: recipeType,
+                    DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
+                    SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
+                    SubRecipeName: recipeType === 'SUBRECIPE' ? $('#subRecipeInput').val() : null,
+                    ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
+                    OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,
+                    Description: $('textarea[name="Description"]').val(),
+                    Active: $('#Active').is(':checked'),
+                    EffectiveDate: $('#effectiveDate').val(),
+                    Details: []
+                };
+
+                // Thu thập Details
+                $('#bomTableBody tr').each(function() {
+                    const row = $(this);
+                    const itemCode = row.find('.item-select').val();
+                    if(itemCode) {
+                        payload.Details.push({
+                            ItemCode: itemCode,
+                            Quantity: parseFloat(row.find('.item-qty').val()) || 0,
+                            UnitName: row.find('.item-unitname').val(),
+                            UnitId: parseInt(row.find('.item-unitid').val()) || 0,
+                            YieldPercentage: parseFloat(row.find('.item-yield').val()) || 100
+                        });
+                    }
+                });
+
+                if (payload.Details.length === 0) {
+                    Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng thêm ít nhất một nguyên liệu vào công thức.' });
+                    return;
+                }
+
+                // Hiển thị loading state
+                Swal.fire({
+                    title: 'Đang lưu...',
+                    text: 'Vui lòng chờ trong giây lát',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
+                });
+
+                $.ajax({
+                    url: '@Url.Action("Create", "AdminRecipe", new { area = "Admin" })',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function(res) {
+                        if (res.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: res.message,
+                                confirmButtonColor: '#16a34a'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            // Hiển thị chi tiết lỗi validation
+                            let errorHtml = `<p class="fw-bold">${res.message}</p>`;
+                            if (res.errors && res.errors.length > 0) {
+                                errorHtml += '<ul class="text-start text-danger small">';
+                                res.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
+                                errorHtml += '</ul>';
+                            }
+                            Swal.fire({ icon: 'error', title: 'Lỗi lưu công thức', html: errorHtml });
+                        }
+                    },
+                    error: function(xhr) {
+                        console.error(xhr.responseText);
+                        Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể kết nối tới server. Vui lòng thử lại.' });
+                    }
+                });
+            });
+
         });
     </script>
 }

@@ -383,8 +383,8 @@ namespace CafeChain.Application.Services
 
                 var ingredientIds = requiredIngredients.Keys.ToList();
                 var inventories = await _context.StoreInventories
-                    .Where(si => si.StoreId == storeId && ingredientIds.Contains(si.IngredientId))
-                    .ToDictionaryAsync(si => si.IngredientId);
+                    .Where(si => si.StoreId == storeId && si.IngredientId.HasValue && ingredientIds.Contains(si.IngredientId.Value))
+                    .ToDictionaryAsync(si => si.IngredientId.Value);
 
                 isAvailable = true;
                 foreach (var req in requiredIngredients)

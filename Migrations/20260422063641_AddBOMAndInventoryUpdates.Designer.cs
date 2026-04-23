@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260422063641_AddBOMAndInventoryUpdates")]
+    partial class AddBOMAndInventoryUpdates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1359,23 +1362,10 @@ namespace CafeChain.Migrations
                     b.Property<int?>("DrinkId")
                         .HasColumnType("int");
 
-                    b.Property<DateTime?>("EffectiveDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<int?>("ParentVersionId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Active");
 
                     b.Property<int?>("ToppingId")
                         .HasColumnType("int");
@@ -1389,8 +1379,6 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("DrinkId");
 
-                    b.HasIndex("ParentVersionId");
-
                     b.HasIndex("ToppingId");
 
                     b.ToTable("Recipes", (string)null);
@@ -1402,7 +1390,6 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 1,
                             Name = "Recipe CF Sữa",
-                            Status = "Active",
                             YieldPercentage = 100m
                         },
                         new
@@ -1411,7 +1398,6 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 2,
                             Name = "Recipe CF Đen",
-                            Status = "Active",
                             YieldPercentage = 100m
                         },
                         new
@@ -1420,7 +1406,6 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 3,
                             Name = "Recipe Trà sữa",
-                            Status = "Active",
                             YieldPercentage = 100m
                         },
                         new
@@ -1429,7 +1414,6 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             Name = "Recipe Trà sữa socola",
-                            Status = "Active",
                             YieldPercentage = 100m
                         },
                         new
@@ -1437,7 +1421,6 @@ namespace CafeChain.Migrations
                             RecipeId = 5,
                             Active = true,
                             Name = "Trân châu đen",
-                            Status = "Active",
                             ToppingId = 1,
                             YieldPercentage = 100m
                         },
@@ -1446,7 +1429,6 @@ namespace CafeChain.Migrations
                             RecipeId = 6,
                             Active = true,
                             Name = "Trân châu trắng",
-                            Status = "Active",
                             ToppingId = 2,
                             YieldPercentage = 100m
                         });
@@ -2299,9 +2281,6 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Quantity")
                         .HasColumnType("decimal(18,3)");
 
-                    b.Property<int?>("ReferenceOrderId")
-                        .HasColumnType("int");
-
                     b.Property<int>("StoreInventoryId")
                         .HasColumnType("int");
 
@@ -2313,8 +2292,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("InventoryDocumentId");
-
-                    b.HasIndex("ReferenceOrderId");
 
                     b.HasIndex("StoreInventoryId");
 
@@ -3506,9 +3483,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
 
-                    b.Property<int?>("WorkShiftId")
-                        .HasColumnType("int");
-
                     b.HasKey("OrderId");
 
                     b.HasIndex("CreatedAt");
@@ -3526,8 +3500,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreId");
 
                     b.HasIndex("StoreId1");
-
-                    b.HasIndex("WorkShiftId");
 
                     b.ToTable("Orders", (string)null);
                 });
@@ -3980,45 +3952,6 @@ namespace CafeChain.Migrations
                     b.HasKey("TransactionLogId");
 
                     b.ToTable("TransactionLogs");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<DateTime>("CheckInTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("IsFaceVerified")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("StoreId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("AttendanceLogs");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
@@ -5512,55 +5445,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Stores.WorkShift", b =>
-                {
-                    b.Property<int>("ShiftId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftId"));
-
-                    b.Property<decimal?>("ActualEndingCash")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("ExpectedEndingCash")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("StartingCash")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .ValueGeneratedOnAdd()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasDefaultValue("Open");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ShiftId");
-
-                    b.HasIndex("StoreId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("WorkShifts", (string)null);
-                });
-
             modelBuilder.Entity("CafeChain.Models.SystemSetting", b =>
                 {
                     b.Property<int>("SettingId")
@@ -5703,11 +5587,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 22, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6156),
+                            EndDate = new DateTime(2026, 5, 22, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2658),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 15, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6134)
+                            StartDate = new DateTime(2026, 4, 15, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2626)
                         },
                         new
                         {
@@ -5715,10 +5599,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 7, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6159),
+                            EndDate = new DateTime(2026, 5, 7, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2662),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 21, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6158)
+                            StartDate = new DateTime(2026, 4, 21, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2662)
                         },
                         new
                         {
@@ -5726,11 +5610,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 21, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6161),
+                            EndDate = new DateTime(2026, 6, 21, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2668),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 23, 18, 47, 41, 49, DateTimeKind.Local).AddTicks(6160)
+                            StartDate = new DateTime(2026, 3, 23, 13, 36, 39, 866, DateTimeKind.Local).AddTicks(2667)
                         });
                 });
 
@@ -6118,18 +6002,10 @@ namespace CafeChain.Migrations
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Cascade);
 
-                    b.HasOne("CafeChain.Models.Drinks.Recipe", "ParentVersion")
-                        .WithMany("ChildVersions")
-                        .HasForeignKey("ParentVersionId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("FK_Recipe_ParentVersion");
-
                     b.HasOne("CafeChain.Models.Drinks.Topping", null)
                         .WithMany()
                         .HasForeignKey("ToppingId")
                         .OnDelete(DeleteBehavior.Cascade);
-
-                    b.Navigation("ParentVersion");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.RecipeDetail", b =>
@@ -6282,11 +6158,6 @@ namespace CafeChain.Migrations
                         .HasForeignKey("InventoryDocumentId")
                         .OnDelete(DeleteBehavior.SetNull);
 
-                    b.HasOne("CafeChain.Models.Orders.Order", "ReferenceOrder")
-                        .WithMany()
-                        .HasForeignKey("ReferenceOrderId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.HasOne("CafeChain.Models.Stores.StoreInventory", "StoreInventory")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("StoreInventoryId")
@@ -6294,8 +6165,6 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("InventoryDocument");
-
-                    b.Navigation("ReferenceOrder");
 
                     b.Navigation("StoreInventory");
                 });
@@ -6513,11 +6382,6 @@ namespace CafeChain.Migrations
                         .WithMany("Orders")
                         .HasForeignKey("StoreId1");
 
-                    b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
-                        .WithMany("Orders")
-                        .HasForeignKey("WorkShiftId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
                     b.Navigation("Customer");
 
                     b.Navigation("OrderStatus");
@@ -6529,8 +6393,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Staff");
 
                     b.Navigation("Store");
-
-                    b.Navigation("WorkShift");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderDetail", b =>
@@ -6629,25 +6491,6 @@ namespace CafeChain.Migrations
                     b.Navigation("PaymentMethod");
 
                     b.Navigation("PaymentStatus");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
-                {
-                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Store");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>
@@ -6866,25 +6709,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Topping");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Stores.WorkShift", b =>
-                {
-                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "User")
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Store");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
@@ -7028,8 +6852,6 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
                 {
                     b.Navigation("ChildRecipeDetails");
-
-                    b.Navigation("ChildVersions");
 
                     b.Navigation("RecipeDetails");
                 });
@@ -7236,11 +7058,6 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Stores.StoreInventory", b =>
                 {
                     b.Navigation("InventoryTransactions");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Stores.WorkShift", b =>
-                {
-                    b.Navigation("Orders");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Vouchers.Voucher", b =>

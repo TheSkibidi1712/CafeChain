@@ -126,6 +126,19 @@ namespace CafeChain.Application.Services.Attendance
                         if (todayShift.ActualCheckIn.HasValue) return ServiceResult.Failure("Bạn đã Vào Ca rồi!");
                         todayShift.ActualCheckIn = currentTime;
                         todayShift.StatusId = 2; // In Progress
+
+                        // [NEW] Audit Trail for Interlock
+                        var ipAddress = "192.168.1.100"; // TODO: Lấy IP thực tế từ HttpContext
+                        var attendanceLog = new CafeChain.Models.Staffs.AttendanceLog
+                        {
+                            UserId = staff.StaffId,
+                            StoreId = staff.StoreId,
+                            CheckInTime = DateTime.UtcNow,
+                            IpAddress = ipAddress,
+                            IsFaceVerified = true,
+                            Status = "Valid"
+                        };
+                        _context.AttendanceLogs.Add(attendanceLog);
                         break;
                     case "CheckOut":
                         if (!todayShift.ActualCheckIn.HasValue) return ServiceResult.Failure("Bạn phải Vào Ca trước khi Tan Ca!");

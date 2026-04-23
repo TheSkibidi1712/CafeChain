@@ -40,6 +40,7 @@ namespace CafeChain.Data
         public DbSet<StaffScope> StaffScopes { get; set; }
         public DbSet<StaffShift> StaffShifts { get; set; }
         public DbSet<StaffShiftStatus> StaffShiftStatuses { get; set; }
+        public DbSet<AttendanceLog> AttendanceLogs { get; set; }
         public DbSet<StaffPhone> StaffPhones { get; set; }
         public DbSet<StaffAddress> StaffAddresses { get; set; }
         public DbSet<StaffDependent> StaffDependents { get; set; }
@@ -71,6 +72,7 @@ namespace CafeChain.Data
         public DbSet<StoreInventory> StoreInventories { get; set; }
         public DbSet<StoreTopping> StoreToppings { get; set; }
         public DbSet<StoreIP> StoreIPs { get; set; }
+        public DbSet<WorkShift> WorkShifts { get; set; }
 
         // ========================= INVENTORY =========================
         public DbSet<InventoryDebt> InventoryDebts { get; set; }

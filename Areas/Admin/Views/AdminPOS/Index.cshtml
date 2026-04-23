@@ -1,0 +1,311 @@
+@{
+    ViewData["Title"] = "Máy POS Thu Ngân";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="fas fa-desktop me-2"></i> Hệ Thống POS Thu Ngân</h5>
+                    <span class="badge bg-light text-dark" id="shiftStatusBadge">Chưa mở ca</span>
+                </div>
+                <div class="card-body" id="posSalesScreen" style="display: none; min-height: 400px;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle me-2"></i> Đã mở ca thành công! Giao diện bán hàng đang được nạp...
+                    </div>
+                    
+                    <!-- OFFLINE STATUS BAR -->
+                    <div id="offlineStatusBar" class="alert alert-warning d-none fw-bold shadow-sm">
+                        <i class="fas fa-wifi-slash me-2"></i> <span>Hệ thống đang hoạt động ngoại tuyến. Các đơn hàng sẽ được lưu tạm vào máy và tự động đồng bộ khi có mạng.</span>
+                        <button class="btn btn-sm btn-outline-dark ms-3" onclick="syncOfflineOrders()">Đồng bộ ngay</button>
+                    </div>
+
+                    <!-- Giao diện bán hàng POS (Simulated for Checkout) -->
+                    <div class="mt-4 border p-3 rounded bg-light">
+                        <h6>Khu vực test giả lập thanh toán (Checkout)</h6>
+                        <button class="btn btn-success fw-bold" id="btnTestCheckout">
+                            <i class="fas fa-cash-register me-2"></i> Thanh Toán Đơn Hàng (Test)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mở Ca Làm Việc -->
+<div class="modal fade" id="openShiftModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="openShiftModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-warning text-dark border-0">
+                <h5 class="modal-title fw-bold" id="openShiftModalLabel">
+                    <i class="fas fa-key me-2"></i> Mở Ca Làm Việc (Nhận Két Tiền)
+                </h5>
+            </div>
+            <div class="modal-body p-4">
+                <div class="alert alert-info border-0 shadow-sm">
+                    <i class="fas fa-info-circle me-2"></i> <strong>Lưu ý bảo mật:</strong> Hệ thống đã kích hoạt tính năng khóa chéo (Interlock). Bạn chỉ có thể mở ca tài chính nếu đã hoàn tất <strong>Chấm Công Khuôn Mặt (BYOD)</strong> qua mạng Wifi của cửa hàng trong vòng 30 phút.
+                </div>
+                <form id="openShiftForm">
+                    <div class="mb-3 mt-4">
+                        <label for="startingCash" class="form-label fw-bold">Tiền lẻ đầu ca (VNĐ)</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-light"><i class="fas fa-money-bill-wave text-success"></i></span>
+                            <input type="number" class="form-control form-control-lg text-end fw-bold text-success" id="startingCash" placeholder="Ví dụ: 1000000" required min="0" step="1000">
+                            <span class="input-group-text bg-light">VNĐ</span>
+                        </div>
+                        <div class="form-text mt-2 text-muted">Nhập chính xác số tiền lẻ trong két tại thời điểm nhận ca.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 pb-4 pe-4">
+                <button type="button" class="btn btn-lg btn-primary w-100 fw-bold shadow-sm" id="btnConfirmOpenShift">
+                    <i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function() {
+            // Giả lập logic kiểm tra: Nếu chưa có ca mở, hiện Modal
+            // Thực tế có thể gọi API GetActiveShift để check. Ở đây demo luôn hiện Modal
+            var openShiftModal = new bootstrap.Modal(document.getElementById('openShiftModal'));
+            openShiftModal.show();
+
+            $('#btnConfirmOpenShift').click(function() {
+                var cash = $('#startingCash').val();
+                if (!cash || cash < 0) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Thiếu thông tin',
+                        text: 'Vui lòng nhập số tiền lẻ đầu ca hợp lệ!'
+                    });
+                    return;
+                }
+
+                // Call API OpenShift
+                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...');
+
+                $.ajax({
+                    url: '/Admin/AdminPOS/OpenShift',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ startingCash: cash }),
+                    success: function(res) {
+                        $('#btnConfirmOpenShift').prop('disabled', false).html('<i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca');
+                        if (res.success) {
+                            openShiftModal.hide();
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Thành công!',
+                                text: res.message,
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                $('#shiftStatusBadge').removeClass('bg-light text-dark').addClass('bg-success').text('Ca Đang Mở');
+                                $('#posSalesScreen').fadeIn();
+                            });
+                        } else {
+                            // INTERLOCK ERROR
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Cảnh Báo Bảo Mật!',
+                                html: `<span class="text-danger fw-bold">${res.message}</span>`,
+                                confirmButtonText: 'Đã hiểu',
+                                confirmButtonColor: '#dc3545'
+                            });
+                        }
+                    },
+                    error: function() {
+                        $('#btnConfirmOpenShift').prop('disabled', false).html('<i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Lỗi',
+                            text: 'Mất kết nối đến máy chủ.'
+                        });
+                    }
+                });
+            });
+
+            // ==========================================
+            // OFFLINE-FIRST PWA ENGINE (INDEXEDDB)
+            // ==========================================
+            
+            // 1. Initialize IndexedDB
+            let db;
+            const request = indexedDB.open("CafeChainPOS", 1);
+            
+            request.onupgradeneeded = function(e) {
+                db = e.target.result;
+                if (!db.objectStoreNames.contains("Products")) {
+                    db.createObjectStore("Products", { keyPath: "id" });
+                }
+                if (!db.objectStoreNames.contains("PendingOrders")) {
+                    db.createObjectStore("PendingOrders", { keyPath: "localId" });
+                }
+            };
+            
+            request.onsuccess = function(e) {
+                db = e.target.result;
+                checkPendingOrdersUI();
+            };
+
+            // 2. Network Detection
+            function updateNetworkStatus() {
+                if (navigator.onLine) {
+                    $('#offlineStatusBar').addClass('d-none');
+                    syncOfflineOrders();
+                } else {
+                    $('#offlineStatusBar').removeClass('d-none');
+                    Swal.fire({
+                        toast: true, position: 'top-end',
+                        icon: 'warning', title: 'Mất kết nối mạng!',
+                        text: 'Chuyển sang chế độ ngoại tuyến.',
+                        showConfirmButton: false, timer: 3000
+                    });
+                }
+            }
+
+            window.addEventListener('online', updateNetworkStatus);
+            window.addEventListener('offline', updateNetworkStatus);
+            
+            // Initial Check
+            if (!navigator.onLine) {
+                $('#offlineStatusBar').removeClass('d-none');
+            }
+
+            // 3. Process Checkout Logic
+            window.processCheckout = function(orderData) {
+                if (navigator.onLine) {
+                    // Xử lý gửi thẳng lên Server (Mô phỏng 1 order thành 1 list có 1 phần tử cho API)
+                    $.ajax({
+                        url: '/Admin/AdminPOS/SyncOfflineOrders',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify([orderData]),
+                        success: function(res) {
+                            if (res.success) {
+                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thanh toán thành công (Online)', showConfirmButton: false, timer: 1500 });
+                            }
+                        }
+                    });
+                } else {
+                    // Lưu Offline vào IndexedDB
+                    const tx = db.transaction("PendingOrders", "readwrite");
+                    const store = tx.objectStore("PendingOrders");
+                    
+                    orderData.localId = 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
+                    orderData.timestamp = new Date().getTime();
+                    
+                    store.add(orderData);
+                    
+                    tx.oncomplete = function() {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Mất kết nối mạng!',
+                            text: 'Đơn hàng đã được lưu tạm vào máy. Sẽ tự động đồng bộ khi có mạng.',
+                            confirmButtonText: 'Đã hiểu'
+                        });
+                        checkPendingOrdersUI();
+                    };
+                }
+            };
+
+            // 4. Sync Action
+            window.syncOfflineOrders = function() {
+                if (!navigator.onLine) {
+                    Swal.fire('Lỗi', 'Vui lòng kết nối mạng để đồng bộ.', 'error');
+                    return;
+                }
+
+                if(!db) return;
+
+                const tx = db.transaction("PendingOrders", "readonly");
+                const store = tx.objectStore("PendingOrders");
+                const getAllReq = store.getAll();
+
+                getAllReq.onsuccess = function() {
+                    const pendingOrders = getAllReq.result;
+                    if (pendingOrders.length === 0) return; // Không có gì để đồng bộ
+
+                    // Hiện Toast Đang đồng bộ
+                    Swal.fire({
+                        title: 'Đang đồng bộ...',
+                        text: `Đang gửi ${pendingOrders.length} đơn hàng lên máy chủ.`,
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Gửi lên Backend
+                    $.ajax({
+                        url: '/Admin/AdminPOS/SyncOfflineOrders',
+                        type: 'POST',
+                        contentType: 'application/json',
+                        data: JSON.stringify(pendingOrders),
+                        success: function(res) {
+                            if (res.success) {
+                                // Xóa dữ liệu cũ
+                                const delTx = db.transaction("PendingOrders", "readwrite");
+                                delTx.objectStore("PendingOrders").clear();
+                                
+                                delTx.oncomplete = function() {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Đồng bộ hoàn tất!',
+                                        text: res.message,
+                                        timer: 3000,
+                                        showConfirmButton: false
+                                    });
+                                    checkPendingOrdersUI();
+                                };
+                            } else {
+                                Swal.fire('Lỗi đồng bộ', res.message, 'error');
+                            }
+                        },
+                        error: function() {
+                            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.', 'error');
+                        }
+                    });
+                };
+            };
+
+            function checkPendingOrdersUI() {
+                const tx = db.transaction("PendingOrders", "readonly");
+                const store = tx.objectStore("PendingOrders");
+                const countReq = store.count();
+                countReq.onsuccess = function() {
+                    if (countReq.result > 0) {
+                        $('#offlineStatusBar span').text(`Bạn đang có ${countReq.result} đơn hàng chưa đồng bộ!`);
+                        $('#offlineStatusBar').removeClass('d-none');
+                    } else if (navigator.onLine) {
+                        $('#offlineStatusBar').addClass('d-none');
+                    }
+                }
+            }
+
+            // Gắn sự kiện test Checkout
+            $('#btnTestCheckout').click(function() {
+                // Giả lập dữ liệu DTO
+                const fakeOrder = {
+                    TotalAmount: 65000,
+                    ReceivedAmount: 100000,
+                    ChangeAmount: 35000,
+                    OrderTypeId: 1,
+                    StoreId: 1,
+                    Note: "Giả lập thanh toán từ UI",
+                    Details: [
+                        { ItemId: 1, ItemName: "Trà sữa M", Quantity: 1, UnitPrice: 35000, TotalPrice: 35000 },
+                        { ItemId: 2, ItemName: "Cà phê Sữa", Quantity: 1, UnitPrice: 30000, TotalPrice: 30000 }
+                    ]
+                };
+                processCheckout(fakeOrder);
+            });
+
+        });
+    </script>
+}

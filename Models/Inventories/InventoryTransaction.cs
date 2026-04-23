@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Inventories
@@ -15,6 +16,12 @@ namespace CafeChain.Models.Inventories
         public decimal BeforeQty { get; set; }
         public decimal AfterQty { get; set; }
         public int? InventoryDocumentId { get; set; }
+
+        /// <summary>
+        /// Tham chiếu tới OrderId khi Type = SALES_DEDUCTION
+        /// </summary>
+        public int? ReferenceOrderId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         // ================= RELATION =================
@@ -22,5 +29,10 @@ namespace CafeChain.Models.Inventories
         public virtual StoreInventory StoreInventory { get; set; }
 
         public virtual InventoryDocument? InventoryDocument { get; set; }
+
+        /// <summary>
+        /// Navigation tới Order khi là giao dịch bán hàng
+        /// </summary>
+        public virtual Order? ReferenceOrder { get; set; }
     }
 }

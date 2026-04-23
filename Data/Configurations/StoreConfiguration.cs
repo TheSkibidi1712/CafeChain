@@ -170,8 +170,8 @@ namespace CafeChain.Data.Configurations
             entity.ToTable("StoreInventories", t =>
             {
                 t.HasCheckConstraint(
-                    "CK_StoreInventories_NonNegativeQty",
-                    "[AvailableQty] >= 0 AND [ReservedQty] >= 0"
+                    "CK_StoreInventories_XOR_Item",
+                    "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)"
                 );
             });
 
@@ -205,14 +205,26 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.Recipe)
+                .WithMany()
+                .HasForeignKey(x => x.RecipeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= UNIQUE =================
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
+                .HasFilter("[IngredientId] IS NOT NULL")
                 .HasDatabaseName("UX_Store_Ingredient");
+
+            entity.HasIndex(x => new { x.StoreId, x.RecipeId })
+                .IsUnique()
+                .HasFilter("[RecipeId] IS NOT NULL")
+                .HasDatabaseName("UX_Store_Recipe");
 
             // ================= INDEX =================
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.IngredientId);
+            entity.HasIndex(x => x.RecipeId);
 
             // ================= SEED =================
             entity.HasData(
@@ -286,6 +298,50 @@ namespace CafeChain.Data.Configurations
                 new StoreIP { Id = 1, StoreId = 1, IPAddress = "192.168.1.*", IsPublicNetwork = false, IsActive = true, CreatedAt = new DateTime(2025, 1, 1), Notes = "Mạng LAN cửa hàng 1" },
                 new StoreIP { Id = 2, StoreId = 1, IPAddress = "171.244.10.15", IsPublicNetwork = true, IsActive = true, CreatedAt = new DateTime(2025, 1, 1), Notes = "WAN Cửa hàng 1" }
             );
+        }
+    }
+
+    // ================================ MODULE WORK SHIFT (Quản lý Ca) ================================
+    public class WorkShiftConfiguration : IEntityTypeConfiguration<WorkShift>
+    {
+        public void Configure(EntityTypeBuilder<WorkShift> entity)
+        {
+            entity.ToTable("WorkShifts");
+
+            entity.HasKey(x => x.ShiftId);
+
+            entity.Property(x => x.Status)
+                .IsRequired()
+                .HasMaxLength(20)
+                .HasDefaultValue("Open");
+
+            entity.Property(x => x.StartingCash)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.ExpectedEndingCash)
+                .HasColumnType("decimal(18,2)")
+                .HasDefaultValue(0);
+
+            entity.Property(x => x.ActualEndingCash)
+                .HasColumnType("decimal(18,2)");
+
+            // ─── Relationships ────────────────────────────
+            entity.HasOne(x => x.Store)
+                .WithMany()
+                .HasForeignKey(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // WorkShift → Orders (1:N)
+            entity.HasMany(x => x.Orders)
+                .WithOne(o => o.WorkShift)
+                .HasForeignKey(o => o.WorkShiftId)
+                .OnDelete(DeleteBehavior.SetNull);
         }
     }
 }

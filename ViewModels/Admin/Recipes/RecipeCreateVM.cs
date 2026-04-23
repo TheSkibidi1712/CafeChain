@@ -17,7 +17,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
 
         // ===== CHO LOẠI SUBRECIPE (Bán thành phẩm) =====
         // Cho người dùng gõ tên Bán thành phẩm mới (VD: Cốt trà sâm bí đao)
-        public string SubRecipeName { get; set; }
+        public string? SubRecipeName { get; set; }
 
         // Sản lượng đầu ra dự kiến (VD: 5 Lít Cốt Trà)
         public decimal? ExpectedYield { get; set; }
@@ -26,7 +26,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public int? OutputUnitId { get; set; }
 
         // ===== CHUNG =====
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         public decimal TotalCost { get; set; }
 

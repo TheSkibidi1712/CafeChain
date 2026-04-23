@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Customers;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Drinks
@@ -12,6 +12,8 @@ namespace CafeChain.Models.Drinks
         public int ProductTypeId { get; set; }
         public bool Active { get; set; }
         public DateTime CreatedAt { get; set; }
+        
+        public decimal CalculatedCogs { get; set; } // Giá vốn tự động tính từ BOM
 
         public virtual DrinkCategory Category { get; set; }
 

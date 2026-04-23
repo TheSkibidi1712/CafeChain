@@ -93,13 +93,17 @@
                                     }
                                 </td>
                                 <td class="text-center">
-                                    <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold btn-view-tree" data-id="@recipe.RecipeId" data-name="@recipe.Name">
-                                        <i class="fas fa-sitemap me-1"></i> BOM Tree
-                                    </button>
+                                    <a asp-action="Visualize" asp-route-recipeId="@recipe.RecipeId" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                                        <i class="fas fa-sitemap me-1"></i> Trực quan BOM
+                                    </a>
                                 </td>
                                 <td class="text-center">
-                                    <button class="btn btn-sm btn-light border text-primary tooltip-custom" title="Chỉnh sửa"><i class="fas fa-edit"></i></button>
-                                    <button class="btn btn-sm btn-light border text-danger tooltip-custom" title="Xóa"><i class="fas fa-trash"></i></button>
+                                    <a asp-action="Edit" asp-route-id="@recipe.RecipeId" class="btn btn-sm btn-light border text-primary" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-light border text-danger btn-delete-recipe" data-id="@recipe.RecipeId" data-name="@recipe.Name" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
                                 </td>
                             </tr>
                         }
@@ -120,52 +124,60 @@
     </div>
 </div>
 
-<!-- Modal Hiển Thị Cấu Trúc Cây (BOM Tree) -->
-<div class="modal fade bom-tree-modal" id="treeModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content shadow-lg">
-            <div class="modal-header">
-                <h5 class="modal-title fw-bold">
-                    <i class="fas fa-sitemap text-warning me-2"></i> Cấu trúc BOM: <span id="treeModalTitle" class="text-light"></span>
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-0 bg-light" id="treeModalBody">
-                <div class="text-center py-5">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2 text-muted">Đang phân tích cấu trúc...</p>
-                </div>
-            </div>
-            <div class="modal-footer bg-white border-top-0">
-                <button type="button" class="btn btn-light border fw-bold" data-bs-dismiss="modal">Đóng</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 @section Scripts {
     <script>
-        $(document).ready(function() {
-            $('.btn-view-tree').click(function() {
-                var recipeId = $(this).data('id');
-                var recipeName = $(this).data('name');
-                
-                $('#treeModalTitle').text(recipeName);
-                $('#treeModalBody').html('<div class="text-center py-5"><div class="spinner-border text-warning" role="status"></div><p class="mt-2 text-muted">Đang phân tích định mức đa cấp...</p></div>');
-                $('#treeModal').modal('show');
-                
-                $.ajax({
-                    url: '@Url.Action("GetRecipeTree", "AdminRecipe", new { area = "Admin" })',
-                    type: 'GET',
-                    data: { id: recipeId },
-                    success: function(html) {
-                        $('#treeModalBody').html(html);
-                    },
-                    error: function() {
-                        $('#treeModalBody').html('<div class="text-center py-4 text-danger"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br/>Lỗi khi tải cấu trúc cây!</div>');
+        $(document).ready(function () {
+            // === AJAX DELETE VỚI SWEETALERT2 ===
+            $(document).on('click', '.btn-delete-recipe', function () {
+                const recipeId = $(this).data('id');
+                const recipeName = $(this).data('name');
+                const row = $(this).closest('tr');
+
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    html: `Bạn có chắc muốn xóa công thức <strong>${recipeName}</strong> (#${recipeId})?<br><small class="text-muted">Nếu có lịch sử đơn hàng, hệ thống sẽ tự động Lưu trữ (Archived) thay vì xóa hoàn toàn.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-trash me-1"></i> Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '@Url.Action("Delete", "AdminRecipe", new { area = "Admin" })',
+                            type: 'POST',
+                            data: { id: recipeId },
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (res) {
+                                if (res.success) {
+                                    Swal.fire({ icon: 'success', title: 'Thành công!', text: res.message, confirmButtonColor: '#f97316' })
+                                        .then(() => location.reload());
+                                } else {
+                                    Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.message, confirmButtonColor: '#f97316' });
+                                }
+                            },
+                            error: function () {
+                                Swal.fire({ icon: 'error', title: 'Lỗi hệ thống!', text: 'Không thể kết nối server.', confirmButtonColor: '#f97316' });
+                            }
+                        });
                     }
                 });
             });
+
+            @if (TempData["SuccessMsg"] != null)
+            {
+                <text>
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: '@TempData["SuccessMsg"]', confirmButtonColor: '#f97316' });
+                </text>
+            }
+            @if (TempData["ErrorMsg"] != null)
+            {
+                <text>
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: '@TempData["ErrorMsg"]', confirmButtonColor: '#f97316' });
+                </text>
+            }
         });
     </script>
 }
+@Html.AntiForgeryToken()
