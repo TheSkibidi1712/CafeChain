@@ -632,6 +632,11 @@ namespace CafeChain.Application.Services.Cart
                             }
 
                             await context.SaveChangesAsync();
+
+                            // [MISSION 2] Trừ kho khi mô phỏng giao hàng thành công
+                            var inventoryService = scope.ServiceProvider.GetRequiredService<IInventoryService>();
+                            await inventoryService.ConfirmInventoryDeductionAsync(orderId);
+
                             await hub.Clients.Group("AdminDashboard").SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
                         }
                     }

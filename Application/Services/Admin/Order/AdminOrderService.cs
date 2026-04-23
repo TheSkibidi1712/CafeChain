@@ -277,6 +277,9 @@ namespace CafeChain.Application.Services.Admin
 
             await _context.SaveChangesAsync();
 
+            // [MISSION 2] Trừ tồn kho thực tế khi đơn hàng hoàn thành
+            await _inventoryService.ConfirmInventoryDeductionAsync(orderId);
+
             await _hubContext.Clients.Group("AdminDashboard")
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
         }

@@ -1,5 +1,7 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Cart;
@@ -20,6 +22,9 @@ namespace CafeChain.Application.Services.Inventory
             _context = context;
         }
 
+        // ============================================================
+        // RESERVE: Giữ chỗ tồn kho khi đặt đơn Online
+        // ============================================================
         public async Task ReserveInventoryForOrderAsync(int storeId, List<CartItemViewModel> items)
         {
             var requiredIngredients = await CalculateRequiredIngredientsAsync(items);
@@ -27,7 +32,7 @@ namespace CafeChain.Application.Services.Inventory
 
             var ingredientIds = requiredIngredients.Keys.ToList();
             var inventories = await _context.StoreInventories
-                .Where(si => si.StoreId == storeId && ingredientIds.Contains(si.IngredientId))
+                .Where(si => si.StoreId == storeId && si.IngredientId.HasValue && ingredientIds.Contains(si.IngredientId.Value))
                 .ToListAsync();
 
             foreach (var req in requiredIngredients)
@@ -59,6 +64,9 @@ namespace CafeChain.Application.Services.Inventory
             }
         }
 
+        // ============================================================
+        // RELEASE: Hoàn trả tồn kho khi hủy đơn
+        // ============================================================
         public async Task ReleaseInventoryForOrderAsync(int orderId)
         {
             var order = await _context.Orders
@@ -80,7 +88,7 @@ namespace CafeChain.Application.Services.Inventory
 
             var ingredientIds = requiredIngredients.Keys.ToList();
             var inventories = await _context.StoreInventories
-                .Where(si => si.StoreId == order.StoreId && ingredientIds.Contains(si.IngredientId))
+                .Where(si => si.StoreId == order.StoreId && si.IngredientId.HasValue && ingredientIds.Contains(si.IngredientId.Value))
                 .ToListAsync();
 
             foreach (var req in requiredIngredients)
@@ -97,6 +105,213 @@ namespace CafeChain.Application.Services.Inventory
             await _context.SaveChangesAsync();
         }
 
+        // ============================================================
+        // [MISSION 2] CONFIRM DEDUCTION: Trừ kho thực tế khi Hoàn thành
+        // STRICT OPTION B: Trừ bán thành phẩm trực tiếp, không explode
+        // ============================================================
+        public async Task ConfirmInventoryDeductionAsync(int orderId)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                // 1. Load đơn hàng + chi tiết
+                var order = await _context.Orders
+                    .Include(o => o.OrderDetails)
+                        .ThenInclude(od => od.OrderToppings)
+                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+
+                if (order == null)
+                    throw new Exception($"Không tìm thấy đơn hàng #{orderId} để trừ kho.");
+
+                // 2. Xác định loại đơn: POS (DineIn/TakeAway) vs Online (Delivery)
+                bool isPOS = order.OrderTypeId == SystemConstants.OrderTypes.DineIn
+                          || order.OrderTypeId == SystemConstants.OrderTypes.TakeAway;
+
+                // 3. Lấy tất cả Recipe active liên quan đến Drink/Topping trong đơn
+                var drinkIds = order.OrderDetails.Select(od => od.DrinkId).Distinct().ToList();
+                var toppingIds = order.OrderDetails
+                    .SelectMany(od => od.OrderToppings.Select(ot => ot.ToppingId))
+                    .Distinct().ToList();
+
+                var recipes = await _context.Recipes
+                    .Include(r => r.RecipeDetails)
+                    .Where(r => r.Status == "Active" &&
+                        ((r.DrinkId.HasValue && drinkIds.Contains(r.DrinkId.Value)) ||
+                         (r.ToppingId.HasValue && toppingIds.Contains(r.ToppingId.Value))))
+                    .ToListAsync();
+
+                // 4. Tính danh sách trừ kho — OPTION B: không explode sub-recipe
+                var deductions = new List<InventoryDeductionItem>();
+
+                foreach (var orderDetail in order.OrderDetails)
+                {
+                    // Tìm BOM cho món nước này
+                    var drinkRecipe = recipes.FirstOrDefault(r => r.DrinkId == orderDetail.DrinkId);
+                    if (drinkRecipe != null)
+                    {
+                        await BuildDeductionListOptionB(
+                            drinkRecipe.RecipeDetails, orderDetail.Quantity,
+                            order.StoreId, deductions);
+                    }
+
+                    // Tìm BOM cho từng topping
+                    foreach (var ot in orderDetail.OrderToppings)
+                    {
+                        var toppingRecipe = recipes.FirstOrDefault(r => r.ToppingId == ot.ToppingId);
+                        if (toppingRecipe != null)
+                        {
+                            await BuildDeductionListOptionB(
+                                toppingRecipe.RecipeDetails, orderDetail.Quantity,
+                                order.StoreId, deductions);
+                        }
+                    }
+                }
+
+                // 5. Thực thi trừ kho + ghi log InventoryTransaction
+                foreach (var deduction in deductions)
+                {
+                    var inv = deduction.StoreInventory;
+                    decimal beforeQty = inv.AvailableQty;
+
+                    if (isPOS)
+                    {
+                        // POS: Trừ thẳng AvailableQty (không qua Reserve)
+                        if (inv.AvailableQty < deduction.Quantity)
+                        {
+                            throw new Exception(
+                                $"Không đủ tồn kho để trừ cho đơn POS #{orderId}. " +
+                                $"Mục: {deduction.ItemName}, cần {deduction.Quantity:N3}, có {inv.AvailableQty:N3}");
+                        }
+                        inv.AvailableQty -= deduction.Quantity;
+                    }
+                    else
+                    {
+                        // Online (Delivery): Trừ ReservedQty (đã giữ chỗ lúc đặt đơn)
+                        inv.ReservedQty = Math.Max(0, inv.ReservedQty - deduction.Quantity);
+                    }
+
+                    inv.LastUpdated = DateTime.Now;
+
+                    // Ghi log lịch sử
+                    _context.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        StoreInventoryId = inv.StoreInventoryId,
+                        Type = InventoryDocumentType.SALES_DEDUCTION,
+                        Quantity = -deduction.Quantity, // Âm = xuất kho
+                        BeforeQty = beforeQty,
+                        AfterQty = inv.AvailableQty,
+                        ReferenceOrderId = orderId,
+                        CreatedAt = DateTime.Now
+                    });
+                }
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                throw; // Đẩy lỗi ra ngoài để caller bắt
+            }
+        }
+
+        // ============================================================
+        // PRIVATE: Tính danh sách trừ kho theo OPTION B
+        // Option B = Trừ bán thành phẩm trực tiếp, KHÔNG explode ra NL thô
+        // ============================================================
+        private async Task BuildDeductionListOptionB(
+            IEnumerable<CafeChain.Models.Drinks.RecipeDetail> details,
+            int multiplier,
+            int storeId,
+            List<InventoryDeductionItem> deductions)
+        {
+            foreach (var detail in details)
+            {
+                if (detail.IngredientId.HasValue)
+                {
+                    // === NGUYÊN LIỆU THÔ: Trừ từ StoreInventory (IngredientId) ===
+                    var ingredient = await _context.Ingredients
+                        .Include(i => i.UnitConversions)
+                        .FirstOrDefaultAsync(i => i.IngredientId == detail.IngredientId.Value);
+
+                    if (ingredient == null) continue;
+
+                    // Quy đổi đơn vị: BOM UnitId → Ingredient.BaseUnitId
+                    decimal quantityInBaseUnit = detail.Quantity;
+                    if (detail.UnitId != ingredient.BaseUnitId)
+                    {
+                        var conversion = ingredient.UnitConversions
+                            .FirstOrDefault(c => c.FromUnitId == detail.UnitId && c.ToUnitId == ingredient.BaseUnitId);
+
+                        if (conversion != null && conversion.FromQuantity != 0)
+                        {
+                            quantityInBaseUnit = (detail.Quantity / conversion.FromQuantity) * conversion.ToQuantity;
+                        }
+                    }
+
+                    decimal totalQty = quantityInBaseUnit * multiplier;
+
+                    // Tìm hoặc tạo entry trong deductions
+                    var inv = await _context.StoreInventories
+                        .FirstOrDefaultAsync(si => si.StoreId == storeId && si.IngredientId == detail.IngredientId.Value);
+
+                    if (inv != null)
+                    {
+                        var existing = deductions.FirstOrDefault(d => d.StoreInventory.StoreInventoryId == inv.StoreInventoryId);
+                        if (existing != null)
+                        {
+                            existing.Quantity += totalQty;
+                        }
+                        else
+                        {
+                            deductions.Add(new InventoryDeductionItem
+                            {
+                                StoreInventory = inv,
+                                Quantity = totalQty,
+                                ItemName = ingredient.Name
+                            });
+                        }
+                    }
+                }
+                else if (detail.ChildRecipeId.HasValue)
+                {
+                    // === BÁN THÀNH PHẨM: Trừ trực tiếp từ StoreInventory (RecipeId) ===
+                    // STRICT OPTION B: KHÔNG explode ra nguyên liệu thô
+                    decimal totalQty = detail.Quantity * multiplier;
+
+                    var inv = await _context.StoreInventories
+                        .FirstOrDefaultAsync(si => si.StoreId == storeId && si.RecipeId == detail.ChildRecipeId.Value);
+
+                    if (inv != null)
+                    {
+                        var childRecipeName = await _context.Recipes
+                            .Where(r => r.RecipeId == detail.ChildRecipeId.Value)
+                            .Select(r => r.Name)
+                            .FirstOrDefaultAsync() ?? $"BTP #{detail.ChildRecipeId}";
+
+                        var existing = deductions.FirstOrDefault(d => d.StoreInventory.StoreInventoryId == inv.StoreInventoryId);
+                        if (existing != null)
+                        {
+                            existing.Quantity += totalQty;
+                        }
+                        else
+                        {
+                            deductions.Add(new InventoryDeductionItem
+                            {
+                                StoreInventory = inv,
+                                Quantity = totalQty,
+                                ItemName = childRecipeName
+                            });
+                        }
+                    }
+                    // Nếu không tìm thấy StoreInventory cho BTP → bỏ qua (Kho chưa có BTP này)
+                }
+            }
+        }
+
+        // ============================================================
+        // PRIVATE: Tính nguyên liệu cho Reserve/Release (logic cũ)
+        // ============================================================
         private async Task<Dictionary<int, decimal>> CalculateRequiredIngredientsAsync(List<CartItemViewModel> items)
         {
             var result = new Dictionary<int, decimal>();
@@ -116,8 +331,6 @@ namespace CafeChain.Application.Services.Inventory
                 .Select(rd => rd.IngredientId.Value)
                 .Distinct().ToList();
 
-            // (Có thể có nguyên liệu trong Child Recipes nữa, nên cần fetch đệ quy hoặc fetch rộng hơn)
-            // Để đơn giản và an toàn, ta sẽ fetch nguyên liệu trong lúc process nếu chưa có.
             var ingredientCache = await _context.Ingredients
                 .Include(i => i.UnitConversions)
                 .Where(i => allIngredientIds.Contains(i.IngredientId))
@@ -193,6 +406,16 @@ namespace CafeChain.Application.Services.Inventory
                     }
                 }
             }
+        }
+
+        // ============================================================
+        // PRIVATE DTO: Đại diện cho 1 dòng trừ kho
+        // ============================================================
+        private class InventoryDeductionItem
+        {
+            public StoreInventory StoreInventory { get; set; }
+            public decimal Quantity { get; set; }
+            public string ItemName { get; set; }
         }
     }
 }

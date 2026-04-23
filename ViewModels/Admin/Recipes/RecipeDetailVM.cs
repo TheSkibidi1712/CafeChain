@@ -13,7 +13,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         [Required(ErrorMessage = "Đơn vị tính không được để trống")]
         public int UnitId { get; set; }
 
-        public string UnitName { get; set; } // READ-ONLY, auto-populated từ BaseUnit
+        public string? UnitName { get; set; } // READ-ONLY, auto-populated từ BaseUnit
 
         // V2: Tỷ lệ thu hồi di chuyển xuống cấp nguyên liệu
         // 100% = không hao hụt, 95% = mất 5%

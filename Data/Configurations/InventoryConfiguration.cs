@@ -634,6 +634,12 @@ namespace CafeChain.Data.Configurations
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // [MISSION 2] FK tới Order khi Type = SALES_DEDUCTION
+            entity.HasOne(x => x.ReferenceOrder)
+                .WithMany()
+                .HasForeignKey(x => x.ReferenceOrderId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -641,6 +647,8 @@ namespace CafeChain.Data.Configurations
             entity.HasIndex(x => x.Type);
 
             entity.HasIndex(x => x.InventoryDocumentId);
+
+            entity.HasIndex(x => x.ReferenceOrderId); // 🔥 query trừ kho theo đơn hàng
 
             entity.HasIndex(x => x.CreatedAt); // 🔥 query timeline
 

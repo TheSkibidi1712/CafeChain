@@ -31,10 +31,10 @@
         <a href="#" class="btn btn-light border shadow-sm"><i class="fas fa-arrow-left me-1"></i> Quay lại</a>
     </div>
 
-    <!-- Frozen Banner -->
-    <div class="frozen-banner mb-4">
-        <i class="fas fa-snowflake me-2"></i>
-        <strong>Chế độ Preview:</strong> Module Kho đang được phát triển song song. Lệnh sơ chế hiện tại chỉ tính toán nguyên liệu, <u>chưa trừ kho thực tế</u>.
+    <!-- Production Live Banner -->
+    <div class="frozen-banner mb-4" style="background: linear-gradient(135deg, #d1fae5, #a7f3d0); border-color: #10b981; color: #065f46;">
+        <i class="fas fa-check-circle me-2"></i>
+        <strong>Chế độ Thực thi:</strong> Khi bấm "Hoàn tất mẻ nấu", hệ thống sẽ <u>trừ nguyên liệu thô</u> và <u>cộng bán thành phẩm</u> vào Kho cửa hàng.
     </div>
 
     <form asp-action="Create" method="post" id="productionForm">
@@ -200,21 +200,73 @@
                 });
             });
 
-            // ===== HOÀN TẤT MẺ NẤU (SweetAlert confirm) =====
+            // ===== HOÀN TẤT MẺ NẤU (AJAX Execute — Trừ/Cộng kho thật) =====
             $('#btnComplete').click(function (e) {
                 e.preventDefault();
+
+                const recipeId = $('#recipeSelect').val();
+                const batches = parseFloat($('#batchInput').val()) || 0;
+
+                if (!recipeId || batches <= 0) {
+                    Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng chọn công thức và nhập số mẻ nấu.' });
+                    return;
+                }
+
                 Swal.fire({
                     icon: 'question',
                     title: 'Xác nhận hoàn tất mẻ nấu?',
-                    html: '<p>Hành động này sẽ ghi nhận lệnh sơ chế vào hệ thống.</p><p class="text-muted small"><i class="fas fa-snowflake me-1"></i>Chế độ Preview: Chưa trừ kho thực tế.</p>',
+                    html: '<p>Hành động này sẽ <b class="text-danger">trừ nguyên liệu thô</b> và <b class="text-success">cộng bán thành phẩm</b> vào kho cửa hàng.</p><p class="text-muted small"><i class="fas fa-exclamation-triangle me-1"></i>Thao tác không thể hoàn tác.</p>',
                     showCancelButton: true,
-                    confirmButtonText: '<i class="fas fa-check me-1"></i> Hoàn tất',
+                    confirmButtonText: '<i class="fas fa-check me-1"></i> Hoàn tất & Cập nhật kho',
                     cancelButtonText: 'Hủy',
                     confirmButtonColor: '#16a34a',
                     cancelButtonColor: '#94a3b8'
                 }).then((result) => {
                     if (result.isConfirmed) {
-                        $('#productionForm').submit();
+                        const btn = $('#btnComplete');
+                        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...');
+
+                        $.ajax({
+                            url: '@Url.Action("Execute", "AdminProductionOrder", new { area = "Admin" })',
+                            type: 'POST',
+                            contentType: 'application/json',
+                            data: JSON.stringify({
+                                recipeId: parseInt(recipeId),
+                                batches: batches,
+                                notes: $('input[name="Notes"]').val()
+                            }),
+                            success: function(res) {
+                                btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Hoàn tất mẻ nấu');
+                                if (res.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Hoàn tất!',
+                                        text: res.message,
+                                        confirmButtonColor: '#16a34a'
+                                    }).then(() => {
+                                        window.location.reload();
+                                    });
+                                } else {
+                                    // Hiển thị chi tiết lỗi tồn kho
+                                    let errorHtml = `<p class="fw-bold text-danger">${res.message}</p>`;
+                                    if (res.errors && res.errors.length > 0) {
+                                        errorHtml += '<ul class="text-start text-danger small">';
+                                        res.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
+                                        errorHtml += '</ul>';
+                                    }
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Không đủ tồn kho!',
+                                        html: errorHtml,
+                                        confirmButtonColor: '#dc2626'
+                                    });
+                                }
+                            },
+                            error: function() {
+                                btn.prop('disabled', false).html('<i class="fas fa-check-circle me-2"></i>Hoàn tất mẻ nấu');
+                                Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối đến Server.' });
+                            }
+                        });
                     }
                 });
             });

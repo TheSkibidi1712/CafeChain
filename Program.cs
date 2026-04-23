@@ -174,6 +174,7 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Inventory Abstraction
 builder.Services.AddScoped<IInventoryService, CafeChain.Application.Services.Inventory.InventoryService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Inventories.IInventoryDeductionService, CafeChain.Application.Services.Inventories.InventoryDeductionService>();
 
 // Workers
 builder.Services.AddHostedService<CafeChain.Application.Workers.OrderCleanupWorker>();
@@ -253,6 +254,10 @@ builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminS
 // Admin Dashboard
 builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+// Interlock HR & POS
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IHrAttendanceService, CafeChain.Application.Services.Attendance.HrAttendanceService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IWorkShiftService, CafeChain.Application.Services.POS.WorkShiftService>();
 
 // [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
 builder.Services.AddHttpClient("PayOS")

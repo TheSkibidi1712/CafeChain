@@ -148,9 +148,9 @@
             .kiosk-body { grid-template-columns: 1fr; padding: 16px; gap: 16px; height: auto; min-height: calc(100vh - 52px); }
             .clock-time { font-size: 3.5rem; }
             .clock-time .seconds { font-size: 1.8rem; }
-            .action-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
-            .btn-action { padding: 14px 10px; font-size: 13px; gap: 6px; }
-            .btn-action i { font-size: 16px; }
+            .action-grid { grid-template-columns: 1fr; gap: 12px; }
+            .btn-action { padding: 16px 12px; font-size: 16px; gap: 10px; }
+            .btn-action i { font-size: 20px; }
             .schedule-card { padding: 16px; }
             .schedule-header { flex-direction: column; gap: 10px; align-items: flex-start; }
             .shift-item .shift-time { position: static; margin-top: 6px; font-size: 12px; }
@@ -194,8 +194,6 @@
             <div class="action-grid">
                 <button class="btn-action btn-checkin" onclick="handleAction('CheckIn')"><i class="fa-solid fa-right-to-bracket"></i> Vào ca</button>
                 <button class="btn-action btn-checkout" onclick="handleAction('CheckOut')"><i class="fa-solid fa-right-from-bracket"></i> Tan ca</button>
-                <button class="btn-action btn-break" onclick="handleAction('StartBreak')"><i class="fa-solid fa-mug-hot"></i> Bắt đầu nghỉ</button>
-                <button class="btn-action btn-endbreak" onclick="handleAction('EndBreak')"><i class="fa-solid fa-rotate-left"></i> Kết thúc nghỉ</button>
             </div>
         </div>
 
