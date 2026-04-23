@@ -101,6 +101,7 @@ namespace CafeChain.Data
         public DbSet<Voucher> Vouchers { get; set; }
         public DbSet<VoucherUsage> VoucherUsages { get; set; }
         public DbSet<OrderVoucher> OrderVouchers { get; set; }
+        public DbSet<CustomerVoucher> CustomerVouchers { get; set; }
         public DbSet<WheelConfig> WheelConfigs { get; set; }
         public DbSet<WheelPrize> WheelPrizes { get; set; }
         public DbSet<WheelSpin> WheelSpins { get; set; }

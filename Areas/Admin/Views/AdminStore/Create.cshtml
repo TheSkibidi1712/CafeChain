@@ -69,6 +69,9 @@
 <div class="row">
     <div class="col-lg-6 col-md-12">
         <form asp-action="Create" class="card shadow-sm p-4">
+            <input type="hidden" id="Latitude" name="Latitude" value="" />
+            <input type="hidden" id="Longitude" name="Longitude" value="" />
+            
             <div class="form-group mb-3">
                 <label asp-for="Name" class="fw-bold section-title">Tên Cửa Hàng <span class="text-danger">*</span></label>
                 <input asp-for="Name" class="form-control" placeholder="Ví dụ: CafeChain Quận 1..." />
@@ -111,14 +114,12 @@
 
             <div class="row mb-3">
                 <div class="col-6">
-                    <label asp-for="Latitude" class="fw-bold text-muted">Vĩ độ (Latitude)</label>
-                    <input asp-for="Latitude" id="Latitude" class="form-control bg-light" readonly />
-                    <span asp-validation-for="Latitude" class="text-danger"></span>
+                    <label class="fw-bold text-muted">Vĩ độ (Latitude)</label>
+                    <input id="DisplayLatitude" class="form-control bg-light" readonly />
                 </div>
                 <div class="col-6">
-                    <label asp-for="Longitude" class="fw-bold text-muted">Kinh độ (Longitude)</label>
-                    <input asp-for="Longitude" id="Longitude" class="form-control bg-light" readonly />
-                    <span asp-validation-for="Longitude" class="text-danger"></span>
+                    <label class="fw-bold text-muted">Kinh độ (Longitude)</label>
+                    <input id="DisplayLongitude" class="form-control bg-light" readonly />
                 </div>
             </div>
 
@@ -402,8 +403,10 @@
             // Bắt sự kiện Dragend ghim để cập nhật Readonly Inputs & Lấy địa chỉ
             marker.on('dragend', function(e) {
                 var pos = marker.getLatLng();
-                $('#Latitude').val(pos.lat.toFixed(6));
-                $('#Longitude').val(pos.lng.toFixed(6));
+                document.getElementById('Latitude').value = pos.lat;
+                document.getElementById('Longitude').value = pos.lng;
+                $('#DisplayLatitude').val(pos.lat.toFixed(6));
+                $('#DisplayLongitude').val(pos.lng.toFixed(6));
                 
                 // Tự động lấy lại địa chỉ khi kéo thả xong
                 performReverseGeocoding(pos.lat, pos.lng);
@@ -412,8 +415,10 @@
             // Chạm click trên map để dời ghim siêu tốc & Lấy địa chỉ
             map.on('click', function(e) {
                 marker.setLatLng(e.latlng);
-                $('#Latitude').val(e.latlng.lat.toFixed(6));
-                $('#Longitude').val(e.latlng.lng.toFixed(6));
+                document.getElementById('Latitude').value = e.latlng.lat;
+                document.getElementById('Longitude').value = e.latlng.lng;
+                $('#DisplayLatitude').val(e.latlng.lat.toFixed(6));
+                $('#DisplayLongitude').val(e.latlng.lng.toFixed(6));
 
                 // Tự động lấy địa chỉ khi click
                 performReverseGeocoding(e.latlng.lat, e.latlng.lng);
@@ -461,8 +466,10 @@
                                 var latFound = feature.center[1];
                                 
                                 // Gán tự động vào 2 ô Readonly
-                                $('#Latitude').val(latFound.toFixed(6));
-                                $('#Longitude').val(lonFound.toFixed(6));
+                                document.getElementById('Latitude').value = latFound;
+                                document.getElementById('Longitude').value = lonFound;
+                                $('#DisplayLatitude').val(latFound.toFixed(6));
+                                $('#DisplayLongitude').val(lonFound.toFixed(6));
                                 
                                 // Bay Map mượt mà tới toạ độ mới [lat, lng]
                                 map.flyTo([latFound, lonFound], 18, { duration: 1.5 });

@@ -17,34 +17,43 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
-        <div>
-            <h4 class="fw-bold mb-1">Món bán chạy nhất</h4>
-            <p class="text-muted small mb-0">Những hương vị được yêu thích nhất trong tuần qua</p>
+    @* ===================== PHÂN HỆ 1: MÓN BÁN CHẠY NHẤT ===================== *@
+    @if (Model.BestSellers != null && Model.BestSellers.Any())
+    {
+        <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
+            <div>
+                <h4 class="fw-bold mb-1">Món bán chạy nhất</h4>
+                <p class="text-muted small mb-0">Những hương vị được yêu thích nhất trong tuần qua</p>
+            </div>
         </div>
-    </div>
 
-    <div class="product-slider-container mb-5">
-        <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
-            <i class="bi bi-chevron-left"></i>
-        </button>
-
-        <div class="product-slider">
-            @* Lấy 8 món (hiện có 6 món trong DB sẽ hiện cả 6) *@
-            @foreach (var drink in Model.Drinks.Take(8))
+        <div class="product-slider-container mb-5">
+            @if (Model.BestSellers.Count > 4)
             {
-                <div class="slider-item">
-                    @* Nhớ kiểm tra lại tên file có dấu _ hay không nhé *@
-                    <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
-                </div>
+                <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            }
+
+            <div class="product-slider">
+                @foreach (var item in Model.BestSellers)
+                {
+                    <div class="slider-item">
+                        <partial name="~/Views/Home/_DrinkItemCard.cshtml" model="item" />
+                    </div>
+                }
+            </div>
+
+            @if (Model.BestSellers.Count > 4)
+            {
+                <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
             }
         </div>
+    }
 
-        <button class="slider-btn next" onclick="scrollSlider(this, 1)">
-            <i class="bi bi-chevron-right"></i>
-        </button>
-    </div>
-
+    @* ===================== CÁC DANH MỤC ĐỘNG ===================== *@
     @foreach (var cat in Model.Categories)
     {
         var categoryDrinks = Model.Drinks.Where(d => d.CategoryId == cat.CategoryId).ToList();
@@ -107,18 +116,14 @@
                     <button type="button" class="btn-close btn-close-white position-absolute top-0 end-0 m-3 z-3" data-bs-dismiss="modal"></button>
                     
                     <div class="wheel-outer-frame shadow-lg p-3 mx-auto" style="width: 400px; height: 400px; background: radial-gradient(circle, #fcd34d 0%, #d97706 100%); border-radius: 50%; border: 12px solid #343a40; position: relative; box-shadow: 0 0 50px rgba(217, 61, 32, 0.4);">
-                        <!-- Lights around the wheel -->
                         <div class="wheel-lights"></div>
-                        <!-- Premium Pointer -->
                         <div class="wheel-pointer-wrap" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 100;">
                             <div style="width: 30px; height: 30px; background: #343a40; border-radius: 50%; border: 4px solid #fcd34d; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0 auto; position: relative; z-index: 2;"></div>
                             <div style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #d93d20; margin: -8px auto 0; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4)); position: relative; z-index: 1;"></div>
                         </div>
 
                         <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
-                            
                             <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%; transition: transform 5s cubic-bezier(0.15, 0, 0.1, 1);"></canvas>
-                            
                             <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
                                     style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
                                     onclick="spinTheWheel()">
@@ -206,8 +211,6 @@
 
             for (let i = 0; i < numSectors; i++) {
                 let angle = i * arc;
-                
-                // Vẽ ô với gradient nhẹ
                 let grad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, radius);
                 grad.addColorStop(0, sectors[i].color);
                 grad.addColorStop(1, i % 2 === 0 ? "#be123c" : "#e11d48");
@@ -219,12 +222,10 @@
                 ctx.lineTo(centerX, centerY);
                 ctx.fill();
 
-                // Thêm viền trắng mờ giữa các ô
                 ctx.strokeStyle = "rgba(255,255,255,0.2)";
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
-                // Vẽ text
                 ctx.save();
                 ctx.translate(centerX, centerY);
                 ctx.rotate(angle + arc / 2);
@@ -278,7 +279,7 @@
                 let sectorArc = 360 / numSectors;
                 
                 let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
-                let totalRotation = 360 * 8 + stopAngle; // Quay 8 vòng cho kịch tính
+                let totalRotation = 360 * 8 + stopAngle;
                 
                 canvas.style.transform = `rotate(${totalRotation}deg)`;
                 
@@ -287,7 +288,6 @@
                     $('#spinBtn').css('opacity', '1');
 
                     if (!res.isLose) {
-                        // Hiệu ứng pháo hoa khi thắng
                         confetti({
                             particleCount: 150,
                             spread: 100,
@@ -314,7 +314,6 @@
 
                     if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
                     
-                    // Reset rotation visual
                     setTimeout(() => {
                         canvas.style.transition = 'none';
                         canvas.style.transform = `rotate(${stopAngle % 360}deg)`;

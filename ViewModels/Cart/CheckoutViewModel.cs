@@ -19,13 +19,14 @@ namespace CafeChain.ViewModels.Cart
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán")]
         public int PaymentMethodId { get; set; }
 
-        public string? VoucherCode { get; set; }
+        public int? SelectedVoucherId { get; set; }
 
         /// Số điểm thưởng khách muốn sử dụng (null = không dùng)
         public int? PointsUsed { get; set; }
 
-        /// Loại đơn hàng: 1=DineIn, 2=TakeAway, 3=Delivery
         public int OrderTypeId { get; set; } = 3; // Default: Delivery
+
+        public int AssignedStoreId { get; set; }
 
         // [FIX 2 - Phase 4] Checksum chống Bóng Ma Đa Tab
         public decimal ExpectedTotal { get; set; }

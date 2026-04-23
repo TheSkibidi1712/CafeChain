@@ -7,7 +7,7 @@ namespace CafeChain.Application.Interfaces.Admin.Vouchers
         Task<(bool Success, string Message, Voucher Voucher)> ValidateVoucherAsync(string code, int customerId, decimal subTotal);
         Task<decimal> CalculateMemberDiscountAsync(int customerId, decimal subTotal);
         Task<int> GetCustomerPointsAsync(int customerId);
-        
+
         // Admin functions
         Task<IEnumerable<Voucher>> GetAllVouchersAsync();
         Task<Voucher> GetVoucherByIdAsync(int id);

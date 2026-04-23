@@ -30,6 +30,11 @@ namespace CafeChain.Application.Interfaces
         Task<List<Voucher>> GetAvailableVouchersAsync();
 
         /// <summary>
+        /// Lấy danh sách Voucher khả dụng trong ví của khách hàng
+        /// </summary>
+        Task<List<Voucher>> GetCustomerValidVouchersAsync(int customerId);
+
+        /// <summary>
         /// Lấy danh sách hóa đơn theo trạng thái và mã khách hàng, phân trang.
         /// </summary>
         Task<PagedResult<OrderHistoryViewModel>> GetCustomerOrdersAsync(int customerId, int pageIndex = 1, int pageSize = 10, string statusGroup = null);

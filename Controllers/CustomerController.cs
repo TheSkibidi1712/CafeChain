@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Threading.Tasks;
-using CafeChain.ViewModels.Customers; // Thêm using này
+using CafeChain.ViewModels.Customers;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Controllers
 {
@@ -18,11 +19,13 @@ namespace CafeChain.Controllers
         private readonly ICustomerService _customerService;
         // Bác nhớ Inject IWebHostEnvironment vào Controller để lấy đường dẫn thư mục wwwroot nhé
         private readonly IWebHostEnvironment _env;
+        private readonly CafeChain.Data.AppDbContext _context;
 
-        public CustomerController(ICustomerService customerService, IWebHostEnvironment env)
+        public CustomerController(ICustomerService customerService, IWebHostEnvironment env, CafeChain.Data.AppDbContext context)
         {
             _customerService = customerService;
             _env = env;
+            _context = context;
         }
         [HttpGet]
         public async Task<IActionResult> Profile()
@@ -178,6 +181,34 @@ namespace CafeChain.Controllers
             var wards = await _customerService.GetWardsByDistrictAsync(districtId);
             var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
             return Json(data);
+        }
+
+        // ======================= WALLET VOUCHERS =========================
+        [HttpGet]
+        public async Task<IActionResult> MyVouchers()
+        {
+            var customerIdStr = User.FindFirstValue("CustomerId");
+            if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
+
+            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var customerProfile = await _customerService.GetCustomerProfileAsync(accountIdStr);
+
+            var myVouchers = await _context.CustomerVouchers
+                .Include(cv => cv.Voucher)
+                .Where(cv => cv.CustomerId == customerId)
+                .ToListAsync();
+
+            var now = DateTime.Now;
+
+            var viewModel = new CafeChain.ViewModels.Customers.MyVouchersViewModel
+            {
+                Profile = customerProfile,
+                ValidVouchers = myVouchers.Where(cv => !cv.IsUsed && (!cv.Voucher.EndDate.HasValue || cv.Voucher.EndDate >= now)).ToList(),
+                UsedVouchers = myVouchers.Where(cv => cv.IsUsed).ToList(),
+                ExpiredVouchers = myVouchers.Where(cv => !cv.IsUsed && cv.Voucher.EndDate.HasValue && cv.Voucher.EndDate < now).ToList()
+            };
+
+            return View(viewModel);
         }
     }
 }

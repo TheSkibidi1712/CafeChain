@@ -5460,6 +5460,42 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Vouchers.CustomerVoucher", b =>
+                {
+                    b.Property<int>("CustomerVoucherId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerVoucherId"));
+
+                    b.Property<DateTime>("CollectedDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsUsed")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("UsedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("VoucherId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CustomerVoucherId");
+
+                    b.HasIndex("VoucherId");
+
+                    b.HasIndex("CustomerId", "VoucherId");
+
+                    b.ToTable("CustomerVouchers", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
                     b.Property<int>("OrderVoucherId")
@@ -5511,6 +5547,9 @@ namespace CafeChain.Migrations
                     b.Property<string>("DaysOfWeek")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<decimal?>("DiscountAmount")
                         .HasColumnType("decimal(18,2)");
 
@@ -5541,6 +5580,9 @@ namespace CafeChain.Migrations
                     b.Property<TimeSpan?>("StartHour")
                         .HasColumnType("time");
 
+                    b.Property<string>("Title")
+                        .HasColumnType("nvarchar(max)");
+
                     b.HasKey("VoucherId");
 
                     b.HasIndex("Code")
@@ -5564,11 +5606,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 21, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5432),
+                            EndDate = new DateTime(2026, 5, 22, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7358),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 14, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5409)
+                            StartDate = new DateTime(2026, 4, 15, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7338)
                         },
                         new
                         {
@@ -5576,10 +5618,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 6, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5438),
+                            EndDate = new DateTime(2026, 5, 7, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7362),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5437)
+                            StartDate = new DateTime(2026, 4, 21, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7361)
                         },
                         new
                         {
@@ -5587,11 +5629,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 20, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5442),
+                            EndDate = new DateTime(2026, 6, 21, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7365),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 22, 12, 59, 14, 321, DateTimeKind.Local).AddTicks(5441)
+                            StartDate = new DateTime(2026, 3, 23, 16, 25, 17, 198, DateTimeKind.Local).AddTicks(7365)
                         });
                 });
 
@@ -6680,6 +6722,25 @@ namespace CafeChain.Migrations
                     b.Navigation("Topping");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Vouchers.CustomerVoucher", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
+                        .WithMany("CustomerVouchers")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Vouchers.Voucher", "Voucher")
+                        .WithMany("CustomerVouchers")
+                        .HasForeignKey("VoucherId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Voucher");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Vouchers.OrderVoucher", b =>
                 {
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
@@ -6774,6 +6835,8 @@ namespace CafeChain.Migrations
                     b.Navigation("CustomerPhones");
 
                     b.Navigation("CustomerPoints");
+
+                    b.Navigation("CustomerVouchers");
 
                     b.Navigation("Orders");
 
@@ -7033,6 +7096,8 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Vouchers.Voucher", b =>
                 {
+                    b.Navigation("CustomerVouchers");
+
                     b.Navigation("OrderVouchers");
 
                     b.Navigation("VoucherUsages");
