@@ -1,4 +1,5 @@
-﻿namespace CafeChain.Models.Drinks
+﻿using CafeChain.Models.Orders;
+namespace CafeChain.Models.Drinks
 {
     public class Size
     {
@@ -8,5 +9,6 @@
         public bool Active { get; set; }
 
         public virtual ICollection<DrinkSize> DrinkSizes { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }

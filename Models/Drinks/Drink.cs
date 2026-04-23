@@ -1,6 +1,6 @@
 using CafeChain.Models.Customers;
 using CafeChain.Models.Stores;
-
+using CafeChain.Models.Orders;
 namespace CafeChain.Models.Drinks
 {
     public class Drink
@@ -13,7 +13,7 @@ namespace CafeChain.Models.Drinks
         public bool Active { get; set; }
         public DateTime CreatedAt { get; set; }
         
-        public decimal CalculatedCogs { get; set; } // Giá vốn tự động tính từ BOM
+        public decimal? CalculatedCogs { get; set; } // Giá vốn tự động tính từ BOM
 
         public virtual DrinkCategory Category { get; set; }
 
@@ -25,5 +25,6 @@ namespace CafeChain.Models.Drinks
         public virtual ICollection<StoreDrink> StoreDrinks { get; set; }
         public virtual ICollection<Recipe> Recipes { get; set; }
         public virtual ICollection<Rating> Ratings { get; set; }
+        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }

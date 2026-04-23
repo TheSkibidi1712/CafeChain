@@ -53,12 +53,12 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.SetNull);
 
             entity.HasOne(x => x.Store)
-                .WithMany()
+                .WithMany(x => x.Orders)
                 .HasForeignKey(x => x.StoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Staff)
-                .WithMany()
+                .WithMany(x => x.Orders)
                 .HasForeignKey(x => x.StaffId)
                 .OnDelete(DeleteBehavior.NoAction); // tránh multiple cascade
 
@@ -114,12 +114,12 @@ namespace CafeChain.Data.Configurations
                 .OnDelete(DeleteBehavior.Cascade); // giữ cái này
 
             entity.HasOne(x => x.Drink)
-                .WithMany()
+                .WithMany(x => x.OrderDetails)
                 .HasForeignKey(x => x.DrinkId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.Size)
-                .WithMany()
+                .WithMany(x => x.OrderDetails)
                 .HasForeignKey(x => x.SizeId)
                 .OnDelete(DeleteBehavior.SetNull);
 

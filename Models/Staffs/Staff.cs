@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Orders;
 using CafeChain.Models.Customers;
 using System.ComponentModel.DataAnnotations;
 
@@ -44,5 +45,6 @@ namespace CafeChain.Models.Staffs
         public virtual ICollection<StaffPhone> StaffPhones { get; set; }
         public virtual ICollection<StaffAddress> StaffAddresses { get; set; }
         public virtual ICollection<StaffDependent> StaffDependents { get; set; }
+        public virtual ICollection<Order> Orders { get; set; }
     }
 }

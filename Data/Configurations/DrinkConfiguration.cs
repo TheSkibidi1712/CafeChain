@@ -70,6 +70,10 @@ namespace CafeChain.Data.Configurations
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
+            entity.Property(x => x.CalculatedCogs)
+                .HasPrecision(18, 2)
+                .IsRequired(false); // cho phép null
+
             // ================= RELATIONSHIPS =================
 
             // Category
@@ -83,6 +87,7 @@ namespace CafeChain.Data.Configurations
                 .WithMany(x => x.Drinks)
                 .HasForeignKey(x => x.ProductTypeId)
                 .OnDelete(DeleteBehavior.Restrict);
+
 
             // ================= INDEX =================
 
@@ -101,7 +106,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Cà phê sữa",
                     Description = "Cà phê pha với sữa đặc.",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 },
                 new Drink
                 {
@@ -111,7 +117,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Cà phê đen",
                     Description = "Cà phê pha với nước sôi, không có sữa.",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 },
                 new Drink
                 {
@@ -121,7 +128,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Trà sữa truyền thống",
                     Description = "Trà sữa pha với trân châu đen và đá viên.",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 },
                 new Drink
                 {
@@ -131,7 +139,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Trà sữa socola",
                     Description = "Trà sữa socola thơm ngon, béo ngậy.",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 },
                 new Drink
                 {
@@ -141,7 +150,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Sting",
                     Description = "Sting mát lạnh",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 },
                 new Drink
                 {
@@ -151,7 +161,8 @@ namespace CafeChain.Data.Configurations
                     Name = "Coca-cola",
                     Description = "Coca-cola mát lạnh",
                     Active = true,
-                    CreatedAt = new DateTime(2025, 1, 1)
+                    CreatedAt = new DateTime(2025, 1, 1),
+                    CalculatedCogs = 0 // Giá vốn sẽ được tính tự động từ BOM, nên để 0 khi seed
                 }
             );
         }

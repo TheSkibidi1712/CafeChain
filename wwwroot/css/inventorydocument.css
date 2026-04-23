@@ -264,7 +264,7 @@ select {
     }
     /* đơn vị */
     #detailTable td:nth-child(2) {
-        width: 5%;
+        width: 8%;
     }
     /* số lượng */
     #detailTable td:nth-child(3) {

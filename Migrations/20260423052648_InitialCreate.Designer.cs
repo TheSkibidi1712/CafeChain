@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260423043604_InitialCreate")]
+    [Migration("20260423052648_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -847,7 +847,8 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
-                    b.Property<decimal>("CalculatedCogs")
+                    b.Property<decimal?>("CalculatedCogs")
+                        .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int?>("CategoryId")
@@ -3700,9 +3701,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("StoreId1")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("SubTotal")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,2)")
@@ -3737,8 +3735,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("StaffId");
 
                     b.HasIndex("StoreId");
-
-                    b.HasIndex("StoreId1");
 
                     b.HasIndex("WorkShiftId");
 
@@ -5989,11 +5985,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 23, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2214),
+                            EndDate = new DateTime(2026, 5, 23, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7478),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 16, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2206)
+                            StartDate = new DateTime(2026, 4, 16, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7469)
                         },
                         new
                         {
@@ -6001,10 +5997,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 8, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2218),
+                            EndDate = new DateTime(2026, 5, 8, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7485),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 22, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2217)
+                            StartDate = new DateTime(2026, 4, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7484)
                         },
                         new
                         {
@@ -6012,11 +6008,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 22, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2220),
+                            EndDate = new DateTime(2026, 6, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7487),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 24, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2219)
+                            StartDate = new DateTime(2026, 3, 24, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7486)
                         });
                 });
 
@@ -6785,19 +6781,15 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Staffs.Staff", "Staff")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("StaffId")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
-                        .WithMany()
+                        .WithMany("Orders")
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Stores.Store", null)
-                        .WithMany("Orders")
-                        .HasForeignKey("StoreId1");
 
                     b.HasOne("CafeChain.Models.Stores.WorkShift", "WorkShift")
                         .WithMany("Orders")
@@ -6822,7 +6814,7 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Orders.OrderDetail", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
-                        .WithMany()
+                        .WithMany("OrderDetails")
                         .HasForeignKey("DrinkId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
@@ -6834,7 +6826,7 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.HasOne("CafeChain.Models.Drinks.Size", "Size")
-                        .WithMany()
+                        .WithMany("OrderDetails")
                         .HasForeignKey("SizeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
@@ -7315,6 +7307,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("DrinkToppings");
 
+                    b.Navigation("OrderDetails");
+
                     b.Navigation("Ratings");
 
                     b.Navigation("Recipes");
@@ -7344,6 +7338,8 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Drinks.Size", b =>
                 {
                     b.Navigation("DrinkSizes");
+
+                    b.Navigation("OrderDetails");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Topping", b =>
@@ -7498,6 +7494,8 @@ namespace CafeChain.Migrations
                     b.Navigation("CashSessions");
 
                     b.Navigation("InventoryDocuments");
+
+                    b.Navigation("Orders");
 
                     b.Navigation("StaffAddresses");
 

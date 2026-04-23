@@ -561,7 +561,7 @@ namespace CafeChain.Migrations
                     ProductTypeId = table.Column<int>(type: "int", nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    CalculatedCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    CalculatedCogs = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -1953,8 +1953,7 @@ namespace CafeChain.Migrations
                     PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     PointsUsed = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    StoreId1 = table.Column<int>(type: "int", nullable: true)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
                 {
@@ -1994,11 +1993,6 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Orders_Stores_StoreId1",
-                        column: x => x.StoreId1,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId");
                     table.ForeignKey(
                         name: "FK_Orders_WorkShifts_WorkShiftId",
                         column: x => x.WorkShiftId,
@@ -2492,9 +2486,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 5, 23, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2214), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 16, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2206), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 5, 8, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2218), null, null, 500, null, 50000m, new DateTime(2026, 4, 22, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2217), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 6, 22, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2220), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 24, 11, 36, 2, 207, DateTimeKind.Local).AddTicks(2219), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 5, 23, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7478), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 16, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7469), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 5, 8, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7485), null, null, 500, null, 50000m, new DateTime(2026, 4, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7484), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 6, 22, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7487), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 24, 12, 26, 45, 774, DateTimeKind.Local).AddTicks(7486), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -3404,11 +3398,6 @@ namespace CafeChain.Migrations
                 name: "IX_Orders_StoreId",
                 table: "Orders",
                 column: "StoreId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Orders_StoreId1",
-                table: "Orders",
-                column: "StoreId1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Orders_WorkShiftId",
