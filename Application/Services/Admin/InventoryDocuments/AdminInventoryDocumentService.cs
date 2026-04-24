@@ -14,7 +14,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
     {
         private readonly IAdminInventoryDocumentRepository _repository;
         private readonly IUserContext _userContext;
-
+        private static readonly Dictionary<int, SemaphoreSlim> _locks = new();
 
         public AdminInventoryDocumentService(IAdminInventoryDocumentRepository repository, IUserContext userContext)
         {
@@ -136,6 +136,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             var staffId = _userContext.StaffId;
 
+            if (!_locks.ContainsKey(staffId))
+                _locks[staffId] = new SemaphoreSlim(1, 1);
+
+            var locker = _locks[staffId];
+
+            // 🔥 nếu đang xử lý thì reject luôn
+            if (!await locker.WaitAsync(0))
+                throw new Exception("Đang xử lý, đừng spam 😑");
+
             var hasPermission = await _repository.CheckStaffHasStoreAsync(staffId, vm.StoreId);
             if (!hasPermission)
                 throw new Exception("Bạn không có quyền thao tác kho này");
@@ -167,6 +176,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 await tran.RollbackAsync();
                 throw;
+            }
+            finally
+            {
+                locker.Release();
             }
         }
 
@@ -265,7 +278,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 InventoryDocumentType.STOCK_TAKE => "KK"
             };
 
-            return $"{prefix}-{DateTime.Now:yyyyMMddHHmmssfff}";
+            return $"{prefix}-{DateTime.Now:yyyyMMddHHmmssfff}-{Guid.NewGuid().ToString("N").Substring(0, 6)}";
         }
 
         // CHUYỂN ĐỔI SỐ LƯỢNG VỀ ĐƠN VỊ CƠ SỞ
@@ -398,6 +411,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // TẠO PHIẾU NHẬP/XUẤT/HỦY
         private async Task<InventoryDocument> CreateDocument(InventoryDocumentVM vm, int staffId, List<(InventoryDocumentDetailCreateVM item, decimal baseQty)> items)
         {
+
             var document = new InventoryDocument
             {
                 Code = GenerateCode(vm.Type),

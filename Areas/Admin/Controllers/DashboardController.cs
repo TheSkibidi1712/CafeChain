@@ -9,7 +9,6 @@ namespace CafeChain.Areas.Admin.Controllers
     public class DashboardController : Controller
     {
         private readonly IDashboardService _service;
-        private static readonly DateTime DashboardStartDate = new DateTime(2023, 1, 1);
 
         public DashboardController(IDashboardService service)
         {
@@ -18,21 +17,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
         public async Task<IActionResult> Index(DashboardRequest request)
         {
-            // ========================================
-            // DEFAULT FILTER
-            // mở dashboard lần đầu phải có data ngay
-            // mặc định lấy 30 ngày gần nhất
-            // ========================================
-
-            if (request.FromDate == default)
-            {
-                request.FromDate = DashboardStartDate;
-            }
-
-            if (request.ToDate == default)
-            {
-                request.ToDate = DateTime.Today;
-            }
 
             var staffIdClaim = User.FindFirst("StaffId")?.Value;
 

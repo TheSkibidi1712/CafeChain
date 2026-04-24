@@ -14,7 +14,9 @@
         <td><input type="number" class="qty" value="1" min="1"></td>
         <td><input class="stock" readonly /></td>
         <td><input class="note"></td>
-        <td><button onclick="this.closest('tr').remove()">X</button></td>
+        <td class="col-action">
+            <button type="button" class="btn-remove-row">✕</button>
+        </td>
     `;
 
     document.querySelector("#detailTable tbody").appendChild(tr);
@@ -80,6 +82,11 @@
 
         // 🔥 GÁN hidden unitId (base unit)
         tr.dataset.unitId = item.baseUnitId;
+    });
+
+    tr.querySelector("button").addEventListener("click", () => {
+        tr.remove();
+
     });
 }
 

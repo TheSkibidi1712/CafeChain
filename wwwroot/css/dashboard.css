@@ -114,6 +114,21 @@
     margin-top: 24px;
 }
 
+/* tablet */
+@media (max-width: 1200px) {
+    .col-6 {
+        grid-column: span 12;
+    }
+}
+
+/* mobile */
+@media (max-width: 768px) {
+    .col-8,
+    .col-6,
+    .col-4 {
+        grid-column: span 12;
+    }
+}
 .col-12 {
     grid-column: span 12;
 }
@@ -138,8 +153,14 @@
     width: 100%;
 }
 
-/* CHART */
 .chart {
-    height: 450px;
+    height: 520px; /* tăng lên */
     width: 100%;
+}
+
+/* riêng chart nhiều chữ */
+#topDrinkChart,
+#toppingChart,
+#staffChart {
+    height: 600px;
 }

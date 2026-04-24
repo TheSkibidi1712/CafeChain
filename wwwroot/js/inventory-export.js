@@ -34,8 +34,8 @@ export function addExportRow() {
             <input class="note">
         </td>
 
-        <td>
-            <button type="button" onclick="this.closest('tr').remove(); calcTotal()">X</button>
+       <td class="col-action">
+            <button type="button" class="btn-remove-row">✕</button>
         </td>
     `;
 
@@ -111,6 +111,11 @@ export function addExportRow() {
         }
 
         qtyInput.value = qty;
+
+    });
+
+    tr.querySelector("button").addEventListener("click", () => {
+        tr.remove();
 
     });
 }

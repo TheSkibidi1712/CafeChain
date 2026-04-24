@@ -7,7 +7,6 @@ namespace CafeChain.Application.Services.Admin.Dashboard
     public class DashboardService : IDashboardService
     {
         private readonly IDashboardRepository _repo;
-        private static readonly DateTime DashboardStartDate = new DateTime(2023, 1, 1);
         public DashboardService(IDashboardRepository repo)
         {
             _repo = repo;
@@ -18,22 +17,6 @@ namespace CafeChain.Application.Services.Admin.Dashboard
             if (!request.StaffId.HasValue)
             {
                 throw new Exception("StaffId is required");
-            }
-
-            // ========================================
-            // DOUBLE PROTECTION
-            // tránh trường hợp API khác gọi service
-            // mà quên set date ở controller
-            // ========================================
-
-            if (request.FromDate == default)
-            {
-                request.FromDate = DashboardStartDate;
-            }
-
-            if (request.ToDate == default)
-            {
-                request.ToDate = DateTime.Today;
             }
 
 
@@ -128,7 +111,7 @@ namespace CafeChain.Application.Services.Admin.Dashboard
                 finalStoreIds)).ToList();
 
             vm.TopDrinks = (await _repo.GetTopDrinksAsync(10,request.FromDate, request.ToDate, finalStoreIds)).ToList();
-            vm.TopToppings = (await _repo.GetTopToppingsAsync()).ToList();
+            vm.TopToppings = (await _repo.GetTopToppingsAsync(request.FromDate,request.ToDate,finalStoreIds)).ToList();
 
             vm.PaymentMethods = (await _repo.GetPaymentMethodsAsync(request.FromDate, request.ToDate, finalStoreIds)).ToList();
             vm.StaffPerformance = (await _repo.GetStaffPerformanceAsync(request.FromDate, request.ToDate, finalStoreIds)).ToList();

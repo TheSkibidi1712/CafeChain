@@ -34,7 +34,7 @@
         fontSize: 12,
         fontFamily: "Segoe UI, Arial, sans-serif",
         width: 120,
-        overflow: "truncate"
+        overflow: "break"
     };
 
     // =====================================================
@@ -269,6 +269,90 @@
     });
 
     // =====================================================
+    // TOPPING
+    // =====================================================
+
+    const toppings = safe(dashboardData.topToppings);
+
+    createChart("toppingChart", {
+        tooltip: {
+            trigger: "axis"
+        },
+        grid: {
+            left: 50,
+            right: 30,
+            top: 40,
+            bottom: 100
+        },
+        xAxis: {
+            type: "category",
+            data: toppings.map(x =>
+                x.toppingName ||
+                x.name ||
+                "Không tên"
+            ),
+            axisLabel: {
+                ...commonAxisLabel,
+                width: 140,
+                overflow: "break"
+            }
+        },
+        yAxis: {
+            type: "value"
+        },
+        series: [{
+            type: "bar",
+            data: toppings.map(x =>
+                x.totalUsed ||
+                x.quantity ||
+                0
+            )
+        }]
+    });
+
+    // =====================================================
+    // STAFF
+    // =====================================================
+
+    const staff = safe(dashboardData.staff);
+
+    createChart("staffChart", {
+        tooltip: {
+            trigger: "axis"
+        },
+        grid: {
+            left: 50,
+            right: 30,
+            top: 40,
+            bottom: 100
+        },
+        xAxis: {
+            type: "category",
+            data: staff.map(x =>
+                x.fullName ||
+                x.name ||
+                "Không tên"
+            ),
+            axisLabel: {
+                ...commonAxisLabel,
+                width: 140,
+                overflow: "break"
+            }
+        },
+        yAxis: {
+            type: "value"
+        },
+        series: [{
+            type: "bar",
+            data: staff.map(x =>
+                x.revenue ||
+                x.totalOrders ||
+                0
+            )
+        }]
+    });
+
+    // =====================================================
     // PAYMENT
     // =====================================================
 
@@ -280,7 +364,8 @@
         },
         series: [{
             type: "pie",
-            radius: "70%",
+            radius: ["40%", "70%"],
+            avoidLabelOverlap: true,
             label: {
                 fontFamily: "Segoe UI, Arial, sans-serif"
             },
@@ -291,6 +376,9 @@
         }]
     });
 
+    setTimeout(resizeCharts, 200);
+    setTimeout(resizeCharts, 600);
+    setTimeout(resizeCharts, 1200);
     setTimeout(resizeCharts, 300);
     setTimeout(resizeCharts, 800);
 });

@@ -75,10 +75,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard
             return result;
         }
 
-        public async Task<IEnumerable<TopToppingDto>> GetTopToppingsAsync()
+        public async Task<IEnumerable<TopToppingDto>> GetTopToppingsAsync(DateTime from,DateTime to, List<int> storeIds)
         {
+            var storeIdsString = storeIds != null && storeIds.Any()
+                ? string.Join(",", storeIds)
+                : null;
+
             var result = await _context.Set<TopToppingDto>()
-                .FromSqlRaw("EXEC sp_Top_Toppings")
+                .FromSqlRaw(
+                    "EXEC sp_Top_Toppings_Filtered @FromDate, @ToDate, @StoreIds",
+                    new SqlParameter("@FromDate", from),
+                    new SqlParameter("@ToDate", to),
+                    new SqlParameter("@StoreIds", (object?)storeIdsString ?? DBNull.Value)
+                )
                 .AsNoTracking()
                 .ToListAsync();
 

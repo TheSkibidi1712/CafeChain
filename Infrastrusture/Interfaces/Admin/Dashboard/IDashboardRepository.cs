@@ -8,7 +8,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Dashboard
 
         Task<IEnumerable<RevenueByStoreDto>> GetRevenueByStoreAsync(DateTime from, DateTime to, List<int> storeIds);
 
-        Task<IEnumerable<TopToppingDto>> GetTopToppingsAsync();
+        Task<IEnumerable<TopToppingDto>> GetTopToppingsAsync(DateTime from, DateTime to, List<int> storeIds);
 
         Task<IEnumerable<TopDrinkDto>> GetTopDrinksAsync(int top, DateTime from, DateTime to, List<int> storeIds);
 
