@@ -37,6 +37,23 @@ namespace CafeChain.Areas.Admin.Controllers
         public IActionResult Create()
         {
             PopulateDropdowns();
+
+            // Lấy 5 lệnh sơ chế mới nhất (dựa trên giao dịch nhập Bán thành phẩm)
+            ViewBag.RecentHistory = _context.InventoryTransactions
+                .Include(it => it.StoreInventory)
+                    .ThenInclude(si => si.Recipe)
+                .Where(it => it.Type == InventoryDocumentType.PRODUCTION_IN)
+                .OrderByDescending(it => it.CreatedAt)
+                .Take(5)
+                .Select(it => new ProductionHistoryDTO
+                {
+                    TransactionId = it.InventoryTransactionId,
+                    RecipeName = it.StoreInventory.Recipe != null ? it.StoreInventory.Recipe.Name : "BTP",
+                    Quantity = it.Quantity,
+                    CreatedAt = it.CreatedAt
+                })
+                .ToList();
+
             return View(new ProductionOrderVM());
         }
 
@@ -264,5 +281,13 @@ namespace CafeChain.Areas.Admin.Controllers
         public int RecipeId { get; set; }
         public decimal Batches { get; set; }
         public string? Notes { get; set; }
+    }
+
+    public class ProductionHistoryDTO
+    {
+        public int TransactionId { get; set; }
+        public string RecipeName { get; set; }
+        public decimal Quantity { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 }

@@ -1,0 +1,141 @@
+/* ============================================================
+   RECIPE BUILDER V4 — Premium SaaS Theme
+   ============================================================ */
+:root {
+    --rb-bg: #F7F8FC;
+    --rb-card: #ffffff;
+    --rb-border: #e2e8f0;
+    --rb-primary: #f97316;
+    --rb-primary-hover: #ea580c;
+    --rb-text: #1e293b;
+    --rb-muted: #94a3b8;
+    --rb-success: #10b981;
+    --rb-radius: 16px;
+    --rb-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
+}
+.rb-page { background: var(--rb-bg); min-height: 100vh; padding-bottom: 100px; }
+
+/* Cards */
+.rb-card {
+    background: var(--rb-card);
+    border: 1px solid var(--rb-border);
+    border-radius: var(--rb-radius);
+    box-shadow: var(--rb-shadow);
+    overflow: hidden;
+}
+.rb-card-header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--rb-border);
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--rb-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Breadcrumb */
+.rb-breadcrumb { font-size: 0.8rem; color: var(--rb-muted); margin-bottom: 4px; }
+.rb-breadcrumb a { color: var(--rb-muted); text-decoration: none; }
+.rb-breadcrumb a:hover { color: var(--rb-primary); }
+.rb-page-title { font-size: 1.6rem; font-weight: 800; color: var(--rb-text); margin-bottom: 20px; }
+
+/* COGS Highlight Box */
+.rb-cogs-box {
+    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    padding: 16px 20px;
+    text-align: center;
+}
+.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #c2410c; }
+.rb-cogs-value { font-size: 1.8rem; font-weight: 800; color: #ea580c; line-height: 1.2; }
+.rb-cogs-sub { font-size: 0.65rem; color: #9a3412; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* Status dot */
+.rb-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+.rb-status-dot.active { background: var(--rb-success); }
+
+/* Type Badges */
+.rb-badge-raw {
+    background: #dbeafe; color: #1d4ed8;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
+}
+.rb-badge-sub {
+    background: #f3e8ff; color: #7c3aed;
+    padding: 4px 12px; border-radius: 20px;
+    font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap;
+}
+
+/* BOM Table */
+.rb-table { margin-bottom: 0; }
+.rb-table thead th {
+    background: #f8fafc; color: var(--rb-muted);
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; border-bottom: 1px solid var(--rb-border);
+    padding: 10px 16px;
+}
+.rb-table tbody td { padding: 14px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; }
+.rb-table tbody tr:hover { background: #fafbfd; }
+.rb-item-name { font-weight: 600; color: var(--rb-text); }
+.rb-item-sku { font-size: 0.72rem; color: var(--rb-muted); }
+.rb-unit-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
+.rb-cost-main { font-weight: 700; color: var(--rb-text); }
+.rb-cost-sub { font-size: 0.68rem; color: var(--rb-muted); display: block; }
+
+/* Add row button (dashed) */
+.rb-add-row {
+    border: 2px dashed #cbd5e1;
+    background: transparent;
+    color: var(--rb-muted);
+    font-weight: 600;
+    width: 100%;
+    padding: 14px;
+    border-radius: 0;
+    transition: all 0.2s;
+    font-size: 0.88rem;
+}
+.rb-add-row:hover { border-color: var(--rb-primary); color: var(--rb-primary); background: #fff7ed; }
+
+/* Sticky Footer Bar */
+.rb-footer-bar {
+    background: var(--rb-card);
+    border-top: 1px solid var(--rb-border);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1040;
+    box-shadow: 0 -2px 12px rgba(0,0,0,0.06);
+}
+.rb-footer-metric { display: flex; align-items: baseline; gap: 8px; }
+.rb-footer-metric-label { font-size: 0.75rem; font-weight: 600; color: var(--rb-muted); text-transform: uppercase; }
+.rb-footer-metric-value { font-size: 1.2rem; font-weight: 800; color: var(--rb-text); }
+.rb-footer-pct { font-size: 1.1rem; font-weight: 700; color: var(--rb-success); }
+
+/* Buttons */
+.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: #64748b; font-weight: 600; border-radius: 10px; padding: 10px 24px; }
+.btn-rb-ghost:hover { background: #f1f5f9; color: var(--rb-text); }
+.btn-rb-save {
+    background: linear-gradient(135deg, #ef4444, #dc2626);
+    border: none; color: white; font-weight: 700; border-radius: 10px; padding: 10px 32px;
+    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+}
+.btn-rb-save:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+
+/* Toggle buttons */
+.rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
+.rb-toggle .btn { border-color: var(--rb-border); color: #64748b; font-weight: 600; border-radius: 10px !important; }
+
+/* Select2 overrides */
+.rb-page .select2-container--bootstrap-5 .select2-selection { border-color: var(--rb-border); border-radius: 10px; min-height: 40px; }
+.rb-page .select2-container--bootstrap-5 .select2-results__group { background: #f1f5f9; font-weight: 700; font-size: 0.8rem; }
+
+/* Inputs */
+.rb-page .form-control, .rb-page .form-select { border-radius: 10px; border-color: var(--rb-border); }
+.rb-page .form-control:focus, .rb-page .form-select:focus { border-color: var(--rb-primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
