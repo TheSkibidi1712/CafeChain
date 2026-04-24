@@ -178,6 +178,9 @@ async function openCreateModal() {
             data.suppliers = [];
         }
 
+        // ================= RESET FORM =================
+        resetForm();
+
         // ================= BIND SELECT =================
         bindSelect("store", data.stores, "storeId", "name", "-- Chọn Kho --");
         document.getElementById("store").onchange = async function () {
@@ -201,8 +204,7 @@ async function openCreateModal() {
         document.getElementById("documentDate").value =
             new Date().toISOString().slice(0, 16);
 
-        // ================= RESET FORM =================
-        resetForm();
+
 
         document.getElementById("note").value = "";
         document.getElementById("partnerName").value = "";

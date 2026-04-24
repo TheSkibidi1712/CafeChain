@@ -256,7 +256,7 @@ select {
 }
 
 #detailTable {
-    min-width: 1100px; /* ép bảng rộng hơn */
+    min-width: 1150px; /* ép bảng rộng hơn */
 }
     /* nguyên liệu */
     #detailTable td:nth-child(1) {
