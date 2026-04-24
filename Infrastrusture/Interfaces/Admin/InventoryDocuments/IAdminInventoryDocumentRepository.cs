@@ -26,6 +26,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<IngredientSupplier?> GetIngredientSupplierAsync(int ingredientId, int supplierId);
         Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId);
         Task<decimal?> GetLastPriceAsync(int storeId, int ingredientId);
+        Task<decimal> GetAveragePriceAsync(int storeId, int ingredientId);
         // ================= STORE INVENTORY =================
         Task<StoreInventory?> GetStoreInventoryAsync(int storeId, int ingredientId);
         Task AddStoreInventoryAsync(StoreInventory stock);

@@ -271,6 +271,20 @@ namespace CafeChain.Areas.Admin.Controllers
             });
         }
 
+        // ================== GET EXPORT PRICE ===================
+        [HttpGet("average-price")]
+        public async Task<IActionResult> GetAveragePrice(int storeId, int ingredientId)
+        {
+            var price = await _service.GetAveragePriceAsync(storeId, ingredientId);
+
+            return Ok(new
+            {
+                storeId,
+                ingredientId,
+                averagePrice = price
+            });
+        }
+
         // ================= UNITS =================
         [HttpGet("units")]
         public async Task<IActionResult> GetUnits(int ingredientId)

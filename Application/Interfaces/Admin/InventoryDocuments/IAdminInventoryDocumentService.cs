@@ -19,6 +19,7 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         // PHỤ
         Task<decimal?> GetLastPriceAsync(int storeId, int ingredientId);
+        Task<decimal> GetAveragePriceAsync(int storeId, int ingredientId);
         Task<ImportInfoDTO> GetImportInfoAsync(int ingredientId, int supplierId);
         Task<decimal> GetStockAsync(int storeId, int ingredientId);
         Task<List<Unit>> GetUnitsByIngredientAsync(int ingredientId);

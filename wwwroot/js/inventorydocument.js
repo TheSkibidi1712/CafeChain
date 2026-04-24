@@ -1107,7 +1107,10 @@ async function submitForm() {
             case 2: // EXPORT
                 detail.unitId = Number(unitEl?.value) || Number(tr.dataset.unitId);
                 detail.quantity = Number(tr.querySelector(".qty").value || 0);
-                detail.unitPrice = null;
+
+                // 🔥 FIX: lấy giá từ dataset (đã load ở inventory-export.js)
+                detail.unitPrice = Number(tr.dataset.price || 0);
+
                 break;
 
             case 3: // WASTE

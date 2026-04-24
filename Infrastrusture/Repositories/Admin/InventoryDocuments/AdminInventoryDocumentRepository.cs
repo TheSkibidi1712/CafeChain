@@ -185,6 +185,34 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<decimal> GetAveragePriceAsync(int storeId, int ingredientId)
+        {
+            var data = await _context.InventoryDocumentDetails
+                .Where(x =>
+                    x.InventoryDocument.StoreId == storeId &&
+                    x.IngredientId == ingredientId &&
+                    x.UnitPrice > 0 &&
+                    x.InventoryDocument.Type == InventoryDocumentType.IMPORT &&
+                    x.InventoryDocument.Status == InventoryDocumentStatus.CONFIRMED)
+                .Select(x => new
+                {
+                    x.BaseQuantity,
+                    x.UnitPrice
+                })
+                .ToListAsync();
+
+            if (!data.Any())
+                return 0;
+
+            var totalBaseQty = data.Sum(x => x.BaseQuantity);
+            var totalAmount = data.Sum(x => x.BaseQuantity * (x.UnitPrice ?? 0));
+
+            if (totalBaseQty == 0)
+                return 0;
+
+            return totalAmount / totalBaseQty;
+        }
+
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
         {
             return await _context.IngredientSuppliers

@@ -176,6 +176,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return await _repository.GetLastPriceAsync(storeId, ingredientId);
         }
 
+        // ======================= Averarage Price =====================
+        public async Task<decimal> GetAveragePriceAsync(int storeId, int ingredientId)
+        {
+            return await _repository.GetAveragePriceAsync(storeId, ingredientId);
+        }
+
         // ======================== IMPORT INFO ========================
         public async Task<ImportInfoDTO> GetImportInfoAsync(int ingredientId, int supplierId)
         {
@@ -419,12 +425,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 }
                 else if (vm.Type == InventoryDocumentType.EXPORT)
                 {
-                    unitPrice = await _repository.GetLastPriceAsync(vm.StoreId, item.IngredientId);
+                    var lastPrice = await _repository.GetLastPriceAsync(vm.StoreId, item.IngredientId);
+
+                    unitPrice = lastPrice ?? 0; // ✅ đảm bảo không null
                 }
 
-                var totalAmount = unitPrice.HasValue 
-                    ? unitPrice.Value * item.Quantity 
-                    : (decimal?)null;
+                var totalAmount = unitPrice * item.Quantity;
 
                 document.Details.Add(new InventoryDocumentDetail
                 {

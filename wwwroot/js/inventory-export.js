@@ -1,4 +1,5 @@
-﻿export function addExportRow() {
+﻿import { getAveragePrice, getUnits } from "./inventory-api.js";
+export function addExportRow() {
     const storeId = Number(document.getElementById("store").value);
 
     if (!storeId) {
@@ -65,25 +66,31 @@
         });
 
     // ================= CHỌN NGUYÊN LIỆU =================
-   ingSelect.addEventListener("change", () => {
-       const ingId = Number(ingSelect.value);
+    ingSelect.addEventListener("change", async () => {
+        const ingId = Number(ingSelect.value);
 
-       if (!ingId) {
-           unitSelect.innerHTML = `<option value="">-- Đơn vị --</option>`;
-           return;
-       }
+        if (!ingId) {
+            unitSelect.innerHTML = `<option value="">-- Đơn vị --</option>`;
+            tr.dataset.price = 0;
+            return;
+        }
 
-       fetch(`/api/admin/inventory-documents/units?ingredientId=${ingId}`)
-           .then(r => r.json())
-           .then(data => {
-               unitSelect.innerHTML =
-                   `<option value="">-- Chọn đơn vị --</option>` +
-                   data.map(x =>
-                       `<option value="${x.unitId}">${x.name}</option>`
-                   ).join("");
-           })
-           .catch(() => toast("Không tải được đơn vị", "error"));
-   });
+        // ================= PARALLEL REQUEST (CHUẨN HƠN) =================
+        const [units, price] = await Promise.all([
+            getUnits(ingId),
+            getAveragePrice(storeId, ingId)
+        ]);
+
+        // ================= UNIT =================
+        unitSelect.innerHTML =
+            `<option value="">-- Chọn đơn vị --</option>` +
+            units.map(x =>
+                `<option value="${x.unitId}">${x.name}</option>`
+            ).join("");
+
+        // ================= PRICE =================
+        tr.dataset.price = price;
+    });
 
     // ================= VALIDATE SỐ LƯỢNG =================
     qtyInput.addEventListener("input", () => {
