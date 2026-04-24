@@ -27,5 +27,7 @@ namespace CafeChain.Application.Interfaces
             int customerId, int parentRatingId, int drinkId, string? comment, System.IO.Stream? imageStream, string? fileName, long? fileLength, string webRootPath);
 
         Task<bool> CheckDrinkAvailabilityAsync(int drinkId, int storeId);
+
+        Task<Dictionary<int, bool>> CheckDrinksAvailabilityAsync(List<int> drinkIds, int storeId);
     }
 }

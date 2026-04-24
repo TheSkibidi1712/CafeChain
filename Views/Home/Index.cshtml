@@ -78,7 +78,7 @@
                     @foreach (var drink in categoryDrinks)
                     {
                         <div class="slider-item">
-                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" />
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" view-data='@new ViewDataDictionary(ViewData) { { "IsSoldOut", !Model.Availability.ContainsKey(drink.DrinkId) || !Model.Availability[drink.DrinkId] } }' />
                         </div>
                     }
                 </div>

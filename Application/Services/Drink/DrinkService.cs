@@ -142,30 +142,23 @@ namespace CafeChain.Application.Services
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                var existingReview = await _context.Ratings
-                    .FirstOrDefaultAsync(r => r.CustomerId == customerId && r.DrinkId == drinkId);
+                var existingRating = await _context.Ratings
+                    .AnyAsync(r => r.DrinkId == drinkId && r.CustomerId == customerId && r.ParentRatingId == null);
 
-                Rating ratingToHandle = existingReview;
+                if (existingRating)
+                {
+                    return (false, "Bạn đã đánh giá món này rồi. Mỗi món nước chỉ được nhận xét một lần để đảm bảo tính khách quan.", "");
+                }
 
-                if (existingReview != null)
+                Rating ratingToHandle = new Rating
                 {
-                    existingReview.Stars = stars;
-                    existingReview.Comment = comment;
-                    existingReview.CreatedAt = DateTime.Now;
-                    _context.Ratings.Update(existingReview);
-                }
-                else
-                {
-                    ratingToHandle = new Rating
-                    {
-                        DrinkId = drinkId,
-                        CustomerId = customerId,
-                        Stars = stars,
-                        Comment = comment,
-                        CreatedAt = DateTime.Now
-                    };
-                    _context.Ratings.Add(ratingToHandle);
-                }
+                    DrinkId = drinkId,
+                    CustomerId = customerId,
+                    Stars = stars,
+                    Comment = comment,
+                    CreatedAt = DateTime.Now
+                };
+                _context.Ratings.Add(ratingToHandle);
 
                 await _context.SaveChangesAsync(); // Cần SaveChanges để lấy RatingId nếu là add mới
 
@@ -215,7 +208,7 @@ namespace CafeChain.Application.Services
 
                 var newAvgRating = _context.Ratings.Where(r => r.DrinkId == drinkId).Average(r => r.Stars);
 
-                return (true, existingReview != null ? "Đã cập nhật lại đánh giá của bạn!" : "Tuyệt vời! Cảm ơn bạn đã đánh giá!", newAvgRating.ToString("0.0"));
+                return (true, "Tuyệt vời! Cảm ơn bạn đã đánh giá!", newAvgRating.ToString("0.0"));
             }
             catch (Exception ex)
             {
@@ -397,13 +390,6 @@ namespace CafeChain.Application.Services
                         // 1. Ghi log cụ thể khi thiếu bản ghi (Missing Inventory Record)
                         _logger.LogWarning("Missing Inventory Record: StoreId {StoreId} does not have an entry for IngredientId {IngredientId}", storeId, ingredientId);
                         
-                        // 2. Cơ chế Bỏ qua nguyên liệu phụ (Chỉ dành cho môi trường Dev)
-                        if (_env.IsDevelopment())
-                        {
-                            _logger.LogInformation("[DEV BYPASS] Missing inventory record for IngredientId {IngredientId} - Bypassing sold out check.", ingredientId);
-                            continue; // Coi như còn hàng ở môi trường Dev
-                        }
-
                         isAvailable = false;
                         break;
                     }
@@ -488,6 +474,103 @@ namespace CafeChain.Application.Services
                     }
                 }
             }
+        }
+        public async Task<Dictionary<int, bool>> CheckDrinksAvailabilityAsync(List<int> drinkIds, int storeId)
+        {
+            if (storeId <= 0) storeId = 1;
+            var result = new Dictionary<int, bool>();
+            var missingIds = new List<int>();
+
+            foreach (var id in drinkIds.Distinct())
+            {
+                string cacheKey = $"DrinkAvailability_{storeId}_{id}";
+                if (_cache.TryGetValue(cacheKey, out bool isAvailable))
+                {
+                    result[id] = isAvailable;
+                }
+                else
+                {
+                    missingIds.Add(id);
+                }
+            }
+
+            if (!missingIds.Any()) return result;
+
+            // Batch fetch recipes
+            var recipes = await _context.Recipes
+                .Include(r => r.RecipeDetails)
+                .Where(r => r.DrinkId.HasValue && missingIds.Contains(r.DrinkId.Value))
+                .ToListAsync();
+
+            var ingredientCache = new Dictionary<int, CafeChain.Models.Inventories.Ingredient>();
+
+            // Preload ingredients for level 1
+            var baseIngredientIds = recipes.SelectMany(r => r.RecipeDetails.Where(rd => rd.IngredientId.HasValue).Select(rd => rd.IngredientId.Value)).Distinct().ToList();
+            if (baseIngredientIds.Any())
+            {
+                var baseIngredients = await _context.Ingredients
+                    .Include(i => i.UnitConversions)
+                    .Where(i => baseIngredientIds.Contains(i.IngredientId))
+                    .ToListAsync();
+                foreach (var i in baseIngredients) ingredientCache[i.IngredientId] = i;
+            }
+
+            foreach (var id in missingIds)
+            {
+                try
+                {
+                    var drinkRecipes = recipes.Where(r => r.DrinkId == id).ToList();
+                    if (!drinkRecipes.Any())
+                    {
+                        result[id] = true;
+                        _cache.Set($"DrinkAvailability_{storeId}_{id}", true, TimeSpan.FromSeconds(1));
+                        continue;
+                    }
+
+                    var requiredIngredients = new Dictionary<int, decimal>();
+                    foreach (var recipe in drinkRecipes)
+                    {
+                        await ProcessRecipeDetailsRecursiveAsync(recipe.RecipeDetails, 1, requiredIngredients, ingredientCache);
+                    }
+
+                    if (!requiredIngredients.Any())
+                    {
+                        result[id] = true;
+                        _cache.Set($"DrinkAvailability_{storeId}_{id}", true, TimeSpan.FromSeconds(1));
+                        continue;
+                    }
+
+                    var reqIngredientIds = requiredIngredients.Keys.ToList();
+                    var inventories = await _context.StoreInventories
+                        .Where(si => si.StoreId == storeId && si.IngredientId.HasValue && reqIngredientIds.Contains(si.IngredientId.Value))
+                        .ToDictionaryAsync(si => si.IngredientId.Value);
+
+                    bool isAvailable = true;
+                    foreach (var req in requiredIngredients)
+                    {
+                        if (!inventories.TryGetValue(req.Key, out var inv))
+                        {
+                            isAvailable = false;
+                            break;
+                        }
+                        if (inv.AvailableQty < req.Value)
+                        {
+                            isAvailable = false;
+                            break;
+                        }
+                    }
+
+                    result[id] = isAvailable;
+                    _cache.Set($"DrinkAvailability_{storeId}_{id}", isAvailable, TimeSpan.FromSeconds(1));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error checking availability for DrinkId {DrinkId} at StoreId {StoreId}", id, storeId);
+                    result[id] = false;
+                }
+            }
+
+            return result;
         }
     }
 }

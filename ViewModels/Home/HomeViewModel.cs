@@ -14,6 +14,8 @@ namespace CafeChain.ViewModels
 
         // Món bán chạy nhất (Top 8)
         public List<DrinkItemViewModel> BestSellers { get; set; } = new();
+
+        public Dictionary<int, bool> Availability { get; set; } = new();
     }
 
     public class DrinkItemViewModel
@@ -24,5 +26,6 @@ namespace CafeChain.ViewModels
         public string ImageUrl { get; set; }
         public double AverageRating { get; set; }
         public int RatingCount { get; set; }
+        public bool IsAvailable { get; set; }
     }
 }

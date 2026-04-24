@@ -47,11 +47,49 @@ namespace CafeChain.Application.Services.Customers
                 return null;
             }
 
+            // --- PHASE 1: LOYALTY SYSTEM ---
+            var totalPoints = await _context.CustomerPoints
+                .Where(cp => cp.CustomerId == account.Customer.CustomerId)
+                .Select(cp => cp.Points)
+                .FirstOrDefaultAsync();
+
+            var memberLevels = await _context.MemberLevels
+                .OrderBy(ml => ml.MinPoints)
+                .ToListAsync();
+
+            var currentTier = memberLevels.LastOrDefault(ml => ml.MinPoints <= totalPoints) 
+                ?? memberLevels.FirstOrDefault();
+
+            var nextTier = memberLevels.FirstOrDefault(ml => ml.MinPoints > totalPoints);
+
+            int pointsNeeded = 0;
+            double progressPercentage = 100;
+            string currentTierName = currentTier?.Name ?? "Thành viên mới";
+            string nextTierName = string.Empty;
+
+            if (nextTier != null && currentTier != null)
+            {
+                nextTierName = nextTier.Name;
+                pointsNeeded = nextTier.MinPoints - totalPoints;
+                
+                int currentMin = currentTier.MinPoints;
+                int nextMin = nextTier.MinPoints;
+
+                progressPercentage = (double)(totalPoints - currentMin) / (nextMin - currentMin) * 100;
+                if (progressPercentage < 0) progressPercentage = 0;
+                if (progressPercentage > 100) progressPercentage = 100;
+            }
+
             // Map dữ liệu sang ViewModel
             return new CustomerProfileViewModel
             {
                 Customer = account.Customer,
                 Email = account.Email,
+                TotalPoints = totalPoints,
+                CurrentTierName = currentTierName,
+                NextTierName = nextTierName,
+                PointsNeeded = pointsNeeded,
+                ProgressPercentage = progressPercentage
                 // Giả sử SĐT lúc đăng ký được lưu trong bảng Account (hoặc tùy cấu trúc bác)
                 // PhoneNumber = account.PhoneNumber 
             };
