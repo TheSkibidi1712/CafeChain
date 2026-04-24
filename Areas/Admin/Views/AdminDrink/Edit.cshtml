@@ -73,23 +73,7 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-    <script>
-        $(document).ready(function() {
-            function updateStatusLabel() {
-                if ($('#activeStatusSwitch').is(':checked')) {
-                    $('#activeStatusLabel').text('Trạng thái: Đang bán').removeClass('text-danger').addClass('text-success');
-                } else {
-                    $('#activeStatusLabel').text('Trạng thái: Ngừng bán').removeClass('text-success').addClass('text-danger');
-                }
-            }
-            
-            // Xử lý khi load trang
-            updateStatusLabel();
-            
-            // Xử lý khi click toggle
-            $('#activeStatusSwitch').change(function() {
-                updateStatusLabel();
-            });
-        });
+    <script src="~/js/drink.js">
+
     </script>
 }

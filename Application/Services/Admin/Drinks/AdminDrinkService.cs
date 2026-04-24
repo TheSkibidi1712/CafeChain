@@ -219,19 +219,48 @@ namespace CafeChain.Application.Services.Admin.Drinks
         public async Task DeleteDrinkImageAsync(int drinkImageId)
         {
             var image = await _drinkRepository.GetDrinkImageByIdAsync(drinkImageId);
-            if (image != null)
+
+            if (image == null)
+                throw new KeyNotFoundException("Không tìm thấy ảnh.");
+
+            var allImages = (await _drinkRepository.GetDrinkImagesAsync(image.DrinkId))
+                .OrderBy(x => x.DrinkImageId)
+                .ToList();
+
+            // CASE 1: chỉ còn đúng 1 ảnh và đó là ảnh default
+            if (allImages.Count == 1 && image.IsDefault)
             {
-                // Delete physical file
-                var relativePath = image.ImageUrl.TrimStart('/', '\\').Replace('/', Path.DirectorySeparatorChar);
-                var filePath = Path.Combine(_env.WebRootPath, relativePath);
-                
-                if (System.IO.File.Exists(filePath))
-                {
-                    System.IO.File.Delete(filePath);
-                }
-                
-                await _drinkRepository.DeleteDrinkImageAsync(drinkImageId);
+                throw new Exception("Không thể xóa ảnh mặc định duy nhất của sản phẩm.");
             }
+
+            // CASE 2: nếu xóa ảnh default và vẫn còn ảnh khác
+            if (image.IsDefault)
+            {
+                var nextDefault = allImages
+                    .FirstOrDefault(x => x.DrinkImageId != image.DrinkImageId);
+
+                if (nextDefault != null)
+                {
+                    await _drinkRepository.SetDefaultDrinkImageAsync(
+                        image.DrinkId,
+                        nextDefault.DrinkImageId
+                    );
+                }
+            }
+
+            // Xóa file vật lý
+            var relativePath = image.ImageUrl
+                .TrimStart('/', '\\')
+                .Replace('/', Path.DirectorySeparatorChar);
+
+            var filePath = Path.Combine(_env.WebRootPath, relativePath);
+
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+
+            await _drinkRepository.DeleteDrinkImageAsync(drinkImageId);
         }
 
         public async Task UpdateDrinkImageAsync(int drinkImageId, IFormFile newImageFile)

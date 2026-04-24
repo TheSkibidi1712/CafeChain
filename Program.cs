@@ -363,8 +363,6 @@ using (var scope = app.Services.CreateScope())
         // Tự động Apply Migration
         dbContext.Database.Migrate();
 
-        // Tự động Khởi tạo dữ liệu Seeds Tỉnh Thành
-        await CafeChain.Data.Seeds.DbInitializer.InitializeAsync(dbContext, app.Environment);
 
         conn.Open();
         using var cmd = conn.CreateCommand();

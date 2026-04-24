@@ -78,8 +78,9 @@ namespace CafeChain.Data.Configurations
                 new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", BaseSalary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
                 new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", BaseSalary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
                 new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", BaseSalary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 110, AccountId = 110, FullName = "Cashier Staff", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 111, AccountId = 122, FullName = "District Manager Bien Hoa", TaxCode = "TAX111", BaseSalary = 25000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
+                new Staff { StaffId = 110, AccountId = 110, FullName = "nv ca sáng", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 111, AccountId = 122, FullName = "District Manager Bien Hoa", TaxCode = "TAX111", BaseSalary = 25000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) },
+                new Staff { StaffId = 112, AccountId = 123, FullName = "nv ca chiều", TaxCode = "TAX112", BaseSalary = 28000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", CreatedAt = new DateTime(2026, 1, 1) }
 
             );
         }
@@ -166,7 +167,8 @@ namespace CafeChain.Data.Configurations
                 new StaffScope { StaffScopeId = 111, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 3 },
 
                 new StaffScope { StaffScopeId = 112, StaffId = 109, ScopeTypeId = 5, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 113, StaffId = 110, ScopeTypeId = 5, ScopeRefId = 1 }
+                new StaffScope { StaffScopeId = 113, StaffId = 110, ScopeTypeId = 5, ScopeRefId = 1 },
+                new StaffScope { StaffScopeId = 114, StaffId = 112, ScopeTypeId = 5, ScopeRefId = 1 }
             );
         }
     }
@@ -360,7 +362,9 @@ namespace CafeChain.Data.Configurations
                 new StaffPhone { StaffPhoneId = 7, StaffId = 107, Phone = "0901000107", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 8, StaffId = 108, Phone = "0901000108", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 9, StaffId = 109, Phone = "0901000109", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 10, StaffId = 110, Phone = "0901000110", IsDefault = true }
+                new StaffPhone { StaffPhoneId = 10, StaffId = 110, Phone = "0901000110", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 11, StaffId = 111, Phone = "0901000111", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 12, StaffId = 112, Phone = "0901000112", IsDefault = true }
             );
         }
     }

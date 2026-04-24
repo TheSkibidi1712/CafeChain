@@ -7,19 +7,21 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Dashboard
         Task<IEnumerable<RevenueDto>> GetRevenueAsync(DateTime from, DateTime to, int? storeId, int? provinceId, int? districtId);
 
         Task<IEnumerable<RevenueByStoreDto>> GetRevenueByStoreAsync(DateTime from, DateTime to, List<int> storeIds);
-        Task<IEnumerable<TopDrinkDto>> GetTopDrinksAsync(int top);
+
         Task<IEnumerable<TopToppingDto>> GetTopToppingsAsync();
 
-        Task<IEnumerable<PaymentMethodDto>> GetPaymentMethodsAsync();
+        Task<IEnumerable<TopDrinkDto>> GetTopDrinksAsync(int top, DateTime from, DateTime to, List<int> storeIds);
 
-        Task<IEnumerable<StaffPerformanceDto>> GetStaffPerformanceAsync();
+        Task<IEnumerable<PaymentMethodDto>> GetPaymentMethodsAsync(DateTime from, DateTime to, List<int> storeIds);
+
+        Task<IEnumerable<StaffPerformanceDto>> GetStaffPerformanceAsync(DateTime from, DateTime to, List<int> storeIds);
 
         Task<IEnumerable<InventoryDto>> GetInventoryAsync(int storeId);
         Task<IEnumerable<WasteDto>> GetWasteAsync(DateTime from, DateTime to, int? storeId);
 
         Task<IEnumerable<CashFlowDto>> GetCashFlowAsync(int storeId);
 
-        Task<DashboardSummaryDto> GetSummaryAsync();
+        Task<DashboardSummaryDto> GetSummaryAsync(DateTime from, DateTime to, List<int> storeIds);
         Task<List<ScopeDto>> GetUserScopesAsync(int staffId);
         Task<List<StoreDropdownDto>> GetStoresByScopeAsync(List<int> provinceIds, List<int> districtIds, List<int> storeIds, bool isCountry);
     }

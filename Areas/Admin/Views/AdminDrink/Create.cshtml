@@ -8,7 +8,6 @@
 <div class="container-fluid px-4">
     <h1 class="mt-4">Thêm Nước Uống Mới</h1>
     <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="Home" asp-action="Index">Dashboard</a></li>
         <li class="breadcrumb-item"><a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index">Danh sách Nước uống</a></li>
         <li class="breadcrumb-item active">Thêm mới</li>
     </ol>
@@ -83,17 +82,29 @@
                         </p>
 
                         <!-- Drop Zone -->
-                        <div id="dropZone"
-                             class="border border-2 border-dashed rounded-3 text-center p-4 mb-3"
-                             style="cursor:pointer; border-color:#dee2e6; background:#f8f9fa; transition: all .2s;">
-                            <i class="fas fa-cloud-upload-alt fa-2x text-muted mb-2"></i>
-                            <p class="text-muted small mb-1"><strong>Kéo thả ảnh vào đây</strong></p>
-                            <p class="text-muted small mb-0">hoặc <span class="text-primary" id="browseLink" style="cursor:pointer;text-decoration:underline;">chọn file</span></p>
-                            <input asp-for="DrinkCreateDTO.ImageFiles" type="file" id="imageFilesInput"
-                                   multiple accept=".jpg,.png" class="d-none" />
-                        </div>
+                        <label id="dropZone"
+                               class="w-100 border border-2 border-dashed rounded-3 text-center mb-3 d-flex flex-column justify-content-center align-items-center"
+                               style="cursor:pointer; border-color:#dee2e6; background:#fafafa; min-height:260px; transition: all .2s;">
 
-                        <!-- Preview grid -->
+                            <i class="fas fa-cloud-upload-alt fa-3x text-primary mb-3"></i>
+
+                            <p class="fw-semibold mb-1">Kéo & thả ảnh vào đây</p>
+
+                            <p class="text-muted small mb-2">
+                                hoặc <span class="text-primary text-decoration-underline">chọn file</span>
+                            </p>
+
+                            <small class="text-muted">PNG, JPG • Tối đa 5MB</small>
+
+                            <input asp-for="DrinkCreateDTO.ImageFiles"
+                                   type="file"
+                                   id="imageFilesInput"
+                                   multiple
+                                   accept=".jpg,.jpeg,.png"
+                                   hidden />
+                        </label>
+
+                        <!-- Preview -->
                         <div id="previewContainer" class="row g-2"></div>
 
                         <!-- Modal xem ảnh to -->
@@ -124,104 +135,7 @@
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
 
-    <script>
-        $(document).ready(function () {
-            let selectedFiles = [];
-            const input = document.getElementById('imageFilesInput');
-            const dropZone = document.getElementById('dropZone');
-
-            // Mở file picker khi click vùng drop hoặc link
-            $('#dropZone, #browseLink').on('click', function (e) {
-                e.stopPropagation();
-                input.click();
-            });
-
-            // Drag & Drop styling
-            dropZone.addEventListener('dragover', function (e) {
-                e.preventDefault();
-                dropZone.style.borderColor = '#0d6efd';
-                dropZone.style.background = '#e8f0fe';
-            });
-
-            dropZone.addEventListener('dragleave', function () {
-                dropZone.style.borderColor = '#dee2e6';
-                dropZone.style.background = '#f8f9fa';
-            });
-
-            dropZone.addEventListener('drop', function (e) {
-                e.preventDefault();
-                dropZone.style.borderColor = '#dee2e6';
-                dropZone.style.background = '#f8f9fa';
-                const files = Array.from(e.dataTransfer.files).filter(f => f.type === 'image/jpeg' || f.type === 'image/png');
-                files.forEach(f => selectedFiles.push(f));
-                renderPreview();
-            });
-
-            // Chọn file qua input
-            $(input).on('change', function (e) {
-                Array.from(e.target.files).forEach(f => selectedFiles.push(f));
-                renderPreview();
-            });
-
-            // Render preview
-            function renderPreview() {
-                const container = $('#previewContainer');
-                container.empty();
-
-                if (selectedFiles.length === 0) return;
-
-                selectedFiles.forEach((file, index) => {
-                    const reader = new FileReader();
-                    reader.onload = function (e) {
-                        const html = `
-                            <div class="col-6 position-relative" id="preview-${index}">
-                                <div class="rounded overflow-hidden border shadow-sm" style="height:100px;">
-                                    <img src="${e.target.result}"
-                                         class="w-100 h-100 preview-img"
-                                         data-index="${index}"
-                                         style="object-fit:cover;cursor:pointer;" />
-                                </div>
-                                <button type="button"
-                                        class="btn btn-danger btn-sm position-absolute top-0 end-0 m-1 rounded-circle btn-remove"
-                                        data-index="${index}"
-                                        style="width:22px;height:22px;padding:0;font-size:11px;line-height:22px;">
-                                    ✕
-                                </button>
-                            </div>`;
-                        container.append(html);
-                    };
-                    reader.readAsDataURL(file);
-                });
-
-                syncInputFiles();
-            }
-
-            // Xóa ảnh
-            $(document).on('click', '.btn-remove', function (e) {
-                e.stopPropagation();
-                const index = $(this).data('index');
-                selectedFiles.splice(index, 1);
-                renderPreview();
-            });
-
-            // Xem ảnh to
-            $(document).on('click', '.preview-img', function () {
-                $('#previewModalImg').attr('src', $(this).attr('src'));
-                new bootstrap.Modal(document.getElementById('previewModal')).show();
-            });
-
-            // Sync file input để form gửi đúng
-            function syncInputFiles() {
-                const dataTransfer = new DataTransfer();
-                selectedFiles.forEach(f => dataTransfer.items.add(f));
-                input.files = dataTransfer.files;
-            }
-
-            // Hiện validation summary nếu có lỗi
-            const valSummary = $('[data-valmsg-summary]');
-            if (valSummary.find('li').length > 0) {
-                valSummary.show();
-            }
-        });
+    <script src="~/js/drink.js">
+        
     </script>
 }

@@ -2,7 +2,6 @@
 @using CafeChain.Application.DTOs.Admin.Dashboard
 @{
     ViewData["Title"] = "Dashboard";
-
     var role = ViewBag.Role as string;
 
     var fromDate = Context.Request.Query["FromDate"].ToString();
@@ -10,6 +9,27 @@
     var storeId = Context.Request.Query["StoreId"].ToString();
     var provinceId = Context.Request.Query["ProvinceId"].ToString();
     var districtId = Context.Request.Query["DistrictId"].ToString();
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
+
+    var revenueJson = System.Text.Json.JsonSerializer.Serialize(Model.Revenue, jsonOptions);
+    var revenueByStoreJson = System.Text.Json.JsonSerializer.Serialize(Model.RevenueByStore, jsonOptions);
+    var topDrinksJson = System.Text.Json.JsonSerializer.Serialize(Model.TopDrinks, jsonOptions);
+    var paymentsJson = System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethods, jsonOptions);
+    var staffJson = System.Text.Json.JsonSerializer.Serialize(Model.StaffPerformance, jsonOptions);
+    var toppingsJson = System.Text.Json.JsonSerializer.Serialize(Model.TopToppings, jsonOptions);
+    var inventoryJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Inventory ?? Enumerable.Empty<InventoryDto>(),
+        jsonOptions
+    );
+    var wasteJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Waste ?? Enumerable.Empty<WasteDto>(),
+        jsonOptions
+    );
+    var storesJson = System.Text.Json.JsonSerializer.Serialize(Model.Stores, jsonOptions);
 }
 
 <link rel="stylesheet" href="~/css/dashboard.css" />
@@ -21,7 +41,7 @@
         <div>
             <h2>📊 Dashboard</h2>
             <span class="sub">
-                Role: <b>@role</b>
+                R<b>@role</b>
             </span>
         </div>
 
@@ -85,22 +105,22 @@
     <!-- KPI -->
     <div class="kpi-grid">
         <div class="kpi-card revenue">
-            <div class="kpi-title">Revenue</div>
+            <div class="kpi-title">Doanh thu</div>
             <div class="kpi-value">@Model.Summary?.Revenue.ToString("N0") ₫</div>
         </div>
 
         <div class="kpi-card">
-            <div class="kpi-title">Orders</div>
+            <div class="kpi-title">Đơn hàng</div>
             <div class="kpi-value">@Model.Summary?.TotalOrders</div>
         </div>
 
         <div class="kpi-card">
-            <div class="kpi-title">Customers</div>
+            <div class="kpi-title">Khách hàng</div>
             <div class="kpi-value">@Model.Summary?.TotalCustomers</div>
         </div>
 
         <div class="kpi-card">
-            <div class="kpi-title">Today Orders</div>
+            <div class="kpi-title">Đơn hôm nay</div>
             <div class="kpi-value">@Model.Summary?.TodayOrders</div>
         </div>
     </div>
@@ -108,20 +128,15 @@
     <!-- REVENUE -->
     <div class="grid-12">
         <div class="card col-8">
-            <div class="card-header">📈 Revenue Trend</div>
+            <div class="card-header">📈 Doanh thu theo thời gian</div>
             <div id="revenueChart" class="chart"></div>
-        </div>
-
-        <div class="card col-4">
-            <div class="card-header">🧠 Insights</div>
-            <ul class="insight-list" id="insights"></ul>
         </div>
     </div>
 
     <!-- STORE -->
     <div class="grid-12">
         <div class="card col-12">
-            <div class="card-header">🏪 Revenue by Store</div>
+            <div class="card-header">🏪 Doanh thu theo cửa hàng</div>
             <div id="storeChart" class="chart"></div>
         </div>
     </div>
@@ -129,12 +144,12 @@
     <!-- PRODUCT + PAYMENT -->
     <div class="grid-12">
         <div class="card col-6">
-            <div class="card-header">🥤 Top Drinks</div>
+            <div class="card-header">🥤 Top nước uống</div>
             <div id="topDrinkChart" class="chart"></div>
         </div>
 
         <div class="card col-6">
-            <div class="card-header">💳 Payment Methods</div>
+            <div class="card-header">💳 Top doanh thu theo phương thức thanh toán</div>
             <div id="paymentChart" class="chart"></div>
         </div>
     </div>
@@ -142,7 +157,7 @@
     <!-- STAFF + TOPPING -->
     <div class="grid-12">
         <div class="card col-6">
-            <div class="card-header">👨‍💼 Staff Performance</div>
+            <div class="card-header">👨‍💼 Hiệu suất của nhân viên</div>
             <div id="staffChart" class="chart"></div>
         </div>
 
@@ -157,33 +172,35 @@
     {
         <div class="grid-12">
             <div class="card col-6 warning">
-                <div class="card-header">📦 Inventory</div>
+                <div class="card-header">📦 Tồn kho</div>
                 <div id="inventoryChart" class="chart"></div>
             </div>
 
             <div class="card col-6 danger">
-                <div class="card-header">⚠️ Waste</div>
+                <div class="card-header">⚠️ Hủy kho</div>
                 <div id="wasteChart" class="chart"></div>
             </div>
         </div>
     }
-
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
 
+
 <script>
     const dashboardData = {
-    revenue: @Html.Raw(Json.Serialize(Model.Revenue)),
-    revenueByStore: @Html.Raw(Json.Serialize(Model.RevenueByStore)),
-    topDrinks: @Html.Raw(Json.Serialize(Model.TopDrinks)),
-    payments: @Html.Raw(Json.Serialize(Model.PaymentMethods)),
-    staff: @Html.Raw(Json.Serialize(Model.StaffPerformance)),
-    topToppings: @Html.Raw(Json.Serialize(Model.TopToppings)),
-    inventory: @Html.Raw(Json.Serialize(Model.Inventory ?? Enumerable.Empty<InventoryDto>())),
-    waste: @Html.Raw(Json.Serialize(Model.Waste ?? Enumerable.Empty<WasteDto>())),
-    stores: @Html.Raw(Json.Serialize(Model.Stores))
-    };
+        revenue: @Html.Raw(revenueJson),
+        revenueByStore: @Html.Raw(revenueByStoreJson),
+        topDrinks: @Html.Raw(topDrinksJson),
+        payments: @Html.Raw(paymentsJson),
+        staff: @Html.Raw(staffJson),
+        topToppings: @Html.Raw(toppingsJson),
+        inventory: @Html.Raw(inventoryJson),
+        waste: @Html.Raw(wasteJson),
+        stores: @Html.Raw(storesJson)
+        };
+
+    console.log(dashboardData);
 </script>
 
 <script src="~/js/dashboard.js"></script>

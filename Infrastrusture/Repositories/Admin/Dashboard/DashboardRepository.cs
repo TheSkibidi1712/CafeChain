@@ -55,13 +55,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard
         }
 
         // ================= TOP PRODUCTS =================
-
-        public async Task<IEnumerable<TopDrinkDto>> GetTopDrinksAsync(int top)
+        public async Task<IEnumerable<TopDrinkDto>> GetTopDrinksAsync(int top, DateTime from, DateTime to, List<int> storeIds)
         {
+            var storeIdsString = storeIds != null && storeIds.Any()
+                ? string.Join(",", storeIds)
+                : null;
+
             var result = await _context.Set<TopDrinkDto>()
                 .FromSqlRaw(
-                    "EXEC sp_Top_Selling_Drinks @Top",
-                    new SqlParameter("@Top", top)
+                    "EXEC sp_Top_Selling_Drinks_Filtered @Top, @FromDate, @ToDate, @StoreIds",
+                    new SqlParameter("@Top", top),
+                    new SqlParameter("@FromDate", from),
+                    new SqlParameter("@ToDate", to),
+                    new SqlParameter("@StoreIds", (object?)storeIdsString ?? DBNull.Value)
                 )
                 .AsNoTracking()
                 .ToListAsync();
@@ -80,11 +86,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard
         }
 
         // ================= PAYMENT =================
-
-        public async Task<IEnumerable<PaymentMethodDto>> GetPaymentMethodsAsync()
+        public async Task<IEnumerable<PaymentMethodDto>> GetPaymentMethodsAsync(DateTime from, DateTime to, List<int> storeIds)
         {
+            var storeIdsString = storeIds != null && storeIds.Any()
+                ? string.Join(",", storeIds)
+                : null;
+
             var result = await _context.Set<PaymentMethodDto>()
-                .FromSqlRaw("EXEC sp_Revenue_By_PaymentMethod")
+                .FromSqlRaw(
+                    "EXEC sp_Revenue_By_PaymentMethod_Filtered @FromDate, @ToDate, @StoreIds",
+                    new SqlParameter("@FromDate", from),
+                    new SqlParameter("@ToDate", to),
+                    new SqlParameter("@StoreIds", (object?)storeIdsString ?? DBNull.Value)
+                )
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -92,11 +106,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard
         }
 
         // ================= STAFF =================
-
-        public async Task<IEnumerable<StaffPerformanceDto>> GetStaffPerformanceAsync()
+        public async Task<IEnumerable<StaffPerformanceDto>> GetStaffPerformanceAsync(DateTime from, DateTime to, List<int> storeIds)
         {
+            var storeIdsString = storeIds != null && storeIds.Any()
+                ? string.Join(",", storeIds)
+                : null;
+
             var result = await _context.Set<StaffPerformanceDto>()
-                .FromSqlRaw("EXEC sp_Staff_Performance")
+                .FromSqlRaw(
+                    "EXEC sp_Staff_Performance_Filtered @FromDate, @ToDate, @StoreIds",
+                    new SqlParameter("@FromDate", from),
+                    new SqlParameter("@ToDate", to),
+                    new SqlParameter("@StoreIds", (object?)storeIdsString ?? DBNull.Value)
+                )
                 .AsNoTracking()
                 .ToListAsync();
 
@@ -150,12 +172,21 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Dashboard
 
         // ================= SUMMARY =================
 
-        public async Task<DashboardSummaryDto> GetSummaryAsync()
+        public async Task<DashboardSummaryDto> GetSummaryAsync(DateTime from, DateTime to, List<int> storeIds)
         {
+            var storeIdsString = storeIds != null && storeIds.Any()
+                ? string.Join(",", storeIds)
+                : null;
+
             var list = await _context.Set<DashboardSummaryDto>()
-                .FromSqlRaw("EXEC sp_Dashboard_Summary")
+                .FromSqlRaw(
+                    "EXEC sp_Dashboard_Summary_Filtered @FromDate, @ToDate, @StoreIds",
+                    new SqlParameter("@FromDate", from),
+                    new SqlParameter("@ToDate", to),
+                    new SqlParameter("@StoreIds", (object?)storeIdsString ?? DBNull.Value)
+                )
                 .AsNoTracking()
-                .ToListAsync(); // 🔥 MUST
+                .ToListAsync();
 
             return list.FirstOrDefault();
         }

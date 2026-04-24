@@ -616,6 +616,48 @@
             const currentPhone = document.getElementById('phoneSelect').value;
             const currentAddressId = document.getElementById('addressSelect').value;
 
+            // =========================
+            // VALIDATE FULL NAME CLIENT
+            // =========================
+
+            if (currentFullName === "") {
+                showToast("Họ và tên không được để trống!", "warning");
+                document.getElementById("inputFullName").focus();
+                return;
+            }
+
+            if (currentFullName.length < 2) {
+                showToast("Họ và tên phải có ít nhất 2 ký tự!", "warning");
+                document.getElementById("inputFullName").focus();
+                return;
+            }
+
+            if (currentFullName.length > 100) {
+                showToast("Họ và tên không được vượt quá 100 ký tự!", "warning");
+                document.getElementById("inputFullName").focus();
+                return;
+            }
+
+            // chỉ cho chữ + khoảng trắng + tiếng Việt
+            const fullNameRegex = /^[\p{L}\s]+$/u;
+
+            if (!fullNameRegex.test(currentFullName)) {
+                showToast("Họ và tên chỉ được chứa chữ cái và khoảng trắng!", "warning");
+                document.getElementById("inputFullName").focus();
+                return;
+            }
+
+            // tránh nhập toàn dấu cách
+            if (currentFullName.replace(/\s/g, "") === "") {
+                showToast("Họ và tên không hợp lệ!", "warning");
+                document.getElementById("inputFullName").focus();
+                return;
+            }
+
+            // =========================
+            // PAYLOAD
+            // =========================
+
             const payload = {
                  fullName: currentFullName,
                  dob: currentDob,

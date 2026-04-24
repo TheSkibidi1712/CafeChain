@@ -7,7 +7,7 @@ namespace CafeChain.Application.Services.Admin.Dashboard
     public class DashboardService : IDashboardService
     {
         private readonly IDashboardRepository _repo;
-
+        private static readonly DateTime DashboardStartDate = new DateTime(2023, 1, 1);
         public DashboardService(IDashboardRepository repo)
         {
             _repo = repo;
@@ -16,7 +16,26 @@ namespace CafeChain.Application.Services.Admin.Dashboard
         public async Task<DashboardVM> GetDashboardAsync(DashboardRequest request)
         {
             if (!request.StaffId.HasValue)
+            {
                 throw new Exception("StaffId is required");
+            }
+
+            // ========================================
+            // DOUBLE PROTECTION
+            // tránh trường hợp API khác gọi service
+            // mà quên set date ở controller
+            // ========================================
+
+            if (request.FromDate == default)
+            {
+                request.FromDate = DashboardStartDate;
+            }
+
+            if (request.ToDate == default)
+            {
+                request.ToDate = DateTime.Today;
+            }
+
 
             var vm = new DashboardVM();
 
@@ -108,13 +127,13 @@ namespace CafeChain.Application.Services.Admin.Dashboard
                 request.ToDate,
                 finalStoreIds)).ToList();
 
-            vm.TopDrinks = (await _repo.GetTopDrinksAsync(10)).ToList();
+            vm.TopDrinks = (await _repo.GetTopDrinksAsync(10,request.FromDate, request.ToDate, finalStoreIds)).ToList();
             vm.TopToppings = (await _repo.GetTopToppingsAsync()).ToList();
 
-            vm.PaymentMethods = (await _repo.GetPaymentMethodsAsync()).ToList();
-            vm.StaffPerformance = (await _repo.GetStaffPerformanceAsync()).ToList();
+            vm.PaymentMethods = (await _repo.GetPaymentMethodsAsync(request.FromDate, request.ToDate, finalStoreIds)).ToList();
+            vm.StaffPerformance = (await _repo.GetStaffPerformanceAsync(request.FromDate, request.ToDate, finalStoreIds)).ToList();
 
-            vm.Summary = await _repo.GetSummaryAsync() ?? new DashboardSummaryDto();
+            vm.Summary = await _repo.GetSummaryAsync(request.FromDate, request.ToDate, finalStoreIds) ?? new DashboardSummaryDto();
 
             // ================= STORE DETAIL =================
             // 👉 chỉ load khi chọn 1 store

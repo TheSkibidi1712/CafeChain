@@ -15,6 +15,13 @@ namespace CafeChain.Areas.Admin.Controllers
             _drinkService = drinkService;
         }
 
+        [HttpGet]
+        public async Task<IActionResult> IndexPartial()
+        {
+            var drinks = await _drinkService.GetAllDrinksAsync();
+            return PartialView("_DrinkTablePartial", drinks);
+        }
+
         public async Task<IActionResult> Index()
         {
             var drinks = await _drinkService.GetAllDrinksAsync();
@@ -49,43 +56,47 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AdminDrinkCreateViewModel viewModel)
         {
-            // Ảnh không bắt buộc khi tạo mới
             ModelState.Remove("DrinkCreateDTO.ImageFiles");
-            // Categories & ProductTypes là dropdown list, không được gửi về khi POST → phải bỏ qua
             ModelState.Remove(nameof(viewModel.Categories));
             ModelState.Remove(nameof(viewModel.ProductTypes));
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
+                return Json(new
                 {
-                    await _drinkService.CreateDrinkAsync(viewModel.DrinkCreateDTO);
-                    TempData["SuccessMessage"] = "Thêm đồ uống thành công!";
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (ArgumentException ex)
-                {
-                    ModelState.AddModelError("DrinkCreateDTO.Name", ex.Message);
-                }
+                    success = false,
+                    message = "Dữ liệu không hợp lệ"
+                });
             }
 
-            // load lại dropdown
-            var categories = await _drinkService.GetDrinkCategoriesAsync();
-            var productTypes = await _drinkService.GetProductTypesAsync();
-
-            viewModel.Categories = categories.Select(c => new SelectListItem
+            try
             {
-                Value = c.CategoryId.ToString(),
-                Text = c.Name
-            });
+                await _drinkService.CreateDrinkAsync(viewModel.DrinkCreateDTO);
 
-            viewModel.ProductTypes = productTypes.Select(pt => new SelectListItem
+                return Json(new
+                {
+                    success = true,
+                    message = "Thêm đồ uống thành công!",
+                    redirectUrl = Url.Action("Index")
+
+                });
+            }
+            catch (ArgumentException ex)
             {
-                Value = pt.ProductTypeId.ToString(),
-                Text = pt.Name
-            });
-
-            return View(viewModel);
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Đã có lỗi xảy ra"
+                });
+            }
         }
 
         [HttpGet]
@@ -111,34 +122,46 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AdminDrinkEditViewModel viewModel)
         {
-            // Bỏ qua Validate của các List Dropdown vì lúc Submit form chỉ đẩy về ID chứ không có Model List
             ModelState.Remove(nameof(viewModel.Categories));
             ModelState.Remove(nameof(viewModel.ProductTypes));
 
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                try
+                return Json(new
                 {
-                    await _drinkService.UpdateDrinkAsync(viewModel.DrinkUpdateDTO);
-                    TempData["SuccessMessage"] = "Cập nhật đồ uống thành công!";
-                    return RedirectToAction(nameof(Index));
-                }
-                catch (ArgumentException ex)
-                {
-                    ModelState.AddModelError("DrinkUpdateDTO.Name", ex.Message);
-                }
-                catch (Exception)
-                {
-                    ModelState.AddModelError("", "Đã có lỗi xảy ra. Vui lòng thử lại.");
-                }
+                    success = false,
+                    message = "Dữ liệu không hợp lệ"
+                });
             }
 
-            var categories = await _drinkService.GetDrinkCategoriesAsync();
-            var productTypes = await _drinkService.GetProductTypesAsync();
-            viewModel.Categories = categories.Select(c => new SelectListItem { Value = c.CategoryId.ToString(), Text = c.Name });
-            viewModel.ProductTypes = productTypes.Select(pt => new SelectListItem { Value = pt.ProductTypeId.ToString(), Text = pt.Name });
+            try
+            {
+                await _drinkService.UpdateDrinkAsync(viewModel.DrinkUpdateDTO);
 
-            return View(viewModel);
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật đồ uống thành công!",
+                    redirectUrl = Url.Action("Index")
+
+                });
+            }
+            catch (ArgumentException ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Đã có lỗi xảy ra"
+                });
+            }
         }
 
         [HttpPost]
@@ -200,13 +223,23 @@ namespace CafeChain.Areas.Admin.Controllers
             try
             {
                 await _drinkService.DeleteDrinkImageAsync(drinkImageId);
-                return Json(new { success = true, message = "Đã xóa ảnh." });
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Đã xóa ảnh thành công."
+                });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = "Lỗi: " + ex.Message });
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
         }
+
 
         [HttpPost]
         public async Task<IActionResult> UpdateImage(int drinkImageId, IFormFile newImageFile)

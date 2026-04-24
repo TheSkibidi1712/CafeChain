@@ -1,0 +1,32 @@
+﻿@model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
+
+<tbody>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td class="text-center">
+                <img src="@item.ImageUrl" style="height:50px;width:50px;object-fit:cover;border-radius:5px;" />
+            </td>
+            <td class="fw-bold">@item.Name</td>
+            <td><span class="badge bg-info text-dark">@item.CategoryName</span></td>
+            <td><span class="badge bg-secondary">@item.ProductTypeName</span></td>
+            <td>
+                @if (item.Active)
+                {
+                    <span class="badge bg-success">Đang bán</span>
+                }
+                else
+                {
+                    <span class="badge bg-danger">Ngừng bán</span>
+                }
+            </td>
+            <td class="text-center">
+                <button class="btn btn-sm btn-outline-info btn-manage-images"
+                        data-id="@item.DrinkId"
+                        data-name="@item.Name">
+                    <i class="fas fa-images"></i>
+                </button>
+            </td>
+        </tr>
+    }
+</tbody>

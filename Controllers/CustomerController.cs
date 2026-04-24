@@ -90,35 +90,99 @@ namespace CafeChain.Controllers
         [HttpPost]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            // 1. Lấy ID
-            var customerIdStr = User.FindFirstValue("CustomerId");
-            if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
+            // =========================
+            // VALIDATE FULL NAME
+            // =========================
 
-            // 2. Lưu vào Database qua Service
+            if (string.IsNullOrWhiteSpace(request.FullName))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Họ và tên không được để trống."
+                });
+            }
+
+            request.FullName = request.FullName.Trim();
+
+            if (request.FullName.Length < 2)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Họ và tên phải có ít nhất 2 ký tự."
+                });
+            }
+
+            if (request.FullName.Length > 100)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Họ và tên không được vượt quá 100 ký tự."
+                });
+            }
+
+            // chặn chỉ nhập số hoặc ký tự rác
+            if (!System.Text.RegularExpressions.Regex.IsMatch(
+                request.FullName,
+                @"^[\p{L}\s]+$"))
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Họ và tên chỉ được chứa chữ cái và khoảng trắng."
+                });
+            }
+
+            // =========================
+            // LẤY CUSTOMER ID
+            // =========================
+
+            var customerIdStr = User.FindFirstValue("CustomerId");
+
+            if (!int.TryParse(customerIdStr, out int customerId))
+                return Unauthorized();
+
+            // =========================
+            // SAVE DB
+            // =========================
+
             var result = await _customerService.UpdateProfileAsync(customerId, request);
 
             if (result)
             {
-                // 3. 🔥 BÍ KÍP CẬP NHẬT TÊN TRÊN HEADER (CẤP LẠI COOKIE) 🔥
+                // =========================
+                // UPDATE CLAIM NAME
+                // =========================
+
                 var identity = (ClaimsIdentity)User.Identity;
-                var nameClaim = identity.FindFirst(ClaimTypes.Name); // Tìm cái tên cũ
+                var nameClaim = identity.FindFirst(ClaimTypes.Name);
 
                 if (nameClaim != null)
                 {
-                    identity.RemoveClaim(nameClaim); // Xé bỏ tên cũ "Phuc Gia"
-                    identity.AddClaim(new Claim(ClaimTypes.Name, request.FullName)); // Dán tên mới "To ka du" vào
-
-                    // Bắt trình duyệt lưu lại Cookie mới ngay lập tức
-                    await HttpContext.SignInAsync(
-                        CookieAuthenticationDefaults.AuthenticationScheme,
-                        new ClaimsPrincipal(identity)
-                    );
+                    identity.RemoveClaim(nameClaim);
                 }
 
-                return Json(new { success = true, message = "Cập nhật thành công!" });
+                identity.AddClaim(new Claim(ClaimTypes.Name, request.FullName));
+
+                await HttpContext.SignInAsync(
+                    CookieAuthenticationDefaults.AuthenticationScheme,
+                    new ClaimsPrincipal(identity)
+                );
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật thành công!"
+                });
             }
 
-            return Json(new { success = false, message = "Không có thay đổi nào được lưu." });
+            return Json(new
+            {
+                success = false,
+                message = "Không có thay đổi nào được lưu."
+            });
         }
         [HttpGet]
         public async Task<IActionResult> ChangePassword()

@@ -8,18 +8,18 @@ namespace CafeChain.Application.Services.Admin.DrinkSizes
 {
     public class AdminDrinkSizeService : IAdminDrinkSizeService
     {
-        private readonly IAdminSizeRepository _drinkRepo;
+        private readonly IAdminSizeRepository _sizeRepo;
         private readonly IAdminDrinkSizeRepository _drinkSizeRepo;
 
         public AdminDrinkSizeService(IAdminSizeRepository drinkRepo, IAdminDrinkSizeRepository drinkSizeRepo)
         {
-            _drinkRepo = drinkRepo;
+            _sizeRepo = drinkRepo;
             _drinkSizeRepo = drinkSizeRepo;
         }
 
         public async Task<IEnumerable<DrinkItemVM>> GetDrinksForSizeAsync(int sizeId)
         {
-            var drinks = await _drinkRepo.GetActiveDrinksAsync(); // CHỈ ACTIVE
+            var drinks = await _sizeRepo.GetActiveDrinksAsync(); // CHỈ ACTIVE
 
             var drinkSizes = await _drinkSizeRepo.GetBySizeIdAsync(sizeId);
 
@@ -49,12 +49,12 @@ namespace CafeChain.Application.Services.Admin.DrinkSizes
             Validate(dto);
 
             // check size tồn tại
-            var sizeExists = await _drinkRepo.GetAllAsync();
+            var sizeExists = await _sizeRepo.GetAllAsync();
             if (!sizeExists.Any(x => x.SizeId == dto.SizeId))
                 throw new Exception("Size không tồn tại");
 
             // check drink tồn tại
-            var drinks = await _drinkRepo.GetActiveDrinksAsync();
+            var drinks = await _sizeRepo.GetActiveDrinksAsync();
             if (!drinks.Any(x => x.DrinkId == dto.DrinkId))
                 throw new Exception("Drink không tồn tại");
 

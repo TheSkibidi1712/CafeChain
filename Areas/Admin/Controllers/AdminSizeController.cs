@@ -115,14 +115,21 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!ModelState.IsValid)
                 return BadRequest("Invalid data");
 
-            await _drinkSizeService.AssignDrinkAsync(new DrinkSizeDto
+            try
             {
-                DrinkId = vm.DrinkId,
-                SizeId = vm.SizeId,
-                Price = vm.Price
-            });
+                await _drinkSizeService.AssignDrinkAsync(new DrinkSizeDto
+                {
+                    DrinkId = vm.DrinkId,
+                    SizeId = vm.SizeId,
+                    Price = vm.Price
+                });
 
-            return Ok();
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         // =============================
@@ -131,8 +138,15 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> ToggleDrinkSize(int id)
         {
-            await _drinkSizeService.ToggleDrinkSizeAsync(id);
-            return Ok();
+            try
+            {
+                await _drinkSizeService.ToggleDrinkSizeAsync(id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(ex.Message);
+            }
         }
 
         // =============================
