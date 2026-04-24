@@ -201,16 +201,34 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 })
                 .ToListAsync();
 
-            if (!data.Any())
-                return 0;
+            // ================= CASE 1: có dữ liệu nhập → weighted average =================
+            if (data.Any() && data.Sum(x => x.BaseQuantity) > 0)
+            {
+                var totalBaseQty = data.Sum(x => x.BaseQuantity);
+                var totalAmount = data.Sum(x => x.BaseQuantity * (x.UnitPrice ?? 0));
 
-            var totalBaseQty = data.Sum(x => x.BaseQuantity);
-            var totalAmount = data.Sum(x => x.BaseQuantity * (x.UnitPrice ?? 0));
+                return totalAmount / totalBaseQty;
+            }
 
-            if (totalBaseQty == 0)
-                return 0;
+            // ================= CASE 2: fallback → lấy giá nhập gần nhất =================
+            var lastPrice = await _context.InventoryDocumentDetails
+                .Where(d =>
+                    d.IngredientId == ingredientId &&
+                    d.UnitPrice != null &&
+                    d.InventoryDocument.Type == InventoryDocumentType.IMPORT &&
+                    d.InventoryDocument.StoreId == storeId &&
+                    d.InventoryDocument.Status == InventoryDocumentStatus.CONFIRMED)
+                .OrderByDescending(d => d.InventoryDocument.DocumentDate)
+                .Select(d => d.UnitPrice)
+                .FirstOrDefaultAsync();
 
-            return totalAmount / totalBaseQty;
+            if (lastPrice.HasValue)
+            {
+                return lastPrice.Value;
+            }
+
+            // ================= CASE 3: không có gì luôn =================
+            return 0;
         }
 
         public async Task<List<IngredientSupplier>> GetIngredientSuppliersBySupplierAsync(int supplierId)
