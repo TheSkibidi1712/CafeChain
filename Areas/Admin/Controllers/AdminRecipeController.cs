@@ -56,7 +56,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (recipe == null) return NotFound();
 
-            var treeHtml = await BuildTreeHtml(recipe);
+            var treeHtml = await BuildTreeHtml(recipe, 0);
             return Content(treeHtml, "text/html");
         }
 
@@ -84,9 +84,19 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(recipe);
         }
 
-        // Đệ quy dựng HTML Tree cho BOM (dành cho API)
-        private async Task<string> BuildTreeHtml(Models.Drinks.Recipe recipe)
+        // Giới hạn tối đa 5 tầng BOM cho BuildTreeHtml
+        private const int MAX_TREE_DEPTH = 5;
+
+        // Đệ quy dựng HTML Tree cho BOM (dành cho API) — có Depth Limit
+        private async Task<string> BuildTreeHtml(Models.Drinks.Recipe recipe, int currentDepth)
         {
+            // FIX #8: Depth Limit cho BuildTreeHtml
+            if (currentDepth > MAX_TREE_DEPTH)
+            {
+                return "<ul class='list-group'><li class='list-group-item text-danger'>" +
+                       $"<i class='fas fa-exclamation-triangle me-2'></i>Đã đạt giới hạn {MAX_TREE_DEPTH} tầng hiển thị.</li></ul>";
+            }
+
             var html = $"<ul class='list-group list-group-flush mb-0'>";
             foreach (var detail in recipe.RecipeDetails)
             {
@@ -121,7 +131,7 @@ namespace CafeChain.Areas.Admin.Controllers
                     
                     if (childRecipe != null)
                     {
-                        var childHtml = await BuildTreeHtml(childRecipe);
+                        var childHtml = await BuildTreeHtml(childRecipe, currentDepth + 1);
                         html += $"<div class='ms-4 ps-2 border-start border-warning'>{childHtml}</div>";
                     }
                     html += "</li>";
