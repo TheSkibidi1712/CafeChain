@@ -245,20 +245,17 @@
                         </div>
                         <div class="col-md-8 ps-md-5 mt-4 mt-md-0">
                             <div class="d-flex flex-wrap gap-2">
-                                <button class="btn btn-sm btn-orange rounded-pill px-3 py-1 fw-semibold">Tất cả</button>
-                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                <button class="btn btn-sm btn-orange rounded-pill px-3 py-1 fw-semibold review-filter-btn" onclick="filterReviews('all')">Tất cả</button>
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle review-filter-btn" onclick="filterReviews('5')">
                                     5 Sao (@starDist[5])
                                 </button>
-                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle review-filter-btn" onclick="filterReviews('4')">
                                     4 Sao (@starDist[4])
                                 </button>
-                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle review-filter-btn" onclick="filterReviews('3')">
                                     3 Sao (@starDist[3])
                                 </button>
-                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
-                                    Cần cải thiện (@(starDist[1] + starDist[2]))
-                                </button>
-                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle">
+                                <button class="btn btn-sm btn-outline-orange rounded-pill px-3 py-1 text-muted border-secondary-subtle review-filter-btn" onclick="filterReviews('image')">
                                     Có hình ảnh (@(reviews.Count(r => r.Images != null && r.Images.Any())))
                                 </button>
                             </div>
@@ -348,7 +345,7 @@
             {
                 foreach (var review in Model.Ratings)
                 {
-                    <div class="review-item py-4 border-bottom">
+                    <div class="review-item py-4 border-bottom" data-stars="@review.Stars" data-has-image="@((review.Images != null && review.Images.Any()) ? "true" : "false")">
                         <div class="d-flex mb-2">
                             <img src="@(review.Customer?.AvatarUrl ?? "/Images/Uploadt/avtdf.jpg")"
                                  onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
@@ -793,6 +790,28 @@
             });
         }
 
+        function filterReviews(type) {
+            document.querySelectorAll('.review-filter-btn').forEach(b => {
+                b.classList.remove('btn-orange', 'fw-semibold');
+                b.classList.add('btn-outline-orange', 'text-muted');
+            });
+            event.currentTarget.classList.add('btn-orange', 'fw-semibold');
+            event.currentTarget.classList.remove('btn-outline-orange', 'text-muted');
+
+            const items = document.querySelectorAll('.review-item');
+            items.forEach(item => {
+                if (type === 'all') {
+                    item.classList.remove('d-none');
+                } else if (type === 'image') {
+                    const hasImage = item.getAttribute('data-has-image') === 'true';
+                    item.classList.toggle('d-none', !hasImage);
+                } else {
+                    const stars = parseInt(item.getAttribute('data-stars'));
+                    item.classList.toggle('d-none', stars != parseInt(type));
+                }
+            });
+        }
+
         // Sử dụng JsonSerializer để Visual Studio không bị lỗi gạch đỏ khi dùng thẻ HTML trong JS
         const imageList = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Drink.DrinkImages?.Select(i => i.ImageUrl) ?? new List<string>()));
 
@@ -1169,11 +1188,24 @@
 
                         if (data.action === 'added' || data.action === 'updated') {
                             cssClass = 'fw-bold text-primary';
-                            switch(data.type) {
+                            
+                            // ASP.NET JSON Serialize có thể trả về Int (vd: 1, 2) hoặc String ("Like", "Love")
+                            let typeVal = data.type;
+                            if (typeof data.type === 'string') {
+                                typeVal = data.type.toLowerCase();
+                                if (typeVal === 'like') typeVal = 1;
+                                else if (typeVal === 'love') typeVal = 2;
+                                else if (typeVal === 'haha') typeVal = 3;
+                                else if (typeVal === 'wow') typeVal = 4;
+                                else if (typeVal === 'sad') typeVal = 5;
+                                else if (typeVal === 'angry') typeVal = 6;
+                            }
+
+                            switch(typeVal) {
                                 case 1: iconHtml = '<span class="me-1 fs-5">👍</span> Thích'; break;
                                 case 2: cssClass = 'fw-bold text-danger'; iconHtml = '<span class="me-1 fs-5">❤️</span> Yêu thích'; break;
                                 case 3: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😆</span> Haha'; break;
-                                case 4: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😲</span> Wow'; break;
+                                case 4: cssClass = 'fw-bold text-info'; iconHtml = '<span class="me-1 fs-5">😲</span> Wow'; break;
                                 case 5: cssClass = 'fw-bold text-warning'; iconHtml = '<span class="me-1 fs-5">😢</span> Buồn'; break;
                                 case 6: cssClass = 'fw-bold text-danger'; iconHtml = '<span class="me-1 fs-5">😡</span> Phẫn nộ'; break;
                             }
@@ -1182,7 +1214,7 @@
                         // Cập nhật giao diện lập tức không cần tải lại trang
                         wrapper.className = `cursor-pointer reaction-btn toggle-reaction ${cssClass}`;
                         wrapper.innerHTML = `${iconHtml} <span class="reaction-count ms-1">(${data.totalCount})</span>`;
-                        wrapper.setAttribute('onclick', `toggleReactionAjax(${ratingId}, ${data.type || 1})`);
+                        wrapper.setAttribute('onclick', `toggleReactionAjax(${ratingId}, ${typeVal || 1})`);
                         
                         // Khôi phục tooltip để có thể tương tác tiếp
                         let tooltip = wrapper.nextElementSibling;

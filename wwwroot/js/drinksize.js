@@ -176,7 +176,7 @@ function toggleEdit(drinkSizeId) {
                 btn.innerText = "Chỉnh sửa";
                 btn.classList.replace("btn-success", "btn-primary");
 
-                Toast("Cập nhật thành công");
+                toast("Cập nhật thành công");
             });
     }
 }
@@ -235,7 +235,130 @@ function toggleSize(id) {
 // EDIT SIZE
 // =========================
 function openEditModal(id, name, description) {
-    document.getElementById('edit-id').value = id;
-    document.getElementById('edit-name').value = name;
-    document.getElementById('edit-description').value = description;
+    // reset trước để tránh giữ dữ liệu cũ
+    document.getElementById('edit-id').value = "";
+    document.getElementById('edit-name').value = "";
+    document.getElementById('edit-description').value = "";
+
+    // set dữ liệu mới
+    document.getElementById('edit-id').value = id || 0;
+    document.getElementById('edit-name').value = name || "";
+    document.getElementById('edit-description').value = description || "";
 }
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const form = document.getElementById("editSizeForm");
+
+    form.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const sizeId = document.getElementById("edit-id").value;
+        const name = document.getElementById("edit-name").value;
+        const description = document.getElementById("edit-description").value;
+
+        if (!sizeId || sizeId <= 0) {
+            toast("Không tìm thấy size", "error");
+            return;
+        }
+
+        fetch('/Admin/AdminSize/Edit', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                sizeId: sizeId,
+                name: name,
+                description: description
+            })
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(err => {
+                        throw new Error(err);
+                    });
+                }
+
+                return res.text();
+            })
+            .then(() => {
+                toast("Cập nhật size thành công", "success");
+
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("editModal")
+                );
+
+                modal.hide();
+
+                setTimeout(() => {
+                    location.reload();
+                }, 700);
+            })
+            .catch(err => {
+                toast(err.message || "Lỗi cập nhật", "error");
+            });
+    });
+
+});
+
+// =========================
+// CREATE SIZE
+// =========================
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    const createForm = document.getElementById("createSizeForm");
+
+    createForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const name = document.getElementById("create-name").value.trim();
+        const description = document.getElementById("create-description").value.trim();
+
+        if (!name) {
+            toast("Tên size không được để trống", "error");
+            return;
+        }
+
+        fetch('/Admin/AdminSize/Create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                name: name,
+                description: description
+            })
+        })
+            .then(res => {
+                if (!res.ok) {
+                    return res.text().then(err => {
+                        throw new Error(err);
+                    });
+                }
+
+                return res.text();
+            })
+            .then(() => {
+                toast("Tạo size thành công", "success");
+
+                document.getElementById("create-name").value = "";
+                document.getElementById("create-description").value = "";
+
+                const modal = bootstrap.Modal.getInstance(
+                    document.getElementById("createModal")
+                );
+
+                modal.hide();
+
+                setTimeout(() => {
+                    location.reload();
+                }, 700);
+            })
+            .catch(err => {
+                toast(err.message || "Lỗi tạo size", "error");
+            });
+    });
+
+});

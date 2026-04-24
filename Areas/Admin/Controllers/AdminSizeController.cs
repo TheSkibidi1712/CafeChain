@@ -41,14 +41,10 @@ namespace CafeChain.Areas.Admin.Controllers
         // Create Size
         // =============================
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(AdminSizeVM vm)
+        public async Task<IActionResult> Create([FromBody] AdminSizeVM vm)
         {
-            if (!ModelState.IsValid)
-            {
-                TempData["Error"] = "Dữ liệu không hợp lệ";
-                return RedirectToAction(nameof(Index));
-            }
+            if (vm == null || string.IsNullOrWhiteSpace(vm.Name))
+                return BadRequest("Dữ liệu không hợp lệ");
 
             var result = await _adminsizeService.CreateSizeAsync(new SizeDto
             {
@@ -57,20 +53,20 @@ namespace CafeChain.Areas.Admin.Controllers
             });
 
             if (!result.Success)
-            {
-                TempData["Error"] = result.Error;
-            }
+                return BadRequest(result.Error);
 
-            return RedirectToAction(nameof(Index));
+            return Ok();
         }
 
         // =============================
         // Edit Size
         // =============================
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(AdminSizeVM vm)
+        public async Task<IActionResult> Edit([FromBody] AdminSizeVM vm)
         {
+            if (vm == null || vm.SizeId <= 0)
+                return BadRequest("Không tìm thấy size");
+
             var result = await _adminsizeService.UpdateSizeAsync(new SizeDto
             {
                 SizeId = vm.SizeId,
@@ -79,11 +75,9 @@ namespace CafeChain.Areas.Admin.Controllers
             });
 
             if (!result.Success)
-            {
-                TempData["Error"] = result.Error;
-            }
+                return BadRequest(result.Error);
 
-            return RedirectToAction(nameof(Index));
+            return Ok();
         }
 
         // =============================

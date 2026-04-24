@@ -1,1 +1,0 @@
-bây giờ bạn hãy thiết kế giao diện nhưng tuyeejt đối không được thêm trường hay đụng tới cơ sở dữ liệu nữa, hãy làm các trường sẵn có và không thêm bất kì trường nào vì hiện tại mình đã seeddata r

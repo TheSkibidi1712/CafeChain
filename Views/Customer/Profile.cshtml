@@ -33,14 +33,21 @@
 
                 <div class="gold-card text-white rounded-4 p-4 text-start mb-4 position-relative overflow-hidden">
                     <p class="small text-uppercase mb-1 opacity-75 fw-semibold">Hạng thành viên</p>
-                    <h4 class="fw-bold mb-4">GOLD MEMBER</h4>
+                    <h4 class="fw-bold mb-4">@Model.CurrentTierName</h4>
                     <p class="small mb-1 opacity-75">Điểm tích lũy hiện tại</p>
-                    <h2 class="fw-bold mb-3">1,250 <span class="fs-6 fw-normal">điểm</span></h2>
+                    <h2 class="fw-bold mb-3">@Model.TotalPoints.ToString("N0") <span class="fs-6 fw-normal">điểm</span></h2>
 
                     <div class="progress bg-white bg-opacity-25" style="height: 4px;">
-                        <div class="progress-bar bg-white" style="width: 70%"></div>
+                        <div class="progress-bar bg-white" style="width: @Math.Round(Model.ProgressPercentage)%"></div>
                     </div>
-                    <p class="mt-2 mb-0 fw-light" style="font-size: 0.65rem;">CAFECHAIN ELITE</p>
+                    @if (string.IsNullOrEmpty(Model.NextTierName))
+                    {
+                        <p class="mt-2 mb-0 fw-light" style="font-size: 0.65rem;">Bạn đang ở hạng cao nhất</p>
+                    }
+                    else
+                    {
+                        <p class="mt-2 mb-0 fw-light" style="font-size: 0.65rem;">Bạn còn thiếu @Model.PointsNeeded.ToString("N0") điểm để lên hạng @Model.NextTierName</p>
+                    }
                 </div>
 
                 <div class="text-start profile-menu">
@@ -167,8 +174,15 @@
                 <div class="mt-5 p-3 rounded-4 bg-orange-light border border-orange-subtle d-flex gap-3">
                     <i class="bi bi-info-circle text-orange fs-4"></i>
                     <div>
-                        <h6 class="fw-bold mb-1">Quyền lợi Hạng Vàng</h6>
-                        <p class="small text-muted mb-0">Bạn còn 250 điểm để lên hạng Kim Cương. Khách hàng Hạng Vàng được giảm 10% cho mọi đơn hàng tại cửa hàng.</p>
+                        <h6 class="fw-bold mb-1">Quyền lợi hạng @Model.CurrentTierName</h6>
+                        @if (string.IsNullOrEmpty(Model.NextTierName))
+                        {
+                            <p class="small text-muted mb-0">Bạn đang ở hạng cao nhất. Hãy tiếp tục ủng hộ CafeChain để duy trì hạng thẻ nhé!</p>
+                        }
+                        else
+                        {
+                            <p class="small text-muted mb-0">Bạn còn @Model.PointsNeeded.ToString("N0") điểm để lên hạng @Model.NextTierName. Khách hàng hạng cao hơn sẽ được nhiều ưu đãi hơn.</p>
+                        }
                     </div>
                 </div>
             </div>

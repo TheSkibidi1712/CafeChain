@@ -6056,11 +6056,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 24, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5463),
+                            EndDate = new DateTime(2026, 5, 24, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8829),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 17, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5443)
+                            StartDate = new DateTime(2026, 4, 17, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8820)
                         },
                         new
                         {
@@ -6068,10 +6068,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 9, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5469),
+                            EndDate = new DateTime(2026, 5, 9, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8833),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 23, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5469)
+                            StartDate = new DateTime(2026, 4, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8832)
                         },
                         new
                         {
@@ -6079,11 +6079,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 23, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5478),
+                            EndDate = new DateTime(2026, 6, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 25, 18, 6, 31, 564, DateTimeKind.Local).AddTicks(5477)
+                            StartDate = new DateTime(2026, 3, 25, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835)
                         });
                 });
 

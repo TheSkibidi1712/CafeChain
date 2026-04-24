@@ -10,11 +10,13 @@ namespace CafeChain.Controllers
     {
         private readonly AppDbContext _context;
         private readonly CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService _wheelService;
+        private readonly CafeChain.Application.Interfaces.IDrinkService _drinkService;
 
-        public HomeController(AppDbContext context, CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService wheelService)
+        public HomeController(AppDbContext context, CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService wheelService, CafeChain.Application.Interfaces.IDrinkService drinkService)
         {
             _context = context;
             _wheelService = wheelService;
+            _drinkService = drinkService;
         }
 
         public async Task<IActionResult> Index()
@@ -62,13 +64,23 @@ namespace CafeChain.Controllers
                     .Select(ToDrinkItemVM)
                     .ToList();
 
+                // Check Availability for all drinks
+                var allDrinkIds = allDrinks.Select(d => d.DrinkId).ToList();
+                var availabilities = await _drinkService.CheckDrinksAvailabilityAsync(allDrinkIds, 1);
+
+                foreach (var bs in bestSellers)
+                {
+                    bs.IsAvailable = availabilities.ContainsKey(bs.DrinkId) ? availabilities[bs.DrinkId] : true;
+                }
+
                 // === 5. Build ViewModel ===
                 var viewModel = new HomeViewModel
                 {
                     Categories = categories,
                     Drinks = allDrinks,
                     ActiveWheel = await _wheelService.GetActiveConfigAsync(),
-                    BestSellers = bestSellers
+                    BestSellers = bestSellers,
+                    Availability = availabilities
                 };
 
                 return View(viewModel);
@@ -80,7 +92,8 @@ namespace CafeChain.Controllers
                 {
                     Categories = new List<DrinkCategory>(),
                     Drinks = new List<Drink>(),
-                    ActiveWheel = null
+                    ActiveWheel = null,
+                    Availability = new Dictionary<int, bool>()
                 };
                 return View(emptyModel);
             }

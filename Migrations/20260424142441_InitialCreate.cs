@@ -13,6 +13,7 @@ namespace CafeChain.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+
             migrationBuilder.CreateTable(
                 name: "Accounts",
                 columns: table => new
@@ -2489,9 +2490,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 5, 24, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8681), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 17, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8672), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 5, 9, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8685), null, null, 500, null, 50000m, new DateTime(2026, 4, 23, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8684), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 6, 23, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8687), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 25, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8686), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 5, 24, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8829), null, 20000m, 100, null, 40000m, new DateTime(2026, 4, 17, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8820), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 5, 9, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8833), null, null, 500, null, 50000m, new DateTime(2026, 4, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8832), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 6, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835), null, 100000m, 1000, null, 0m, new DateTime(2026, 3, 25, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835), null, null }
                 });
 
             migrationBuilder.InsertData(

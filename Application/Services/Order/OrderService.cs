@@ -631,6 +631,30 @@ namespace CafeChain.Application.Services.Cart
                                 payment.PaidAt = DateTime.Now;
                             }
 
+                            // Cộng điểm thưởng cho Khách Hàng (10,000 VND = 1 điểm)
+                            if (order.CustomerId.HasValue && order.Total > 0)
+                            {
+                                int earnedPoints = (int)Math.Floor(order.Total / 10000);
+                                if (earnedPoints > 0)
+                                {
+                                    var customerPoint = await context.CustomerPoints
+                                        .FirstOrDefaultAsync(cp => cp.CustomerId == order.CustomerId.Value);
+                                        
+                                    if (customerPoint != null)
+                                    {
+                                        customerPoint.Points += earnedPoints;
+                                    }
+                                    else
+                                    {
+                                        context.CustomerPoints.Add(new CafeChain.Models.Customers.CustomerPoint
+                                        {
+                                            CustomerId = order.CustomerId.Value,
+                                            Points = earnedPoints
+                                        });
+                                    }
+                                }
+                            }
+
                             await context.SaveChangesAsync();
 
                             // [MISSION 2] Trừ kho khi mô phỏng giao hàng thành công

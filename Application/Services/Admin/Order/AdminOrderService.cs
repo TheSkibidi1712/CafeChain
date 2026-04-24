@@ -280,6 +280,31 @@ namespace CafeChain.Application.Services.Admin
             // [MISSION 2] Trừ tồn kho thực tế khi đơn hàng hoàn thành
             await _inventoryService.ConfirmInventoryDeductionAsync(orderId);
 
+            // Cộng điểm thưởng cho Khách Hàng (10,000 VND = 1 điểm)
+            if (order.CustomerId.HasValue && order.Total > 0)
+            {
+                int earnedPoints = (int)Math.Floor(order.Total / 10000);
+                if (earnedPoints > 0)
+                {
+                    var customerPoint = await _context.CustomerPoints
+                        .FirstOrDefaultAsync(cp => cp.CustomerId == order.CustomerId.Value);
+                        
+                    if (customerPoint != null)
+                    {
+                        customerPoint.Points += earnedPoints;
+                    }
+                    else
+                    {
+                        _context.CustomerPoints.Add(new CafeChain.Models.Customers.CustomerPoint
+                        {
+                            CustomerId = order.CustomerId.Value,
+                            Points = earnedPoints
+                        });
+                    }
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             await _hubContext.Clients.Group("AdminDashboard")
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);
         }
@@ -332,21 +357,14 @@ namespace CafeChain.Application.Services.Admin
         {
             var deliveringOrders = await _context.Orders
                 .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.Delivering)
+                .Select(o => o.OrderId)
                 .ToListAsync();
 
             if (!deliveringOrders.Any()) return 0;
 
-            foreach (var order in deliveringOrders)
+            foreach (var orderId in deliveringOrders)
             {
-                order.OrderStatusId = SystemConstants.OrderStatuses.Completed;
-            }
-
-            await _context.SaveChangesAsync();
-
-            foreach (var order in deliveringOrders)
-            {
-                await _hubContext.Clients.Group("AdminDashboard")
-                    .SendAsync("ReceiveOrderStatusUpdate", order.OrderId, order.OrderStatusId);
+                await CompleteOrderAsync(orderId);
             }
 
             return deliveringOrders.Count;

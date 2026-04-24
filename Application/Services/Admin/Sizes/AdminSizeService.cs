@@ -46,11 +46,6 @@ namespace CafeChain.Application.Services.Admin.Sizes
             }
         }
 
-        private void ValidateSizeData(SizeDto dto)
-        {
-            if (string.IsNullOrEmpty(dto.Name)) throw new Exception("Name is required");
-            // Thêm các logic check trùng mã size, v.v. ở đây
-        }
 
         // Các hàm Mapping khác (Có thể dùng AutoMapper để clean hơn)
         public async Task<IEnumerable<SizeDto>> GetActiveSizesAsync()

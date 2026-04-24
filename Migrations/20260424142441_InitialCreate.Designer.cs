@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260424015521_InitialCreate")]
+    [Migration("20260424142441_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -6059,11 +6059,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 5, 24, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8681),
+                            EndDate = new DateTime(2026, 5, 24, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8829),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 4, 17, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8672)
+                            StartDate = new DateTime(2026, 4, 17, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8820)
                         },
                         new
                         {
@@ -6071,10 +6071,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 9, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8685),
+                            EndDate = new DateTime(2026, 5, 9, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8833),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 4, 23, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8684)
+                            StartDate = new DateTime(2026, 4, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8832)
                         },
                         new
                         {
@@ -6082,11 +6082,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 6, 23, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8687),
+                            EndDate = new DateTime(2026, 6, 23, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 3, 25, 8, 55, 18, 416, DateTimeKind.Local).AddTicks(8686)
+                            StartDate = new DateTime(2026, 3, 25, 21, 24, 39, 159, DateTimeKind.Local).AddTicks(8835)
                         });
                 });
 

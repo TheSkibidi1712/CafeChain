@@ -93,7 +93,11 @@
                             <button class="btn btn-sm btn-light me-2"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editModal"
-                                    onclick="openDrinkModal(@item.SizeId, '@item.Name.Replace("'", "\\'")')">
+                                    onclick="openEditModal(
+                                @item.SizeId,
+                                '@Html.Raw(item.Name?.Replace("'", "\\'"))',
+                                '@Html.Raw(item.Description?.Replace("'", "\\'"))'
+                                )">
                                 <i class="fas fa-pen text-primary"></i>
                             </button>
 
@@ -135,7 +139,7 @@
             </div>
 
             <!-- Form -->
-            <form asp-action="Create" method="post">
+            <form id="createSizeForm">
                 <div class="modal-body">
 
                     <div class="row g-3">
@@ -144,7 +148,8 @@
                             <label class="form-label fw-semibold">
                                 Tên Size <span class="text-danger">*</span>
                             </label>
-                            <input name="Name"
+                            <input id="create-name"
+                                   name="Name"
                                    class="form-control bg-light text-center"
                                    placeholder="M"
                                    required />
@@ -154,7 +159,8 @@
                             <label class="form-label fw-semibold">
                                 Mô Tả Size <span class="text-danger">*</span>
                             </label>
-                            <input name="Description"
+                            <input id="create-description"
+                                   name="Description"
                                    class="form-control bg-light"
                                    placeholder="Ví dụ: Size Vừa"
                                    required />
@@ -206,7 +212,7 @@
             </div>
 
             <!-- Form -->
-            <form asp-action="Edit" method="post">
+            <form id="editSizeForm">
                 <input type="hidden" id="edit-id" name="SizeId" />
 
                 <div class="modal-body">
