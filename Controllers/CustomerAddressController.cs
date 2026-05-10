@@ -28,12 +28,12 @@ namespace CafeChain.Controllers
 
             if (isDefault)
             {
-                var existingAddresses = await _context.CustomersAddresses.Where(a => a.CustomerId == customerId).ToListAsync();
+                var existingAddresses = await _context.CustomerAddresses.Where(a => a.CustomerId == customerId).ToListAsync();
                 foreach (var a in existingAddresses) a.IsDefault = false;
             }
             
             // Nếu là địa chỉ đầu tiên, luôn set làm mặc định
-            var isFirst = !await _context.CustomersAddresses.AnyAsync(a => a.CustomerId == customerId && !a.IsDeleted);
+            var isFirst = !await _context.CustomerAddresses.AnyAsync(a => a.CustomerId == customerId && !a.IsDeleted);
             if(isFirst) isDefault = true;
 
             var newAddress = new CustomerAddress
@@ -47,7 +47,7 @@ namespace CafeChain.Controllers
                 IsDeleted = false
             };
 
-            _context.CustomersAddresses.Add(newAddress);
+            _context.CustomerAddresses.Add(newAddress);
             await _context.SaveChangesAsync();
 
             return Json(new { success = true, addressId = newAddress.CustomerAddressId });
@@ -59,7 +59,7 @@ namespace CafeChain.Controllers
             var customerIdStr = User.FindFirstValue("CustomerId");
             if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
 
-            var addr = await _context.CustomersAddresses.FirstOrDefaultAsync(a => a.CustomerAddressId == id && a.CustomerId == customerId);
+            var addr = await _context.CustomerAddresses.FirstOrDefaultAsync(a => a.CustomerAddressId == id && a.CustomerId == customerId);
             if (addr == null) return Json(new { success = false, message = "Địa chỉ không tồn tại hoặc không thuộc quyền sở hữu" });
 
             addr.IsDeleted = true;
@@ -75,7 +75,7 @@ namespace CafeChain.Controllers
             var customerIdStr = User.FindFirstValue("CustomerId");
             if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
 
-            var addrs = await _context.CustomersAddresses.Where(a => a.CustomerId == customerId && !a.IsDeleted).ToListAsync();
+            var addrs = await _context.CustomerAddresses.Where(a => a.CustomerId == customerId && !a.IsDeleted).ToListAsync();
             var target = addrs.FirstOrDefault(a => a.CustomerAddressId == id);
             
             if (target == null) return Json(new { success = false, message = "Địa chỉ không tồn tại hoặc không thuộc quyền sở hữu" });

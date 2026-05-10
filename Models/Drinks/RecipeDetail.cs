@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Inventories;
+﻿using CafeChain.Models.Inventories.Ingredients;
 using System.ComponentModel.DataAnnotations.Schema;
 
 namespace CafeChain.Models.Drinks

@@ -3,7 +3,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -83,7 +83,7 @@ namespace CafeChain.Application.Services.Inventories
                         .OrderByDescending(s => s.IsPrimary)
                         .FirstOrDefaultAsync();
 
-                    decimal unitPrice = supplier?.Price ?? 0;
+                    decimal unitPrice = supplier?.CurrentPrice ?? 0;
 
                     // FIX #4: Apply Unit Conversion — quy đổi về BaseUnit trước khi nhân giá
                     decimal convertedQty = await ConvertQuantityToBaseUnitAsync(

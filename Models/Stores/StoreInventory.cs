@@ -1,4 +1,5 @@
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Transactions;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Stores

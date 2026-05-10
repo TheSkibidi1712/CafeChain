@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Inventories;
+﻿using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore.Storage;
 

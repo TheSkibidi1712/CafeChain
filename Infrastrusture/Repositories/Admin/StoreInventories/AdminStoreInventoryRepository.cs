@@ -2,7 +2,7 @@
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
 

@@ -1,9 +1,17 @@
 using CafeChain.Application.DTOs.Admin.Dashboard;
 using CafeChain.Data.Configurations;
-using CafeChain.Models; 
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Auditing;
+using CafeChain.Models.Inventories.Costing;
+using CafeChain.Models.Inventories.Debts;
+using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Stock;
+using CafeChain.Models.Inventories.StockTake;
+using CafeChain.Models.Inventories.Suppliers;
+using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Locations;
 using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
@@ -11,6 +19,7 @@ using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
+using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 namespace CafeChain.Data
 {
@@ -24,7 +33,7 @@ namespace CafeChain.Data
         public DbSet<Account> Accounts { get; set; }
         public DbSet<AccountRole> AccountRoles { get; set; }
         public DbSet<Customer> Customers { get; set; }
-        public DbSet<CustomerAddress> CustomersAddresses { get; set; }
+        public DbSet<CustomerAddress> CustomerAddresses { get; set; }
         public DbSet<CustomerBank> CustomerBanks { get; set; }
         public DbSet<CustomerPoint> CustomerPoints { get; set; }
         public DbSet<CustomerPhone> CustomerPhones { get; set; }
@@ -87,10 +96,21 @@ namespace CafeChain.Data
         // Supplier
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<SupplierBankAccount> SupplierBankAccounts { get; set; }
+        public DbSet<SupplierContactPhone> SupplierContactPhones { get; set; }
+        public DbSet<IngredientSupplierPriceHistory> IngredientSupplierPriceHistories { get; set; }
         public DbSet<SupplierContact> SupplierContacts { get; set; }
         public DbSet<SupplierPhone> SupplierPhones { get; set; }
         public DbSet<Unit> Units { get; set; }
         public DbSet<UnitConversion> UnitConversions { get; set; }
+        public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
+        public DbSet<InventoryCostAllocation> InventoryCostAllocations { get; set; }
+        public DbSet<InventoryDocumentSnapshot> InventoryDocumentSnapshots { get; set; }
+        public DbSet<InventoryDocumentSnapshotDetail> InventoryDocumentSnapshotDetails { get; set; }
+        public DbSet<StockTakeSession> StockTakeSessions { get; set; }
+        public DbSet<StockTakeDetail> StockTakeDetails { get; set; }
+        public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
+        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<RequestDeduplication> RequestDeduplications { get; set; }
 
 
         // ========================= PAYMENT =========================

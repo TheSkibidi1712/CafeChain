@@ -1,4 +1,4 @@
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Suppliers;
 
 namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
 {

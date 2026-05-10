@@ -2,7 +2,6 @@ using CafeChain.Application.Interfaces;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
-using CafeChain.Models.Inventories;
 using CafeChain.ViewModels;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,6 +13,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
+using CafeChain.Models.Inventories.Ingredients;
 
 namespace CafeChain.Application.Services
 {
@@ -365,7 +365,7 @@ namespace CafeChain.Application.Services
                 // Nếu không có công thức, coi như luôn sẵn sàng
                 if (!recipes.Any()) return true;
 
-                var ingredientCache = new Dictionary<int, CafeChain.Models.Inventories.Ingredient>();
+                var ingredientCache = new Dictionary<int, Ingredient>();
 
                 foreach (var recipe in recipes)
                 {
@@ -418,7 +418,7 @@ namespace CafeChain.Application.Services
             IEnumerable<RecipeDetail> details,
             int multiplier,
             Dictionary<int, decimal> result,
-            Dictionary<int, CafeChain.Models.Inventories.Ingredient> ingredientCache,
+            Dictionary<int, Ingredient> ingredientCache,
             int depth = 0)
         {
             // 4. Xử lý Đệ quy an toàn: Chống lặp vô tận (max 10 level)
@@ -502,7 +502,7 @@ namespace CafeChain.Application.Services
                 .Where(r => r.DrinkId.HasValue && missingIds.Contains(r.DrinkId.Value))
                 .ToListAsync();
 
-            var ingredientCache = new Dictionary<int, CafeChain.Models.Inventories.Ingredient>();
+            var ingredientCache = new Dictionary<int, Ingredient>();
 
             // Preload ingredients for level 1
             var baseIngredientIds = recipes.SelectMany(r => r.RecipeDetails.Where(rd => rd.IngredientId.HasValue).Select(rd => rd.IngredientId.Value)).Distinct().ToList();

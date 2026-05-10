@@ -1,9 +1,9 @@
-using CafeChain.Models.Inventories;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Customers;
 using System.ComponentModel.DataAnnotations;
+using CafeChain.Models.Inventories.Documents;
 
 namespace CafeChain.Models.Staffs
 {

@@ -1,7 +1,8 @@
 ﻿using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;

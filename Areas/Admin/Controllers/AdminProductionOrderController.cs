@@ -1,6 +1,6 @@
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Transactions;
 using CafeChain.ViewModels.Admin.Productions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

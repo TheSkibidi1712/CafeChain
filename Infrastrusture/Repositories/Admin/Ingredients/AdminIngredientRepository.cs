@@ -1,6 +1,6 @@
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Ingredients;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.Ingredients

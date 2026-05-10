@@ -1,5 +1,5 @@
 using CafeChain.Data;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.ViewModels.Admin.UnitConversions;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

@@ -2,7 +2,7 @@ using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Locations;
 using Microsoft.EntityFrameworkCore;
 
@@ -90,7 +90,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     new SupplierContact
                     {
                         Name      = dto.PrimaryContactName.Trim(),
-                        Phone     = dto.PrimaryContactPhone?.Trim(),
+                       // Phone     = dto.PrimaryContactPhone?.Trim(),
                         Email     = dto.PrimaryContactEmail?.Trim(),
                         Position  = dto.PrimaryContactPosition?.Trim(),
                         IsPrimary = true
@@ -129,7 +129,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 supplier.Contacts.Add(new SupplierContact
                 {
                     Name = ct.Name.Trim(),
-                    Phone = ct.Phone?.Trim(),
+                    //Phone = ct.Phone?.Trim(),
                     Email = ct.Email?.Trim(),
                     Position = ct.Position?.Trim(),
                     IsPrimary = false
@@ -230,7 +230,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 SupplierId = dto.SupplierId,
                 Name = dto.Name.Trim(),
-                Phone = dto.Phone?.Trim(),
+                //Phone = dto.Phone?.Trim(),
                 Email = dto.Email?.Trim(),
                 Position = dto.Position?.Trim(),
                 IsPrimary = false   // phụ
@@ -343,7 +343,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 Active = x.Active,
                 PrimaryPhone = primaryPhone?.PhoneNumber,
                 PrimaryContactName = primaryContact?.Name,
-                PrimaryContactPhone = primaryContact?.Phone,
+                //PrimaryContactPhone = primaryContact?.Phone,
                 PrimaryBankName = primaryBank?.BankName,
                 PrimaryAccountNumber = primaryBank?.AccountNumber,
             };
@@ -397,7 +397,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 {
                     SupplierContactId = c.SupplierContactId,
                     Name = c.Name ?? "",
-                    Phone = c.Phone,
+                    //Phone = c.Phone,
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary

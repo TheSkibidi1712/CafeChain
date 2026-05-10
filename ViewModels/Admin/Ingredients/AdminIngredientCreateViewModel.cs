@@ -1,5 +1,5 @@
 using CafeChain.Application.DTOs.Admin.Ingredients;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Ingredients;
 
 namespace CafeChain.ViewModels.Admin.Ingredients
 {

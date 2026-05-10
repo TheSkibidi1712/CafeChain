@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 using CafeChain.Application.Interfaces.Admin.Settings;
 using CafeChain.Application.Results;
 using CafeChain.Data;
-using CafeChain.Models;
+using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 

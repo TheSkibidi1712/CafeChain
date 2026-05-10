@@ -286,9 +286,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     Name = x.Name,
                     // Lấy giá NCC chính, fallback giá NCC đầu tiên, fallback 0
                     BaseCost = x.IngredientSuppliers.Any(s => s.IsPrimary) 
-                        ? x.IngredientSuppliers.First(s => s.IsPrimary).Price
+                        ? x.IngredientSuppliers.First(s => s.IsPrimary).CurrentPrice
                         : x.IngredientSuppliers.Any() 
-                            ? x.IngredientSuppliers.First().Price 
+                            ? x.IngredientSuppliers.First().CurrentPrice
                             : 0m,
                     UnitId = x.BaseUnitId,
                     UnitName = x.BaseUnit.Name

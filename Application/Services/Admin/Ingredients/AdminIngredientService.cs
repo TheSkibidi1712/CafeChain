@@ -2,7 +2,7 @@ using CafeChain.Application.DTOs.Admin.Ingredients;
 using CafeChain.Application.Interfaces.Admin.Ingredients;
 using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
 using CafeChain.Application.DTOs.Admin.Units;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Ingredients;
 
 namespace CafeChain.Application.Services.Admin.Ingredients
 {

@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Locations;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;

@@ -101,7 +101,7 @@ namespace CafeChain.Application.Services.Cart
 
                 var customer = await _context.Customers.FirstOrDefaultAsync(c => c.CustomerId == customerId.Value);
                 var phone = await _context.CustomerPhones.FirstOrDefaultAsync(p => p.CustomerPhoneId == model.SelectedPhoneId && p.CustomerId == customerId.Value);
-                var address = await _context.CustomersAddresses
+                var address = await _context.CustomerAddresses
                     .Include(a => a.Ward)
                     .Include(a => a.District)
                     .Include(a => a.Province)
@@ -357,7 +357,7 @@ namespace CafeChain.Application.Services.Cart
 
         public async Task<List<CustomerAddressViewModel>> GetSavedAddressesAsync(int customerId)
         {
-            var addresses = await _context.CustomersAddresses
+            var addresses = await _context.CustomerAddresses
                 .Include(a => a.Ward)
                 .Include(a => a.District)
                 .Include(a => a.Province)

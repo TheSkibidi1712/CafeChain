@@ -1,5 +1,5 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
-using CafeChain.Models.Inventories;
+using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 
