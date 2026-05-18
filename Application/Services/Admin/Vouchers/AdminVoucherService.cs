@@ -76,34 +76,47 @@ namespace CafeChain.Application.Services.Admin.Vouchers
 
         public async Task<decimal> CalculateMemberDiscountAsync(int customerId, decimal subTotal)
         {
-            if (customerId == 0) return 0;
-
-            var points = await _context.CustomerPoints
-                .Where(p => p.CustomerId == customerId)
-                .Select(p => p.Points)
-                .FirstOrDefaultAsync();
-
-            var level = await _context.MemberLevels
-                .Where(l => points >= l.MinPoints && (l.MaxPoints == null || points <= l.MaxPoints))
-                .OrderByDescending(l => l.MinPoints)
-                .FirstOrDefaultAsync();
-
-            if (level != null && level.DiscountPercent > 0)
+            if (customerId == 0)
             {
-                return subTotal * level.DiscountPercent / 100m;
+                return 0;
             }
 
-            return 0;
+            var customer = await _context.Customers
+                .Include(x => x.MemberLevel)
+                .FirstOrDefaultAsync(x => x.CustomerId == customerId);
+
+            if (customer == null)
+            {
+                return 0;
+            }
+
+            if (customer.MemberLevel == null)
+            {
+                return 0;
+            }
+
+            if (customer.MemberLevel.DiscountPercent <= 0)
+            {
+                return 0;
+            }
+
+            return subTotal * customer.MemberLevel.DiscountPercent / 100m;
         }
 
         public async Task<int> GetCustomerPointsAsync(int customerId)
         {
-            if (customerId == 0) return 0;
-            return await _context.CustomerPoints
-                .Where(p => p.CustomerId == customerId)
-                .Select(p => p.Points)
-                .FirstOrDefaultAsync();
+            if (customerId == 0)
+            {
+                return 0;
+            }
+
+            var customer = await _context.Customers
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.CustomerId == customerId);
+
+            return customer?.CurrentPoints ?? 0;
         }
+
 
         public async Task<IEnumerable<Voucher>> GetAllVouchersAsync()
         {

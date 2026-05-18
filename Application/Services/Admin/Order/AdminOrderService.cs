@@ -4,6 +4,7 @@ using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Admin;
 using CafeChain.Data;
 using CafeChain.Hubs;
+using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -280,30 +281,80 @@ namespace CafeChain.Application.Services.Admin
             // [MISSION 2] Trừ tồn kho thực tế khi đơn hàng hoàn thành
             await _inventoryService.ConfirmInventoryDeductionAsync(orderId);
 
-            // Cộng điểm thưởng cho Khách Hàng (10,000 VND = 1 điểm)
+            // Cộng điểm thưởng cho khách hàng
+            // Rule: 10,000 VND = 1 point
+
             if (order.CustomerId.HasValue && order.Total > 0)
             {
                 int earnedPoints = (int)Math.Floor(order.Total / 10000);
+
                 if (earnedPoints > 0)
                 {
-                    var customerPoint = await _context.CustomerPoints
-                        .FirstOrDefaultAsync(cp => cp.CustomerId == order.CustomerId.Value);
-                        
-                    if (customerPoint != null)
+                    var customer = await _context.Customers
+                        .FirstOrDefaultAsync(x => x.CustomerId == order.CustomerId.Value);
+
+                    if (customer != null)
                     {
-                        customerPoint.Points += earnedPoints;
-                    }
-                    else
-                    {
-                        _context.CustomerPoints.Add(new CafeChain.Models.Customers.CustomerPoint
+                        // =========================
+                        // UPDATE SNAPSHOT
+                        // =========================
+
+                        customer.CurrentPoints += earnedPoints;
+
+                        customer.TotalSpent += order.Total;
+
+                        customer.TotalOrders += 1;
+
+                        customer.LastOrderDate = DateTime.UtcNow;
+
+                        customer.UpdatedAt = DateTime.UtcNow;
+
+                        // =========================
+                        // CREATE TRANSACTION LEDGER
+                        // =========================
+
+                        var pointTransaction = new PointTransaction
                         {
-                            CustomerId = order.CustomerId.Value,
-                            Points = earnedPoints
-                        });
+                            CustomerId = customer.CustomerId,
+
+                            OrderId = order.OrderId,
+
+                            // Earn => positive points
+                            Points = earnedPoints,
+
+                            // Nên seed sẵn type EARN = 1
+                            PointTransactionTypeId = 1,
+
+                            BalanceAfter = customer.CurrentPoints,
+
+                            CreatedAt = DateTime.UtcNow,
+
+                            // Ví dụ point expire sau 1 năm
+                            ExpiredAt = DateTime.UtcNow.AddYears(1)
+                        };
+
+                        _context.PointTransactions.Add(pointTransaction);
+
+                        // =========================
+                        // AUTO MEMBER LEVEL UPDATE
+                        // =========================
+
+                        var newLevel = await _context.MemberLevels
+                            .Where(x => x.MinPoints <= customer.CurrentPoints
+                                && (x.MaxPoints == null || customer.CurrentPoints <= x.MaxPoints))
+                            .OrderByDescending(x => x.MinPoints)
+                            .FirstOrDefaultAsync();
+
+                        if (newLevel != null)
+                        {
+                            customer.MemberLevelId = newLevel.MemberId;
+                        }
+
+                        await _context.SaveChangesAsync();
                     }
-                    await _context.SaveChangesAsync();
                 }
             }
+
 
             await _hubContext.Clients.Group("AdminDashboard")
                 .SendAsync("ReceiveOrderStatusUpdate", orderId, order.OrderStatusId);

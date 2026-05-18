@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260510143058_InitialCreate")]
+    [Migration("20260518144241_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -493,7 +493,7 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerId"));
 
-                    b.Property<int>("AccountId")
+                    b.Property<int?>("AccountId")
                         .HasColumnType("int");
 
                     b.Property<bool>("Active")
@@ -502,16 +502,33 @@ namespace CafeChain.Migrations
                         .HasDefaultValue(true);
 
                     b.Property<string>("AvatarUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Category")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<int>("CurrentPoints")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("CustomerCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<DateTime?>("DateOfBirth")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("DeletedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("FullName")
@@ -519,10 +536,43 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("Gender")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<DateTime?>("LastOrderDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("MemberLevelId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalOrders")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<decimal>("TotalSpent")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("decimal(18,2)")
+                        .HasDefaultValue(0m);
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("CustomerId");
 
                     b.HasIndex("AccountId")
+                        .IsUnique()
+                        .HasFilter("[AccountId] IS NOT NULL");
+
+                    b.HasIndex("CustomerCode")
                         .IsUnique();
+
+                    b.HasIndex("MemberLevelId");
 
                     b.ToTable("Customers", (string)null);
 
@@ -533,9 +583,16 @@ namespace CafeChain.Migrations
                             AccountId = 111,
                             Active = true,
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            Category = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            CurrentPoints = 0,
+                            CustomerCode = "CUS000111",
                             DateOfBirth = new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            FullName = "Khách Hàng Mới"
+                            FullName = "Khách Hàng Mới",
+                            Gender = 1,
+                            IsDeleted = false,
+                            TotalOrders = 0,
+                            TotalSpent = 0m
                         });
                 });
 
@@ -674,38 +731,6 @@ namespace CafeChain.Migrations
                             CustomerId = 111,
                             IsDefault = false,
                             Phone = "0900111222"
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Customers.CustomerPoint", b =>
-                {
-                    b.Property<int>("CustomerPointId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CustomerPointId"));
-
-                    b.Property<int>("CustomerId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("Points")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(0);
-
-                    b.HasKey("CustomerPointId");
-
-                    b.HasIndex("CustomerId")
-                        .IsUnique();
-
-                    b.ToTable("CustomerPoints", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            CustomerPointId = 1,
-                            CustomerId = 111,
-                            Points = 0
                         });
                 });
 
@@ -6900,11 +6925,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 6, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1664),
+                            EndDate = new DateTime(2026, 6, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2176),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 5, 3, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1656)
+                            StartDate = new DateTime(2026, 5, 11, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2169)
                         },
                         new
                         {
@@ -6912,10 +6937,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 5, 25, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1667),
+                            EndDate = new DateTime(2026, 6, 2, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2201),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 5, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1666)
+                            StartDate = new DateTime(2026, 5, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2200)
                         },
                         new
                         {
@@ -6923,11 +6948,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 7, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1674),
+                            EndDate = new DateTime(2026, 7, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 4, 10, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1674)
+                            StartDate = new DateTime(2026, 4, 18, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203)
                         });
                 });
 
@@ -7097,10 +7122,16 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Customers.Account", "Account")
                         .WithOne("Customer")
                         .HasForeignKey("CafeChain.Models.Customers.Customer", "AccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("CafeChain.Models.Loyalties.MemberLevel", "MemberLevel")
+                        .WithMany()
+                        .HasForeignKey("MemberLevelId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Account");
+
+                    b.Navigation("MemberLevel");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Customers.CustomerAddress", b =>
@@ -7150,17 +7181,6 @@ namespace CafeChain.Migrations
                 {
                     b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
                         .WithMany("CustomerPhones")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Customers.CustomerPoint", b =>
-                {
-                    b.HasOne("CafeChain.Models.Customers.Customer", "Customer")
-                        .WithMany("CustomerPoints")
                         .HasForeignKey("CustomerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -8305,8 +8325,6 @@ namespace CafeChain.Migrations
                     b.Navigation("CustomerBanks");
 
                     b.Navigation("CustomerPhones");
-
-                    b.Navigation("CustomerPoints");
 
                     b.Navigation("CustomerVouchers");
 

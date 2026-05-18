@@ -631,26 +631,26 @@ namespace CafeChain.Application.Services.Cart
                                 payment.PaidAt = DateTime.Now;
                             }
 
-                            // Cộng điểm thưởng cho Khách Hàng (10,000 VND = 1 điểm)
+                            // Cộng điểm thưởng cho khách hàng (10,000 VND = 1 điểm)
                             if (order.CustomerId.HasValue && order.Total > 0)
                             {
-                                int earnedPoints = (int)Math.Floor(order.Total / 10000);
-                                if (earnedPoints > 0)
+                                var customer = await context.Customers
+                                    .FirstOrDefaultAsync(c => c.CustomerId == order.CustomerId.Value);
+
+                                if (customer != null)
                                 {
-                                    var customerPoint = await context.CustomerPoints
-                                        .FirstOrDefaultAsync(cp => cp.CustomerId == order.CustomerId.Value);
-                                        
-                                    if (customerPoint != null)
+                                    int earnedPoints = (int)(order.Total / 10000);
+
+                                    // Update thông tin mua hàng
+                                    customer.TotalSpent += order.Total;
+                                    customer.TotalOrders += 1;
+                                    customer.LastOrderDate = DateTime.UtcNow;
+                                    customer.UpdatedAt = DateTime.UtcNow;
+
+                                    // Chỉ cộng điểm nếu đủ điều kiện
+                                    if (earnedPoints > 0)
                                     {
-                                        customerPoint.Points += earnedPoints;
-                                    }
-                                    else
-                                    {
-                                        context.CustomerPoints.Add(new CafeChain.Models.Customers.CustomerPoint
-                                        {
-                                            CustomerId = order.CustomerId.Value,
-                                            Points = earnedPoints
-                                        });
+                                        customer.CurrentPoints += earnedPoints;
                                     }
                                 }
                             }

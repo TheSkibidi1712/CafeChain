@@ -35,7 +35,6 @@ namespace CafeChain.Data
         public DbSet<Customer> Customers { get; set; }
         public DbSet<CustomerAddress> CustomerAddresses { get; set; }
         public DbSet<CustomerBank> CustomerBanks { get; set; }
-        public DbSet<CustomerPoint> CustomerPoints { get; set; }
         public DbSet<CustomerPhone> CustomerPhones { get; set; }
         public DbSet<PasswordResetOtp> PasswordResetOtps { get; set; }
         public DbSet<Rating> Ratings { get; set; }

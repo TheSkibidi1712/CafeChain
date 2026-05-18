@@ -32,7 +32,6 @@ namespace CafeChain.Controllers
 
             var accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var customer = await _context.Customers
-                .Include(c => c.CustomerPoints)
                 .FirstOrDefaultAsync(c => c.AccountId == accountId);
 
             if (customer == null) return Json(new { isAuthenticated = false });
@@ -59,7 +58,7 @@ namespace CafeChain.Controllers
 
             return Json(new {
                 isAuthenticated = true,
-                points = customer.CustomerPoints.Sum(p => p.Points),
+                points = customer.CurrentPoints,
                 isNewUser = isFreeSpin,
                 spinCost = isFreeSpin ? 0 : activeWheel.SpinCost,
                 canSpinToday = canSpinToday,
@@ -77,7 +76,6 @@ namespace CafeChain.Controllers
 
             var accountId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var customer = await _context.Customers
-                .Include(c => c.CustomerPoints)
                 .FirstOrDefaultAsync(c => c.AccountId == accountId);
 
             if (customer == null) return Json(new { success = false, message = "Không tìm thấy thông tin khách hàng." });
@@ -105,7 +103,7 @@ namespace CafeChain.Controllers
                 return Json(new { success = false, message = "Bạn đã hết lượt quay ngày hôm nay. Hãy quay lại vào ngày mai nhé!" });
             }
 
-            var totalPoints = customer.CustomerPoints.Sum(p => p.Points);
+            var totalPoints = customer.CurrentPoints;
             bool isFreeSpin = (totalSpins == 0);
 
             if (!isFreeSpin && totalPoints < activeWheel.SpinCost)
@@ -120,8 +118,7 @@ namespace CafeChain.Controllers
             // Trừ điểm nếu không phải free
             if (!isFreeSpin)
             {
-                var pointRecord = customer.CustomerPoints.First(); // Giả sử chỉ có 1 record điểm chính
-                pointRecord.Points -= activeWheel.SpinCost;
+                customer.CurrentPoints -= activeWheel.SpinCost;
             }
 
             // Lưu lịch sử quay
@@ -154,7 +151,7 @@ namespace CafeChain.Controllers
                 prizeIndex = prize.SlotIndex,
                 isLose = prize.IsLose,
                 voucherCode = prize.Voucher?.Code,
-                newPoints = customer.CustomerPoints.Sum(p => p.Points)
+                newPoints = customer.CurrentPoints
             });
         }
 

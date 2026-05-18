@@ -576,30 +576,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Customers",
-                columns: table => new
-                {
-                    CustomerId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    AccountId = table.Column<int>(type: "int", nullable: false),
-                    FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Customers", x => x.CustomerId);
-                    table.ForeignKey(
-                        name: "FK_Customers_Accounts_AccountId",
-                        column: x => x.AccountId,
-                        principalTable: "Accounts",
-                        principalColumn: "AccountId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Provinces",
                 columns: table => new
                 {
@@ -641,6 +617,47 @@ namespace CafeChain.Migrations
                         principalTable: "InventoryDocumentSnapshots",
                         principalColumn: "InventoryDocumentSnapshotId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Customers",
+                columns: table => new
+                {
+                    CustomerId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AccountId = table.Column<int>(type: "int", nullable: true),
+                    CustomerCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Gender = table.Column<int>(type: "int", nullable: true),
+                    FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Category = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
+                    MemberLevelId = table.Column<int>(type: "int", nullable: true),
+                    TotalSpent = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
+                    TotalOrders = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    CurrentPoints = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    LastOrderDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Customers", x => x.CustomerId);
+                    table.ForeignKey(
+                        name: "FK_Customers_Accounts_AccountId",
+                        column: x => x.AccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "AccountId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Customers_MemberLevels_MemberLevelId",
+                        column: x => x.MemberLevelId,
+                        principalTable: "MemberLevels",
+                        principalColumn: "MemberId",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -824,6 +841,26 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Districts",
+                columns: table => new
+                {
+                    DistrictId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    ProvinceId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Districts", x => x.DistrictId);
+                    table.ForeignKey(
+                        name: "FK_Districts_Provinces_ProvinceId",
+                        column: x => x.ProvinceId,
+                        principalTable: "Provinces",
+                        principalColumn: "ProvinceId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "CustomerBanks",
                 columns: table => new
                 {
@@ -859,26 +896,6 @@ namespace CafeChain.Migrations
                     table.PrimaryKey("PK_CustomerPhones", x => x.CustomerPhoneId);
                     table.ForeignKey(
                         name: "FK_CustomerPhones_Customers_CustomerId",
-                        column: x => x.CustomerId,
-                        principalTable: "Customers",
-                        principalColumn: "CustomerId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "CustomerPoints",
-                columns: table => new
-                {
-                    CustomerPointId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    CustomerId = table.Column<int>(type: "int", nullable: false),
-                    Points = table.Column<int>(type: "int", nullable: false, defaultValue: 0)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_CustomerPoints", x => x.CustomerPointId);
-                    table.ForeignKey(
-                        name: "FK_CustomerPoints_Customers_CustomerId",
                         column: x => x.CustomerId,
                         principalTable: "Customers",
                         principalColumn: "CustomerId",
@@ -938,26 +955,6 @@ namespace CafeChain.Migrations
                         column: x => x.VoucherId,
                         principalTable: "Vouchers",
                         principalColumn: "VoucherId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Districts",
-                columns: table => new
-                {
-                    DistrictId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    ProvinceId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Districts", x => x.DistrictId);
-                    table.ForeignKey(
-                        name: "FK_Districts_Provinces_ProvinceId",
-                        column: x => x.ProvinceId,
-                        principalTable: "Provinces",
-                        principalColumn: "ProvinceId",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -2815,9 +2812,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1664), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 3, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1656), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 5, 25, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1667), null, null, 500, null, 50000m, new DateTime(2026, 5, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1666), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 9, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1674), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 10, 21, 30, 57, 877, DateTimeKind.Local).AddTicks(1674), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2176), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 11, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2169), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 2, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2201), null, null, 500, null, 50000m, new DateTime(2026, 5, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2200), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 18, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -2842,8 +2839,8 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Customers",
-                columns: new[] { "CustomerId", "AccountId", "Active", "AvatarUrl", "CreatedAt", "DateOfBirth", "FullName" },
-                values: new object[] { 111, 111, true, "/Images/Upload/avtdf.jpg", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Khách Hàng Mới" });
+                columns: new[] { "CustomerId", "AccountId", "Active", "AvatarUrl", "Category", "CreatedAt", "CustomerCode", "DateOfBirth", "DeletedAt", "FullName", "Gender", "LastOrderDate", "MemberLevelId", "UpdatedAt" },
+                values: new object[] { 111, 111, true, "/Images/Upload/avtdf.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Drinks",
@@ -3010,11 +3007,6 @@ namespace CafeChain.Migrations
                 table: "CustomerPhones",
                 columns: new[] { "CustomerPhoneId", "CustomerId", "IsDefault", "Phone" },
                 values: new object[] { 1, 111, false, "0900111222" });
-
-            migrationBuilder.InsertData(
-                table: "CustomerPoints",
-                columns: new[] { "CustomerPointId", "CustomerId" },
-                values: new object[] { 1, 111 });
 
             migrationBuilder.InsertData(
                 table: "DrinkDefaultToppings",
@@ -3490,16 +3482,22 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_CustomerPoints_CustomerId",
-                table: "CustomerPoints",
-                column: "CustomerId",
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Customers_AccountId",
                 table: "Customers",
                 column: "AccountId",
+                unique: true,
+                filter: "[AccountId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_CustomerCode",
+                table: "Customers",
+                column: "CustomerCode",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Customers_MemberLevelId",
+                table: "Customers",
+                column: "MemberLevelId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_CustomerVouchers_CustomerId_VoucherId",
@@ -4658,9 +4656,6 @@ namespace CafeChain.Migrations
                 name: "CustomerPhones");
 
             migrationBuilder.DropTable(
-                name: "CustomerPoints");
-
-            migrationBuilder.DropTable(
                 name: "CustomerVouchers");
 
             migrationBuilder.DropTable(
@@ -4698,9 +4693,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "InventoryTransferDetails");
-
-            migrationBuilder.DropTable(
-                name: "MemberLevels");
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");
@@ -4914,6 +4906,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "ProductTypes");
+
+            migrationBuilder.DropTable(
+                name: "MemberLevels");
 
             migrationBuilder.DropTable(
                 name: "Staffs");

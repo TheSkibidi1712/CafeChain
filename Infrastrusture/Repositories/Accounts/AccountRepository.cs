@@ -59,13 +59,6 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                     IsDefault = true
                 });
 
-                // ===== 3. POINT =====
-                _context.CustomerPoints.Add(new CustomerPoint
-                {
-                    CustomerId = customer.CustomerId,
-                    Points = 0
-                });
-
                 // ===== 4. ROLE =====
                 var customerRoleId = await GetRoleIdByNameAsync(RoleConstants.Customer);
                 _context.AccountRoles.Add(new AccountRole

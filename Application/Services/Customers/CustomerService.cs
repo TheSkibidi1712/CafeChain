@@ -4,7 +4,10 @@ using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Data; // Chỉnh lại theo tên DbContext của bác
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Customer;
+using CafeChain.Models.Loyalties;
 using CafeChain.ViewModels.Customers;
+using Castle.Core.Resource;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
@@ -23,23 +26,29 @@ namespace CafeChain.Application.Services.Customers
             _geocodingService = geocodingService;
         }
 
-        public async Task<CustomerProfileViewModel> GetCustomerProfileAsync(string accountId)
+        public async Task<CustomerProfileViewModel?> GetCustomerProfileAsync(string accountId)
         {
-            // Ép kiểu accountId từ chuỗi (lấy từ Claim) sang số (int)
+            // Parse accountId từ Claim
             if (!int.TryParse(accountId, out int accId))
             {
                 return null;
             }
 
-            // Truy xuất Account kèm Customer và các thông tin phụ
-            var account = await _context.Accounts // Thay bằng bảng Account tương ứng
+            // =========================
+            // LOAD ACCOUNT + CUSTOMER
+            // =========================
+
+            var account = await _context.Accounts
+                .Include(a => a.Customer)
+                    .ThenInclude(c => c.MemberLevel)
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerAddresses)
-                        .ThenInclude(ca => ca.Ward)         // 🔥 UPDATE: Kéo Phường
+                        .ThenInclude(ca => ca.Ward)
                             .ThenInclude(w => w.District)
-                                .ThenInclude(d => d.Province)   // 🔥 UPDATE: Kéo Tỉnh
+                                .ThenInclude(d => d.Province)
                 .Include(a => a.Customer)
                     .ThenInclude(c => c.CustomerPhones)
+                .AsNoTracking()
                 .FirstOrDefaultAsync(a => a.AccountId == accId);
 
             if (account == null || account.Customer == null)
@@ -47,54 +56,87 @@ namespace CafeChain.Application.Services.Customers
                 return null;
             }
 
-            // --- PHASE 1: LOYALTY SYSTEM ---
-            var totalPoints = await _context.CustomerPoints
-                .Where(cp => cp.CustomerId == account.Customer.CustomerId)
-                .Select(cp => cp.Points)
-                .FirstOrDefaultAsync();
+            var customer = account.Customer;
 
-            var memberLevels = await _context.MemberLevels
-                .OrderBy(ml => ml.MinPoints)
-                .ToListAsync();
+            // =========================
+            // CURRENT POINTS
+            // =========================
 
-            var currentTier = memberLevels.LastOrDefault(ml => ml.MinPoints <= totalPoints) 
-                ?? memberLevels.FirstOrDefault();
+            int totalPoints = customer.CurrentPoints;
 
-            var nextTier = memberLevels.FirstOrDefault(ml => ml.MinPoints > totalPoints);
+            // =========================
+            // MEMBER LEVEL
+            // =========================
 
-            int pointsNeeded = 0;
-            double progressPercentage = 100;
+            var currentTier = customer.MemberLevel;
+
             string currentTierName = currentTier?.Name ?? "Thành viên mới";
-            string nextTierName = string.Empty;
 
-            if (nextTier != null && currentTier != null)
+            // =========================
+            // NEXT TIER
+            // =========================
+
+            MemberLevel? nextTier = null;
+
+            if (currentTier != null)
             {
-                nextTierName = nextTier.Name;
-                pointsNeeded = nextTier.MinPoints - totalPoints;
-                
-                int currentMin = currentTier.MinPoints;
-                int nextMin = nextTier.MinPoints;
-
-                progressPercentage = (double)(totalPoints - currentMin) / (nextMin - currentMin) * 100;
-                if (progressPercentage < 0) progressPercentage = 0;
-                if (progressPercentage > 100) progressPercentage = 100;
+                nextTier = await _context.MemberLevels
+                    .Where(x => x.MinPoints > currentTier.MinPoints)
+                    .OrderBy(x => x.MinPoints)
+                    .FirstOrDefaultAsync();
+            }
+            else
+            {
+                nextTier = await _context.MemberLevels
+                    .OrderBy(x => x.MinPoints)
+                    .FirstOrDefaultAsync();
             }
 
-            // Map dữ liệu sang ViewModel
+            string nextTierName = string.Empty;
+
+            int pointsNeeded = 0;
+
+            double progressPercentage = 100;
+
+            if (nextTier != null)
+            {
+                nextTierName = nextTier.Name;
+
+                int currentMin = currentTier?.MinPoints ?? 0;
+
+                int nextMin = nextTier.MinPoints;
+
+                pointsNeeded = Math.Max(0, nextMin - totalPoints);
+
+                progressPercentage =
+                    (double)(totalPoints - currentMin)
+                    / (nextMin - currentMin) * 100;
+
+                progressPercentage = Math.Clamp(progressPercentage, 0, 100);
+            }
+
+            // =========================
+            // MAP VIEWMODEL
+            // =========================
+
             return new CustomerProfileViewModel
             {
-                Customer = account.Customer,
-                Email = account.Email,
-                TotalPoints = totalPoints,
-                CurrentTierName = currentTierName,
-                NextTierName = nextTierName,
-                PointsNeeded = pointsNeeded,
-                ProgressPercentage = progressPercentage
-                // Giả sử SĐT lúc đăng ký được lưu trong bảng Account (hoặc tùy cấu trúc bác)
-                // PhoneNumber = account.PhoneNumber 
-            };
+                Customer = customer,
 
+                Email = account.Email,
+
+                TotalPoints = totalPoints,
+
+                CurrentTierName = currentTierName,
+
+                NextTierName = nextTierName,
+
+                PointsNeeded = pointsNeeded,
+
+                ProgressPercentage = progressPercentage
+            };
         }
+
         public async Task<(string Url, bool IsReused)> UpdateAvatarAsync(int customerId, IFormFile file)
         {
             // Gọi FileService để xử lý file vật lý
@@ -284,48 +326,110 @@ namespace CafeChain.Application.Services.Customers
 
         public async Task<(bool Success, string Message, int CustomerId)> QuickRegisterAsync(string fullName, string phone)
         {
-            var exists = await _context.CustomerPhones.AnyAsync(p => p.Phone == phone);
-            if (exists) return (false, "Số điện thoại này đã được sử dụng.", 0);
+            // =========================
+            // CHECK DUPLICATE PHONE
+            // =========================
 
-            var account = new Account
+            var exists = await _context.CustomerPhones
+                .AnyAsync(p => p.Phone == phone);
+
+            if (exists)
             {
-                Email = $"pos_{phone}@cafechain.com",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
-                Active = true,
-                CreatedAt = DateTime.Now
-            };
-            _context.Accounts.Add(account);
-            await _context.SaveChangesAsync();
+                return (false, "Số điện thoại này đã được sử dụng.", 0);
+            }
 
-            var customer = new Customer
+            using var transaction = await _context.Database.BeginTransactionAsync();
+
+            try
             {
-                AccountId = account.AccountId,
-                FullName = fullName,
-                CreatedAt = DateTime.Now,
-                Active = true
-            };
-            _context.Customers.Add(customer);
-            await _context.SaveChangesAsync();
+                // =========================
+                // CREATE ACCOUNT
+                // =========================
 
-            var cp = new CustomerPhone
+                var account = new Account
+                {
+                    Email = $"pos_{phone}@cafechain.com",
+
+                    PasswordHash = BCrypt.Net.BCrypt
+                        .HashPassword(Guid.NewGuid().ToString()),
+
+                    Active = true,
+
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Accounts.Add(account);
+
+                await _context.SaveChangesAsync();
+
+                // =========================
+                // CREATE CUSTOMER
+                // =========================
+
+                var customer = new Customer
+                {
+                    AccountId = account.AccountId,
+
+                    CustomerCode = $"CUS{DateTime.UtcNow.Ticks}",
+
+                    FullName = fullName,
+
+                    Category = CustomerCategory.Registered,
+
+                    CurrentPoints = 0,
+
+                    TotalSpent = 0,
+
+                    TotalOrders = 0,
+
+                    Active = true,
+
+                    CreatedAt = DateTime.UtcNow,
+
+                    IsDeleted = false
+                };
+
+                _context.Customers.Add(customer);
+
+                await _context.SaveChangesAsync();
+
+                // =========================
+                // CREATE PHONE
+                // =========================
+
+                var customerPhone = new CustomerPhone
+                {
+                    CustomerId = customer.CustomerId,
+
+                    Phone = phone,
+
+                    IsDefault = true
+                };
+
+                _context.CustomerPhones.Add(customerPhone);
+
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+
+                return (
+                    true,
+                    "Đăng ký thành viên thành công!",
+                    customer.CustomerId
+                );
+            }
+            catch
             {
-                CustomerId = customer.CustomerId,
-                Phone = phone,
-                IsDefault = true
-            };
-            _context.CustomerPhones.Add(cp);
+                await transaction.RollbackAsync();
 
-            var initialPoint = new CustomerPoint
-            {
-                CustomerId = customer.CustomerId,
-                Points = 0
-            };
-            _context.CustomerPoints.Add(initialPoint);
-
-            await _context.SaveChangesAsync();
-
-            return (true, "Đăng ký thành viên thành công!", customer.CustomerId);
+                return (
+                    false,
+                    "Đăng ký thành viên thất bại.",
+                    0
+                );
+            }
         }
+
 
         // ======================= LOCATION METHODS =========================
         public async Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync()
