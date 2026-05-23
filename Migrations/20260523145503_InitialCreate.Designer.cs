@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260518144241_InitialCreate")]
+    [Migration("20260523145503_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -501,9 +501,13 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("AvatarPublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<string>("AvatarUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<int>("Category")
                         .ValueGeneratedOnAdd()
@@ -582,7 +586,8 @@ namespace CafeChain.Migrations
                             CustomerId = 111,
                             AccountId = 111,
                             Active = true,
-                            AvatarUrl = "/Images/Upload/avtdf.jpg",
+                            AvatarPublicId = "cafechain/customers/default_avatar",
+                            AvatarUrl = "https://res.cloudinary.com/demo/image/upload/cafechain/customers/avtdf.jpg",
                             Category = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPoints = 0,
@@ -847,13 +852,21 @@ namespace CafeChain.Migrations
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<int>("RatingId")
                         .HasColumnType("int");
 
                     b.HasKey("RatingImageId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
 
                     b.HasIndex("RatingId");
 
@@ -1128,22 +1141,34 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkImageId"));
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
                     b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
                     b.Property<string>("ImageUrl")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<bool>("IsDefault")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.HasKey("DrinkImageId");
 
                     b.HasIndex("DrinkId");
+
+                    b.HasIndex("DrinkId", "IsDefault");
 
                     b.ToTable("DrinkImages", (string)null);
 
@@ -1151,170 +1176,218 @@ namespace CafeChain.Migrations
                         new
                         {
                             DrinkImageId = 1,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 1,
                             ImageUrl = "/Images/DrinkImages/cps1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/cps1"
                         },
                         new
                         {
                             DrinkImageId = 2,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 1,
                             ImageUrl = "/Images/DrinkImages/cps2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cps2"
                         },
                         new
                         {
                             DrinkImageId = 3,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 1,
                             ImageUrl = "/Images/DrinkImages/cps3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cps3"
                         },
                         new
                         {
                             DrinkImageId = 4,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 1,
                             ImageUrl = "/Images/DrinkImages/cps4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cps4"
                         },
                         new
                         {
                             DrinkImageId = 5,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 2,
                             ImageUrl = "/Images/DrinkImages/cpd1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/cpd1"
                         },
                         new
                         {
                             DrinkImageId = 6,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 2,
                             ImageUrl = "/Images/DrinkImages/cpd2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cpd2"
                         },
                         new
                         {
                             DrinkImageId = 7,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 2,
                             ImageUrl = "/Images/DrinkImages/cpd3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cpd3"
                         },
                         new
                         {
                             DrinkImageId = 8,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 2,
                             ImageUrl = "/Images/DrinkImages/cpd4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/cpd4"
                         },
                         new
                         {
                             DrinkImageId = 9,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 3,
                             ImageUrl = "/Images/DrinkImages/trasuatranchauden1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/trasuatranchauden1"
                         },
                         new
                         {
                             DrinkImageId = 10,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 3,
                             ImageUrl = "/Images/DrinkImages/trasuatranchauden2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuatranchauden2"
                         },
                         new
                         {
                             DrinkImageId = 11,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 3,
                             ImageUrl = "/Images/DrinkImages/trasuatranchauden3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuatranchauden3"
                         },
                         new
                         {
                             DrinkImageId = 12,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 3,
                             ImageUrl = "/Images/DrinkImages/trasuatranchauden4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuatranchauden4"
                         },
                         new
                         {
                             DrinkImageId = 13,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 4,
                             ImageUrl = "/Images/DrinkImages/trasuasocola1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/trasuasocola1"
                         },
                         new
                         {
                             DrinkImageId = 14,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 4,
                             ImageUrl = "/Images/DrinkImages/trasuasocola2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuasocola2"
                         },
                         new
                         {
                             DrinkImageId = 15,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 4,
                             ImageUrl = "/Images/DrinkImages/trasuasocola3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuasocola3"
                         },
                         new
                         {
                             DrinkImageId = 16,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 4,
                             ImageUrl = "/Images/DrinkImages/trasuasocola4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/trasuasocola4"
                         },
                         new
                         {
                             DrinkImageId = 17,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 5,
                             ImageUrl = "/Images/DrinkImages/sting1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/sting1"
                         },
                         new
                         {
                             DrinkImageId = 18,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 5,
                             ImageUrl = "/Images/DrinkImages/sting2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/sting2"
                         },
                         new
                         {
                             DrinkImageId = 19,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 5,
                             ImageUrl = "/Images/DrinkImages/sting3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/sting3"
                         },
                         new
                         {
                             DrinkImageId = 20,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 5,
                             ImageUrl = "/Images/DrinkImages/sting4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/sting4"
                         },
                         new
                         {
                             DrinkImageId = 21,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 6,
                             ImageUrl = "/Images/DrinkImages/coca1.jpg",
-                            IsDefault = true
+                            IsDefault = true,
+                            PublicId = "drink-images/coca1"
                         },
                         new
                         {
                             DrinkImageId = 22,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 6,
                             ImageUrl = "/Images/DrinkImages/coca2.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/coca2"
                         },
                         new
                         {
                             DrinkImageId = 23,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 6,
                             ImageUrl = "/Images/DrinkImages/coca3.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/coca3"
                         },
                         new
                         {
                             DrinkImageId = 24,
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             DrinkId = 6,
                             ImageUrl = "/Images/DrinkImages/coca4.jpg",
-                            IsDefault = false
+                            IsDefault = false,
+                            PublicId = "drink-images/coca4"
                         });
                 });
 
@@ -2043,10 +2116,13 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("ImagePublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<string>("ImageUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -2068,6 +2144,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 1,
                             Active = true,
+                            ImagePublicId = "tranchauden",
                             ImageUrl = "/Images/ToppingImages/tranchauden.jpg",
                             Name = "Trân châu đen",
                             Price = 5000m
@@ -2076,6 +2153,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 2,
                             Active = true,
+                            ImagePublicId = "tranchautrang",
                             ImageUrl = "/Images/ToppingImages/tranchautrang.jpg",
                             Name = "Trân châu trắng",
                             Price = 5000m
@@ -2084,6 +2162,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 3,
                             Active = true,
+                            ImagePublicId = "phomaivien",
                             ImageUrl = "/Images/ToppingImages/phomaivien.jpg",
                             Name = "Phô mai viên",
                             Price = 7000m
@@ -2092,6 +2171,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 4,
                             Active = true,
+                            ImagePublicId = "khucbachchanmeo",
                             ImageUrl = "/Images/ToppingImages/khucbachchanmeo.jpg",
                             Name = "Khúc bạch chân mèo",
                             Price = 7000m
@@ -2100,6 +2180,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 5,
                             Active = true,
+                            ImagePublicId = "thachkhoaimon",
                             ImageUrl = "/Images/ToppingImages/thachkhoaimon.jpg",
                             Name = "Thạch khoai môn",
                             Price = 6000m
@@ -2108,6 +2189,7 @@ namespace CafeChain.Migrations
                         {
                             ToppingId = 6,
                             Active = true,
+                            ImagePublicId = "banhflan",
                             ImageUrl = "/Images/ToppingImages/banhflan.jpg",
                             Name = "Bánh flan",
                             Price = 6000m
@@ -5404,10 +5486,13 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Allowance")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("AvatarPublicId")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
                     b.Property<string>("AvatarUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<decimal>("BaseSalary")
                         .HasColumnType("decimal(18,2)");
@@ -5489,6 +5574,7 @@ namespace CafeChain.Migrations
                             AccountId = 101,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 50000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5507,6 +5593,7 @@ namespace CafeChain.Migrations
                             AccountId = 102,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 100000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5525,6 +5612,7 @@ namespace CafeChain.Migrations
                             AccountId = 103,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 80000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5543,6 +5631,7 @@ namespace CafeChain.Migrations
                             AccountId = 104,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 40000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5561,6 +5650,7 @@ namespace CafeChain.Migrations
                             AccountId = 105,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 45000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5579,6 +5669,7 @@ namespace CafeChain.Migrations
                             AccountId = 106,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 35000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5597,6 +5688,7 @@ namespace CafeChain.Migrations
                             AccountId = 107,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 30000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5615,6 +5707,7 @@ namespace CafeChain.Migrations
                             AccountId = 108,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 20000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5633,6 +5726,7 @@ namespace CafeChain.Migrations
                             AccountId = 109,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 12000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5651,6 +5745,7 @@ namespace CafeChain.Migrations
                             AccountId = 110,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 8000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5669,6 +5764,7 @@ namespace CafeChain.Migrations
                             AccountId = 122,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 25000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -5687,6 +5783,7 @@ namespace CafeChain.Migrations
                             AccountId = 123,
                             Active = true,
                             Allowance = 0m,
+                            AvatarPublicId = "staffs/default-avatar",
                             AvatarUrl = "/Images/Upload/avtdf.jpg",
                             BaseSalary = 28000000m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
@@ -6925,11 +7022,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 6, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2176),
+                            EndDate = new DateTime(2026, 6, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5867),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 5, 11, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2169)
+                            StartDate = new DateTime(2026, 5, 16, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5857)
                         },
                         new
                         {
@@ -6937,10 +7034,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 6, 2, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2201),
+                            EndDate = new DateTime(2026, 6, 7, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 5, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2200)
+                            StartDate = new DateTime(2026, 5, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870)
                         },
                         new
                         {
@@ -6948,11 +7045,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 7, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203),
+                            EndDate = new DateTime(2026, 7, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 4, 18, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203)
+                            StartDate = new DateTime(2026, 4, 23, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872)
                         });
                 });
 

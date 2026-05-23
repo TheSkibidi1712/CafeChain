@@ -114,10 +114,6 @@ namespace CafeChain.Data.Configurations.Customers
             entity.Property(x => x.FullName) 
                 .IsRequired() 
                 .HasMaxLength(200); 
-
-            entity.Property(x => x.AvatarUrl) 
-                .HasMaxLength(500) 
-                .IsRequired(false);
             
             entity.Property(x => x.DateOfBirth) 
                 .IsRequired(false); 
@@ -132,7 +128,17 @@ namespace CafeChain.Data.Configurations.Customers
                 .HasDefaultValue(true); 
 
             entity.Property(x => x.LastOrderDate) 
-                .IsRequired(false); 
+                .IsRequired(false);
+
+            // ================= AVATAR (CLOUDINARY) =================
+
+            entity.Property(x => x.AvatarUrl)
+                .HasMaxLength(1000)
+                .IsRequired(false);
+
+            entity.Property(x => x.AvatarPublicId)
+                .HasMaxLength(300)
+                .IsRequired(false);
 
             // ================= SOFT DELETE =================
 
@@ -221,7 +227,9 @@ namespace CafeChain.Data.Configurations.Customers
                         TotalOrders = 0,
                         CurrentPoints = 0,
                         LastOrderDate = null,
-                        AvatarUrl = "/Images/Upload/avtdf.jpg",
+                        AvatarUrl = "https://res.cloudinary.com/demo/image/upload/cafechain/customers/avtdf.jpg",
+
+                        AvatarPublicId = "cafechain/customers/default_avatar",
                         CreatedAt = new DateTime(2025, 1, 1),
                         UpdatedAt = null,
                         IsDeleted = false,
@@ -381,26 +389,52 @@ namespace CafeChain.Data.Configurations.Customers
 
     public class RatingImageConfiguration : IEntityTypeConfiguration<RatingImage>
     {
-        public void Configure(EntityTypeBuilder<RatingImage> entity)
+        public void Configure(
+            EntityTypeBuilder<RatingImage> entity)
         {
             entity.ToTable("RatingImages");
 
-            entity.HasKey(x => x.RatingImageId);
+            entity.HasKey(x =>
+                x.RatingImageId);
 
-            entity.Property(x => x.ImageUrl)
+            // ================= IMAGE =================
+
+            entity.Property(x =>
+                x.ImageUrl)
                 .IsRequired()
-                .HasMaxLength(500);
+                .HasMaxLength(1000);
 
-            entity.Property(x => x.CreatedAt)
-                .HasDefaultValueSql("GETDATE()");
+            entity.Property(x =>
+                x.PublicId)
+                .IsRequired()
+                .HasMaxLength(300);
 
-            entity.HasOne(x => x.Rating)
-                .WithMany(r => r.Images)
-                .HasForeignKey(x => x.RatingId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ================= AUDIT =================
 
-            // 🔥 index để load ảnh nhanh
-            entity.HasIndex(x => x.RatingId);
+            entity.Property(x =>
+                x.CreatedAt)
+                .HasDefaultValueSql(
+                    "GETDATE()");
+
+            // ================= RELATIONSHIP =================
+
+            entity.HasOne(x =>
+                    x.Rating)
+                .WithMany(x =>
+                    x.Images)
+                .HasForeignKey(x =>
+                    x.RatingId)
+                .OnDelete(
+                    DeleteBehavior.Cascade);
+
+            // ================= INDEX =================
+
+            entity.HasIndex(x =>
+                x.RatingId);
+
+            entity.HasIndex(x =>
+                x.PublicId)
+                .IsUnique();
         }
     }
 

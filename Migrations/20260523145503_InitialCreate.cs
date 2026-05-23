@@ -457,7 +457,8 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    ImagePublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -627,8 +628,8 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     AccountId = table.Column<int>(type: "int", nullable: true),
                     CustomerCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Gender = table.Column<int>(type: "int", nullable: true),
                     FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Gender = table.Column<int>(type: "int", nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Category = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     MemberLevelId = table.Column<int>(type: "int", nullable: true),
@@ -636,11 +637,12 @@ namespace CafeChain.Migrations
                     TotalOrders = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     CurrentPoints = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     LastOrderDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    AvatarPublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    IsDeleted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     DeletedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
@@ -991,8 +993,10 @@ namespace CafeChain.Migrations
                     DrinkImageId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DrinkId = table.Column<int>(type: "int", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false)
+                    ImageUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    PublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
                 {
@@ -1292,7 +1296,8 @@ namespace CafeChain.Migrations
                     RatingImageId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     RatingId = table.Column<int>(type: "int", nullable: false),
-                    ImageUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ImageUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    PublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
@@ -1562,8 +1567,9 @@ namespace CafeChain.Migrations
                     FaceDescriptor = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
+                    AvatarUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    AvatarPublicId = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    AvatarUrl = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
@@ -2777,15 +2783,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Toppings",
-                columns: new[] { "ToppingId", "Active", "ImageUrl", "Name", "Price" },
+                columns: new[] { "ToppingId", "Active", "ImagePublicId", "ImageUrl", "Name", "Price" },
                 values: new object[,]
                 {
-                    { 1, true, "/Images/ToppingImages/tranchauden.jpg", "Trân châu đen", 5000m },
-                    { 2, true, "/Images/ToppingImages/tranchautrang.jpg", "Trân châu trắng", 5000m },
-                    { 3, true, "/Images/ToppingImages/phomaivien.jpg", "Phô mai viên", 7000m },
-                    { 4, true, "/Images/ToppingImages/khucbachchanmeo.jpg", "Khúc bạch chân mèo", 7000m },
-                    { 5, true, "/Images/ToppingImages/thachkhoaimon.jpg", "Thạch khoai môn", 6000m },
-                    { 6, true, "/Images/ToppingImages/banhflan.jpg", "Bánh flan", 6000m }
+                    { 1, true, "tranchauden", "/Images/ToppingImages/tranchauden.jpg", "Trân châu đen", 5000m },
+                    { 2, true, "tranchautrang", "/Images/ToppingImages/tranchautrang.jpg", "Trân châu trắng", 5000m },
+                    { 3, true, "phomaivien", "/Images/ToppingImages/phomaivien.jpg", "Phô mai viên", 7000m },
+                    { 4, true, "khucbachchanmeo", "/Images/ToppingImages/khucbachchanmeo.jpg", "Khúc bạch chân mèo", 7000m },
+                    { 5, true, "thachkhoaimon", "/Images/ToppingImages/thachkhoaimon.jpg", "Thạch khoai môn", 6000m },
+                    { 6, true, "banhflan", "/Images/ToppingImages/banhflan.jpg", "Bánh flan", 6000m }
                 });
 
             migrationBuilder.InsertData(
@@ -2812,9 +2818,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2176), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 11, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2169), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 2, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2201), null, null, 500, null, 50000m, new DateTime(2026, 5, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2200), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 17, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 18, 21, 42, 40, 916, DateTimeKind.Local).AddTicks(2203), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5867), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 16, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5857), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 7, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870), null, null, 500, null, 50000m, new DateTime(2026, 5, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 23, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -2839,8 +2845,8 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Customers",
-                columns: new[] { "CustomerId", "AccountId", "Active", "AvatarUrl", "Category", "CreatedAt", "CustomerCode", "DateOfBirth", "DeletedAt", "FullName", "Gender", "LastOrderDate", "MemberLevelId", "UpdatedAt" },
-                values: new object[] { 111, 111, true, "/Images/Upload/avtdf.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
+                columns: new[] { "CustomerId", "AccountId", "Active", "AvatarPublicId", "AvatarUrl", "Category", "CreatedAt", "CustomerCode", "DateOfBirth", "DeletedAt", "FullName", "Gender", "LastOrderDate", "MemberLevelId", "UpdatedAt" },
+                values: new object[] { 111, 111, true, "cafechain/customers/default_avatar", "https://res.cloudinary.com/demo/image/upload/cafechain/customers/avtdf.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Drinks",
@@ -2900,21 +2906,21 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Staffs",
-                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "HealthInsuranceNumber", "OvertimeRate", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
+                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarPublicId", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "HealthInsuranceNumber", "OvertimeRate", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
                 values: new object[,]
                 {
-                    { 101, 101, true, 0m, "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Super Admin System", 0, null, 0m, 0m, 0, null, null, 1, "TAX101" },
-                    { 102, 102, true, 0m, "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CEO Director", 0, null, 0m, 0m, 0, null, null, 1, "TAX102" },
-                    { 103, 103, true, 0m, "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CFO Finance", 0, null, 0m, 0m, 0, null, null, 1, "TAX103" },
-                    { 104, 104, true, 0m, "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Marketing Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX104" },
-                    { 105, 105, true, 0m, "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Operations Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX105" },
-                    { 106, 106, true, 0m, "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "HR Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX106" },
-                    { 107, 107, true, 0m, "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, 0m, 0, null, null, 1, "TAX107" },
-                    { 108, 108, true, 0m, "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, 0m, 0, null, null, 1, "TAX108" },
-                    { 109, 109, true, 0m, "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, 0m, 0, null, null, 1, "TAX109" },
-                    { 110, 110, true, 0m, "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca sáng", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" },
-                    { 111, 122, true, 0m, "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "District Manager Bien Hoa", 0, null, 0m, 0m, 0, null, null, 1, "TAX111" },
-                    { 112, 123, true, 0m, "/Images/Upload/avtdf.jpg", 28000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca chiều", 0, null, 0m, 0m, 0, null, null, 1, "TAX112" }
+                    { 101, 101, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Super Admin System", 0, null, 0m, 0m, 0, null, null, 1, "TAX101" },
+                    { 102, 102, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CEO Director", 0, null, 0m, 0m, 0, null, null, 1, "TAX102" },
+                    { 103, 103, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CFO Finance", 0, null, 0m, 0m, 0, null, null, 1, "TAX103" },
+                    { 104, 104, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Marketing Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX104" },
+                    { 105, 105, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Operations Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX105" },
+                    { 106, 106, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "HR Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX106" },
+                    { 107, 107, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, 0m, 0, null, null, 1, "TAX107" },
+                    { 108, 108, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, 0m, 0, null, null, 1, "TAX108" },
+                    { 109, 109, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, 0m, 0, null, null, 1, "TAX109" },
+                    { 110, 110, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca sáng", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" },
+                    { 111, 122, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "District Manager Bien Hoa", 0, null, 0m, 0m, 0, null, null, 1, "TAX111" },
+                    { 112, 123, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 28000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca chiều", 0, null, 0m, 0m, 0, null, null, 1, "TAX112" }
                 });
 
             migrationBuilder.InsertData(
@@ -3023,92 +3029,92 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 1, 1, "/Images/DrinkImages/cps1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps1.jpg", true, "drink-images/cps1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 2, 1, "/Images/DrinkImages/cps2.jpg" },
-                    { 3, 1, "/Images/DrinkImages/cps3.jpg" },
-                    { 4, 1, "/Images/DrinkImages/cps4.jpg" }
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps2.jpg", "drink-images/cps2" },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps3.jpg", "drink-images/cps3" },
+                    { 4, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps4.jpg", "drink-images/cps4" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 5, 2, "/Images/DrinkImages/cpd1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 5, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd1.jpg", true, "drink-images/cpd1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 6, 2, "/Images/DrinkImages/cpd2.jpg" },
-                    { 7, 2, "/Images/DrinkImages/cpd3.jpg" },
-                    { 8, 2, "/Images/DrinkImages/cpd4.jpg" }
+                    { 6, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd2.jpg", "drink-images/cpd2" },
+                    { 7, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd3.jpg", "drink-images/cpd3" },
+                    { 8, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd4.jpg", "drink-images/cpd4" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 9, 3, "/Images/DrinkImages/trasuatranchauden1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 9, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden1.jpg", true, "drink-images/trasuatranchauden1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 10, 3, "/Images/DrinkImages/trasuatranchauden2.jpg" },
-                    { 11, 3, "/Images/DrinkImages/trasuatranchauden3.jpg" },
-                    { 12, 3, "/Images/DrinkImages/trasuatranchauden4.jpg" }
+                    { 10, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden2.jpg", "drink-images/trasuatranchauden2" },
+                    { 11, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden3.jpg", "drink-images/trasuatranchauden3" },
+                    { 12, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden4.jpg", "drink-images/trasuatranchauden4" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 13, 4, "/Images/DrinkImages/trasuasocola1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 13, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola1.jpg", true, "drink-images/trasuasocola1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 14, 4, "/Images/DrinkImages/trasuasocola2.jpg" },
-                    { 15, 4, "/Images/DrinkImages/trasuasocola3.jpg" },
-                    { 16, 4, "/Images/DrinkImages/trasuasocola4.jpg" }
+                    { 14, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola2.jpg", "drink-images/trasuasocola2" },
+                    { 15, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola3.jpg", "drink-images/trasuasocola3" },
+                    { 16, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola4.jpg", "drink-images/trasuasocola4" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 17, 5, "/Images/DrinkImages/sting1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 17, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting1.jpg", true, "drink-images/sting1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 18, 5, "/Images/DrinkImages/sting2.jpg" },
-                    { 19, 5, "/Images/DrinkImages/sting3.jpg" },
-                    { 20, 5, "/Images/DrinkImages/sting4.jpg" }
+                    { 18, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting2.jpg", "drink-images/sting2" },
+                    { 19, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting3.jpg", "drink-images/sting3" },
+                    { 20, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting4.jpg", "drink-images/sting4" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl", "IsDefault" },
-                values: new object[] { 21, 6, "/Images/DrinkImages/coca1.jpg", true });
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
+                values: new object[] { 21, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca1.jpg", true, "drink-images/coca1" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
-                columns: new[] { "DrinkImageId", "DrinkId", "ImageUrl" },
+                columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 22, 6, "/Images/DrinkImages/coca2.jpg" },
-                    { 23, 6, "/Images/DrinkImages/coca3.jpg" },
-                    { 24, 6, "/Images/DrinkImages/coca4.jpg" }
+                    { 22, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca2.jpg", "drink-images/coca2" },
+                    { 23, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca3.jpg", "drink-images/coca3" },
+                    { 24, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca4.jpg", "drink-images/coca4" }
                 });
 
             migrationBuilder.InsertData(
@@ -3537,6 +3543,11 @@ namespace CafeChain.Migrations
                 name: "IX_DrinkImages_DrinkId",
                 table: "DrinkImages",
                 column: "DrinkId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DrinkImages_DrinkId_IsDefault",
+                table: "DrinkImages",
+                columns: new[] { "DrinkId", "IsDefault" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Drinks_CategoryId_ProductTypeId",
@@ -4061,6 +4072,12 @@ namespace CafeChain.Migrations
                 columns: new[] { "CountryId", "Name" },
                 unique: true,
                 filter: "[CountryId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RatingImages_PublicId",
+                table: "RatingImages",
+                column: "PublicId",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_RatingImages_RatingId",

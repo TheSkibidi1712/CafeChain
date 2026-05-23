@@ -1,9 +1,10 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Accounts;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Results;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
-using CafeChain.Application.Constants;
+using CafeChain.Models.Enums.Customer;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
@@ -35,31 +36,64 @@ namespace CafeChain.Application.Services.Accounts
 
                 // ===== VALIDATE =====
                 if (string.IsNullOrWhiteSpace(dto.Email))
+                {
                     errors.Add("Email không hợp lệ");
+                }
 
                 if (string.IsNullOrWhiteSpace(dto.PhoneNumber))
+                {
                     errors.Add("SĐT không hợp lệ");
+                }
 
                 if (string.IsNullOrWhiteSpace(dto.Password))
+                {
                     errors.Add("Mật khẩu không hợp lệ");
+                }
 
                 if (errors.Any())
+                {
                     return ServiceResult.Failure("Đăng ký thất bại", errors);
+                }
 
-                // ===== CHECK DUPLICATE (CHỈ 1 LẦN) =====
+                // ===== EMAIL EXISTS =====
                 var emailExists = await _accountRepository.EmailExistsAsync(dto.Email);
-                var phoneExists = await _accountRepository.PhoneExistsAsync(dto.PhoneNumber);
 
                 if (emailExists)
+                {
                     errors.Add("Email đã tồn tại");
-
-                if (phoneExists)
-                    errors.Add("SĐT đã tồn tại");
-
-                if (errors.Any())
                     return ServiceResult.Failure("Đăng ký thất bại", errors);
+                }
 
-                // ===== CREATE ACCOUNT =====
+                // ===== CHECK PHONE =====
+                var customerPhone =
+                    await _accountRepository.GetCustomerPhoneAsync(dto.PhoneNumber);
+
+                // =========================================================
+                // CASE 1:
+                // CUSTOMER ĐÃ TỒN TẠI TỪ POS
+                // =========================================================
+                if (customerPhone != null)
+                {
+                    var existingCustomer = customerPhone.Customer;
+
+                    // Đã có account rồi
+                    if (existingCustomer.AccountId.HasValue)
+                    {
+                        errors.Add("SĐT đã được đăng ký tài khoản");
+                        return ServiceResult.Failure("Đăng ký thất bại", errors);
+                    }
+
+                    var passwordHash = HashPassword(dto.Password);
+
+                    await _accountRepository.CreateAccountForExistingCustomerAsync(existingCustomer, dto.Email, passwordHash);
+
+                    return ServiceResult.Success("Liên kết tài khoản thành công. Điểm thưởng và voucher của bạn đã được giữ nguyên.");
+                }
+
+                // =========================================================
+                // CASE 2:
+                // CUSTOMER MỚI HOÀN TOÀN
+                // =========================================================
                 var account = new Account
                 {
                     Email = dto.Email,
@@ -69,24 +103,33 @@ namespace CafeChain.Application.Services.Accounts
 
                     Customer = new Customer
                     {
-                        FullName = dto.FullName ?? dto.Email,
+                        FullName = dto.FullName ?? "Khách hàng mới",
                         DateOfBirth = dto.DateOfBirth,
                         AvatarUrl = "/Images/Upload/avtdf.jpg",
+                        Gender = dto.Gender,
+                        Category = CustomerCategory.Registered,
+
                         Active = true,
-                        CreatedAt = DateTime.Now
+                        CreatedAt = DateTime.Now,
+
+                        CustomerCode = $"CUS{DateTime.Now.Ticks}"
                     }
                 };
 
-
-                await _accountRepository.CreateCustomerAccountAsync(account, dto.PhoneNumber);
+                await _accountRepository.CreateNewCustomerAccountAsync(
+                    account,
+                    dto.PhoneNumber);
 
                 return ServiceResult.Success("Đăng ký thành công");
             }
             catch (Exception ex)
             {
-                return ServiceResult.Failure("Lỗi hệ thống khi đăng ký", new List<string> { ex.Message });
+                return ServiceResult.Failure(
+                    "Lỗi hệ thống khi đăng ký",
+                    new List<string> { ex.Message });
             }
         }
+
 
         public async Task<ServiceResult<LoginResponseDto>> LoginAsync(LoginDto dto)
         {
@@ -110,10 +153,14 @@ namespace CafeChain.Application.Services.Accounts
                 // ===== 🔥 RESET LOCK NẾU ĐÃ HẾT HẠN =====
                 if (account.LockoutEnd.HasValue && account.LockoutEnd <= DateTime.UtcNow)
                 {
-                    account.LockoutEnd = null;
-                    account.FailedLoginAttempts = 0;
+                    await _accountRepository.ExecuteInTransactionAsync(
+                        async () =>
+                        {
+                            account.LockoutEnd = null;
+                            account.FailedLoginAttempts = 0;
 
-                    await _accountRepository.UpdateAsync(account);
+                            await _accountRepository.UpdateAsync(account);
+                    });
                 }
 
                 // ===== LOCK =====
@@ -135,24 +182,35 @@ namespace CafeChain.Application.Services.Accounts
                 // ===== PASSWORD =====
                 if (!BCrypt.Net.BCrypt.Verify(dto.Password, account.PasswordHash))
                 {
-                    account.FailedLoginAttempts++;
-
-                    if (account.FailedLoginAttempts >= 5)
+                    await _accountRepository.ExecuteInTransactionAsync(
+                    async () =>
                     {
-                        account.LockoutEnd = DateTime.UtcNow.AddMinutes(15);
-                        account.FailedLoginAttempts = 0;
-                    }
+                        account.FailedLoginAttempts++;
 
-                    await _accountRepository.UpdateAsync(account);
+                        if (account.FailedLoginAttempts >= 5)
+                        {
+                            account.LockoutEnd =
+                                DateTime.UtcNow.AddMinutes(15);
+
+                            account.FailedLoginAttempts = 0;
+                        }
+
+                        await _accountRepository.UpdateAsync(account);
+                    });
 
                     return ServiceResult<LoginResponseDto>.Failure("Email hoặc mật khẩu không chính xác.");
                 }
 
                 // ===== SUCCESS =====
-                account.FailedLoginAttempts = 0;
-                account.LockoutEnd = null;
+                await _accountRepository.ExecuteInTransactionAsync(
+                async () =>
+                {
+                    account.FailedLoginAttempts = 0;
 
-                await _accountRepository.UpdateAsync(account);
+                    account.LockoutEnd = null;
+
+                    await _accountRepository.UpdateAsync(account);
+                });
 
                 var allRoles = account.AccountRoles.Select(r => r.Role.Name).ToList();
 

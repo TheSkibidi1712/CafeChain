@@ -1,3 +1,4 @@
+using CafeChain.Models.Enums.Customer;
 using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.ViewModels.Accounts
@@ -45,6 +46,12 @@ namespace CafeChain.ViewModels.Accounts
         [Compare("Password", ErrorMessage = "Mật khẩu xác nhận không khớp")]
         [Display(Name = "Xác nhận mật khẩu")]
         public string ConfirmPassword { get; set; }
+
+        // ================= GENDER =================
+
+        [Display(Name = "Giới tính")]
+        public Gender Gender { get; set; }
+            = Gender.Unknown;
 
         // ================= DATE OF BIRTH =================
         // Nhận dạng dd/MM/yyyy từ form, parse thủ công trong controller

@@ -64,6 +64,7 @@ namespace CafeChain.Controllers
                 Email = model.Email,
                 PhoneNumber = model.PhoneNumber,
                 Password = model.Password,
+                Gender = model.Gender,
                 DateOfBirth = model.DateOfBirth
             };
 
@@ -86,133 +87,86 @@ namespace CafeChain.Controllers
         // ========================= LOGIN =========================
 
         [HttpGet]
-        public async Task<IActionResult> Login(string? email = null)
+        public IActionResult Login(string? email = null, bool isLocked = false, int minutes = 0)
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
                 return RedirectToAction("Index", "Home");
             }
 
-            if (!string.IsNullOrEmpty(email))
-            {
-                var lockInfo = await _accountService.CheckLockAsync(email);
+            ViewBag.IsLocked = isLocked;
 
-                if (lockInfo.IsLocked)
-                {
-                    ViewBag.IsLocked = true;
-                    ViewBag.LockMinutes = lockInfo.RemainingMinutes;
-                    ViewBag.LockMessage = $"Tài khoản bị khóa. Thử lại sau {lockInfo.RemainingMinutes} phút";
-                }
-                else
-                {
-                    ViewBag.IsLocked = false;
-                }
+            if (isLocked)
+            {
+                ViewBag.LockMinutes = minutes;
+
+                ViewBag.LockMessage =
+                    $"Tài khoản bị khóa. Thử lại sau {minutes} phút";
             }
 
-            return View(new LoginViewModel
-            {
-                Email = email
-            });
+            return View(
+                new LoginViewModel
+                {
+                    Email = email
+                });
         }
+
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model, string? returnUrl = null)
         {
-            if (User.Identity != null && User.Identity.IsAuthenticated)
+            if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToAction("Index", "Home"); // hoặc dashboard
+                return RedirectToAction(
+                    "Index",
+                    "Home");
             }
 
             if (!ModelState.IsValid)
-                return View(model);
-
-            var dto = new LoginDto
             {
-                Email = model.Email,
-                Password = model.Password,
-                RememberMe = model.RememberMe
-            };
+                return View(model);
+            }
 
-            var result = await _accountService.LoginAsync(dto);
+            var result =
+                await _accountService.LoginAsync(
+                    new LoginDto
+                    {
+                        Email = model.Email,
+                        Password = model.Password,
+                        RememberMe = model.RememberMe
+                    });
 
             if (!result.IsSuccess)
             {
-                await Task.Delay(800); // 🔥 chống brute force
+                await Task.Delay(800);
 
                 if (result.Data?.IsLocked == true)
                 {
-                    return RedirectToAction("Login", new { email = model.Email });
+                    return RedirectToAction(
+                        nameof(Login),
+                        new
+                        {
+                            email = model.Email,
+
+                            isLocked = true,
+
+                            minutes = result.Data.LockRemainingMinutes
+                        });
                 }
-                else
-                {
-                    ModelState.AddModelError(string.Empty, result.Message);
-                }
+
+                ModelState.AddModelError(
+                    string.Empty,
+                    result.Message);
 
                 return View(model);
             }
-            // ===== CLAIMS (Managed by Service) =====
-            var claims = result.Data.Claims;
 
-            var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
+            await SignInAsync(result.Data, model.RememberMe);
 
-            await HttpContext.SignInAsync(
-            CookieAuthenticationDefaults.AuthenticationScheme,
-            new ClaimsPrincipal(identity),
-            new AuthenticationProperties
-            {
-                IsPersistent = model.RememberMe,
-                ExpiresUtc = model.RememberMe
-                    ? DateTimeOffset.UtcNow.AddDays(7)
-                    : null,
-                AllowRefresh = true
-            });
+            TempData["SuccessMessage"] = result.Message;
 
-            TempData["SuccessMessage"] = "Đăng nhập thành công!";
-
-            // ===== REDIRECT ROLE =====
-            var role = (result.Data.Role ?? "").Trim();
-
-            // Ưu tiên returnUrl
-            if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
-            {
-                return Redirect(returnUrl);
-            }
-
-            // ===== ADMIN =====
-            if (
-                role == "Super Admin" ||
-                role == "CEO / Ban Giám đốc" ||
-                role == "Kế toán trưởng / Tài chính" ||
-                role == "Giám đốc Marketing" ||
-                role == "Giám đốc Vận hành" ||
-                role == "Quản lý Nhân sự" ||
-                role == "Quản lý Khu vực" ||
-                role == "Cửa hàng trưởng"
-            )
-            {
-                return RedirectToAction("Index", "AdminStaff", new { area = "Admin" });
-            }
-
-            // ===== KIOSK =====
-            if (
-                role == "Ca trưởng" ||
-                role == "Thu ngân" ||
-                role == "Thủ kho" ||
-                role == "Nhân viên chung"
-            )
-            {
-                return RedirectToAction("Index", "Kiosk");
-            }
-
-            // ===== CUSTOMER =====
-            if (role == "Khách hàng")
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            // fallback
-            return RedirectToAction("Index", "Home");
+            return RedirectByRole(result.Data.Role, returnUrl);
         }
 
         // ========================= LOGOUT =========================
@@ -223,12 +177,11 @@ namespace CafeChain.Controllers
         {
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
-            // Dọn dẹp Session/Cookie của Giỏ hàng
-            HttpContext.Session.Clear(); 
-            if (Request.Cookies["Cart"] != null) 
-            {
-                Response.Cookies.Delete("Cart");
-            }
+            HttpContext.Session.Clear();
+
+            Response.Cookies.Delete("Cart");
+
+            TempData["SuccessMessage"] = "Đăng xuất thành công";
 
             return RedirectToAction("Index", "Home");
         }
@@ -250,6 +203,71 @@ namespace CafeChain.Controllers
         public IActionResult AccessDenied()
         {
             return View();
+        }
+
+
+        // ========================= PRIVATE HELPERS =========================
+        private async Task SignInAsync(LoginResponseDto data, bool rememberMe)
+        {
+            var identity = new ClaimsIdentity(data.Claims, CookieAuthenticationDefaults.AuthenticationScheme);
+
+            await HttpContext.SignInAsync(CookieAuthenticationDefaults.AuthenticationScheme, new ClaimsPrincipal(identity),
+                new AuthenticationProperties
+                {
+                    IsPersistent = rememberMe,
+                    ExpiresUtc = rememberMe ? DateTimeOffset.UtcNow.AddDays(7) : null,
+                    AllowRefresh = true
+                });
+        }
+
+        private IActionResult RedirectByRole(string role, string? returnUrl)
+        {
+            if (
+                !string.IsNullOrWhiteSpace(returnUrl)
+                &&
+                Url.IsLocalUrl(returnUrl))
+            {
+                return Redirect(returnUrl);
+            }
+
+            var adminRoles = new[]
+            {
+                "Super Admin",
+                "CEO / Ban Giám đốc",
+                "Kế toán trưởng / Tài chính",
+                "Giám đốc Marketing",
+                "Giám đốc Vận hành",
+                "Quản lý Nhân sự",
+                "Quản lý Khu vực",
+                "Cửa hàng trưởng"
+            };
+
+            var kioskRoles = new[]
+            {
+                "Ca trưởng",
+                "Thu ngân",
+                "Thủ kho",
+                "Nhân viên chung"
+            };
+
+            if (adminRoles.Contains(role))
+            {
+                return RedirectToAction(
+                    "Index",
+                    "AdminStaff",
+                    new { area = "Admin" });
+            }
+
+            if (kioskRoles.Contains(role))
+            {
+                return RedirectToAction(
+                    "Index",
+                    "Kiosk");
+            }
+
+            return RedirectToAction(
+                "Index",
+                "Home");
         }
 
 

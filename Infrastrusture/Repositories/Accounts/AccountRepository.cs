@@ -1,14 +1,15 @@
+using CafeChain.Application.Constants;
+using CafeChain.Application.Exceptions;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Customer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using CafeChain.Application.Constants;
-using CafeChain.Application.Exceptions;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Collections.Generic;
 
 namespace CafeChain.Infrastrusture.Repositories.Accounts
 {
@@ -16,7 +17,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
     {
         private readonly AppDbContext _context;
         private readonly IMemoryCache _cache;
-        private const string ROLE_CACHE_KEY = "SystemRolesCache";
+        private const string ROLE_CACHE = "ROLE_CACHE";
 
         public AccountRepository(AppDbContext context, IMemoryCache cache)
         {
@@ -27,121 +28,199 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
         public async Task<bool> EmailExistsAsync(string email)
         {
             email = email.Trim().ToLower();
-            return await _context.Accounts.AnyAsync(a => a.Email.ToLower() == email);
+
+            return await _context.Accounts
+                .AnyAsync(x => x.Email.ToLower() == email);
         }
 
-        public async Task<bool> PhoneExistsAsync(string phone)
+        public async Task<CustomerPhone?> GetCustomerPhoneAsync(string phone)
         {
-            phone = phone.Trim();
-            return await _context.CustomerPhones.AnyAsync(p => p.Phone == phone);
+            return await _context.CustomerPhones
+                .Include(x => x.Customer)
+                .ThenInclude(c => c.Account)
+                .FirstOrDefaultAsync(x => x.Phone == phone);
         }
 
-        public async Task<Account> CreateCustomerAccountAsync(Account account, string phone)
+        public async Task<Account?> GetAccountByEmailAsync(string email)
         {
-            using var tran = await _context.Database.BeginTransactionAsync();
-
-            try
-            {
-                // ===== 1. ADD ACCOUNT (EF sẽ tự add Customer kèm theo) =====
-                _context.Accounts.Add(account);
-                await _context.SaveChangesAsync();
-                // 🔥 Sau dòng này:
-                // account.AccountId có giá trị
-                // account.Customer.CustomerId cũng có
-
-                var customer = account.Customer;
-
-                // ===== 2. PHONE =====
-                _context.CustomerPhones.Add(new CustomerPhone
-                {
-                    CustomerId = customer.CustomerId,
-                    Phone = phone,
-                    IsDefault = true
-                });
-
-                // ===== 4. ROLE =====
-                var customerRoleId = await GetRoleIdByNameAsync(RoleConstants.Customer);
-                _context.AccountRoles.Add(new AccountRole
-                {
-                    AccountId = account.AccountId,
-                    RoleId = customerRoleId
-
-                });
-
-                await _context.SaveChangesAsync();
-                await tran.CommitAsync();
-
-                return account;
-            }
-            catch (Exception ex)
-            {
-                await tran.RollbackAsync();
-
-                // 🔥 QUAN TRỌNG: expose lỗi thật
-                throw new Exception(ex.InnerException?.Message ?? ex.Message);
-            }
-        }
-
-        public async Task<Account> GetAccountByEmailAsync(string email)
-        {
-            email = email.ToLower().Trim();
+            email = email.Trim().ToLower();
 
             return await _context.Accounts
                 .Include(x => x.Customer)
                 .Include(x => x.Staff)
                 .Include(x => x.AccountRoles)
-                    .ThenInclude(ar => ar.Role)
-                .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
+                .ThenInclude(x => x.Role)
+                .FirstOrDefaultAsync(x =>
+                    x.Email.ToLower() == email);
         }
 
-        /// <summary>
-        /// 🔥 Thread-safe Lazy Loading Roles into Cache
-        /// Tránh query DB liên tục mỗi khi có user Register
-        /// </summary>
-        private async Task<int> GetRoleIdByNameAsync(string roleName)
+        public async Task<Account> CreateAccountForExistingCustomerAsync(Customer customer, string email, string passwordHash)
         {
-            var roleMap = await _cache.GetOrCreateAsync(ROLE_CACHE_KEY, async entry =>
-            {
-                entry.SlidingExpiration = TimeSpan.FromDays(1); // Cache 1 ngày
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromDays(7);
-                
-                return await _context.Roles
-                    .AsNoTracking()
-                    .ToDictionaryAsync(r => r.Name, r => r.RoleId);
-            });
+            using var tran = await _context.Database.BeginTransactionAsync();
 
-            if (roleMap != null && roleMap.TryGetValue(roleName, out int roleId))
+            try
             {
-                return roleId;
+                var account = new Account
+                {
+                    Email = email,
+                    PasswordHash = passwordHash,
+                    Active = true,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.Accounts.Add(account);
+
+                await _context.SaveChangesAsync();
+
+                customer.AccountId = account.AccountId;
+
+                if (customer.Category ==
+                    CustomerCategory.Guest)
+                {
+                    customer.Category =
+                        CustomerCategory.Registered;
+                }
+
+                var roleId =
+                    await GetRoleId(RoleConstants.Customer);
+
+                _context.AccountRoles.Add(
+                    new AccountRole
+                    {
+                        AccountId = account.AccountId,
+                        RoleId = roleId
+                    });
+
+                await _context.SaveChangesAsync();
+
+                await tran.CommitAsync();
+
+                return account;
             }
-
-            throw new RoleNotFoundException(roleName);
+            catch
+            {
+                await tran.RollbackAsync();
+                throw;
+            }
         }
 
-        public async Task UpdateAsync(Account account)
+        public async Task<Account> CreateNewCustomerAccountAsync(Account account, string phone)
+        {
+            using var tran = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Accounts.Add(account);
+
+                await _context.SaveChangesAsync();
+
+                _context.CustomerPhones.Add(
+                    new CustomerPhone
+                    {
+                        CustomerId = account.Customer.CustomerId,
+
+                        Phone = phone,
+
+                        IsDefault = true
+                    });
+
+                var roleId = await GetRoleId(RoleConstants.Customer);
+
+                _context.AccountRoles.Add(
+                    new AccountRole
+                    {
+                        AccountId =
+                            account.AccountId,
+
+                        RoleId = roleId
+                    });
+
+                await _context.SaveChangesAsync();
+
+                await tran.CommitAsync();
+
+                return account;
+            }
+            catch
+            {
+                await tran.RollbackAsync();
+                throw;
+            }
+        }
+
+        public Task UpdateAsync(Account account)
         {
             _context.Accounts.Update(account);
-            await _context.SaveChangesAsync();
+
+            return Task.CompletedTask;
         }
 
-        public async Task<(bool IsLocked, int RemainingMinutes)> CheckLockAsync(string email)
+        public async Task<(bool, int)>CheckLockAsync(string email)
         {
-            email = email.Trim().ToLower();
+            var account = await GetAccountByEmailAsync(email);
 
-            var account = await _context.Accounts
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.Email.ToLower() == email);
-
-            if (account == null)
-                return (false, 0);
-
-            if (account.LockoutEnd.HasValue && account.LockoutEnd > DateTime.UtcNow)
+            if (account?.LockoutEnd > DateTime.UtcNow)
             {
-                var remain = (account.LockoutEnd.Value - DateTime.UtcNow).TotalMinutes;
-                return (true, (int)Math.Ceiling(remain));
+                return (
+                    true,
+                    (int)Math.Ceiling(
+                        (
+                            account.LockoutEnd.Value - DateTime.UtcNow
+                        ).TotalMinutes
+                    )
+                );
             }
 
             return (false, 0);
+        }
+
+        private async Task<int> GetRoleId(string role)
+        {
+            var map =
+                await _cache.GetOrCreateAsync(
+                    ROLE_CACHE,
+                    async x =>
+                    {
+                        x.AbsoluteExpirationRelativeToNow =
+                            TimeSpan.FromDays(1);
+
+                        return await _context.Roles
+                            .ToDictionaryAsync(
+                                x => x.Name,
+                                x => x.RoleId
+                            );
+                    });
+
+            if (
+                map != null
+                &&
+                map.TryGetValue(
+                    role,
+                    out int id))
+            {
+                return id;
+            }
+
+            throw new RoleNotFoundException(role);
+        }
+
+        public async Task ExecuteInTransactionAsync(Func<Task> action)
+        {
+            await using var tran = await _context.Database.BeginTransactionAsync();
+
+            try
+            {
+                await action();
+
+                await _context.SaveChangesAsync();
+
+                await tran.CommitAsync();
+            }
+            catch
+            {
+                await tran.RollbackAsync();
+
+                throw;
+            }
         }
     }
 }

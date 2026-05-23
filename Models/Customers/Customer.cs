@@ -9,23 +9,32 @@ namespace CafeChain.Models.Customers
     {
         public int CustomerId { get; set; }
         public int? AccountId { get; set; }
-        public string CustomerCode { get; set; }
+        public string CustomerCode { get; set; } = null!;
+        public string FullName { get; set; } = null!;
         public Gender? Gender { get; set; }
-        public string FullName { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public CustomerCategory Category { get; set; }
         public int? MemberLevelId { get; set; }
+
+        // Loyalty
         public decimal TotalSpent { get; set; } = 0;
         public int TotalOrders { get; set; } = 0;
         public int CurrentPoints { get; set; } = 0;
         public DateTime? LastOrderDate { get; set; }
-        public string AvatarUrl { get; set; }
-        public bool Active { get; set; }
+
+        // Avatar (Cloudinary)
+        public string? AvatarUrl { get; set; }
+        public string? AvatarPublicId { get; set; }
+
+        // Status
+        public bool Active { get; set; } = true;
+        public bool IsDeleted { get; set; } = false;
+
+        // Audit
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
-        public bool IsDeleted { get; set; }
-
         public DateTime? DeletedAt { get; set; }
+
 
         public virtual ICollection<CustomerPhone> CustomerPhones { get; set; } = new List<CustomerPhone>();
         public virtual ICollection<CustomerAddress> CustomerAddresses { get; set; } = new List<CustomerAddress>();

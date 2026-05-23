@@ -31,8 +31,12 @@ namespace CafeChain.Models.Staffs
         public DateTime? DateOfBirth { get; set; }
         public int StoreId { get; set; }
 
+        // Cloudinary
+        public string? AvatarUrl { get; set; }
+
+        public string? AvatarPublicId { get; set; }
         public bool Active { get; set; }
-        public string AvatarUrl { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual Store Store { get; set; }

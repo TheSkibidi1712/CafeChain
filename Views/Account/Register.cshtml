@@ -3,6 +3,7 @@
     ViewData["Title"] = "Đăng ký thành viên";
     Layout = null; // We'll use a custom layout for this page to match the image
 }
+@using CafeChain.Models.Enums.Customer
 
 <!DOCTYPE html>
 <html lang="vi">
@@ -371,7 +372,38 @@
                     </div>
                     <span asp-validation-for="PhoneNumber" class="text-danger"></span>
                 </div>
+                <div class="form-group">
+                    <label class="form-label" asp-for="Gender">
+                        Giới tính
+                        <span>(không bắt buộc)</span>
+                    </label>
 
+                    <div class="input-wrapper">
+                        <i class="fas fa-venus-mars input-icon"></i>
+
+                        <select asp-for="Gender" class="form-input">
+
+                            <option value="@((int)Gender.Unknown)">
+                                Không muốn tiết lộ
+                            </option>
+
+                            <option value="@((int)Gender.Male)">
+                                Nam
+                            </option>
+
+                            <option value="@((int)Gender.Female)">
+                                Nữ
+                            </option>
+
+                            <option value="@((int)Gender.Other)">
+                                Khác
+                            </option>
+
+                        </select>
+                    </div>
+
+                    <span asp-validation-for="Gender" class="text-danger"></span>
+                </div>
                 <div class="form-group">
                     <label class="form-label" asp-for="Email"></label>
                     <div class="input-wrapper">
