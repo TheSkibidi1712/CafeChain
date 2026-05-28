@@ -1,3 +1,4 @@
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
@@ -5,6 +6,7 @@ using CafeChain.Data;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.POS
@@ -60,6 +62,71 @@ namespace CafeChain.Application.Services.POS
             catch (Exception ex)
             {
                 return ServiceResult.Failure("Lỗi hệ thống khi mở ca: " + ex.Message);
+            }
+        }
+
+        public async Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId)
+        {
+            return await _context.WorkShifts
+                .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId && ws.Status == "Open");
+        }
+
+        public async Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request)
+        {
+            try
+            {
+                // 1. Find active shift
+                var activeShift = await _context.WorkShifts
+                    .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId && ws.Status == "Open");
+
+                if (activeShift == null)
+                {
+                    return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
+                }
+
+                // 2. Calculate Expected Ending Cash
+                // ExpectedEndingCash = StartingCash + Sum of cash payments in this shift's orders
+                var totalCashSales = await _context.Orders
+                    .Where(o => o.WorkShiftId == activeShift.ShiftId)
+                    .Join(_context.Payments,
+                        o => o.OrderId,
+                        p => p.OrderId,
+                        (o, p) => new { Order = o, Payment = p })
+                    .Where(op => op.Payment.PaymentMethodId == 1) // 1 = Cash payment
+                    .SumAsync(op => (decimal?)op.Payment.Amount) ?? 0m;
+
+                // Fallback: if no payments tracked yet, use order Total for cash orders
+                if (totalCashSales == 0)
+                {
+                    totalCashSales = await _context.Orders
+                        .Where(o => o.WorkShiftId == activeShift.ShiftId && o.OrderStatusId == 4) // Completed orders
+                        .SumAsync(o => (decimal?)o.Total) ?? 0m;
+                }
+
+                var expectedEndingCash = activeShift.StartingCash + totalCashSales;
+
+                // 3. Record Discrepancy
+                var discrepancy = request.ActualEndingCash - expectedEndingCash;
+
+                if (discrepancy != 0 && string.IsNullOrWhiteSpace(request.DiscrepancyReason))
+                {
+                    return ServiceResult.Failure($"Phát hiện chênh lệch {discrepancy:N0}đ. Vui lòng nhập lý do chênh lệch.");
+                }
+
+                // 4. Close Shift
+                activeShift.ExpectedEndingCash = expectedEndingCash;
+                activeShift.ActualEndingCash = request.ActualEndingCash;
+                activeShift.DiscrepancyReason = request.DiscrepancyReason;
+                activeShift.EndTime = DateTime.Now;
+                activeShift.Status = "Closed";
+
+                await _context.SaveChangesAsync();
+
+                return ServiceResult.Success($"Đóng ca thành công! Doanh thu ca: {totalCashSales:N0}đ. Chênh lệch: {discrepancy:N0}đ.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Failure("Lỗi hệ thống khi đóng ca: " + ex.Message);
             }
         }
     }

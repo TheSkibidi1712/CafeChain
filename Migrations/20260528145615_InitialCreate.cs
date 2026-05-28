@@ -1565,6 +1565,7 @@ namespace CafeChain.Migrations
                     SocialInsuranceNumber = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     HealthInsuranceNumber = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: true),
                     FaceDescriptor = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PinHash = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     DateOfBirth = table.Column<DateTime>(type: "datetime2", nullable: true),
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     AvatarUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
@@ -2046,7 +2047,8 @@ namespace CafeChain.Migrations
                     StartingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     ExpectedEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     ActualEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Open")
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Open"),
+                    DiscrepancyReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2237,9 +2239,9 @@ namespace CafeChain.Migrations
                     Source = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     PaymentReference = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ReceiverName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ReceiverPhone = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DeliveryAddress = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ShippingFee = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     SubTotal = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     VoucherDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
@@ -2818,9 +2820,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5867), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 16, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5857), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 7, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870), null, null, 500, null, 50000m, new DateTime(2026, 5, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5870), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 22, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 23, 21, 55, 0, 376, DateTimeKind.Local).AddTicks(5872), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7802), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 21, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7789), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 12, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7804), null, null, 500, null, 50000m, new DateTime(2026, 5, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7804), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7807), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 28, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7806), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -2906,21 +2908,21 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Staffs",
-                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarPublicId", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "HealthInsuranceNumber", "OvertimeRate", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
+                columns: new[] { "StaffId", "AccountId", "Active", "Allowance", "AvatarPublicId", "AvatarUrl", "BaseSalary", "CCCD", "CreatedAt", "DateOfBirth", "EmployeeStatus", "FaceDescriptor", "FullName", "Gender", "HealthInsuranceNumber", "OvertimeRate", "PinHash", "ProbationRate", "SalaryType", "SocialInsuranceNumber", "StartDate", "StoreId", "TaxCode" },
                 values: new object[,]
                 {
-                    { 101, 101, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Super Admin System", 0, null, 0m, 0m, 0, null, null, 1, "TAX101" },
-                    { 102, 102, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CEO Director", 0, null, 0m, 0m, 0, null, null, 1, "TAX102" },
-                    { 103, 103, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CFO Finance", 0, null, 0m, 0m, 0, null, null, 1, "TAX103" },
-                    { 104, 104, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Marketing Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX104" },
-                    { 105, 105, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Operations Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX105" },
-                    { 106, 106, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "HR Manager", 0, null, 0m, 0m, 0, null, null, 1, "TAX106" },
-                    { 107, 107, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, 0m, 0, null, null, 1, "TAX107" },
-                    { 108, 108, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, 0m, 0, null, null, 1, "TAX108" },
-                    { 109, 109, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, 0m, 0, null, null, 1, "TAX109" },
-                    { 110, 110, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca sáng", 0, null, 0m, 0m, 0, null, null, 1, "TAX110" },
-                    { 111, 122, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "District Manager Bien Hoa", 0, null, 0m, 0m, 0, null, null, 1, "TAX111" },
-                    { 112, 123, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 28000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca chiều", 0, null, 0m, 0m, 0, null, null, 1, "TAX112" }
+                    { 101, 101, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 50000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Super Admin System", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX101" },
+                    { 102, 102, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 100000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CEO Director", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX102" },
+                    { 103, 103, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 80000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "CFO Finance", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX103" },
+                    { 104, 104, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 40000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Marketing Manager", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX104" },
+                    { 105, 105, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 45000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Operations Manager", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX105" },
+                    { 106, 106, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "HR Manager", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX106" },
+                    { 107, 107, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 30000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Area Manager HCM", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX107" },
+                    { 108, 108, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 20000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Store Manager D1", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX108" },
+                    { 109, 109, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Shift Supervisor", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX109" },
+                    { 110, 110, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 8000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca sáng", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX110" },
+                    { 111, 122, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "District Manager Bien Hoa", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX111" },
+                    { 112, 123, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 28000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "nv ca chiều", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX112" }
                 });
 
             migrationBuilder.InsertData(

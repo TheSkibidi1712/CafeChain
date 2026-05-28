@@ -1,4 +1,6 @@
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Results;
+using CafeChain.Models.Stores;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Interfaces.POS
@@ -10,5 +12,17 @@ namespace CafeChain.Application.Interfaces.POS
         /// Includes strict HR BYOD Interlock validation.
         /// </summary>
         Task<ServiceResult> OpenShiftAsync(int userId, int storeId, decimal startingCash);
+
+        /// <summary>
+        /// Gets the currently open WorkShift for a user at a store.
+        /// Returns null if no shift is open.
+        /// </summary>
+        Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId);
+
+        /// <summary>
+        /// Closes an open WorkShift with cash reconciliation.
+        /// Calculates expected ending cash and records discrepancy.
+        /// </summary>
+        Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request);
     }
 }

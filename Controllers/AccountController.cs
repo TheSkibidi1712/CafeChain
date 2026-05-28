@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System.Security.Claims;
 using System.Collections.Generic;
+using CafeChain.Application.Constants;
 
 namespace CafeChain.Controllers
 {
@@ -232,22 +233,22 @@ namespace CafeChain.Controllers
 
             var adminRoles = new[]
             {
-                "Super Admin",
-                "CEO / Ban Giám đốc",
-                "Kế toán trưởng / Tài chính",
-                "Giám đốc Marketing",
-                "Giám đốc Vận hành",
-                "Quản lý Nhân sự",
-                "Quản lý Khu vực",
-                "Cửa hàng trưởng"
+                RoleConstants.SuperAdmin,
+                RoleConstants.CEO,
+                RoleConstants.CFO,
+                RoleConstants.MarketingManager,
+                RoleConstants.OperationsManager,
+                RoleConstants.HRManager,
+                RoleConstants.AreaManager,
+                RoleConstants.StoreManager
             };
 
-            var kioskRoles = new[]
+            var staffHubRoles = new[]
             {
-                "Ca trưởng",
-                "Thu ngân",
-                "Thủ kho",
-                "Nhân viên chung"
+                RoleConstants.ShiftSupervisor,
+                RoleConstants.Cashier,
+                RoleConstants.WarehouseKeeper,
+                RoleConstants.GeneralStaff
             };
 
             if (adminRoles.Contains(role))
@@ -258,11 +259,11 @@ namespace CafeChain.Controllers
                     new { area = "Admin" });
             }
 
-            if (kioskRoles.Contains(role))
+            if (staffHubRoles.Contains(role))
             {
                 return RedirectToAction(
                     "Index",
-                    "Kiosk");
+                    "StaffHub");
             }
 
             return RedirectToAction(

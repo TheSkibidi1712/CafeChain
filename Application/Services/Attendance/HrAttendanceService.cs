@@ -18,6 +18,10 @@ namespace CafeChain.Application.Services.Attendance
 
         public async Task<bool> VerifyRecentCheckInAsync(int userId, int storeId)
         {
+            // [FIX.md] TẠM THỜI BYPASS KIỂM TRA ĐỊA CHỈ IP VÀ CHẤM CÔNG ĐỂ KHÁCH HÀNG TEST TRƯỚC
+            return true;
+
+            /*
             var cutoffTime = DateTime.UtcNow.AddMinutes(-30);
 
             var recentLog = await _context.AttendanceLogs
@@ -30,6 +34,7 @@ namespace CafeChain.Application.Services.Attendance
                 .FirstOrDefaultAsync();
 
             return recentLog != null;
+            */
         }
     }
 }

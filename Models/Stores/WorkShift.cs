@@ -54,6 +54,12 @@ namespace CafeChain.Models.Stores
         [MaxLength(20)]
         public string Status { get; set; } = "Open";
 
+        /// <summary>
+        /// Lý do chênh lệch tiền mặt khi đóng ca (nếu có)
+        /// </summary>
+        [MaxLength(500)]
+        public string? DiscrepancyReason { get; set; }
+
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }

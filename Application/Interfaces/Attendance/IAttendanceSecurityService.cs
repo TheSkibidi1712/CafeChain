@@ -23,5 +23,10 @@ namespace CafeChain.Application.Interfaces.Attendance
         /// Đăng ký Face ID cho nhân viên (lưu FaceDescriptor vector vào DB)
         /// </summary>
         Task<ServiceResult> RegisterFaceAsync(int accountId, string faceDescriptor);
+
+        /// <summary>
+        /// Cập nhật mã PIN 4 số cho nhân viên (lưu bcrypt hash vào DB)
+        /// </summary>
+        Task<ServiceResult> UpdatePinAsync(int accountId, string pin);
     }
 }

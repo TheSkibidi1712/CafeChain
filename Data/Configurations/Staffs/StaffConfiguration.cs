@@ -33,6 +33,10 @@ namespace CafeChain.Data.Configurations.Staffs
 
             entity.Property(x => x.DateOfBirth);
 
+            entity.Property(x => x.PinHash)
+                .HasMaxLength(100)
+                .IsRequired(false);
+
             // ================= AVATAR =================
 
             entity.Property(x => x.AvatarUrl)

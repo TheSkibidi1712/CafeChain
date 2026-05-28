@@ -1,0 +1,1044 @@
+@{
+    ViewData["Title"] = "StaffHub";
+    Layout = null; // StaffHub uses its own full-screen layout, no customer navbar
+    var staffData = ViewBag.StaffHubData as dynamic;
+    bool canAccessPos = ViewBag.CanAccessPos ?? false;
+    string userRole = ViewBag.UserRole ?? "";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StaffHub - CafeChain</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-card: #1e293b;
+            --bg-card-hover: #263548;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --accent: #0ea5e9;
+            --accent-green: #22c55e;
+            --accent-orange: #f59e0b;
+            --accent-red: #ef4444;
+            --border: #334155;
+            --radius: 16px;
+            --radius-sm: 10px;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.5;
+        }
+
+        /* === HEADER === */
+        .sh-header {
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(12px);
+        }
+        .sh-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 800;
+            font-size: 1.25rem;
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .sh-brand i { font-size: 1.5rem; }
+        .sh-user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .sh-user-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        .sh-user-role {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+        .sh-logout-btn {
+            background: rgba(239,68,68,0.15);
+            border: 1px solid rgba(239,68,68,0.3);
+            color: var(--accent-red);
+            padding: 8px 16px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            text-decoration: none;
+        }
+        .sh-logout-btn:hover {
+            background: rgba(239,68,68,0.25);
+            transform: translateY(-1px);
+            color: #fca5a5;
+        }
+
+        /* === GRID LAYOUT === */
+        .sh-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            padding: 24px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        @@media (max-width: 768px) {
+            .sh-grid { grid-template-columns: 1fr; padding: 16px; }
+        }
+
+        /* === CARD === */
+        .sh-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            transition: all 0.25s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        .sh-card:hover {
+            background: var(--bg-card-hover);
+            border-color: var(--accent);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 32px rgba(14,165,233,0.1);
+        }
+        .sh-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        .sh-card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+        .sh-card-title {
+            font-weight: 700;
+            font-size: 1rem;
+        }
+        .sh-card-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        /* === MODULE A: PROFILE === */
+        .icon-profile { background: rgba(14,165,233,0.15); color: var(--accent); }
+        .sh-profile-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid rgba(51,65,85,0.5);
+            font-size: 0.85rem;
+        }
+        .sh-profile-row:last-child { border-bottom: none; }
+        .sh-profile-label { color: var(--text-muted); }
+        .sh-profile-value { font-weight: 600; }
+
+        /* === MODULE B: ATTENDANCE === */
+        .icon-attendance { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+        .sh-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+        .badge-not-checked { background: rgba(100,116,139,0.2); color: var(--text-muted); }
+        .badge-checked-in { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+        .badge-checked-out { background: rgba(14,165,233,0.15); color: var(--accent); }
+
+        .sh-attendance-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+        }
+        .sh-btn {
+            flex: 1;
+            padding: 14px 20px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .sh-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+        .sh-btn-checkin {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(34,197,94,0.3);
+        }
+        .sh-btn-checkin:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34,197,94,0.4);
+        }
+        .sh-btn-checkout {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: #fff;
+            box-shadow: 0 4px 14px rgba(239,68,68,0.3);
+        }
+        .sh-btn-checkout:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(239,68,68,0.4);
+        }
+
+        /* === LIVE CLOCK === */
+        .sh-live-clock {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent), var(--accent-green));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-align: center;
+            margin: 8px 0;
+            font-variant-numeric: tabular-nums;
+        }
+        .sh-live-date {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-bottom: 12px;
+        }
+
+        /* === MODULE C: SETTINGS === */
+        .icon-settings { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+        .sh-settings-list { list-style: none; }
+        .sh-settings-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 14px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 6px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        .sh-settings-item:hover {
+            background: rgba(245,158,11,0.1);
+        }
+        .sh-settings-item i {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255,255,255,0.05);
+            font-size: 0.9rem;
+        }
+        .sh-settings-item .sh-arrow {
+            margin-left: auto;
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        /* === MODULE D: POS GATEWAY === */
+        .icon-pos { background: rgba(168,85,247,0.15); color: #a855f7; }
+        .sh-pos-btn {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.25s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            background: linear-gradient(135deg, #a855f7, #7c3aed);
+            color: #fff;
+            box-shadow: 0 4px 20px rgba(168,85,247,0.3);
+            margin-top: 12px;
+        }
+        .sh-pos-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(168,85,247,0.4);
+        }
+        .sh-pos-btn:disabled {
+            background: var(--bg-card);
+            color: var(--text-muted);
+            border: 1px dashed var(--border);
+            box-shadow: none;
+            cursor: not-allowed;
+        }
+        .sh-pos-locked-msg {
+            text-align: center;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 10px;
+        }
+        .sh-pos-no-access {
+            text-align: center;
+            padding: 24px;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* === SHIFT TIMELINE === */
+        .sh-shift-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            background: rgba(255,255,255,0.03);
+            margin-bottom: 8px;
+            font-size: 0.82rem;
+        }
+        .sh-shift-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .dot-current { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
+        .dot-upcoming { background: var(--accent); }
+        .dot-completed { background: var(--text-muted); }
+
+        /* === TOAST (SweetAlert replacement) === */
+        .sh-toast-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s;
+        }
+        .sh-toast-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        .sh-toast-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 32px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            transform: scale(0.95);
+            transition: transform 0.25s;
+        }
+        .sh-toast-overlay.active .sh-toast-box {
+            transform: scale(1);
+        }
+        .sh-toast-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            margin: 0 auto 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .sh-toast-icon.success { background: rgba(34,197,94,0.15); color: var(--accent-green); }
+        .sh-toast-icon.error { background: rgba(239,68,68,0.15); color: var(--accent-red); }
+        .sh-toast-icon.warning { background: rgba(245,158,11,0.15); color: var(--accent-orange); }
+        .sh-toast-icon.info { background: rgba(14,165,233,0.15); color: var(--accent); }
+        .sh-toast-title { font-weight: 700; font-size: 1.1rem; margin-bottom: 8px; }
+        .sh-toast-msg { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 20px; line-height: 1.6; }
+        .sh-toast-btn {
+            padding: 10px 28px;
+            border: none;
+            border-radius: var(--radius-sm);
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+            background: var(--accent);
+            color: #fff;
+            transition: all 0.2s;
+        }
+        .sh-toast-btn:hover { opacity: 0.9; }
+
+        /* === SPINNER === */
+        .sh-spinner {
+            display: none;
+            width: 20px;
+            height: 20px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: shSpin 0.6s linear infinite;
+        }
+        @@keyframes shSpin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <!-- HEADER -->
+    <header class="sh-header">
+        <a href="/StaffHub" class="sh-brand">
+            <i class="bi bi-cup-hot-fill"></i> CafeChain StaffHub
+        </a>
+        <div class="sh-user-info">
+            <div>
+                <div class="sh-user-name" id="staffName">--</div>
+                <div class="sh-user-role" id="staffRole">@userRole</div>
+            </div>
+            <form asp-controller="Account" asp-action="Logout" method="post" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="sh-logout-btn">
+                    <i class="bi bi-box-arrow-right"></i> Đăng xuất
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- DASHBOARD GRID -->
+    <div class="sh-grid">
+        <!-- MODULE A: Profile & Schedule -->
+        <div class="sh-card" id="cardProfile">
+            <div class="sh-card-header">
+                <div class="sh-card-icon icon-profile"><i class="bi bi-person-badge-fill"></i></div>
+                <div>
+                    <div class="sh-card-title">Thông tin & Lịch làm việc</div>
+                    <div class="sh-card-subtitle">Profile & Schedule</div>
+                </div>
+            </div>
+            <div class="sh-profile-row">
+                <span class="sh-profile-label">Nhân viên</span>
+                <span class="sh-profile-value" id="profileName">--</span>
+            </div>
+            <div class="sh-profile-row">
+                <span class="sh-profile-label">Chi nhánh</span>
+                <span class="sh-profile-value" id="profileStore">--</span>
+            </div>
+            <div class="sh-profile-row">
+                <span class="sh-profile-label">Chức vụ</span>
+                <span class="sh-profile-value" id="profileRole">@userRole</span>
+            </div>
+            <div class="sh-profile-row">
+                <span class="sh-profile-label">Face ID</span>
+                <span class="sh-profile-value" id="profileFaceId">--</span>
+            </div>
+            <div style="margin-top:16px;">
+                <div class="sh-card-subtitle" style="margin-bottom:8px;">Ca hôm nay</div>
+                <div id="shiftTimeline">
+                    <div style="color:var(--text-muted);font-size:0.82rem;">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MODULE B: Attendance -->
+        <div class="sh-card" id="cardAttendance">
+            <div class="sh-card-header">
+                <div class="sh-card-icon icon-attendance"><i class="bi bi-fingerprint"></i></div>
+                <div>
+                    <div class="sh-card-title">Chấm công</div>
+                    <div class="sh-card-subtitle">Attendance</div>
+                </div>
+            </div>
+            <div class="sh-live-clock" id="liveClock">--:--:--</div>
+            <div class="sh-live-date" id="liveDate">--</div>
+
+            <div style="text-align:center;">
+                <span class="sh-status-badge badge-not-checked" id="attendanceStatus">
+                    <i class="bi bi-circle"></i> Chưa vào ca
+                </span>
+            </div>
+
+            <div class="sh-attendance-actions">
+                <button class="sh-btn sh-btn-checkin" id="btnCheckIn" onclick="doAttendance('CheckIn')">
+                    <i class="bi bi-box-arrow-in-right"></i> Vào Ca
+                    <div class="sh-spinner" id="spinnerCheckIn"></div>
+                </button>
+                <button class="sh-btn sh-btn-checkout" id="btnCheckOut" disabled onclick="doAttendance('CheckOut')">
+                    <i class="bi bi-box-arrow-left"></i> Tan Ca
+                    <div class="sh-spinner" id="spinnerCheckOut"></div>
+                </button>
+            </div>
+        </div>
+
+        <!-- MODULE C: Settings -->
+        <div class="sh-card" id="cardSettings">
+            <div class="sh-card-header">
+                <div class="sh-card-icon icon-settings"><i class="bi bi-gear-fill"></i></div>
+                <div>
+                    <div class="sh-card-title">Cài đặt</div>
+                    <div class="sh-card-subtitle">Settings</div>
+                </div>
+            </div>
+            <ul class="sh-settings-list">
+                <li class="sh-settings-item" onclick="openPinModal()">
+                    <i class="bi bi-key-fill" style="color:var(--accent-orange);"></i>
+                    <span>Đổi mã PIN (Ca trưởng)</span>
+                    <span class="sh-arrow"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                <li class="sh-settings-item" onclick="openFaceModal()">
+                    <i class="bi bi-person-bounding-box" style="color:var(--accent);"></i>
+                    <span>Cập nhật Face ID</span>
+                    <span class="sh-arrow"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                <li class="sh-settings-item" onclick="alert('Tính năng đang phát triển')">
+                    <i class="bi bi-lock-fill" style="color:var(--accent-green);"></i>
+                    <span>Đổi mật khẩu</span>
+                    <span class="sh-arrow"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                <li class="sh-settings-item" onclick="alert('Tính năng đang phát triển')">
+                    <i class="bi bi-person-fill-gear" style="color:#a855f7;"></i>
+                    <span>Thông tin cá nhân</span>
+                    <span class="sh-arrow"><i class="bi bi-chevron-right"></i></span>
+                </li>
+            </ul>
+        </div>
+
+        <!-- MODULE D: POS Gateway -->
+        <div class="sh-card" id="cardPosGateway">
+            <div class="sh-card-header">
+                <div class="sh-card-icon icon-pos"><i class="bi bi-display-fill"></i></div>
+                <div>
+                    <div class="sh-card-title">Máy POS</div>
+                    <div class="sh-card-subtitle">POS Gateway</div>
+                </div>
+            </div>
+            @if (canAccessPos)
+            {
+                <p style="font-size:0.82rem;color:var(--text-secondary);">
+                    Truy cập hệ thống POS bán hàng. Yêu cầu: đã chấm công vào ca.
+                </p>
+                <button class="sh-pos-btn" id="btnGoPos" disabled onclick="goToPos()">
+                    <i class="bi bi-display"></i> Đi tới máy POS
+                </button>
+                <div class="sh-pos-locked-msg" id="posLockedMsg">
+                    <i class="bi bi-lock-fill"></i> Bạn cần Vào Ca trước khi mở POS
+                </div>
+            }
+            else
+            {
+                <div class="sh-pos-no-access">
+                    <i class="bi bi-shield-lock" style="font-size:2rem;display:block;margin-bottom:10px;"></i>
+                    Chức vụ <strong>@userRole</strong> không có quyền truy cập POS.
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- MODAL: CHANGE PIN -->
+    <div class="sh-toast-overlay" id="pinModalOverlay">
+        <div class="sh-toast-box" style="max-width: 450px;">
+            <div class="sh-toast-icon warning"><i class="bi bi-key-fill"></i></div>
+            <div class="sh-toast-title">Cập nhật mã PIN</div>
+            <div class="sh-toast-msg">Mã PIN gồm 4 số được sử dụng để xác thực quản lý trên POS.</div>
+            <div style="margin: 16px 0;">
+                <input type="password" id="txtNewPin" maxlength="4" placeholder="PIN mới (4 số)" 
+                       style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-primary); color: #fff; text-align: center; font-size: 1.5rem; letter-spacing: 10px; font-weight: 700;" />
+                <input type="password" id="txtConfirmPin" maxlength="4" placeholder="Xác nhận PIN" 
+                       style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--bg-primary); color: #fff; text-align: center; font-size: 1.5rem; letter-spacing: 10px; font-weight: 700; margin-top: 10px;" />
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="sh-toast-btn" style="background: var(--border); flex: 1;" onclick="closePinModal()">Hủy</button>
+                <button class="sh-toast-btn" style="background: var(--accent-orange); flex: 1;" onclick="submitNewPin()">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REGISTER FACE ID -->
+    <div class="sh-toast-overlay" id="faceModalOverlay">
+        <div class="sh-toast-box" style="max-width: 500px; padding: 24px;">
+            <div class="sh-toast-icon info"><i class="bi bi-person-bounding-box"></i></div>
+            <div class="sh-toast-title">Cập nhật Face ID</div>
+            <div class="sh-toast-msg" id="faceModalMsg">Đang chuẩn bị Camera...</div>
+            
+            <div style="width: 100%; height: 300px; background: #000; border-radius: var(--radius-sm); overflow: hidden; position: relative; margin: 16px 0;">
+                <video id="faceVideo" autoplay muted playsinline style="width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1);"></video>
+                <div id="faceScanOverlay" style="position: absolute; inset: 0; border: 2px dashed var(--accent); border-radius: 50%; width: 180px; height: 180px; margin: auto; pointer-events: none; opacity: 0.5;"></div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button class="sh-toast-btn" style="background: var(--border); flex: 1;" id="btnCancelFace" onclick="closeFaceModal()">Hủy</button>
+                <button class="sh-toast-btn" style="background: var(--accent-green); flex: 1;" id="btnCaptureFace" onclick="handleFaceCaptureAction()" disabled>Quét Khuôn Mặt</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TOAST OVERLAY -->
+    <div class="sh-toast-overlay" id="toastOverlay">
+        <div class="sh-toast-box">
+            <div class="sh-toast-icon" id="toastIcon"><i class="bi bi-check-lg"></i></div>
+            <div class="sh-toast-title" id="toastTitle">Thông báo</div>
+            <div class="sh-toast-msg" id="toastMsg">Nội dung</div>
+            <button class="sh-toast-btn" id="toastBtn" onclick="closeToast()">Đóng</button>
+        </div>
+    </div>
+
+    <script src="/lib/jquery/dist/jquery.min.js"></script>
+    <script>
+    // ========= LIVE CLOCK =========
+    function updateClock() {
+        var now = new Date();
+        var h = String(now.getHours()).padStart(2, '0');
+        var m = String(now.getMinutes()).padStart(2, '0');
+        var s = String(now.getSeconds()).padStart(2, '0');
+        document.getElementById('liveClock').textContent = h + ':' + m + ':' + s;
+
+        var days = ['Chủ nhật','Thứ hai','Thứ ba','Thứ tư','Thứ năm','Thứ sáu','Thứ bảy'];
+        var d = days[now.getDay()] + ', ' + now.getDate() + '/' + (now.getMonth()+1) + '/' + now.getFullYear();
+        document.getElementById('liveDate').textContent = d;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ========= LOAD DASHBOARD DATA =========
+    var _isCheckedIn = false;
+
+    function loadDashboard() {
+        $.get('/api/Attendance/GetStaffHubData')
+            .done(function(res) {
+                if (!res.success) return;
+                var d = res.data;
+
+                // Profile
+                document.getElementById('staffName').textContent = d.staffName || '--';
+                document.getElementById('profileName').textContent = d.staffName || '--';
+                document.getElementById('profileStore').textContent = d.storeName || '--';
+                document.getElementById('profileFaceId').textContent = d.hasFaceId ? '✅ Đã đăng ký' : '❌ Chưa đăng ký';
+
+                // Shift timeline
+                var timeline = document.getElementById('shiftTimeline');
+                if (d.shifts && d.shifts.length > 0) {
+                    var html = '';
+                    for (var i = 0; i < d.shifts.length; i++) {
+                        var s = d.shifts[i];
+                        var dotClass = s.uiStatus === 'current' ? 'dot-current'
+                                     : s.uiStatus === 'completed' ? 'dot-completed'
+                                     : 'dot-upcoming';
+                        var timeRange = s.startTime + ' - ' + s.endTime;
+                        var checkInfo = '';
+                        if (s.actualCheckIn) checkInfo += ' | Vào: ' + s.actualCheckIn;
+                        if (s.actualCheckOut) checkInfo += ' | Ra: ' + s.actualCheckOut;
+                        html += '<div class="sh-shift-item">' +
+                            '<div class="sh-shift-dot ' + dotClass + '"></div>' +
+                            '<div><strong>' + s.shiftName + '</strong> (' + timeRange + ')' + checkInfo + '</div>' +
+                            '</div>';
+                    }
+                    timeline.innerHTML = html;
+                } else {
+                    timeline.innerHTML = '<div style="color:var(--text-muted);font-size:0.82rem;">Không có ca nào hôm nay</div>';
+                }
+
+                // Attendance status
+                _isCheckedIn = !!d.checkInTime;
+                updateAttendanceUI();
+            })
+            .fail(function(xhr) {
+                if (xhr.status === 401) {
+                    showToast('warning', 'Phiên hết hạn', 'Vui lòng đăng nhập lại.', function() {
+                        window.location.href = '/Account/Login';
+                    });
+                }
+            });
+    }
+
+    function updateAttendanceUI() {
+        var badge = document.getElementById('attendanceStatus');
+        var btnIn = document.getElementById('btnCheckIn');
+        var btnOut = document.getElementById('btnCheckOut');
+        var posBtn = document.getElementById('btnGoPos');
+        var posMsg = document.getElementById('posLockedMsg');
+
+        if (_isCheckedIn) {
+            badge.className = 'sh-status-badge badge-checked-in';
+            badge.innerHTML = '<i class="bi bi-check-circle-fill"></i> Đang làm việc';
+            btnIn.disabled = true;
+            btnOut.disabled = false;
+            if (posBtn) { posBtn.disabled = false; }
+            if (posMsg) { posMsg.style.display = 'none'; }
+        } else {
+            badge.className = 'sh-status-badge badge-not-checked';
+            badge.innerHTML = '<i class="bi bi-circle"></i> Chưa vào ca';
+            btnIn.disabled = false;
+            btnOut.disabled = true;
+            if (posBtn) { posBtn.disabled = true; }
+            if (posMsg) { posMsg.style.display = 'block'; }
+        }
+    }
+
+    // ========= ATTENDANCE ACTION =========
+    function doAttendance(actionType) {
+        openFaceModalForVerify(actionType);
+    }
+
+    function submitAttendance(actionType, faceDescriptor, forceSave = false) {
+        var spinnerId = actionType === 'CheckIn' ? 'spinnerCheckIn' : 'spinnerCheckOut';
+        var btnId = actionType === 'CheckIn' ? 'btnCheckIn' : 'btnCheckOut';
+        var spinner = document.getElementById(spinnerId);
+        var btn = document.getElementById(btnId);
+
+        btn.disabled = true;
+        spinner.style.display = 'inline-block';
+
+        $.post('/api/Attendance/SubmitTimeAction', {
+            actionType: actionType,
+            faceDescriptor: faceDescriptor,
+            forceSave: forceSave
+        })
+        .done(function(res) {
+            spinner.style.display = 'none';
+            closeFaceModal();
+            if (res.success) {
+                showToast('success', 'Thành công', res.message);
+                _isCheckedIn = (actionType === 'CheckIn');
+                updateAttendanceUI();
+                loadDashboard(); // Reload full state
+            }
+        })
+        .fail(function(xhr) {
+            spinner.style.display = 'none';
+            btn.disabled = false;
+            var data = xhr.responseJSON || {};
+
+            // Handle 409 Conflict (duplicate check-in from another tab)
+            if (xhr.status === 409) {
+                closeFaceModal();
+                showToast('warning', 'Trùng phiên chấm công', data.message || 'Bạn đã vào ca ở phiên khác.', function() {
+                    window.location.reload();
+                });
+                return;
+            }
+
+            // Handle ad-hoc confirmation
+            if (data.errorCode === 'AD_HOC_CONFIRMATION_REQUIRED') {
+                closeFaceModal();
+                showConfirmToast(data.message, function() {
+                    // Re-send with forceSave = true
+                    submitAttendance(actionType, faceDescriptor, true);
+                });
+                return;
+            }
+
+            // Handle 401 session expired
+            if (xhr.status === 401) {
+                closeFaceModal();
+                showToast('warning', 'Phiên hết hạn', 'Vui lòng đăng nhập lại.', function() {
+                    window.location.href = '/Account/Login';
+                });
+                return;
+            }
+
+            // Keep the face scan cancel/capture btn enabled for retry in modal
+            var btnCapture = document.getElementById('btnCaptureFace');
+            var btnCancel = document.getElementById('btnCancelFace');
+            if (btnCapture) btnCapture.disabled = false;
+            if (btnCancel) btnCancel.disabled = false;
+            
+            var msgEl = document.getElementById('faceModalMsg');
+            if (msgEl) {
+                msgEl.textContent = 'Xác thực thất bại: ' + (data.message || 'Có lỗi xảy ra.');
+                msgEl.className = 'sh-toast-msg text-danger';
+            } else {
+                showToast('error', 'Lỗi', data.message || 'Có lỗi xảy ra.');
+            }
+        });
+    }
+
+    // ========= POS GATEWAY =========
+    function goToPos() {
+        if (!_isCheckedIn) {
+            showToast('warning', 'Chưa vào ca', 'Bạn cần chấm công vào ca trước khi truy cập POS.');
+            return;
+        }
+        window.location.href = '/Admin/AdminPOS/Index';
+    }
+
+    // ========= TOAST SYSTEM =========
+    function showToast(type, title, msg, onClose) {
+        var overlay = document.getElementById('toastOverlay');
+        var iconEl = document.getElementById('toastIcon');
+        var icons = { success: 'bi-check-lg', error: 'bi-x-lg', warning: 'bi-exclamation-triangle-fill', info: 'bi-info-lg' };
+        iconEl.className = 'sh-toast-icon ' + type;
+        iconEl.innerHTML = '<i class="bi ' + (icons[type] || icons.info) + '"></i>';
+        document.getElementById('toastTitle').textContent = title;
+        document.getElementById('toastMsg').textContent = msg;
+        overlay.classList.add('active');
+        window._toastCallback = onClose || null;
+    }
+
+    function closeToast() {
+        document.getElementById('toastOverlay').classList.remove('active');
+        if (typeof window._toastCallback === 'function') {
+            window._toastCallback();
+            window._toastCallback = null;
+        }
+    }
+
+    function showConfirmToast(msg, onConfirm) {
+        var overlay = document.getElementById('toastOverlay');
+        var iconEl = document.getElementById('toastIcon');
+        iconEl.className = 'sh-toast-icon warning';
+        iconEl.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+        document.getElementById('toastTitle').textContent = 'Xác nhận Ca Tự Do';
+        document.getElementById('toastMsg').textContent = msg;
+        var btn = document.getElementById('toastBtn');
+        btn.textContent = 'Xác nhận lưu';
+        overlay.classList.add('active');
+        window._toastCallback = function() {
+            btn.textContent = 'Đóng';
+            if (typeof onConfirm === 'function') onConfirm();
+        };
+    }
+
+    // ========= PIN CHANGE AND FACE ID MODALS =========
+    function openPinModal() {
+        document.getElementById('txtNewPin').value = '';
+        document.getElementById('txtConfirmPin').value = '';
+        document.getElementById('pinModalOverlay').classList.add('active');
+    }
+    function closePinModal() {
+        document.getElementById('pinModalOverlay').classList.remove('active');
+    }
+    function submitNewPin() {
+        var pin = document.getElementById('txtNewPin').value;
+        var confirmPin = document.getElementById('txtConfirmPin').value;
+        if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
+            showToast('error', 'Lỗi', 'Mã PIN phải gồm 4 chữ số.');
+            return;
+        }
+        if (pin !== confirmPin) {
+            showToast('error', 'Lỗi', 'Xác nhận mã PIN không khớp.');
+            return;
+        }
+        $.post('/api/Attendance/UpdatePin', { pin: pin })
+            .done(function(res) {
+                closePinModal();
+                showToast('success', 'Thành công', 'Đổi mã PIN thành công.');
+            })
+            .fail(function(xhr) {
+                showToast('error', 'Lỗi', (xhr.responseJSON || {}).message || 'Có lỗi xảy ra.');
+            });
+    }
+
+    var faceStream = null;
+    var faceApiLoaded = false;
+    var faceModalMode = 'register';
+    var verifyActionType = 'CheckIn';
+
+    async function openFaceModal() {
+        faceModalMode = 'register';
+        document.getElementById('faceModalOverlay').classList.add('active');
+        document.querySelector('#faceModalOverlay .sh-toast-title').textContent = 'Cập nhật Face ID';
+        var btnCapture = document.getElementById('btnCaptureFace');
+        btnCapture.textContent = 'Quét Khuôn Mặt';
+        
+        await initFaceCamera();
+    }
+
+    async function openFaceModalForVerify(actionType) {
+        faceModalMode = 'verify';
+        verifyActionType = actionType;
+        document.getElementById('faceModalOverlay').classList.add('active');
+        document.querySelector('#faceModalOverlay .sh-toast-title').textContent = actionType === 'CheckIn' ? 'Xác thực Vào Ca' : 'Xác thực Tan Ca';
+        var btnCapture = document.getElementById('btnCaptureFace');
+        btnCapture.textContent = 'Xác thực Gương Mặt';
+        
+        await initFaceCamera();
+    }
+
+    async function initFaceCamera() {
+        var msgEl = document.getElementById('faceModalMsg');
+        var btnCapture = document.getElementById('btnCaptureFace');
+        msgEl.textContent = 'Đang chuẩn bị Camera...';
+        msgEl.className = 'sh-toast-msg';
+        btnCapture.disabled = true;
+
+        try {
+            if (!faceApiLoaded) {
+                msgEl.textContent = 'Đang tải thư viện AI (face-api)...';
+                await loadScript('/js/face-api.min.js');
+                msgEl.textContent = 'Đang tải mô hình nhận diện AI...';
+                await Promise.all([
+                    faceapi.nets.ssdMobilenetv1.loadFromUri('/aifx'),
+                    faceapi.nets.faceLandmark68Net.loadFromUri('/aifx'),
+                    faceapi.nets.faceRecognitionNet.loadFromUri('/aifx')
+                ]);
+                faceApiLoaded = true;
+            }
+
+            msgEl.textContent = 'Đang mở camera...';
+            var video = document.getElementById('faceVideo');
+            
+            faceStream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: "user", width: { ideal: 480 }, height: { ideal: 640 } }
+            });
+            video.srcObject = faceStream;
+            video.onloadeddata = function() {
+                msgEl.textContent = 'Camera Sẵn Sàng! Đưa khuôn mặt vào vòng quét và nhấn nút bên dưới.';
+                btnCapture.disabled = false;
+            };
+        } catch (err) {
+            msgEl.textContent = 'Lỗi camera/AI: ' + err.message;
+            msgEl.className = 'sh-toast-msg text-danger';
+        }
+    }
+
+    function loadScript(src) {
+        return new Promise(function(resolve, reject) {
+            if (window.faceapi) {
+                resolve();
+                return;
+            }
+            var s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = reject;
+            document.head.appendChild(s);
+        });
+    }
+
+    function closeFaceModal() {
+        document.getElementById('faceModalOverlay').classList.remove('active');
+        if (faceStream) {
+            faceStream.getTracks().forEach(function(track) { track.stop(); });
+            faceStream = null;
+        }
+    }
+
+    async function handleFaceCaptureAction() {
+        if (faceModalMode === 'register') {
+            await captureAndRegisterFace();
+        } else {
+            await captureAndVerifyFace();
+        }
+    }
+
+    async function captureAndRegisterFace() {
+        var msgEl = document.getElementById('faceModalMsg');
+        var btnCapture = document.getElementById('btnCaptureFace');
+        var btnCancel = document.getElementById('btnCancelFace');
+        var video = document.getElementById('faceVideo');
+
+        btnCapture.disabled = true;
+        btnCancel.disabled = true;
+        msgEl.textContent = 'Đang nhận diện khuôn mặt...';
+
+        try {
+            const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                                           .withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+                msgEl.textContent = 'Không tìm thấy khuôn mặt rõ nét! Vui lòng thử lại.';
+                btnCapture.disabled = false;
+                btnCancel.disabled = false;
+                return;
+            }
+
+            msgEl.textContent = 'Đang lưu dữ liệu sinh trắc học lên server...';
+            var faceVectorJson = JSON.stringify(Array.from(detection.descriptor));
+
+            $.ajax({
+                url: '/api/Attendance/RegisterFace',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ faceDescriptor: faceVectorJson }),
+                success: function(res) {
+                    closeFaceModal();
+                    showToast('success', 'Thành công', 'Cập nhật Face ID thành công!');
+                    loadDashboard();
+                },
+                error: function(xhr) {
+                    msgEl.textContent = 'Đăng ký thất bại: ' + ((xhr.responseJSON || {}).message || 'Có lỗi xảy ra.');
+                    btnCapture.disabled = false;
+                    btnCancel.disabled = false;
+                }
+            });
+        } catch (e) {
+            msgEl.textContent = 'Lỗi nhận diện: ' + e.message;
+            btnCapture.disabled = false;
+            btnCancel.disabled = false;
+        }
+    }
+
+    async function captureAndVerifyFace() {
+        var msgEl = document.getElementById('faceModalMsg');
+        var btnCapture = document.getElementById('btnCaptureFace');
+        var btnCancel = document.getElementById('btnCancelFace');
+        var video = document.getElementById('faceVideo');
+
+        btnCapture.disabled = true;
+        btnCancel.disabled = true;
+        msgEl.textContent = 'Đang nhận diện khuôn mặt...';
+
+        try {
+            const detection = await faceapi.detectSingleFace(video, new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 }))
+                                           .withFaceLandmarks().withFaceDescriptor();
+            
+            if (!detection) {
+                msgEl.textContent = 'Không tìm thấy khuôn mặt rõ nét! Vui lòng thử lại.';
+                btnCapture.disabled = false;
+                btnCancel.disabled = false;
+                return;
+            }
+
+            msgEl.textContent = 'Đang gửi dữ liệu xác thực...';
+            var faceVectorJson = JSON.stringify(Array.from(detection.descriptor));
+
+            submitAttendance(verifyActionType, faceVectorJson);
+        } catch (e) {
+            msgEl.textContent = 'Lỗi nhận diện: ' + e.message;
+            btnCapture.disabled = false;
+            btnCancel.disabled = false;
+        }
+    }
+
+    // ========= GLOBAL AJAX ERROR HANDLER =========
+    $(document).ajaxError(function(event, xhr) {
+        if (xhr.status === 401) {
+            showToast('warning', 'Phiên hết hạn', 'Vui lòng đăng nhập lại.', function() {
+                window.location.href = '/Account/Login';
+            });
+        }
+    });
+
+    // ========= INIT =========
+    $(document).ready(function() {
+        loadDashboard();
+    });
+    </script>
+</body>
+</html>

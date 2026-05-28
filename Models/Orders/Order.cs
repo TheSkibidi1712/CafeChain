@@ -30,18 +30,15 @@ namespace CafeChain.Models.Orders
 
         
         // ====== RECEIVER INFORMATION (Zero-Trust Delivery) ======
-        [Required(ErrorMessage = "Vui lòng nhập tên người nhận")]
+        // Nullable for POS in-store orders (DineIn/TakeAway)
         [MaxLength(100)]
-        public string ReceiverName { get; set; }
+        public string? ReceiverName { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập số điện thoại")]
         [Phone(ErrorMessage = "Số điện thoại không hợp lệ")]
-        public string ReceiverPhone { get; set; }
+        public string? ReceiverPhone { get; set; }
 
-        [Required(ErrorMessage = "Vui lòng nhập địa chỉ giao hàng")]
-        public string DeliveryAddress { get; set; }
+        public string? DeliveryAddress { get; set; }
 
-        [Required]
         public decimal ShippingFee { get; set; }
 
         // ====== MONEY BREAKDOWN ======

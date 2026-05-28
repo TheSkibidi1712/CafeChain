@@ -70,23 +70,37 @@ namespace CafeChain.Application.Services.Attendance
             {
                 var today = DateTime.Today;
                 var todayDateStr = today.ToString("yyyy-MM-dd");
+                var yesterday = today.AddDays(-1);
+                var yesterdayDateStr = yesterday.ToString("yyyy-MM-dd");
 
                 // Dùng UPDLOCK khóa record đến khi commit, chống SPAM click liên tiếp sinh ra Exception ghi đè
-                var shiftsToday = await _context.StaffShifts
-                    .FromSqlInterpolated($"SELECT * FROM StaffShifts WITH (UPDLOCK, ROWLOCK) WHERE StaffId = {staff.StaffId} AND CAST(WorkDate as Date) = {todayDateStr}")
+                var shifts = await _context.StaffShifts
+                    .FromSqlInterpolated($"SELECT * FROM StaffShifts WITH (UPDLOCK, ROWLOCK) WHERE StaffId = {staff.StaffId} AND (CAST(WorkDate as Date) = {todayDateStr} OR CAST(WorkDate as Date) = {yesterdayDateStr})")
                     .Include(s => s.Shift)
                     .ToListAsync();
 
-                var todayShifts = shiftsToday.OrderBy(s => s.Shift?.StartTime).ToList();
+                var todayShifts = shifts.Where(s => s.WorkDate.Date == today).OrderBy(s => s.Shift?.StartTime).ToList();
                 StaffShift todayShift = null;
 
                 if (actionType == "CheckIn")
                 {
+                    // DUPLICATE CHECK-IN GUARD: Block if already checked in today or yesterday's active shift
+                    var alreadyActive = shifts.Any(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue);
+                    if (alreadyActive)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            "Bạn đã vào ca ở một phiên làm việc khác. Dữ liệu đang được đồng bộ.",
+                            errorCode: "CONFLICT_ALREADY_ACTIVE");
+                    }
+
                     todayShift = todayShifts.FirstOrDefault(s => !s.ActualCheckIn.HasValue);
                 }
                 else
                 {
-                    todayShift = todayShifts.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue);
+                    // CheckOut: prefer today's active shift, otherwise yesterday's active overnight/ad-hoc shift
+                    todayShift = shifts.FirstOrDefault(s => s.WorkDate.Date == today && s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue)
+                                 ?? shifts.FirstOrDefault(s => s.WorkDate.Date == yesterday && s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue && (s.IsAdHoc || (s.Shift != null && s.Shift.IsOvernight)));
                 }
 
                 if (todayShift == null)
@@ -203,8 +217,9 @@ namespace CafeChain.Application.Services.Attendance
                 // 2. Kiểm tra Face ID
                 bool hasFaceId = !string.IsNullOrEmpty(staff.FaceDescriptor);
 
-                // 3. Lấy lịch ca hôm nay
+                // 3. Lấy lịch ca hôm nay + ca active từ hôm qua (nếu có, ví dụ ca qua đêm chưa check-out)
                 var today = DateTime.Today;
+                var yesterday = today.AddDays(-1);
                 var shiftsToday = await _context.StaffShifts
                     .Where(ss => ss.StaffId == staff.StaffId && ss.WorkDate.Date == today)
                     .Include(ss => ss.Shift)
@@ -212,8 +227,20 @@ namespace CafeChain.Application.Services.Attendance
                     .OrderBy(ss => ss.Shift.StartTime)
                     .ToListAsync();
 
+                var yesterdayActiveShift = await _context.StaffShifts
+                    .Where(ss => ss.StaffId == staff.StaffId && ss.WorkDate.Date == yesterday && ss.ActualCheckIn.HasValue && !ss.ActualCheckOut.HasValue)
+                    .Include(ss => ss.Shift)
+                    .Include(ss => ss.Status)
+                    .FirstOrDefaultAsync();
+
+                var allShiftsToMap = shiftsToday.ToList();
+                if (yesterdayActiveShift != null)
+                {
+                    allShiftsToMap.Insert(0, yesterdayActiveShift);
+                }
+
                 // 4. Map sang DTO trả về Frontend
-                var shiftDtos = shiftsToday.Select(ss =>
+                var shiftDtos = allShiftsToMap.Select(ss =>
                 {
                     var now = DateTime.Now.TimeOfDay;
                     
@@ -261,9 +288,11 @@ namespace CafeChain.Application.Services.Attendance
 
                 // 5. Tổng hợp kết quả
                 // Lấy tổng số giây đã làm hoàn tất
-                var completedSeconds = shiftsToday
+                var completedSeconds = allShiftsToMap
                     .Where(s => s.ActualCheckIn.HasValue && s.ActualCheckOut.HasValue && s.ActualCheckOut > s.ActualCheckIn)
                     .Sum(s => (s.ActualCheckOut.Value - s.ActualCheckIn.Value).TotalSeconds);
+
+                var activeShift = allShiftsToMap.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue);
 
                 var kioskData = new
                 {
@@ -273,8 +302,8 @@ namespace CafeChain.Application.Services.Attendance
                     storeAddress = staff.Store?.Address ?? "Hệ thống CafeChain",
                     hasFaceId = hasFaceId,
                     shifts = shiftDtos,
-                    checkInTime = shiftsToday.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue)?.ActualCheckIn?.ToString("HH:mm"),
-                    checkInIso = shiftsToday.FirstOrDefault(s => s.ActualCheckIn.HasValue && !s.ActualCheckOut.HasValue)?.ActualCheckIn?.ToUniversalTime().ToString("O"),
+                    checkInTime = activeShift?.ActualCheckIn?.ToString("HH:mm"),
+                    checkInIso = activeShift?.ActualCheckIn?.ToUniversalTime().ToString("O"),
                     serverTimeIso = DateTime.UtcNow.ToString("O"),
                     totalShifts = shiftDtos.Count,
                     completedWorkingSeconds = completedSeconds

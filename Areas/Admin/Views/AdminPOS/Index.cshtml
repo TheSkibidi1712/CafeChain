@@ -3,309 +3,1379 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<div class="container-fluid py-4">
-    <div class="row">
-        <div class="col-12">
-            <div class="card shadow-sm border-0">
-                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="fas fa-desktop me-2"></i> Hệ Thống POS Thu Ngân</h5>
-                    <span class="badge bg-light text-dark" id="shiftStatusBadge">Chưa mở ca</span>
-                </div>
-                <div class="card-body" id="posSalesScreen" style="display: none; min-height: 400px;">
-                    <div class="alert alert-success">
-                        <i class="fas fa-check-circle me-2"></i> Đã mở ca thành công! Giao diện bán hàng đang được nạp...
-                    </div>
-                    
-                    <!-- OFFLINE STATUS BAR -->
-                    <div id="offlineStatusBar" class="alert alert-warning d-none fw-bold shadow-sm">
-                        <i class="fas fa-wifi-slash me-2"></i> <span>Hệ thống đang hoạt động ngoại tuyến. Các đơn hàng sẽ được lưu tạm vào máy và tự động đồng bộ khi có mạng.</span>
-                        <button class="btn btn-sm btn-outline-dark ms-3" onclick="syncOfflineOrders()">Đồng bộ ngay</button>
-                    </div>
+@section Styles {
+<style>
+    /* === OVERRIDE: Ẩn sidebar admin, POS dùng full-width === */
+    .sidebar { display: none !important; }
+    .main-content { margin-left: 0 !important; padding: 0 !important; }
+    .topbar { display: none !important; }
+    body { overflow: hidden; height: 100vh; }
 
-                    <!-- Giao diện bán hàng POS (Simulated for Checkout) -->
-                    <div class="mt-4 border p-3 rounded bg-light">
-                        <h6>Khu vực test giả lập thanh toán (Checkout)</h6>
-                        <button class="btn btn-success fw-bold" id="btnTestCheckout">
-                            <i class="fas fa-cash-register me-2"></i> Thanh Toán Đơn Hàng (Test)
-                        </button>
-                    </div>
-                </div>
-            </div>
+    /* === SweetAlert2 luôn nằm trên mọi overlay === */
+    .swal2-container { z-index: 99999 !important; }
+</style>
+<style>
+    /* ============ MENU PANEL (LEFT) ============ */
+    .pos-menu-panel {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
+        border-right: 1px solid #e2e8f0;
+        min-width: 0;
+    }
+
+    .menu-search-bar {
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: #f8fafc;
+    }
+
+    .menu-search-bar input {
+        width: 100%;
+        padding: 10px 16px 10px 40px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 14px;
+        font-weight: 500;
+        outline: none;
+        transition: border-color 0.2s;
+        background: white;
+    }
+
+    .menu-search-bar input:focus { border-color: #3b82f6; }
+
+    .menu-search-bar .search-icon {
+        position: absolute;
+        left: 28px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #94a3b8;
+    }
+
+    /* Category Tabs */
+    .category-tabs {
+        display: flex;
+        gap: 8px;
+        padding: 10px 16px;
+        overflow-x: auto;
+        border-bottom: 1px solid #e2e8f0;
+        background: #fff;
+        flex-shrink: 0;
+    }
+
+    .category-tabs::-webkit-scrollbar { height: 0; }
+
+    .cat-tab {
+        padding: 8px 18px;
+        border-radius: 20px;
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        cursor: pointer;
+        border: 2px solid #e2e8f0;
+        background: white;
+        color: #64748b;
+        transition: all 0.2s;
+    }
+
+    .cat-tab:hover { border-color: #93c5fd; color: #3b82f6; }
+
+    .cat-tab.active {
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        color: white;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Product Grid */
+    .product-grid {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 12px;
+        align-content: start;
+    }
+
+    .product-card {
+        background: white;
+        border: 2px solid #f1f5f9;
+        border-radius: 14px;
+        overflow: hidden;
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .product-card:hover {
+        border-color: #93c5fd;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+    }
+
+    .product-card:active { transform: scale(0.97); }
+
+    .product-card .card-img {
+        width: 100%;
+        aspect-ratio: 1;
+        object-fit: cover;
+        background: #f1f5f9;
+    }
+
+    .product-card .card-img-placeholder {
+        width: 100%;
+        aspect-ratio: 1;
+        background: linear-gradient(135deg, #e0f2fe, #bfdbfe);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 32px;
+        color: #3b82f6;
+    }
+
+    .product-card .card-body {
+        padding: 10px 12px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+    }
+
+    .product-card .card-name {
+        font-weight: 600;
+        font-size: 13px;
+        color: #1e293b;
+        line-height: 1.3;
+        margin-bottom: 4px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .product-card .card-price {
+        font-weight: 700;
+        font-size: 14px;
+        color: #2563eb;
+    }
+
+    /* ============ CART PANEL (RIGHT) ============ */
+    .pos-cart-panel {
+        width: 420px;
+        min-width: 420px;
+        display: flex;
+        flex-direction: column;
+        background: #f8fafc;
+    }
+
+    .cart-header {
+        padding: 14px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        background: white;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .cart-header h6 {
+        margin: 0;
+        font-weight: 700;
+        font-size: 15px;
+        color: #1e293b;
+    }
+
+    .cart-header .item-count {
+        background: #2563eb;
+        color: white;
+        font-size: 12px;
+        font-weight: 700;
+        padding: 2px 10px;
+        border-radius: 12px;
+    }
+
+    .cart-items {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px 12px;
+    }
+
+    .cart-item {
+        background: white;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 8px;
+        border: 1px solid #e2e8f0;
+        position: relative;
+    }
+
+    .cart-item .item-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 6px;
+    }
+
+    .cart-item .item-name {
+        font-weight: 600;
+        font-size: 14px;
+        color: #1e293b;
+        flex: 1;
+    }
+
+    .cart-item .item-size {
+        font-size: 12px;
+        color: #64748b;
+        font-weight: 500;
+    }
+
+    .cart-item .item-toppings {
+        font-size: 11px;
+        color: #94a3b8;
+        margin-bottom: 6px;
+    }
+
+    .cart-item .item-bottom {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .cart-item .qty-control {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+
+    .cart-item .qty-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: #f8fafc;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 16px;
+        color: #475569;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+
+    .cart-item .qty-btn:hover { background: #e2e8f0; }
+
+    .cart-item .qty-val {
+        width: 36px;
+        text-align: center;
+        font-weight: 700;
+        font-size: 14px;
+        color: #1e293b;
+    }
+
+    .cart-item .item-price {
+        font-weight: 700;
+        font-size: 15px;
+        color: #2563eb;
+    }
+
+    .cart-item .btn-remove {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: none;
+        background: #fee2e2;
+        color: #ef4444;
+        cursor: pointer;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+        opacity: 0.7;
+    }
+
+    .cart-item .btn-remove:hover { opacity: 1; background: #fecaca; }
+
+    /* Cart Empty */
+    .cart-empty {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: #94a3b8;
+        padding: 40px;
+    }
+
+    .cart-empty i { font-size: 48px; margin-bottom: 12px; }
+    .cart-empty p { font-size: 14px; font-weight: 500; }
+
+    /* ============ PAYMENT SECTION ============ */
+    .payment-section {
+        border-top: 2px solid #e2e8f0;
+        background: white;
+        padding: 14px 16px;
+    }
+
+    /* Customer & Voucher Row */
+    .customer-voucher-row {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .customer-voucher-row input {
+        flex: 1;
+        padding: 8px 12px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        font-size: 13px;
+        font-weight: 500;
+        outline: none;
+    }
+
+    .customer-voucher-row input:focus { border-color: #3b82f6; }
+
+    .customer-voucher-row .btn-apply {
+        padding: 8px 14px;
+        border: none;
+        border-radius: 10px;
+        font-size: 12px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .btn-search-cust {
+        background: #dbeafe;
+        color: #2563eb;
+    }
+
+    .btn-search-cust:hover { background: #bfdbfe; }
+
+    .btn-apply-voucher {
+        background: #fef3c7;
+        color: #d97706;
+    }
+
+    .btn-apply-voucher:hover { background: #fde68a; }
+
+    /* Customer Info Badge */
+    .customer-info-badge {
+        background: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-radius: 10px;
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        display: none;
+        font-size: 13px;
+    }
+
+    .customer-info-badge .cust-name { font-weight: 700; color: #15803d; }
+    .customer-info-badge .cust-points { font-weight: 600; color: #2563eb; }
+
+    /* Summary */
+    .payment-summary {
+        background: #f8fafc;
+        border-radius: 12px;
+        padding: 12px;
+        margin-bottom: 10px;
+    }
+
+    .summary-row {
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+        font-size: 13px;
+        color: #64748b;
+    }
+
+    .summary-row.total-row {
+        border-top: 2px solid #e2e8f0;
+        padding-top: 8px;
+        margin-top: 4px;
+        font-size: 18px;
+        font-weight: 800;
+        color: #1e293b;
+    }
+
+    .summary-row .discount { color: #16a34a; }
+
+    /* Order Type Toggle */
+    .order-type-toggle {
+        display: flex;
+        gap: 6px;
+        margin-bottom: 10px;
+    }
+
+    .order-type-btn {
+        flex: 1;
+        padding: 8px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        background: white;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s;
+        color: #64748b;
+    }
+
+    .order-type-btn.active {
+        background: #eff6ff;
+        border-color: #3b82f6;
+        color: #2563eb;
+    }
+
+    .order-type-btn:hover { border-color: #93c5fd; }
+
+    /* Checkout Button */
+    .btn-checkout {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #16a34a, #22c55e);
+        color: white;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 4px 15px rgba(22, 163, 74, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-checkout:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(22, 163, 74, 0.4);
+    }
+
+    .btn-checkout:active { transform: scale(0.98); }
+    .btn-checkout:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ============ SIZE SELECTOR MODAL ============ */
+    .size-selector-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 1000;
+        backdrop-filter: blur(4px);
+    }
+
+    .size-selector-modal {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: white;
+        border-radius: 20px;
+        padding: 24px;
+        width: 380px;
+        max-width: 90vw;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.2);
+    }
+
+    .size-selector-modal h5 {
+        font-weight: 800;
+        margin-bottom: 4px;
+    }
+
+    .size-option {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        margin-bottom: 8px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .size-option:hover { border-color: #93c5fd; background: #eff6ff; }
+    .size-option .size-name { font-weight: 600; font-size: 15px; }
+    .size-option .size-price { font-weight: 700; color: #2563eb; font-size: 15px; }
+
+    .topping-section { margin-top: 16px; }
+    .topping-section h6 { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: #475569; }
+
+    .topping-checkbox {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: background 0.15s;
+    }
+
+    .topping-checkbox:hover { background: #f8fafc; }
+
+    .topping-checkbox label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+    }
+
+    .topping-checkbox .tp-price { font-size: 13px; color: #2563eb; font-weight: 600; }
+
+    .btn-add-to-cart {
+        width: 100%;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        color: white;
+        font-weight: 700;
+        font-size: 15px;
+        cursor: pointer;
+        margin-top: 16px;
+        transition: all 0.2s;
+    }
+
+    .btn-add-to-cart:hover { box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+
+    /* ============ OPEN SHIFT OVERLAY ============ */
+    .shift-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 900;
+        background: rgba(15, 23, 42, 0.85);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        backdrop-filter: blur(8px);
+    }
+
+    .shift-modal {
+        background: white;
+        border-radius: 24px;
+        padding: 32px;
+        width: 420px;
+        max-width: 90vw;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.3);
+        animation: modalIn 0.3s ease;
+    }
+
+    @@keyframes modalIn {
+        from { opacity: 0; transform: scale(0.9) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .shift-modal .modal-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 28px;
+        margin: 0 auto 16px;
+    }
+
+    .shift-modal h4 { text-align: center; font-weight: 800; margin-bottom: 8px; }
+    .shift-modal p { text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px; }
+
+    .shift-modal .cash-input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 2px solid #e2e8f0;
+        border-radius: 14px;
+        font-size: 20px;
+        font-weight: 700;
+        text-align: center;
+        outline: none;
+        transition: border-color 0.2s;
+        color: #16a34a;
+    }
+
+    .shift-modal .cash-input:focus { border-color: #3b82f6; }
+
+    .shift-modal .btn-open-shift {
+        width: 100%;
+        padding: 14px;
+        border: none;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #2563eb, #3b82f6);
+        color: white;
+        font-size: 16px;
+        font-weight: 800;
+        cursor: pointer;
+        margin-top: 16px;
+        transition: all 0.2s;
+    }
+
+    .shift-modal .btn-open-shift:hover { box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4); }
+
+    /* Quick cash buttons */
+    .quick-cash { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; justify-content: center; }
+    .quick-cash button {
+        padding: 6px 14px;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        background: white;
+        font-weight: 600;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+        color: #475569;
+    }
+    .quick-cash button:hover { border-color: #3b82f6; color: #2563eb; background: #eff6ff; }
+
+    /* === POS HEADER === */
+    .pos-header {
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+        color: white;
+        padding: 10px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        height: 56px;
+        box-shadow: 0 4px 20px rgba(30, 58, 138, 0.3);
+        position: relative;
+        z-index: 100;
+    }
+    .pos-header .logo-section { display: flex; align-items: center; gap: 12px; }
+    .pos-header .logo-icon {
+        width: 36px; height: 36px; background: rgba(255,255,255,0.2);
+        border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        font-weight: 900; font-size: 18px; backdrop-filter: blur(10px);
+    }
+    .pos-header .logo-text { font-weight: 800; font-size: 18px; }
+    .pos-header .header-info { display: flex; align-items: center; gap: 16px; }
+    .pos-header .info-badge {
+        display: flex; align-items: center; gap: 6px;
+        background: rgba(255,255,255,0.15); padding: 6px 14px;
+        border-radius: 20px; font-size: 13px; font-weight: 500;
+    }
+    .pos-header .btn-header {
+        background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+        color: white; padding: 6px 16px; border-radius: 8px; font-size: 13px;
+        font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none;
+        display: inline-flex; align-items: center; gap: 6px;
+    }
+    .pos-header .btn-header:hover { background: rgba(255,255,255,0.25); color: white; }
+    .pos-header .btn-header.btn-danger-header { background: rgba(239,68,68,0.8); border-color: rgba(239,68,68,0.9); }
+    .pos-header .btn-header.btn-danger-header:hover { background: rgba(239,68,68,1); }
+    .network-indicator {
+        width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+        animation: pulse-green 2s infinite; display: inline-block;
+    }
+    .network-indicator.offline { background: #ef4444; animation: pulse-red 1.5s infinite; }
+
+    /* POS wrapper to fill screen */
+    .pos-wrapper { display: flex; flex-direction: column; height: 100vh; }
+    .pos-container { display: flex; flex: 1; overflow: hidden; }
+</style>
+}
+
+<!-- ====== POS HEADER ====== -->
+<div class="pos-wrapper">
+<header class="pos-header">
+    <div class="logo-section">
+        <div class="logo-icon">C</div>
+        <span class="logo-text">CafeChain POS</span>
+    </div>
+    <div class="header-info">
+        <div class="info-badge" id="shiftBadge">
+            <i class="fas fa-cash-register"></i>
+            <span id="headerShiftStatus">Chưa mở ca</span>
+        </div>
+        <div class="info-badge">
+            <div class="network-indicator" id="networkIndicator"></div>
+            <span id="networkStatusText">Online</span>
+        </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn-header btn-danger-header" id="btnCloseShift" style="display:none;">
+            <i class="fas fa-lock"></i> Đóng ca
+        </button>
+        <a href="/Admin/Dashboard" class="btn-header">
+            <i class="fas fa-arrow-left"></i> Quay lại
+        </a>
+    </div>
+</header>
+
+<!-- ====== OPEN SHIFT OVERLAY ====== -->
+<div class="shift-overlay" id="shiftOverlay">
+    <div class="shift-modal">
+        <div class="modal-icon" style="background: #dbeafe; color: #2563eb;">
+            <i class="fas fa-cash-register"></i>
+        </div>
+        <h4>Mở Ca Két Tiền</h4>
+        <p>Đếm số tiền lẻ trong két và nhập chính xác để bắt đầu phiên bán hàng.</p>
+        <input type="number" class="cash-input" id="startingCashInput" placeholder="0" min="0" step="10000">
+        <div class="quick-cash">
+            <button onclick="$('#startingCashInput').val(500000)">500K</button>
+            <button onclick="$('#startingCashInput').val(1000000)">1,000K</button>
+            <button onclick="$('#startingCashInput').val(1500000)">1,500K</button>
+            <button onclick="$('#startingCashInput').val(2000000)">2,000K</button>
+        </div>
+        <button class="btn-open-shift" id="btnOpenShift">
+            <i class="fas fa-unlock me-2"></i> Xác Nhận Mở Ca
+        </button>
+    </div>
+</div>
+
+<!-- ====== MAIN POS LAYOUT ====== -->
+<div class="pos-container">
+<!-- LEFT: Menu Panel -->
+<div class="pos-menu-panel">
+    <div class="menu-search-bar" style="position: relative;">
+        <i class="fas fa-search search-icon"></i>
+        <input type="text" id="searchInput" placeholder="Tìm kiếm đồ uống...">
+    </div>
+    <div class="category-tabs" id="categoryTabs">
+        <div class="cat-tab active" data-cat="all">Tất cả</div>
+    </div>
+    <div class="product-grid" id="productGrid">
+        <div class="cart-empty" style="grid-column: 1/-1;">
+            <i class="fas fa-spinner fa-spin"></i>
+            <p>Đang tải menu...</p>
         </div>
     </div>
 </div>
 
-<!-- Modal Mở Ca Làm Việc -->
-<div class="modal fade" id="openShiftModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="openShiftModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-warning text-dark border-0">
-                <h5 class="modal-title fw-bold" id="openShiftModalLabel">
-                    <i class="fas fa-key me-2"></i> Mở Ca Làm Việc (Nhận Két Tiền)
-                </h5>
-            </div>
-            <div class="modal-body p-4">
-                <div class="alert alert-info border-0 shadow-sm">
-                    <i class="fas fa-info-circle me-2"></i> <strong>Lưu ý bảo mật:</strong> Hệ thống đã kích hoạt tính năng khóa chéo (Interlock). Bạn chỉ có thể mở ca tài chính nếu đã hoàn tất <strong>Chấm Công Khuôn Mặt (BYOD)</strong> qua mạng Wifi của cửa hàng trong vòng 30 phút.
-                </div>
-                <form id="openShiftForm">
-                    <div class="mb-3 mt-4">
-                        <label for="startingCash" class="form-label fw-bold">Tiền lẻ đầu ca (VNĐ)</label>
-                        <div class="input-group">
-                            <span class="input-group-text bg-light"><i class="fas fa-money-bill-wave text-success"></i></span>
-                            <input type="number" class="form-control form-control-lg text-end fw-bold text-success" id="startingCash" placeholder="Ví dụ: 1000000" required min="0" step="1000">
-                            <span class="input-group-text bg-light">VNĐ</span>
-                        </div>
-                        <div class="form-text mt-2 text-muted">Nhập chính xác số tiền lẻ trong két tại thời điểm nhận ca.</div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer border-0 pb-4 pe-4">
-                <button type="button" class="btn btn-lg btn-primary w-100 fw-bold shadow-sm" id="btnConfirmOpenShift">
-                    <i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca
-                </button>
-            </div>
+<!-- RIGHT: Cart & Payment Panel -->
+<div class="pos-cart-panel">
+    <div class="cart-header">
+        <h6><i class="fas fa-shopping-cart me-2"></i>Giỏ hàng</h6>
+        <span class="item-count" id="cartCount">0</span>
+    </div>
+
+    <div class="cart-items" id="cartItems">
+        <div class="cart-empty" id="cartEmpty">
+            <i class="fas fa-shopping-basket"></i>
+            <p>Chọn sản phẩm để bắt đầu</p>
         </div>
     </div>
+
+    <div class="payment-section" id="paymentSection">
+        <!-- Customer & Voucher -->
+        <div class="customer-voucher-row">
+            <input type="text" id="customerPhone" placeholder="📱 SĐT khách hàng">
+            <button class="btn-apply btn-search-cust" onclick="searchCustomer()"><i class="fas fa-search"></i></button>
+        </div>
+        <div class="customer-info-badge" id="customerBadge">
+            <span class="cust-name" id="custName"></span> —
+            <span class="cust-points" id="custPoints"></span> điểm
+            <button onclick="clearCustomer()" style="float:right;border:none;background:none;color:#ef4444;cursor:pointer;font-size:12px;"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="customer-voucher-row">
+            <input type="text" id="voucherCode" placeholder="🎟️ Nhập mã voucher">
+            <button class="btn-apply btn-apply-voucher" onclick="applyVoucher()"><i class="fas fa-tag"></i></button>
+        </div>
+
+        <!-- Order Type -->
+        <div class="order-type-toggle">
+            <div class="order-type-btn active" data-type="1" onclick="setOrderType(1, this)">
+                <i class="fas fa-utensils me-1"></i> Tại quán
+            </div>
+            <div class="order-type-btn" data-type="2" onclick="setOrderType(2, this)">
+                <i class="fas fa-bag-shopping me-1"></i> Mang đi
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="payment-summary">
+            <div class="summary-row">
+                <span>Tạm tính</span>
+                <span id="sumSubTotal">0đ</span>
+            </div>
+            <div class="summary-row" id="rowVoucher" style="display:none;">
+                <span>Voucher</span>
+                <span class="discount" id="sumVoucher">-0đ</span>
+            </div>
+            <div class="summary-row" id="rowPoints" style="display:none;">
+                <span>Điểm tích lũy</span>
+                <span class="discount" id="sumPoints">-0đ</span>
+            </div>
+            <div class="summary-row total-row">
+                <span>Tổng cộng</span>
+                <span id="sumTotal">0đ</span>
+            </div>
+        </div>
+
+        <!-- Checkout -->
+        <button class="btn-checkout" id="btnCheckout" disabled onclick="processPayment()">
+            <i class="fas fa-credit-card"></i>
+            <span>THANH TOÁN</span>
+        </button>
+    </div>
 </div>
+</div><!-- /.pos-container -->
+
+<!-- ====== SIZE/TOPPING SELECTOR ====== -->
+<div class="size-selector-overlay" id="sizeSelectorOverlay" onclick="if(event.target===this)closeSizeSelector()">
+    <div class="size-selector-modal">
+        <h5 id="sizeModalTitle">Chọn size</h5>
+        <p style="color:#64748b;font-size:13px;margin-bottom:12px;" id="sizeModalSub"></p>
+        <div id="sizeOptions"></div>
+        <div class="topping-section" id="toppingSection" style="display:none;">
+            <h6><i class="fas fa-plus-circle me-1"></i>Thêm topping</h6>
+            <div id="toppingOptions"></div>
+        </div>
+        <button class="btn-add-to-cart" id="btnAddToCart" onclick="confirmAddToCart()">
+            <i class="fas fa-cart-plus me-2"></i>Thêm vào giỏ hàng
+        </button>
+    </div>
+</div>
+</div><!-- /.pos-wrapper -->
 
 @section Scripts {
-    <script>
-        $(document).ready(function() {
-            // Giả lập logic kiểm tra: Nếu chưa có ca mở, hiện Modal
-            // Thực tế có thể gọi API GetActiveShift để check. Ở đây demo luôn hiện Modal
-            var openShiftModal = new bootstrap.Modal(document.getElementById('openShiftModal'));
-            openShiftModal.show();
+<script>
+// ==========================================
+// POS APPLICATION STATE
+// ==========================================
+let menuData = { categories: [], storeToppings: [] };
+let cart = [];
+let selectedCustomer = null;
+let appliedVoucher = { code: '', discount: 0 };
+let pointsToUse = 0;
+let orderType = 1;
+let activeShiftId = null;
+let tempSelectedDrink = null;
+let tempSelectedSize = null;
+let tempSelectedToppings = [];
 
-            $('#btnConfirmOpenShift').click(function() {
-                var cash = $('#startingCash').val();
-                if (!cash || cash < 0) {
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Thiếu thông tin',
-                        text: 'Vui lòng nhập số tiền lẻ đầu ca hợp lệ!'
-                    });
-                    return;
-                }
+const fmt = (n) => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
 
-                // Call API OpenShift
-                $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i> Đang xử lý...');
+// ==========================================
+// 1. INITIALIZATION
+// ==========================================
+$(document).ready(async function() {
+    // Network detection
+    function updateNetworkUI() {
+        const ind = document.getElementById('networkIndicator');
+        const txt = document.getElementById('networkStatusText');
+        if (ind) { navigator.onLine ? ind.classList.remove('offline') : ind.classList.add('offline'); }
+        if (txt) { txt.textContent = navigator.onLine ? 'Online' : 'Offline'; }
+    }
+    window.addEventListener('online', updateNetworkUI);
+    window.addEventListener('offline', updateNetworkUI);
+    updateNetworkUI();
 
-                $.ajax({
-                    url: '/Admin/AdminPOS/OpenShift',
-                    type: 'POST',
-                    contentType: 'application/json',
-                    data: JSON.stringify({ startingCash: cash }),
-                    success: function(res) {
-                        $('#btnConfirmOpenShift').prop('disabled', false).html('<i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca');
-                        if (res.success) {
-                            openShiftModal.hide();
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Thành công!',
-                                text: res.message,
-                                timer: 2000,
-                                showConfirmButton: false
-                            }).then(() => {
-                                $('#shiftStatusBadge').removeClass('bg-light text-dark').addClass('bg-success').text('Ca Đang Mở');
-                                $('#posSalesScreen').fadeIn();
-                            });
-                        } else {
-                            // INTERLOCK ERROR
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'Cảnh Báo Bảo Mật!',
-                                html: `<span class="text-danger fw-bold">${res.message}</span>`,
-                                confirmButtonText: 'Đã hiểu',
-                                confirmButtonColor: '#dc3545'
-                            });
-                        }
-                    },
-                    error: function() {
-                        $('#btnConfirmOpenShift').prop('disabled', false).html('<i class="fas fa-unlock me-2"></i> Xác nhận Nhận Ca');
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Lỗi',
-                            text: 'Mất kết nối đến máy chủ.'
-                        });
-                    }
-                });
-            });
+    await checkActiveShift();
+});
 
-            // ==========================================
-            // OFFLINE-FIRST PWA ENGINE (INDEXEDDB)
-            // ==========================================
-            
-            // 1. Initialize IndexedDB
-            let db;
-            const request = indexedDB.open("CafeChainPOS", 1);
-            
-            request.onupgradeneeded = function(e) {
-                db = e.target.result;
-                if (!db.objectStoreNames.contains("Products")) {
-                    db.createObjectStore("Products", { keyPath: "id" });
-                }
-                if (!db.objectStoreNames.contains("PendingOrders")) {
-                    db.createObjectStore("PendingOrders", { keyPath: "localId" });
-                }
-            };
-            
-            request.onsuccess = function(e) {
-                db = e.target.result;
-                checkPendingOrdersUI();
-            };
+async function checkActiveShift() {
+    try {
+        const res = await $.get('/Admin/AdminPOS/GetActiveShift');
+        if (res.success && res.hasActiveShift) {
+            activeShiftId = res.shift.shiftId;
+            $('#shiftOverlay').hide();
+            $('#headerShiftStatus').text('Ca đang mở');
+            $('#shiftBadge').css('background', 'rgba(34,197,94,0.3)');
+            $('#btnCloseShift').show();
+            await loadMenuData();
+        } else {
+            $('#shiftOverlay').show();
+        }
+    } catch { $('#shiftOverlay').show(); }
+}
 
-            // 2. Network Detection
-            function updateNetworkStatus() {
-                if (navigator.onLine) {
-                    $('#offlineStatusBar').addClass('d-none');
-                    syncOfflineOrders();
-                } else {
-                    $('#offlineStatusBar').removeClass('d-none');
-                    Swal.fire({
-                        toast: true, position: 'top-end',
-                        icon: 'warning', title: 'Mất kết nối mạng!',
-                        text: 'Chuyển sang chế độ ngoại tuyến.',
-                        showConfirmButton: false, timer: 3000
-                    });
-                }
-            }
-
-            window.addEventListener('online', updateNetworkStatus);
-            window.addEventListener('offline', updateNetworkStatus);
-            
-            // Initial Check
-            if (!navigator.onLine) {
-                $('#offlineStatusBar').removeClass('d-none');
-            }
-
-            // 3. Process Checkout Logic
-            window.processCheckout = function(orderData) {
-                if (navigator.onLine) {
-                    // Xử lý gửi thẳng lên Server (Mô phỏng 1 order thành 1 list có 1 phần tử cho API)
-                    $.ajax({
-                        url: '/Admin/AdminPOS/SyncOfflineOrders',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify([orderData]),
-                        success: function(res) {
-                            if (res.success) {
-                                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Thanh toán thành công (Online)', showConfirmButton: false, timer: 1500 });
-                            }
-                        }
-                    });
-                } else {
-                    // Lưu Offline vào IndexedDB
-                    const tx = db.transaction("PendingOrders", "readwrite");
-                    const store = tx.objectStore("PendingOrders");
-                    
-                    orderData.localId = 'ORD-' + Date.now() + '-' + Math.floor(Math.random() * 1000);
-                    orderData.timestamp = new Date().getTime();
-                    
-                    store.add(orderData);
-                    
-                    tx.oncomplete = function() {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Mất kết nối mạng!',
-                            text: 'Đơn hàng đã được lưu tạm vào máy. Sẽ tự động đồng bộ khi có mạng.',
-                            confirmButtonText: 'Đã hiểu'
-                        });
-                        checkPendingOrdersUI();
-                    };
-                }
-            };
-
-            // 4. Sync Action
-            window.syncOfflineOrders = function() {
-                if (!navigator.onLine) {
-                    Swal.fire('Lỗi', 'Vui lòng kết nối mạng để đồng bộ.', 'error');
-                    return;
-                }
-
-                if(!db) return;
-
-                const tx = db.transaction("PendingOrders", "readonly");
-                const store = tx.objectStore("PendingOrders");
-                const getAllReq = store.getAll();
-
-                getAllReq.onsuccess = function() {
-                    const pendingOrders = getAllReq.result;
-                    if (pendingOrders.length === 0) return; // Không có gì để đồng bộ
-
-                    // Hiện Toast Đang đồng bộ
-                    Swal.fire({
-                        title: 'Đang đồng bộ...',
-                        text: `Đang gửi ${pendingOrders.length} đơn hàng lên máy chủ.`,
-                        allowOutsideClick: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
-
-                    // Gửi lên Backend
-                    $.ajax({
-                        url: '/Admin/AdminPOS/SyncOfflineOrders',
-                        type: 'POST',
-                        contentType: 'application/json',
-                        data: JSON.stringify(pendingOrders),
-                        success: function(res) {
-                            if (res.success) {
-                                // Xóa dữ liệu cũ
-                                const delTx = db.transaction("PendingOrders", "readwrite");
-                                delTx.objectStore("PendingOrders").clear();
-                                
-                                delTx.oncomplete = function() {
-                                    Swal.fire({
-                                        icon: 'success',
-                                        title: 'Đồng bộ hoàn tất!',
-                                        text: res.message,
-                                        timer: 3000,
-                                        showConfirmButton: false
-                                    });
-                                    checkPendingOrdersUI();
-                                };
-                            } else {
-                                Swal.fire('Lỗi đồng bộ', res.message, 'error');
-                            }
-                        },
-                        error: function() {
-                            Swal.fire('Lỗi', 'Không thể kết nối đến máy chủ. Vui lòng thử lại sau.', 'error');
-                        }
-                    });
-                };
-            };
-
-            function checkPendingOrdersUI() {
-                const tx = db.transaction("PendingOrders", "readonly");
-                const store = tx.objectStore("PendingOrders");
-                const countReq = store.count();
-                countReq.onsuccess = function() {
-                    if (countReq.result > 0) {
-                        $('#offlineStatusBar span').text(`Bạn đang có ${countReq.result} đơn hàng chưa đồng bộ!`);
-                        $('#offlineStatusBar').removeClass('d-none');
-                    } else if (navigator.onLine) {
-                        $('#offlineStatusBar').addClass('d-none');
-                    }
-                }
-            }
-
-            // Gắn sự kiện test Checkout
-            $('#btnTestCheckout').click(function() {
-                // Giả lập dữ liệu DTO
-                const fakeOrder = {
-                    TotalAmount: 65000,
-                    ReceivedAmount: 100000,
-                    ChangeAmount: 35000,
-                    OrderTypeId: 1,
-                    StoreId: 1,
-                    Note: "Giả lập thanh toán từ UI",
-                    Details: [
-                        { ItemId: 1, ItemName: "Trà sữa M", Quantity: 1, UnitPrice: 35000, TotalPrice: 35000 },
-                        { ItemId: 2, ItemName: "Cà phê Sữa", Quantity: 1, UnitPrice: 30000, TotalPrice: 30000 }
-                    ]
-                };
-                processCheckout(fakeOrder);
-            });
-
+// ==========================================
+// 2. OPEN SHIFT
+// ==========================================
+$('#btnOpenShift').click(async function() {
+    const cash = parseFloat($('#startingCashInput').val());
+    if (!cash || cash < 0) {
+        Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập số tiền lẻ đầu ca!', confirmButtonColor: '#2563eb' });
+        return;
+    }
+    $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-2"></i>Đang xử lý...');
+    try {
+        const res = await $.ajax({
+            url: '/Admin/AdminPOS/OpenShift', type: 'POST',
+            contentType: 'application/json', data: JSON.stringify({ startingCash: cash })
         });
-    </script>
+        console.log('OpenShift response:', res);
+        if (res.success) {
+            $('#shiftOverlay').fadeOut(300);
+            $('#headerShiftStatus').text('Ca đang mở');
+            $('#shiftBadge').css('background', 'rgba(34,197,94,0.3)');
+            $('#btnCloseShift').show();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mở ca thành công!', showConfirmButton: false, timer: 2000 });
+            try {
+                await loadMenuData();
+            } catch (menuErr) {
+                console.error('Failed to load menu after open shift:', menuErr);
+            }
+        } else {
+            Swal.fire({ icon: 'error', title: 'Không thể mở ca', html: `<div style="color:#ef4444">${res.message}</div>`, confirmButtonColor: '#2563eb' });
+        }
+    } catch (err) {
+        console.error('OpenShift AJAX error:', err);
+        Swal.fire('Lỗi', 'Mất kết nối máy chủ: ' + (err.statusText || err.message || ''), 'error');
+    }
+    $(this).prop('disabled', false).html('<i class="fas fa-unlock me-2"></i>Xác Nhận Mở Ca');
+});
+
+// ==========================================
+// 3. LOAD MENU
+// ==========================================
+async function loadMenuData() {
+    try {
+        const res = await $.get('/Admin/AdminPOS/GetMenuData');
+        if (res.success) {
+            menuData = res;
+            renderCategories();
+            renderProducts('all');
+        }
+    } catch { console.error('Failed to load menu'); }
+}
+
+function renderCategories() {
+    let html = '<div class="cat-tab active" data-cat="all" onclick="filterCategory(\'all\', this)">Tất cả</div>';
+    menuData.categories.forEach(c => {
+        html += `<div class="cat-tab" data-cat="${c.categoryId}" onclick="filterCategory(${c.categoryId}, this)">${c.name}</div>`;
+    });
+    $('#categoryTabs').html(html);
+}
+
+function renderProducts(catId) {
+    const search = $('#searchInput').val().toLowerCase().trim();
+    let drinks = [];
+    menuData.categories.forEach(c => {
+        if (catId === 'all' || c.categoryId === catId) {
+            c.drinks.forEach(d => {
+                if (!search || d.name.toLowerCase().includes(search)) drinks.push(d);
+            });
+        }
+    });
+
+    if (drinks.length === 0) {
+        $('#productGrid').html('<div class="cart-empty" style="grid-column:1/-1"><i class="fas fa-mug-hot"></i><p>Không tìm thấy sản phẩm</p></div>');
+        return;
+    }
+
+    let html = '';
+    drinks.forEach(d => {
+        const price = d.sizes.length > 0 ? d.sizes[0].price : 0;
+        const priceLabel = d.sizes.length > 1 ? `Từ ${fmt(price)}` : fmt(price);
+        const imgHtml = d.imageUrl
+            ? `<img class="card-img" src="${d.imageUrl}" alt="${d.name}" loading="lazy">`
+            : `<div class="card-img-placeholder"><i class="fas fa-mug-hot"></i></div>`;
+        html += `
+            <div class="product-card" onclick='selectDrink(${JSON.stringify(d).replace(/'/g, "\\'")})'> 
+                ${imgHtml}
+                <div class="card-body">
+                    <div class="card-name">${d.name}</div>
+                    <div class="card-price">${priceLabel}</div>
+                </div>
+            </div>`;
+    });
+    $('#productGrid').html(html);
+}
+
+function filterCategory(catId, el) {
+    $('.cat-tab').removeClass('active');
+    $(el).addClass('active');
+    renderProducts(catId);
+}
+
+$('#searchInput').on('input', function() {
+    const activeCat = $('.cat-tab.active').data('cat');
+    renderProducts(activeCat);
+});
+
+// ==========================================
+// 4. SIZE & TOPPING SELECTOR
+// ==========================================
+function selectDrink(drink) {
+    tempSelectedDrink = drink;
+    tempSelectedSize = null;
+    tempSelectedToppings = [];
+
+    if (drink.sizes.length <= 1 && (!drink.toppings || drink.toppings.length === 0)) {
+        // No options needed, add directly
+        tempSelectedSize = drink.sizes[0] || null;
+        addToCart();
+        return;
+    }
+
+    $('#sizeModalTitle').text(drink.name);
+    $('#sizeModalSub').text('Chọn size và topping');
+
+    let sizeHtml = '';
+    drink.sizes.forEach((s, i) => {
+        sizeHtml += `
+            <div class="size-option ${i === 0 ? 'selected' : ''}" onclick="pickSize(${s.sizeId}, '${s.sizeName}', ${s.price}, this)"
+                 style="${i === 0 ? 'border-color:#3b82f6;background:#eff6ff;' : ''}">
+                <span class="size-name">${s.sizeName}</span>
+                <span class="size-price">${fmt(s.price)}</span>
+            </div>`;
+    });
+    if (drink.sizes.length > 0) { tempSelectedSize = drink.sizes[0]; }
+    $('#sizeOptions').html(sizeHtml);
+
+    // Toppings
+    const allToppings = drink.toppings && drink.toppings.length > 0 ? drink.toppings : menuData.storeToppings;
+    if (allToppings && allToppings.length > 0) {
+        let tpHtml = '';
+        allToppings.forEach(t => {
+            tpHtml += `
+                <div class="topping-checkbox">
+                    <label><input type="checkbox" value="${t.toppingId}" data-name="${t.toppingName}" data-price="${t.price}" onchange="toggleTopping(this)"> ${t.toppingName}</label>
+                    <span class="tp-price">+${fmt(t.price)}</span>
+                </div>`;
+        });
+        $('#toppingOptions').html(tpHtml);
+        $('#toppingSection').show();
+    } else {
+        $('#toppingSection').hide();
+    }
+
+    $('#sizeSelectorOverlay').fadeIn(150);
+}
+
+function pickSize(sizeId, sizeName, price, el) {
+    tempSelectedSize = { sizeId, sizeName, price };
+    $('.size-option').css({ 'border-color': '#e2e8f0', background: 'white' });
+    $(el).css({ 'border-color': '#3b82f6', background: '#eff6ff' });
+}
+
+function toggleTopping(checkbox) {
+    const id = parseInt(checkbox.value);
+    const name = checkbox.dataset.name;
+    const price = parseFloat(checkbox.dataset.price);
+    if (checkbox.checked) {
+        tempSelectedToppings.push({ toppingId: id, toppingName: name, price });
+    } else {
+        tempSelectedToppings = tempSelectedToppings.filter(t => t.toppingId !== id);
+    }
+}
+
+function confirmAddToCart() {
+    addToCart();
+    closeSizeSelector();
+}
+
+function closeSizeSelector() { $('#sizeSelectorOverlay').fadeOut(150); }
+
+// ==========================================
+// 5. CART MANAGEMENT
+// ==========================================
+function addToCart() {
+    const drink = tempSelectedDrink;
+    const size = tempSelectedSize;
+    const toppings = [...tempSelectedToppings];
+
+    // Check if same item+size+toppings already in cart
+    const tpKey = toppings.map(t => t.toppingId).sort().join(',');
+    const existing = cart.find(c =>
+        c.drinkId === drink.drinkId &&
+        (c.sizeId || 0) === (size?.sizeId || 0) &&
+        c.tpKey === tpKey
+    );
+
+    if (existing) {
+        existing.quantity++;
+    } else {
+        const toppingTotal = toppings.reduce((s, t) => s + t.price, 0);
+        cart.push({
+            drinkId: drink.drinkId,
+            name: drink.name,
+            imageUrl: drink.imageUrl,
+            sizeId: size?.sizeId || null,
+            sizeName: size?.sizeName || '',
+            basePrice: (size?.price || 0),
+            toppings: toppings,
+            toppingTotal: toppingTotal,
+            unitPrice: (size?.price || 0) + toppingTotal,
+            quantity: 1,
+            note: '',
+            tpKey: tpKey
+        });
+    }
+
+    renderCart();
+    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã thêm ${drink.name}`, showConfirmButton: false, timer: 1000 });
+}
+
+function renderCart() {
+    if (cart.length === 0) {
+        $('#cartItems').html('<div class="cart-empty" id="cartEmpty"><i class="fas fa-shopping-basket"></i><p>Chọn sản phẩm để bắt đầu</p></div>');
+        $('#cartCount').text('0');
+        $('#btnCheckout').prop('disabled', true);
+        updateSummary();
+        return;
+    }
+
+    let html = '';
+    cart.forEach((item, idx) => {
+        const tpText = item.toppings.map(t => t.toppingName).join(', ');
+        const lineTotal = item.unitPrice * item.quantity;
+        html += `
+            <div class="cart-item">
+                <button class="btn-remove" onclick="removeItem(${idx})"><i class="fas fa-times"></i></button>
+                <div class="item-top">
+                    <div>
+                        <div class="item-name">${item.name}</div>
+                        <div class="item-size">${item.sizeName}${tpText ? ' • ' + tpText : ''}</div>
+                    </div>
+                </div>
+                <div class="item-bottom">
+                    <div class="qty-control">
+                        <button class="qty-btn" onclick="changeQty(${idx}, -1)">−</button>
+                        <span class="qty-val">${item.quantity}</span>
+                        <button class="qty-btn" onclick="changeQty(${idx}, 1)">+</button>
+                    </div>
+                    <div class="item-price">${fmt(lineTotal)}</div>
+                </div>
+            </div>`;
+    });
+
+    $('#cartItems').html(html);
+    const totalQty = cart.reduce((s, i) => s + i.quantity, 0);
+    $('#cartCount').text(totalQty);
+    $('#btnCheckout').prop('disabled', false);
+    updateSummary();
+}
+
+function changeQty(idx, delta) {
+    cart[idx].quantity += delta;
+    if (cart[idx].quantity <= 0) cart.splice(idx, 1);
+    renderCart();
+}
+
+function removeItem(idx) {
+    cart.splice(idx, 1);
+    renderCart();
+}
+
+function updateSummary() {
+    const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+    const vDisc = appliedVoucher.discount || 0;
+    const pDisc = pointsToUse * 1000;
+    let total = subTotal - vDisc - pDisc;
+    if (total < 0) total = 0;
+
+    $('#sumSubTotal').text(fmt(subTotal));
+    if (vDisc > 0) { $('#rowVoucher').show(); $('#sumVoucher').text('-' + fmt(vDisc)); } else { $('#rowVoucher').hide(); }
+    if (pDisc > 0) { $('#rowPoints').show(); $('#sumPoints').text('-' + fmt(pDisc)); } else { $('#rowPoints').hide(); }
+    $('#sumTotal').text(fmt(total));
+}
+
+// ==========================================
+// 6. CUSTOMER & VOUCHER
+// ==========================================
+async function searchCustomer() {
+    const phone = $('#customerPhone').val().trim();
+    if (!phone) { Swal.fire({ icon: 'info', title: 'Nhập SĐT', text: 'Vui lòng nhập số điện thoại khách hàng', confirmButtonColor: '#2563eb' }); return; }
+
+    try {
+        const res = await $.get('/Admin/AdminPOS/SearchCustomer', { phone });
+        if (res.success) {
+            selectedCustomer = res.customer;
+            $('#custName').text(res.customer.fullName);
+            $('#custPoints').text(res.customer.currentPoints.toLocaleString());
+            $('#customerBadge').slideDown(200);
+
+            if (res.customer.currentPoints > 0) {
+                const { value } = await Swal.fire({
+                    title: 'Dùng điểm tích lũy?',
+                    html: `Khách <b>${res.customer.fullName}</b> có <b>${res.customer.currentPoints.toLocaleString()}</b> điểm.<br>1 điểm = 1.000đ. Nhập số điểm muốn dùng:`,
+                    input: 'number', inputAttributes: { min: 0, max: res.customer.currentPoints },
+                    showCancelButton: true, cancelButtonText: 'Không dùng', confirmButtonText: 'Áp dụng', confirmButtonColor: '#2563eb'
+                });
+                if (value && parseInt(value) > 0) {
+                    pointsToUse = Math.min(parseInt(value), res.customer.currentPoints);
+                    updateSummary();
+                }
+            }
+        } else {
+            Swal.fire({ icon: 'info', title: 'Không tìm thấy', text: res.message, confirmButtonColor: '#2563eb' });
+        }
+    } catch { Swal.fire('Lỗi', 'Không thể tìm khách hàng', 'error'); }
+}
+
+function clearCustomer() {
+    selectedCustomer = null;
+    pointsToUse = 0;
+    $('#customerBadge').slideUp(200);
+    $('#customerPhone').val('');
+    updateSummary();
+}
+
+async function applyVoucher() {
+    const code = $('#voucherCode').val().trim();
+    if (!code) { Swal.fire({ icon: 'info', title: 'Nhập mã', text: 'Vui lòng nhập mã voucher', confirmButtonColor: '#2563eb' }); return; }
+
+    const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+    try {
+        const res = await $.ajax({
+            url: '/api/Pos/validate-voucher', type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ code, customerId: selectedCustomer?.customerId || 0, subTotal })
+        });
+        if (res.success) {
+            appliedVoucher = { code, discount: res.discountAmount };
+            updateSummary();
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Giảm ${fmt(res.discountAmount)}`, showConfirmButton: false, timer: 2000 });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Voucher không hợp lệ', text: res.message, confirmButtonColor: '#2563eb' });
+        }
+    } catch { Swal.fire('Lỗi', 'Không thể kiểm tra voucher', 'error'); }
+}
+
+function setOrderType(type, el) {
+    orderType = type;
+    $('.order-type-btn').removeClass('active');
+    $(el).addClass('active');
+}
+
+// ==========================================
+// 7. PAYMENT / CHECKOUT
+// ==========================================
+async function processPayment() {
+    if (cart.length === 0) return;
+    const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+    const total = Math.max(0, subTotal - (appliedVoucher.discount || 0) - (pointsToUse * 1000));
+
+    const { value: receivedStr } = await Swal.fire({
+        title: 'Thanh toán',
+        html: `<div style="text-align:center;margin-bottom:12px">
+                 <div style="font-size:28px;font-weight:900;color:#16a34a">${fmt(total)}</div>
+                 <div style="color:#64748b;font-size:13px">Tổng tiền phải thu</div>
+               </div>
+               <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:12px">
+                 <button class="swal2-styled" style="padding:8px 16px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:14px;border:2px solid #e2e8f0" onclick="document.getElementById('swal2-input').value=${total}">Đúng tiền</button>
+                 <button class="swal2-styled" style="padding:8px 16px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:14px;border:2px solid #e2e8f0" onclick="document.getElementById('swal2-input').value=50000">50K</button>
+                 <button class="swal2-styled" style="padding:8px 16px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:14px;border:2px solid #e2e8f0" onclick="document.getElementById('swal2-input').value=100000">100K</button>
+                 <button class="swal2-styled" style="padding:8px 16px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:14px;border:2px solid #e2e8f0" onclick="document.getElementById('swal2-input').value=200000">200K</button>
+                 <button class="swal2-styled" style="padding:8px 16px;border-radius:10px;background:#f1f5f9;color:#1e293b;font-weight:600;font-size:14px;border:2px solid #e2e8f0" onclick="document.getElementById('swal2-input').value=500000">500K</button>
+               </div>`,
+        input: 'number', inputPlaceholder: 'Tiền khách đưa', inputValue: total,
+        inputAttributes: { min: 0, style: 'font-size:20px;font-weight:700;text-align:center' },
+        showCancelButton: true, cancelButtonText: 'Hủy', confirmButtonText: '✓ Xác nhận thanh toán',
+        confirmButtonColor: '#16a34a',
+        preConfirm: (val) => {
+            if (!val || parseFloat(val) < total) { Swal.showValidationMessage('Tiền khách đưa chưa đủ'); return false; }
+            return val;
+        }
+    });
+
+    if (!receivedStr) return;
+    const received = parseFloat(receivedStr);
+
+    // Build DTO
+    const dto = {
+        items: cart.map(c => ({
+            drinkId: c.drinkId,
+            sizeId: c.sizeId,
+            quantity: c.quantity,
+            note: c.note,
+            toppings: c.toppings.map(t => ({ toppingId: t.toppingId }))
+        })),
+        customerId: selectedCustomer?.customerId || null,
+        voucherCode: appliedVoucher.code || null,
+        pointsUsed: pointsToUse,
+        paymentMethodId: 1,
+        orderTypeId: orderType,
+        receivedAmount: received,
+        note: ''
+    };
+
+    try {
+        Swal.fire({ title: 'Đang xử lý...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        const res = await $.ajax({
+            url: '/Admin/AdminPOS/CommitOrder', type: 'POST',
+            contentType: 'application/json', data: JSON.stringify(dto)
+        });
+
+        if (res.success) {
+            const change = res.changeAmount || 0;
+            await Swal.fire({
+                icon: 'success',
+                title: 'Thanh toán thành công!',
+                html: `<div style="font-size:15px">
+                    <div>Mã đơn: <b>#${res.orderId}</b></div>
+                    <div>Tổng tiền: <b>${fmt(res.total)}</b></div>
+                    <div>Khách đưa: <b>${fmt(received)}</b></div>
+                    <div style="font-size:22px;font-weight:900;color:#16a34a;margin-top:8px">Thối lại: ${fmt(change)}</div>
+                </div>`,
+                confirmButtonText: 'Đơn tiếp theo', confirmButtonColor: '#2563eb'
+            });
+            // Reset cart
+            cart = [];
+            selectedCustomer = null;
+            appliedVoucher = { code: '', discount: 0 };
+            pointsToUse = 0;
+            $('#voucherCode').val('');
+            $('#customerPhone').val('');
+            $('#customerBadge').hide();
+            renderCart();
+        } else {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message, confirmButtonColor: '#2563eb' });
+        }
+    } catch { Swal.fire('Lỗi', 'Mất kết nối máy chủ', 'error'); }
+}
+
+// ==========================================
+// 8. CLOSE SHIFT
+// ==========================================
+$('#btnCloseShift').click(async function() {
+    const { value: actualCash } = await Swal.fire({
+        title: 'Đóng Ca Két Tiền',
+        html: '<p style="color:#64748b;font-size:14px">Đếm toàn bộ tiền mặt trong hộc kéo và nhập số thực tế:</p>',
+        input: 'number', inputPlaceholder: 'Tiền mặt thực tế (VNĐ)',
+        inputAttributes: { min: 0, style: 'font-size:20px;font-weight:700;text-align:center' },
+        showCancelButton: true, cancelButtonText: 'Hủy', confirmButtonText: 'Tiếp tục',
+        confirmButtonColor: '#ef4444', cancelButtonColor: '#64748b'
+    });
+
+    if (!actualCash) return;
+
+    let reason = '';
+    // We'll let the server check discrepancy. If it needs a reason, we'll ask again.
+    try {
+        let res = await $.ajax({
+            url: '/Admin/AdminPOS/CloseShift', type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ actualEndingCash: parseFloat(actualCash), discrepancyReason: '' })
+        });
+
+        if (!res.success && res.message.includes('chênh lệch')) {
+            const { value: discReason } = await Swal.fire({
+                title: 'Chênh lệch két tiền!',
+                html: `<p style="color:#ef4444;font-weight:600">${res.message}</p>`,
+                input: 'textarea', inputPlaceholder: 'Nhập lý do chênh lệch...',
+                showCancelButton: true, confirmButtonText: 'Xác nhận đóng ca',
+                confirmButtonColor: '#ef4444'
+            });
+            if (!discReason) return;
+            reason = discReason;
+            res = await $.ajax({
+                url: '/Admin/AdminPOS/CloseShift', type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ actualEndingCash: parseFloat(actualCash), discrepancyReason: reason })
+            });
+        }
+
+        if (res.success) {
+            await Swal.fire({ icon: 'success', title: 'Đóng ca thành công!', text: res.message, confirmButtonColor: '#2563eb' });
+            window.location.href = '/Admin/Dashboard';
+        } else {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message, confirmButtonColor: '#2563eb' });
+        }
+    } catch { Swal.fire('Lỗi', 'Mất kết nối', 'error'); }
+});
+</script>
 }
