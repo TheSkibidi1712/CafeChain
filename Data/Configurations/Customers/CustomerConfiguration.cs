@@ -208,35 +208,34 @@ namespace CafeChain.Data.Configurations.Customers
             entity.HasOne(x => x.MemberLevel) 
                 .WithMany() 
                 .HasForeignKey(x => x.MemberLevelId) 
-                .OnDelete(DeleteBehavior.SetNull); 
-            
+                .OnDelete(DeleteBehavior.SetNull);
+
             // ================= SEED DATA ================= 
             entity.HasData
-                ( 
-                    new Customer 
+                (
+                    new Customer
                     {
-                        CustomerId = 111, 
-                        AccountId = 111, 
-                        CustomerCode = "CUS000111", 
-                        Gender = Gender.Male, 
-                        FullName = "Khách Hàng Mới", 
+                        CustomerId = 111,
+                        AccountId = 111,
+                        CustomerCode = "CUS000111",
+                        Gender = Gender.Male,
+                        FullName = "Khách Hàng Mới",
                         DateOfBirth = new DateTime(2000, 1, 1),
-                        Category = CustomerCategory.Registered, 
-                        MemberLevelId = null, 
+                        Category = CustomerCategory.Registered,
+                        MemberLevelId = null,
                         TotalSpent = 0,
                         TotalOrders = 0,
                         CurrentPoints = 0,
                         LastOrderDate = null,
-                        AvatarUrl = "https://res.cloudinary.com/demo/image/upload/cafechain/customers/avtdf.jpg",
-
-                        AvatarPublicId = "cafechain/customers/default_avatar",
+                        AvatarUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779801172/avtdf_r3cjq5.jpg",
+                        AvatarPublicId = "avtdf_r3cjq5",
                         CreatedAt = new DateTime(2025, 1, 1),
                         UpdatedAt = null,
                         IsDeleted = false,
                         DeletedAt = null,
                         Active = true
-                    } 
-                ); 
+                    }
+                );
         } 
     }
 

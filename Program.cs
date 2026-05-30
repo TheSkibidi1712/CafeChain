@@ -1,72 +1,75 @@
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Admin.Categories;
+using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Interfaces.Admin.Drinks;
+using CafeChain.Application.Interfaces.Admin.DrinkSizes;
+using CafeChain.Application.Interfaces.Admin.DrinkToppings;
+using CafeChain.Application.Interfaces.Admin.Ingredients;
+using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Application.Interfaces.Admin.Sizes;
+using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Interfaces.Admin.Toppings;
+using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.Customers;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Services;
 using CafeChain.Application.Services.Accounts;
-using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Services.Admin.Categories;
+using CafeChain.Application.Services.Admin.Dashboard;
+using CafeChain.Application.Services.Admin.Drinks;
+using CafeChain.Application.Services.Admin.DrinkSizes;
+using CafeChain.Application.Services.Admin.DrinkToppings;
+using CafeChain.Application.Services.Admin.Ingredients;
+using CafeChain.Application.Services.Admin.InventoryDocuments;
+using CafeChain.Application.Services.Admin.InventoryTransfers;
+using CafeChain.Application.Services.Admin.Sizes;
+using CafeChain.Application.Services.Admin.Staffs;
+using CafeChain.Application.Services.Admin.StoreInventories;
+using CafeChain.Application.Services.Admin.Suppliers;
+using CafeChain.Application.Services.Admin.Toppings;
+using CafeChain.Application.Services.Admin.Vouchers;
 using CafeChain.Application.Services.Cart;
+using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Services.Security;
 using CafeChain.Data;
-using CafeChain.Infrastrusture.Interfaces.Accounts;
-using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Hubs;
+using CafeChain.Infrastrusture.Configurations;
+using CafeChain.Infrastrusture.Interfaces.Accounts;
+using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
+using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
+using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
+using CafeChain.Infrastrusture.Interfaces.Admin.DrinkSizes;
+using CafeChain.Infrastrusture.Interfaces.Admin.DrinkToppings;
+using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
+using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Infrastrusture.Interfaces.Admin.Sizes;
+using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
+using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
+using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
+using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
+using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Infrastrusture.Repositories.Admin.Categories;
+using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
+using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
+using CafeChain.Infrastrusture.Repositories.Admin.DrinkSizes;
+using CafeChain.Infrastrusture.Repositories.Admin.DrinkToppings;
+using CafeChain.Infrastrusture.Repositories.Admin.Ingredients;
+using CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments;
+using CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers;
+using CafeChain.Infrastrusture.Repositories.Admin.Sizes;
+using CafeChain.Infrastrusture.Repositories.Admin.Staffs;
+using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
+using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
+using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
-using CafeChain.Infrastrusture.Repositories.Admin.Categories;
-using CafeChain.Application.Interfaces.Admin.Categories;
-using CafeChain.Application.Services.Admin.Categories;
-using CafeChain.Application.Interfaces.Admin.Vouchers;
-using CafeChain.Application.Services.Admin.Vouchers;
-using CafeChain.Infrastrusture.Interfaces.Admin.Sizes;
-using CafeChain.Infrastrusture.Repositories.Admin.Sizes;
-using CafeChain.Application.Interfaces.Admin.Sizes;
-using CafeChain.Application.Services.Admin.Sizes;
-using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
-using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
-using CafeChain.Application.Interfaces.Admin.Toppings;
-using CafeChain.Application.Services.Admin.Toppings;
-using CafeChain.Application.Interfaces.Admin.DrinkSizes;
-using CafeChain.Application.Services.Admin.DrinkSizes;
-using CafeChain.Infrastrusture.Interfaces.Admin.DrinkSizes;
-using CafeChain.Infrastrusture.Repositories.Admin.DrinkSizes;
-using CafeChain.Infrastrusture.Interfaces.Admin.DrinkToppings;
-using CafeChain.Infrastrusture.Repositories.Admin.DrinkToppings;
-using CafeChain.Application.Interfaces.Admin.DrinkToppings;
-using CafeChain.Application.Services.Admin.DrinkToppings;
-using CafeChain.Application.Interfaces.Admin.Drinks;
-using CafeChain.Application.Services.Admin.Drinks;
-using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
-using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
-using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
-using CafeChain.Infrastrusture.Repositories.Admin.Staffs;
-using CafeChain.Application.Interfaces.Admin.Staffs;
-using CafeChain.Application.Services.Admin.Staffs;
-using CafeChain.Application.Interfaces.Admin.Ingredients;
-using CafeChain.Application.Services.Admin.Ingredients;
-using CafeChain.Infrastrusture.Interfaces.Admin.Ingredients;
-using CafeChain.Infrastrusture.Repositories.Admin.Ingredients;
-using CafeChain.Application.Interfaces.Security;
-using CafeChain.Application.Services.Security;
-using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
-using CafeChain.Application.Services.Admin.InventoryDocuments;
-using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
-using CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments;
-using CafeChain.Application.Interfaces.Admin.StoreInventories;
-using CafeChain.Application.Services.Admin.StoreInventories;
-using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
-using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
-using CafeChain.Application.Interfaces.Admin.Suppliers;
-using CafeChain.Application.Services.Admin.Suppliers;
-using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
-using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
-using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
-using CafeChain.Application.Services.Admin.InventoryTransfers;
-using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
-using CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers;
-using CafeChain.Application.Interfaces.Admin.Dashboard;
-using CafeChain.Application.Services.Admin.Dashboard;
-using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
-using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
+using Microsoft.Extensions.Options;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -151,10 +154,35 @@ builder.Services.AddAuthorization(options =>
         ));
 });
 
+// ======================
+// 5.2 Cloudinary Configuration
+// ======================
+builder.Services.Configure<CloudinarySettings>(
+    builder.Configuration.GetSection("Cloudinary"));
+
 
 // =======================
 // 6. Dependency Injection for Services and Repositories
 // =======================
+
+// Cloudinary
+builder.Services.AddSingleton(sp =>
+{
+    var settings = sp
+        .GetRequiredService<IOptions<CloudinarySettings>>()
+        .Value;
+
+    var account = new Account(
+        settings.CloudName,
+        settings.ApiKey,
+        settings.ApiSecret);
+
+    var cloudinary = new Cloudinary(account);
+
+    cloudinary.Api.Secure = true;
+
+    return cloudinary;
+});
 
 // Admin Category
 builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();

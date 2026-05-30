@@ -2788,12 +2788,12 @@ namespace CafeChain.Migrations
                 columns: new[] { "ToppingId", "Active", "ImagePublicId", "ImageUrl", "Name", "Price" },
                 values: new object[,]
                 {
-                    { 1, true, "tranchauden", "/Images/ToppingImages/tranchauden.jpg", "Trân châu đen", 5000m },
-                    { 2, true, "tranchautrang", "/Images/ToppingImages/tranchautrang.jpg", "Trân châu trắng", 5000m },
-                    { 3, true, "phomaivien", "/Images/ToppingImages/phomaivien.jpg", "Phô mai viên", 7000m },
-                    { 4, true, "khucbachchanmeo", "/Images/ToppingImages/khucbachchanmeo.jpg", "Khúc bạch chân mèo", 7000m },
-                    { 5, true, "thachkhoaimon", "/Images/ToppingImages/thachkhoaimon.jpg", "Thạch khoai môn", 6000m },
-                    { 6, true, "banhflan", "/Images/ToppingImages/banhflan.jpg", "Bánh flan", 6000m }
+                    { 1, true, "tranchauden_ftddpx", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchauden_ftddpx.jpg", "Trân châu đen", 5000m },
+                    { 2, true, "tranchautrang_c2pylw", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchautrang_c2pylw.jpg", "Trân châu trắng", 5000m },
+                    { 3, true, "phomaivien_ujfenk", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804075/phomaivien_ujfenk.jpg", "Phô mai viên", 7000m },
+                    { 4, true, "khucbachchanmeo_r2fxzd", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804082/khucbachchanmeo_r2fxzd.jpg", "Khúc bạch chân mèo", 7000m },
+                    { 5, true, "thachkhoaimon_fwpprq", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachkhoaimon_fwpprq.jpg", "Thạch khoai môn", 6000m },
+                    { 6, true, "banhflan_zndwvl", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804080/banhflan_zndwvl.jpg", "Bánh flan", 6000m }
                 });
 
             migrationBuilder.InsertData(
@@ -2820,9 +2820,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7802), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 21, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7789), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 12, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7804), null, null, 500, null, 50000m, new DateTime(2026, 5, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7804), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 27, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7807), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 28, 21, 56, 10, 137, DateTimeKind.Local).AddTicks(7806), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4505), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 23, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4489), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 14, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508), null, null, 500, null, 50000m, new DateTime(2026, 5, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 30, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -2848,7 +2848,7 @@ namespace CafeChain.Migrations
             migrationBuilder.InsertData(
                 table: "Customers",
                 columns: new[] { "CustomerId", "AccountId", "Active", "AvatarPublicId", "AvatarUrl", "Category", "CreatedAt", "CustomerCode", "DateOfBirth", "DeletedAt", "FullName", "Gender", "LastOrderDate", "MemberLevelId", "UpdatedAt" },
-                values: new object[] { 111, 111, true, "cafechain/customers/default_avatar", "https://res.cloudinary.com/demo/image/upload/cafechain/customers/avtdf.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
+                values: new object[] { 111, 111, true, "avtdf_r3cjq5", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779801172/avtdf_r3cjq5.jpg", 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "CUS000111", new DateTime(2000, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Khách Hàng Mới", 1, null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Drinks",
@@ -3032,91 +3032,91 @@ namespace CafeChain.Migrations
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps1.jpg", true, "drink-images/cps1" });
+                values: new object[] { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803239/cps1_ip9ciu.jpg", true, "cps1_ip9ciu" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps2.jpg", "drink-images/cps2" },
-                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps3.jpg", "drink-images/cps3" },
-                    { 4, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "/Images/DrinkImages/cps4.jpg", "drink-images/cps4" }
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803240/cps2_zd0pyd.jpg", "cps2_zd0pyd" },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803240/cps3_guo9om.jpg", "cps3_guo9om" },
+                    { 4, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803241/cps4_koocly.jpg", "cps4_koocly" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 5, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd1.jpg", true, "drink-images/cpd1" });
+                values: new object[] { 5, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803225/cpd1_cgkole.jpg", true, "cpd1_cgkole" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 6, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd2.jpg", "drink-images/cpd2" },
-                    { 7, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd3.jpg", "drink-images/cpd3" },
-                    { 8, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "/Images/DrinkImages/cpd4.jpg", "drink-images/cpd4" }
+                    { 6, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803236/cpd2_xgqlei.jpg", "cpd2_xgqlei" },
+                    { 7, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803237/cpd3_dwyqpv.jpg", "cpd3_dwyqpv" },
+                    { 8, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803238/cpd4_xphst1.jpg", "cpd4_xphst1" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 9, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden1.jpg", true, "drink-images/trasuatranchauden1" });
+                values: new object[] { 9, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803061/trasuatranchauden1_kekbpp.jpg", true, "trasuatranchauden1_kekbpp" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 10, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden2.jpg", "drink-images/trasuatranchauden2" },
-                    { 11, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden3.jpg", "drink-images/trasuatranchauden3" },
-                    { 12, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "/Images/DrinkImages/trasuatranchauden4.jpg", "drink-images/trasuatranchauden4" }
+                    { 10, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803062/trasuatranchauden2_m4kkru.jpg", "trasuatranchauden2_m4kkru" },
+                    { 11, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803062/trasuatranchauden3_pcmlfn.jpg", "trasuatranchauden3_pcmlfn" },
+                    { 12, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803063/trasuatranchauden4_cngwyr.jpg", "trasuatranchauden4_cngwyr" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 13, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola1.jpg", true, "drink-images/trasuasocola1" });
+                values: new object[] { 13, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802891/trasuasocola1_hc4t3p.jpg", true, "trasuasocola1_hc4t3p" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 14, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola2.jpg", "drink-images/trasuasocola2" },
-                    { 15, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola3.jpg", "drink-images/trasuasocola3" },
-                    { 16, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "/Images/DrinkImages/trasuasocola4.jpg", "drink-images/trasuasocola4" }
+                    { 14, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802891/trasuasocola2_m9yp1i.jpg", "trasuasocola2_m9yp1i" },
+                    { 15, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802892/trasuasocola3_t8nr2b.jpg", "trasuasocola3_t8nr2b" },
+                    { 16, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 4, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779802950/trasuasocola4_kju0s7.jpg", "trasuasocola4_kju0s7" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 17, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting1.jpg", true, "drink-images/sting1" });
+                values: new object[] { 17, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803393/sting1_tcita4.jpg", true, "sting1_tcita4" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 18, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting2.jpg", "drink-images/sting2" },
-                    { 19, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting3.jpg", "drink-images/sting3" },
-                    { 20, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "/Images/DrinkImages/sting4.jpg", "drink-images/sting4" }
+                    { 18, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting2_axipva.jpg", "sting2_axipva" },
+                    { 19, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803314/sting3_rv03ev.jpg", "sting3_rv03ev" },
+                    { 20, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 5, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803316/sting4_yzaesh.jpg", "sting4_yzaesh" }
                 });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "IsDefault", "PublicId" },
-                values: new object[] { 21, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca1.jpg", true, "drink-images/coca1" });
+                values: new object[] { 21, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803080/coca1_qum0eb.jpg", true, "coca1_qum0eb" });
 
             migrationBuilder.InsertData(
                 table: "DrinkImages",
                 columns: new[] { "DrinkImageId", "CreatedAt", "DrinkId", "ImageUrl", "PublicId" },
                 values: new object[,]
                 {
-                    { 22, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca2.jpg", "drink-images/coca2" },
-                    { 23, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca3.jpg", "drink-images/coca3" },
-                    { 24, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "/Images/DrinkImages/coca4.jpg", "drink-images/coca4" }
+                    { 22, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803081/coca2_ctcrt0.jpg", "coca2_ctcrt0" },
+                    { 23, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca3_mp28bz.jpg", "coca3_mp28bz" },
+                    { 24, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 6, "https://res.cloudinary.com/dzfizobk8/image/upload/v1779803082/coca4_xbh74i.jpg", "coca4_xbh74i" }
                 });
 
             migrationBuilder.InsertData(
