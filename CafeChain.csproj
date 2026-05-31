@@ -28,6 +28,7 @@
     <Folder Include="Infrastructure\Interfaces\Cashiers\" />
     <Folder Include="Infrastructure\Repositories\Cashiers\" />
     <Folder Include="Migrations\" />
+    <Folder Include="wwwroot\Images\avatars\" />
   </ItemGroup>
 
   <!-- 🔥 vietnam_locations.sql được nhúng vào assembly để Migration đọc không phụ thuộc đường dẫn OS -->

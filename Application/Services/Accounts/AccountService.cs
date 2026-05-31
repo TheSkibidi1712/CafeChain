@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Constants.Cloudinaries;
 using CafeChain.Application.DTOs.Accounts;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Results;
@@ -65,8 +66,7 @@ namespace CafeChain.Application.Services.Accounts
                 }
 
                 // ===== CHECK PHONE =====
-                var customerPhone =
-                    await _accountRepository.GetCustomerPhoneAsync(dto.PhoneNumber);
+                var customerPhone = await _accountRepository.GetCustomerPhoneAsync(dto.PhoneNumber);
 
                 // =========================================================
                 // CASE 1:
@@ -83,7 +83,22 @@ namespace CafeChain.Application.Services.Accounts
                         return ServiceResult.Failure("Đăng ký thất bại", errors);
                     }
 
+                    // =====================================
+                    // GÁN AVATAR MẶC ĐỊNH NẾU CHƯA CÓ
+                    // =====================================
+                    if (string.IsNullOrWhiteSpace(existingCustomer.AvatarUrl))
+                    {
+                        existingCustomer.AvatarUrl = DefaultImages.CustomerAvatarUrl;
+
+                        existingCustomer.AvatarPublicId = DefaultImages.CustomerAvatarPublicId;
+                    }
+
+
+                    // ========================================================
+                    // Gán Password Hash và tạo account mới cho customer này
+                    // ========================================================
                     var passwordHash = HashPassword(dto.Password);
+
 
                     await _accountRepository.CreateAccountForExistingCustomerAsync(existingCustomer, dto.Email, passwordHash);
 
@@ -104,21 +119,26 @@ namespace CafeChain.Application.Services.Accounts
                     Customer = new Customer
                     {
                         FullName = dto.FullName ?? "Khách hàng mới",
+
                         DateOfBirth = dto.DateOfBirth,
-                        AvatarUrl = "/Images/Upload/avtdf.jpg",
+
+                        AvatarUrl = DefaultImages.CustomerAvatarUrl,
+
+                        AvatarPublicId = DefaultImages.CustomerAvatarPublicId,
+
                         Gender = dto.Gender,
+
                         Category = CustomerCategory.Registered,
 
                         Active = true,
+
                         CreatedAt = DateTime.Now,
 
                         CustomerCode = $"CUS{DateTime.Now.Ticks}"
                     }
                 };
 
-                await _accountRepository.CreateNewCustomerAccountAsync(
-                    account,
-                    dto.PhoneNumber);
+                await _accountRepository.CreateNewCustomerAccountAsync(account, dto.PhoneNumber);
 
                 return ServiceResult.Success("Đăng ký thành công");
             }
@@ -249,7 +269,7 @@ namespace CafeChain.Application.Services.Accounts
 
                 var avatarUrl = account.Customer?.AvatarUrl
                                 ?? account.Staff?.AvatarUrl
-                                ?? "/Images/Upload/avtdf.jpg";
+                                ?? DefaultImages.CustomerAvatarUrl;
 
                 claims.Add(new Claim("AvatarUrl", avatarUrl));
 

@@ -1,37 +1,38 @@
 using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.Application.Interfaces.Customers;
+using CafeChain.ViewModels.Customers;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
-using System.Security.Cryptography;
-using System.Threading.Tasks;
-using CafeChain.ViewModels.Customers;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using CafeChain.Data;
 
 namespace CafeChain.Controllers
 {
-    [Authorize] // Bắt buộc phải đăng nhập mới được vào đây
+    [Authorize]
     public class CustomerController : Controller
     {
         private readonly ICustomerService _customerService;
-        // Bác nhớ Inject IWebHostEnvironment vào Controller để lấy đường dẫn thư mục wwwroot nhé
         private readonly IWebHostEnvironment _env;
-        private readonly CafeChain.Data.AppDbContext _context;
+        private readonly AppDbContext _context;
 
-        public CustomerController(ICustomerService customerService, IWebHostEnvironment env, CafeChain.Data.AppDbContext context)
+        public CustomerController(ICustomerService customerService, IWebHostEnvironment env, AppDbContext context)
         {
             _customerService = customerService;
             _env = env;
             _context = context;
         }
+
+        // =====================================================
+        // PROFILE
+        // =====================================================
+
         [HttpGet]
         public async Task<IActionResult> Profile()
         {
-            // Lấy AccountId từ cái Claim mà bác đã set lúc Login
-            // (new Claim(ClaimTypes.NameIdentifier, result.Data.AccountId.ToString()))
             var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(accountId))
@@ -39,7 +40,6 @@ namespace CafeChain.Controllers
                 return RedirectToAction("Login", "Account");
             }
 
-            // Gọi Service để lấy toàn bộ dữ liệu Profile
             var viewModel = await _customerService.GetCustomerProfileAsync(accountId);
 
             if (viewModel == null)
@@ -47,195 +47,165 @@ namespace CafeChain.Controllers
                 return NotFound("Không tìm thấy thông tin khách hàng.");
             }
 
-            return View(viewModel); // Trả về file Views/Customer/Profile.cshtml
+            return View(viewModel);
         }
+
+        // =====================================================
+        // AVATAR
+        // =====================================================
+
         [HttpPost]
         public async Task<IActionResult> UpdateAvatar(IFormFile avatarFile)
         {
             if (avatarFile == null || avatarFile.Length == 0)
-                return Json(new { success = false, message = "File không hợp lệ." });
-
-            var customerIdStr = User.FindFirstValue("CustomerId");
-            var customerId = int.Parse(customerIdStr);
-
-            var result = await _customerService.UpdateAvatarAsync(customerId, avatarFile);
-
-            // 🔥 BÍ KÍP CẬP NHẬT ẢNH TRÊN HEADER (CẤP LẠI COOKIE) 🔥
-            if (result.Url != null)
             {
-                var identity = (ClaimsIdentity)User.Identity;
-                var avatarClaim = identity.FindFirst("AvatarUrl"); // Tìm link ảnh cũ
-
-                if (avatarClaim != null)
+                return Json(new
                 {
-                    identity.RemoveClaim(avatarClaim); // Xé bỏ link ảnh cũ
-                }
-                // Dán link ảnh mới vào Cookie
-                identity.AddClaim(new Claim("AvatarUrl", result.Url));
-
-                // Bắt trình duyệt lưu lại ngay lập tức
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(identity)
-                );
+                    success = false,
+                    message = "File không hợp lệ."
+                });
             }
+
+            var customerId = GetCustomerId();
+
+            if (!customerId.HasValue)
+            {
+                return Unauthorized();
+            }
+
+            var avatarUrl = await _customerService.UpdateAvatarAsync(customerId.Value, avatarFile);
+
+            await RefreshAvatarClaimAsync(avatarUrl);
 
             return Json(new
             {
                 success = true,
-                imageUrl = result.Url,
-                isReused = result.IsReused
+                imageUrl = avatarUrl
             });
         }
+
+        // =====================================================
+        // UPDATE PROFILE
+        // =====================================================
+
         [HttpPost]
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
         {
-            // =========================
-            // VALIDATE FULL NAME
-            // =========================
-
-            if (string.IsNullOrWhiteSpace(request.FullName))
+            if (!ModelState.IsValid)
             {
                 return Json(new
                 {
                     success = false,
-                    message = "Họ và tên không được để trống."
+                    message = GetFirstModelError()
+                              ?? "Dữ liệu không hợp lệ."
                 });
             }
 
-            request.FullName = request.FullName.Trim();
+            var customerId = GetCustomerId();
 
-            if (request.FullName.Length < 2)
+            if (!customerId.HasValue)
             {
-                return Json(new
-                {
-                    success = false,
-                    message = "Họ và tên phải có ít nhất 2 ký tự."
-                });
-            }
-
-            if (request.FullName.Length > 100)
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "Họ và tên không được vượt quá 100 ký tự."
-                });
-            }
-
-            // chặn chỉ nhập số hoặc ký tự rác
-            if (!System.Text.RegularExpressions.Regex.IsMatch(
-                request.FullName,
-                @"^[\p{L}\s]+$"))
-            {
-                return Json(new
-                {
-                    success = false,
-                    message = "Họ và tên chỉ được chứa chữ cái và khoảng trắng."
-                });
-            }
-
-            // =========================
-            // LẤY CUSTOMER ID
-            // =========================
-
-            var customerIdStr = User.FindFirstValue("CustomerId");
-
-            if (!int.TryParse(customerIdStr, out int customerId))
                 return Unauthorized();
+            }
 
-            // =========================
-            // SAVE DB
-            // =========================
+            var result = await _customerService.UpdateProfileAsync(customerId.Value, request);
 
-            var result = await _customerService.UpdateProfileAsync(customerId, request);
-
-            if (result)
+            if (!result)
             {
-                // =========================
-                // UPDATE CLAIM NAME
-                // =========================
-
-                var identity = (ClaimsIdentity)User.Identity;
-                var nameClaim = identity.FindFirst(ClaimTypes.Name);
-
-                if (nameClaim != null)
-                {
-                    identity.RemoveClaim(nameClaim);
-                }
-
-                identity.AddClaim(new Claim(ClaimTypes.Name, request.FullName));
-
-                await HttpContext.SignInAsync(
-                    CookieAuthenticationDefaults.AuthenticationScheme,
-                    new ClaimsPrincipal(identity)
-                );
-
                 return Json(new
                 {
-                    success = true,
-                    message = "Cập nhật thành công!"
+                    success = false,
+                    message = "Không có thay đổi nào được lưu."
                 });
             }
+
+            await RefreshNameClaimAsync(request.FullName.Trim());
 
             return Json(new
             {
-                success = false,
-                message = "Không có thay đổi nào được lưu."
+                success = true,
+                message = "Cập nhật thành công!"
             });
         }
+
+        // =====================================================
+        // CHANGE PASSWORD
+        // =====================================================
+
         [HttpGet]
         public async Task<IActionResult> ChangePassword()
         {
-            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrEmpty(accountIdStr)) return RedirectToAction("Login", "Account");
+            var accountId =User.FindFirstValue(ClaimTypes.NameIdentifier);
 
-            // Vẫn phải gọi cái này để cái Sidebar bên trái nó không bị lỗi Null
-            var viewModel = await _customerService.GetCustomerProfileAsync(accountIdStr);
+            if (string.IsNullOrEmpty(accountId))
+            {
+                return RedirectToAction("Login", "Account");
+            }
+
+            var viewModel = await _customerService.GetCustomerProfileAsync(accountId);
 
             return View(viewModel);
         }
+
         [HttpPost]
-        public async Task<IActionResult> UpdatePassword([FromBody] ChangePasswordViewModel model)
+        public async Task<IActionResult> UpdatePassword([FromBody] ChangePasswordRequest request)
         {
-            // Kiểm tra Validation từ ViewModel
             if (!ModelState.IsValid)
             {
-                var errorMsg = ModelState.Values.SelectMany(v => v.Errors).FirstOrDefault()?.ErrorMessage;
-                return Json(new { success = false, message = errorMsg ?? "Dữ liệu không hợp lệ." });
+                return Json(new
+                {
+                    success = false,
+                    message = GetFirstModelError()
+                              ?? "Dữ liệu không hợp lệ."
+                });
             }
 
-            // Lấy AccountId từ Cookie Auth
-            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!int.TryParse(accountIdStr, out int accountId))
+            var accountId = GetAccountId();
+
+            if (!accountId.HasValue)
             {
                 return Unauthorized();
             }
 
-            // Gọi Service thực thi
-            var result = await _customerService.ChangePasswordAsync(accountId, model);
+            var result = await _customerService.ChangePasswordAsync(accountId.Value, request);
 
-            return Json(new { success = result.Success, message = result.Message });
+            return Json(new
+            {
+                success = result.Success,
+                message = result.Message
+            });
         }
 
-        // ======================= LOCATION ENDPOINTS =========================
+        // =====================================================
+        // LOCATION
+        // =====================================================
+
         [HttpGet]
-        [AllowAnonymous] // Phường/Xã thì không nhất thiết phải login mới load được
+        [AllowAnonymous]
         public async Task<IActionResult> GetProvinces()
         {
             var provinces = await _customerService.GetProvincesAsync();
-            // Map sang cùng cấu trúc "code" và "name" để JS khỏi phải sửa nhiều
-            var data = provinces.Select(p => new { code = p.ProvinceId, name = p.Name }).ToList();
-            return Json(data);
+
+            return Json(
+                provinces.Select(x => new
+                {
+                    code = x.ProvinceId,
+                    name = x.Name
+                }));
         }
 
         [HttpGet]
-        [AllowAnonymous] // Cấp Quận/Huyện
+        [AllowAnonymous]
         public async Task<IActionResult> GetDistricts(int provinceId)
         {
             var districts = await _customerService.GetDistrictsByProvinceAsync(provinceId);
-            var data = districts.Select(d => new { code = d.DistrictId, name = d.Name }).ToList();
-            return Json(data);
+
+            return Json(
+                districts.Select(x => new
+                {
+                    code = x.DistrictId,
+                    name = x.Name
+                }));
         }
 
         [HttpGet]
@@ -243,36 +213,143 @@ namespace CafeChain.Controllers
         public async Task<IActionResult> GetWards(int districtId)
         {
             var wards = await _customerService.GetWardsByDistrictAsync(districtId);
-            var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
-            return Json(data);
+
+            return Json(
+                wards.Select(x => new
+                {
+                    code = x.WardId,
+                    name = x.Name
+                }));
         }
 
-        // ======================= WALLET VOUCHERS =========================
+        // =====================================================
+        // MY VOUCHERS
+        // =====================================================
+
         [HttpGet]
         public async Task<IActionResult> MyVouchers()
         {
-            var customerIdStr = User.FindFirstValue("CustomerId");
-            if (!int.TryParse(customerIdStr, out int customerId)) return Unauthorized();
+            var customerId = GetCustomerId();
 
-            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var customerProfile = await _customerService.GetCustomerProfileAsync(accountIdStr);
+            if (!customerId.HasValue)
+            {
+                return Unauthorized();
+            }
 
-            var myVouchers = await _context.CustomerVouchers
-                .Include(cv => cv.Voucher)
-                .Where(cv => cv.CustomerId == customerId)
-                .ToListAsync();
+            var accountId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var profile = await _customerService.GetCustomerProfileAsync(accountId!);
+
+            var customerVouchers = await _context.CustomerVouchers
+                    .Include(x => x.Voucher)
+                    .Where(x =>
+                        x.CustomerId ==
+                        customerId.Value)
+                    .ToListAsync();
 
             var now = DateTime.Now;
 
-            var viewModel = new CafeChain.ViewModels.Customers.MyVouchersViewModel
-            {
-                Profile = customerProfile,
-                ValidVouchers = myVouchers.Where(cv => !cv.IsUsed && (!cv.Voucher.EndDate.HasValue || cv.Voucher.EndDate >= now)).ToList(),
-                UsedVouchers = myVouchers.Where(cv => cv.IsUsed).ToList(),
-                ExpiredVouchers = myVouchers.Where(cv => !cv.IsUsed && cv.Voucher.EndDate.HasValue && cv.Voucher.EndDate < now).ToList()
-            };
+            var viewModel =
+                new MyVouchersViewModel
+                {
+                    Profile = profile,
+
+                    ValidVouchers =
+                        customerVouchers
+                            .Where(x =>
+                                !x.IsUsed &&
+                                (!x.Voucher.EndDate.HasValue ||
+                                 x.Voucher.EndDate >= now))
+                            .ToList(),
+
+                    UsedVouchers =
+                        customerVouchers
+                            .Where(x => x.IsUsed)
+                            .ToList(),
+
+                    ExpiredVouchers =
+                        customerVouchers
+                            .Where(x =>
+                                !x.IsUsed &&
+                                x.Voucher.EndDate.HasValue &&
+                                x.Voucher.EndDate < now)
+                            .ToList()
+                };
 
             return View(viewModel);
+        }
+
+        // =====================================================
+        // PRIVATE HELPERS
+        // =====================================================
+
+        private int? GetCustomerId()
+        {
+            var customerIdStr = User.FindFirstValue("CustomerId");
+
+            return int.TryParse(
+                customerIdStr,
+                out var customerId)
+                ? customerId
+                : null;
+        }
+
+        private int? GetAccountId()
+        {
+            var accountIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            return int.TryParse(
+                accountIdStr,
+                out var accountId)
+                ? accountId
+                : null;
+        }
+
+        private string? GetFirstModelError()
+        {
+            return ModelState.Values
+                .SelectMany(x => x.Errors)
+                .FirstOrDefault()
+                ?.ErrorMessage;
+        }
+
+        private async Task RefreshAvatarClaimAsync(string avatarUrl)
+        {
+            var identity = (ClaimsIdentity)User.Identity!;
+
+            var avatarClaim = identity.FindFirst("AvatarUrl");
+
+            if (avatarClaim != null)
+            {
+                identity.RemoveClaim(avatarClaim);
+            }
+
+            identity.AddClaim(new Claim("AvatarUrl", avatarUrl));
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity));
+        }
+
+        private async Task RefreshNameClaimAsync(string fullName)
+        {
+            var identity = (ClaimsIdentity)User.Identity!;
+
+            var nameClaim = identity.FindFirst(ClaimTypes.Name);
+
+            if (nameClaim != null)
+            {
+                identity.RemoveClaim(nameClaim);
+            }
+
+            identity.AddClaim(
+                new Claim(
+                    ClaimTypes.Name,
+                    fullName));
+
+            await HttpContext.SignInAsync(
+                CookieAuthenticationDefaults.AuthenticationScheme,
+                new ClaimsPrincipal(identity));
         }
     }
 }

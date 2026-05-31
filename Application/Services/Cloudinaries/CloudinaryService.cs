@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Common;
 using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Helpers.Cloudinaries;
 using CloudinaryDotNet;
+using System.Security.Cryptography;
 using CloudinaryDotNet.Actions;
 namespace CafeChain.Application.Services.Cloudinaries
 {

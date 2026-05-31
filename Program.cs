@@ -1,5 +1,12 @@
+using CloudinaryDotNet;
+
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Admin;
 using CafeChain.Application.Interfaces.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Dashboard;
 using CafeChain.Application.Interfaces.Admin.Drinks;
@@ -8,16 +15,24 @@ using CafeChain.Application.Interfaces.Admin.DrinkToppings;
 using CafeChain.Application.Interfaces.Admin.Ingredients;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Settings;
 using CafeChain.Application.Interfaces.Admin.Sizes;
 using CafeChain.Application.Interfaces.Admin.Staffs;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
+using CafeChain.Application.Interfaces.Attendance;
+using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Security;
+
 using CafeChain.Application.Services;
 using CafeChain.Application.Services.Accounts;
+using CafeChain.Application.Services.Admin;
 using CafeChain.Application.Services.Admin.Categories;
 using CafeChain.Application.Services.Admin.Dashboard;
 using CafeChain.Application.Services.Admin.Drinks;
@@ -26,17 +41,30 @@ using CafeChain.Application.Services.Admin.DrinkToppings;
 using CafeChain.Application.Services.Admin.Ingredients;
 using CafeChain.Application.Services.Admin.InventoryDocuments;
 using CafeChain.Application.Services.Admin.InventoryTransfers;
+using CafeChain.Application.Services.Admin.Recipes;
+using CafeChain.Application.Services.Admin.Settings;
 using CafeChain.Application.Services.Admin.Sizes;
 using CafeChain.Application.Services.Admin.Staffs;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using CafeChain.Application.Services.Admin.Suppliers;
 using CafeChain.Application.Services.Admin.Toppings;
 using CafeChain.Application.Services.Admin.Vouchers;
+using CafeChain.Application.Services.Attendance;
 using CafeChain.Application.Services.Cart;
+using CafeChain.Application.Services.Cloudinaries;
 using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Services.Inventory;
+using CafeChain.Application.Services.PayOSIntegration;
+using CafeChain.Application.Services.POS;
 using CafeChain.Application.Services.Security;
-using CafeChain.Data;
-using CafeChain.Hubs;
+using CafeChain.Application.Services.Workers;
+
+using CafeChain.Application.Workers;
+
+using CafeChain.Infrastructure.Interfaces.Customers;
+using CafeChain.Infrastructure.Repositories.Customers;
+
 using CafeChain.Infrastrusture.Configurations;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
@@ -52,6 +80,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
+
 using CafeChain.Infrastrusture.Repositories.Accounts;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
@@ -66,10 +95,9 @@ using CafeChain.Infrastrusture.Repositories.Admin.Staffs;
 using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
-using CloudinaryDotNet;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
+
+using CafeChain.Data;
+using CafeChain.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -165,7 +193,7 @@ builder.Services.Configure<CloudinarySettings>(
 // 6. Dependency Injection for Services and Repositories
 // =======================
 
-// Cloudinary
+#region Cloudinary
 builder.Services.AddSingleton(sp =>
 {
     var settings = sp
@@ -184,110 +212,79 @@ builder.Services.AddSingleton(sp =>
     return cloudinary;
 });
 
-// Admin Category
-builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
-builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 
-// Account
+#endregion
+
+#region Account
 builder.Services.AddScoped<IAccountService, AccountService>();
+
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
+
 builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
+
 builder.Services.AddScoped<IPasswordResetRepository, PasswordResetRepository>();
+
 builder.Services.AddScoped<IEmailService, EmailService>();
 
-// Home
-builder.Services.AddScoped<IDrinkService, DrinkService>();
-builder.Services.AddScoped<ICartService, CartService>();
-builder.Services.AddScoped<IOrderService, OrderService>();
+#endregion
 
-// Inventory Abstraction
-builder.Services.AddScoped<IInventoryService, CafeChain.Application.Services.Inventory.InventoryService>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Inventories.IInventoryDeductionService, CafeChain.Application.Services.Inventories.InventoryDeductionService>();
+#region Customer
 
-// Workers
-builder.Services.AddHostedService<CafeChain.Application.Workers.OrderCleanupWorker>();
-builder.Services.AddHostedService<CafeChain.Application.Services.Workers.PaymentCleanupWorker>();
-
-// PayOS Integration
-builder.Services.AddScoped<CafeChain.Application.Services.PayOSIntegration.IPayOSService, CafeChain.Application.Services.PayOSIntegration.PayOSService>();
-
-// Đăng ký FileService
-builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 
-// Bản đồ Geocoding
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+
+#endregion
+
+#region HOME / POS / CART
+
+builder.Services.AddScoped<IDrinkService, DrinkService>();
+
+builder.Services.AddScoped<ICartService, CartService>();
+
+builder.Services.AddScoped<IOrderService, OrderService>();
+
+#endregion
+
+#region Inventory Core
+
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+
+builder.Services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
+
+#endregion
+
+#region File Service
+
+builder.Services.AddScoped<IFileService, FileService>();
+
+#endregion
+
+#region Geocoding
+
 builder.Services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
 
-// Admin Sizes
-builder.Services.AddScoped<IAdminSizeRepository, AdminSizeRepository>();
-builder.Services.AddScoped<IAdminSizeService, AdminSizeService>();
+#endregion
 
-//Admin DrinkSizes
-builder.Services.AddScoped<IAdminDrinkSizeRepository, AdminDrinkSizeRepository>();
-builder.Services.AddScoped<IAdminDrinkSizeService, AdminDrinkSizeService>();
+#region Workers
 
-// Admin Toppings
-builder.Services.AddScoped<IAdminToppingRepository, AdminToppingRepository>();
-builder.Services.AddScoped<IAdminToppingService, AdminToppingService>();
+builder.Services.AddHostedService<OrderCleanupWorker>();
 
-// Admin DrinkToppings
-builder.Services.AddScoped<IAdminDrinkToppingRepository, AdminDrinkToppingRepository>();
-builder.Services.AddScoped<IAdminDrinkToppingService, AdminDrinkToppingService>();
+builder.Services.AddHostedService<PaymentCleanupWorker>();
 
-// Admin Drinks
-builder.Services.AddScoped<IAdminDrinkRepository, AdminDrinkRepository>();
-builder.Services.AddScoped<IAdminDrinkService, AdminDrinkService>();
+#endregion
 
-// Admin Voucher
-builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
-builder.Services.AddScoped<IAdminWheelService, AdminWheelService>();
+#region PayOS
 
-// Admin Staff
-builder.Services.AddScoped<IAdminStaffRepository, AdminStaffRepository>();
-builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
-// Admin Ingredients
-builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
-builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
+builder.Services.AddScoped<IPayOSService, PayOSService>();
 
-// Admin Recipes (BOM Module)
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeService, CafeChain.Application.Services.Admin.Recipes.AdminRecipeService>();
+builder.Services.AddSingleton(new Net.payOS.PayOS(
+    builder.Configuration["PayOS:ClientId"],
+    builder.Configuration["PayOS:ApiKey"],
+    builder.Configuration["PayOS:ChecksumKey"]
+));
 
-
-// Admin Inventory Documents
-builder.Services.AddScoped<IUserContext, UserContext>();
-builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
-builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
-
-// Admin Store Inventories
-builder.Services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();
-builder.Services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
-
-// Admin Suppliers
-builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
-builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
-
-// Admin Orders Dashboard
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.IAdminOrderService, CafeChain.Application.Services.Admin.AdminOrderService>();
-
-// Admin Inventory Transfers
-builder.Services.AddScoped<IAdminInventoryTransferRepository, AdminInventoryTransferRepository>();
-builder.Services.AddScoped<IAdminInventoryTransferService, AdminInventoryTransferService>();
-
-// Security
-builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain.Application.Services.Attendance.AttendanceSecurityService>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
-
-// Admin Dashboard
-builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
-builder.Services.AddScoped<IDashboardService, DashboardService>();
-
-// Interlock HR & POS
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IHrAttendanceService, CafeChain.Application.Services.Attendance.HrAttendanceService>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IWorkShiftService, CafeChain.Application.Services.POS.WorkShiftService>();
-
-// [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
 builder.Services.AddHttpClient("PayOS")
     .ConfigurePrimaryHttpMessageHandler((IServiceProvider sp) =>
     {
@@ -310,24 +307,149 @@ builder.Services.AddSingleton(sp => {
     var config = sp.GetRequiredService<IConfiguration>();
     var httpClientFactory = sp.GetRequiredService<IHttpClientFactory>();
     var httpClient = httpClientFactory.CreateClient("PayOS");
-    
+
     return new Net.payOS.PayOS(
-        config["PayOS:ClientId"], 
-        config["PayOS:ApiKey"], 
+        config["PayOS:ClientId"],
+        config["PayOS:ApiKey"],
         config["PayOS:ChecksumKey"]
-        // Lưu ý: SDK Net.payOS hiện tại có thể không nhận HttpClient qua constructor tùy version, 
-        // nhưng cấu hình này đảm bảo các request HTTP khác qua Factory sẽ an toàn.
+
     );
 });
-// Settings
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Settings.IAdminSettingService, CafeChain.Application.Services.Admin.Settings.AdminSettingService>();
 
-// Trong Program.cs, chỗ builder.Services...
-builder.Services.AddSingleton(new Net.payOS.PayOS(
-    builder.Configuration["PayOS:ClientId"], 
-    builder.Configuration["PayOS:ApiKey"], 
-    builder.Configuration["PayOS:ChecksumKey"]
-));
+#endregion
+
+#region Admin - Category
+
+builder.Services.AddScoped<IAdminCategoryRepository, AdminCategoryRepository>();
+builder.Services.AddScoped<IAdminCategoryService, AdminCategoryService>();
+
+#endregion
+
+#region Admin - Sizes
+
+builder.Services.AddScoped<IAdminSizeRepository, AdminSizeRepository>();
+builder.Services.AddScoped<IAdminSizeService, AdminSizeService>();
+
+#endregion
+
+#region Admin - DrinkSizes
+
+builder.Services.AddScoped<IAdminDrinkSizeRepository, AdminDrinkSizeRepository>();
+builder.Services.AddScoped<IAdminDrinkSizeService, AdminDrinkSizeService>();
+
+#endregion
+
+#region Admin - Toppings
+
+builder.Services.AddScoped<IAdminToppingRepository, AdminToppingRepository>();
+builder.Services.AddScoped<IAdminToppingService, AdminToppingService>();
+
+#endregion
+
+#region Admin - DrinkToppings
+
+builder.Services.AddScoped<IAdminDrinkToppingRepository, AdminDrinkToppingRepository>();
+builder.Services.AddScoped<IAdminDrinkToppingService, AdminDrinkToppingService>();
+
+#endregion
+
+#region Admin - Drinks
+
+builder.Services.AddScoped<IAdminDrinkRepository, AdminDrinkRepository>();
+builder.Services.AddScoped<IAdminDrinkService, AdminDrinkService>();
+
+#endregion
+
+#region Admin - Voucher
+
+builder.Services.AddScoped<IAdminVoucherService, AdminVoucherService>();
+builder.Services.AddScoped<IAdminWheelService, AdminWheelService>();
+
+#endregion
+
+#region Admin - Staff
+
+builder.Services.AddScoped<IAdminStaffRepository, AdminStaffRepository>();
+builder.Services.AddScoped<IAdminStaffService, AdminStaffService>();
+builder.Services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
+
+#endregion
+
+#region Admin - Ingredients
+
+builder.Services.AddScoped<IAdminIngredientRepository, AdminIngredientRepository>();
+builder.Services.AddScoped<IAdminIngredientService, AdminIngredientService>();
+
+#endregion
+
+#region Admin - Recipes (BOM)
+
+builder.Services.AddScoped<IAdminRecipeService, AdminRecipeService>();
+
+#endregion
+
+#region Admin - Inventory Documents
+
+builder.Services.AddScoped<IUserContext, UserContext>();
+builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
+builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+
+#endregion
+
+#region Admin - Inventory Transfers
+
+builder.Services.AddScoped<IAdminInventoryTransferRepository, AdminInventoryTransferRepository>();
+builder.Services.AddScoped<IAdminInventoryTransferService, AdminInventoryTransferService>();
+
+#endregion
+
+#region Admin - Store Inventories
+
+builder.Services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();
+builder.Services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
+
+#endregion
+
+#region Admin - Suppliers
+
+builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
+builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+
+#endregion
+
+#region Admin - Orders Dashboard
+
+builder.Services.AddScoped<IAdminOrderService, AdminOrderService>();
+
+#endregion
+
+#region Security
+
+builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
+builder.Services.AddScoped<IAttendanceSecurityService, AttendanceSecurityService>();
+builder.Services.AddScoped<IAttendanceActionService, AttendanceActionService>();
+
+#endregion
+
+#region Admin - Dashboard
+
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+#endregion
+
+#region Admin - Settings
+
+builder.Services.AddScoped<IAdminSettingService, AdminSettingService>();
+
+#endregion
+
+#region HR & Attendance
+
+builder.Services.AddScoped<IHrAttendanceService, HrAttendanceService>();
+builder.Services.AddScoped<IWorkShiftService, WorkShiftService>();
+
+#endregion
 
 var app = builder.Build();
 

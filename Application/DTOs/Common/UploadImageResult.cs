@@ -9,5 +9,6 @@
         public long Bytes { get; set; }
 
         public string Format { get; set; } = null!;
+
     }
 }

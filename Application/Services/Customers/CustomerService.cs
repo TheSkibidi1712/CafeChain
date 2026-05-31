@@ -1,10 +1,16 @@
+using CafeChain.Application.Constants.Cloudinaries;
 using CafeChain.Application.DTOs.Customer;
 using CafeChain.Application.DTOs.Customers;
 using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Data; // Chỉnh lại theo tên DbContext của bác
+using CafeChain.Helpers.Cloudinaries;
+using CafeChain.Infrastructure.Interfaces.Customers;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Cloudinaries;
 using CafeChain.Models.Enums.Customer;
+using CafeChain.Models.Locations;
 using CafeChain.Models.Loyalties;
 using CafeChain.ViewModels.Customers;
 using Castle.Core.Resource;
@@ -15,440 +21,623 @@ namespace CafeChain.Application.Services.Customers
 {
     public class CustomerService : ICustomerService
     {
-        private readonly AppDbContext _context;
-        private readonly IFileService _fileService;
+        private readonly ICustomerRepository _customerRepository;
         private readonly IGeocodingService _geocodingService;
+        private readonly ICloudinaryService _cloudinaryService;
 
-        public CustomerService(AppDbContext context, IFileService fileService, IGeocodingService geocodingService)
+        public CustomerService(ICustomerRepository customerRepository, ICloudinaryService cloudinaryService, IGeocodingService geocodingService)
         {
-            _context = context;
-            _fileService = fileService;
+            _customerRepository = customerRepository;
+            _cloudinaryService = cloudinaryService;
             _geocodingService = geocodingService;
         }
 
+        // =========================
+        // CUSTOMER PROFILE
+        // =========================
         public async Task<CustomerProfileViewModel?> GetCustomerProfileAsync(string accountId)
         {
-            // Parse accountId từ Claim
             if (!int.TryParse(accountId, out int accId))
             {
                 return null;
             }
 
-            // =========================
-            // LOAD ACCOUNT + CUSTOMER
-            // =========================
+            var account = await _customerRepository.GetCustomerProfileAccountAsync(accId);
 
-            var account = await _context.Accounts
-                .Include(a => a.Customer)
-                    .ThenInclude(c => c.MemberLevel)
-                .Include(a => a.Customer)
-                    .ThenInclude(c => c.CustomerAddresses)
-                        .ThenInclude(ca => ca.Ward)
-                            .ThenInclude(w => w.District)
-                                .ThenInclude(d => d.Province)
-                .Include(a => a.Customer)
-                    .ThenInclude(c => c.CustomerPhones)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(a => a.AccountId == accId);
-
-            if (account == null || account.Customer == null)
+            if (account?.Customer == null)
             {
                 return null;
             }
 
             var customer = account.Customer;
 
-            // =========================
-            // CURRENT POINTS
-            // =========================
-
             int totalPoints = customer.CurrentPoints;
-
-            // =========================
-            // MEMBER LEVEL
-            // =========================
 
             var currentTier = customer.MemberLevel;
 
             string currentTierName = currentTier?.Name ?? "Thành viên mới";
 
-            // =========================
-            // NEXT TIER
-            // =========================
-
-            MemberLevel? nextTier = null;
+            string nextTierName = string.Empty;
+            int pointsNeeded = 0;
+            double progressPercentage = 100;
 
             if (currentTier != null)
             {
-                nextTier = await _context.MemberLevels
-                    .Where(x => x.MinPoints > currentTier.MinPoints)
-                    .OrderBy(x => x.MinPoints)
-                    .FirstOrDefaultAsync();
+                pointsNeeded = 0;
             }
-            else
-            {
-                nextTier = await _context.MemberLevels
-                    .OrderBy(x => x.MinPoints)
-                    .FirstOrDefaultAsync();
-            }
-
-            string nextTierName = string.Empty;
-
-            int pointsNeeded = 0;
-
-            double progressPercentage = 100;
-
-            if (nextTier != null)
-            {
-                nextTierName = nextTier.Name;
-
-                int currentMin = currentTier?.MinPoints ?? 0;
-
-                int nextMin = nextTier.MinPoints;
-
-                pointsNeeded = Math.Max(0, nextMin - totalPoints);
-
-                progressPercentage =
-                    (double)(totalPoints - currentMin)
-                    / (nextMin - currentMin) * 100;
-
-                progressPercentage = Math.Clamp(progressPercentage, 0, 100);
-            }
-
-            // =========================
-            // MAP VIEWMODEL
-            // =========================
 
             return new CustomerProfileViewModel
             {
                 Customer = customer,
-
                 Email = account.Email,
-
                 TotalPoints = totalPoints,
-
                 CurrentTierName = currentTierName,
-
                 NextTierName = nextTierName,
-
                 PointsNeeded = pointsNeeded,
-
                 ProgressPercentage = progressPercentage
             };
         }
 
-        public async Task<(string Url, bool IsReused)> UpdateAvatarAsync(int customerId, IFormFile file)
+        // ====================================================
+        // UPDATE AVATAR & PROFILE
+        // ====================================================
+        public async Task<string> UpdateAvatarAsync(int customerId, IFormFile file)
         {
-            // Gọi FileService để xử lý file vật lý
-            var fileResult = await _fileService.SaveImageWithHashAsync(file, "avatars");
+            // ==========================================
+            // VALIDATE FILE
+            // ==========================================
+            ImageValidationHelper.Validate(
+                file,
+                ImageCategory.Avatar);
 
-            // Cập nhật Database
-            var customer = await _context.Customers.FindAsync(customerId);
-            if (customer != null)
+            // ==========================================
+            // GET CUSTOMER
+            // ==========================================
+            var customer =
+                await _customerRepository
+                    .GetByIdAsync(customerId);
+
+            if (customer == null)
             {
-                customer.AvatarUrl = fileResult.Url;
-                await _context.SaveChangesAsync();
+                throw new KeyNotFoundException(
+                    "Không tìm thấy khách hàng.");
             }
 
-            // Bóc tách cái Class ra để trả về đúng định dạng Tuple mà hàm đang yêu cầu
-            return (fileResult.Url, fileResult.IsReused);
+            // ==========================================
+            // UPLOAD NEW IMAGE
+            // ==========================================
+            var uploadResult =
+                await _cloudinaryService.UploadAsync(
+                    file,
+                    ImageFolder.Customers,
+                    ImageCategory.Avatar);
+
+            // ==========================================
+            // UPDATE DATABASE
+            // ==========================================
+            await _customerRepository.UpdateAvatarAsync(
+                customer,
+                uploadResult.Url,
+                uploadResult.PublicId);
+
+            await _customerRepository.SaveChangesAsync();
+
+            return uploadResult.Url;
         }
+
+
         public async Task<bool> UpdateProfileAsync(int customerId, UpdateProfileRequest request)
         {
-            var customer = await _context.Customers
-                .Include(c => c.CustomerPhones)
-                .Include(c => c.CustomerAddresses)
-                .FirstOrDefaultAsync(c => c.CustomerId == customerId);
+            var customer = await _customerRepository.GetCustomerForUpdateAsync(customerId);
 
-            if (customer == null) return false;
-
-            // 1. Cập nhật thông tin cơ bản
-            customer.FullName = request.FullName;
-            customer.DateOfBirth = request.Dob;
-
-            // 2. Thêm Số điện thoại mới
-            if (request.NewPhones != null && request.NewPhones.Any())
+            if (customer == null)
             {
-                foreach (var p in request.NewPhones)
-                {
-                    if (!customer.CustomerPhones.Any(cp => cp.Phone == p))
-                    {
-                        customer.CustomerPhones.Add(new CustomerPhone { Phone = p });
-                    }
-                }
+                throw new KeyNotFoundException(
+                    "Không tìm thấy khách hàng.");
             }
 
-            // [NEW MAGIC] 2.5 Cập nhật Địa chỉ cũ (Khách sửa địa chỉ)
-            if (request.UpdatedAddresses != null && request.UpdatedAddresses.Any())
-            {
-                foreach (var updateDto in request.UpdatedAddresses)
-                {
-                    var existing = customer.CustomerAddresses.FirstOrDefault(a => a.CustomerAddressId == updateDto.CustomerAddressId);
-                    if (existing != null)
-                    {
-                        existing.Address = updateDto.Street;
-                        existing.WardId = updateDto.WardId;
-                        existing.DistrictId = updateDto.DistrictId;
-                        existing.ProvinceId = updateDto.ProvinceId;
+            // ==========================================
+            // BUSINESS VALIDATION
+            // ==========================================
 
-                        var wardName = await _context.Wards.Where(w => w.WardId == updateDto.WardId).Select(w => w.Name).FirstOrDefaultAsync();
-                        var districtName = await _context.Districts.Where(d => d.DistrictId == updateDto.DistrictId).Select(d => d.Name).FirstOrDefaultAsync();
-                        var provinceName = await _context.Provinces.Where(p => p.ProvinceId == updateDto.ProvinceId).Select(p => p.Name).FirstOrDefaultAsync();
+            ValidateDateOfBirth(request);
 
-                        // 1. Phân rã trực tiếp kết quả trả về thành 2 biến lat và lng
-                        var (lat, lng) = await _geocodingService.GetCoordinatesAsync($"...");
+            ValidatePrimaryPhone(customer, request);
 
-                        // 2. Kiểm tra xem 2 biến này có chứa dữ liệu thật không
-                        if (lat != null && lng != null)
-                        {
-                            existing.Latitude = lat;
-                            existing.Longitude = lng;
-                        }
-                    }
-                }
-            }
+            ValidatePrimaryAddress(customer, request);
 
-            // 3. Thêm Địa chỉ mới (Logic CHUYÊN GIA: Không N+1, không dư thừa)
-            var newlyAddedAddresses = new List<(CustomerAddress Entity, int TempId)>();
+            ValidateNewPhones(customer, request);
 
-            if (request.NewAddresses != null && request.NewAddresses.Any())
-            {
-                foreach (var addrDto in request.NewAddresses)
-                {
-                    var newAddr = new CustomerAddress 
-                    { 
-                        Address = addrDto.Street, // CHỈ lưu Số nhà/Đường
-                        WardId = addrDto.WardId,  // Lưu khóa ngoại Phường
-                        DistrictId = addrDto.DistrictId, // Lưu khóa ngoại Quận
-                        ProvinceId = addrDto.ProvinceId  // Lưu khóa ngoại Tỉnh
-                    };
+            ValidateAddresses(request);
 
-                    var wardName = await _context.Wards.Where(w => w.WardId == addrDto.WardId).Select(w => w.Name).FirstOrDefaultAsync();
-                    var districtName = await _context.Districts.Where(d => d.DistrictId == addrDto.DistrictId).Select(d => d.Name).FirstOrDefaultAsync();
-                    var provinceName = await _context.Provinces.Where(p => p.ProvinceId == addrDto.ProvinceId).Select(p => p.Name).FirstOrDefaultAsync();
+            // ==========================================
+            // UPDATE DATA
+            // ==========================================
 
-                    var (lat, lng) = await _geocodingService.GetCoordinatesAsync($"{addrDto.Street}, {wardName}, {districtName}, {provinceName}");
-                    if (lat != null && lng != null)
-                    {
-                        newAddr.Latitude = lat;
-                        newAddr.Longitude = lng;
-                    }
+            UpdateBasicInfo(customer, request);
 
-                    customer.CustomerAddresses.Add(newAddr);
-                    newlyAddedAddresses.Add((newAddr, addrDto.TempId)); // Nhớ lại TempId để lật cờ Mặc định nếu cần
-                }
-            }
+            AddNewPhones(customer, request);
 
-            // =====================================================================
-            // 🔥 CHÈN LOGIC LẬT CỜ ISDEFAULT VÀO ĐÚNG ĐÂY 🔥
-            // =====================================================================
+            await UpdateAddressesAsync(customer, request);
 
-            // XỬ LÝ SỐ ĐIỆN THOẠI MẶC ĐỊNH
-            if (!string.IsNullOrEmpty(request.PrimaryPhone))
-            {
-                // Duyệt qua tất cả các số (bao gồm cả số cũ lẫn số MỚI vừa được thêm ở bước 2)
-                foreach (var p in customer.CustomerPhones)
-                {
-                    p.IsDefault = (p.Phone == request.PrimaryPhone);
-                }
-            }
+            var newlyAddedAddresses = await AddNewAddressesAsync(customer, request);
 
-            // 🔥 XỬ LÝ ĐỊA CHỈ MẶC ĐỊNH BẰNG ID THAY VÌ CHUỖI
-            if (request.PrimaryAddressId.HasValue)
-            {
-                int pId = request.PrimaryAddressId.Value;
+            SetPrimaryPhone(customer, request.PrimaryPhone);
 
-                if (pId < 0) 
-                {
-                    // Nếu ID âm (< 0), nghĩa là khách hàng chọn 1 địa chỉ VỪA THÊM làm mặc định
-                    foreach (var a in customer.CustomerAddresses) { a.IsDefault = false; }
-                    var target = newlyAddedAddresses.FirstOrDefault(x => x.TempId == pId).Entity;
-                    if (target != null) target.IsDefault = true;
-                } 
-                else 
-                {
-                    // Cập nhật địa chỉ cũ làm mặc định
-                    foreach (var a in customer.CustomerAddresses)
-                    {
-                        a.IsDefault = (a.CustomerAddressId == pId);
-                    }
-                }
-            }
-            // =====================================================================
+            SetPrimaryAddress(customer, request.PrimaryAddressId, newlyAddedAddresses);
 
-            // KHÔNG CỐ TÌNH SẮP XẾP HAY XÓA GÌ Ở ĐÂY CẢ
-            return await _context.SaveChangesAsync() > 0;
+            await _customerRepository.SaveChangesAsync();
+
+            return true;
         }
-        public async Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordViewModel request)
+
+        public async Task<(bool Success, string Message)> ChangePasswordAsync(int accountId, ChangePasswordRequest request)
         {
-            // 1. Tìm tài khoản trong Database
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId);
+            // =========================
+            // VALIDATE
+            // =========================
+
+            if (string.IsNullOrWhiteSpace(request.CurrentPassword))
+            {
+                return (false, "Vui lòng nhập mật khẩu hiện tại.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.NewPassword))
+            {
+                return (false, "Vui lòng nhập mật khẩu mới.");
+            }
+
+            if (string.IsNullOrWhiteSpace(request.ConfirmPassword))
+            {
+                return (false, "Vui lòng xác nhận mật khẩu.");
+            }
+
+            // =========================
+            // GET ACCOUNT
+            // =========================
+
+            var account =
+                await _customerRepository
+                    .GetAccountByIdAsync(accountId);
+
             if (account == null)
             {
-                return (false, "Không tìm thấy tài khoản.");
+                return (
+                    false,
+                    "Không tìm thấy tài khoản."
+                );
             }
 
-            // 2. Kiểm tra mật khẩu hiện tại bằng BCrypt (Đồng bộ với logic Login)
-            bool isCurrentPasswordValid = BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash);
+            // =========================
+            // CHECK CURRENT PASSWORD
+            // =========================
+
+            bool isCurrentPasswordValid =BCrypt.Net.BCrypt.Verify(request.CurrentPassword, account.PasswordHash);
 
             if (!isCurrentPasswordValid)
             {
                 return (false, "Mật khẩu hiện tại không chính xác.");
             }
 
-            // ====================================================================
-            // 🔥 THÊM LOGIC NÀY: CHẶN TRÙNG MẬT KHẨU CŨ
-            // ====================================================================
+            // =========================
+            // CHECK SAME PASSWORD
+            // =========================
+
             if (request.CurrentPassword == request.NewPassword)
             {
                 return (false, "Mật khẩu mới không được trùng với mật khẩu hiện tại.");
             }
 
-            // 3. Mã hóa mật khẩu mới bằng BCrypt (Đồng bộ với logic Register)
-            account.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+            // =========================
+            // CHECK CONFIRM PASSWORD
+            // =========================
 
-            // 4. Lưu thay đổi
-            _context.Accounts.Update(account);
-            await _context.SaveChangesAsync();
+            if (request.NewPassword != request.ConfirmPassword)
+            {
+                return (false, "Mật khẩu xác nhận không khớp.");
+            }
+
+            // =========================
+            // UPDATE PASSWORD
+            // =========================
+
+            account.PasswordHash =BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
+
+            await _customerRepository.UpdateAccountAsync(account);
+
+            await _customerRepository.SaveChangesAsync();
 
             return (true, "Đổi mật khẩu thành công!");
         }
 
-        public async Task<CafeChain.Models.Customers.Customer> GetByPhoneAsync(string phone)
+        // =========================
+        // OTHER CUSTOMER METHODS
+        // =========================
+        public async Task<Customer> GetByPhoneAsync(string phone)
         {
-            var customerPhone = await _context.CustomerPhones
-                .Include(p => p.Customer)
-                .AsNoTracking()
-                .FirstOrDefaultAsync(p => p.Phone == phone);
-
-            return customerPhone?.Customer;
+            return await _customerRepository.GetByPhoneAsync(phone);
         }
 
+
+        // =========================
+        // QUICK REGISTER (DÙNG CHO POS)
+        // =========================
         public async Task<(bool Success, string Message, int CustomerId)> QuickRegisterAsync(string fullName, string phone)
         {
-            // =========================
-            // CHECK DUPLICATE PHONE
-            // =========================
+            if (string.IsNullOrWhiteSpace(fullName))
+            {
+                return (false, "Tên khách hàng không hợp lệ.", 0);
+            }
 
-            var exists = await _context.CustomerPhones
-                .AnyAsync(p => p.Phone == phone);
+            if (string.IsNullOrWhiteSpace(phone))
+            {
+                return ( false, "Số điện thoại không hợp lệ.", 0);
+            }
+
+            var exists = await _customerRepository.PhoneExistsAsync(phone);
 
             if (exists)
             {
-                return (false, "Số điện thoại này đã được sử dụng.", 0);
+                return ( false, "Số điện thoại này đã được sử dụng.", 0);
             }
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            int customerId = 0;
 
-            try
-            {
-                // =========================
-                // CREATE ACCOUNT
-                // =========================
-
-                var account = new Account
+            await _customerRepository.ExecuteInTransactionAsync(
+                async () =>
                 {
-                    Email = $"pos_{phone}@cafechain.com",
+                    var account = new Account
+                    {
+                        Email = $"pos_{phone}@cafechain.com",
 
-                    PasswordHash = BCrypt.Net.BCrypt
-                        .HashPassword(Guid.NewGuid().ToString()),
+                        PasswordHash = BCrypt.Net.BCrypt.HashPassword(Guid.NewGuid().ToString()),
 
-                    Active = true,
+                        Active = true,
 
-                    CreatedAt = DateTime.UtcNow
-                };
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                _context.Accounts.Add(account);
+                    await _customerRepository
+                        .AddAccountAsync(account);
 
-                await _context.SaveChangesAsync();
+                    await _customerRepository
+                        .SaveChangesAsync();
 
-                // =========================
-                // CREATE CUSTOMER
-                // =========================
+                    var customer = new Customer
+                    {
+                        AccountId = account.AccountId,
 
-                var customer = new Customer
-                {
-                    AccountId = account.AccountId,
+                        CustomerCode = $"CUS{DateTime.UtcNow.Ticks}",
 
-                    CustomerCode = $"CUS{DateTime.UtcNow.Ticks}",
+                        FullName = fullName,
 
-                    FullName = fullName,
+                        Category = CustomerCategory.Registered,
 
-                    Category = CustomerCategory.Registered,
+                        CurrentPoints = 0,
 
-                    CurrentPoints = 0,
+                        TotalSpent = 0,
 
-                    TotalSpent = 0,
+                        TotalOrders = 0,
 
-                    TotalOrders = 0,
+                        Active = true,
 
-                    Active = true,
+                        IsDeleted = false,
 
-                    CreatedAt = DateTime.UtcNow,
+                        CreatedAt = DateTime.UtcNow
+                    };
 
-                    IsDeleted = false
-                };
+                    await _customerRepository
+                        .AddCustomerAsync(customer);
 
-                _context.Customers.Add(customer);
+                    await _customerRepository
+                        .SaveChangesAsync();
 
-                await _context.SaveChangesAsync();
+                    await _customerRepository.AddCustomerPhoneAsync(
+                            new CustomerPhone
+                            {
+                                CustomerId =
+                                    customer.CustomerId,
 
-                // =========================
-                // CREATE PHONE
-                // =========================
+                                Phone = phone,
 
-                var customerPhone = new CustomerPhone
-                {
-                    CustomerId = customer.CustomerId,
+                                IsDefault = true
+                            });
 
-                    Phone = phone,
+                    customerId = customer.CustomerId;
+                });
 
-                    IsDefault = true
-                };
-
-                _context.CustomerPhones.Add(customerPhone);
-
-                await _context.SaveChangesAsync();
-
-                await transaction.CommitAsync();
-
-                return (
-                    true,
-                    "Đăng ký thành viên thành công!",
-                    customer.CustomerId
-                );
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-
-                return (
-                    false,
-                    "Đăng ký thành viên thất bại.",
-                    0
-                );
-            }
+            return (true, "Đăng ký thành viên thành công!", customerId);
         }
 
 
         // ======================= LOCATION METHODS =========================
-        public async Task<List<CafeChain.Models.Locations.Province>> GetProvincesAsync()
+        public async Task<List<Province>> GetProvincesAsync()
         {
-            return await _context.Provinces.ToListAsync();
+            return await _customerRepository
+                .GetProvincesAsync();
         }
 
-        public async Task<List<CafeChain.Models.Locations.District>> GetDistrictsByProvinceAsync(int provinceId)
+        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
         {
-            return await _context.Districts
-                .Where(d => d.ProvinceId == provinceId)
-                .ToListAsync();
+            if (provinceId <= 0)
+            {
+                throw new ArgumentException("Tỉnh/Thành phố không hợp lệ.");
+            }
+
+            return await _customerRepository.GetDistrictsByProvinceAsync(provinceId);
         }
 
-        public async Task<List<CafeChain.Models.Locations.Ward>> GetWardsByDistrictAsync(int districtId)
+        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
         {
-            return await _context.Wards
-                .Where(w => w.DistrictId == districtId)
-                .ToListAsync();
+            if (districtId <= 0)
+            {
+                throw new ArgumentException("Quận/Huyện không hợp lệ.");
+            }
+
+            return await _customerRepository.GetWardsByDistrictAsync(districtId);
+        }
+
+
+        // =========================
+        // PRIVATE HELPER METHODS
+        // =========================
+        private static void UpdateBasicInfo(Customer customer, UpdateProfileRequest request)
+        {
+            customer.FullName = request.FullName?.Trim();
+
+            customer.DateOfBirth = request.Dob;
+        }
+
+        private static void AddNewPhones(Customer customer, UpdateProfileRequest request)
+        {
+            if (request.NewPhones == null || !request.NewPhones.Any())
+            {
+                return;
+            }
+
+            foreach (var phone in request.NewPhones)
+            {
+                if (customer.CustomerPhones.Any(x => x.Phone == phone))
+                {
+                    continue;
+                }
+
+                customer.CustomerPhones.Add(
+                    new CustomerPhone
+                    {
+                        Phone = phone
+                    });
+            }
+        }
+
+        private async Task UpdateAddressesAsync(Customer customer, UpdateProfileRequest request)
+        {
+            if (request.UpdatedAddresses == null || !request.UpdatedAddresses.Any())
+            {
+                return;
+            }
+
+            foreach (var dto in request.UpdatedAddresses)
+            {
+                var address = customer.CustomerAddresses.FirstOrDefault(x => x.CustomerAddressId == dto.CustomerAddressId);
+
+                if (address == null)
+                {
+                    continue;
+                }
+
+                address.Address = dto.Street;
+
+                address.WardId = dto.WardId;
+
+                address.DistrictId = dto.DistrictId;
+
+                address.ProvinceId = dto.ProvinceId;
+
+                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.DistrictId, dto.ProvinceId);
+            }
+        }
+
+        private async Task<List<(CustomerAddress Entity, int TempId)>> AddNewAddressesAsync(Customer customer, UpdateProfileRequest request)
+        {
+            var result = new List<(CustomerAddress, int)>();
+
+            if (request.NewAddresses == null || !request.NewAddresses.Any())
+            {
+                return result;
+            }
+
+            foreach (var dto in request.NewAddresses)
+            {
+                var address = new CustomerAddress
+                    {
+                        Address = dto.Street,
+
+                        WardId = dto.WardId,
+
+                        DistrictId = dto.DistrictId,
+
+                        ProvinceId = dto.ProvinceId
+                    };
+
+                await UpdateCoordinatesAsync(address, dto.Street, dto.WardId, dto.DistrictId, dto.ProvinceId);
+
+                customer.CustomerAddresses.Add(address);
+
+                result.Add((address, dto.TempId));
+            }
+
+            return result;
+        }
+
+        private async Task UpdateCoordinatesAsync(CustomerAddress address, string street, int wardId, int districtId, int provinceId)
+        {
+            var location = await _customerRepository.GetLocationNamesAsync(provinceId, districtId, wardId);
+
+            if (location == null)
+            {
+                return;
+            }
+
+            var fullAddress = $"{street}, " + $"{location.WardName}, " + $"{location.DistrictName}, " + $"{location.ProvinceName}";
+
+            var (lat, lng) = await _geocodingService.GetCoordinatesAsync(fullAddress);
+
+            if (lat != null && lng != null)
+            {
+                address.Latitude = lat;
+
+                address.Longitude = lng;
+            }
+        }
+
+        private static void SetPrimaryPhone(Customer customer, string? primaryPhone)
+        {
+            if (string.IsNullOrWhiteSpace(primaryPhone))
+            {
+                return;
+            }
+
+            foreach (var phone in customer.CustomerPhones)
+            {
+                phone.IsDefault = phone.Phone == primaryPhone;
+            }
+        }
+
+        private static void SetPrimaryAddress(Customer customer, int? primaryAddressId, List<(CustomerAddress Entity, int TempId)> newAddresses)
+        {
+            if (!primaryAddressId.HasValue)
+            {
+                return;
+            }
+
+            int id = primaryAddressId.Value;
+
+            if (id < 0)
+            {
+                foreach (var address in customer.CustomerAddresses)
+                {
+                    address.IsDefault = false;
+                }
+
+                var target = newAddresses.FirstOrDefault(x => x.TempId == id).Entity;
+
+                if (target != null)
+                {
+                    target.IsDefault = true;
+                }
+
+                return;
+            }
+
+            foreach (var address in customer.CustomerAddresses)
+            {
+                address.IsDefault = address.CustomerAddressId == id;
+            }
+        }
+
+        private static void ValidateDateOfBirth(UpdateProfileRequest request)
+        {
+            if (!request.Dob.HasValue)
+            {
+                return;
+            }
+
+            if (request.Dob.Value.Date > DateTime.Today)
+            {
+                throw new ArgumentException(
+                    "Ngày sinh không hợp lệ.");
+            }
+        }
+
+        private static void ValidatePrimaryPhone(Customer customer, UpdateProfileRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.PrimaryPhone))
+            {
+                return;
+            }
+
+            bool exists = customer.CustomerPhones.Any(x => x.Phone == request.PrimaryPhone);
+
+            bool willBeAdded = request.NewPhones.Any(x => x == request.PrimaryPhone);
+
+            if (!exists && !willBeAdded)
+            {
+                throw new ArgumentException("Số điện thoại mặc định không tồn tại.");
+            }
+        }
+
+        private static void ValidatePrimaryAddress(Customer customer, UpdateProfileRequest request)
+        {
+            if (!request.PrimaryAddressId.HasValue)
+            {
+                return;
+            }
+
+            int addressId = request.PrimaryAddressId.Value;
+
+            // địa chỉ mới dùng TempId âm
+            if (addressId < 0)
+            {
+                bool exists = request.NewAddresses.Any(x => x.TempId == addressId);
+
+                if (!exists)
+                {
+                    throw new ArgumentException(
+                        "Địa chỉ mặc định không hợp lệ.");
+                }
+
+                return;
+            }
+
+            bool addressExists = customer.CustomerAddresses.Any(x => x.CustomerAddressId == addressId);
+
+            if (!addressExists)
+            {
+                throw new ArgumentException("Địa chỉ mặc định không tồn tại.");
+            }
+        }
+
+        private static void ValidateNewPhones(Customer customer, UpdateProfileRequest request)
+        {
+            if (!request.NewPhones.Any())
+            {
+                return;
+            }
+
+            var duplicatedPhones = request.NewPhones.GroupBy(x => x).Where(x => x.Count() > 1).Select(x => x.Key).ToList();
+
+            if (duplicatedPhones.Any())
+            {
+                throw new ArgumentException("Danh sách số điện thoại bị trùng.");
+            }
+
+            foreach (var phone in request.NewPhones)
+            {
+                if (customer.CustomerPhones.Any(x => x.Phone == phone))
+                {
+                    throw new ArgumentException($"Số điện thoại {phone} đã tồn tại.");
+                }
+            }
+        }
+
+        private static void ValidateAddresses(UpdateProfileRequest request)
+        {
+            foreach (var address in request.NewAddresses)
+            {
+                if (string.IsNullOrWhiteSpace( address.Street))
+                {
+                    throw new ArgumentException("Địa chỉ mới không hợp lệ.");
+                }
+            }
+
+            foreach (var address in request.UpdatedAddresses)
+            {
+                if (string.IsNullOrWhiteSpace( address.Street))
+                {
+                    throw new ArgumentException("Địa chỉ cập nhật không hợp lệ.");
+                }
+            }
         }
     }
 }
