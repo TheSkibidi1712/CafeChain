@@ -285,6 +285,51 @@ builder.Services.AddSingleton(new Net.payOS.PayOS(
     builder.Configuration["PayOS:ChecksumKey"]
 ));
 
+<<<<<<< HEAD
+=======
+
+// Admin Inventory Documents
+builder.Services.AddScoped<IUserContext, UserContext>();
+builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
+builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+
+// Admin Store Inventories
+builder.Services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();
+builder.Services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
+
+// Admin Suppliers
+builder.Services.AddScoped<IAdminSupplierRepository, AdminSupplierRepository>();
+builder.Services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+
+// Admin Orders Dashboard
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.IAdminOrderService, CafeChain.Application.Services.Admin.AdminOrderService>();
+
+// Admin Inventory Transfers
+builder.Services.AddScoped<IAdminInventoryTransferRepository, AdminInventoryTransferRepository>();
+builder.Services.AddScoped<IAdminInventoryTransferService, AdminInventoryTransferService>();
+
+// Security
+builder.Services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceSecurityService, CafeChain.Application.Services.Attendance.AttendanceSecurityService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IAttendanceActionService, CafeChain.Application.Services.Attendance.AttendanceActionService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Staffs.IAdminStaffShiftService, CafeChain.Application.Services.Admin.Staffs.AdminStaffShiftService>();
+
+// Admin Dashboard
+builder.Services.AddScoped<IDashboardRepository, DashboardRepository>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
+
+// Interlock HR & POS
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IHrAttendanceService, CafeChain.Application.Services.Attendance.HrAttendanceService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IWorkShiftService, CafeChain.Application.Services.POS.WorkShiftService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.ISupervisorAuthService, CafeChain.Application.Services.POS.SupervisorAuthService>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSOrderService, CafeChain.Application.Services.POS.POSOrderService>();
+
+// POS Repositories
+builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.POSOrderRepository>();
+builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.ISupervisorRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.SupervisorRepository>();
+
+// [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
+>>>>>>> feature/StaffHub
 builder.Services.AddHttpClient("PayOS")
     .ConfigurePrimaryHttpMessageHandler((IServiceProvider sp) =>
     {

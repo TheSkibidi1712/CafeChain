@@ -60,6 +60,7 @@ namespace CafeChain.Data
         public DbSet<OrderStatus> OrderStatuses { get; set; }
         public DbSet<OrderType> OrderTypes { get; set; }
         public DbSet<OrderTopping> OrderToppings { get; set; }
+        public DbSet<InvoiceAuditLog> InvoiceAuditLogs { get; set; }
 
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }

@@ -95,13 +95,9 @@ namespace CafeChain.Application.Services.POS
                     .Where(op => op.Payment.PaymentMethodId == 1) // 1 = Cash payment
                     .SumAsync(op => (decimal?)op.Payment.Amount) ?? 0m;
 
-                // Fallback: if no payments tracked yet, use order Total for cash orders
-                if (totalCashSales == 0)
-                {
-                    totalCashSales = await _context.Orders
-                        .Where(o => o.WorkShiftId == activeShift.ShiftId && o.OrderStatusId == 4) // Completed orders
-                        .SumAsync(o => (decimal?)o.Total) ?? 0m;
-                }
+                // [FIX Lỗi 2] Đã xóa khối fallback if (totalCashSales == 0)
+                // Nếu không có giao dịch tiền mặt, totalCashSales = 0 là chính xác
+                // ExpectedEndingCash = StartingCash + 0 = StartingCash
 
                 var expectedEndingCash = activeShift.StartingCash + totalCashSales;
 

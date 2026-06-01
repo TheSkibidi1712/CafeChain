@@ -18,7 +18,10 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>Số điểm loyalty khách muốn dùng</summary>
         public int PointsUsed { get; set; }
 
-        /// <summary>Phương thức thanh toán: 1=Tiền mặt, 2=Chuyển khoản</summary>
+        /// <summary>Danh sách các dòng thanh toán hỗn hợp (Split Payments)</summary>
+        public List<PaymentLineDto> Payments { get; set; } = new List<PaymentLineDto>();
+
+        /// <summary>[Deprecated] Phương thức thanh toán đơn lẻ — dùng Payments thay thế</summary>
         public int PaymentMethodId { get; set; } = 1;
 
         /// <summary>Loại đơn: 1=DineIn, 2=TakeAway</summary>
@@ -29,6 +32,16 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>Ghi chú đơn hàng</summary>
         public string? Note { get; set; }
+    }
+
+    /// <summary>
+    /// Một dòng thanh toán trong Split Payments
+    /// </summary>
+    public class PaymentLineDto
+    {
+        /// <summary>1=Tiền mặt, 2=QR Chuyển khoản VietQR/PayOS</summary>
+        public int PaymentMethodId { get; set; }
+        public decimal Amount { get; set; }
     }
 
     /// <summary>
