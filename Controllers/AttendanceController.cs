@@ -63,7 +63,8 @@ namespace CafeChain.Controllers
             if (!TryGetAccountId(out int accountId))
                 return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
 
-            var result = await _actionService.SubmitTimeActionAsync(accountId, actionType, faceDescriptor, forceSave);
+            var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0";
+            var result = await _actionService.SubmitTimeActionAsync(accountId, actionType, faceDescriptor, forceSave, clientIp);
 
             if (!result.IsSuccess)
             {

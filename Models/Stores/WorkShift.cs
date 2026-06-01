@@ -60,6 +60,12 @@ namespace CafeChain.Models.Stores
         [MaxLength(500)]
         public string? DiscrepancyReason { get; set; }
 
+        /// <summary>
+        /// Khóa ca két gắn cứng theo thiết bị POS Terminal (GUID từ browser localStorage)
+        /// </summary>
+        [MaxLength(100)]
+        public string? PosTerminalId { get; set; }
+
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }

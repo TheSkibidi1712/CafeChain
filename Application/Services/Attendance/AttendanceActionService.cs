@@ -32,7 +32,7 @@ namespace CafeChain.Application.Services.Attendance
             return (float)Math.Sqrt(sum);
         }
 
-        public async Task<ServiceResult> SubmitTimeActionAsync(int accountId, string actionType, string faceDescriptor, bool forceSave = false)
+        public async Task<ServiceResult> SubmitTimeActionAsync(int accountId, string actionType, string faceDescriptor, bool forceSave = false, string ipAddress = null)
         {
             if (string.IsNullOrEmpty(actionType))
                 return ServiceResult.Failure("Loại hành động không hợp lệ");
@@ -141,14 +141,14 @@ namespace CafeChain.Application.Services.Attendance
                         todayShift.ActualCheckIn = currentTime;
                         todayShift.StatusId = 2; // In Progress
 
-                        // [NEW] Audit Trail for Interlock
-                        var ipAddress = "192.168.1.100"; // TODO: Lấy IP thực tế từ HttpContext
+                        // [FIX Lỗi 4] Lấy IP thực tế từ Controller truyền vào, không hardcode
+                        var realIpAddress = ipAddress ?? "0.0.0.0";
                         var attendanceLog = new CafeChain.Models.Staffs.AttendanceLog
                         {
                             UserId = staff.StaffId,
                             StoreId = staff.StoreId,
                             CheckInTime = DateTime.UtcNow,
-                            IpAddress = ipAddress,
+                            IpAddress = realIpAddress,
                             IsFaceVerified = true,
                             Status = "Valid"
                         };

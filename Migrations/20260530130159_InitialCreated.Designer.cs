@@ -4,6 +4,7 @@ using CafeChain.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260530130159_InitialCreated")]
+    partial class InitialCreated
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -4539,45 +4542,6 @@ namespace CafeChain.Migrations
                         });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("ActionName")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int>("CashierId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("OrderId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Reason")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<int>("SupervisorId")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("CashierId");
-
-                    b.HasIndex("SupervisorId");
-
-                    b.ToTable("InvoiceAuditLogs");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
                     b.Property<int>("OrderId")
@@ -6781,10 +6745,6 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
 
-                    b.Property<string>("PosTerminalId")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
@@ -7067,11 +7027,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 6, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6651),
+                            EndDate = new DateTime(2026, 6, 29, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2751),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 5, 24, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6628)
+                            StartDate = new DateTime(2026, 5, 23, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2718)
                         },
                         new
                         {
@@ -7079,10 +7039,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 6, 15, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6654),
+                            EndDate = new DateTime(2026, 6, 14, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2756),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 5, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6653)
+                            StartDate = new DateTime(2026, 5, 29, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2755)
                         },
                         new
                         {
@@ -7090,11 +7050,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 7, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6656),
+                            EndDate = new DateTime(2026, 7, 29, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2760),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 5, 1, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6655)
+                            StartDate = new DateTime(2026, 4, 30, 20, 1, 55, 288, DateTimeKind.Local).AddTicks(2759)
                         });
                 });
 
@@ -7946,25 +7906,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Type");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>
-                {
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Cashier")
-                        .WithMany()
-                        .HasForeignKey("CashierId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Staffs.Staff", "Supervisor")
-                        .WithMany()
-                        .HasForeignKey("SupervisorId")
-                        .OnDelete(DeleteBehavior.NoAction)
-                        .IsRequired();
-
-                    b.Navigation("Cashier");
-
-                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>

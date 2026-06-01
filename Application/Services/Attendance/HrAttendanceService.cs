@@ -11,6 +11,9 @@ namespace CafeChain.Application.Services.Attendance
     {
         private readonly AppDbContext _context;
 
+        // Đặt thành false để bật kiểm tra chấm công thực tế (Production Mode)
+        private const bool BYPASS_MODE = true;
+
         public HrAttendanceService(AppDbContext context)
         {
             _context = context;
@@ -18,23 +21,19 @@ namespace CafeChain.Application.Services.Attendance
 
         public async Task<bool> VerifyRecentCheckInAsync(int userId, int storeId)
         {
-            // [FIX.md] TẠM THỜI BYPASS KIỂM TRA ĐỊA CHỈ IP VÀ CHẤM CÔNG ĐỂ KHÁCH HÀNG TEST TRƯỚC
-            return true;
+            // [BYPASS] Tạm thời bỏ kiểm tra để test — đổi BYPASS_MODE = false khi deploy
+            if (BYPASS_MODE) return true;
 
-            /*
-            var cutoffTime = DateTime.UtcNow.AddMinutes(-30);
+            // [FIX Lỗi 1] Đổi từ kiểm tra AttendanceLog 30 phút sang kiểm tra StaffShift đang mở
+            // Nhân viên phải có ca chấm công đã check-in nhưng chưa check-out (hôm nay hoặc hôm qua cho ca qua đêm)
+            var today = DateTime.Today;
+            var yesterday = today.AddDays(-1);
 
-            var recentLog = await _context.AttendanceLogs
-                .Where(log => log.UserId == userId 
-                           && log.StoreId == storeId 
-                           && log.CheckInTime >= cutoffTime
-                           && log.IsFaceVerified == true
-                           && log.Status == "Valid")
-                .OrderByDescending(log => log.CheckInTime)
-                .FirstOrDefaultAsync();
-
-            return recentLog != null;
-            */
+            return await _context.StaffShifts.AnyAsync(ss =>
+                ss.StaffId == userId
+                && (ss.WorkDate.Date == today || ss.WorkDate.Date == yesterday)
+                && ss.ActualCheckIn.HasValue
+                && !ss.ActualCheckOut.HasValue);
         }
     }
 }
