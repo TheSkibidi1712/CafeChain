@@ -66,7 +66,6 @@ namespace CafeChain.Infrastructure.Interfaces.Customers
 
         Task SaveChangesAsync();
 
-        Task ExecuteInTransactionAsync(
-            Func<Task> action);
+        Task ExecuteInTransactionAsync(Func<Task> action);
     }
 }

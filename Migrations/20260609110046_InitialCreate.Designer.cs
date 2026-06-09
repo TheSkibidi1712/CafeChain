@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260530073657_InitialCreate")]
+    [Migration("20260609110046_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -1553,6 +1553,9 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkToppingId"));
 
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
                     b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
@@ -1572,72 +1575,84 @@ namespace CafeChain.Migrations
                         new
                         {
                             DrinkToppingId = 1,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 2,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 3,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 4,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 5,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 6,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 6
                         },
                         new
                         {
                             DrinkToppingId = 7,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 8,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 9,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 10,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 11,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 12,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 6
                         });
@@ -4542,6 +4557,51 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ActionName")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("CashierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<int>("OrderId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SupervisorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CashierId");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("OrderId");
+
+                    b.HasIndex("SupervisorId");
+
+                    b.ToTable("InvoiceAuditLogs", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
                 {
                     b.Property<int>("OrderId")
@@ -6745,6 +6805,10 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(18,2)")
                         .HasDefaultValue(0m);
 
+                    b.Property<string>("PosTerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<DateTime>("StartTime")
                         .HasColumnType("datetime2");
 
@@ -7027,11 +7091,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 6, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4505),
+                            EndDate = new DateTime(2026, 7, 9, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(730),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 5, 23, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4489)
+                            StartDate = new DateTime(2026, 6, 2, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(717)
                         },
                         new
                         {
@@ -7039,10 +7103,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 6, 14, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508),
+                            EndDate = new DateTime(2026, 6, 24, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(733),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 5, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508)
+                            StartDate = new DateTime(2026, 6, 8, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(733)
                         },
                         new
                         {
@@ -7050,11 +7114,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 7, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510),
+                            EndDate = new DateTime(2026, 8, 8, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(735),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 4, 30, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510)
+                            StartDate = new DateTime(2026, 5, 10, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(735)
                         });
                 });
 
@@ -7906,6 +7970,25 @@ namespace CafeChain.Migrations
                     b.Navigation("Order");
 
                     b.Navigation("Type");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Orders.InvoiceAuditLog", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Cashier")
+                        .WithMany()
+                        .HasForeignKey("CashierId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "Supervisor")
+                        .WithMany()
+                        .HasForeignKey("SupervisorId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Cashier");
+
+                    b.Navigation("Supervisor");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>

@@ -1,95 +1,268 @@
-﻿.main-card {
+﻿/* =======================================================
+   PAGE
+======================================================= */
+
+.main-card {
+    background: #fff;
     border-radius: 16px;
+    border: none;
+    overflow: hidden;
+}
+
+/* =======================================================
+   TABLE
+======================================================= */
+
+.table {
+    margin-bottom: 0;
+}
+
+    .table thead th {
+        font-size: 13px;
+        font-weight: 700;
+        color: #6c757d;
+        letter-spacing: .5px;
+        padding: 14px 12px;
+    }
+
+    .table tbody td {
+        vertical-align: middle;
+        padding: 16px 12px;
+    }
+
+    .table tbody tr {
+        transition: .2s;
+    }
+
+        .table tbody tr:hover {
+            background: #fafafa;
+        }
+
+/* =======================================================
+   TOPPING IMAGE
+======================================================= */
+
+.topping-img {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid #eee;
     background: #fff;
 }
 
-/* Image */
-.topping-img {
-    width: 55px;
-    height: 55px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid #eee;
-}
+/* =======================================================
+   STATUS
+======================================================= */
 
-/* Preview image */
-.preview-img {
-    width: 80px;
-    height: 80px;
-    object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-}
-
-/* Status */
 .status-active {
-    color: #2E7D32;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
     background: #E8F5E9;
-    padding: 5px 10px;
-    border-radius: 8px;
+    color: #2E7D32;
     font-size: 12px;
+    font-weight: 600;
 }
 
 .status-inactive {
-    color: #C62828;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
     background: #FFEBEE;
-    padding: 5px 10px;
-    border-radius: 8px;
+    color: #C62828;
     font-size: 12px;
+    font-weight: 600;
 }
 
-/* Button */
+/* =======================================================
+   BUTTONS
+======================================================= */
+
 .btn-orange {
     background: #E65100;
-    color: white;
+    color: #fff;
+    border: none;
     border-radius: 10px;
+    padding: 10px 18px;
+    font-weight: 600;
+    transition: .2s;
 }
 
     .btn-orange:hover {
         background: #BF360C;
-        color: white;
+        color: #fff;
+    }
+
+    .btn-orange:disabled {
+        opacity: .7;
     }
 
 .btn-light {
     border-radius: 10px;
 }
 
-/* Table */
-.table td {
-    vertical-align: middle;
-}
+/* =======================================================
+   MODAL
+======================================================= */
 
-/* Modal */
 .modal-content {
-    border-radius: 16px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: none;
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,.08);
 }
 
-/* Input */
+.modal-header {
+    padding: 18px 24px;
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-footer {
+    padding: 18px 24px;
+}
+
+/* =======================================================
+   FORM
+======================================================= */
+
+.form-label {
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
 .form-control {
     border-radius: 10px;
-    padding: 10px 12px;
+    padding: 11px 14px;
+    border: 1px solid #dee2e6;
 }
 
     .form-control:focus {
         border-color: #E65100;
-        box-shadow: 0 0 0 2px rgba(230,81,0,0.1);
+        box-shadow: 0 0 0 0.2rem rgba(230,81,0,.15);
     }
 
-.drink-card {
-    border: 1px solid #eee;
+/* =======================================================
+   CREATE PREVIEW
+======================================================= */
+
+.preview-img {
+    width: 220px;
+    height: 220px;
+    object-fit: cover;
     border-radius: 12px;
+    border: 1px solid #ddd;
     background: #fff;
-    transition: 0.2s;
+}
+
+#create-remove-btn {
+    transform: translate(35%, -35%);
+}
+
+/* =======================================================
+   EDIT PREVIEW
+======================================================= */
+
+#edit-preview {
+    width: 220px;
+    height: 220px;
+    object-fit: cover;
+    border-radius: 12px;
+    border: 1px solid #ddd;
+}
+
+/* =======================================================
+   DRINK MODAL
+======================================================= */
+
+.drink-card {
+    border: 1px solid #ececec;
+    border-radius: 14px;
+    background: #fff;
+    overflow: hidden;
+    transition: all .2s ease;
 }
 
     .drink-card:hover {
-        box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0,0,0,.08);
     }
 
 .drink-img {
     width: 100%;
-    height: 120px;
+    height: 170px;
     object-fit: cover;
-    border-radius: 10px;
+}
+
+.drink-card-body {
+    padding: 14px;
+}
+
+.drink-name {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.drink-meta {
+    font-size: 12px;
+    color: #6c757d;
+}
+
+/* =======================================================
+   DRINK LIST SCROLL
+======================================================= */
+
+#assignedList,
+#unassignedList {
+    max-height: 650px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+    #assignedList::-webkit-scrollbar,
+    #unassignedList::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #assignedList::-webkit-scrollbar-thumb,
+    #unassignedList::-webkit-scrollbar-thumb {
+        background: #d0d0d0;
+        border-radius: 999px;
+    }
+
+/* =======================================================
+   ALERT
+======================================================= */
+
+.alert {
+    border-radius: 12px;
+}
+
+/* =======================================================
+   RESPONSIVE
+======================================================= */
+
+@media (max-width: 768px) {
+
+    .preview-img,
+    #edit-preview {
+        width: 170px;
+        height: 170px;
+    }
+
+    .drink-img {
+        height: 140px;
+    }
+
+    .table {
+        min-width: 650px;
+    }
 }

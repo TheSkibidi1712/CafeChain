@@ -1044,7 +1044,8 @@ namespace CafeChain.Migrations
                     DrinkToppingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     DrinkId = table.Column<int>(type: "int", nullable: false),
-                    ToppingId = table.Column<int>(type: "int", nullable: false)
+                    ToppingId = table.Column<int>(type: "int", nullable: false),
+                    Active = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1851,6 +1852,34 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "InvoiceAuditLogs",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    OrderId = table.Column<int>(type: "int", nullable: false),
+                    CashierId = table.Column<int>(type: "int", nullable: false),
+                    SupervisorId = table.Column<int>(type: "int", nullable: false),
+                    ActionName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InvoiceAuditLogs", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InvoiceAuditLogs_Staffs_CashierId",
+                        column: x => x.CashierId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId");
+                    table.ForeignKey(
+                        name: "FK_InvoiceAuditLogs_Staffs_SupervisorId",
+                        column: x => x.SupervisorId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffAddresses",
                 columns: table => new
                 {
@@ -2048,7 +2077,8 @@ namespace CafeChain.Migrations
                     ExpectedEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     ActualEndingCash = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Open"),
-                    DiscrepancyReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    DiscrepancyReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    PosTerminalId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -2820,9 +2850,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 6, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4505), null, 20000m, 100, null, 40000m, new DateTime(2026, 5, 23, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4489), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 14, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508), null, null, 500, null, 50000m, new DateTime(2026, 5, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4508), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 7, 29, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510), null, 100000m, 1000, null, 0m, new DateTime(2026, 4, 30, 14, 36, 54, 304, DateTimeKind.Local).AddTicks(4510), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 7, 9, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(730), null, 20000m, 100, null, 40000m, new DateTime(2026, 6, 2, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(717), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 6, 24, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(733), null, null, 500, null, 50000m, new DateTime(2026, 6, 8, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(733), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 8, 8, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(735), null, 100000m, 1000, null, 0m, new DateTime(2026, 5, 10, 18, 0, 43, 648, DateTimeKind.Local).AddTicks(735), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -3143,21 +3173,21 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "DrinkToppings",
-                columns: new[] { "DrinkToppingId", "DrinkId", "ToppingId" },
+                columns: new[] { "DrinkToppingId", "Active", "DrinkId", "ToppingId" },
                 values: new object[,]
                 {
-                    { 1, 3, 1 },
-                    { 2, 3, 2 },
-                    { 3, 3, 3 },
-                    { 4, 3, 4 },
-                    { 5, 3, 5 },
-                    { 6, 3, 6 },
-                    { 7, 4, 1 },
-                    { 8, 4, 2 },
-                    { 9, 4, 3 },
-                    { 10, 4, 4 },
-                    { 11, 4, 5 },
-                    { 12, 4, 6 }
+                    { 1, false, 3, 1 },
+                    { 2, false, 3, 2 },
+                    { 3, false, 3, 3 },
+                    { 4, false, 3, 4 },
+                    { 5, false, 3, 5 },
+                    { 6, false, 3, 6 },
+                    { 7, false, 4, 1 },
+                    { 8, false, 4, 2 },
+                    { 9, false, 4, 3 },
+                    { 10, false, 4, 4 },
+                    { 11, false, 4, 5 },
+                    { 12, false, 4, 6 }
                 });
 
             migrationBuilder.InsertData(
@@ -3887,6 +3917,26 @@ namespace CafeChain.Migrations
                 name: "IX_InventoryTransfers_ToStoreId_Status",
                 table: "InventoryTransfers",
                 columns: new[] { "ToStoreId", "Status" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceAuditLogs_CashierId",
+                table: "InvoiceAuditLogs",
+                column: "CashierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceAuditLogs_CreatedAt",
+                table: "InvoiceAuditLogs",
+                column: "CreatedAt");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceAuditLogs_OrderId",
+                table: "InvoiceAuditLogs",
+                column: "OrderId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InvoiceAuditLogs_SupervisorId",
+                table: "InvoiceAuditLogs",
+                column: "SupervisorId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_MemberLevels_Name",
@@ -4712,6 +4762,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "InventoryTransferDetails");
+
+            migrationBuilder.DropTable(
+                name: "InvoiceAuditLogs");
 
             migrationBuilder.DropTable(
                 name: "OrderToppings");
