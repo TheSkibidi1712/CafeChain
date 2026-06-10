@@ -3,9 +3,11 @@ using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Loyalties;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,12 +24,21 @@ namespace CafeChain.Application.Services.POS
         private readonly IPOSOrderRepository _repository;
         private readonly IWorkShiftService _workShiftService;
         private readonly IAdminVoucherService _voucherService;
+        private readonly IPrintDispatcher _printDispatcher;
+        private readonly ILogger<POSOrderService> _logger;
 
-        public POSOrderService(IPOSOrderRepository repository, IWorkShiftService workShiftService, IAdminVoucherService voucherService)
+        public POSOrderService(
+            IPOSOrderRepository repository,
+            IWorkShiftService workShiftService,
+            IAdminVoucherService voucherService,
+            IPrintDispatcher printDispatcher,
+            ILogger<POSOrderService> logger)
         {
             _repository = repository;
             _workShiftService = workShiftService;
             _voucherService = voucherService;
+            _printDispatcher = printDispatcher;
+            _logger = logger;
         }
 
         // ============================================================
@@ -55,6 +66,58 @@ namespace CafeChain.Application.Services.POS
                 return ServiceResult<object>.Failure("Không tìm thấy khách hàng.");
 
             return ServiceResult<object>.Success(customer);
+        }
+
+        // ============================================================
+        // REGISTER CUSTOMER — Quick registration from POS
+        // ============================================================
+        public async Task<ServiceResult<object>> RegisterCustomerAsync(QuickCustomerRegisterDto dto)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(dto.Phone) || string.IsNullOrWhiteSpace(dto.FullName))
+                    return ServiceResult<object>.Failure("Số điện thoại và họ tên là bắt buộc.");
+
+                // Kiểm tra trùng SĐT
+                var isDuplicate = await _repository.HasDuplicatePhoneAsync(dto.Phone);
+                if (isDuplicate)
+                    return ServiceResult<object>.Failure("Số điện thoại này đã được đăng ký trong hệ thống.");
+
+                // Tạo Customer mới
+                var newCustomer = new Customer
+                {
+                    CustomerCode = "KH" + DateTime.Now.Ticks,
+                    FullName = dto.FullName,
+                    MemberLevelId = 1, // New Member
+                    CurrentPoints = 0,
+                    TotalSpent = 0,
+                    TotalOrders = 0,
+                    Active = true,
+                    CreatedAt = DateTime.Now,
+                    DateOfBirth = dto.DateOfBirth
+                };
+
+                var newPhone = new CustomerPhone
+                {
+                    Phone = dto.Phone,
+                    IsDefault = true
+                };
+
+                var customer = await _repository.RegisterCustomerAsync(newCustomer, newPhone);
+
+                return ServiceResult<object>.Success(new
+                {
+                    customerId = customer.CustomerId,
+                    fullName = customer.FullName,
+                    phone = dto.Phone,
+                    currentPoints = 0,
+                    memberLevel = "Thành viên mới"
+                } as object, "Đăng ký khách hàng thành công!");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<object>.Failure("Lỗi hệ thống khi đăng ký: " + ex.Message);
+            }
         }
 
         // ============================================================
@@ -113,13 +176,16 @@ namespace CafeChain.Application.Services.POS
                     });
                 }
 
-                // 2. Apply Voucher
+                // 2. Apply Voucher — với tích hợp bypass Trưởng ca
                 decimal voucherDiscount = 0;
+                int? pendingBypassAuditLogId = null;
+
                 if (!string.IsNullOrWhiteSpace(dto.VoucherCode))
                 {
                     var voucherResult = await _voucherService.ValidateVoucherAsync(dto.VoucherCode, dto.CustomerId ?? 0, subTotal);
                     if (voucherResult.Success && voucherResult.Voucher != null)
                     {
+                        // Voucher hợp lệ — áp dụng bình thường
                         var voucher = voucherResult.Voucher;
                         if (voucher.DiscountAmount.HasValue) voucherDiscount = voucher.DiscountAmount.Value;
                         else if (voucher.DiscountPercent.HasValue)
@@ -128,6 +194,18 @@ namespace CafeChain.Application.Services.POS
                             if (voucher.MaxDiscount.HasValue && voucherDiscount > voucher.MaxDiscount.Value)
                                 voucherDiscount = voucher.MaxDiscount.Value;
                         }
+                    }
+                    else
+                    {
+                        // Voucher không hợp lệ — tìm pending bypass audit log trong 5 phút
+                        var pendingBypass = await _repository.GetPendingAuditLogAsync(userId, "SOFT_VOUCHER_BYPASS", 5);
+                        if (pendingBypass != null && pendingBypass.DiscountValue.HasValue)
+                        {
+                            // Áp dụng giá trị giảm giá được Trưởng ca duyệt
+                            voucherDiscount = pendingBypass.DiscountValue.Value;
+                            pendingBypassAuditLogId = pendingBypass.Id;
+                        }
+                        // Nếu không có bypass, voucher bị bỏ qua (voucherDiscount = 0)
                     }
                 }
 
@@ -154,6 +232,7 @@ namespace CafeChain.Application.Services.POS
                 var total = Math.Max(0, subTotal - voucherDiscount - pointDiscount);
 
                 // 5. Create Order via Repository
+                // ADR-0002: ClientOrderId được gán nguyên tử cùng Order — không tách bước
                 var newOrder = await _repository.CreateOrderAsync(new Order
                 {
                     StoreId = storeId, StaffId = userId > 0 ? userId : null, WorkShiftId = activeShift.ShiftId,
@@ -161,10 +240,11 @@ namespace CafeChain.Application.Services.POS
                     OrderStatusId = 4, PaymentStatusId = 2, SubTotal = subTotal,
                     VoucherDiscount = voucherDiscount, PointDiscount = pointDiscount, PointsUsed = actualPointsUsed,
                     Total = total, ShippingFee = 0, Source = "POS", Note = dto.Note,
+                    ClientOrderId = dto.ClientOrderId,  // ADR-0002: Idempotency Key — null cho đơn online
                     CreatedAt = DateTime.Now, OrderDetails = orderDetails
                 });
 
-                // 6. Create Payment records via Repository
+                // 6. Create Payment records — Hỗ trợ thanh toán hỗn hợp (Split Payments)
                 var paymentLines = dto.Payments != null && dto.Payments.Any()
                     ? dto.Payments
                     : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = dto.PaymentMethodId > 0 ? dto.PaymentMethodId : 1, Amount = total } };
@@ -178,7 +258,13 @@ namespace CafeChain.Application.Services.POS
                     });
                 }
 
-                // 7. Handle Loyalty Points via Repository
+                // 7. Liên kết bypass audit log với order (nếu có)
+                if (pendingBypassAuditLogId.HasValue)
+                {
+                    await _repository.UpdateAuditLogOrderIdAsync(pendingBypassAuditLogId.Value, newOrder.OrderId);
+                }
+
+                // 8. Handle Loyalty Points via Repository
                 int earnedPoints = 0;
                 if (dto.CustomerId.HasValue)
                 {
@@ -213,7 +299,7 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
-                // 8. Handle Voucher Usage via Repository
+                // 9. Handle Voucher Usage via Repository
                 if (!string.IsNullOrWhiteSpace(dto.VoucherCode) && voucherDiscount > 0)
                 {
                     var voucher = await _repository.GetVoucherByCodeAsync(dto.VoucherCode);
@@ -230,6 +316,32 @@ namespace CafeChain.Application.Services.POS
                 }
 
                 await _repository.CommitTransactionAsync();
+
+                // ADR-0003: Trigger Silent Print sau commit thành công
+                // Fire-and-forget — print failure KHÔNG ảnh hưởng order đã commit
+                if (!dto.SkipPrint)
+                {
+                    try
+                    {
+                        // Xác định phương thức thanh toán có tiền mặt hay không (kick cash drawer)
+                        bool hasCashPayment = (dto.Payments != null && dto.Payments.Any(p => p.PaymentMethodId == 1))
+                            || dto.PaymentMethodId == 1;
+
+                        // Lấy tên thu ngân từ Staff (nếu có) — fallback "POS"
+                        var cashierName = newOrder.Staff?.FullName ?? "POS";
+
+                        await _printDispatcher.DispatchPrintJobAsync(
+                            newOrder, storeId, cashierName, dto.ReceivedAmount, hasCashPayment);
+                    }
+                    catch (Exception printEx)
+                    {
+                        // Double safety net — PrintDispatcher đã catch bên trong,
+                        // nhưng phòng hờ edge case
+                        _logger.LogError(printEx,
+                            "[POSOrderService] Print dispatch failed cho Order #{OrderId}. Order đã commit thành công.",
+                            newOrder.OrderId);
+                    }
+                }
 
                 var changeAmount = dto.ReceivedAmount - total;
                 return ServiceResult<object>.Success(new
@@ -276,3 +388,4 @@ namespace CafeChain.Application.Services.POS
         }
     }
 }
+

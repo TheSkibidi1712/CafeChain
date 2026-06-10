@@ -70,9 +70,29 @@ using CloudinaryDotNet;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Serilog;
+using Serilog.Events;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// ============================================================
+// SERILOG CONFIGURATION — Structured Logging
+// ============================================================
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: Path.Combine(builder.Environment.ContentRootPath, "Logs", "cafechain-.log"),
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz} [{Level:u3}] {SourceContext} {Message:lj}{NewLine}{Exception}")
+    .CreateLogger();
+
+builder.Host.UseSerilog();
 
 // =======================
 // 1. MVC
@@ -288,10 +308,16 @@ builder.Services.AddScoped<CafeChain.Application.Interfaces.Attendance.IHrAttend
 builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IWorkShiftService, CafeChain.Application.Services.POS.WorkShiftService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.ISupervisorAuthService, CafeChain.Application.Services.POS.SupervisorAuthService>();
 builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSOrderService, CafeChain.Application.Services.POS.POSOrderService>();
+builder.Services.AddSingleton<CafeChain.Application.Interfaces.POS.IEscPosBuilder, CafeChain.Application.Services.POS.EscPosReceiptBuilder>(); // ADR-0003: ESC/POS Receipt Builder
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IPrintDispatcher, CafeChain.Application.Services.POS.PrintDispatcher>(); // ADR-0003: Silent Print Dispatcher (Issue #49)
 
 // POS Repositories
 builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.POSOrderRepository>();
 builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.ISupervisorRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.SupervisorRepository>();
+builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.POS.IWorkShiftRepository, CafeChain.Infrastructure.Repositories.Admin.POS.WorkShiftRepository>();
+
+// Attendance Repository (tách data access khỏi Attendance services)
+builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Attendance.IAttendanceRepository, CafeChain.Infrastructure.Repositories.Attendance.AttendanceRepository>();
 
 // [FIX] PayOS SSL Bypass & HttpClient Registration (Senior .NET Security Fix)
 builder.Services.AddHttpClient("PayOS")
@@ -327,14 +353,6 @@ builder.Services.AddSingleton(sp => {
 });
 // Settings
 builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Settings.IAdminSettingService, CafeChain.Application.Services.Admin.Settings.AdminSettingService>();
-
-// Trong Program.cs, chỗ builder.Services...
-builder.Services.AddSingleton(new Net.payOS.PayOS(
-    builder.Configuration["PayOS:ClientId"], 
-    builder.Configuration["PayOS:ApiKey"], 
-    builder.Configuration["PayOS:ChecksumKey"]
-));
-
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
@@ -386,45 +404,34 @@ app.MapControllerRoute(
 
 app.MapHub<OrderHub>("/orderHub");
 app.MapHub<PaymentHub>("/paymentHub");
+app.MapHub<PrintBridgeHub>("/hubs/print-bridge"); // ADR-0003: Silent Print via SignalR
 
-// === 🚀 DIAGNOSTIC SCRIPT (TỰ ĐỘNG CHẨN ĐOÁN LỖI DATABASE) ===
+// === Auto-apply pending migrations ===
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<CafeChain.Data.AppDbContext>();
-    var conn = dbContext.Database.GetDbConnection();
     try
     {
-        // Tự động Apply Migration
         dbContext.Database.Migrate();
-
-
-        conn.Open();
-        using var cmd = conn.CreateCommand();
-        cmd.CommandText = @"
-            SELECT t.TABLE_NAME, 
-                   CASE WHEN c.COLUMN_NAME IS NOT NULL THEN 'TRUE' ELSE 'FALSE' END AS HasActive
-            FROM INFORMATION_SCHEMA.TABLES t
-            LEFT JOIN INFORMATION_SCHEMA.COLUMNS c 
-                   ON t.TABLE_NAME = c.TABLE_NAME AND c.COLUMN_NAME = 'Active'
-            WHERE t.TABLE_TYPE = 'BASE TABLE' 
-              AND t.TABLE_NAME IN ('Drinks', 'DrinkSizes', 'Sizes', 'DrinkCategories', 'Ratings', 'Stores', 'DrinkToppings', 'Toppings', 'DrinkDefaultToppings', 'Customers', 'Accounts', 'Staffs', 'CustomerAddresses')
-            ORDER BY HasActive DESC, t.TABLE_NAME;";
-        using var reader = cmd.ExecuteReader();
-        var outputPath = System.IO.Path.Combine(builder.Environment.ContentRootPath, "diagnostic.txt");
-        using var writer = new System.IO.StreamWriter(outputPath, false);
-        writer.WriteLine("--- SCHEMA DIAGNOSTIC ---");
-        while (reader.Read())
-        {
-            writer.WriteLine($"{reader.GetString(0)}:{reader.GetString(1)}");
-        }
-        writer.WriteLine("--- END ---");
-        Console.WriteLine("\n\n✅ ĐÃ GHI KẾT QUẢ VÀO FILE diagnostic.txt\n\n");
+        Log.Information("✅ Database migration applied successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("LỖI GHI FILE: " + ex.Message);
+        Log.Warning(ex, "⚠️ Migration error");
     }
 }
 // =============================================================
 
-app.Run();
+try
+{
+    Log.Information("🚀 CafeChain POS starting up...");
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "❌ Application terminated unexpectedly");
+}
+finally
+{
+    Log.CloseAndFlush();
+}
