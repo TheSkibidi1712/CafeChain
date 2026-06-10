@@ -28,7 +28,12 @@
     <Folder Include="Infrastructure\Interfaces\Cashiers\" />
     <Folder Include="Infrastructure\Repositories\Cashiers\" />
     <Folder Include="Migrations\" />
+    <Folder Include="wwwroot\css\Admin\Recipe-Builder\" />
+    <Folder Include="wwwroot\css\Admin\Production-Order\" />
+    <Folder Include="wwwroot\css\Admin\Pos-Premium\" />
     <Folder Include="wwwroot\Images\avatars\" />
+    <Folder Include="wwwroot\Images\DrinkImages\" />
+    <Folder Include="wwwroot\Images\ToppingImages\" />
   </ItemGroup>
 
   <!-- 🔥 vietnam_locations.sql được nhúng vào assembly để Migration đọc không phụ thuộc đường dẫn OS -->
