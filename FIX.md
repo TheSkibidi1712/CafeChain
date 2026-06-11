@@ -1,24 +1,8 @@
-# Cập nhật: Đã tạm thời bỏ kiểm tra địa chỉ IP & chấm công (Bypass Mode)
+Tôi ghi nhận cả 2 project đã build pass thành công. Tuy nhiên, bản code hiện tại có rủi ro sập app rất cao do sử dụng 'async void' trong System.Threading.Timer ở phần Heartbeat, và thiếu try-catch bảo vệ luồng '_connection.On<JsonElement>'.
 
-Chào bạn, tôi đã thực hiện loại bỏ tất cả các ràng buộc kiểm tra địa chỉ IP/WiFi và chấm công gần đây trên hệ thống để bạn có thể test ứng dụng thoải mái trên mọi thiết bị (localhost hoặc điện thoại kết nối mạng bất kỳ):
+Hãy sửa lại (Refactor) nghiêm ngặt theo các yêu cầu sau để đảm bảo tính Fault-Tolerance:
+1. Loại bỏ hoàn toàn System.Threading.Timer ra khỏi SignalRPrintClient.cs.
+2. Thay thế 'Task.Delay(Timeout.Infinite)' trong 'Worker.cs' bằng một vòng lặp 'while (!stoppingToken.IsCancellationRequested)'. Cứ mỗi 30 giây, Worker sẽ chủ động kiểm tra trạng thái kết nối và gọi hàm gửi Heartbeat. Bọc toàn bộ logic này trong block try-catch để nếu lỗi mạng thì chỉ ghi log chứ không sập app.
+3. Trong callback nhận sự kiện 'PrintJob', bọc toàn bộ luồng xử lý JSON và gọi TCP Forwarder vào trong block try-catch.
 
----
-
-## 🛠️ Các thay đổi đã áp dụng (Bypass Logic)
-
-1. **Bỏ chặn nhận ca POS (`HrAttendanceService.cs`)**:
-   - Phương thức `VerifyRecentCheckInAsync` đã được cấu hình tạm thời luôn trả về `true` (Xác thực thành công).
-   - Bạn sẽ **không còn bị chặn** bởi cảnh báo *"Cảnh Báo Bảo Mật! Vui lòng sử dụng điện thoại cá nhân kết nối Wifi quán..."* khi nhấn nhận ca POS nữa.
-
-2. **Bỏ chặn mạng khi chấm công (`AttendanceSecurityService.cs`)**:
-   - Phương thức `ValidateStoreIPAsync` đã được cấu hình tạm thời luôn trả về `ServiceResult.Success` (Bypass Mode).
-   - Bạn có thể chấm công vào ca/tan ca từ bất kỳ thiết bị di động hay máy tính nào mà không sợ bị chặn do sai địa chỉ IP WiFi của quán.
-
-3. **Sửa lỗi Trích xuất Claims khi mở ca (`AdminPOSController.cs`)**:
-   - Đã tối ưu hóa hàm trích xuất `userIdClaim` để đọc chính xác cả `StaffId` lẫn `AccountId` từ cookie đăng nhập hiện tại, loại bỏ tình trạng hệ thống bị crash hoặc nhận diện sai mã nhân sự khi mở ca.
-
----
-
-## 🧪 Hướng dẫn chạy thử
-1. Do bạn đang chạy ứng dụng, code C# mới đã được biên dịch thành công ở thư mục `obj/`. Hãy **khởi động lại server** (Restart Project) để các thay đổi bypass IP ở trên chính thức có hiệu lực trên Server đang chạy!
-2. Bạn có thể mở POS, nhận ca POS, và thực hiện chấm công FaceID bình thường trên mọi thiết bị kết nối mạng mà không lo bị cảnh báo IP nữa.
+Hãy cập nhật lại mã nguồn của 2 file này và in ra màn hình để tôi duyệt lần cuối trước khi Close Issue #50!
