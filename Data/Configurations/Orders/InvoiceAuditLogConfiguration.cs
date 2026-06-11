@@ -26,6 +26,15 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
+            // OrderId nullable — audit log có thể được tạo trước khi order hoàn tất
+            entity.Property(x => x.OrderId)
+                .IsRequired(false);
+
+            // DiscountValue — giá trị chiết khấu voucher được duyệt bypass
+            entity.Property(x => x.DiscountValue)
+                .HasColumnType("decimal(18,2)")
+                .IsRequired(false);
+
             // Two FK to Staff — NoAction để tránh multiple cascade paths
             entity.HasOne(x => x.Cashier)
                 .WithMany()

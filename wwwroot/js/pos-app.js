@@ -50,8 +50,24 @@ $(document).ready(async function () {
     window.addEventListener('online', updateNetworkUI);
     window.addEventListener('offline', updateNetworkUI);
     updateNetworkUI();
+    await registerTerminal();
     await checkActiveShift();
 });
+
+// === Terminal GUID Auto-Register ===
+async function registerTerminal() {
+    const terminalId = getPosTerminalId();
+    try {
+        const res = await $.ajax({
+            url: '/Admin/AdminPOS/RegisterTerminal', type: 'POST', contentType: 'application/json',
+            data: JSON.stringify({ terminalId: terminalId, name: 'Thiết bị POS ' + terminalId.substring(0, 5) })
+        });
+        const name = res.terminalName || ('POS ' + terminalId.substring(0, 5));
+        $('#headerTerminalName').text(name);
+    } catch {
+        $('#headerTerminalName').text('POS ' + terminalId.substring(0, 5));
+    }
+}
 
 // ==========================================
 // 2. SHIFT MANAGEMENT
@@ -95,12 +111,32 @@ $('#btnOpenShift').click(async function () {
     }
     $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Đang xử lý...');
     try {
-        const res = await $.ajax({ url: '/Admin/AdminPOS/OpenShift', type: 'POST', contentType: 'application/json', data: JSON.stringify({ startingCash: cash }) });
+        const posTerminalId = getPosTerminalId();
+        const res = await $.ajax({ url: '/Admin/AdminPOS/OpenShift', type: 'POST', contentType: 'application/json', data: JSON.stringify({ startingCash: cash, posTerminalId: posTerminalId }) });
         if (res.success) {
             $('#shiftOverlay').fadeOut(300);
             updateShiftUI(true, new Date().toISOString());
             Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mở ca thành công!', showConfirmButton: false, timer: 2000 });
             await loadMenuData();
+        } else if (res.message && res.message.startsWith('LATE_OPENING_REQUIRES_BYPASS')) {
+            // Late opening > 30 min — require supervisor PIN bypass
+            const msgParts = res.message.split('|');
+            const reason = msgParts.length > 1 ? msgParts[1] : 'Mở ca trễ hơn 30 phút';
+            const bypass = await openPinModal('OPEN_SHIFT_LATE', 0, 'Mở ca trễ > 30 phút');
+            if (bypass) {
+                // Retry opening shift after bypass approved
+                const retryRes = await $.ajax({ url: '/Admin/AdminPOS/OpenShift', type: 'POST', contentType: 'application/json', data: JSON.stringify({ startingCash: cash, posTerminalId: posTerminalId }) });
+                if (retryRes.success) {
+                    $('#shiftOverlay').fadeOut(300);
+                    updateShiftUI(true, new Date().toISOString());
+                    Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Mở ca thành công (bypass trễ)!', showConfirmButton: false, timer: 2000 });
+                    await loadMenuData();
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Không thể mở ca', html: `<div style="color:#ef4444">${retryRes.message}</div>`, confirmButtonColor: '#F97316' });
+                }
+            } else {
+                Swal.fire({ icon: 'info', title: 'Đã hủy', text: reason, confirmButtonColor: '#F97316' });
+            }
         } else {
             Swal.fire({ icon: 'error', title: 'Không thể mở ca', html: `<div style="color:#ef4444">${res.message}</div>`, confirmButtonColor: '#F97316' });
         }
@@ -310,7 +346,42 @@ function openCheckoutModal() {
     $('#checkoutOverlay').addClass('active');
 }
 function closeCheckoutModal() { $('#checkoutOverlay').removeClass('active'); }
-function switchCkTab(tab, el) { $('.ck-tab').removeClass('active'); $(el).addClass('active'); }
+let currentCkTab = 'cash';
+function switchCkTab(tab, el) {
+    $('.ck-tab').removeClass('active'); $(el).addClass('active');
+    currentCkTab = tab;
+    // Show/hide panels based on tab
+    if (tab === 'split') {
+        $('#ckCashPanel').hide(); $('#ckSplitPanel').show();
+        $('#splitTotalLabel').text(fmt(ckTotal));
+        $('#splitCashAmount').val(''); $('#splitQrAmount').val('');
+        updateSplitTotal();
+    } else {
+        $('#ckCashPanel').show(); $('#ckSplitPanel').hide();
+    }
+}
+
+// Split Payment Validation
+function updateSplitTotal() {
+    const cashAmt = parseFloat($('#splitCashAmount').val()) || 0;
+    const qrAmt = parseFloat($('#splitQrAmount').val()) || 0;
+    const splitSum = cashAmt + qrAmt;
+    const diff = splitSum - ckTotal;
+    const valEl = $('#splitValidation');
+    if (splitSum === 0) {
+        valEl.html('<span style="color:#94a3b8;">Nhập số tiền cho từng phương thức</span>').css('background', '#f8fafc');
+        $('#btnConfirmPayment').prop('disabled', true);
+    } else if (Math.abs(diff) < 1) {
+        valEl.html('<span style="color:#16a34a;">✓ Tổng khớp chính xác!</span>').css('background', '#f0fdf4');
+        $('#btnConfirmPayment').prop('disabled', false);
+    } else if (diff > 0) {
+        valEl.html(`<span style="color:#f59e0b;">⚠ Thừa ${fmt(diff)}</span>`).css('background', '#fffbeb');
+        $('#btnConfirmPayment').prop('disabled', false);
+    } else {
+        valEl.html(`<span style="color:#ef4444;">✗ Còn thiếu ${fmt(Math.abs(diff))}</span>`).css('background', '#fef2f2');
+        $('#btnConfirmPayment').prop('disabled', true);
+    }
+}
 
 function setCkAmount(val) {
     if (val === 'exact') ckCashAmount = ckTotal;
@@ -333,23 +404,42 @@ function updateCkDisplay() {
 }
 
 async function confirmPayment() {
-    if (ckCashAmount < ckTotal) return;
     const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
+
+    // Build payment lines based on current tab
+    let payments = [];
+    let receivedAmount = 0;
+    if (currentCkTab === 'split') {
+        const cashAmt = parseFloat($('#splitCashAmount').val()) || 0;
+        const qrAmt = parseFloat($('#splitQrAmount').val()) || 0;
+        if (cashAmt + qrAmt < ckTotal) return;
+        if (cashAmt > 0) payments.push({ paymentMethodId: 1, amount: cashAmt });
+        if (qrAmt > 0) payments.push({ paymentMethodId: 2, amount: qrAmt });
+        receivedAmount = cashAmt + qrAmt;
+    } else if (currentCkTab === 'qr') {
+        payments = [{ paymentMethodId: 2, amount: ckTotal }];
+        receivedAmount = ckTotal;
+    } else {
+        if (ckCashAmount < ckTotal) return;
+        payments = [{ paymentMethodId: 1, amount: ckTotal }];
+        receivedAmount = ckCashAmount;
+    }
+
     const dto = {
         items: cart.map(c => ({ drinkId: c.drinkId, sizeId: c.sizeId, quantity: c.quantity, note: c.note, toppings: c.toppings.map(t => ({ toppingId: t.toppingId })) })),
         customerId: selectedCustomer?.customerId || null,
         voucherCode: appliedVoucher.code || null,
         pointsUsed: pointsToUse,
-        payments: [{ paymentMethodId: 1, amount: ckTotal }],
+        payments: payments,
         orderTypeId: orderType,
-        receivedAmount: ckCashAmount,
+        receivedAmount: receivedAmount,
         note: ''
     };
 
     // Offline mode
     if (!navigator.onLine) {
         saveOfflineOrder(dto); closeCheckoutModal();
-        showSuccessModal({ orderId: 'OFFLINE', subTotal, voucherDiscount: appliedVoucher.discount || 0, pointDiscount: pointsToUse * 1000, total: ckTotal, receivedAmount: ckCashAmount, changeAmount: ckCashAmount - ckTotal, earnedPoints: 0 });
+        showSuccessModal({ orderId: 'OFFLINE', subTotal, voucherDiscount: appliedVoucher.discount || 0, pointDiscount: pointsToUse * 1000, total: ckTotal, receivedAmount: receivedAmount, changeAmount: receivedAmount - ckTotal, earnedPoints: 0 });
         return;
     }
 
@@ -405,7 +495,33 @@ function nextOrder() {
     $('#voucherCode').val(''); $('#customerPhone').val(''); $('#customerBadge').css('display', 'none');
     renderCart();
 }
-function printReceipt() { Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Đang in hóa đơn...', showConfirmButton: false, timer: 2000 }); }
+function printReceipt() {
+    // Build bar ticket HTML for thermal printer
+    const orderId = $('#successOrderBadge').text();
+    const time = $('#successOrderTime').text();
+    let ticketHtml = `<div style="font-family:monospace;width:300px;padding:10px;font-size:12px;">`;
+    ticketHtml += `<div style="text-align:center;font-weight:bold;font-size:16px;border-bottom:2px dashed #333;padding-bottom:8px;margin-bottom:8px;">☕ CAFECHAIN - PHIẾU PHA CHẾ</div>`;
+    ticketHtml += `<div style="text-align:center;margin-bottom:8px;">${orderId} • ${time}</div>`;
+    ticketHtml += `<div style="border-bottom:1px dashed #999;margin-bottom:8px;"></div>`;
+    cart.forEach((item, idx) => {
+        const tpText = item.toppings.map(t => t.toppingName).join(', ');
+        ticketHtml += `<div style="margin-bottom:6px;">`;
+        ticketHtml += `<div style="font-weight:bold;font-size:14px;">${idx + 1}. ${item.name} x${item.quantity}</div>`;
+        ticketHtml += `<div style="padding-left:14px;color:#555;">Size: ${item.sizeName || 'Mặc định'}</div>`;
+        if (tpText) ticketHtml += `<div style="padding-left:14px;color:#555;">Topping: ${tpText}</div>`;
+        if (item.note) ticketHtml += `<div style="padding-left:14px;color:#d97706;">📝 ${item.note}</div>`;
+        ticketHtml += `</div>`;
+    });
+    ticketHtml += `<div style="border-top:2px dashed #333;margin-top:8px;padding-top:8px;text-align:center;font-size:11px;color:#666;">Barista vui lòng pha chế theo đơn</div>`;
+    ticketHtml += `</div>`;
+
+    // Open print window
+    const printWin = window.open('', '_blank', 'width=350,height=500');
+    printWin.document.write(`<html><head><title>Phiếu pha chế</title><style>@media print{body{margin:0;}@page{margin:5mm;}}</style></head><body>${ticketHtml}</body></html>`);
+    printWin.document.close();
+    printWin.focus();
+    setTimeout(() => { printWin.print(); printWin.close(); }, 300);
+}
 
 // ==========================================
 // 9. CLOSE SHIFT MODAL
@@ -533,10 +649,69 @@ async function syncOfflineOrders() {
     const orders = JSON.parse(localStorage.getItem(OFFLINE_KEY) || '[]');
     if (orders.length === 0) return;
     try {
-        for (let i = 0; i < orders.length; i++) {
-            await $.ajax({ url: '/Admin/AdminPOS/CommitOrder', type: 'POST', contentType: 'application/json', data: JSON.stringify(orders[i]) });
-        }
+        // Use batch sync API instead of looping CommitOrder individually
+        const syncPayload = orders.map(o => ({
+            orderTypeId: o.orderTypeId || 1,
+            receivedAmount: o.receivedAmount || 0,
+            note: o.note || '',
+            details: (o.items || []).map(i => ({ itemId: i.drinkId, quantity: i.quantity }))
+        }));
+        const res = await $.ajax({
+            url: '/Admin/AdminPOS/SyncOfflineOrders', type: 'POST',
+            contentType: 'application/json', data: JSON.stringify(syncPayload)
+        });
         localStorage.removeItem(OFFLINE_KEY);
-        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Đã đồng bộ ${orders.length} đơn offline`, showConfirmButton: false, timer: 3000 });
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message || `Đã đồng bộ ${orders.length} đơn offline`, showConfirmButton: false, timer: 3000 });
     } catch { console.error('Offline sync failed'); }
+}
+
+// ==========================================
+// 12. QUICK REGISTER CUSTOMER
+// ==========================================
+function openQuickRegModal() {
+    const phone = $('#customerPhone').val().trim();
+    if (!phone) {
+        Swal.fire({ icon: 'info', title: 'Nhập SĐT trước', text: 'Vui lòng nhập số điện thoại khách hàng cần đăng ký trước khi nhấn nút +', confirmButtonColor: '#F97316' });
+        return;
+    }
+    $('#quickRegPhone').val(phone);
+    $('#quickRegName').val('');
+    $('#quickRegDob').val('');
+    $('#quickRegOverlay').addClass('active');
+    setTimeout(() => $('#quickRegName').focus(), 200);
+}
+function closeQuickRegModal() { $('#quickRegOverlay').removeClass('active'); }
+
+async function submitQuickRegister() {
+    const phone = $('#quickRegPhone').val().trim();
+    const fullName = $('#quickRegName').val().trim();
+    const dob = $('#quickRegDob').val() || null;
+    if (!fullName) {
+        Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập họ và tên khách hàng!', confirmButtonColor: '#F97316' });
+        return;
+    }
+    try {
+        const res = await $.ajax({
+            url: '/Admin/AdminPOS/RegisterCustomer', type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ phone, fullName, dateOfBirth: dob })
+        });
+        if (res.success) {
+            closeQuickRegModal();
+            // Auto-assign the new customer to the cart
+            selectedCustomer = res.customer || res.data;
+            if (selectedCustomer) {
+                $('#custName').text(selectedCustomer.fullName);
+                $('#custPoints').text((selectedCustomer.currentPoints || 0).toLocaleString());
+                const initials = selectedCustomer.fullName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+                $('#custAvatar').text(initials);
+                $('#customerBadge').css('display', 'flex');
+            }
+            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message || 'Đăng ký thành công!', showConfirmButton: false, timer: 2000 });
+        } else {
+            Swal.fire({ icon: 'error', title: 'Đăng ký thất bại', text: res.message, confirmButtonColor: '#F97316' });
+        }
+    } catch {
+        Swal.fire('Lỗi', 'Mất kết nối máy chủ', 'error');
+    }
 }

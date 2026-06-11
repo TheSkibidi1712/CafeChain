@@ -315,6 +315,35 @@ namespace CafeChain.Data.Configurations.Stores
         }
     }
 
+    // ================================ MODULE POS TERMINAL ================================
+    public class PosTerminalConfiguration : IEntityTypeConfiguration<PosTerminal>
+    {
+        public void Configure(EntityTypeBuilder<PosTerminal> entity)
+        {
+            entity.ToTable("PosTerminals");
+
+            entity.HasKey(x => x.TerminalId);
+
+            entity.Property(x => x.TerminalId)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Active)
+                .HasDefaultValue(true);
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETDATE()");
+
+            entity.HasOne(x => x.Store)
+                .WithMany()
+                .HasForeignKey(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
+    }
+
     // ================================ MODULE WORK SHIFT (Quản lý Ca) ================================
     public class WorkShiftConfiguration : IEntityTypeConfiguration<WorkShift>
     {
@@ -356,6 +385,12 @@ namespace CafeChain.Data.Configurations.Stores
                 .WithOne(o => o.WorkShift)
                 .HasForeignKey(o => o.WorkShiftId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // WorkShift → PosTerminal (N:1)
+            entity.HasOne(x => x.PosTerminal)
+                .WithMany(p => p.WorkShifts)
+                .HasForeignKey(x => x.PosTerminalId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

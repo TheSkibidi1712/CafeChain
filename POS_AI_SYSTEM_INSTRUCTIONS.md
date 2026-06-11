@@ -1,6 +1,6 @@
 # 🤖 HƯỚNG DẪN CẤU HÌNH & ĐẶC TẢ PHÁT TRIỂN HỆ THỐNG POS (CAFECHAIN)
 ## 📑 MASTER TECHNICAL SPECIFICATION & SYSTEM PROMPT SHEET
-> **MỤC TIÊU:** Tài liệu này là bộ khung đặc tả kỹ thuật tối thượng (System Specs & Coding Prompt) tích hợp toàn bộ bối cảnh hệ thống, cấu trúc CSDL thực tế, API Contracts, các lỗi thuật toán cần vá, các phân hệ mới và đặc tả chi tiết **6 giao diện Figma trực quan**. Hãy cung cấp tài liệu này cho các mô hình AI thế hệ mới (LLMs) để tiến hành phát triển mã nguồn chính xác 100% không sai lệch.
+> **MỤC TIÊU:** Tài liệu này là bộ khung đặc tả kỹ thuật tối thượng (System Specs & Coding Prompt) tích hợp toàn bộ bối cảnh hệ thống, cấu trúc CSDL thực tế, API Contracts, các lỗi thuật toán cần vá, các phân hệ mới và đặc tả chi tiết **7 giao diện Figma trực quan**. Hãy cung cấp tài liệu này cho các mô hình AI thế hệ mới (LLMs) để tiến hành phát triển mã nguồn chính xác 100% không sai lệch.
 
 ---
 
@@ -69,6 +69,22 @@ public class StaffShift {
 }
 
 // ==========================================
+// MODELS/STORES/POSTERMINAL.CS (Mới - Định danh thiết bị)
+// ==========================================
+public class PosTerminal {
+    [Key]
+    public string TerminalId { get; set; } = string.Empty; // GUID ẩn lưu ở LocalStorage
+    public int StoreId { get; set; }
+    [MaxLength(100)]
+    public string Name { get; set; } = string.Empty; // Tên thân thiện: "POS Quầy 1", "POS Take Away"
+    public bool Active { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+    public virtual Store Store { get; set; } = null!;
+    public virtual ICollection<WorkShift> WorkShifts { get; set; } = new List<WorkShift>();
+}
+
+// ==========================================
 // MODELS/STORES/WORKSHIFT.CS (Két tiền thu ngân POS)
 // ==========================================
 public class WorkShift {
@@ -82,10 +98,11 @@ public class WorkShift {
     public decimal? ActualEndingCash { get; set; } // Tiền đếm tay thực tế khi đóng ca
     public string Status { get; set; } = "Open"; // "Open" | "Closed"
     public string? DiscrepancyReason { get; set; } // Lý do chênh lệch (bắt buộc nếu lệch != 0)
-    public string? PosTerminalId { get; set; } // Khóa ca két gắn cứng theo thiết bị POS Terminal
+    public string? PosTerminalId { get; set; } // Khóa ca két gắn cứng theo thiết bị POS Terminal (FK)
 
     public virtual Store Store { get; set; } = null!;
     public virtual Staff User { get; set; } = null!;
+    public virtual PosTerminal? PosTerminal { get; set; }
     public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
 }
 
@@ -110,11 +127,12 @@ public class AttendanceLog {
 // ==========================================
 public class InvoiceAuditLog {
     public int Id { get; set; }
-    public int OrderId { get; set; } // ID hóa đơn hoặc ID giỏ hàng tạm thời
+    public int? OrderId { get; set; } // ID hóa đơn
     public int CashierId { get; set; } // StaffId của thu ngân
     public int SupervisorId { get; set; } // StaffId của Ca trưởng duyệt bypass
-    public string ActionName { get; set; } = string.Empty; // "VOID_INVOICE", "MANUAL_DISCOUNT", "PRICE_OVERRIDE"
+    public string ActionName { get; set; } = string.Empty; // "VOID_INVOICE", "SOFT_VOUCHER_BYPASS", "OPEN_SHIFT_LATE", "PRICE_OVERRIDE"
     public string Reason { get; set; } = string.Empty;
+    public decimal? DiscountValue { get; set; } // Giá trị ưu đãi được áp dụng trong trường hợp Bypass Voucher
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 
     public virtual Staff Cashier { get; set; } = null!;
@@ -162,26 +180,40 @@ public class CloseShiftRequestDto {
     public decimal ActualEndingCash { get; set; }
     public string? DiscrepancyReason { get; set; }
 }
+
+public class QuickCustomerRegisterDto {
+    public string Phone { get; set; } = null!;
+    public string FullName { get; set; } = null!;
+    public DateTime? DateOfBirth { get; set; }
+}
+
+public class BypassAuthorizationRequest {
+    public string Pin { get; set; } = null!;
+    public string ActionName { get; set; } = null!; // "SOFT_VOUCHER_BYPASS", "OPEN_SHIFT_LATE", etc.
+    public int? TargetId { get; set; }
+    public string Reason { get; set; } = null!;
+    public decimal? DiscountValue { get; set; }
+}
 ```
 
-### B. Mẫu Ajax gọi API từ phía Client (Javascript)
-```javascript
-// Gọi API xác thực ủy quyền Trưởng ca
-async function authorizeBypass(actionName, targetId, reason) {
-    const { value: pin } = await Swal.fire({
-        title: 'Mã PIN Trưởng ca',
-        input: 'password',
-        inputAttributes: { maxlength: 4, autofocus: 'true' }
-    });
-    if (!pin) return null;
+### B. Mẫu API Endpoints
+```csharp
+// POST /Admin/AdminPOS/RegisterCustomer
+[HttpPost]
+public async Task<IActionResult> RegisterCustomer([FromBody] QuickCustomerRegisterDto dto) {
+    // Logic: Sinh CustomerCode = "KH" + Ticks, lưu Customer & CustomerPhone có IsDefault = true
+}
 
-    try {
-        const res = await $.post('/api/Attendance/AuthorizeBypass', { pin, actionName, targetId, reason });
-        return res; // Trả về { success: true/false, message: "..." }
-    } catch (err) {
-        Swal.fire('Lỗi', err.responseJSON?.message || 'Xác thực thất bại', 'error');
-        return null;
-    }
+// POST /api/Attendance/AuthorizeBypass
+[HttpPost]
+public async Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request) {
+    // Logic: Xác thực PIN Trưởng ca qua BCrypt, ghi nhật ký InvoiceAuditLog kèm lý do và số tiền ưu đãi (nếu có)
+}
+
+// POST /Admin/AdminPOS/RegisterTerminal
+[HttpPost]
+public async Task<IActionResult> RegisterTerminal([FromBody] PosTerminalRegisterDto dto) {
+    // Logic: Lưu hoặc cập nhật tên thân thiện cho PosTerminal qua TerminalId (GUID)
 }
 ```
 
@@ -253,34 +285,24 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   todayShift.PayrollHours = Math.Round((decimal)(roundedMinutes / 60.0), 2);
   ```
 
-### C. Cơ chế kiểm soát Race Condition đầu ngày (UPDLOCK, ROWLOCK)
-* **Mục tiêu:** Chống Spam Click nút chấm công sinh ra nhiều ca trùng lặp.
-* **Giải pháp:** Sử dụng Raw SQL Locking giữ chặt dòng dữ liệu cho đến khi Transaction hoàn tất.
-  ```csharp
-  using var transaction = await _context.Database.BeginTransactionAsync();
-  var shifts = await _context.StaffShifts
-      .FromSqlInterpolated($"SELECT * FROM StaffShifts WITH (UPDLOCK, ROWLOCK) WHERE StaffId = {staffId} AND CAST(WorkDate as Date) = {workDate}")
-      .ToListAsync();
-  ```
-
 ---
 
-## 6. 🎨 6 THIẾT KẾ FIGMA GIAO DIỆN & YÊU CẦU UI/UX ĐẠT CHUẨN PREMIUM
+## 6. 🎨 7 THIẾT KẾ FIGMA GIAO DIỆN & YÊU CẦU UI/UX ĐẠT CHUẨN PREMIUM
 
-Để hệ thống CafeChain POS đạt chất lượng hoàn mỹ và trải nghiệm tối ưu, mã nguồn HTML/CSS/JS phải tuân thủ nghiêm ngặt cấu trúc thiết kế từ 6 hình ảnh Figma sau:
+Để hệ thống CafeChain POS đạt chất lượng hoàn mỹ và trải nghiệm tối ưu, mã nguồn HTML/CSS/JS phải tuân thủ nghiêm ngặt cấu trúc thiết kế từ 7 hình ảnh Figma sau:
 
 ### Hình 1: Màn hình Bán hàng POS chính (Main Sales POS Screen)
 * **Header thanh lịch:**
   - Cổng POS phải tràn viền (Full-width), ẩn hoàn toàn thanh điều hướng Admin mặc định.
   - Hiển thị logo CafeChain góc trái kèm tên thương hiệu.
-  - Góc giữa: Hai huy hiệu trạng thái: `Ca đang mở - 08:00` (icon két tiền, chấm tròn cam/xanh) và `Online` (chấm xanh lá).
+  - Góc giữa: Hai huy hiệu trạng thái: `Ca đang mở - 08:00` (icon két tiền, chấm tròn cam/xanh) và `Online` (chấm xanh lá). Hiển thị thêm tên thân thiện của thiết bị POS bên cạnh trạng thái.
   - Góc phải: Nút `Đóng ca` màu đỏ rực bo tròn 8px và nút `Quay lại` màu trắng viền đen.
 * **Menu sản phẩm trực quan:**
   - Thanh tìm kiếm sản phẩm bo góc 12px viền nhạt.
   - Các tab danh mục bo tròn dạng kẹp viên thuốc (`border-radius: 20px`), tab đang hoạt động có màu cam đỏ gradient nổi bật.
   - **Lưới sản phẩm (Product Grid):** Card đồ uống có **bo góc 14px**, ảnh nền là mảng màu pastel đơn sắc dịu mắt kết hợp icon vector ở giữa cực kỳ sang trọng (thay vì ảnh sản phẩm thô). Tên sản phẩm hiển thị đậm màu đen và đơn giá màu cam tươi (VD: `35,000đ`) ngay dưới mảng màu.
 * **Bảng giỏ hàng (Cart Panel bên phải):**
-  - **Tìm kiếm khách hàng:** Ô nhập SĐT bo góc 10px kèm nút tìm kiếm màu cam đất.
+  - **Tìm kiếm khách hàng:** Ô nhập SĐT bo góc 10px kèm nút tìm kiếm màu cam đất. Bổ sung nút `+` màu xanh bên cạnh ô tìm kiếm khách hàng.
   - **Huy hiệu khách hàng thành viên:** Hiển thị thẻ màu xanh lá cây nhạt viền xanh đậm bo góc 10px: `Nguyen Van A — 2,500 điểm` kèm nút `x` đỏ góc phải để xóa nhanh.
   - **Order Type Toggle:** Nút toggle chuyển đổi dạng tab phẳng bo góc 10px: `Tại quán` (màu cam đỏ chủ đạo) và `Mang đi` (màu xám nền nhạt).
   - **Chi tiết dòng giỏ hàng:** Dưới tên đồ uống bắt buộc phải hiển thị **dòng chữ nhỏ mô tả Customization** thụt lề (VD: `Size M • Trân châu đen` hoặc `Size L • Thạch dừa`). Số lượng điều khiển bằng cụm nút `-` và `+` bo góc 10px phẳng, nút thùng rác màu đỏ nhạt bên phải.
@@ -292,7 +314,7 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   - Icon két tiền màu cam lớn trên nền tròn cam nhạt ở đầu.
   - Tiêu đề căn giữa: **Mở Ca Két Tiền** kèm mô tả nhỏ hướng dẫn đếm tiền lẻ.
 * **Thẻ thông tin nhân viên (Staff Card):**
-  - Khung xám bo góc 12px hiển thị Avatar viết tắt dạng chữ tròn (VD: `NV` màu cam), tên nhân viên: `Nguyễn Văn An`, chức danh: `Thu ngân (Cashier)`, chi nhánh: `Chi nhánh Quận 1`.
+  - Khung xám bo góc 12px hiển thị Avatar viết tắt dạng chữ tròn (VD: `NV` màu cam), tên nhân viên: `Nguyễn Văn An`, chức danh: `Thu ngân (Cashier)`, chi nhánh: `Chi nhánh Quận 1`. Hiển thị Tên thân thiện của thiết bị POS (Ví dụ: `POS Quầy 1`) đang kết nối.
 * **Nhập số tiền lẻ đầu ca:**
   - Nhãn `Tiền lẻ đầu ca (Starting Cash)` kèm icon tiền xu.
   - Ô nhập số tiền mặt thiết kế siêu lớn, viền nhạt bo tròn 14px, **chữ số màu xanh lá cây đậm nổi bật** (VD: `1,000,000`).
@@ -352,7 +374,7 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   - Icon khiên bảo mật màu cam nổi bật trên vòng tròn cam nhạt.
   - Tiêu đề: **Xác thực Trưởng ca** kèm mô tả yêu cầu quyền quản lý bằng mã PIN 4 chữ số.
 * **Huy hiệu hành động đang kiểm soát (Target Action Badge):**
-  - Hiển thị rõ ràng sự kiện nhạy cảm đang bị chặn cần mở khóa bằng thẻ màu đỏ/hồng nhạt bo góc 12px: `Hủy đơn hàng #1247` (hoặc `Giảm giá tay > 15%`, `Sửa giá đồ uống`).
+  - Hiển thị rõ ràng sự kiện nhạy cảm đang bị chặn cần mở khóa bằng thẻ màu đỏ/hồng nhạt bo góc 12px: `Hủy đơn hàng #1247` (hoặc `Giảm giá tay > 15%`, `Sửa giá đồ uống`, `Mở ca trễ > 30 phút`, `Duyệt Voucher ngoại lệ`).
 * **Ô nhập mã PIN trực quan:**
   - 4 ô vuông bo góc bo tròn 12px. Khi nhấn phím, tự động chuyển thành **chấm tròn màu cam đất đậm**.
 * **Banner cảnh báo thử mã PIN (Brute-force Warning Banner):**
@@ -386,6 +408,15 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   - Nút `In hóa đơn` màu trắng viền nhạt bo góc 12px có icon máy in (phía trái).
   - Nút `Đơn tiếp theo` màu cam đỏ chủ đạo cỡ lớn bo góc 12px có mũi tên chỉ sang phải (phía phải) để xóa sạch giỏ hàng hiện tại và quay lại màn hình POS sẵn sàng bán hàng.
 
+### Hình 7: Modal Đăng Ký Nhanh Khách Hàng (Quick Customer Registration Modal)
+* **Thiết kế giao diện:** Dạng thẻ popup nhỏ bo góc 20px.
+* **Tiêu đề:** **Đăng Ký Nhanh Hội Viên**
+* **Nội dung Form:**
+  - Ô nhập SĐT: Bị vô hiệu hóa (disabled), tự động điền (pre-filled) số điện thoại từ ô tìm kiếm khách hàng trước đó.
+  - Ô nhập Họ và tên: Bắt buộc (required), bo góc 10px.
+  - Ô nhập Ngày sinh: Lựa chọn (optional) bo góc 10px để tính quà tặng sinh nhật.
+* **Nút chân trang:** Nút `Hủy` và Nút `Xác nhận tạo` màu cam rực. Tự động lưu CSDL, đóng modal và gắn trực tiếp Customer vừa tạo vào hóa đơn hiện tại.
+
 ---
 
 ## 7. 🛠️ ĐẶC TẢ CHI TIẾT CÁC PHÂN HỆ CẦN LẬP TRÌNH MỚI (NEW FEATURES SPECIFICATION)
@@ -397,6 +428,10 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   * Hiển thị Banner bảo mật thử PIN: `"Còn 3 lần thử. Sai 5 lần sẽ khóa 15 phút."`
 * **Lĩnh vực bảo mật Brute-force (Server-side):**
   * Tích hợp cơ chế khóa API trong 15 phút nếu nhập sai quá 5 lần. Sử dụng bộ nhớ đệm Cache hoặc bảng `RequestDeduplications` ghi lại số lần thử thất bại của `StaffId`.
+* **Quy tắc Duyệt Ngoại Lệ Voucher (Voucher Bypass PIN):**
+  * **Cho phép bypass đối với Lỗi Nghiệp Vụ Mềm:** Thiếu một phần nhỏ hạn mức tối thiểu (`MinOrderValue`), chính sách khách hàng VIP thân thiết, chiến dịch chăm sóc khách hàng đặc biệt của cửa hàng.
+  * **CẤM TUYỆT ĐỐI bypass đối với các Lỗi Hệ Thống Nghiêm Trọng:** Voucher hết hạn sử dụng (`EndDate < Now`), Voucher đã bị khóa/thu hồi (`Active = false`), Voucher vượt quá lượt dùng tối đa, hoặc Voucher khóa đối tượng khách hàng.
+  * Khi duyệt bypass, Server lưu lại `InvoiceAuditLog` ghi rõ: ID Ca trưởng phê duyệt, thời gian duyệt, lý do ngoại lệ, và số tiền ưu đãi được duyệt áp dụng (`DiscountValue`).
 
 ### 2. Phân hệ Chế độ Ngoại tuyến & Đồng bộ tự động (Offline Mode & Sync Engine)
 * **Client-side Queue:** Lưu đơn hàng ngoại tuyến mã hóa vào `LocalStorage` dưới khóa `CafeChain_Offline_Orders`.
@@ -414,13 +449,36 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   * Tổng tiền thanh toán khớp chính xác đơn hàng.
 
 ### 4. Ràng buộc Két Tiền POS theo Thiết bị (POS Terminal Lock)
-* Lưu trữ `PosTerminalId` (GUID) duy nhất trong trình duyệt của thiết bị POS tại cửa hàng.
-* Khi mở ca két tiền `WorkShift`, CSDL ghi nhận mã `PosTerminalId`.
-* Mọi request lấy thông tin ca két hoặc đẩy đơn bán hàng đều phải so khớp `PosTerminalId` gửi lên. Nếu lệch, Server trả về mã lỗi `403 Forbidden` kèm thông điệp khóa truy cập.
+* **Đăng ký thiết bị:** Trình duyệt sinh một GUID ẩn lưu ở `LocalStorage`. Quản lý chi nhánh có giao diện đặt tên thân thiện (Ví dụ: "POS Quầy 1", "POS Take Away"). Tên này được lưu trong bảng `PosTerminals` và hiển thị trên mọi báo cáo ca két, đối soát két và nhật ký hoạt động.
+* **Logic chặn mở ca trễ (Late Register Opening Guard):**
+  * So sánh thời điểm mở ca két thực tế với giờ bắt đầu ca chấm công nhân sự được phân lịch hôm nay (`StaffShift.Shift.StartTime`).
+  * Nếu: `Giờ hiện tại > Shift.StartTime + 30 phút` $\rightarrow$ Khóa màn hình POS và yêu cầu Trưởng ca nhập PIN phê duyệt lý do mở ca trễ mới cho phép Thu ngân bán hàng.
+* **Hạn chế phiên két:** Mỗi ca két `WorkShift` liên kết với một `PosTerminalId` duy nhất trong DB.
 
 ### 5. Ràng buộc Giới Hạn Sử Dụng Điểm Thành Viên (Loyalty Point Safety Guard)
 * **Server-side constraint:** `PointDiscount <= (SubTotal * 0.50)`.
 * Ví dụ: Hóa đơn 100k, điểm tích lũy quy đổi tối đa là 50 điểm (tương ứng 50.000đ). Cấm thanh toán 100% hóa đơn bằng điểm.
+
+### 6. Đăng ký nhanh Khách hàng hội viên (Quick Customer Registration Flow)
+* **Logic Client-side:**
+  * Thu ngân nhập SĐT $\rightarrow$ Tìm kiếm $\rightarrow$ Không tìm thấy khách hàng.
+  * POS hiển thị nút `+` (Thêm mới) màu xanh bên cạnh ô nhập.
+  * Click xác nhận $\rightarrow$ Mở Modal **Hình 7 (Đăng Ký Nhanh Hội Viên)**.
+  * Trường SĐT được tự động điền và khóa chỉnh sửa $\rightarrow$ Thu ngân gõ Họ tên và nhấp tạo.
+  * AJAX gọi API `POST /Admin/AdminPOS/RegisterCustomer` $\rightarrow$ Nhận phản hồi thành công $\rightarrow$ Tự động gán khách hàng vừa tạo vào hóa đơn hiện tại để bắt đầu tính điểm.
+* **Logic Server-side:**
+  * Kiểm tra trùng lặp SĐT trong bảng `CustomerPhones`. Nếu đã tồn tại, chặn lại trả về lỗi `400`.
+  * Khởi tạo transaction:
+    1. Tạo bản ghi `Customer` mới. Tự động sinh `CustomerCode = "KH" + DateTime.Now.Ticks`. Đặt `CurrentPoints = 0`, `TotalSpent = 0`, `Active = true`, hạng thành viên mặc định là `"New Member"`.
+    2. Tạo bản ghi `CustomerPhone` mới liên kết tới `CustomerId`, gán `Phone` nhận từ client và thiết lập `IsDefault = true`.
+  * Commit transaction và trả thông tin khách hàng mới về Client (Không tạo tài khoản đăng nhập `Account`).
+
+### 7. Phân hệ Tự Động In Phiếu Chế Biến / Tem Nhãn Bar (Kitchen Ticket Auto Printing) - [MỚI]
+* **Tách biệt kiến trúc (Separation of Concerns):** Phân tách độc lập hoàn toàn giữa bước "Đơn hàng xác nhận thành công" (`Order Confirmed`) và bước "Sinh/in phiếu chế biến" (`Print Production Ticket`) để phục vụ tích hợp KDS trong tương lai.
+* **Quy trình hoạt động:**
+  * Sau khi đơn hàng thanh toán thành công (online/cash) hoặc đơn hàng ngoại tuyến được đồng bộ thành công $\rightarrow$ POS Client gọi dịch vụ sinh dữ liệu in phiếu chế biến.
+  * Dữ liệu in chứa: Mã đơn hàng, tên sản phẩm, các toppings đính kèm sản phẩm, ghi chú pha chế (`Note`) và thông tin customization (Size ly, lượng đường, lượng đá).
+  * Gửi lệnh in tự động đến máy in tem nhãn nhiệt được cấu hình tại cửa hàng để nhân viên sử dụng dán lên ly nước, theo dõi thứ tự pha chế và chuyển cho Barista khu vực quầy Bar.
 
 ---
 

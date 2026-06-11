@@ -2,6 +2,7 @@ using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
+using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -28,6 +29,13 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.POS
 
         // === ORDER CRUD ===
         Task<Order> CreateOrderAsync(Order order);
+
+        /// <summary>
+        /// ADR-0002: Tìm Order theo ClientOrderId để kiểm tra idempotency khi sync offline.
+        /// Trả về null nếu chưa tồn tại — an toàn để commit đơn mới.
+        /// </summary>
+        Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId);
+
         Task CreatePaymentAsync(Payment payment);
         Task CreateOrderVoucherAsync(OrderVoucher orderVoucher);
         Task CreateVoucherUsageAsync(VoucherUsage usage);
@@ -43,6 +51,19 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.POS
         // === CLOSE SHIFT DATA ===
         Task<decimal> GetTotalSalesByPaymentMethodAsync(int shiftId, int paymentMethodId);
         Task<int> GetCompletedOrderCountAsync(int shiftId);
+
+        // === AUDIT LOG ===
+        Task<InvoiceAuditLog?> GetPendingAuditLogAsync(int cashierId, string actionName, int windowMinutes);
+        Task UpdateAuditLogOrderIdAsync(int auditLogId, int orderId);
+
+        // === CUSTOMER REGISTRATION ===
+        Task<bool> HasDuplicatePhoneAsync(string phone);
+        Task<Customer> RegisterCustomerAsync(Customer customer, CustomerPhone phone);
+
+        // === POS TERMINAL ===
+        Task<PosTerminal?> GetTerminalByIdAsync(string terminalId);
+        Task CreateTerminalAsync(PosTerminal terminal);
+        Task UpdateTerminalAsync(PosTerminal terminal);
 
         // === TRANSACTION ===
         Task BeginTransactionAsync();

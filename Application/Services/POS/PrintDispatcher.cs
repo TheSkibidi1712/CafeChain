@@ -67,6 +67,7 @@ namespace CafeChain.Application.Services.POS
                     storeId,
                     payload = escPosPayload,           // byte[] — SignalR serialize thành Base64 JSON
                     isCashPayment,
+                    printerTarget = "Cashier",         // Issue #50: routing target — Worker so khớp với config
                     printedAt = DateTime.UtcNow
                 });
 

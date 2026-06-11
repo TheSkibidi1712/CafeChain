@@ -24,6 +24,7 @@
             <i class="fas fa-cash-register"></i>
             <span id="headerShiftStatus">Chưa mở ca</span>
         </div>
+        <span id="headerTerminalName" style="font-size:12px;opacity:0.8;margin-left:6px;background:rgba(255,255,255,0.15);padding:2px 8px;border-radius:4px;">POS Thiết Bị</span>
         <div class="info-badge">
             <div class="network-indicator" id="networkIndicator"></div>
             <span id="networkStatusText">Online</span>
@@ -97,6 +98,7 @@
         <div class="cust-input-row">
             <input type="text" id="customerPhone" placeholder="📱 SĐT khách hàng...">
             <button class="btn-search-cust" onclick="searchCustomer()"><i class="fas fa-search"></i></button>
+            <button type="button" class="btn-quick-reg" id="btnOpenQuickReg" onclick="openQuickRegModal()" title="Đăng ký nhanh hội viên"><i class="fas fa-plus"></i></button>
         </div>
         <div class="customer-info-badge" id="customerBadge">
             <div style="display:flex;align-items:center;gap:8px;">
@@ -188,6 +190,28 @@
             <div class="ck-tab active" data-tab="cash" onclick="switchCkTab('cash',this)"><i class="fas fa-money-bill-wave"></i> Tiền mặt</div>
             <div class="ck-tab" data-tab="qr" onclick="switchCkTab('qr',this)"><i class="fas fa-qrcode"></i> Quét mã QR</div>
             <div class="ck-tab" data-tab="split" onclick="switchCkTab('split',this)"><i class="fas fa-arrows-split-up-and-left"></i> Chia thanh toán</div>
+        </div>
+        <!-- Split Payment Panel -->
+        <div id="ckSplitPanel" style="display:none;padding:16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+                <h6 style="margin:0;font-weight:700;font-size:14px;"><i class="fas fa-arrows-split-up-and-left" style="color:#F97316;margin-right:6px;"></i>Chia thanh toán</h6>
+                <span style="font-size:12px;color:#64748b;">Tổng: <b id="splitTotalLabel">0đ</b></span>
+            </div>
+            <div class="split-row" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;">
+                    <i class="fas fa-money-bill-wave" style="color:#16a34a;"></i>
+                    <span style="font-size:13px;font-weight:600;">Tiền mặt</span>
+                </div>
+                <input type="number" id="splitCashAmount" class="form-control" placeholder="0" min="0" step="1000" style="width:140px;border-radius:10px;text-align:right;font-weight:600;" oninput="updateSplitTotal()">
+            </div>
+            <div class="split-row" style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+                <div style="flex:1;display:flex;align-items:center;gap:8px;background:#f8fafc;padding:10px 12px;border-radius:10px;border:1px solid #e2e8f0;">
+                    <i class="fas fa-qrcode" style="color:#3b82f6;"></i>
+                    <span style="font-size:13px;font-weight:600;">QR / Chuyển khoản</span>
+                </div>
+                <input type="number" id="splitQrAmount" class="form-control" placeholder="0" min="0" step="1000" style="width:140px;border-radius:10px;text-align:right;font-weight:600;" oninput="updateSplitTotal()">
+            </div>
+            <div id="splitValidation" style="text-align:center;padding:8px;border-radius:8px;font-size:12px;font-weight:600;margin-top:8px;"></div>
         </div>
         <div class="ck-body">
             <div class="ck-left">
@@ -368,6 +392,29 @@
         <div class="success-actions">
             <button class="btn-print" onclick="printReceipt()"><i class="fas fa-print"></i> In hóa đơn</button>
             <button class="btn-next-order" onclick="nextOrder()">Đơn tiếp theo <i class="fas fa-arrow-right"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- ====== QUICK REGISTER CUSTOMER MODAL (Hình 7) ====== -->
+<div class="pos-modal-overlay" id="quickRegOverlay">
+    <div class="shift-modal" style="width: 360px;">
+        <h5 style="text-align: center; font-weight: 800; margin-bottom: 12px;">Đăng Ký Nhanh Hội Viên</h5>
+        <div class="mb-3">
+            <label class="form-label" style="font-size:12px;font-weight:600;">Số điện thoại</label>
+            <input type="text" id="quickRegPhone" class="form-control" disabled style="background:#f1f5f9;cursor:not-allowed;font-weight:600;text-align:center;border-radius:10px;">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" style="font-size:12px;font-weight:600;">Họ và tên <span class="text-danger">*</span></label>
+            <input type="text" id="quickRegName" class="form-control" placeholder="Nhập tên khách hàng" required style="border-radius:10px;">
+        </div>
+        <div class="mb-3">
+            <label class="form-label" style="font-size:12px;font-weight:600;">Ngày sinh (Tùy chọn)</label>
+            <input type="date" id="quickRegDob" class="form-control" style="border-radius:10px;">
+        </div>
+        <div style="display:flex;gap:10px;margin-top:16px;">
+            <button class="btn-pin-cancel" onclick="closeQuickRegModal()" style="flex:1;">Hủy</button>
+            <button class="btn-checkout" onclick="submitQuickRegister()" style="flex:1;box-shadow:none;border-radius:10px;">Xác nhận tạo</button>
         </div>
     </div>
 </div>

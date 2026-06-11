@@ -69,6 +69,7 @@ namespace CafeChain.Models.Stores
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }
+        public virtual PosTerminal? PosTerminal { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using CafeChain.Application.Constants;
 using System;
 using System.Linq;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Controllers
 {
@@ -17,19 +18,22 @@ namespace CafeChain.Controllers
         private readonly CafeChain.Application.Services.PayOSIntegration.IPayOSService _payOSService;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.OrderHub> _orderHubContext;
         private readonly Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.PaymentHub> _paymentHubContext;
+        private readonly ILogger<PaymentController> _logger;
 
         public PaymentController(
             AppDbContext context, 
             Net.payOS.PayOS payOS, 
             CafeChain.Application.Services.PayOSIntegration.IPayOSService payOSService,
             Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.OrderHub> orderHubContext,
-            Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.PaymentHub> paymentHubContext)
+            Microsoft.AspNetCore.SignalR.IHubContext<CafeChain.Hubs.PaymentHub> paymentHubContext,
+            ILogger<PaymentController> logger)
         {
             _context = context;
             _payOS = payOS;
             _payOSService = payOSService;
             _orderHubContext = orderHubContext;
             _paymentHubContext = paymentHubContext;
+            _logger = logger;
         }
 
         // Action hiển thị View chuyển khoản (QR code)
@@ -114,12 +118,12 @@ namespace CafeChain.Controllers
         [IgnoreAntiforgeryToken] 
         public async Task<IActionResult> ReceiveWebhook([FromBody] Net.payOS.Types.WebhookType body)
         {
-            Console.WriteLine(">>>>> [WEBHOOK] Đã nhận request từ PayOS <<<<<");
+            _logger.LogInformation("[WEBHOOK] Received request from PayOS.");
             try
             {
                 // 1. Xác thực chữ ký (Signature) bằng SDK PayOS
                 Net.payOS.Types.WebhookData verifiedData = _payOS.verifyPaymentWebhookData(body);
-                Console.WriteLine(">>>>> [WEBHOOK] Verify chữ ký THÀNH CÔNG.");
+                _logger.LogInformation("[WEBHOOK] Verification successful.");
 
                 string orderCodeStr = verifiedData.orderCode.ToString();
                 // [Logic tách OrderId từ OrderCode]
@@ -132,7 +136,7 @@ namespace CafeChain.Controllers
 
                 if (payment == null) 
                 {
-                    Console.WriteLine($">>>>> [WEBHOOK] KHÔNG tìm thấy Payment cho OrderId: {orderId} <<<<<");
+                    _logger.LogWarning("[WEBHOOK] Payment not found for OrderId: {OrderId}", orderId);
                     return Ok(new { success = false, message = "Order not found" });
                 }
 
@@ -162,7 +166,7 @@ namespace CafeChain.Controllers
                     PaidAt = DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")
                 };
 
-                Console.WriteLine($">>>>> [WEBHOOK] Chuẩn bị bắn SignalR cho Order: {orderId} <<<<<");
+                _logger.LogInformation("[WEBHOOK] Preparing to send SignalR for Order: {OrderId}", orderId);
                 
                 // Gửi tới khách hàng qua PaymentHub
                 await _paymentHubContext.Clients.Group(orderId.ToString()).SendAsync("ReceivePaymentSuccess", receiptData);
@@ -170,14 +174,13 @@ namespace CafeChain.Controllers
                 // Gửi tới Admin qua OrderHub (như cũ để giữ tính năng Kanban)
                 await _orderHubContext.Clients.Group("AdminDashboard").SendAsync("ReceiveNewOrder", orderId);
                 
-                Console.WriteLine($">>>>> [WEBHOOK] Đã bắn SignalR thành công cho Order: {orderId} <<<<<");
+                _logger.LogInformation("[WEBHOOK] SignalR sent successfully for Order: {OrderId}", orderId);
 
                 return Ok(new { success = true });
             }
             catch (Exception ex)
             {
-                Console.WriteLine(">>>>> [WEBHOOK ERROR] LỖI XỬ LÝ WEBHOOK <<<<<");
-                Console.WriteLine("Message: " + ex.Message);
+                _logger.LogError(ex, "[WEBHOOK ERROR] Error processing webhook.");
                 return Ok(new { success = false, message = ex.Message });
             }
         }

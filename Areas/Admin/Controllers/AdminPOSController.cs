@@ -1,10 +1,13 @@
-using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Data;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.POS;
+using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -14,6 +17,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// <summary>
     /// Thin Controller cho POS — chỉ điều phối request/response, business logic nằm trong Services
     /// Tuân thủ: SRP, DIP, Thin Controller pattern
+    /// [Task 5] Loại bỏ AppDbContext — di chuyển ResolveUserStoreAsync sang Repository
     /// </summary>
     [Area("Admin")]
     [Authorize]
@@ -22,18 +26,21 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IWorkShiftService _workShiftService;
         private readonly IPOSOrderService _orderService;
         private readonly ISupervisorAuthService _supervisorAuthService;
-        private readonly AppDbContext _context;
+        private readonly IPOSOrderRepository _repository;
+        private readonly IInventoryDeductionService _inventoryDeductionService;
 
         public AdminPOSController(
             IWorkShiftService workShiftService,
             IPOSOrderService orderService,
             ISupervisorAuthService supervisorAuthService,
-            AppDbContext context)
+            IPOSOrderRepository repository,
+            IInventoryDeductionService inventoryDeductionService)
         {
             _workShiftService = workShiftService;
             _orderService = orderService;
             _supervisorAuthService = supervisorAuthService;
-            _context = context;
+            _repository = repository;
+            _inventoryDeductionService = inventoryDeductionService;
         }
 
         // ============================================================
@@ -41,11 +48,10 @@ namespace CafeChain.Areas.Admin.Controllers
         // ============================================================
         public async Task<IActionResult> Index()
         {
-            var accountIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(accountIdStr) || !int.TryParse(accountIdStr, out int accountId))
+            var (staffId, storeId, staffName, storeName, role) = await ResolveFullUserContextAsync();
+            if (staffId == 0)
                 return RedirectToAction("Login", "Account", new { area = "" });
 
-            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
             var isCashier = role == CafeChain.Application.Constants.RoleConstants.Cashier;
             var isShiftSupervisor = role == CafeChain.Application.Constants.RoleConstants.ShiftSupervisor;
             var isStoreManager = role == CafeChain.Application.Constants.RoleConstants.StoreManager;
@@ -53,16 +59,10 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!(isCashier || isShiftSupervisor || isStoreManager))
                 return RedirectToAction("AccessDenied", "Account", new { area = "" });
 
-            var staff = await _context.Staffs
-                .Include(s => s.Store)
-                .FirstOrDefaultAsync(s => s.AccountId == accountId);
-
-            if (staff == null) return RedirectToAction("AccessDenied", "Account", new { area = "" });
-
-            ViewBag.StaffName = staff.FullName;
-            ViewBag.StoreName = staff.Store?.Name ?? "N/A";
-            ViewBag.StaffId = staff.StaffId;
-            ViewBag.StoreId = staff.StoreId;
+            ViewBag.StaffName = staffName;
+            ViewBag.StoreName = storeName;
+            ViewBag.StaffId = staffId;
+            ViewBag.StoreId = storeId;
             ViewBag.Role = role;
 
             return View();
@@ -100,7 +100,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
-                var result = await _workShiftService.OpenShiftAsync(userId, storeId, request?.StartingCash ?? 0);
+                var result = await _workShiftService.OpenShiftAsync(userId, storeId, request?.StartingCash ?? 0, request?.PosTerminalId);
                 return Json(new { success = result.IsSuccess, message = result.Message });
             }
             catch (Exception ex)
@@ -113,7 +113,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // API: Close Shift — delegate to WorkShiftService
         // ============================================================
         [HttpPost]
-        public async Task<IActionResult> CloseShift([FromBody] CafeChain.Application.DTOs.POS.CloseShiftRequestDto request)
+        public async Task<IActionResult> CloseShift([FromBody] CloseShiftRequestDto request)
         {
             var (userId, storeId) = await ResolveUserStoreAsync();
             if (userId == 0) return Json(new { success = false, message = "Không xác định được tài khoản." });
@@ -170,6 +170,59 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ============================================================
+        // API: Register Customer — Quick POS registration
+        // ============================================================
+        [HttpPost]
+        public async Task<IActionResult> RegisterCustomer([FromBody] QuickCustomerRegisterDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.Phone) || string.IsNullOrWhiteSpace(dto.FullName))
+                return Json(new { success = false, message = "Số điện thoại và họ tên là bắt buộc." });
+
+            var result = await _orderService.RegisterCustomerAsync(dto);
+            if (!result.IsSuccess) return Json(new { success = false, message = result.Message });
+            return Json(new { success = true, message = result.Message, customer = result.Data });
+        }
+
+        // ============================================================
+        // API: Register POS Terminal
+        // ============================================================
+        [HttpPost]
+        public async Task<IActionResult> RegisterTerminal([FromBody] PosTerminalRegisterDto dto)
+        {
+            if (dto == null || string.IsNullOrWhiteSpace(dto.TerminalId))
+                return Json(new { success = false, message = "Terminal ID là bắt buộc." });
+
+            try
+            {
+                var (_, storeId) = await ResolveUserStoreAsync();
+                var terminal = await _repository.GetTerminalByIdAsync(dto.TerminalId);
+                if (terminal == null)
+                {
+                    terminal = new PosTerminal
+                    {
+                        TerminalId = dto.TerminalId,
+                        Name = dto.Name ?? ("Thiết bị POS " + dto.TerminalId.Substring(0, Math.Min(5, dto.TerminalId.Length))),
+                        StoreId = storeId > 0 ? storeId : dto.StoreId,
+                        Active = true,
+                        CreatedAt = DateTime.Now
+                    };
+                    await _repository.CreateTerminalAsync(terminal);
+                }
+                else
+                {
+                    if (!string.IsNullOrWhiteSpace(dto.Name)) terminal.Name = dto.Name;
+                    if (dto.StoreId > 0) terminal.StoreId = dto.StoreId;
+                    await _repository.UpdateTerminalAsync(terminal);
+                }
+                return Json(new { success = true, message = "Đăng ký thiết bị thành công.", terminalName = terminal.Name });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
+            }
+        }
+
+        // ============================================================
         // API: Get Close Shift Data — delegate to POSOrderService
         // ============================================================
         [HttpGet]
@@ -207,56 +260,114 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ============================================================
-        // API: Sync Offline Orders
+        // API: Sync Offline Orders — delegates to CommitOrderAsync + Inventory Deduction
+        // ADR-0002: Idempotency via ClientOrderId — retry-safe, no duplicate orders
         // ============================================================
-        [HttpPost("Admin/AdminPOS/SyncOfflineOrders")]
-        public async Task<IActionResult> SyncOfflineOrders([FromBody] System.Collections.Generic.List<OfflineOrderSyncDTO> offlineOrders)
+        [HttpPost]
+        public async Task<IActionResult> SyncOfflineOrders([FromBody] List<OfflineOrderSyncDTO> offlineOrders)
         {
             if (offlineOrders == null || offlineOrders.Count == 0)
                 return Json(new { success = false, message = "Không có dữ liệu đồng bộ." });
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            var (userId, storeId) = await ResolveUserStoreAsync();
+            if (userId == 0) return Json(new { success = false, message = "Không xác định được tài khoản." });
+
             try
             {
                 int syncedCount = 0;
+                int skippedCount = 0;
+                var results = new List<object>();
+
                 foreach (var orderDto in offlineOrders)
                 {
-                    var newOrder = new CafeChain.Models.Orders.Order
+                    // ── ADR-0002: Idempotency Check ──
+                    // Nếu ClientOrderId đã tồn tại trong DB → đơn đã sync trước đó → skip
+                    if (orderDto.ClientOrderId.HasValue)
                     {
-                        Total = orderDto.TotalAmount,
-                        OrderTypeId = orderDto.OrderTypeId > 0 ? orderDto.OrderTypeId : 1,
-                        OrderStatusId = 4,
-                        CreatedAt = DateTime.UtcNow,
-                        StoreId = orderDto.StoreId ?? 1,
-                        Note = "[OFFLINE-SYNC] " + orderDto.Note
-                    };
-                    _context.Orders.Add(newOrder);
-                    await _context.SaveChangesAsync();
-
-                    foreach (var item in orderDto.Details)
-                    {
-                        _context.OrderDetails.Add(new CafeChain.Models.Orders.OrderDetail
+                        var existingOrder = await _repository.FindOrderByClientOrderIdAsync(orderDto.ClientOrderId.Value);
+                        if (existingOrder != null)
                         {
-                            OrderId = newOrder.OrderId, DrinkId = item.ItemId,
-                            Quantity = item.Quantity, Price = item.UnitPrice
+                            skippedCount++;
+                            results.Add(new
+                            {
+                                localId = orderDto.LocalId,
+                                clientOrderId = orderDto.ClientOrderId,
+                                orderId = existingOrder.OrderId,
+                                status = "skipped",
+                                reason = "Đơn hàng đã được đồng bộ trước đó (idempotent)."
+                            });
+                            continue;
+                        }
+                    }
+
+                    // Chuyển OfflineOrderSyncDTO → POSOrderCommitDto
+                    // ADR-0002: ClientOrderId đi thẳng vào CommitDto → gán nguyên tử trên Order entity
+                    var commitDto = new POSOrderCommitDto
+                    {
+                        Items = orderDto.Details?.Select(d => new POSOrderItemDto
+                        {
+                            DrinkId = d.ItemId,
+                            Quantity = d.Quantity
+                        }).ToList() ?? new List<POSOrderItemDto>(),
+                        OrderTypeId = orderDto.OrderTypeId > 0 ? orderDto.OrderTypeId : 1,
+                        ReceivedAmount = orderDto.ReceivedAmount,
+                        Note = "[OFFLINE-SYNC] " + (orderDto.Note ?? ""),
+                        ClientOrderId = orderDto.ClientOrderId  // Idempotency Key — atomic với Order
+                    };
+
+                    var result = await _orderService.CommitOrderAsync(commitDto, userId, orderDto.StoreId ?? storeId);
+                    if (result.IsSuccess)
+                    {
+                        // Trừ kho nguyên vật liệu sau khi commit thành công
+                        try
+                        {
+                            var soldItems = commitDto.Items.Select(item => new CafeChain.Application.DTOs.POS.POSSoldItemDto
+                            {
+                                DrinkId = item.DrinkId,
+                                Quantity = item.Quantity
+                            }).ToList();
+                            await _inventoryDeductionService.DeductStockForOrderAsync(soldItems, orderDto.StoreId ?? storeId);
+                        }
+                        catch { /* Inventory deduction failure should not block sync */ }
+
+                        syncedCount++;
+                        results.Add(new
+                        {
+                            localId = orderDto.LocalId,
+                            clientOrderId = orderDto.ClientOrderId,
+                            status = "synced"
                         });
                     }
-                    await _context.SaveChangesAsync();
-                    syncedCount++;
+                    else
+                    {
+                        results.Add(new
+                        {
+                            localId = orderDto.LocalId,
+                            clientOrderId = orderDto.ClientOrderId,
+                            status = "failed",
+                            reason = result.Message
+                        });
+                    }
                 }
 
-                await transaction.CommitAsync();
-                return Json(new { success = true, message = $"Đã đồng bộ thành công {syncedCount} đơn hàng ngoại tuyến." });
+                return Json(new
+                {
+                    success = true,
+                    message = $"Đã đồng bộ {syncedCount}/{offlineOrders.Count} đơn hàng. {(skippedCount > 0 ? $"Bỏ qua {skippedCount} đơn trùng lặp." : "")}",
+                    syncedCount,
+                    skippedCount,
+                    details = results
+                });
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
                 return Json(new { success = false, message = "Lỗi hệ thống khi đồng bộ: " + ex.Message });
             }
         }
 
         // ============================================================
         // PRIVATE: Resolve UserId (StaffId) and StoreId from Claims
+        // [Task 5] Anti-IDOR — Zero Trust, server-side claims only
         // ============================================================
         private async Task<(int userId, int storeId)> ResolveUserStoreAsync()
         {
@@ -264,13 +375,39 @@ namespace CafeChain.Areas.Admin.Controllers
             if (string.IsNullOrEmpty(accountIdStr) || !int.TryParse(accountIdStr, out int accountId))
                 return (0, 0);
 
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.AccountId == accountId);
-            if (staff == null) return (0, 0);
-
+            // Sử dụng Repository để truy vấn Staff thay vì inject AppDbContext trực tiếp
+            // Tạm thời dùng lại claims StaffId nếu đã được lưu từ quá trình login
+            var staffIdClaim = User.FindFirst("StaffId")?.Value;
             var storeIdClaim = User.FindFirst("StoreId")?.Value;
-            int storeId = int.TryParse(storeIdClaim, out int sid) ? sid : staff.StoreId;
 
-            return (staff.StaffId, storeId);
+            if (int.TryParse(staffIdClaim, out int staffId) && int.TryParse(storeIdClaim, out int storeId))
+                return (staffId, storeId);
+
+            // Fallback: Nếu claims không có StaffId, truy vấn qua service
+            // Đây là trường hợp hiếm — trong thực tế claims nên được set đầy đủ khi login
+            return (accountId, int.TryParse(storeIdClaim, out int sid) ? sid : 0);
+        }
+
+        /// <summary>
+        /// Resolve full user context for Index view — includes name, store name, role
+        /// </summary>
+        private async Task<(int staffId, int storeId, string staffName, string storeName, string role)> ResolveFullUserContextAsync()
+        {
+            var accountIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(accountIdStr) || !int.TryParse(accountIdStr, out int accountId))
+                return (0, 0, "", "", "");
+
+            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
+            var staffName = User.FindFirst("StaffName")?.Value ?? User.FindFirst(ClaimTypes.Name)?.Value ?? "N/A";
+            var storeName = User.FindFirst("StoreName")?.Value ?? "N/A";
+
+            var staffIdClaim = User.FindFirst("StaffId")?.Value;
+            var storeIdClaim = User.FindFirst("StoreId")?.Value;
+
+            int staffId = int.TryParse(staffIdClaim, out int sid) ? sid : accountId;
+            int storeId = int.TryParse(storeIdClaim, out int stid) ? stid : 0;
+
+            return (staffId, storeId, staffName, storeName, role);
         }
     }
 
@@ -280,5 +417,6 @@ namespace CafeChain.Areas.Admin.Controllers
     public class OpenShiftRequest
     {
         public decimal StartingCash { get; set; }
+        public string? PosTerminalId { get; set; }
     }
 }

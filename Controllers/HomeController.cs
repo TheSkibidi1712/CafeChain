@@ -3,6 +3,7 @@ using CafeChain.Models.Drinks;
 using CafeChain.ViewModels;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Controllers
 {
@@ -11,12 +12,18 @@ namespace CafeChain.Controllers
         private readonly AppDbContext _context;
         private readonly CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService _wheelService;
         private readonly CafeChain.Application.Interfaces.IDrinkService _drinkService;
+        private readonly ILogger<HomeController> _logger;
 
-        public HomeController(AppDbContext context, CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService wheelService, CafeChain.Application.Interfaces.IDrinkService drinkService)
+        public HomeController(
+            AppDbContext context, 
+            CafeChain.Application.Services.Admin.Vouchers.IAdminWheelService wheelService, 
+            CafeChain.Application.Interfaces.IDrinkService drinkService,
+            ILogger<HomeController> logger)
         {
             _context = context;
             _wheelService = wheelService;
             _drinkService = drinkService;
+            _logger = logger;
         }
 
         public async Task<IActionResult> Index()
@@ -87,7 +94,7 @@ namespace CafeChain.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[HomeController] Error loading Index: {ex.Message}");
+                _logger.LogError(ex, "Error loading Index page in HomeController.");
                 var emptyModel = new HomeViewModel
                 {
                     Categories = new List<DrinkCategory>(),

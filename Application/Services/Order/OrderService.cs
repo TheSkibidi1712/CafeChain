@@ -17,6 +17,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Application.Services.Cart
 {
@@ -27,19 +28,22 @@ namespace CafeChain.Application.Services.Cart
         private readonly IInventoryService _inventoryService;
         private readonly IHubContext<OrderHub> _hubContext;
         private readonly IServiceScopeFactory _scopeFactory;
+        private readonly ILogger<OrderService> _logger;
 
         public OrderService(
             AppDbContext context, 
             IMemoryCache cache, 
             IInventoryService inventoryService,
             IHubContext<OrderHub> hubContext,
-            IServiceScopeFactory scopeFactory)
+            IServiceScopeFactory scopeFactory,
+            ILogger<OrderService> logger)
         {
             _context = context;
             _cache = cache;
             _inventoryService = inventoryService;
             _hubContext = hubContext;
             _scopeFactory = scopeFactory;
+            _logger = logger;
         }
 
         public async Task<int> PlaceOrderAsync(CheckoutViewModel model, int? customerId, List<CartItemViewModel> sessionCart)
@@ -668,7 +672,7 @@ namespace CafeChain.Application.Services.Cart
                 catch (Exception ex)
                 {
                     // Ghi log lỗi nếu có
-                    Console.WriteLine($"[SIMULATION ERROR] Order #{orderId}: {ex.Message}");
+                    _logger.LogError(ex, "Simulation error for Order #{OrderId}", orderId);
                 }
             });
         }

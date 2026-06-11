@@ -1,10 +1,11 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Results;
+using CafeChain.Infrastructure.Interfaces.Attendance;
 using CafeChain.Data;
+using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
 using CafeChain.Models.Staffs;
 
@@ -12,10 +13,12 @@ namespace CafeChain.Application.Services.Attendance
 {
     public class AttendanceActionService : IAttendanceActionService
     {
-        private readonly AppDbContext _context;
+        private readonly IAttendanceRepository _repository;
+        private readonly AppDbContext _context; // Kept only for transaction support (BeginTransactionAsync)
 
-        public AttendanceActionService(AppDbContext context)
+        public AttendanceActionService(IAttendanceRepository repository, AppDbContext context)
         {
+            _repository = repository;
             _context = context;
         }
 
@@ -37,7 +40,7 @@ namespace CafeChain.Application.Services.Attendance
             if (string.IsNullOrEmpty(actionType))
                 return ServiceResult.Failure("Loại hành động không hợp lệ");
 
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.AccountId == accountId);
+            var staff = await _repository.GetStaffByAccountIdAsync(accountId);
             if (staff == null)
                 return ServiceResult.Failure("Không tìm thấy thông tin nhân viên");
 
@@ -69,15 +72,10 @@ namespace CafeChain.Application.Services.Attendance
             try
             {
                 var today = DateTime.Today;
-                var todayDateStr = today.ToString("yyyy-MM-dd");
                 var yesterday = today.AddDays(-1);
-                var yesterdayDateStr = yesterday.ToString("yyyy-MM-dd");
 
                 // Dùng UPDLOCK khóa record đến khi commit, chống SPAM click liên tiếp sinh ra Exception ghi đè
-                var shifts = await _context.StaffShifts
-                    .FromSqlInterpolated($"SELECT * FROM StaffShifts WITH (UPDLOCK, ROWLOCK) WHERE StaffId = {staff.StaffId} AND (CAST(WorkDate as Date) = {todayDateStr} OR CAST(WorkDate as Date) = {yesterdayDateStr})")
-                    .Include(s => s.Shift)
-                    .ToListAsync();
+                var shifts = await _repository.GetStaffShiftsWithLockAsync(staff.StaffId, today, yesterday);
 
                 var todayShifts = shifts.Where(s => s.WorkDate.Date == today).OrderBy(s => s.Shift?.StartTime).ToList();
                 StaffShift todayShift = null;
@@ -126,8 +124,7 @@ namespace CafeChain.Application.Services.Attendance
                         ActualCheckIn = DateTime.Now,
                         StatusId = 2 // In Progress
                     };
-                    _context.StaffShifts.Add(todayShift);
-                    await _context.SaveChangesAsync();
+                    await _repository.CreateStaffShiftAsync(todayShift);
                     await transaction.CommitAsync();
                     return ServiceResult.Success($"Ghi nhận Ca Tự Do thành công lúc {DateTime.Now:HH:mm:ss}");
                 }
@@ -143,7 +140,7 @@ namespace CafeChain.Application.Services.Attendance
 
                         // [FIX Lỗi 4] Lấy IP thực tế từ Controller truyền vào, không hardcode
                         var realIpAddress = ipAddress ?? "0.0.0.0";
-                        var attendanceLog = new CafeChain.Models.Staffs.AttendanceLog
+                        await _repository.CreateAttendanceLogAsync(new AttendanceLog
                         {
                             UserId = staff.StaffId,
                             StoreId = staff.StoreId,
@@ -151,8 +148,7 @@ namespace CafeChain.Application.Services.Attendance
                             IpAddress = realIpAddress,
                             IsFaceVerified = true,
                             Status = "Valid"
-                        };
-                        _context.AttendanceLogs.Add(attendanceLog);
+                        });
                         break;
                     case "CheckOut":
                         if (!todayShift.ActualCheckIn.HasValue) return ServiceResult.Failure("Bạn phải Vào Ca trước khi Tan Ca!");
@@ -182,8 +178,7 @@ namespace CafeChain.Application.Services.Attendance
                         return ServiceResult.Failure("Hành động không được hỗ trợ");
                 }
 
-                _context.Update(todayShift);
-                await _context.SaveChangesAsync();
+                await _repository.UpdateStaffShiftAsync(todayShift);
                 
                 await transaction.CommitAsync();
 
@@ -207,9 +202,7 @@ namespace CafeChain.Application.Services.Attendance
             try
             {
                 // 1. Tìm nhân viên
-                var staff = await _context.Staffs
-                    .Include(s => s.Store)
-                    .FirstOrDefaultAsync(s => s.AccountId == accountId);
+                var staff = await _repository.GetStaffWithStoreByAccountIdAsync(accountId);
 
                 if (staff == null)
                     return ServiceResult<object>.Failure("Không tìm thấy hồ sơ nhân viên với tài khoản này.");
@@ -220,18 +213,9 @@ namespace CafeChain.Application.Services.Attendance
                 // 3. Lấy lịch ca hôm nay + ca active từ hôm qua (nếu có, ví dụ ca qua đêm chưa check-out)
                 var today = DateTime.Today;
                 var yesterday = today.AddDays(-1);
-                var shiftsToday = await _context.StaffShifts
-                    .Where(ss => ss.StaffId == staff.StaffId && ss.WorkDate.Date == today)
-                    .Include(ss => ss.Shift)
-                    .Include(ss => ss.Status)
-                    .OrderBy(ss => ss.Shift.StartTime)
-                    .ToListAsync();
+                var shiftsToday = await _repository.GetTodayShiftsAsync(staff.StaffId, today);
 
-                var yesterdayActiveShift = await _context.StaffShifts
-                    .Where(ss => ss.StaffId == staff.StaffId && ss.WorkDate.Date == yesterday && ss.ActualCheckIn.HasValue && !ss.ActualCheckOut.HasValue)
-                    .Include(ss => ss.Shift)
-                    .Include(ss => ss.Status)
-                    .FirstOrDefaultAsync();
+                var yesterdayActiveShift = await _repository.GetYesterdayActiveShiftAsync(staff.StaffId, yesterday);
 
                 var allShiftsToMap = shiftsToday.ToList();
                 if (yesterdayActiveShift != null)

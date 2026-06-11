@@ -10,6 +10,7 @@ using CafeChain.ViewModels.Shared;
 using Microsoft.AspNetCore.Hosting;
 using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Application.Services.Admin.Staffs
 {
@@ -18,6 +19,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private readonly IAdminStaffRepository _repository;
         private readonly IWebHostEnvironment _env;
         private readonly IScopeAuthorizationService _scopeAuthorizationService;
+        private readonly ILogger<AdminStaffService> _logger;
 
         // 🔥 Role ID Constants (CHÍNH XÁC theo Seed Data)
         private const int ROLE_SUPER_ADMIN = 1;
@@ -48,11 +50,16 @@ namespace CafeChain.Application.Services.Admin.Staffs
             _ => 4                 // STORE (Store Manager, Ca trưởng, Thu ngân, Thủ kho, NV chung)
         };
 
-        public AdminStaffService(IAdminStaffRepository repository, IWebHostEnvironment env, IScopeAuthorizationService scopeAuthorizationService)
+        public AdminStaffService(
+            IAdminStaffRepository repository, 
+            IWebHostEnvironment env, 
+            IScopeAuthorizationService scopeAuthorizationService,
+            ILogger<AdminStaffService> logger)
         {
             _repository = repository;
             _env = env;
             _scopeAuthorizationService = scopeAuthorizationService;
+            _logger = logger;
         }
 
         // ==================== MASTER DATA (Thin Controller) ====================
@@ -161,7 +168,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Lỗi fetch DB locations: " + ex.Message);
+                _logger.LogError(ex, "Error fetching DB locations in GetScopeReferencesAsync.");
                 return new object[] { };
             }
         }

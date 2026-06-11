@@ -1,6 +1,5 @@
 using CafeChain.Application.Interfaces.Attendance;
-using CafeChain.Data;
-using Microsoft.EntityFrameworkCore;
+using CafeChain.Infrastructure.Interfaces.Attendance;
 using System;
 using System.Linq;
 using System.Threading.Tasks;
@@ -9,14 +8,14 @@ namespace CafeChain.Application.Services.Attendance
 {
     public class HrAttendanceService : IHrAttendanceService
     {
-        private readonly AppDbContext _context;
+        private readonly IAttendanceRepository _repository;
 
         // Đặt thành false để bật kiểm tra chấm công thực tế (Production Mode)
         private const bool BYPASS_MODE = true;
 
-        public HrAttendanceService(AppDbContext context)
+        public HrAttendanceService(IAttendanceRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         public async Task<bool> VerifyRecentCheckInAsync(int userId, int storeId)
@@ -29,10 +28,9 @@ namespace CafeChain.Application.Services.Attendance
             var today = DateTime.Today;
             var yesterday = today.AddDays(-1);
 
-            return await _context.StaffShifts.AnyAsync(ss =>
-                ss.StaffId == userId
-                && (ss.WorkDate.Date == today || ss.WorkDate.Date == yesterday)
-                && ss.ActualCheckIn.HasValue
+            var shifts = await _repository.GetStaffShiftsWithLockAsync(userId, today, yesterday);
+            return shifts.Any(ss =>
+                ss.ActualCheckIn.HasValue
                 && !ss.ActualCheckOut.HasValue);
         }
     }

@@ -10,6 +10,7 @@ using System.Security.Claims;
 using CafeChain.Application.DTOs.Drinks; // (Sửa lại cho đúng namespace bác vừa tạo)
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Controllers
 {
@@ -20,14 +21,21 @@ namespace CafeChain.Controllers
         private readonly AppDbContext _context;
         private readonly Microsoft.AspNetCore.Hosting.IWebHostEnvironment _webHostEnvironment;
         private readonly Microsoft.Extensions.Caching.Memory.IMemoryCache _cache;
+        private readonly ILogger<DrinkController> _logger;
 
         // Tiêm IDrinkService vào Controller
-        public DrinkController(IDrinkService drinkService, AppDbContext context, Microsoft.AspNetCore.Hosting.IWebHostEnvironment webHostEnvironment, Microsoft.Extensions.Caching.Memory.IMemoryCache cache)
+        public DrinkController(
+            IDrinkService drinkService, 
+            AppDbContext context, 
+            Microsoft.AspNetCore.Hosting.IWebHostEnvironment webHostEnvironment, 
+            Microsoft.Extensions.Caching.Memory.IMemoryCache cache,
+            ILogger<DrinkController> logger)
         {
             _drinkService = drinkService;
             _context = context;
             _webHostEnvironment = webHostEnvironment;
             _cache = cache;
+            _logger = logger;
         }
 
         [AllowAnonymous]
@@ -67,12 +75,12 @@ namespace CafeChain.Controllers
             try 
             {
                 // [DIAGNOSTIC LOG]
-                Console.WriteLine($">>>>> HIT DETAIL ACTION FOR DRINK ID: {id} <<<<<");
+                _logger.LogInformation("HIT DETAIL ACTION FOR DRINK ID: {DrinkId}", id);
 
                 var viewModel = await _drinkService.GetDrinkDetailAsync(id);
                 if (viewModel == null) 
                 {
-                    Console.WriteLine($">>>>> DRINK NOT FOUND FOR ID: {id} <<<<<");
+                    _logger.LogWarning("DRINK NOT FOUND FOR ID: {DrinkId}", id);
                     return NotFound();
                 }
 
@@ -86,7 +94,7 @@ namespace CafeChain.Controllers
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($">>>>> ERROR IN CheckDrinkAvailabilityAsync: {ex.Message} <<<<<");
+                    _logger.LogError(ex, "ERROR IN CheckDrinkAvailabilityAsync for Drink ID: {DrinkId}", id);
                     // Fallback: Nếu lỗi logic check thì cứ cho là còn hàng để không chặn người dùng
                     viewModel.IsAvailable = true; 
                 }
@@ -98,8 +106,7 @@ namespace CafeChain.Controllers
             }
             catch (Exception ex)
             {
-                Console.WriteLine($">>>>> CRITICAL ERROR IN DETAIL ACTION: {ex.Message} <<<<<");
-                Console.WriteLine(ex.StackTrace);
+                _logger.LogError(ex, "CRITICAL ERROR IN DETAIL ACTION FOR DRINK ID: {DrinkId}", id);
                 return StatusCode(500, "Internal Server Error: " + ex.Message);
             }
         }

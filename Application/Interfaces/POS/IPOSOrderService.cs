@@ -29,5 +29,10 @@ namespace CafeChain.Application.Interfaces.POS
         /// Lấy dữ liệu tóm tắt ca cho modal đóng ca
         /// </summary>
         Task<ServiceResult<object>> GetCloseShiftDataAsync(int userId, int storeId);
+
+        /// <summary>
+        /// Đăng ký nhanh khách hàng hội viên từ POS
+        /// </summary>
+        Task<ServiceResult<object>> RegisterCustomerAsync(CafeChain.Application.DTOs.POS.QuickCustomerRegisterDto dto);
     }
 }

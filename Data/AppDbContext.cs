@@ -83,6 +83,7 @@ namespace CafeChain.Data
         public DbSet<StoreTopping> StoreToppings { get; set; }
         public DbSet<StoreIP> StoreIPs { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
+        public DbSet<PosTerminal> PosTerminals { get; set; }
 
         // ========================= INVENTORY =========================
         public DbSet<InventoryDebt> InventoryDebts { get; set; }

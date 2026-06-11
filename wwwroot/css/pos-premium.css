@@ -671,3 +671,41 @@ body { overflow: hidden; height: 100vh; font-family: 'Inter', 'Segoe UI', sans-s
     color: #92400e;
 }
 .offline-banner.show { display: block; }
+
+/* ============================================================
+   QUICK REGISTER CUSTOMER MODAL STYLES (Hình 7)
+   ============================================================ */
+#quickRegOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15,23,42,0.8);
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    animation: fadeIn 0.2s ease;
+}
+#quickRegOverlay.active {
+    display: flex;
+}
+
+.btn-quick-reg {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 10px;
+    background: #22c55e;
+    color: white;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+.btn-quick-reg:hover {
+    background: #16a34a !important;
+    transform: scale(1.05);
+}
+.btn-quick-reg:active {
+    transform: scale(0.95);
+}

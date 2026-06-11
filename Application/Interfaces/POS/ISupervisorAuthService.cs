@@ -15,7 +15,7 @@ namespace CafeChain.Application.Interfaces.POS
         /// <param name="actionName">Tên hành động: VOID_INVOICE, MANUAL_DISCOUNT, PRICE_OVERRIDE</param>
         /// <param name="targetId">ID đối tượng bị tác động (OrderId, DrinkId...)</param>
         /// <param name="reason">Lý do giải trình</param>
-        Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason);
+        Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason, decimal? discountValue = null);
 
         /// <summary>
         /// Lấy số lần thử còn lại trước khi bị khóa

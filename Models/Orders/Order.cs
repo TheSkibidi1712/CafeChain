@@ -24,6 +24,13 @@ namespace CafeChain.Models.Orders
         /// </summary>
         public int? WorkShiftId { get; set; }
 
+        /// <summary>
+        /// UUID v4 sinh tại iPad lúc nhấn "Thanh toán" — Idempotency Key cho Offline Order.
+        /// Null cho đơn online (bán trực tiếp khi có mạng).
+        /// ADR-0002: Unique Filtered Index đảm bảo không trùng đơn khi sync.
+        /// </summary>
+        public Guid? ClientOrderId { get; set; }
+
         public string? Source { get; set; }
         public string? Note { get; set; }
         public string? PaymentReference { get; set; }

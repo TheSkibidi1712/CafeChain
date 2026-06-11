@@ -78,6 +78,13 @@ namespace CafeChain.Data.Configurations.Orders
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StaffId);
 
+            // ADR-0002: Idempotency Key — Unique chỉ khi ClientOrderId IS NOT NULL
+            // Đơn online (ClientOrderId = null) không bị ảnh hưởng bởi constraint này
+            entity.HasIndex(x => x.ClientOrderId)
+                .IsUnique()
+                .HasFilter("[ClientOrderId] IS NOT NULL")
+                .HasDatabaseName("IX_Orders_ClientOrderId_Unique");
+
            
         }
     }

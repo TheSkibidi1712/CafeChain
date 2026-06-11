@@ -4,9 +4,11 @@ using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
+using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -114,6 +116,16 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.POS
             return order;
         }
 
+        /// <summary>
+        /// ADR-0002: Tìm Order đã tồn tại theo ClientOrderId (Idempotency check).
+        /// Sử dụng Unique Filtered Index IX_Orders_ClientOrderId_Unique — O(1) lookup.
+        /// </summary>
+        public async Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId)
+        {
+            return await _context.Orders
+                .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
+        }
+
         public async Task CreatePaymentAsync(Payment payment)
         {
             _context.Payments.Add(payment);
@@ -170,6 +182,72 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.POS
         {
             return await _context.Orders
                 .CountAsync(o => o.WorkShiftId == shiftId && o.OrderStatusId == 4);
+        }
+
+        // === AUDIT LOG ===
+        public async Task<InvoiceAuditLog?> GetPendingAuditLogAsync(int cashierId, string actionName, int windowMinutes)
+        {
+            var cutoff = DateTime.Now.AddMinutes(-windowMinutes);
+            return await _context.InvoiceAuditLogs
+                .Where(al => al.CashierId == cashierId && al.ActionName == actionName && al.OrderId == null && al.CreatedAt >= cutoff)
+                .OrderByDescending(al => al.CreatedAt)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task UpdateAuditLogOrderIdAsync(int auditLogId, int orderId)
+        {
+            var log = await _context.InvoiceAuditLogs.FindAsync(auditLogId);
+            if (log != null)
+            {
+                log.OrderId = orderId;
+                await _context.SaveChangesAsync();
+            }
+        }
+
+        // === CUSTOMER REGISTRATION ===
+        public async Task<bool> HasDuplicatePhoneAsync(string phone)
+        {
+            return await _context.CustomerPhones.AnyAsync(cp => cp.Phone == phone);
+        }
+
+        public async Task<Customer> RegisterCustomerAsync(Customer customer, CustomerPhone phone)
+        {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                _context.Customers.Add(customer);
+                await _context.SaveChangesAsync();
+
+                phone.CustomerId = customer.CustomerId;
+                _context.CustomerPhones.Add(phone);
+                await _context.SaveChangesAsync();
+
+                await transaction.CommitAsync();
+                return customer;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+
+        // === POS TERMINAL ===
+        public async Task<PosTerminal?> GetTerminalByIdAsync(string terminalId)
+        {
+            return await _context.PosTerminals.FindAsync(terminalId);
+        }
+
+        public async Task CreateTerminalAsync(PosTerminal terminal)
+        {
+            _context.PosTerminals.Add(terminal);
+            await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateTerminalAsync(PosTerminal terminal)
+        {
+            _context.PosTerminals.Update(terminal);
+            await _context.SaveChangesAsync();
         }
 
         // === TRANSACTION ===

@@ -12,8 +12,8 @@ namespace CafeChain.Models.Orders
         [Key]
         public int Id { get; set; }
 
-        /// <summary>ID hóa đơn hoặc ID giỏ hàng tạm thời</summary>
-        public int OrderId { get; set; }
+        /// <summary>ID hóa đơn — nullable khi audit log được tạo trước khi order hoàn tất</summary>
+        public int? OrderId { get; set; }
 
         /// <summary>StaffId của thu ngân thực hiện thao tác</summary>
         public int CashierId { get; set; }
@@ -28,6 +28,9 @@ namespace CafeChain.Models.Orders
         /// <summary>Lý do giải trình</summary>
         [MaxLength(500)]
         public string Reason { get; set; } = string.Empty;
+
+        /// <summary>Giá trị voucher/chiết khấu được duyệt bypass (nullable)</summary>
+        public decimal? DiscountValue { get; set; }
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
 

@@ -4556,9 +4556,14 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
 
-                    b.Property<int>("OrderId")
+                    b.Property<decimal?>("DiscountValue")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<int?>("OrderId")
                         .HasColumnType("int");
 
                     b.Property<string>("Reason")
@@ -4573,9 +4578,13 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("CashierId");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("OrderId");
+
                     b.HasIndex("SupervisorId");
 
-                    b.ToTable("InvoiceAuditLogs");
+                    b.ToTable("InvoiceAuditLogs", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.Order", b =>
@@ -4585,6 +4594,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderId"));
+
+                    b.Property<Guid?>("ClientOrderId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -4663,6 +4675,11 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("OrderId");
+
+                    b.HasIndex("ClientOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Orders_ClientOrderId_Unique")
+                        .HasFilter("[ClientOrderId] IS NOT NULL");
 
                     b.HasIndex("CreatedAt");
 
@@ -6370,6 +6387,37 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Stores.PosTerminal", b =>
+                {
+                    b.Property<string>("TerminalId")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("TerminalId");
+
+                    b.HasIndex("StoreId");
+
+                    b.ToTable("PosTerminals", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
                     b.Property<int>("StoreId")
@@ -6808,6 +6856,8 @@ namespace CafeChain.Migrations
 
                     b.HasKey("ShiftId");
 
+                    b.HasIndex("PosTerminalId");
+
                     b.HasIndex("StoreId");
 
                     b.HasIndex("UserId");
@@ -7067,11 +7117,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 6, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6651),
+                            EndDate = new DateTime(2026, 7, 9, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3297),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 5, 24, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6628)
+                            StartDate = new DateTime(2026, 6, 2, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3274)
                         },
                         new
                         {
@@ -7079,10 +7129,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 6, 15, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6654),
+                            EndDate = new DateTime(2026, 6, 24, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3302),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 5, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6653)
+                            StartDate = new DateTime(2026, 6, 8, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3301)
                         },
                         new
                         {
@@ -7090,11 +7140,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 7, 30, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6656),
+                            EndDate = new DateTime(2026, 8, 8, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3304),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 5, 1, 22, 17, 49, 928, DateTimeKind.Local).AddTicks(6655)
+                            StartDate = new DateTime(2026, 5, 10, 16, 7, 56, 704, DateTimeKind.Local).AddTicks(3304)
                         });
                 });
 
@@ -8258,6 +8308,17 @@ namespace CafeChain.Migrations
                     b.Navigation("Status");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Stores.PosTerminal", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Store");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>
                 {
                     b.HasOne("CafeChain.Models.Locations.District", "District")
@@ -8358,6 +8419,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Stores.WorkShift", b =>
                 {
+                    b.HasOne("CafeChain.Models.Stores.PosTerminal", "PosTerminal")
+                        .WithMany("WorkShifts")
+                        .HasForeignKey("PosTerminalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -8369,6 +8435,8 @@ namespace CafeChain.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("PosTerminal");
 
                     b.Navigation("Store");
 
@@ -8743,6 +8811,11 @@ namespace CafeChain.Migrations
             modelBuilder.Entity("CafeChain.Models.Staffs.StaffShiftStatus", b =>
                 {
                     b.Navigation("StaffShifts");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Stores.PosTerminal", b =>
+                {
+                    b.Navigation("WorkShifts");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Stores.Store", b =>

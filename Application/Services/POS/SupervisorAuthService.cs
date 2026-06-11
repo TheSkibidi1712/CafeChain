@@ -28,7 +28,7 @@ namespace CafeChain.Application.Services.POS
             _cache = cache;
         }
 
-        public async Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason)
+        public async Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason, decimal? discountValue = null)
         {
             if (string.IsNullOrWhiteSpace(pin) || pin.Length != 4)
                 return ServiceResult.Failure("Mã PIN phải có đúng 4 chữ số.");
@@ -95,11 +95,12 @@ namespace CafeChain.Application.Services.POS
 
             await _repository.CreateAuditLogAsync(new InvoiceAuditLog
             {
-                OrderId = targetId,
+                OrderId = targetId > 0 ? targetId : null,
                 CashierId = cashierId,
                 SupervisorId = matchedSupervisor.StaffId,
                 ActionName = actionName,
                 Reason = reason,
+                DiscountValue = discountValue,
                 CreatedAt = DateTime.Now
             });
 

@@ -1,20 +1,19 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
 using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Results;
-using CafeChain.Data;
+using CafeChain.Infrastructure.Interfaces.Attendance;
 
 namespace CafeChain.Application.Services.Attendance
 {
     public class AttendanceSecurityService : IAttendanceSecurityService
     {
-        private readonly AppDbContext _context;
+        private readonly IAttendanceRepository _repository;
 
-        public AttendanceSecurityService(AppDbContext context)
+        public AttendanceSecurityService(IAttendanceRepository repository)
         {
-            _context = context;
+            _repository = repository;
         }
 
         public async Task<ServiceResult> ValidateStoreIPAsync(int storeId, string clientIp)
@@ -37,12 +36,10 @@ namespace CafeChain.Application.Services.Attendance
                 return ServiceResult.Success("Xác thực IP Localhost thành công (Development Mode).");
             }
 
-            // Lấy danh sách IP được phép của cửa hàng
-            var storeIPs = await _context.StoreIPs
-                .Where(ip => ip.StoreId == storeId && ip.IsActive)
-                .ToListAsync();
+            // Lấy danh sách IP được phép của cửa hàng qua Repository
+            var storeIPs = await _repository.GetActiveStoreIPsAsync(storeId);
 
-            // Nếu cửa hàng chưa cấu hình bất kỳ mạng WiFi/IP nào -> Option 1: Block cứng (Strict Mode)
+            // Nếu cửa hàng chưa cấu hình bất kỳ mạng WiFi/IP nào -> Block cứng (Strict Mode)
             if (!storeIPs.Any())
             {
                 return ServiceResult.Failure("Hệ thống mạng cửa hàng chưa được thiết lập. Vui lòng liên hệ IT để cấp phát IP trước khi check-in.");
@@ -90,7 +87,7 @@ namespace CafeChain.Application.Services.Attendance
                 return ServiceResult.Failure("Mật khẩu mới phải có ít nhất 6 ký tự.");
             }
 
-            var account = await _context.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId);
+            var account = await _repository.GetAccountByIdAsync(accountId);
             if (account == null)
             {
                 return ServiceResult.Failure("Không tìm thấy tài khoản để xử lý đổi mật khẩu.");
@@ -115,8 +112,7 @@ namespace CafeChain.Application.Services.Attendance
 
             try
             {
-                _context.Update(account);
-                await _context.SaveChangesAsync();
+                await _repository.UpdateAccountAsync(account);
                 return ServiceResult.Success("Đổi mật khẩu thành công. Lệnh buộc đổi Pass đã được gỡ bỏ.");
             }
             catch (Exception ex)
@@ -131,17 +127,14 @@ namespace CafeChain.Application.Services.Attendance
                 return ServiceResult.Failure("Vector khuôn mặt không hợp lệ.");
 
             // Tìm Staff qua AccountId
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.AccountId == accountId);
+            var staff = await _repository.GetStaffByAccountIdAsync(accountId);
             if (staff == null)
                 return ServiceResult.Failure("Không tìm thấy hồ sơ nhân viên.");
 
             // (Đã xóa logic chặn đăng ký đè, cho phép nhân viên tự sửa Face ID nếu gặp lỗi sai lệch)
-            // if (!string.IsNullOrEmpty(staff.FaceDescriptor))
-            //    return ServiceResult.Failure("Face ID đã được đăng ký trước đó. Liên hệ Quản lý để đặt lại.");
 
             staff.FaceDescriptor = faceDescriptor;
-            _context.Update(staff);
-            await _context.SaveChangesAsync();
+            await _repository.UpdateStaffAsync(staff);
 
             return ServiceResult.Success("Đăng ký Face ID thành công! Bạn có thể sử dụng khuôn mặt để chấm công.");
         }
@@ -153,7 +146,7 @@ namespace CafeChain.Application.Services.Attendance
                 return ServiceResult.Failure("Mã PIN phải là chuỗi 4 chữ số.");
             }
 
-            var staff = await _context.Staffs.FirstOrDefaultAsync(s => s.AccountId == accountId);
+            var staff = await _repository.GetStaffByAccountIdAsync(accountId);
             if (staff == null)
             {
                 return ServiceResult.Failure("Không tìm thấy hồ sơ nhân viên.");
@@ -161,8 +154,7 @@ namespace CafeChain.Application.Services.Attendance
 
             // Hashing using BCrypt
             staff.PinHash = BCrypt.Net.BCrypt.HashPassword(pin);
-            _context.Update(staff);
-            await _context.SaveChangesAsync();
+            await _repository.UpdateStaffAsync(staff);
 
             return ServiceResult.Success("Cập nhật mã PIN thành công.");
         }

@@ -5,6 +5,12 @@ namespace CafeChain.Application.DTOs.POS
     public class OfflineOrderSyncDTO
     {
         public string LocalId { get; set; }
+
+        /// <summary>
+        /// UUID v4 sinh tại iPad lúc nhấn "Thanh toán" — Idempotency Key (ADR-0002).
+        /// Backend kiểm tra trùng trước khi commit. Null = legacy offline order (không có idempotency).
+        /// </summary>
+        public Guid? ClientOrderId { get; set; }
         public decimal TotalAmount { get; set; }
         public decimal ReceivedAmount { get; set; }
         public decimal ChangeAmount { get; set; }
