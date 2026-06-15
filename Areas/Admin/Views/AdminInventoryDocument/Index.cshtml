@@ -1,301 +1,68 @@
-﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.InventoryDocumentIndexVM
-@using CafeChain.Models.Enums.Inventory
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.AdminInventoryDocumentIndexVM
+
 @{
-    var selectedType = ViewBag.Type?.ToString();
+    ViewData["Title"] = "Quản lý phiếu kho";
 }
-<link rel="stylesheet" href="~/css/Admin/InventoryDocument/inventorydocument.css" />
 
-<div class="inventory-container">
+<link rel="stylesheet"
+      href="~/css/Admin/InventoryDocument/inventorydocument.css" />
 
-    <!-- ================= HEADER ================= -->
-    <div class="header">
-        <h2>📦 Quản lý phiếu kho</h2>
-    </div>
+<div class="inventory-page">
 
-    <!-- ================= FILTER ================= -->
-    <div class="filter-box">
-        <div class="filter-title">🔎 Bộ lọc tìm kiếm</div>
-
-        <div class="filter-grid">
-
-            <div class="filter-item">
-                <label>Mã phiếu</label>
-                <input id="search" value="@ViewBag.Keyword" placeholder="Nhập mã..." />
-            </div>
-
-            <div class="filter-item">
-                <label>Loại phiếu</label>
-                <select id="filterType">
-                    <option value="">-- Tất cả --</option>
-                    <option value="1" selected="@(selectedType == "1" ? "selected" : null)">Nhập kho</option>
-                    <option value="2" selected="@(selectedType == "2" ? "selected" : null)">Xuất kho</option>
-                    <option value="3" selected="@(selectedType == "3" ? "selected" : null)">Hủy kho</option>
-                    <option value="4" selected="@(selectedType == "4" ? "selected" : null)">Kiểm kê</option>
-                </select>
-            </div>
-
-            <div class="filter-item">
-                <label>Từ ngày</label>
-                <input type="date" id="fromDate" value="@ViewBag.FromDate?.ToString("yyyy-MM-dd")" />
-            </div>
-
-            <div class="filter-item">
-                <label>Đến ngày</label>
-                <input type="date" id="toDate" value="@ViewBag.ToDate?.ToString("yyyy-MM-dd")"/>
-            </div>
-
-            <div class="filter-actions">
-                <button type="button" class="btn-filter" onclick="reloadData()">Lọc</button>
-                <button type="button" class="btn-clear" onclick="clearFilter()">Xóa</button>
-            </div>
-
+    <div class="inventory-header">
+        <div>
+            <h3>Phiếu Kho</h3>
+            <p>
+                Quản lý Nhập, Xuất, Kiểm kê, Hủy và Chuyển kho.
+            </p>
         </div>
-    </div>
 
-    <!-- ================= TABS ================= -->
-    <div class="tabs">
-        <button type="button" class="tab-btn active" onclick="switchTab(event,'importTab')">📥 Nhập kho</button>
-        <button type="button" class="tab-btn" onclick="switchTab(event,'exportTab')">📤 Xuất kho</button>
-        <button type="button" class="tab-btn" onclick="switchTab(event,'stockTab')">📊 Kiểm kê</button>
-        <button type="button" class="tab-btn" onclick="switchTab(event,'wasteTab')">🗑️ Hủy kho</button>
-    </div>
+        <div class="inventory-actions">
+            <a asp-action="Create"
+               class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Tạo phiếu mới
+            </a>
 
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-file-excel"></i>
+                Export Excel
+            </button>
 
-    <!-- ================= IMPORT ================= -->
-    <div id="importTab" class="tab-content active">
-        <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(1)">
-                + Tạo phiếu nhập
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-chart-bar"></i>
+                Reports
             </button>
         </div>
-
-        @Html.Partial("_InventoryTable", Model.Items.ToList())
-    </div>
-    <!-- ================= EXPORT ================= -->
-    <div id="exportTab" class="tab-content">
-        <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(2)">
-                + Tạo phiếu xuất
-            </button>
-        </div>
-
-        @Html.Partial("_InventoryTable", Model.Items.ToList())
     </div>
 
-    <!-- ================= STOCK ================= -->
-    <div id="stockTab" class="tab-content">
-        <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(4)">
-                + Tạo phiếu kiểm kê
-            </button>
-        </div>
+    <partial name="Partials/_DashboardCards"
+             model="Model" />
 
-        @Html.Partial("_InventoryTable", Model.Items.ToList())
-    </div>
+    <partial name="Partials/_FilterSection"
+             model="Model" />
 
-    <!-- ================= WASTE ================= -->
-    <div id="wasteTab" class="tab-content">
-        <div class="header">
-            <button type="button" class="btn-create" onclick="openCreateModalWithType(3)">
-                + Tạo phiếu hủy
-            </button>
-        </div>
+    <partial name="Partials/_DocumentTabs"
+             model="Model.Filter" />
 
-        @Html.Partial("_InventoryTable", Model.Items.ToList())
-    </div>
-    @{
-        int currentPage = ViewBag.CurrentPage ?? 1;
-        int totalPages = ViewBag.TotalPages ?? 1;
+    <partial name="Partials/_DocumentTable"
+             model="Model" />
 
-        string keyword = ViewBag.Keyword ?? "";
-        string type = ViewBag.Type?.ToString() ?? "";
-        string fromDate = ViewBag.FromDate != null
-            ? ((DateTime)ViewBag.FromDate).ToString("yyyy-MM-dd")
-            : "";
-
-        string toDate = ViewBag.ToDate != null
-            ? ((DateTime)ViewBag.ToDate).ToString("yyyy-MM-dd")
-            : "";
-
-        string BuildUrl(int page)
-        {
-            return Url.Action("Index", "AdminInventoryDocument", new
-            {
-                area = "Admin",
-                keyword = keyword,
-                type = type,
-                fromDate = fromDate,
-                toDate = toDate,
-                page = page,
-                pageSize = 10
-            }) ?? "#";
-        }
-    }
-
-    @if (totalPages > 1)
-    {
-        <div class="pagination">
-
-            @if (currentPage > 1)
-            {
-                <a class="page-btn" href="@BuildUrl(currentPage - 1)">
-                    ←
-                </a>
-            }
-
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                <a class="page-btn @(i == currentPage ? "active" : "")"
-                       href="@BuildUrl(i)">
-                    @i
-                </a>
-            }
-
-            @if (currentPage < totalPages)
-            {
-                <a class="page-btn" href="@BuildUrl(currentPage + 1)">
-                    →
-                </a>
-            }
-
-        </div>
-    }
 </div>
 
-<!-- ================= DETAIL MODAL ================= -->
-<div id="detailModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-close" onclick="closeModal('detailModal')">
-            <i class="fa fa-times"></i>
-        </div>
 
-        <div class="modal-header">
-            <h3>📄 Chi tiết phiếu</h3>
-        </div>
+<div class="modal fade"
+     id="inventoryDetailModal"
+     tabindex="-1">
 
-        <div id="detailContent"></div>
-    </div>
-</div>
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
 
-<!-- ================= CREATE MODAL ================= -->
-<div id="createModal" class="modal">
-    <div class="modal-content large">
-
-        <div class="modal-close" id="closeCreateModal">
-            <i class="fa fa-times"></i>
-        </div>
-
-        <div class="modal-body">
-
-            <div class="form-grid">
-
-                <div>
-                    <label>🏬 Kho</label>
-                    <select id="store"></select>
-                </div>
-
-                <div>
-                    <label>📦 Loại phiếu</label>
-                    <input type="text" id="typeText" readonly />
-                    <input type="hidden" id="type" />
-                </div>
-
-                <!-- IMPORT -->
-                <div id="supplierBox">
-                    <label>🚚 Nhà cung cấp</label>
-                    <select id="supplier"></select>
-                </div>
-
-                <!-- EXPORT -->
-                <div id="exportPartner" style="display:none">
-                    <label>👤 Khách hàng</label>
-                    <input type="text" id="partnerName" />
-                </div>
-
-                <div id="importPurpose" style="display:none">
-                    <label>📌 Mục đích</label>
-                    <select id="importPurposeSelect">
-                        <option value="">-- Chọn --</option>
-                        <option value="1">Nhập hàng</option>
-                        <option value="3">Điều chỉnh tăng tồn kho</option>
-                    </select>
-                </div>
-                <div id="transferDocumentBox" style="display:none">
-                    <label>📄 Phiếu chuyển kho</label>
-                    <select id="transferDocument"></select>
-                </div>
-
-                <div id="exportPurpose" style="display:none">
-                    <label>📌 Mục đích</label>
-                    <select id="purpose">
-                        <option value="">-- Chọn --</option>
-                        <option value="5">Bán hàng</option>
-                        <option value="6">Xuất nội bộ</option>
-                        <option value="7">Tặng</option>
-                        <option value="9">Xuất dùng thử</option>
-                        <option value="10">Điều chỉnh giảm tồn kho</option>
-                    </select>
-                </div>
-                <div id="toStoreBox" style="display:none">
-                    <label>🏬 Kho nhận</label>
-                    <select id="toStore"></select>
-                </div>
-                <!-- WASTE -->
-                <div id="wastePurpose" style="display:none">
-                    <label>🗑️ Lý do hủy</label>
-                    <select id="wasteReason">
-                        <option value="">-- Chọn lý do --</option>
-                        <option value="12">Hư hỏng</option>
-                        <option value="13">Hết hạn</option>
-                        <option value="14">Vỡ / lỗi</option>
-                        <option value="15">Nhiễm bẩn</option>
-                        <option value="16">Thất lạc</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>📅 Ngày</label>
-                    <input type="datetime-local" id="documentDate">
-                </div>
-
-                <div>
-                    <label>📝 Ghi chú</label>
-                    <input type="text" id="note">
-                </div>
-
-            </div>
-
-            <!-- TABLE -->
-            <div class="table-wrapper">
-                <table id="detailTable">
-                    <thead>
-                        <tr>
-                            <th>Nguyên liệu</th>
-                            <th>Đơn vị</th>
-                            <th>Số lượng</th>
-                            <th class="col-price">Giá</th>
-                            <th class="col-total">Thành tiền</th>
-                            <th>Ghi chú</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody></tbody>
-                </table>
-            </div>
-
-            <button type="button" class="btn-add" onclick="addRow()">+ Thêm dòng</button>
-
-            <div class="total-box">
-                Tổng tiền: <span id="grandTotal">0</span> VND
-            </div>
-
-        </div>
-
-        <div class="modal-footer">
-            <button type="button" onclick="submitForm()" class="btn-save">Lưu</button>
+        <div class="modal-content"
+             id="inventoryDetailContent">
         </div>
 
     </div>
+
 </div>
 
-<script type="module" src="~/js/Admin/InventoryDocument/inventorydocument.js"></script>
+<script src="~/js/Admin/InventoryDocument/inventorydocument.js"></script>

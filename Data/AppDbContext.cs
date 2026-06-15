@@ -85,31 +85,49 @@ namespace CafeChain.Data
         public DbSet<WorkShift> WorkShifts { get; set; }
 
         // ========================= INVENTORY =========================
+        // Auditing
+        public DbSet<AuditLog> AuditLogs { get; set; }
+
+        // Costing
+        public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
+        public DbSet<InventoryCostAllocation> InventoryCostAllocations { get; set; }
+
+        // Debts
         public DbSet<InventoryDebt> InventoryDebts { get; set; }
+
+        // Documents
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
         public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
-        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
-        public DbSet<InventoryTransfer> InventoryTransfers { get; set; }
-        public DbSet<InventoryTransferDetail> InventoryTransferDetails { get; set; }
+        public DbSet<InventoryDocumentSnapshot> InventoryDocumentSnapshots { get; set; }
+        public DbSet<InventoryDocumentSnapshotDetail> InventoryDocumentSnapshotDetails { get; set; }
+
+        // Ingredients
         public DbSet<Ingredient> Ingredients { get; set; }
-        public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
-        // Supplier
+        public DbSet<Unit> Units { get; set; }
+        public DbSet<UnitConversion> UnitConversions { get; set; }
+
+        // Stock
+        public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
+
+        // Stock Take
+        public DbSet<StockTakeSession> StockTakeSessions { get; set; }
+        public DbSet<StockTakeDetail> StockTakeDetails { get; set; }
+
+        // Suppliers
         public DbSet<Supplier> Suppliers { get; set; }
         public DbSet<SupplierBankAccount> SupplierBankAccounts { get; set; }
         public DbSet<SupplierContactPhone> SupplierContactPhones { get; set; }
         public DbSet<IngredientSupplierPriceHistory> IngredientSupplierPriceHistories { get; set; }
         public DbSet<SupplierContact> SupplierContacts { get; set; }
         public DbSet<SupplierPhone> SupplierPhones { get; set; }
-        public DbSet<Unit> Units { get; set; }
-        public DbSet<UnitConversion> UnitConversions { get; set; }
-        public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
-        public DbSet<InventoryCostAllocation> InventoryCostAllocations { get; set; }
-        public DbSet<InventoryDocumentSnapshot> InventoryDocumentSnapshots { get; set; }
-        public DbSet<InventoryDocumentSnapshotDetail> InventoryDocumentSnapshotDetails { get; set; }
-        public DbSet<StockTakeSession> StockTakeSessions { get; set; }
-        public DbSet<StockTakeDetail> StockTakeDetails { get; set; }
-        public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
-        public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
+
+        // Transactions
+        public DbSet<InventoryTransaction> InventoryTransactions { get; set; }
+
+        // Transfers
+        public DbSet<InventoryTransfer> InventoryTransfers { get; set; }
+        public DbSet<InventoryTransferDetail> InventoryTransferDetails { get; set; }
         public DbSet<RequestDeduplication> RequestDeduplications { get; set; }
 
 

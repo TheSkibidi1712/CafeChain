@@ -1,4 +1,5 @@
 using CloudinaryDotNet;
+using QuestPDF.Infrastructure;
 
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
@@ -187,6 +188,13 @@ builder.Services.AddAuthorization(options =>
 // ======================
 builder.Services.Configure<CloudinarySettings>(
     builder.Configuration.GetSection("Cloudinary"));
+
+// ======================
+// 5.3 License QuestPDF
+// ======================
+QuestPDF.Settings.License = LicenseType.Community;
+
+builder.Services.AddControllersWithViews();
 
 
 // =======================
@@ -393,6 +401,7 @@ builder.Services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
 builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+builder.Services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();
 
 #endregion
 
