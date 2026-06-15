@@ -24,13 +24,13 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore
+      run: dotnet restore CafeChain/CafeChain.slnx
 
     - name: Build solution
-      run: dotnet build --configuration Release --no-restore
+      run: dotnet build CafeChain/CafeChain.slnx --no-restore --no-restore
 
     - name: Run tests
-      run: dotnet test --no-build --verbosity normal
+      run: dotnet test CafeChain/CafeChain.slnx --no-build
 
 # =========================
 # CD JOB
