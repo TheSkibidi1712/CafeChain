@@ -1,0 +1,76 @@
+﻿.custom-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+}
+
+    .custom-modal.show {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+.modal-box {
+    width: 650px;
+    background: #fff;
+    border-radius: 12px;
+    animation: fadeIn 0.25s ease;
+}
+
+.modal-header, .modal-footer {
+    padding: 12px;
+    border-bottom: 1px solid #ddd;
+}
+
+.modal-footer {
+    border-top: 1px solid #ddd;
+    text-align: right;
+}
+
+.modal-body {
+    padding: 15px;
+}
+
+.close-btn {
+    cursor: pointer;
+}
+
+.action-icon {
+    margin: 0 6px;
+    cursor: pointer;
+}
+/* PAGINATION */
+
+.pagination {
+    margin-top: 15px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* FIX underline + style link như button */
+.page-btn {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+    text-decoration: none; /* 🔥 QUAN TRỌNG: bỏ gạch chân */
+    color: #333;
+    font-weight: 500;
+}
+
+    /* hover */
+    .page-btn:hover {
+        background: #eee;
+    }
+
+    /* active page */
+    .page-btn.active {
+        background: #333;
+        color: white;
+        border-color: #333;
+    }

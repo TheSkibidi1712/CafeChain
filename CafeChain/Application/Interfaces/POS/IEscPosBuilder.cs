@@ -1,0 +1,22 @@
+using CafeChain.Models.Orders;
+
+namespace CafeChain.Application.Interfaces.POS
+{
+    /// <summary>
+    /// ADR-0003: Sinh mảng byte ESC/POS từ Order data để gửi qua PrintBridgeHub.
+    /// Output là raw bytes gửi thẳng sang máy in qua TCP:9100.
+    /// </summary>
+    public interface IEscPosBuilder
+    {
+        /// <summary>
+        /// Build receipt ESC/POS bytes cho một Order.
+        /// </summary>
+        /// <param name="order">Order entity (include OrderDetails, OrderToppings)</param>
+        /// <param name="storeName">Tên quán hiển thị trên header bill</param>
+        /// <param name="cashierName">Tên thu ngân</param>
+        /// <param name="cashReceived">Tiền khách đưa (để tính tiền thối)</param>
+        /// <param name="isCashPayment">true = thanh toán tiền mặt → kick cash drawer</param>
+        /// <returns>Raw ESC/POS byte array</returns>
+        byte[] BuildReceipt(Order order, string storeName, string cashierName, decimal cashReceived, bool isCashPayment);
+    }
+}

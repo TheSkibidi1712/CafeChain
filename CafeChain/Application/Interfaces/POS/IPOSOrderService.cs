@@ -1,0 +1,38 @@
+using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Results;
+using System.Threading.Tasks;
+
+namespace CafeChain.Application.Interfaces.POS
+{
+    /// <summary>
+    /// Service xử lý nghiệp vụ đặt hàng POS — tuân thủ nguyên tắc Thin Controller
+    /// </summary>
+    public interface IPOSOrderService
+    {
+        /// <summary>
+        /// Lấy menu data cho POS (drinks + sizes + toppings) theo storeId
+        /// </summary>
+        Task<ServiceResult<object>> GetMenuDataAsync(int storeId);
+
+        /// <summary>
+        /// Tìm kiếm khách hàng theo SĐT
+        /// </summary>
+        Task<ServiceResult<object>> SearchCustomerAsync(string phone);
+
+        /// <summary>
+        /// Xử lý toàn bộ nghiệp vụ tạo đơn hàng POS:
+        /// Validate → Calculate → Create Order → Create Payments → Handle Loyalty → Handle Voucher
+        /// </summary>
+        Task<ServiceResult<object>> CommitOrderAsync(POSOrderCommitDto dto, int userId, int storeId);
+
+        /// <summary>
+        /// Lấy dữ liệu tóm tắt ca cho modal đóng ca
+        /// </summary>
+        Task<ServiceResult<object>> GetCloseShiftDataAsync(int userId, int storeId);
+
+        /// <summary>
+        /// Đăng ký nhanh khách hàng hội viên từ POS
+        /// </summary>
+        Task<ServiceResult<object>> RegisterCustomerAsync(CafeChain.Application.DTOs.POS.QuickCustomerRegisterDto dto);
+    }
+}

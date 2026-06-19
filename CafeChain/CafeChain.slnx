@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="CafeChain.csproj" />
+  <Project Path="..\CafeChain.PrintBridge\CafeChain.PrintBridge.csproj" />
+  <Project Path="..\CafeChain.Tests\CafeChain.Tests.csproj" />
+</Solution>

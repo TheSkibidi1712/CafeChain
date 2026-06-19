@@ -1,0 +1,491 @@
+﻿.inventory-container {
+    padding: 20px;
+    color: #333; /* FIX: đảm bảo text luôn thấy */
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+}
+
+.btn-create {
+    background: #4caf50;
+    color: white;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: none;
+}
+
+/* FILTER BOX */
+.filter-box {
+    background: #fff;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+}
+
+.filter-title {
+    font-weight: bold;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+/* GRID */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+    align-items: end;
+}
+
+.filter-item label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+}
+
+/* ACTION */
+.filter-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* BUTTON */
+.btn-filter {
+    background: #2196f3;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-clear {
+    background: #9e9e9e;
+    color: white;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+/* TABLE */
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+    background: white; /* FIX */
+}
+
+    .table th {
+        background: #f5f5f5;
+        color: #333; /* FIX */
+    }
+
+    .table th,
+    .table td {
+        padding: 10px;
+        border: 1px solid #ddd;
+        color: #333; /* FIX */
+    }
+
+    .table tbody tr:hover {
+        background: #f9f9f9;
+    }
+
+/* BADGE */
+.badge {
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: white;
+}
+
+    .badge.import {
+        background: #4caf50;
+    }
+
+    .badge.export {
+        background: #2196f3;
+    }
+
+    .badge.stocktake {
+        background: #9c27b0;
+    }
+
+    .badge.waste {
+        background: #f44336;
+    }
+
+/* MODAL */
+.modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.4);
+    overflow: auto;
+    z-index: 1000;
+}
+
+.modal-content {
+    width: 95%;
+    max-width: 1200px;
+    margin: 50px auto;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    box-sizing: border-box;
+    color: #333; /* FIX QUAN TRỌNG */
+}
+
+/* HEADER MODAL */
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.close {
+    font-size: 20px;
+    cursor: pointer;
+}
+
+/* GRID */
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+/* SCROLL TABLE */
+.table-wrapper {
+    overflow-x: auto;
+}
+
+/* INPUT */
+input,
+select {
+    width: 100%;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    outline: none;
+    color: #333; /* FIX */
+    background: white; /* FIX */
+}
+
+    input:focus,
+    select:focus {
+        border-color: #2196f3;
+    }
+
+/* DETAIL TABLE */
+#detailTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+    #detailTable th {
+        background: #f5f5f5;
+        color: #333;
+    }
+
+    #detailTable th,
+    #detailTable td {
+        border: 1px solid #ddd;
+        padding: 8px;
+        color: #333; /* FIX */
+    }
+
+/* ADD BUTTON */
+.btn-add {
+    margin-top: 12px;
+    background: #ff9800;
+    color: white;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+    .btn-add:hover {
+        background: #f57c00;
+        transform: translateY(-2px);
+    }
+
+/* SAVE */
+.btn-save {
+    background: #2196f3;
+    color: white;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: none;
+}
+
+/* TOTAL */
+.total-box {
+    margin-top: 15px;
+    font-weight: bold;
+    color: #333;
+}
+/* DETAIL BUTTON */
+.btn-detail {
+    background: #607d8b;
+    color: white;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+}
+
+#detailTable select {
+    width: 100%;
+    min-width: 250px; /* tránh bị bó quá nhỏ */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.table-wrapper {
+    overflow-x: auto;
+}
+
+#detailTable {
+    min-width: 1150px; /* ép bảng rộng hơn */
+}
+    /* nguyên liệu */
+    #detailTable td:nth-child(1) {
+        width: 29%;
+    }
+    /* đơn vị */
+    #detailTable td:nth-child(2) {
+        width: 10%;
+    }
+    /* số lượng */
+    #detailTable td:nth-child(3) {
+        width: 9%;
+    }
+    /* giá */
+
+    #detailTable td:nth-child(4) {
+        width: 10%;
+    }
+
+/* TABS */
+.tabs {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.tab-btn {
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    background: #ddd;
+    cursor: pointer;
+}
+
+    .tab-btn.active {
+        background: #2196f3;
+        color: white;
+    }
+
+.tab-content {
+    display: none;
+}
+
+    .tab-content.active {
+        display: block;
+    }
+
+/* 🔥 ẨN HEADER MODAL */
+.modal-header {
+    display: none;
+}
+
+/* 🔥 EXPORT: ẨN GIÁ + THÀNH TIỀN */
+.hide-price .col-price,
+.hide-price .col-total {
+    display: none;
+}
+
+/* TABLE GỌN HƠN */
+#detailTable th,
+#detailTable td {
+    text-align: left;
+}
+
+/* INPUT đẹp hơn */
+input, select {
+    transition: 0.2s;
+}
+
+    input:focus, select:focus {
+        box-shadow: 0 0 0 2px rgba(33,150,243,0.2);
+    }
+/* 🔥 NÚT X MODAL */
+.modal-close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f5f5f5;
+    color: #555;
+    cursor: pointer;
+    font-size: 18px;
+    z-index: 2000; /* 🔥 đảm bảo nổi trên cùng */
+
+    transition: all 0.25s ease;
+}
+
+    /* 🔥 hover chắc chắn ăn */
+    .modal-close:hover {
+        background: #f44336 !important;
+        color: white !important;
+        transform: rotate(90deg) scale(1.1);
+    }
+
+    /* 🔥 click feedback */
+    .modal-close:active {
+        transform: scale(0.9);
+    }
+
+/* 🔥 FIX GRID EXPORT CHO ĐỀU */
+#exportPartner,
+#exportPurpose {
+    width: 100%;
+}
+.modal-content {
+    position: relative; /* 🔥 BẮT BUỘC */
+    z-index: 1001;
+}
+
+.hidden {
+    display: none;
+}
+.badge-status {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+}
+
+    .badge-status.draft {
+        background: #ccc;
+        color: #333;
+    }
+
+    .badge-status.confirmed {
+        background: #4caf50;
+        color: white;
+    }
+
+    .badge-status.cancelled {
+        background: #f44336;
+        color: white;
+    }
+
+/* BUTTON CONFIRM NHẬN HẾT */
+.btn-confirm {
+    background: #ff9800;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    margin-left: 8px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+}
+
+    .btn-confirm:hover {
+        background: #f57c00;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+    }
+
+    .btn-confirm:active {
+        transform: scale(0.97);
+    }
+
+    .btn-confirm:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+        box-shadow: none;
+        transform: none;
+    }
+
+/* PAGINATION */
+
+.pagination {
+    margin-top: 15px;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+/* FIX underline + style link như button */
+.page-btn {
+    padding: 6px 12px;
+    border: 1px solid #ccc;
+    background: white;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: 0.2s;
+    text-decoration: none; /* 🔥 QUAN TRỌNG: bỏ gạch chân */
+    color: #333;
+    font-weight: 500;
+}
+
+    /* hover */
+    .page-btn:hover {
+        background: #eee;
+    }
+
+    /* active page */
+    .page-btn.active {
+        background: #333;
+        color: white;
+        border-color: #333;
+    }
+
+/* ===== REMOVE ROW BUTTON ===== */
+.col-action {
+    text-align: center;
+    width: 60px;
+}
+
+.btn-remove-row {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: #f5f5f5;
+    color: #555;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+    .btn-remove-row:hover {
+        background: #f44336;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    .btn-remove-row:active {
+        transform: scale(0.9);
+    }

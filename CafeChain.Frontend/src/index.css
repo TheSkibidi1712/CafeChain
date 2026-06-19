@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* ============================================================
+   CafeChain POS — iPad Landscape Design System
+   Tailwind CSS v4: CSS-first configuration
+   Brand Identity: Trắng sạch + Cam đặc (Solid Orange)
+   ============================================================ */
+
+@theme {
+  /* ─── Brand Colors: Trắng + Cam đặc ─── */
+  --color-brand-orange: #FF8C00;
+  --color-brand-orange-hover: #E67E00;
+  --color-brand-orange-light: #FFF3E0;
+  --color-brand-orange-border: #FFB74D;
+
+  /* Surfaces */
+  --color-surface: #F9FAFB;
+  --color-surface-white: #FFFFFF;
+  --color-surface-card: #FFFFFF;
+  --color-surface-hover: #FFF8F0;
+
+  /* Text */
+  --color-text-primary: #1F2937;
+  --color-text-secondary: #6B7280;
+  --color-text-muted: #9CA3AF;
+  --color-text-inverse: #FFFFFF;
+
+  /* Semantic */
+  --color-danger: #EF4444;
+  --color-danger-hover: #DC2626;
+  --color-success: #22C55E;
+  --color-border: #E5E7EB;
+  --color-border-light: #F3F4F6;
+
+  /* Typography */
+  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+
+  /* Shadows — NO gradients, clean flat shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-card-hover: 0 4px 12px rgba(255, 140, 0, 0.15);
+  --shadow-button: 0 2px 4px rgba(255, 140, 0, 0.2);
+}
