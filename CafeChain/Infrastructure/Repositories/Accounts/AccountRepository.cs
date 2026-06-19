@@ -74,11 +74,9 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
 
                 customer.AccountId = account.AccountId;
 
-                if (customer.Category ==
-                    CustomerCategory.Guest)
+                if (customer.Category == CustomerCategory.Guest)
                 {
-                    customer.Category =
-                        CustomerCategory.Registered;
+                    customer.Category = CustomerCategory.Registered;
                 }
 
                 var roleId =
@@ -128,8 +126,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                 _context.AccountRoles.Add(
                     new AccountRole
                     {
-                        AccountId =
-                            account.AccountId,
+                        AccountId = account.AccountId,
 
                         RoleId = roleId
                     });
@@ -190,12 +187,7 @@ namespace CafeChain.Infrastrusture.Repositories.Accounts
                             );
                     });
 
-            if (
-                map != null
-                &&
-                map.TryGetValue(
-                    role,
-                    out int id))
+            if (map != null && map.TryGetValue(role, out int id))
             {
                 return id;
             }

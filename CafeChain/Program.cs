@@ -82,6 +82,7 @@ var builder = WebApplication.CreateBuilder(args);
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.Hosting.Lifetime", LogEventLevel.Information)
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
     .Enrich.FromLogContext()
     .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
@@ -244,6 +245,8 @@ builder.Services.AddScoped<CafeChain.Application.Services.PayOSIntegration.IPayO
 // Đăng ký FileService
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Customers.ICustomerRepository, CafeChain.Infrastructure.Repositories.Customers.CustomerRepository>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.Cloudinaries.ICloudinaryService, CafeChain.Application.Services.Cloudinaries.CloudinaryService>();
 
 // Bản đồ Geocoding
 builder.Services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
@@ -287,6 +290,7 @@ builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdmin
 builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
 builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+builder.Services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();
 
 // Admin Store Inventories
 builder.Services.AddScoped<IAdminStoreInventoryRepository, AdminStoreInventoryRepository>();

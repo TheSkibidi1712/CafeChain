@@ -1550,6 +1550,9 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkToppingId"));
 
+                    b.Property<bool>("Active")
+                        .HasColumnType("bit");
+
                     b.Property<int>("DrinkId")
                         .HasColumnType("int");
 
@@ -1569,72 +1572,84 @@ namespace CafeChain.Migrations
                         new
                         {
                             DrinkToppingId = 1,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 2,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 3,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 4,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 5,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 6,
+                            Active = false,
                             DrinkId = 3,
                             ToppingId = 6
                         },
                         new
                         {
                             DrinkToppingId = 7,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 1
                         },
                         new
                         {
                             DrinkToppingId = 8,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 2
                         },
                         new
                         {
                             DrinkToppingId = 9,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 3
                         },
                         new
                         {
                             DrinkToppingId = 10,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 4
                         },
                         new
                         {
                             DrinkToppingId = 11,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 5
                         },
                         new
                         {
                             DrinkToppingId = 12,
+                            Active = false,
                             DrinkId = 4,
                             ToppingId = 6
                         });
@@ -7116,11 +7131,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 7, 12, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8926),
+                            EndDate = new DateTime(2026, 7, 18, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4449),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 6, 5, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8910)
+                            StartDate = new DateTime(2026, 6, 11, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4427)
                         },
                         new
                         {
@@ -7128,10 +7143,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 6, 27, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8931),
+                            EndDate = new DateTime(2026, 7, 3, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4457),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 6, 11, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8930)
+                            StartDate = new DateTime(2026, 6, 17, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4456)
                         },
                         new
                         {
@@ -7139,11 +7154,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 8, 11, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8933),
+                            EndDate = new DateTime(2026, 8, 17, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4460),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 5, 13, 19, 1, 20, 2, DateTimeKind.Local).AddTicks(8932)
+                            StartDate = new DateTime(2026, 5, 19, 22, 0, 38, 20, DateTimeKind.Local).AddTicks(4459)
                         });
                 });
 

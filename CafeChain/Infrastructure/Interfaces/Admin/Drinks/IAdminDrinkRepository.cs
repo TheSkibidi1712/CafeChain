@@ -5,20 +5,41 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Drinks
     public interface IAdminDrinkRepository
     {
         Task<IEnumerable<Drink>> GetAllDrinksAsync();
-        Task<Drink> GetDrinkByIdAsync(int id);
+
+        Task<Drink?> GetDrinkByIdAsync(int id);
+
         Task<int> CreateDrinkAsync(Drink drink);
+
         Task UpdateDrinkAsync(Drink drink);
+
         Task ToggleDrinkStatusAsync(int id);
+
         Task<bool> IsDrinkNameExistsAsync(string name, int? excludeId = null);
+
         Task<IEnumerable<DrinkCategory>> GetDrinkCategoriesAsync();
+
         Task<IEnumerable<ProductType>> GetProductTypesAsync();
-        
-        // Image Management
+
+        // =========================
+        // Drink Images
+        // =========================
+
         Task<IEnumerable<DrinkImage>> GetDrinkImagesAsync(int drinkId);
-        Task<DrinkImage> GetDrinkImageByIdAsync(int drinkImageId);
+
+        Task<DrinkImage?> GetDrinkImageByIdAsync(int drinkImageId);
+
         Task AddDrinkImageAsync(DrinkImage drinkImage);
-        Task SetDefaultDrinkImageAsync(int drinkId, int newDefaultImageId);
-        Task DeleteDrinkImageAsync(int drinkImageId);
+
         Task UpdateDrinkImageAsync(DrinkImage drinkImage);
+
+        Task DeleteDrinkImageAsync(int drinkImageId);
+
+        Task SetDefaultDrinkImageAsync(int drinkId, int drinkImageId);
+
+        Task<bool> HasDefaultImageAsync(int drinkId);
+
+        Task<int> GetImageCountAsync(int drinkId);
+
+        Task SaveChangesAsync();
     }
 }

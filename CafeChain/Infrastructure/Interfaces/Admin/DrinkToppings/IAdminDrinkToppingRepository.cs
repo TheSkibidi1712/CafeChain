@@ -4,17 +4,16 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.DrinkToppings
 {
     public interface IAdminDrinkToppingRepository
     {
-        // =============================
-        // DRINK (PHỤC VỤ UI)
-        // =============================
         Task<IEnumerable<Drink>> GetActiveDrinksAsync();
 
-        // =============================
-        // DRINK - TOPPING
-        // =============================
         Task<IEnumerable<DrinkTopping>> GetByToppingIdAsync(int toppingId);
 
         Task<DrinkTopping?> GetByIdAsync(int id);
+
+        // NEW
+        Task<Drink?> GetDrinkByIdAsync(int drinkId);
+
+        Task<Topping?> GetToppingByIdAsync(int toppingId);
 
         Task AddAsync(DrinkTopping entity);
 

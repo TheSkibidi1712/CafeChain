@@ -61,7 +61,7 @@ namespace CafeChain.Controllers
             var result = await _customerService.UpdateAvatarAsync(customerId, avatarFile);
 
             // 🔥 BÍ KÍP CẬP NHẬT ẢNH TRÊN HEADER (CẤP LẠI COOKIE) 🔥
-            if (result.Url != null)
+            if (result != null)
             {
                 var identity = (ClaimsIdentity)User.Identity;
                 var avatarClaim = identity.FindFirst("AvatarUrl"); // Tìm link ảnh cũ
@@ -71,7 +71,7 @@ namespace CafeChain.Controllers
                     identity.RemoveClaim(avatarClaim); // Xé bỏ link ảnh cũ
                 }
                 // Dán link ảnh mới vào Cookie
-                identity.AddClaim(new Claim("AvatarUrl", result.Url));
+                identity.AddClaim(new Claim("AvatarUrl", result));
 
                 // Bắt trình duyệt lưu lại ngay lập tức
                 await HttpContext.SignInAsync(
@@ -83,8 +83,8 @@ namespace CafeChain.Controllers
             return Json(new
             {
                 success = true,
-                imageUrl = result.Url,
-                isReused = result.IsReused
+                imageUrl = result,
+                isReused = false
             });
         }
         [HttpPost]
@@ -212,8 +212,14 @@ namespace CafeChain.Controllers
                 return Unauthorized();
             }
 
-            // Gọi Service thực thi
-            var result = await _customerService.ChangePasswordAsync(accountId, model);
+            // Gọi Service thực thi sau khi map dữ liệu sang Request DTO
+            var request = new ChangePasswordRequest
+            {
+                CurrentPassword = model.CurrentPassword,
+                NewPassword = model.NewPassword,
+                ConfirmPassword = model.ConfirmPassword
+            };
+            var result = await _customerService.ChangePasswordAsync(accountId, request);
 
             return Json(new { success = result.Success, message = result.Message });
         }

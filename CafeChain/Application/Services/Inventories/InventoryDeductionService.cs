@@ -168,16 +168,8 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         // ============================================================
-        // DEDUCT: Xuất kho bán hàng — Đệ quy BOM đến nguyên liệu gốc
+        // DEDUCT: Xuất kho bán hàng (giữ nguyên logic, bổ sung UnitConversion)
         // ============================================================
-        /// <summary>
-        /// Trừ kho cho đơn hàng POS. Bóc tách đệ quy BOM:
-        ///   - IngredientId → trừ trực tiếp StoreInventory (leaf node)
-        ///   - ChildRecipeId → đệ quy vào Recipe con, nhân Quantity theo tỷ lệ
-        /// 
-        /// Guards: MAX_BOM_DEPTH=5, Cycle Detection, YieldPercentage mỗi tầng.
-        /// ADR-0001: Cho phép kho âm (Blind Selling).
-        /// </summary>
         public async Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId)
         {
             if (soldItems == null || !soldItems.Any())
@@ -195,17 +187,38 @@ namespace CafeChain.Application.Services.Inventories
 
                     if (recipe == null)
                     {
-                        _logger.LogWarning("Không tìm thấy công thức (BOM) hoạt động cho DrinkId: {DrinkId}", item.DrinkId);
+                        _logger.LogWarning($"Không tìm thấy công thức (BOM) hoạt động cho DrinkId: {item.DrinkId}");
                         continue;
                     }
 
-                    // Đệ quy bóc tách BOM → trừ kho từng nguyên liệu gốc
-                    await DeductRecipeRecursiveAsync(
-                        recipe, 
-                        multiplier: item.Quantity,  // số ly bán
-                        storeId: storeId, 
-                        visited: new HashSet<int>(), 
-                        depth: 0);
+                    // STRICT OPTION B: Xuất thẳng Bán Thành Phẩm / Nguyên Liệu, KHÔNG bóc tách đệ quy
+                    foreach (var detail in recipe.RecipeDetails)
+                    {
+                        decimal requiredQty = detail.Quantity * item.Quantity;
+
+                        // FIX #4: Apply Unit Conversion cho xuất kho
+                        decimal convertedQty = detail.IngredientId.HasValue
+                            ? await ConvertQuantityToBaseUnitAsync(
+                                detail.IngredientId.Value, requiredQty, detail.UnitId)
+                            : requiredQty;
+
+                        // Tìm trong StoreInventory
+                        var inventoryItem = await GetOrCreateInventoryItem(storeId, detail.IngredientId, detail.ChildRecipeId);
+
+                        decimal beforeQty = inventoryItem.AvailableQty;
+                        inventoryItem.AvailableQty -= convertedQty; // Cho phép âm kho (Soft-block)
+
+                        // Ghi log InventoryTransaction
+                        _context.InventoryTransactions.Add(new InventoryTransaction
+                        {
+                            StoreInventoryId = inventoryItem.StoreInventoryId,
+                            Type = InventoryDocumentType.SALES_DEDUCTION,
+                            Quantity = convertedQty,
+                            BeforeQty = beforeQty,
+                            AfterQty = inventoryItem.AvailableQty,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -224,101 +237,6 @@ namespace CafeChain.Application.Services.Inventories
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi xuất kho bán hàng.");
                 return ServiceResult.Failure($"Lỗi xuất kho: {ex.Message}");
-            }
-        }
-
-        // ============================================================
-        // RECURSIVE: Bóc tách BOM đệ quy đến nguyên liệu gốc
-        // ============================================================
-        /// <summary>
-        /// Duyệt đệ quy từng RecipeDetail:
-        ///   - IngredientId != null → LEAF: trừ kho StoreInventory + ghi InventoryTransaction
-        ///   - ChildRecipeId != null → NODE: load Recipe con, nhân multiplier, đệ quy tiếp
-        /// 
-        /// multiplier = tổng số lượng cần trừ (đã nhân tích lũy từ các tầng cha).
-        /// VD: 2 ly × Recipe "Cafe Sữa" có 1× BTP "Sữa pha" → multiplier=2 cho Recipe "Sữa pha".
-        /// </summary>
-        private async Task DeductRecipeRecursiveAsync(
-            Models.Drinks.Recipe recipe,
-            decimal multiplier,
-            int storeId,
-            HashSet<int> visited,
-            int depth)
-        {
-            // GUARD 1: Depth Limit
-            if (depth > MAX_BOM_DEPTH)
-            {
-                _logger.LogWarning(
-                    "Trừ kho vượt quá {MaxDepth} tầng BOM tại Recipe #{RecipeId} '{Name}'. Dừng đệ quy.",
-                    MAX_BOM_DEPTH, recipe.RecipeId, recipe.Name);
-                return;
-            }
-
-            // GUARD 2: Cycle Detection
-            if (!visited.Add(recipe.RecipeId))
-            {
-                _logger.LogWarning(
-                    "Phát hiện vòng lặp BOM tại Recipe #{RecipeId} '{Name}'. Dừng đệ quy.",
-                    recipe.RecipeId, recipe.Name);
-                return;
-            }
-
-            // Áp dụng YieldPercentage: hao hụt 5% (Yield=95%) → cần dùng thêm nguyên liệu
-            // VD: cần 100g nhưng Yield=95% → thực tế phải trừ 100/0.95 ≈ 105.26g
-            decimal yieldMultiplier = multiplier;
-            if (recipe.YieldPercentage > 0 && recipe.YieldPercentage != 100)
-            {
-                yieldMultiplier = multiplier / (recipe.YieldPercentage / 100m);
-            }
-
-            foreach (var detail in recipe.RecipeDetails)
-            {
-                decimal requiredQty = detail.Quantity * yieldMultiplier;
-
-                if (detail.IngredientId.HasValue)
-                {
-                    // ─── LEAF NODE: Nguyên liệu trực tiếp → trừ kho ───
-                    decimal convertedQty = await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, requiredQty, detail.UnitId);
-
-                    var inventoryItem = await GetOrCreateInventoryItem(storeId, detail.IngredientId, null);
-
-                    decimal beforeQty = inventoryItem.AvailableQty;
-                    inventoryItem.AvailableQty -= convertedQty; // ADR-0001: cho phép âm kho
-
-                    _context.InventoryTransactions.Add(new InventoryTransaction
-                    {
-                        StoreInventoryId = inventoryItem.StoreInventoryId,
-                        Type = InventoryDocumentType.SALES_DEDUCTION,
-                        Quantity = convertedQty,
-                        BeforeQty = beforeQty,
-                        AfterQty = inventoryItem.AvailableQty,
-                        CreatedAt = DateTime.UtcNow
-                    });
-                }
-                else if (detail.ChildRecipeId.HasValue)
-                {
-                    // ─── NODE: Bán thành phẩm → đệ quy xuống tầng tiếp ───
-                    var childRecipe = await _context.Recipes
-                        .Include(r => r.RecipeDetails)
-                        .FirstOrDefaultAsync(r => r.RecipeId == detail.ChildRecipeId.Value);
-
-                    if (childRecipe == null)
-                    {
-                        _logger.LogWarning(
-                            "Không tìm thấy ChildRecipe #{ChildRecipeId} trong BOM của Recipe #{ParentId}.",
-                            detail.ChildRecipeId.Value, recipe.RecipeId);
-                        continue;
-                    }
-
-                    // Đệ quy: requiredQty = số lượng bán thành phẩm cần dùng
-                    await DeductRecipeRecursiveAsync(
-                        childRecipe,
-                        multiplier: requiredQty,
-                        storeId: storeId,
-                        visited: visited,
-                        depth: depth + 1);
-                }
             }
         }
 

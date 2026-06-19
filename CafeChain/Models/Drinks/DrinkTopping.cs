@@ -5,8 +5,6 @@ namespace CafeChain.Models.Drinks
         public int DrinkToppingId { get; set; }
         public int DrinkId { get; set; }
         public int ToppingId { get; set; }
-
-        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
         public bool Active { get; set; }
 
         public virtual Drink Drink { get; set; }

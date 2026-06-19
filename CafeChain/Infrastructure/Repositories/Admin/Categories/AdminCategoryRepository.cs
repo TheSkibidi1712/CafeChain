@@ -1,6 +1,3 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Linq;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Models.Drinks;
@@ -17,59 +14,96 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             _context = context;
         }
 
+        #region Queries
+
         public async Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync()
         {
-            return await _context.DrinkCategories.ToListAsync();
+            return await _context.DrinkCategories
+                .AsNoTracking()
+                .OrderBy(c => c.Name)
+                .ToListAsync();
         }
 
-        public async Task<DrinkCategory> GetCategoryByIdAsync(int id)
+        public async Task<DrinkCategory?> GetCategoryByIdAsync(int id)
         {
-            return await _context.DrinkCategories.FindAsync(id);
+            return await _context.DrinkCategories
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
         }
 
-        public async Task<(IEnumerable<DrinkCategory> Items, int TotalCount)> GetPaginatedCategoriesAsync(int pageIndex, int pageSize)
+        public async Task<(IEnumerable<DrinkCategory> Items, int TotalCount)>
+            GetPaginatedCategoriesAsync(int pageIndex, int pageSize)
         {
-            var query = _context.DrinkCategories.AsQueryable();
+            var query = _context.DrinkCategories
+                .AsNoTracking();
+
             var totalCount = await query.CountAsync();
-            var items = await query.OrderByDescending(c => c.CategoryId)
-                                   .Skip((pageIndex - 1) * pageSize)
-                                   .Take(pageSize)
-                                   .ToListAsync();
+
+            var items = await query
+                .OrderByDescending(c => c.CategoryId)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
             return (items, totalCount);
         }
 
-        public async Task<DrinkCategory> CreateCategoryAsync(DrinkCategory category)
+        public async Task<bool> CategoryExistsAsync(
+            string name,
+            int? excludeId = null)
         {
-            _context.DrinkCategories.Add(category);
-            await _context.SaveChangesAsync();
-            return category;
-        }
+            name = name.Trim();
 
-        public async Task<DrinkCategory> UpdateCategoryAsync(DrinkCategory category)
-        {
-            _context.DrinkCategories.Update(category);
-            await _context.SaveChangesAsync();
-            return category;
-        }
+            var query = _context.DrinkCategories
+                .AsNoTracking()
+                .Where(c => c.Name == name);
 
-        public async Task<bool> CategoryExistsAsync(string name, int? excludeId = null)
-        {
             if (excludeId.HasValue)
             {
-                return await _context.DrinkCategories.AnyAsync(c => c.Name == name && c.CategoryId != excludeId.Value);
+                query = query.Where(c =>
+                    c.CategoryId != excludeId.Value);
             }
-            return await _context.DrinkCategories.AnyAsync(c => c.Name == name);
+
+            return await query.AnyAsync();
+        }
+
+        #endregion
+
+        #region Commands
+
+        public async Task CreateCategoryAsync(
+            DrinkCategory category)
+        {
+            await _context.DrinkCategories.AddAsync(category);
+        }
+
+        public Task UpdateCategoryAsync(
+            DrinkCategory category)
+        {
+            _context.DrinkCategories.Update(category);
+
+            return Task.CompletedTask;
         }
 
         public async Task<bool> ToggleStatusAsync(int id)
         {
-            var category = await _context.DrinkCategories.FindAsync(id);
-            if (category == null) return false;
+            var category = await _context.DrinkCategories
+                .FirstOrDefaultAsync(c => c.CategoryId == id);
+
+            if (category == null)
+            {
+                return false;
+            }
 
             category.Active = !category.Active;
-            _context.DrinkCategories.Update(category);
-            await _context.SaveChangesAsync();
+
             return true;
         }
+
+        public async Task<int> SaveChangesAsync()
+        {
+            return await _context.SaveChangesAsync();
+        }
+
+        #endregion
     }
 }

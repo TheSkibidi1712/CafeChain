@@ -195,6 +195,50 @@
             font-size: 0.9rem;
             text-align: left;
         }
+
+        
+            .demo-accounts {
+                margin-top: 25px;
+                border-top: 1px solid #eee;
+                padding-top: 20px;
+            }
+
+                .demo-accounts h3 {
+                    margin-bottom: 15px;
+                    font-size: 16px;
+                    color: #333;
+                }
+
+            .account-grid {
+                display: grid;
+                grid-template-columns: repeat(2,1fr);
+                gap: 10px;
+            }
+
+            .account-card {
+                border: 1px solid #ddd;
+                border-radius: 12px;
+                padding: 12px;
+                cursor: pointer;
+                transition: all .2s;
+                text-align: left;
+                background: #fafafa;
+            }
+
+                .account-card:hover {
+                    border-color: #d34817;
+                    transform: translateY(-2px);
+                }
+
+                .account-card strong {
+                    display: block;
+                    color: #d34817;
+                }
+
+                .account-card small {
+                    color: #666;
+                    word-break: break-all;
+                }
     </style>
 </head>
 <body>
@@ -205,6 +249,88 @@
             </div>
             <h1 class="brand-name">CafeChain</h1>
             <p class="subtitle">Chào mừng bạn quay trở lại</p>
+        </div>
+        <div class="demo-accounts">
+            <h3>Tài khoản nhanh</h3>
+
+            <div class="account-grid">
+                <div class="account-card"
+                     data-email="superadmin@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Super Admin</strong>
+                    <small>superadmin@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="ceo@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>CEO</strong>
+                    <small>ceo@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="cfo@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>CFO</strong>
+                    <small>cfo@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="marketing@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Marketing</strong>
+                    <small>marketing@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="operations@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Operations</strong>
+                    <small>operations@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="hr@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>HR</strong>
+                    <small>hr@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="areamanager@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Area Manager</strong>
+                    <small>areamanager@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="storemanager@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Store Manager</strong>
+                    <small>storemanager@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="shiftsupervisor@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Shift Supervisor</strong>
+                    <small>shiftsupervisor@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="nvcasang@cafechain.vn"
+                     data-password="The@1712">
+                    <strong>Nhân viên Ca Sáng</strong>
+                    <small>nvcasang@cafechain.vn</small>
+                </div>
+
+                <div class="account-card"
+                     data-email="khachhang@gmail.com"
+                     data-password="The@1712">
+                    <strong>Khách hàng</strong>
+                    <small>khachhang@gmail.com</small>
+                </div>
+            </div>
         </div>
 
         <form asp-action="Login" method="post">
@@ -316,6 +442,16 @@
 
             // 🔥 polling mỗi 5 giây
             const interval = setInterval(checkLock, 5000);
+        });
+
+        $('.account-card').click(function () {
+
+            const email = $(this).data('email');
+            const password = $(this).data('password');
+
+            $('#Email').val(email);
+            $('#passwordInput').val(password);
+
         });
     </script>
 </body>

@@ -14,134 +14,169 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Drinks
             _context = context;
         }
 
+        // =====================================================
+        // Drink
+        // =====================================================
+
         public async Task<IEnumerable<Drink>> GetAllDrinksAsync()
         {
             return await _context.Drinks
-                .Include(d => d.Category)
-                .Include(d => d.ProductType)
-                .Include(d => d.DrinkImages)
-                .OrderByDescending(d => d.DrinkId)
+                .Include(x => x.Category)
+                .Include(x => x.ProductType)
+                .Include(x => x.DrinkImages)
+                .OrderByDescending(x => x.DrinkId)
                 .ToListAsync();
         }
 
-        public async Task<Drink> GetDrinkByIdAsync(int id)
+        public async Task<Drink?> GetDrinkByIdAsync(int id)
         {
             return await _context.Drinks
-                .Include(d => d.Category)
-                .Include(d => d.ProductType)
-                .Include(d => d.DrinkImages)
-                .FirstOrDefaultAsync(d => d.DrinkId == id);
+                .Include(x => x.Category)
+                .Include(x => x.ProductType)
+                .Include(x => x.DrinkImages)
+                .FirstOrDefaultAsync(x => x.DrinkId == id);
         }
 
         public async Task<int> CreateDrinkAsync(Drink drink)
         {
-            _context.Drinks.Add(drink);
-            await _context.SaveChangesAsync();
+            await _context.Drinks.AddAsync(drink);
+
             return drink.DrinkId;
         }
 
-        public async Task UpdateDrinkAsync(Drink drink)
+        public Task UpdateDrinkAsync(Drink drink)
         {
-            // Đã nhận được entity Tracking từ DbContext qua hàm GetDrinkByIdAsync, 
-            // EF Core tự phát hiện thay đổi nên chỉ cần SaveChanges. Không được dùng .Update() vì sẽ gây conflict các Navigation Properties.
-            await _context.SaveChangesAsync();
+            _context.Drinks.Update(drink);
+
+            return Task.CompletedTask;
         }
 
         public async Task ToggleDrinkStatusAsync(int id)
         {
-            var drink = await _context.Drinks.FindAsync(id);
-            if (drink != null)
+            var drink = await _context.Drinks
+                .FirstOrDefaultAsync(x => x.DrinkId == id);
+
+            if (drink == null)
             {
-                drink.Active = !drink.Active;
-                await _context.SaveChangesAsync();
+                return;
             }
+
+            drink.Active = !drink.Active;
         }
 
-        public async Task<bool> IsDrinkNameExistsAsync(string name, int? excludeId = null)
+        public async Task<bool> IsDrinkNameExistsAsync(
+            string name,
+            int? excludeId = null)
         {
-            var query = _context.Drinks.Where(d => d.Name.ToLower() == name.ToLower());
+            var query = _context.Drinks
+                .Where(x => x.Name.ToLower() == name.ToLower());
+
             if (excludeId.HasValue)
             {
-                query = query.Where(d => d.DrinkId != excludeId.Value);
+                query = query.Where(x => x.DrinkId != excludeId.Value);
             }
+
             return await query.AnyAsync();
         }
 
         public async Task<IEnumerable<DrinkCategory>> GetDrinkCategoriesAsync()
         {
             return await _context.DrinkCategories
-                .Where(c => c.Active)
-                .OrderBy(c => c.Name)
+                .Where(x => x.Active)
+                .OrderBy(x => x.Name)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<ProductType>> GetProductTypesAsync()
         {
             return await _context.ProductTypes
-                .Where(pt => pt.Active)
-                .OrderBy(pt => pt.Name)
+                .Where(x => x.Active)
+                .OrderBy(x => x.Name)
                 .ToListAsync();
         }
 
-        // Image Management
+        // =====================================================
+        // Drink Images
+        // =====================================================
 
         public async Task<IEnumerable<DrinkImage>> GetDrinkImagesAsync(int drinkId)
         {
             return await _context.DrinkImages
-                .Where(img => img.DrinkId == drinkId)
-                .OrderByDescending(img => img.IsDefault)
-                .ThenByDescending(img => img.DrinkImageId)
+                .Where(x => x.DrinkId == drinkId)
+                .OrderByDescending(x => x.IsDefault)
+                .ThenByDescending(x => x.DrinkImageId)
                 .ToListAsync();
         }
 
-        public async Task<DrinkImage> GetDrinkImageByIdAsync(int drinkImageId)
+        public async Task<DrinkImage?> GetDrinkImageByIdAsync(int drinkImageId)
         {
-            return await _context.DrinkImages.FindAsync(drinkImageId);
+            return await _context.DrinkImages
+                .FirstOrDefaultAsync(x => x.DrinkImageId == drinkImageId);
         }
 
         public async Task AddDrinkImageAsync(DrinkImage drinkImage)
         {
             await _context.DrinkImages.AddAsync(drinkImage);
-            await _context.SaveChangesAsync(); // 🔥 BẮT BUỘC
-
         }
 
-        public async Task SetDefaultDrinkImageAsync(int drinkId, int newDefaultImageId)
+        public Task UpdateDrinkImageAsync(DrinkImage drinkImage)
         {
-            // Reset existing defaults
-            var currentDefaultImages = await _context.DrinkImages
-                .Where(img => img.DrinkId == drinkId && img.IsDefault)
-                .ToListAsync();
+            _context.DrinkImages.Update(drinkImage);
 
-            foreach (var img in currentDefaultImages)
-            {
-                img.IsDefault = false;
-            }
-
-            // Set new target as default
-            var targetImage = await _context.DrinkImages.FindAsync(newDefaultImageId);
-            if (targetImage != null && targetImage.DrinkId == drinkId)
-            {
-                targetImage.IsDefault = true;
-            }
-
-            await _context.SaveChangesAsync();
+            return Task.CompletedTask;
         }
 
         public async Task DeleteDrinkImageAsync(int drinkImageId)
         {
-            var image = await _context.DrinkImages.FindAsync(drinkImageId);
-            if (image != null)
+            var image = await _context.DrinkImages
+                .FirstOrDefaultAsync(x => x.DrinkImageId == drinkImageId);
+
+            if (image == null)
             {
-                _context.DrinkImages.Remove(image);
-                await _context.SaveChangesAsync();
+                return;
+            }
+
+            _context.DrinkImages.Remove(image);
+        }
+
+        public async Task SetDefaultDrinkImageAsync(
+            int drinkId,
+            int drinkImageId)
+        {
+            var images = await _context.DrinkImages
+                .Where(x => x.DrinkId == drinkId)
+                .ToListAsync();
+
+            foreach (var image in images)
+            {
+                image.IsDefault = false;
+            }
+
+            var targetImage = images
+                .FirstOrDefault(x => x.DrinkImageId == drinkImageId);
+
+            if (targetImage != null)
+            {
+                targetImage.IsDefault = true;
             }
         }
 
-        public async Task UpdateDrinkImageAsync(DrinkImage drinkImage)
+        public async Task<bool> HasDefaultImageAsync(int drinkId)
         {
-            // Entity đã được track bởi DbContext (lấy qua FindAsync),
-            // chỉ cần cập nhật ImageUrl rồi SaveChanges là đủ.
+            return await _context.DrinkImages
+                .AnyAsync(x =>
+                    x.DrinkId == drinkId &&
+                    x.IsDefault);
+        }
+
+        public async Task<int> GetImageCountAsync(int drinkId)
+        {
+            return await _context.DrinkImages
+                .CountAsync(x => x.DrinkId == drinkId);
+        }
+
+        public async Task SaveChangesAsync()
+        {
             await _context.SaveChangesAsync();
         }
     }

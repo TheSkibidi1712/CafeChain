@@ -1,0 +1,120 @@
+﻿<link rel="stylesheet"
+      href="~/css/Admin/InventoryDocument/inventorydocument.css" />
+
+<div class="voucher-preview">
+
+    <div class="voucher-title">
+
+        <h2>CAFECHAIN</h2>
+
+        <h5>PHIẾU NHẬP KHO</h5>
+
+    </div>
+
+    <div class="voucher-info">
+
+        <div>
+
+            <label>Số Phiếu</label>
+
+            <strong>@Model.Code</strong>
+
+        </div>
+
+        <div>
+
+            <label>Ngày</label>
+
+            <strong>
+                @Model.DocumentDate.ToString("dd/MM/yyyy")
+            </strong>
+
+        </div>
+
+        <div>
+
+            <label>Kho</label>
+
+            <strong>@Model.StoreName</strong>
+
+        </div>
+
+        <div>
+
+            <label>Nhà Cung Cấp</label>
+
+            <strong>@Model.SupplierName</strong>
+
+        </div>
+
+    </div>
+
+    <table class="voucher-table">
+
+        <thead>
+
+            <tr>
+
+                <th>STT</th>
+                <th>Tên Hàng</th>
+                <th>ĐVT</th>
+                <th>SL</th>
+                <th>Đơn Giá</th>
+                <th>Thành Tiền</th>
+
+            </tr>
+
+        </thead>
+
+        <tbody>
+
+            @{
+                int stt = 1;
+            }
+
+            @foreach (var item in Model.Details)
+            {
+                <tr>
+
+                    <td>@stt</td>
+
+                    <td>@item.IngredientName</td>
+
+                    <td>@item.UnitName</td>
+
+                    <td>@item.Quantity.ToString("0.##")</td>
+
+                    <td>@item.UnitPrice?.ToString("N0")</td>
+
+                    <td>@item.TotalAmount?.ToString("N0")</td>
+
+                </tr>
+
+                stt++;
+            }
+
+        </tbody>
+
+    </table>
+
+    <div class="voucher-summary">
+
+        <div>
+            Tổng Tiền:
+            @Model.TotalAmount?.ToString("N0")
+        </div>
+
+        <div>
+            VAT:
+            @Model.VatAmount?.ToString("N0")
+        </div>
+
+        <div class="final">
+
+            Thành Tiền:
+            @Model.FinalAmount?.ToString("N0")
+
+        </div>
+
+    </div>
+</div>

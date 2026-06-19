@@ -2,29 +2,34 @@ using CafeChain.Application.DTOs.Admin.DrinkToppings;
 using CafeChain.Application.DTOs.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.DrinkToppings;
 using CafeChain.Application.Interfaces.Admin.Toppings;
+using CafeChain.ViewModels.Admin.DrinkToppings;
 using CafeChain.ViewModels.Admin.Toppings;
 using Microsoft.AspNetCore.Mvc;
-using CafeChain.ViewModels.Admin.DrinkToppings;
+
 namespace CafeChain.Areas.Admin.Controllers
 {
     public class AdminToppingController : AdminBaseController
     {
-        private readonly IAdminToppingService _service;
+        private readonly IAdminToppingService _toppingService;
         private readonly IAdminDrinkToppingService _drinkToppingService;
 
-
-        public AdminToppingController(IAdminToppingService service, IAdminDrinkToppingService adminDrinkToppingService)
+        public AdminToppingController(
+            IAdminToppingService toppingService,
+            IAdminDrinkToppingService drinkToppingService)
         {
-            _service = service;
-            _drinkToppingService = adminDrinkToppingService;
+            _toppingService = toppingService;
+            _drinkToppingService = drinkToppingService;
         }
 
-        // =============================
-        // List Toppings
-        // =============================
+        // =====================================================
+        // INDEX
+        // =====================================================
+
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var toppings = await _service.GetAllAsync(); // ✅ FIX QUAN TRỌNG
+            var toppings =
+                await _toppingService.GetAllAsync();
 
             var vm = toppings.Select(x => new AdminToppingVM
             {
@@ -38,158 +43,245 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(vm);
         }
 
-        // =============================
-        // Create Topping (Modal)
-        // =============================
+        // =====================================================
+        // CREATE TOPPING
+        // =====================================================
+
         [HttpPost]
-        public async Task<IActionResult> Create(AdminToppingVM vm)
-        {
-            // ❗ Validate ảnh khi create
-            if (vm.ImageFile == null)
-            {
-                ModelState.AddModelError("ImageFile", "Vui lòng chọn ảnh");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                var list = await _service.GetAllAsync();
-                return View("Index", list.Select(x => new AdminToppingVM
-                {
-                    ToppingId = x.ToppingId,
-                    Name = x.Name,
-                    Price = x.Price,
-                    ImageUrl = x.ImageUrl,
-                    Active = x.Active
-                }));
-            }
-
-            try
-            {
-                string imagePath = null;
-
-                if (vm.ImageFile != null)
-                {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(vm.ImageFile.FileName);
-                    var path = Path.Combine("wwwroot/Images/ToppingImages", fileName);
-
-                    using var stream = new FileStream(path, FileMode.Create);
-                    await vm.ImageFile.CopyToAsync(stream);
-
-                    imagePath = "/Images/ToppingImages/" + fileName;
-                }
-
-                await _service.CreateAsync(new ToppingDto
-                {
-                    Name = vm.Name,
-                    Price = vm.Price,
-                    ImageUrl = imagePath
-                });
-
-                TempData["success"] = "Thêm topping thành công";
-                return RedirectToAction(nameof(Index));
-            }
-            catch (Exception ex)
-            {
-                ModelState.AddModelError("", ex.Message);
-
-                var list = await _service.GetAllAsync();
-                return View("Index", list.Select(x => new AdminToppingVM
-                {
-                    ToppingId = x.ToppingId,
-                    Name = x.Name,
-                    Price = x.Price,
-                    ImageUrl = x.ImageUrl,
-                    Active = x.Active
-                }));
-            }
-        }
-
-        // =============================
-        // Edit Topping (Modal)
-        // =============================
-        [HttpPost]
-        public async Task<IActionResult> Edit(AdminToppingVM vm)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(
+            AdminToppingVM vm)
         {
             try
             {
-                string imagePath = vm.ImageUrl;
-
-                if (vm.ImageFile != null)
+                if (!ModelState.IsValid)
                 {
-                    var fileName = Guid.NewGuid() + Path.GetExtension(vm.ImageFile.FileName);
-                    var path = Path.Combine("wwwroot/Images/ToppingImages", fileName);
-
-                    using var stream = new FileStream(path, FileMode.Create);
-                    await vm.ImageFile.CopyToAsync(stream);
-
-                    imagePath = "/Images/ToppingImages/" + fileName;
+                    return Json(new
+                    {
+                        success = false,
+                        message = GetModelStateError()
+                    });
                 }
 
-                await _service.UpdateAsync(new ToppingDto
-                {
-                    ToppingId = vm.ToppingId,
-                    Name = vm.Name,
-                    Price = vm.Price,
-                    ImageUrl = imagePath
-                });
+                await _toppingService.CreateAsync(
+                    MapToDto(vm));
 
-                TempData["success"] = "Cập nhật thành công";
+                return Json(new
+                {
+                    success = true,
+                    message = "Thêm topping thành công"
+                });
             }
             catch (Exception ex)
             {
-                TempData["error"] = ex.Message;
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
             }
-
-            return RedirectToAction(nameof(Index));
         }
 
-        // =============================
-        // Toggle Status
-        // =============================
+        // =====================================================
+        // UPDATE TOPPING
+        // =====================================================
+
         [HttpPost]
-        public async Task<IActionResult> ToggleStatus(int id)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(
+            AdminToppingVM vm)
         {
-            await _service.ToggleStatusAsync(id);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = GetModelStateError()
+                    });
+                }
+
+                await _toppingService.UpdateAsync(
+                    MapToDto(vm));
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật topping thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
-        // =============================
-        // List Drinks for Topping
-        // =============================
+        // =====================================================
+        // TOGGLE TOPPING STATUS
+        // =====================================================
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleStatus(
+            int id)
+        {
+            try
+            {
+                await _toppingService
+                    .ToggleStatusAsync(id);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật trạng thái thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        // =====================================================
+        // GET DRINKS OF TOPPING
+        // =====================================================
+
         [HttpGet]
         public async Task<IActionResult> GetDrinks(int toppingId)
         {
-            var data = await _drinkToppingService.GetDrinksForToppingAsync(toppingId);
-            return Json(data);
+            try
+            {
+                var result =
+                    await _drinkToppingService
+                        .GetDrinksForToppingAsync(toppingId);
+
+                return Json(new
+                {
+                    success = true,
+                    data = result
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
-        // =============================
-        // Assign Topping to Drink
-        // =============================
+        // =====================================================
+        // ASSIGN TOPPING TO DRINK
+        // =====================================================
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Assign([FromBody] AssignDrinkToppingVM vm)
         {
             if (!ModelState.IsValid)
-                return BadRequest("Invalid data");
-
-            await _drinkToppingService.AssignAsync(new DrinkToppingDto
             {
-                DrinkId = vm.DrinkId,
-                ToppingId = vm.ToppingId
-            });
+                return Json(new
+                {
+                    success = false,
+                    message = GetModelStateError()
+                });
+            }
 
-            return Ok();
+            try
+            {
+                var dto = new DrinkToppingDto
+                {
+                    DrinkId = vm.DrinkId,
+                    ToppingId = vm.ToppingId
+                };
+
+                await _drinkToppingService.AssignAsync(dto);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Gán topping thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
-        // =============================
-        // Toggle Drink-Topping
-        // =============================
+        // =====================================================
+        // TOGGLE DRINK TOPPING
+        // =====================================================
+
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Toggle(int id)
         {
-            await _drinkToppingService.ToggleAsync(id);
-            return Ok();
+            try
+            {
+                if (id <= 0)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = "Id không hợp lệ"
+                    });
+                }
+
+                await _drinkToppingService.ToggleAsync(id);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật trạng thái thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
+        // =====================================================
+        // PRIVATE HELPERS
+        // =====================================================
+
+        private static ToppingDto MapToDto(AdminToppingVM vm)
+        {
+            return new ToppingDto
+            {
+                ToppingId = vm.ToppingId,
+                Name = vm.Name,
+                Price = vm.Price,
+                ImageFile = vm.ImageFile
+            };
+        }
+
+        private string GetModelStateError()
+        {
+            return ModelState.Values
+                .SelectMany(x => x.Errors)
+                .Select(x => x.ErrorMessage)
+                .FirstOrDefault()
+                ?? "Dữ liệu không hợp lệ";
         }
     }
 }
-
