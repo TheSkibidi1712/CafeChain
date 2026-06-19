@@ -1,0 +1,62 @@
+name: CI-CD Pipeline
+
+on:
+  push:
+    branches: [ develop, main ]
+  pull_request:
+    branches: [ develop, main ]
+
+jobs:
+# =========================
+# CI JOB
+# =========================
+  ci:
+    name: CI - Build & Test
+    runs-on: windows-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore CafeChain/CafeChain.slnx
+
+    - name: Build solution
+      run: dotnet build CafeChain/CafeChain.slnx --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test CafeChain/CafeChain.slnx --configuration Release --no-build --verbosity normal
+
+# =========================
+# CD JOB
+# =========================
+  cd:
+    name: CD - Publish
+    needs: ci
+    runs-on: windows-latest
+
+    # CHỈ CHẠY KHI MERGE VÀO MAIN
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Publish application
+      run: dotnet publish CafeChain/CafeChain.csproj -c Release -o publish
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: dotnet-app
+        path: publish
