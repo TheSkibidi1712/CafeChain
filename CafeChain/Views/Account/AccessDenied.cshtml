@@ -1,0 +1,33 @@
+@{
+    ViewData["Title"] = "Từ chối truy cập";
+}
+
+<div class="container py-5 text-center" style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+    <div class="row justify-content-center w-100">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-lg rounded-4 p-5">
+                <div class="mb-4">
+                    <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle" style="width: 100px; height: 100px;">
+                        <i class="fas fa-shield-lock text-danger fa-3x"></i>
+                    </div>
+                </div>
+                <h2 class="fw-bold mb-3" style="color: #212529;">Bạn không có quyền truy cập!</h2>
+                <p class="text-muted mb-4 fs-6">
+                    Khu vực này chỉ dành cho tài khoản quản trị hệ thống. <br>
+                    Vui lòng sử dụng tài khoản <strong>Admin</strong> để tiếp tục.
+                </p>
+                <div class="d-flex gap-3 justify-content-center">
+                    <a href="/" class="btn btn-light rounded-3 px-4 py-2 border fw-bold text-muted">QUAY LẠI</a>
+                    <a href="/Account/Login" class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm" style="background-color: #d93d20;">ĐĂNG NHẬP ADMIN</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        body { background-color: #f8f9fa; }
+        .fa-shield-lock:before { content: "\f3ed"; } /* FontAwesome shield-lock */
+    </style>
+}

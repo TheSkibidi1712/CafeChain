@@ -1,0 +1,165 @@
+@model CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM
+
+@{
+    ViewData["Title"] = "Chỉnh sửa Quy đổi Đơn vị";
+}
+
+<style>
+    .conv-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+        background: white;
+    }
+    .conv-header {
+        background: linear-gradient(135deg, #1e293b, #0f172a);
+        color: white;
+        border-radius: 12px 12px 0 0;
+        padding: 20px;
+    }
+    .conv-formula-box {
+        background: #f8fafc;
+        border: 2px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 30px;
+        text-align: center;
+    }
+    .conv-equals {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #f97316;
+    }
+    .btn-conv-primary {
+        background-color: #f97316;
+        border-color: #f97316;
+        color: white;
+        font-weight: 600;
+    }
+    .btn-conv-primary:hover {
+        background-color: #ea580c;
+        border-color: #ea580c;
+        color: white;
+    }
+</style>
+
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fas fa-edit me-2" style="color: #f97316;"></i>Chỉnh sửa Quy đổi
+            </h3>
+            <p class="text-muted mb-0">Cập nhật tỷ lệ quy đổi cho: <strong>@Model.IngredientName</strong></p>
+        </div>
+        <a asp-action="Index" class="btn btn-light border shadow-sm"><i class="fas fa-arrow-left me-1"></i> Quay lại</a>
+    </div>
+
+    <form asp-action="Edit" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="UnitConversionId" />
+
+        <!-- Nguyên liệu -->
+        <div class="conv-card mb-4">
+            <div class="conv-header">
+                <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Nguyên liệu áp dụng</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nguyên liệu</label>
+                        <select name="IngredientId" class="form-select" required>
+                            @if (ViewBag.Ingredients != null)
+                            {
+                                foreach (dynamic ing in ViewBag.Ingredients)
+                                {
+                                    if ((int)ing.IngredientId == Model.IngredientId)
+                                    {
+                                        <option value="@ing.IngredientId" selected>@ing.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@ing.IngredientId">@ing.Name</option>
+                                    }
+                                }
+                            }
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Công thức -->
+        <div class="conv-card mb-4">
+            <div class="conv-header">
+                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Công thức Quy đổi</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="conv-formula-box">
+                    <div class="row align-items-center justify-content-center g-3">
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-muted small">Số lượng nguồn</label>
+                            <input type="number" step="0.0001" min="0.0001" asp-for="FromQuantity"
+                                   class="form-control form-control-lg text-center fw-bold" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold text-muted small">Đơn vị nguồn</label>
+                            <select name="FromUnitId" class="form-select form-select-lg" required>
+                                @if (ViewBag.Units != null)
+                                {
+                                    foreach (dynamic unit in ViewBag.Units)
+                                    {
+                                        if ((int)unit.UnitId == Model.FromUnitId)
+                                        {
+                                            <option value="@unit.UnitId" selected>@unit.Name (@unit.UnitCode)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end justify-content-center pb-2">
+                            <span class="conv-equals">=</span>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-muted small">Số lượng đích</label>
+                            <input type="number" step="0.0001" min="0.0001" asp-for="ToQuantity"
+                                   class="form-control form-control-lg text-center fw-bold" required />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold text-muted small">Đơn vị đích</label>
+                            <select name="ToUnitId" class="form-select form-select-lg" required>
+                                @if (ViewBag.Units != null)
+                                {
+                                    foreach (dynamic unit in ViewBag.Units)
+                                    {
+                                        if ((int)unit.UnitId == Model.ToUnitId)
+                                        {
+                                            <option value="@unit.UnitId" selected>@unit.Name (@unit.UnitCode)</option>
+                                        }
+                                        else
+                                        {
+                                            <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
+                                        }
+                                    }
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-3 mb-5">
+            <a asp-action="Index" class="btn btn-light border px-4 shadow-sm">Hủy</a>
+            <button type="submit" class="btn btn-conv-primary px-5 shadow-sm">
+                <i class="fas fa-save me-2"></i>CẬP NHẬT
+            </button>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

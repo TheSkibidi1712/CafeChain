@@ -1,0 +1,183 @@
+@model IEnumerable<CafeChain.Models.Drinks.Recipe>
+
+@{
+    ViewData["Title"] = "Quản lý Công thức (BOM)";
+}
+
+<style>
+    :root {
+        --bom-primary: #f97316;
+        --bom-primary-hover: #ea580c;
+        --bom-sub: #1e293b;
+    }
+    .page-header { background: linear-gradient(135deg, #1e293b, #0f172a); color: white; border-radius: 12px; padding: 25px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); margin-bottom: 25px; }
+    .btn-bom-primary { background-color: var(--bom-primary); border-color: var(--bom-primary); color: white; font-weight: 600; padding: 10px 20px; border-radius: 8px; }
+    .btn-bom-primary:hover { background-color: var(--bom-primary-hover); border-color: var(--bom-primary-hover); color: white; }
+    
+    .table-custom { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+    .table-custom thead th { background-color: #f8fafc; color: #475569; font-weight: 700; text-transform: uppercase; font-size: 0.75rem; padding: 15px; border-bottom: 2px solid #e2e8f0; }
+    .table-custom tbody td { vertical-align: middle; padding: 15px; border-bottom: 1px solid #f1f5f9; }
+    .table-custom tbody tr:hover { background-color: #fffedd; }
+    
+    .badge-pos { background-color: #3b82f6; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.7rem; }
+    .badge-sub { background-color: #8b5cf6; color: white; padding: 5px 10px; border-radius: 6px; font-weight: 600; font-size: 0.7rem; }
+    
+    /* Tree Modal Styles */
+    .bom-tree-modal .modal-content { border-radius: 15px; border: none; overflow: hidden; }
+    .bom-tree-modal .modal-header { background: linear-gradient(135deg, var(--bom-sub), #0f172a); color: white; border-bottom: none; }
+    .bom-tree-modal .btn-close { filter: invert(1) grayscale(100%) brightness(200%); }
+    .border-bottom-dashed { border-bottom: 1px dashed #e2e8f0 !important; }
+</style>
+
+<div class="container-fluid px-4 mt-4">
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="fw-bold mb-1"><i class="fas fa-blender text-warning me-2"></i> Hệ thống Công Thức (BOM)</h2>
+            <p class="mb-0 text-light opacity-75">Quản lý định mức Nguyên vật liệu cho Món Bán & Bán thành phẩm</p>
+        </div>
+        <div>
+            <a asp-action="Create" class="btn btn-bom-primary shadow-sm">
+                <i class="fas fa-plus me-2"></i> Thêm Công Thức Này
+            </a>
+        </div>
+    </div>
+
+    <div class="table-custom">
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th width="5%" class="text-center">#ID</th>
+                        <th width="30%">Tên Công Thức</th>
+                        <th width="12%" class="text-center">Phân Loại</th>
+                        <th width="15%" class="text-center">Sản Lượng (Yield)</th>
+                        <th width="15%" class="text-center">Trạng Thái</th>
+                        <th width="10%" class="text-center">Cấu Trúc</th>
+                        <th width="13%" class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var recipe in Model)
+                        {
+                            // Nếu có ChildRecipeDetails (Tức là công thức này được công thức khác dùng làm thành phần)
+                            // HOẶC Tên không giống POS (Đây là heuristic đơn giản cho bản Demo, thực tế có thể dùng cờ isSubRecipe)
+                            bool isSubRecipe = recipe.ChildRecipeDetails != null && recipe.ChildRecipeDetails.Any() || recipe.Name.Contains("Lít") || recipe.Name.Contains("Kg");
+                            
+                            <tr>
+                                <td class="text-center fw-bold text-muted">@recipe.RecipeId</td>
+                                <td class="fw-bold text-dark">
+                                    <i class="fas @(isSubRecipe ? "fa-flask text-warning" : "fa-coffee text-primary") me-2"></i> 
+                                    @recipe.Name
+                                </td>
+                                <td class="text-center">
+                                    @if(isSubRecipe)
+                                    {
+                                        <span class="badge-sub"><i class="fas fa-cubes me-1"></i> BÁN THÀNH PHẨM</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge-pos"><i class="fas fa-cash-register me-1"></i> MÓN BÁN (POS)</span>
+                                    }
+                                </td>
+                                <td class="text-center fw-bold text-success">@recipe.YieldPercentage %</td>
+                                <td class="text-center">
+                                    @if(recipe.Active)
+                                    {
+                                        <span class="badge bg-success bg-opacity-10 text-success border border-success"><i class="fas fa-check-circle me-1"></i> Hoạt động</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary border border-secondary"><i class="fas fa-ban me-1"></i> Tạm ngưng</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="Visualize" asp-route-recipeId="@recipe.RecipeId" class="btn btn-sm btn-outline-info rounded-pill px-3 fw-bold">
+                                        <i class="fas fa-sitemap me-1"></i> Trực quan BOM
+                                    </a>
+                                </td>
+                                <td class="text-center">
+                                    <a asp-action="Edit" asp-route-id="@recipe.RecipeId" class="btn btn-sm btn-light border text-primary" title="Chỉnh sửa">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <button class="btn btn-sm btn-light border text-danger btn-delete-recipe" data-id="@recipe.RecipeId" data-name="@recipe.Name" title="Xóa">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="fas fa-box-open fa-3x mb-3 text-light"></i>
+                                <h5>Chưa có công thức nào</h5>
+                                <p>Bấm "Thêm Công Thức Này" để tạo định mức đầu tiên.</p>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // === AJAX DELETE VỚI SWEETALERT2 ===
+            $(document).on('click', '.btn-delete-recipe', function () {
+                const recipeId = $(this).data('id');
+                const recipeName = $(this).data('name');
+                const row = $(this).closest('tr');
+
+                Swal.fire({
+                    title: 'Xác nhận xóa?',
+                    html: `Bạn có chắc muốn xóa công thức <strong>${recipeName}</strong> (#${recipeId})?<br><small class="text-muted">Nếu có lịch sử đơn hàng, hệ thống sẽ tự động Lưu trữ (Archived) thay vì xóa hoàn toàn.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#dc3545',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: '<i class="fas fa-trash me-1"></i> Xóa',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: '@Url.Action("Delete", "AdminRecipe", new { area = "Admin" })',
+                            type: 'POST',
+                            data: { id: recipeId },
+                            headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                            success: function (res) {
+                                if (res.success) {
+                                    Swal.fire({ icon: 'success', title: 'Thành công!', text: res.message, confirmButtonColor: '#f97316' })
+                                        .then(() => location.reload());
+                                } else {
+                                    Swal.fire({ icon: 'error', title: 'Lỗi!', text: res.message, confirmButtonColor: '#f97316' });
+                                }
+                            },
+                            error: function () {
+                                Swal.fire({ icon: 'error', title: 'Lỗi hệ thống!', text: 'Không thể kết nối server.', confirmButtonColor: '#f97316' });
+                            }
+                        });
+                    }
+                });
+            });
+
+            @if (TempData["SuccessMsg"] != null)
+            {
+                <text>
+                Swal.fire({ icon: 'success', title: 'Thành công!', text: '@TempData["SuccessMsg"]', confirmButtonColor: '#f97316' });
+                </text>
+            }
+            @if (TempData["ErrorMsg"] != null)
+            {
+                <text>
+                Swal.fire({ icon: 'error', title: 'Lỗi!', text: '@TempData["ErrorMsg"]', confirmButtonColor: '#f97316' });
+                </text>
+            }
+        });
+    </script>
+}
+@Html.AntiForgeryToken()

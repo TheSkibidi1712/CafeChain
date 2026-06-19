@@ -1,0 +1,666 @@
+@model CafeChain.ViewModels.Admin.Staffs.StaffCreateVM
+@{
+    var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
+    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
+    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
+
+    // Server-side scope resolution: mirrors GetRequiredScopeTypeForRole() exactly
+    string GetScopeForRole(int roleId) => roleId switch
+    {
+        >= 1 and <= 6 => "HQ",
+        7 => "PROVINCE",
+        _ => "STORE"
+    };
+}
+
+<style>
+    .staff-modal .form-label { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #868e96; margin-bottom: 5px; }
+    .staff-modal .form-control, .staff-modal .form-select { border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; padding: 10px 12px; }
+    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.2rem rgba(217, 61, 32, 0.25); }
+    .staff-modal .btn-submit { background-color: #d93d20; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; }
+    .staff-modal .btn-submit:hover { background-color: #b52f16; }
+    .avatar-upload-box {
+        border: 2px dashed #ced4da; border-radius: 8px; width: 200px; height: 200px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        background-color: #f8f9fa; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
+    }
+    .avatar-upload-box:hover { border-color: #d93d20; background-color: #fffaf9; }
+    .avatar-upload-box i { font-size: 36px; color: #adb5bd; margin-bottom: 8px; }
+    .avatar-upload-box span { font-size: 12px; color: #6c757d; }
+    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: none; }
+    .nav-tabs .nav-link { color: #6c757d; font-weight: 600; font-size: 13px; text-transform: uppercase; border: none; border-bottom: 3px solid transparent; padding: 12px 20px; }
+    .nav-tabs .nav-link.active { color: #d93d20; border-color: #d93d20; background-color: transparent; }
+    .scope-picker { display: none; }
+</style>
+
+<div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h4 class="modal-title fw-bold" style="color: #212529;">Thêm nhân viên mới</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <form asp-action="Create" method="post" enctype="multipart/form-data" id="createStaffForm">
+                    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                    <!-- HIDDEN: Backend auto-resolves ScopeTypeId from RoleId -->
+                    <input type="hidden" asp-for="ScopeTypeId" id="HiddenScopeTypeId" />
+                    <input type="hidden" asp-for="ScopeRefId" id="HiddenScopeRefId" />
+
+                    <ul class="nav nav-tabs mb-4 px-3" id="staffTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">Thông tin chung</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-job" data-bs-toggle="tab" data-bs-target="#job" type="button" role="tab">Công việc & Lương</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-ot" data-bs-toggle="tab" data-bs-target="#ot" type="button" role="tab">OT & Ca</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="tab-dependent" data-bs-toggle="tab" data-bs-target="#dependent" type="button" role="tab">Người phụ thuộc</button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content" id="staffTabsContent">
+                        <!-- ═══════ TAB 1: THÔNG TIN CHUNG ═══════ -->
+                        <div class="tab-pane fade show active" id="general" role="tabpanel">
+                            <div class="row">
+                                <div class="col-md-3 mb-4 d-flex justify-content-center">
+                                    <div>
+                                        <label class="form-label">Ảnh đại diện</label>
+                                        <div class="avatar-upload-box" onclick="document.getElementById('avatarInput').click()">
+                                            <i class="fas fa-cloud-upload-alt placeholder-icon"></i>
+                                            <span class="placeholder-text">Kéo thả hoặc click<br>để tải ảnh lên</span>
+                                            <img id="avatarPreview" src="" />
+                                        </div>
+                                        <input type="file" name="AvatarFile" id="avatarInput" class="d-none" accept="image/*" onchange="previewAvatar(this)" />
+                                    </div>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="row">
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label text-danger">Vai trò hệ thống *</label>
+                                            <select asp-for="SelectedRoleId" class="form-select" id="dynamicRoleSelect">
+                                                <option value="">-- Chọn vai trò --</option>
+                                                @if (roles != null)
+                                                {
+                                                    foreach (var r in roles)
+                                                    {
+                                                        // Fallback for Demo logic matching user rules
+                                                        string constraint = r.RoleId <= 6 ? "HQ" : (r.RoleId == 7 ? "FLEXIBLE" : "STORE_ONLY");
+                                                        <option value="@r.RoleId" data-constraint="@constraint">@r.Name</option>
+                                                    }
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
+                                            <input asp-for="FullName" class="form-control" placeholder="Nguyễn Văn A" />
+                                        </div>
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label">Email đăng nhập <span class="text-danger">*</span></label>
+                                            <input asp-for="Email" class="form-control" placeholder="email@domain.com" />
+                                        </div>
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label">Mật khẩu <span class="text-danger">*</span></label>
+                                            <input type="password" asp-for="Password" class="form-control" placeholder="Mật khẩu..." required />
+                                        </div>
+                                        <div class="col-lg-4 mb-3">
+                                            <label class="form-label">Căn cước công dân</label>
+                                            <input asp-for="CCCD" class="form-control" placeholder="12 chữ số" />
+                                        </div>
+                                        <div class="col-lg-4 mb-3">
+                                            <label class="form-label">Ngày sinh</label>
+                                            <input asp-for="DateOfBirth" type="text" class="form-control flatpickr-date" placeholder="dd/mm/yyyy" />
+                                        </div>
+                                        <div class="col-lg-4 mb-3">
+                                            <label class="form-label">Giới tính</label>
+                                            <select asp-for="Gender" class="form-select">
+                                                <option value="0">Nữ</option>
+                                                <option value="1">Nam</option>
+                                                <option value="2">Khác</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="row mt-2">
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label">Số điện thoại</label>
+                                            <div id="phonesContainerModal">
+                                                <div class="dynamic-input-group d-flex mb-2">
+                                                    <input name="Phones[0]" class="form-control phone-input" placeholder="+84 9..." />
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('phonesContainerModal', 'Phones', 3, 'Nhập số điện thoại')"><i class="fas fa-plus"></i></button>
+                                        </div>
+                                        <div class="col-lg-6 mb-3">
+                                            <label class="form-label">Địa chỉ liên hệ</label>
+                                            <div id="addressesContainerModal">
+                                                <div class="dynamic-input-group d-flex mb-2">
+                                                    <input name="Addresses[0]" class="form-control addr-input" placeholder="Nhập địa chỉ..." />
+                                                </div>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('addressesContainerModal', 'Addresses', 3, 'Nhập địa chỉ')"><i class="fas fa-plus"></i></button>
+                                        </div>
+                                        
+                                        <!-- NHÓM PHÂN QUYỀN (3-COLUMN FLEXIBLE SCOPE) -->
+                                        <div class="col-12 mt-2">
+                                            <h6 class="fw-bold text-uppercase mb-3" style="color: #6c757d; font-size: 11px;">Nhóm phân quyền</h6>
+                                        </div>
+                                        
+                                        <div class="col-lg-4 mb-3">
+                                            <label class="form-label text-danger">Loại phạm vi *</label>
+                                            <select class="form-select" id="uiScopeTypeSelect">
+                                                <option value="">-- Xin vui lòng chọn --</option>
+                                                <option value="2">Tỉnh/TP</option>
+                                                <option value="3">Phường/Xã</option>
+                                                <option value="4">Cửa hàng</option>
+                                                <option value="1">Trụ sở (HQ)</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-lg-4 mb-3" id="scopeRefContainer">
+                                            <label class="form-label text-danger" id="lblScopeRef">Mã tham chiếu *</label>
+                                            <select class="form-select mb-2" id="uiCascadingProvince" style="display:none;">
+                                                <option value="">-- Chọn Tỉnh/Thành phố trước --</option>
+                                            </select>
+                                            <select class="form-select" id="uiScopeRefSelect">
+                                                <option value="">-- Bấm để chọn địa bàn --</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="col-lg-4 mb-3">
+                                            <label class="form-label">Cửa hàng đồng bộ</label>
+                                            <select asp-for="StoreId" class="form-select" id="uiSyncStoreSelect">
+                                                <option value="">-- Tự động --</option>
+                                                @if (stores != null)
+                                                {
+                                                    foreach (var s in stores)
+                                                    {
+                                                        <option value="@s.StoreId">@s.Name</option>
+                                                    }
+                                                }
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══════ TAB 2: CÔNG VIỆC & LƯƠNG ═══════ -->
+                        <div class="tab-pane fade" id="job" role="tabpanel">
+                            <div class="row">
+
+
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Ngày bắt đầu làm việc</label>
+                                    <input asp-for="StartDate" type="text" class="form-control flatpickr-date" />
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Trạng thái làm việc</label>
+                                    <select asp-for="EmployeeStatus" class="form-select">
+                                        <option value="1">Thử việc</option>
+                                        <option value="2">Chính thức</option>
+                                    </select>
+                                </div>
+                                <div class="col-12"><hr class="text-muted" /></div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Hình thức trả lương</label>
+                                    <select asp-for="SalaryType" class="form-select" id="SalaryTypeSelect">
+                                        <option value="1">Cố định</option>
+                                        <option value="2">Theo giờ</option>
+                                    </select>
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Lương gốc (VNĐ)</label>
+                                    <input asp-for="BaseSalary" type="number" class="form-control" />
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Phụ cấp (VNĐ)</label>
+                                    <input asp-for="Allowance" type="number" class="form-control" />
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Sổ BHXH</label>
+                                    <input asp-for="SocialInsuranceNumber" class="form-control" />
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Sổ BHYT</label>
+                                    <input asp-for="HealthInsuranceNumber" class="form-control" />
+                                    <span asp-validation-for="HealthInsuranceNumber" class="text-danger small"></span>
+                                </div>
+                                <div class="col-lg-4 mb-3">
+                                    <label class="form-label">Mã số thuế cá nhân</label>
+                                    <input asp-for="TaxCode" class="form-control" />
+                                </div>
+                                <div class="col-12 mt-3">
+                                    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered table-sm align-middle text-center" id="banksTableModal">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Chính</th>
+                                                    <th>Ngân Hàng</th>
+                                                    <th>Số Tài Khoản</th>
+                                                    <th>Chủ Tài Khoản</th>
+                                                    <th style="width: 50px;"></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Row mặc định -->
+                                                <tr>
+                                                    <td>
+                                                        <input type="radio" name="PrimaryBankIndex" value="0" checked class="form-check-input" />
+                                                    </td>
+                                                    <td><input type="text" name="Banks[0].BankName" class="form-control form-control-sm" placeholder="VD: MBBank" /></td>
+                                                    <td><input type="text" name="Banks[0].AccountNumber" class="form-control form-control-sm" /></td>
+                                                    <td><input type="text" name="Banks[0].AccountHolderName" class="form-control form-control-sm text-uppercase" /></td>
+                                                    <td><button type="button" class="btn btn-sm btn-danger border-0" onclick="removeBankRowModal(this)"><i class="fas fa-trash"></i></button></td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                        <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addBankRowModal()"><i class="fas fa-plus me-1"></i>Thêm tài khoản</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══════ TAB 3: OT & CA ═══════ -->
+                        <div class="tab-pane fade" id="ot" role="tabpanel">
+                            <div class="row">
+                                <div class="col-lg-6 mb-3">
+                                    <label class="form-label">Hệ số Lương Thử việc</label>
+                                    <input asp-for="ProbationRate" id="ProbationRateInput" type="number" class="form-control" step="0.01" />
+                                    <small class="text-muted">Tỷ lệ nhân lương trong giai đoạn thử việc (mặc định: 0.85)</small>
+                                </div>
+                                <div class="col-lg-6 mb-3">
+                                    <label class="form-label">Hệ số Nhân lương OT</label>
+                                    <input asp-for="OvertimeRate" type="number" class="form-control" step="0.1" />
+                                    <small class="text-muted">Hệ số nhân cho giờ làm thêm (mặc định: 1.5)</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- ═══════ TAB 4: NGƯỜI PHỤ THUỘC ═══════ -->
+                        <div class="tab-pane fade" id="dependent" role="tabpanel">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="small text-uppercase">Họ và Tên</th>
+                                        <th class="small text-uppercase">Ngày sinh</th>
+                                        <th class="small text-uppercase">Mã số Thuế</th>
+                                        <th class="small text-uppercase">Quan hệ</th>
+                                        <th class="text-center" style="width: 80px;"><i class="fas fa-cog"></i></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="dependentsTableBody">
+                                    <!-- Rows added via JS -->
+                                </tbody>
+                            </table>
+                            <div class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" onclick="addDependentRow()">
+                                    <i class="fas fa-plus"></i> Thêm Người phụ thuộc
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Hủy</button>
+                        <button type="button" class="btn-submit px-5" onclick="validateAndSubmit(this)">Tạo tài khoản</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet" />
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/vn.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    const roleSelect = document.getElementById('dynamicRoleSelect');
+    const typeSelect = document.getElementById('uiScopeTypeSelect');
+    const refSelect = document.getElementById('uiScopeRefSelect');
+    const provSelect = document.getElementById('uiCascadingProvince');
+    const syncStore = document.getElementById('uiSyncStoreSelect');
+    const lblScopeRef = document.getElementById('lblScopeRef');
+    
+    const hiddenScopeTypeId = document.getElementById('HiddenScopeTypeId');
+    const hiddenScopeRefId = document.getElementById('HiddenScopeRefId');
+
+    // Mảng stores được render từ backend ra JS để lọc
+    const storesCache = [
+        @if(stores != null) { foreach(var s in stores) { <text>{ id: @s.StoreId, name: '@s.Name', parentId: '@s.WardId' },</text> } }
+    ];
+
+    // ===================================
+    // 1. Role Change -> Resolve Constraint
+    // ===================================
+    roleSelect.addEventListener('change', function () {
+        const selected = this.options[this.selectedIndex];
+        if (!selected || !selected.value) {
+            resetScopeUI();
+            return;
+        }
+        
+        const constraint = selected.getAttribute('data-constraint');
+        
+        if (constraint === 'HQ') {
+            typeSelect.value = "1";
+            typeSelect.disabled = true;
+            provSelect.style.display = 'none';
+            refSelect.innerHTML = '<option value="1">Trụ sở chính</option>';
+            refSelect.disabled = true;
+            syncStore.value = "";
+            syncStore.disabled = true;
+            syncScopeData();
+        } else if (constraint === 'STORE_ONLY') {
+            typeSelect.value = "4";
+            typeSelect.disabled = true;
+            refSelect.disabled = false;
+            fetchRefData(4);
+        } else if (constraint === 'FLEXIBLE') {
+            typeSelect.value = "";
+            typeSelect.disabled = false;
+            provSelect.style.display = 'none';
+            refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
+            refSelect.disabled = true;
+            syncStore.value = "";
+            syncStore.disabled = false;
+            lblScopeRef.textContent = "Mã tham chiếu *";
+            syncScopeData();
+        }
+    });
+
+    // ===================================
+    // 2. Scope Type Change -> Fetch Data
+    // ===================================
+    typeSelect.addEventListener('change', function() {
+        var tId = parseInt(this.value);
+        provSelect.style.display = 'none';
+        
+        if (isNaN(tId)) {
+            lblScopeRef.textContent = "Mã tham chiếu *";
+            refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
+            refSelect.disabled = true;
+            syncScopeData();
+            return;
+        }
+        
+        // Cập nhật nhãn động dựa trên Type
+        if (tId === 1) lblScopeRef.textContent = "Mã tham chiếu *";
+        else if (tId === 2) lblScopeRef.textContent = "Chọn Tỉnh/Thành phố *";
+        else if (tId === 3) lblScopeRef.textContent = "Chọn Phường/Xã *";
+        else if (tId === 4) lblScopeRef.textContent = "Chọn Cửa hàng *";
+        
+        if (tId === 1) {
+            refSelect.innerHTML = '<option value="1">Trụ sở chính</option>';
+            refSelect.disabled = true;
+            syncStore.value = "";
+            syncScopeData();
+            return;
+        }
+
+        if (tId === 2 || tId === 4) {
+            refSelect.disabled = false;
+            fetchRefData(tId, null);
+        }
+        else if (tId === 3) {
+            // CASCADING WARD LOGIC: Show Province first
+            provSelect.style.display = 'block';
+            refSelect.disabled = true;
+            refSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            loadCascadingProvinces();
+        }
+    });
+
+    // ===================================
+    // 3. Cascading Logic (Ward)
+    // ===================================
+    async function loadCascadingProvinces() {
+        provSelect.innerHTML = '<option value="">Đang tải Tỉnh/Thành...</option>';
+        try {
+            const res = await fetch(`@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })?scopeTypeId=2`);
+            const data = await res.json();
+            provSelect.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố trước --</option>';
+            data.forEach((p) => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                provSelect.appendChild(opt);
+            });
+        } catch (e) {
+            provSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        }
+    }
+
+    provSelect.addEventListener('change', function() {
+        if (!this.value) {
+            refSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+            refSelect.disabled = true;
+            syncScopeData();
+            return;
+        }
+        // Fetch ward based on Province
+        refSelect.disabled = false;
+        fetchRefData(3, this.value);
+    });
+
+    // ===================================
+    // 4. API Fetch & Populate Ref Col
+    // ===================================
+    async function fetchRefData(scopeTypeId, parentId) {
+        refSelect.innerHTML = '<option value="">Đang tải...</option>';
+        try {
+            let url = `@Url.Action("GetScopeReferences", "AdminStaff", new { area = "Admin" })?scopeTypeId=${scopeTypeId}`;
+            if (parentId) url += `&parentId=${parentId}`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            
+            refSelect.innerHTML = '<option value="">-- Xin vui lòng chọn --</option>';
+            data.forEach((p) => {
+                const opt = document.createElement('option');
+                opt.value = p.id;
+                opt.textContent = p.name;
+                refSelect.appendChild(opt);
+            });
+            
+            if (data.length > 0 && scopeTypeId === 4) {
+                refSelect.selectedIndex = 1;
+                refSelect.dispatchEvent(new Event('change'));
+            } else {
+                syncScopeData();
+            }
+        } catch (e) {
+            console.error('Lỗi tải ScopeReferences:', e);
+            refSelect.innerHTML = '<option value="">Lỗi tải dữ liệu</option>';
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // SCOPE DATA SYNC (Hidden Inputs) — BUG 1 FIX
+    // ═══════════════════════════════════════════════════════
+    function syncScopeData() {
+        // Đồng bộ giá trị từ UI dropdown sang hidden inputs cho server
+        hiddenScopeTypeId.value = typeSelect.value || '';
+        hiddenScopeRefId.value = refSelect.value || '';
+    }
+
+    function resetScopeUI() {
+        typeSelect.value = '';
+        typeSelect.disabled = false;
+        provSelect.style.display = 'none';
+        provSelect.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố trước --</option>';
+        refSelect.innerHTML = '<option value="">-- Bấm để chọn địa bàn --</option>';
+        refSelect.disabled = true;
+        syncStore.value = '';
+        syncStore.disabled = false;
+        lblScopeRef.textContent = 'Mã tham chiếu *';
+        syncScopeData();
+    }
+
+    // Đồng bộ hidden inputs khi user chọn giá trị mới
+    refSelect.addEventListener('change', function() {
+        syncScopeData();
+        // Nếu chọn Store → auto đồng bộ StoreId
+        if (parseInt(typeSelect.value) === 4 && this.value) {
+            syncStore.value = this.value;
+        }
+    });
+
+    // ═══════════════════════════════════════════════════════
+    // DEPENDENTS (1-to-N Dynamic)
+    // ═══════════════════════════════════════════════════════
+    function addDependentRow() {
+        const tbody = document.getElementById('dependentsTableBody');
+        const index = tbody.children.length;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input name="Dependents[${index}].FullName" class="form-control dep-fullName" placeholder="Nhập tên..." /></td>
+            <td><input name="Dependents[${index}].DateOfBirth" class="form-control dep-date flatpickr-date" placeholder="Chọn ngày" /></td>
+            <td><input name="Dependents[${index}].TaxCode" class="form-control dep-taxCode" placeholder="Mã số thuế" /></td>
+            <td>
+                <select name="Dependents[${index}].Relationship" class="form-select dep-rel">
+                    <option value="Con">Con</option>
+                    <option value="Vợ/Chồng">Vợ/Chồng</option>
+                    <option value="Bố/Mẹ">Bố/Mẹ</option>
+                    <option value="Khác">Khác</option>
+                </select>
+            </td>
+            <td class="text-center"><button type="button" class="btn btn-link text-danger p-0" onclick="removeDependentRow(this)"><i class="fas fa-trash-alt"></i></button></td>
+        `;
+        tbody.appendChild(row);
+        flatpickr(row.querySelector('.flatpickr-date'), { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "vn" });
+    }
+
+    function removeDependentRow(btn) {
+        btn.closest('tr').remove();
+        document.getElementById('dependentsTableBody').querySelectorAll('tr').forEach((row, index) => {
+            row.querySelector('.dep-fullName').name = `Dependents[${index}].FullName`;
+            row.querySelector('.dep-date').name = `Dependents[${index}].DateOfBirth`;
+            row.querySelector('.dep-taxCode').name = `Dependents[${index}].TaxCode`;
+            if (row.querySelector('.dep-rel')) {
+                row.querySelector('.dep-rel').name = `Dependents[${index}].Relationship`;
+            }
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // BANKS (1-to-N Dynamic)
+    // ═══════════════════════════════════════════════════════
+    function addBankRowModal() {
+        const tbody = document.querySelector('#banksTableModal tbody');
+        const index = tbody.children.length;
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>
+                <input type="radio" name="PrimaryBankIndex" value="${index}" class="form-check-input" />
+            </td>
+            <td><input type="text" name="Banks[${index}].BankName" class="form-control form-control-sm bank-name" placeholder="VD: MBBank" /></td>
+            <td><input type="text" name="Banks[${index}].AccountNumber" class="form-control form-control-sm bank-acc" /></td>
+            <td><input type="text" name="Banks[${index}].AccountHolderName" class="form-control form-control-sm bank-holder text-uppercase" /></td>
+            <td><button type="button" class="btn btn-sm btn-danger border-0" onclick="removeBankRowModal(this)"><i class="fas fa-trash"></i></button></td>
+        `;
+        tbody.appendChild(row);
+    }
+
+    function removeBankRowModal(btn) {
+        const tbody = document.querySelector('#banksTableModal tbody');
+        btn.closest('tr').remove();
+        
+        // Re-index all rows
+        tbody.querySelectorAll('tr').forEach((row, index) => {
+            row.querySelector('input[type="radio"]').value = index;
+            row.querySelector('.bank-name').name = `Banks[${index}].BankName`;
+            row.querySelector('.bank-acc').name = `Banks[${index}].AccountNumber`;
+            row.querySelector('.bank-holder').name = `Banks[${index}].AccountHolderName`;
+        });
+        
+        // Ensure at least one radio is checked if rows exist
+        if (tbody.children.length > 0) {
+            const anyChecked = Array.from(tbody.querySelectorAll('input[type="radio"]')).some(r => r.checked);
+            if (!anyChecked) {
+                tbody.querySelector('input[type="radio"]').checked = true;
+            }
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // AVATAR PREVIEW
+    // ═══════════════════════════════════════════════════════
+    function previewAvatar(input) {
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function (e) {
+                var box = input.closest('.col-md-3').querySelector('.avatar-upload-box');
+                var icon = box.querySelector('.placeholder-icon');
+                var text = box.querySelector('.placeholder-text');
+                if (icon) icon.style.display = 'none';
+                if (text) text.style.display = 'none';
+                box.querySelector('img').src = e.target.result;
+                box.querySelector('img').style.display = 'block';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // DYNAMIC INPUTS (Phones, Addresses)
+    // ═══════════════════════════════════════════════════════
+    function addDynamicInput(containerId, fieldName, maxCount, placeholder) {
+        const container = document.getElementById(containerId);
+        const currentCount = container.querySelectorAll('.dynamic-input-group').length;
+        if (currentCount >= maxCount) return alert('Tối đa ' + maxCount + ' dòng');
+        const nextIndex = currentCount;
+        const inputClass = fieldName === 'Phones' ? 'phone-input' : 'addr-input';
+        const div = document.createElement('div');
+        div.className = 'dynamic-input-group d-flex mb-2';
+        div.innerHTML = `<input name="${fieldName}[${nextIndex}]" class="form-control me-2 ${inputClass}" placeholder="${placeholder}" />
+                         <button type="button" class="btn btn-sm btn-danger" onclick="removeDynamicInput(this, '${containerId}', '${fieldName}', '${inputClass}')"><i class="fas fa-trash"></i></button>`;
+        container.appendChild(div);
+    }
+
+    function removeDynamicInput(btn, containerId, fieldName, inputClass) {
+        btn.parentElement.remove();
+        document.getElementById(containerId).querySelectorAll(`.${inputClass}`).forEach((input, index) => {
+            input.name = `${fieldName}[${index}]`;
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // FORM VALIDATION & SUBMIT — BUG 1 FIX
+    // ═══════════════════════════════════════════════════════
+    function validateAndSubmit(btn) {
+        const form = document.getElementById('createStaffForm');
+        const roleEl = form.querySelector('[name="SelectedRoleId"]');
+        if (!roleEl.value) return Swal.fire('Cảnh báo', 'Vui lòng chọn Vai trò!', 'warning');
+        if (!form.querySelector('[name="FullName"]').value) return Swal.fire('Cảnh báo', 'Vui lòng nhập Họ và Tên!', 'warning');
+
+        // Validate scope reference — sử dụng đúng ID thực tế
+        const constraint = roleEl.options[roleEl.selectedIndex].getAttribute('data-constraint');
+        if (constraint === 'FLEXIBLE' && !hiddenScopeRefId.value) {
+            return Swal.fire('Cảnh báo', 'Vui lòng chọn Khu vực quản lý!', 'warning');
+        }
+        if (constraint === 'STORE_ONLY' && !refSelect.value) {
+            return Swal.fire('Cảnh báo', 'Vui lòng chọn Cửa hàng!', 'warning');
+        }
+
+        // Đồng bộ lần cuối trước khi submit
+        syncScopeData();
+
+        btn.disabled = true;
+        btn.innerHTML = 'Đang xử lý...';
+        form.submit();
+    }
+
+    // ═══════════════════════════════════════════════════════
+    // INIT
+    // ═══════════════════════════════════════════════════════
+    document.addEventListener('DOMContentLoaded', function () {
+        flatpickr(".flatpickr-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "vn" });
+    });
+</script>

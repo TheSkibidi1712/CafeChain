@@ -1,0 +1,68 @@
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.AdminInventoryDocumentIndexVM
+
+@{
+    ViewData["Title"] = "Quản lý phiếu kho";
+}
+
+<link rel="stylesheet"
+      href="~/css/Admin/InventoryDocument/inventorydocument.css" />
+
+<div class="inventory-page">
+
+    <div class="inventory-header">
+        <div>
+            <h3>Phiếu Kho</h3>
+            <p>
+                Quản lý Nhập, Xuất, Kiểm kê, Hủy và Chuyển kho.
+            </p>
+        </div>
+
+        <div class="inventory-actions">
+            <a asp-action="Create"
+               class="btn btn-primary">
+                <i class="fas fa-plus"></i>
+                Tạo phiếu mới
+            </a>
+
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-file-excel"></i>
+                Export Excel
+            </button>
+
+            <button class="btn btn-outline-secondary">
+                <i class="fas fa-chart-bar"></i>
+                Reports
+            </button>
+        </div>
+    </div>
+
+    <partial name="Partials/_DashboardCards"
+             model="Model" />
+
+    <partial name="Partials/_FilterSection"
+             model="Model" />
+
+    <partial name="Partials/_DocumentTabs"
+             model="Model.Filter" />
+
+    <partial name="Partials/_DocumentTable"
+             model="Model" />
+
+</div>
+
+
+<div class="modal fade"
+     id="inventoryDetailModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+
+        <div class="modal-content"
+             id="inventoryDetailContent">
+        </div>
+
+    </div>
+
+</div>
+
+<script src="~/js/Admin/InventoryDocument/inventorydocument.js"></script>

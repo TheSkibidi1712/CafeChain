@@ -1,0 +1,206 @@
+﻿@model CafeChain.ViewModels.Admin.Dashboard.DashboardVM
+@using CafeChain.Application.DTOs.Admin.Dashboard
+@{
+    ViewData["Title"] = "Dashboard";
+    var role = ViewBag.Role as string;
+
+    var fromDate = Context.Request.Query["FromDate"].ToString();
+    var toDate = Context.Request.Query["ToDate"].ToString();
+    var storeId = Context.Request.Query["StoreId"].ToString();
+    var provinceId = Context.Request.Query["ProvinceId"].ToString();
+    var districtId = Context.Request.Query["DistrictId"].ToString();
+
+    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    {
+        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+    };
+
+    var revenueJson = System.Text.Json.JsonSerializer.Serialize(Model.Revenue, jsonOptions);
+    var revenueByStoreJson = System.Text.Json.JsonSerializer.Serialize(Model.RevenueByStore, jsonOptions);
+    var topDrinksJson = System.Text.Json.JsonSerializer.Serialize(Model.TopDrinks, jsonOptions);
+    var paymentsJson = System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethods, jsonOptions);
+    var staffJson = System.Text.Json.JsonSerializer.Serialize(Model.StaffPerformance, jsonOptions);
+    var toppingsJson = System.Text.Json.JsonSerializer.Serialize(Model.TopToppings, jsonOptions);
+    var inventoryJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Inventory ?? Enumerable.Empty<InventoryDto>(),
+        jsonOptions
+    );
+    var wasteJson = System.Text.Json.JsonSerializer.Serialize(
+        Model.Waste ?? Enumerable.Empty<WasteDto>(),
+        jsonOptions
+    );
+    var storesJson = System.Text.Json.JsonSerializer.Serialize(Model.Stores, jsonOptions);
+}
+
+<link rel="stylesheet" href="~/css/Admin/Dashboard/dashboard.css" />
+
+<div class="dashboard-container">
+
+    <!-- HEADER -->
+    <div class="dashboard-header">
+        <div>
+            <h2>📊 Dashboard</h2>
+            <span class="sub">
+                <b>@role</b>
+            </span>
+        </div>
+
+        <div class="filters">
+
+            <input type="date" id="fromDate" value="@fromDate" />
+            <input type="date" id="toDate" value="@toDate" />
+
+            @* ===== PROVINCE ===== *@
+            @if (Model.Stores.Any(x => x.ProvinceId.HasValue))
+            {
+                <select id="provinceId">
+                    <option value="">All Province</option>
+                    @foreach (var p in Model.Stores
+                        .Where(x => x.ProvinceId.HasValue)
+                        .GroupBy(x => x.ProvinceId))
+                    {
+                        var item = p.First();
+                        <option value="@item.ProvinceId"
+                                selected="@(provinceId == item.ProvinceId?.ToString())">
+                            @item.ProvinceName
+                        </option>
+                    }
+                </select>
+            }
+
+            @* ===== DISTRICT ===== *@
+            @if (Model.Stores.Any(x => x.DistrictId.HasValue))
+            {
+                <select id="districtId">
+                    <option value="">All District</option>
+                    @foreach (var d in Model.Stores
+                        .Where(x => x.DistrictId.HasValue)
+                        .GroupBy(x => x.DistrictId))
+                    {
+                        var item = d.First();
+                        <option value="@item.DistrictId"
+                                selected="@(districtId == item.DistrictId?.ToString())">
+                            @item.DistrictName
+                        </option>
+                    }
+                </select>
+            }
+
+            @* ===== STORE ===== *@
+            <select id="storeId">
+                <option value="">All Store</option>
+                @foreach (var s in Model.Stores)
+                {
+                    <option value="@s.StoreId"
+                            selected="@(storeId == s.StoreId.ToString())">
+                        @s.StoreName
+                    </option>
+                }
+            </select>
+
+            <button id="btnApply" class="btn-primary">Apply</button>
+        </div>
+    </div>
+
+    <!-- KPI -->
+    <div class="kpi-grid">
+        <div class="kpi-card revenue">
+            <div class="kpi-title">Doanh thu</div>
+            <div class="kpi-value">@Model.Summary?.Revenue.ToString("N0") ₫</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Đơn hàng</div>
+            <div class="kpi-value">@Model.Summary?.TotalOrders</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Khách hàng</div>
+            <div class="kpi-value">@Model.Summary?.TotalCustomers</div>
+        </div>
+
+        <div class="kpi-card">
+            <div class="kpi-title">Đơn hôm nay</div>
+            <div class="kpi-value">@Model.Summary?.TodayOrders</div>
+        </div>
+    </div>
+
+    <!-- REVENUE -->
+    <div class="grid-12">
+        <div class="card col-8">
+            <div class="card-header">📈 Doanh thu theo thời gian</div>
+            <div id="revenueChart" class="chart"></div>
+        </div>
+    </div>
+
+    <!-- STORE -->
+    <div class="grid-12">
+        <div class="card col-12">
+            <div class="card-header">🏪 Doanh thu theo cửa hàng</div>
+            <div id="storeChart" class="chart"></div>
+        </div>
+    </div>
+
+    <!-- PRODUCT + PAYMENT -->
+    <div class="grid-12">
+        <div class="card col-6">
+            <div class="card-header">🥤 Top nước uống</div>
+            <div id="topDrinkChart" class="chart"></div>
+        </div>
+
+        <div class="card col-6">
+            <div class="card-header">💳 Top doanh thu theo phương thức thanh toán</div>
+            <div id="paymentChart" class="chart"></div>
+        </div>
+    </div>
+
+    <!-- STAFF + TOPPING -->
+    <div class="grid-12">
+        <div class="card col-6">
+            <div class="card-header">👨‍💼 Hiệu suất của nhân viên</div>
+            <div id="staffChart" class="chart"></div>
+        </div>
+
+        <div class="card col-6">
+            <div class="card-header">🧋 Top Toppings</div>
+            <div id="toppingChart" class="chart"></div>
+        </div>
+    </div>
+
+    <!-- INVENTORY + WASTE -->
+    @if (Model.Inventory != null && Model.Inventory.Any())
+    {
+        <div class="grid-12">
+            <div class="card col-6 warning">
+                <div class="card-header">📦 Tồn kho</div>
+                <div id="inventoryChart" class="chart"></div>
+            </div>
+
+            <div class="card col-6 danger">
+                <div class="card-header">⚠️ Hủy kho</div>
+                <div id="wasteChart" class="chart"></div>
+            </div>
+        </div>
+    }
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+
+
+<script>
+    const dashboardData = {
+        revenue: @Html.Raw(revenueJson),
+        revenueByStore: @Html.Raw(revenueByStoreJson),
+        topDrinks: @Html.Raw(topDrinksJson),
+        payments: @Html.Raw(paymentsJson),
+        staff: @Html.Raw(staffJson),
+        topToppings: @Html.Raw(toppingsJson),
+        inventory: @Html.Raw(inventoryJson),
+        waste: @Html.Raw(wasteJson),
+        stores: @Html.Raw(storesJson)
+        };
+
+    console.log(dashboardData);
+</script>
+
+<script src="~/js/Admin/Dashboard/dashboard.js"></script>

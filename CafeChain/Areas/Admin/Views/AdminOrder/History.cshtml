@@ -1,0 +1,312 @@
+@{
+    ViewData["Title"] = "Lịch sử Đơn hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+@section Styles {
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" />
+<link rel="stylesheet" href="https://cdn.datatables.net/buttons/2.4.2/css/buttons.bootstrap5.min.css" />
+<style>
+    .history-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.5rem; }
+    .history-header h4 { font-weight:700; color:#212529; margin:0; }
+    .history-header h4 i { color:#d93d20; margin-right:8px; }
+    .filter-card { background:#fff; border-radius:12px; padding:1.25rem 1.5rem; margin-bottom:1.25rem; box-shadow:0 1px 4px rgba(0,0,0,.06); border:1px solid #e9ecef; }
+    .filter-card label { font-size:12px; font-weight:600; color:#6c757d; text-transform:uppercase; letter-spacing:.5px; margin-bottom:4px; }
+    .filter-card .form-control, .filter-card .form-select { font-size:13px; border-radius:8px; border:1px solid #dee2e6; }
+    .filter-card .form-control:focus, .filter-card .form-select:focus { border-color:#d93d20; box-shadow:0 0 0 .2rem rgba(217,61,32,.15); }
+    .table-card { background:#fff; border-radius:12px; padding:1.5rem; box-shadow:0 2px 8px rgba(0,0,0,.06); border:1px solid #e9ecef; }
+    #orderHistoryTable { font-size:13px; }
+    #orderHistoryTable thead th { background:#f8f9fa; font-weight:700; font-size:11px; text-transform:uppercase; letter-spacing:.5px; color:#6c757d; border-bottom:2px solid #dee2e6; padding:12px 10px; white-space:nowrap; }
+    #orderHistoryTable tbody td { vertical-align:middle; padding:10px; }
+    #orderHistoryTable tbody tr:hover { background:#fdf2f0; }
+    .order-id-cell { font-weight:700; color:#d93d20; font-family:'Courier New',monospace; }
+    .customer-cell .name { font-weight:600; color:#212529; }
+    .customer-cell .phone { font-size:11px; color:#6c757d; }
+    .money-cell { font-weight:700; color:#212529; font-family:'Courier New',monospace; }
+    .btn-detail { background:#f8f9fa; border:1px solid #dee2e6; color:#495057; font-size:12px; padding:4px 12px; border-radius:6px; font-weight:600; transition:all .2s; }
+    .btn-detail:hover { background:#d93d20; color:#fff; border-color:#d93d20; }
+    .btn-export { background:linear-gradient(135deg,#198754,#157347); color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; }
+    .btn-export:hover { background:linear-gradient(135deg,#157347,#0f5132); color:#fff; transform:translateY(-1px); box-shadow:0 4px 12px rgba(25,135,84,.3); }
+    .btn-reset { background:#6c757d; color:#fff; border:none; border-radius:8px; padding:8px 18px; font-size:13px; font-weight:600; }
+    .badge-status { padding:5px 10px; border-radius:6px; font-size:11px; font-weight:600; }
+    .summary-row { display:flex; gap:1rem; margin-bottom:1.25rem; }
+    .summary-card { flex:1; background:#fff; border-radius:10px; padding:1rem 1.25rem; border:1px solid #e9ecef; box-shadow:0 1px 3px rgba(0,0,0,.04); }
+    .summary-card .label { font-size:11px; color:#6c757d; text-transform:uppercase; font-weight:600; letter-spacing:.5px; }
+    .summary-card .value { font-size:1.5rem; font-weight:800; color:#212529; margin-top:2px; }
+    .summary-card.total .value { color:#d93d20; }
+    .summary-card.completed .value { color:#198754; }
+    .summary-card.cancelled .value { color:#dc3545; }
+    .summary-card.revenue .value { color:#0d6efd; }
+    /* Modal */
+    .modal-detail-header { background:linear-gradient(135deg,#d93d20,#b52d1a); color:#fff; border-radius:12px 12px 0 0; padding:1.25rem 1.5rem; }
+    .modal-detail-header h5 { margin:0; font-weight:700; }
+    .detail-section { padding:1rem 1.5rem; border-bottom:1px solid #f0f0f0; }
+    .detail-section:last-child { border-bottom:none; }
+    .detail-label { font-size:11px; color:#6c757d; text-transform:uppercase; font-weight:600; letter-spacing:.3px; }
+    .detail-value { font-weight:600; color:#212529; }
+    .item-row { display:flex; justify-content:space-between; align-items:flex-start; padding:8px 0; border-bottom:1px dashed #eee; }
+    .item-row:last-child { border-bottom:none; }
+    .item-name { font-weight:600; }
+    .item-topping { font-size:11px; color:#6c757d; padding-left:12px; }
+    .item-price { font-weight:700; color:#d93d20; white-space:nowrap; }
+    .money-summary { display:flex; justify-content:space-between; padding:4px 0; font-size:13px; }
+    .money-summary.grand { font-size:15px; font-weight:800; color:#d93d20; border-top:2px solid #212529; padding-top:8px; margin-top:4px; }
+    .dataTables_wrapper .dataTables_length, .dataTables_wrapper .dataTables_info { font-size:13px; }
+    .dataTables_wrapper .dataTables_paginate .paginate_button { font-size:13px; }
+</style>
+}
+
+<!-- Header -->
+<div class="history-header">
+    <h4><i class="fas fa-history"></i> Lịch sử Đơn hàng</h4>
+    <div class="d-flex gap-2">
+        <button class="btn-export" id="btnExportCsv"><i class="fas fa-file-csv me-1"></i> Xuất CSV</button>
+        <a asp-action="Index" class="btn btn-outline-secondary" style="border-radius:8px;font-size:13px;font-weight:600;">
+            <i class="fas fa-columns me-1"></i> Quản lý đơn hàng
+        </a>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="summary-row" id="summaryRow">
+    <div class="summary-card total"><div class="label">Tổng đơn</div><div class="value" id="totalOrders">-</div></div>
+    <div class="summary-card completed"><div class="label">Hoàn thành</div><div class="value" id="completedOrders">-</div></div>
+    <div class="summary-card cancelled"><div class="label">Đã hủy</div><div class="value" id="cancelledOrders">-</div></div>
+    <div class="summary-card revenue"><div class="label">Doanh thu (lọc)</div><div class="value" id="totalRevenue">-</div></div>
+</div>
+
+<!-- Filters -->
+<div class="filter-card">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-3">
+            <label>Tìm kiếm</label>
+            <input type="text" class="form-control" id="filterSearch" placeholder="Mã đơn, SĐT, tên KH...">
+        </div>
+        <div class="col-md-2">
+            <label>Từ ngày</label>
+            <input type="date" class="form-control" id="filterDateFrom">
+        </div>
+        <div class="col-md-2">
+            <label>Đến ngày</label>
+            <input type="date" class="form-control" id="filterDateTo">
+        </div>
+        <div class="col-md-2">
+            <label>Trạng thái</label>
+            <select class="form-select" id="filterStatus">
+                <option value="">Tất cả</option>
+                <option value="7">Chờ thanh toán</option>
+                <option value="1">Chờ xác nhận</option>
+                <option value="2">Đang pha chế</option>
+                <option value="3">Chờ lấy hàng</option>
+                <option value="4">Đang giao</option>
+                <option value="5">Hoàn thành</option>
+                <option value="6">Đã hủy</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <label>Thanh toán</label>
+            <select class="form-select" id="filterPayment">
+                <option value="">Tất cả</option>
+                <option value="1">Tiền mặt</option>
+                <option value="2">Chuyển khoản</option>
+                <option value="3">MoMo</option>
+            </select>
+        </div>
+        <div class="col-md-1 d-flex gap-1">
+            <button class="btn btn-sm btn-reset w-100" id="btnReset" title="Xóa bộ lọc"><i class="fas fa-undo"></i></button>
+        </div>
+    </div>
+</div>
+
+<!-- DataTable -->
+<div class="table-card">
+    <table id="orderHistoryTable" class="table table-hover mb-0" style="width:100%">
+        <thead>
+            <tr>
+                <th>Mã đơn</th>
+                <th>Thời gian đặt</th>
+                <th>Khách hàng</th>
+                <th>Tổng tiền</th>
+                <th>Thanh toán</th>
+                <th>Trạng thái</th>
+                <th style="text-align:center">Hành động</th>
+            </tr>
+        </thead>
+        <tbody id="orderTableBody"></tbody>
+    </table>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal fade" id="orderDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content" style="border:none;border-radius:12px;overflow:hidden;">
+            <div class="modal-detail-header">
+                <h5><i class="fas fa-receipt me-2"></i>Chi tiết đơn hàng <span id="modalOrderId"></span></h5>
+                <button type="button" class="btn-close btn-close-white position-absolute" style="top:16px;right:16px;" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0" id="modalBody">
+                <div class="text-center py-5"><div class="spinner-border text-danger"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Khởi tạo ngày mặc định (hôm nay)
+            const today = new Date().toISOString().split('T')[0];
+            // $('#filterDateFrom').val(today);
+            // $('#filterDateTo').val(today);
+
+            const fmt = n => new Intl.NumberFormat('vi-VN').format(n) + 'đ';
+            const fmtDate = s => {
+                if (!s) return 'N/A';
+                const d = new Date(s);
+                return d.toLocaleDateString('vi-VN') + ' ' + d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+            };
+
+            const paymentIcons = { 1: '💵', 2: '🏦', 3: '📱' };
+
+            function loadOrders() {
+                const params = {
+                    keyword: $('#filterSearch').val(),
+                    fromDate: $('#filterDateFrom').val(),
+                    toDate: $('#filterDateTo').val(),
+                    statusId: $('#filterStatus').val(),
+                    paymentId: $('#filterPayment').val()
+                };
+
+                $('#orderTableBody').html('<tr><td colspan="7" class="text-center py-4"><div class="spinner-border text-danger"></div> Đang tải...</td></tr>');
+
+                $.get('/api/AdminOrder/GetOrderHistoryData', params, function (res) {
+                    // 1. Cập nhật thống kê
+                    $('#totalOrders').text(res.stats.totalOrders);
+                    $('#completedOrders').text(res.stats.completedOrders);
+                    $('#cancelledOrders').text(res.stats.cancelledOrders);
+                    $('#totalRevenue').text(fmt(res.stats.totalRevenue));
+
+                    // 2. Render bảng
+                    let html = '';
+                    if (res.data.length === 0) {
+                        html = '<tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy đơn hàng nào.</td></tr>';
+                    } else {
+                        res.data.forEach(o => {
+                            html += `
+                                <tr>
+                                    <td><span class="order-id-cell">#CC${String(o.orderId).padStart(5, '0')}</span></td>
+                                    <td>${fmtDate(o.createdAt)}</td>
+                                    <td>
+                                        <div class="customer-cell">
+                                            <div class="name">${o.customerName}</div>
+                                            <div class="phone"><i class="fas fa-phone-alt me-1"></i>${o.customerPhone || 'N/A'}</div>
+                                        </div>
+                                    </td>
+                                    <td><span class="money-cell">${fmt(o.total)}</span></td>
+                                    <td>${paymentIcons[o.paymentId] || '💳'} ${o.paymentMethodName}</td>
+                                    <td><span class="badge ${o.orderStatusBadge} badge-status">${o.orderStatusName}</span></td>
+                                    <td class="text-center">
+                                        <button class="btn-detail" onclick="showDetail(${o.orderId})">
+                                            <i class="fas fa-eye me-1"></i>Chi tiết
+                                        </button>
+                                    </td>
+                                </tr>`;
+                        });
+                    }
+                    $('#orderTableBody').html(html);
+                }).fail(function (xhr) {
+                    $('#orderTableBody').html(`<tr><td colspan="7" class="text-center py-4 text-danger">Lỗi tải dữ liệu: ${xhr.responseText}</td></tr>`);
+                });
+            }
+
+            // Events
+            $('#filterSearch').on('input', function () {
+                clearTimeout(this.delay);
+                this.delay = setTimeout(loadOrders, 500);
+            });
+
+            $('#filterDateFrom, #filterDateTo, #filterStatus, #filterPayment').on('change', loadOrders);
+
+            $('#btnReset').click(function () {
+                $('#filterSearch, #filterDateFrom, #filterDateTo, #filterStatus, #filterPayment').val('');
+                loadOrders();
+            });
+
+            $('#btnExportCsv').click(function () {
+                const query = $.param({
+                    keyword: $('#filterSearch').val(),
+                    fromDate: $('#filterDateFrom').val(),
+                    toDate: $('#filterDateTo').val(),
+                    statusId: $('#filterStatus').val(),
+                    paymentId: $('#filterPayment').val()
+                });
+                window.location.href = '/api/AdminOrder/ExportCSV?' + query;
+            });
+
+            // Chi tiết đơn hàng (Modal)
+            window.showDetail = function (orderId) {
+                $('#modalOrderId').text('#CC' + String(orderId).padStart(5, '0'));
+                $('#modalBody').html('<div class="text-center py-5"><div class="spinner-border text-danger"></div></div>');
+                const modal = new bootstrap.Modal(document.getElementById('orderDetailModal'));
+                modal.show();
+
+                $.get(`/api/AdminOrder/GetOrderHistoryDetail/${orderId}`, function (d) {
+                    let itemsHtml = d.items.map(item => {
+                        let toppingHtml = item.toppings.map(t => `<div class="item-topping">+ ${t.name} <span class="text-muted">(${fmt(t.price)})</span></div>`).join('');
+                        return `
+                            <div class="item-row">
+                                <div>
+                                    <div class="item-name">${item.quantity}x ${item.drinkName} ${item.sizeName ? '(' + item.sizeName + ')' : ''}</div>
+                                    ${toppingHtml}
+                                    ${item.note ? '<div class="item-topping text-warning"><i class="fas fa-sticky-note me-1"></i>' + item.note + '</div>' : ''}
+                                </div>
+                                <div class="item-price">${fmt(item.price * item.quantity)}</div>
+                            </div>`;
+                    }).join('');
+
+                    let html = `
+                        <div class="detail-section">
+                            <div class="row g-3">
+                                <div class="col-6"><div class="detail-label">Khách hàng</div><div class="detail-value">${d.customerName}</div></div>
+                                <div class="col-6"><div class="detail-label">SĐT</div><div class="detail-value">${d.customerPhone || 'N/A'}</div></div>
+                                <div class="col-6"><div class="detail-label">Loại đơn</div><div class="detail-value">${d.orderTypeName || 'N/A'}</div></div>
+                                <div class="col-6"><div class="detail-label">Nguồn</div><div class="detail-value">${d.source || 'N/A'}</div></div>
+                                <div class="col-12"><div class="detail-label">Địa chỉ</div><div class="detail-value">${d.deliveryAddress || 'N/A'}</div></div>
+                                ${d.note ? '<div class="col-12"><div class="detail-label">Ghi chú</div><div class="detail-value text-muted">' + d.note + '</div></div>' : ''}
+                            </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="row">
+                                <div class="col-md-6 border-end">
+                                    <div class="detail-label mb-2">Trạng thái</div>
+                                    <span class="${d.orderStatusBadge} badge-status">${d.orderStatusName}</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="detail-label mb-2">Thanh toán</div>
+                                    <div class="fw-bold">${d.paymentMethodName}</div>
+                                    <div class="small text-muted">${d.paymentStatusName}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="detail-section">
+                            <div class="detail-label mb-2">Danh sách món</div>
+                            ${itemsHtml}
+                        </div>
+                        <div class="detail-section" style="background:#fafafa;">
+                            <div class="money-summary"><span>Tạm tính</span><span>${fmt(d.subTotal)}</span></div>
+                            <div class="money-summary"><span>Phí ship</span><span>${fmt(d.shippingFee)}</span></div>
+                            ${d.voucherDiscount > 0 ? '<div class="money-summary"><span>Giảm voucher</span><span class="text-success">-' + fmt(d.voucherDiscount) + '</span></div>' : ''}
+                            ${d.pointDiscount > 0 ? '<div class="money-summary"><span>Giảm điểm</span><span class="text-success">-' + fmt(d.pointDiscount) + '</span></div>' : ''}
+                            <div class="money-summary grand"><span>Tổng cộng</span><span>${fmt(d.total)}</span></div>
+                        </div>`;
+                    $('#modalBody').html(html);
+                }).fail(function () {
+                    $('#modalBody').html('<div class="text-center py-5 text-danger">Không thể tải chi tiết đơn hàng.</div>');
+                });
+            };
+
+            // Khởi chạy
+            loadOrders();
+        });
+    </script>
+}

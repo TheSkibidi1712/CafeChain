@@ -1,0 +1,427 @@
+@model CafeChain.ViewModels.HomeViewModel
+
+@{
+    ViewData["Title"] = "Trang chủ";
+}
+
+<div class="container mt-4 mb-5">
+    <div class="hero-banner d-flex align-items-center justify-content-center text-center text-white" style="height: 400px;">
+        <div class="hero-overlay"></div>
+        <div class="position-relative z-1 px-3">
+            <h1 class="display-4 fw-bold mb-3">Đánh thức đam mê<br />cùng <span class="text-orange">CafeChain</span></h1>
+            <p class="lead mb-4 fs-6 text-light" style="max-width: 600px; margin: 0 auto;"> Hương vị cà phê nguyên bản...</p>
+            <div>
+                <a asp-controller="Drink" asp-action="Menu" class="btn btn-orange rounded-pill px-4 py-2 fw-semibold me-2 shadow-sm">Đặt hàng ngay</a>
+                <a asp-controller="Drink" asp-action="Menu" class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold border-2 text-white shadow-sm">Xem thực đơn</a>
+            </div>
+        </div>
+    </div>
+
+    @* ===================== PHÂN HỆ 1: MÓN BÁN CHẠY NHẤT ===================== *@
+    @if (Model.BestSellers != null && Model.BestSellers.Any())
+    {
+        <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
+            <div>
+                <h4 class="fw-bold mb-1">Món bán chạy nhất</h4>
+                <p class="text-muted small mb-0">Những hương vị được yêu thích nhất trong tuần qua</p>
+            </div>
+        </div>
+
+        <div class="product-slider-container mb-5">
+            @if (Model.BestSellers.Count > 4)
+            {
+                <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+            }
+
+            <div class="product-slider">
+                @foreach (var item in Model.BestSellers)
+                {
+                    <div class="slider-item">
+                        <partial name="~/Views/Home/_DrinkItemCard.cshtml" model="item" />
+                    </div>
+                }
+            </div>
+
+            @if (Model.BestSellers.Count > 4)
+            {
+                <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            }
+        </div>
+    }
+
+    @* ===================== CÁC DANH MỤC ĐỘNG ===================== *@
+    @foreach (var cat in Model.Categories)
+    {
+        var categoryDrinks = Model.Drinks.Where(d => d.CategoryId == cat.CategoryId).ToList();
+        if (categoryDrinks.Any())
+        {
+            <div class="d-flex justify-content-between align-items-end mt-5 mb-4 px-1">
+                <div>
+                    <h4 class="fw-bold mb-1">@cat.Name</h4>
+                    <p class="text-muted small mb-0">Những lựa chọn tuyệt vời dành cho bạn</p>
+                </div>
+            </div>
+
+            <div class="product-slider-container mb-5">
+                @if (categoryDrinks.Count > 4)
+                {
+                    <button class="slider-btn prev" onclick="scrollSlider(this, -1)">
+                        <i class="bi bi-chevron-left"></i>
+                    </button>
+                }
+
+                <div class="product-slider">
+                    @foreach (var drink in categoryDrinks)
+                    {
+                        <div class="slider-item">
+                            <partial name="~/Views/Product/ProductCard.cshtml" model="drink" view-data='@new ViewDataDictionary(ViewData) { { "IsSoldOut", !Model.Availability.ContainsKey(drink.DrinkId) || !Model.Availability[drink.DrinkId] } }' />
+                        </div>
+                    }
+                </div>
+
+                @if (categoryDrinks.Count > 4)
+                {
+                    <button class="slider-btn next" onclick="scrollSlider(this, 1)">
+                        <i class="bi bi-chevron-right"></i>
+                    </button>
+                }
+            </div>
+        }
+    }
+</div>
+
+@if (Model.ActiveWheel != null)
+{
+    <!-- Premium Lucky Wheel Button -->
+    <div class="wheel-fab-container position-fixed bottom-0 end-0 m-4 d-flex align-items-center justify-content-center" 
+         style="cursor: pointer; width: 75px; height: 75px; border-radius: 50%; z-index: 1030;" onclick="openWheel()">
+        <div class="position-relative">
+            <div class="wheel-pulse"></div>
+            <div class="wheel-icon shadow-lg d-flex align-items-center justify-content-center spin-animation" 
+                 style="width: 75px; height: 75px; border: 4px solid #fcd34d; background: radial-gradient(circle, #f43f5e 0%, #9f1239 100%); border-radius: 50%; box-shadow: 0 0 35px rgba(225, 29, 72, 0.6);">
+                <i class="fas fa-dharmachakra fa-2x text-white"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lucky Wheel Modal -->
+    <div class="modal fade" id="luckyWheelModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 bg-transparent shadow-none">
+                <div class="modal-body p-0 text-center position-relative">
+                    <button type="button" class="btn btn-light rounded-circle position-absolute z-3 shadow-lg d-flex align-items-center justify-content-center" style="top: 15px; right: 15px; width: 40px; height: 40px; border: 2px solid #dee2e6;" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times text-dark fs-5"></i>
+                    </button>
+                    
+                    <div class="wheel-outer-frame shadow-lg p-3 mx-auto" style="width: 400px; height: 400px; background: radial-gradient(circle, #fcd34d 0%, #d97706 100%); border-radius: 50%; border: 12px solid #343a40; position: relative; box-shadow: 0 0 50px rgba(217, 61, 32, 0.4);">
+                        <div class="wheel-lights"></div>
+                        <div class="wheel-pointer-wrap" style="position: absolute; top: -10px; left: 50%; transform: translateX(-50%); z-index: 100;">
+                            <div style="width: 30px; height: 30px; background: #343a40; border-radius: 50%; border: 4px solid #fcd34d; box-shadow: 0 4px 10px rgba(0,0,0,0.3); margin: 0 auto; position: relative; z-index: 2;"></div>
+                            <div style="width: 0; height: 0; border-left: 20px solid transparent; border-right: 20px solid transparent; border-top: 40px solid #d93d20; margin: -8px auto 0; filter: drop-shadow(0 5px 8px rgba(0,0,0,0.4)); position: relative; z-index: 1;"></div>
+                        </div>
+
+                        <div class="inner-wheel shadow-inner" style="width: 100%; height: 100%; background: #fff; border-radius: 50%; position: relative; overflow: hidden; border: 4px solid #fff;">
+                            
+                            <canvas id="wheelCanvas" width="344" height="344" style="width: 100%; height: 100%;"></canvas>
+                            
+                            <button id="spinBtn" class="btn btn-dark rounded-circle shadow-lg fw-bold position-absolute top-50 start-50 translate-middle d-flex align-items-center justify-content-center" 
+                                    style="width: 85px; height: 85px; z-index: 60; border: 6px solid rgba(255,255,255,0.8); background: radial-gradient(circle, #f43f5e 0%, #e11d48 100%); color: #fff; font-size: 1.1rem; box-shadow: 0 0 20px rgba(0,0,0,0.3);" 
+                                    onclick="spinTheWheel()">
+                                QUAY
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 bg-white p-4 rounded-4 shadow-lg mx-auto border" style="max-width: 380px; border-top: 5px solid #d93d20;">
+                        <h4 class="fw-bold mb-1 text-dark">Vòng quay may mắn</h4>
+                        <div id="accountInfo" class="d-none badge bg-light text-dark p-2 rounded-3 mb-3 border w-100 fs-6">
+                            <i class="fas fa-coins text-warning me-2"></i> Điểm: <span id="userPoints" class="fw-bold text-danger">0</span>
+                        </div>
+                        <p class="small fw-semibold text-muted mb-0" id="wheelTypeMsg">Đăng nhập ngay để nhận Voucher miễn phí!</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Styles {
+    <style>
+        .spin-animation { animation: rotate 15s linear infinite; }
+        @@keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        
+        .wheel-fab-container { transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); border-radius: 50%; overflow: visible; background: transparent; }
+        .wheel-fab-container:hover { transform: scale(1.1); box-shadow: 0 10px 30px rgba(217, 61, 32, 0.5); }
+        
+        .wheel-pulse {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 75px;
+            height: 75px;
+            background: rgba(244, 63, 94, 0.4);
+            border-radius: 50%;
+            animation: pulse-ring 2s cubic-bezier(0.455, 0.03, 0.515, 0.955) infinite;
+            z-index: -1;
+        }
+
+        @@keyframes pulse-ring {
+            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.8; }
+            100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
+        }
+
+        .product-slider { -ms-overflow-style: none; scrollbar-width: none; }
+        .product-slider::-webkit-scrollbar { display: none; }
+        .wheel-outer-frame::before { content: ''; position: absolute; inset: -5px; border-radius: 50%; border: 3px dashed rgba(255,255,255,0.4); pointer-events: none; }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        let wheelModal;
+        let canvas = document.getElementById('wheelCanvas');
+        let ctx = canvas ? canvas.getContext('2d') : null;
+        let sectors = [];
+        let isSpinning = false;
+        
+        let currentRotation = 0;
+        let isIdleSpinning = false;
+        let animationFrameId;
+
+        @if (Model.ActiveWheel != null)
+        {
+            @: sectors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ActiveWheel.Prizes.OrderBy(p => p.SlotIndex).Select(p => new { label = p.IsLose ? "Xịt" : (p.Voucher != null ? p.Voucher.Code : "Quà"), color = (p.SlotIndex % 2 == 0) ? "#f43f5e" : "#fb7185", textColor = "#fff" })));
+        }
+
+        $(document).ready(function() {
+            if (canvas) {
+                drawWheel();
+                wheelModal = new bootstrap.Modal(document.getElementById('luckyWheelModal'));
+                
+                // Khi mở modal thì bắt đầu quay nhẹ
+                document.getElementById('luckyWheelModal').addEventListener('show.bs.modal', function () {
+                    if (!isSpinning) {
+                        startIdleSpin();
+                    }
+                });
+                
+                // Khi đóng modal thì dừng quay nhẹ để tiết kiệm tài nguyên
+                document.getElementById('luckyWheelModal').addEventListener('hidden.bs.modal', function () {
+                    stopIdleSpin();
+                });
+            }
+        });
+        
+        function startIdleSpin() {
+            if (isIdleSpinning) return;
+            isIdleSpinning = true;
+            canvas.style.transition = 'none'; // Đảm bảo không có transition nào cản trở requestAnimationFrame
+            
+            function spin() {
+                if (!isIdleSpinning) return;
+                currentRotation += 0.5; // Tốc độ quay nhàn rỗi (độ/frame)
+                if (currentRotation >= 360) currentRotation -= 360;
+                canvas.style.transform = `rotate(${currentRotation}deg)`;
+                animationFrameId = requestAnimationFrame(spin);
+            }
+            spin();
+        }
+
+        function stopIdleSpin() {
+            isIdleSpinning = false;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        }
+
+        function drawWheel() {
+            if (!ctx) return;
+            let numSectors = sectors.length;
+            let arc = (2 * Math.PI) / numSectors;
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2;
+            let radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numSectors; i++) {
+                let angle = i * arc;
+                let grad = ctx.createRadialGradient(centerX, centerY, 50, centerX, centerY, radius);
+                grad.addColorStop(0, sectors[i].color);
+                grad.addColorStop(1, i % 2 === 0 ? "#be123c" : "#e11d48");
+                
+                ctx.beginPath();
+                ctx.fillStyle = grad;
+                ctx.moveTo(centerX, centerY);
+                ctx.arc(centerX, centerY, radius, angle, angle + arc);
+                ctx.lineTo(centerX, centerY);
+                ctx.fill();
+
+                ctx.strokeStyle = "rgba(255,255,255,0.2)";
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.save();
+                ctx.translate(centerX, centerY);
+                ctx.rotate(angle + arc / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = sectors[i].textColor;
+                ctx.font = "bold 13px Inter, sans-serif";
+                ctx.shadowColor = "rgba(0,0,0,0.5)";
+                ctx.shadowBlur = 4;
+                ctx.fillText(sectors[i].label, radius - 20, 5);
+                ctx.restore();
+            }
+        }
+
+        let countdownInterval;
+
+        function openWheel() {
+            $.get('/LuckyWheel/GetUserInfo', function(res) {
+                if (res.isAuthenticated) {
+                    $('#accountInfo').removeClass('d-none');
+                    $('#userPoints').text(res.points.toLocaleString());
+                    
+                    if (!res.canSpinToday && res.nextSpinTime) {
+                        $('#spinBtn').prop('disabled', true);
+                        startCountdown(res.nextSpinTime);
+                    } else {
+                        $('#spinBtn').prop('disabled', false);
+                        clearInterval(countdownInterval);
+                        if (res.isNewUser) {
+                            $('#wheelTypeMsg').html('<span class="text-danger fw-bold">🎁 CHÀO MỪNG! BẠN CÓ 1 LẦN QUAY MIỄN PHÍ!</span>');
+                        } else {
+                            $('#wheelTypeMsg').text(`Mỗi lượt quay kế tiếp tốn ${res.spinCost} điểm.`);
+                        }
+                    }
+                } else {
+                    $('#spinBtn').prop('disabled', false);
+                    clearInterval(countdownInterval);
+                    $('#wheelTypeMsg').text('Đăng nhập để nhận phần thưởng ngay!');
+                }
+                wheelModal.show();
+            });
+        }
+
+        function startCountdown(targetTimeStr) {
+            clearInterval(countdownInterval);
+            const targetTime = new Date(targetTimeStr).getTime();
+            
+            countdownInterval = setInterval(function() {
+                const now = new Date().getTime();
+                const distance = targetTime - now;
+                
+                if (distance < 0) {
+                    clearInterval(countdownInterval);
+                    $('#wheelTypeMsg').html('<span class="text-success fw-bold">Lượt quay mới đã sẵn sàng! Bạn có thể quay ngay.</span>');
+                    $('#spinBtn').prop('disabled', false);
+                    return;
+                }
+                
+                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+                
+                const h = hours < 10 ? "0" + hours : hours;
+                const m = minutes < 10 ? "0" + minutes : minutes;
+                const s = seconds < 10 ? "0" + seconds : seconds;
+                
+                $('#wheelTypeMsg').html(`Đã hết lượt hôm nay.<br/>Quay lại sau: <b class="text-danger fs-5">${h}:${m}:${s}</b>`);
+            }, 1000);
+        }
+
+        function spinTheWheel() {
+            if (isSpinning) return;
+            
+            $.post('/LuckyWheel/Spin', function(res) {
+                if (!res.success) {
+                    Swal.fire({
+                        title: 'Thông báo',
+                        text: res.message,
+                        icon: 'info',
+                        confirmButtonColor: '#d93d20'
+                    }).then(() => {
+                        if (res.notLoggedIn) window.location.href = '/Account/Login';
+                    });
+                    return;
+                }
+
+                // Dừng quay nhàn rỗi
+                stopIdleSpin();
+                isSpinning = true;
+                $('#spinBtn').prop('disabled', true);
+                
+                let numSectors = sectors.length;
+                let sectorArc = 360 / numSectors;
+                
+                let stopAngle = 270 - (res.prizeIndex * sectorArc + sectorArc / 2);
+                
+                // Tính toán góc quay mục tiêu sao cho vòng quay đi tiếp mượt mà từ vị trí hiện tại
+                // Bù lại phần góc đã bị lệch do currentRotation
+                let targetRotation = currentRotation + (360 * 12) + (stopAngle - (currentRotation % 360)); 
+                if (targetRotation < currentRotation + 360 * 10) {
+                    targetRotation += 360; // Đảm bảo luôn quay đủ số vòng kịch tính
+                }
+                
+                // Kích hoạt CSS transition để quay nhanh
+                canvas.style.transition = 'transform 6s cubic-bezier(0.2, 0, 0, 1)';
+                
+                // Force reflow để browser nhận diện transition trước khi set transform mới
+                canvas.offsetHeight; 
+                
+                canvas.style.transform = `rotate(${targetRotation}deg)`;
+                
+                setTimeout(() => {
+                    isSpinning = false;
+                    $('#spinBtn').prop('disabled', false);
+
+                    if (!res.isLose) {
+                        confetti({
+                            particleCount: 150,
+                            spread: 100,
+                            origin: { y: 0.6 },
+                            colors: ['#f43f5e', '#fb7185', '#fbbf24']
+                        });
+
+                        Swal.fire({
+                            title: '<h3 class="fw-bold" style="color:#d93d20">CHÚC MỪNG!</h3>',
+                            html: `Bạn đã trúng Voucher: <b class="fs-4 text-dark">${res.voucherCode}</b><br><small class="text-muted">Mã đã được lưu vào giỏ hàng của bạn!</small>`,
+                            imageUrl: '/Images/Icons/gift-box.png',
+                            imageWidth: 80,
+                            confirmButtonText: 'TUYỆT VỜI',
+                            confirmButtonColor: '#d93d20'
+                        }).then(() => {
+                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
+                            currentRotation = targetRotation % 360;
+                            startIdleSpin();
+                        });
+                    } else {
+                        Swal.fire({
+                            title: 'Tiếc quá!',
+                            text: 'Chúc bạn may mắn lần sau nhé!',
+                            icon: 'info',
+                            confirmButtonColor: '#343a40'
+                        }).then(() => {
+                            // Khi tắt thông báo, tiếp tục quay nhàn rỗi
+                            currentRotation = targetRotation % 360;
+                            startIdleSpin();
+                        });
+                    }
+
+                    if (res.newPoints !== undefined) $('#userPoints').text(res.newPoints.toLocaleString());
+                }, 6000);
+
+            });
+        }
+
+        console.log("Kiểm tra: Hàm scrollSlider đã tồn tại chưa?");
+        console.log(typeof scrollSlider);
+    </script>
+}

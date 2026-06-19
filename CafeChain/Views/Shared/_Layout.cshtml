@@ -1,0 +1,593 @@
+@using CafeChain.Application.Interfaces
+@using CafeChain.Helpers;
+@using CafeChain.Application.Constants
+@inject ICartService CartService
+@{
+    int cartCount = CartService.GetTotalCount();
+    string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Home";
+    var tempSuccess = TempData["SuccessMessage"]?.ToString();
+    var tempError   = TempData["ErrorMessage"]?.ToString();
+    var tempWarning = TempData["WarningMessage"]?.ToString();
+    var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+
+}
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - CafeChain</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+
+    <style>
+        /* ============= CAFECHAIN TOAST SYSTEM ============= */
+        .no-underline{
+            text-decoration: none;
+        }
+        #cc-toast-container {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            pointer-events: none;
+        }
+        .cc-toast {
+            display: flex;
+            align-items: flex-start;
+            gap: 14px;
+            min-width: 320px;
+            max-width: 420px;
+            padding: 16px 18px;
+            border-radius: 14px;
+            background: #fff;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.13), 0 2px 8px rgba(0,0,0,0.07);
+            pointer-events: all;
+            opacity: 0;
+            transform: translateY(20px) scale(0.97);
+            transition: opacity 0.28s cubic-bezier(.4,0,.2,1), transform 0.28s cubic-bezier(.4,0,.2,1);
+            border-left: 4px solid #d35400;
+            position: relative;
+            overflow: hidden;
+        }
+        .cc-toast.cc-show {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+        .cc-toast.cc-hide {
+            opacity: 0;
+            transform: translateY(12px) scale(0.96);
+        }
+        .cc-toast.cc-success { border-left-color: #28a745; }
+        .cc-toast.cc-error   { border-left-color: #dc3545; }
+        .cc-toast.cc-warning { border-left-color: #fd7e14; }
+        .cc-toast.cc-info    { border-left-color: #0d6efd; }
+
+        .cc-toast-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 1.1rem;
+        }
+        .cc-success .cc-toast-icon { background: #d4edda; color: #28a745; }
+        .cc-error   .cc-toast-icon { background: #f8d7da; color: #dc3545; }
+        .cc-warning .cc-toast-icon { background: #fff3cd; color: #fd7e14; }
+        .cc-info    .cc-toast-icon { background: #cce5ff; color: #0d6efd; }
+
+        .cc-toast-body { flex: 1; min-width: 0; }
+        .cc-toast-title {
+            font-weight: 700;
+            font-size: 0.88rem;
+            color: #1a1a1a;
+            margin-bottom: 3px;
+            letter-spacing: 0.01em;
+        }
+        .cc-toast-msg {
+            font-size: 0.84rem;
+            color: #4a4a4a;
+            line-height: 1.45;
+            word-break: break-word;
+        }
+        .cc-toast-close {
+            background: none;
+            border: none;
+            color: #aaa;
+            cursor: pointer;
+            font-size: 1rem;
+            padding: 0;
+            margin-left: 4px;
+            flex-shrink: 0;
+            transition: color 0.2s;
+            align-self: flex-start;
+        }
+        .cc-toast-close:hover { color: #333; }
+        .cc-toast-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            height: 3px;
+            border-radius: 0;
+            opacity: 0.3;
+            animation: ccToastProgress linear forwards;
+        }
+        .cc-success .cc-toast-progress { background: #28a745; }
+        .cc-error   .cc-toast-progress { background: #dc3545; }
+        .cc-warning .cc-toast-progress { background: #fd7e14; }
+        .cc-info    .cc-toast-progress { background: #0d6efd; }
+
+        @@keyframes ccToastProgress {
+            from { width: 100%; }
+            to   { width: 0%; }
+        }
+
+        /* ============= CAFECHAIN CONFIRM MODAL ============= */
+        #cc-confirm-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 100000;
+            background: rgba(15, 15, 25, 0.55);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.22s ease;
+            pointer-events: none;
+        }
+        #cc-confirm-overlay.cc-confirm-show {
+            opacity: 1;
+            pointer-events: all;
+        }
+        #cc-confirm-box {
+            background: #fff;
+            border-radius: 20px;
+            padding: 36px 32px 28px;
+            max-width: 380px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.18), 0 4px 16px rgba(0,0,0,0.08);
+            text-align: center;
+            transform: translateY(-24px) scale(0.96);
+            transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
+            opacity: 0;
+        }
+        #cc-confirm-overlay.cc-confirm-show #cc-confirm-box {
+            transform: translateY(0) scale(1);
+            opacity: 1;
+        }
+        .cc-confirm-icon-wrap {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            background: #fff3ed;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+            font-size: 1.8rem;
+            color: #d35400;
+        }
+        .cc-confirm-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+        .cc-confirm-msg {
+            font-size: 0.88rem;
+            color: #666;
+            line-height: 1.55;
+            margin-bottom: 28px;
+        }
+        .cc-confirm-actions {
+            display: flex;
+            gap: 10px;
+        }
+        .cc-confirm-btn-cancel {
+            flex: 1;
+            padding: 11px 0;
+            border-radius: 12px;
+            border: 2px solid #e8e8e8;
+            background: #f8f8f8;
+            color: #555;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+        .cc-confirm-btn-cancel:hover {
+            background: #efefef;
+            border-color: #d0d0d0;
+        }
+        .cc-confirm-btn-ok {
+            flex: 1;
+            padding: 11px 0;
+            border-radius: 12px;
+            border: none;
+            background: linear-gradient(135deg, #e8590c, #d35400);
+            color: #fff;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.18s;
+            box-shadow: 0 4px 14px rgba(211, 84, 0, 0.35);
+        }
+        .cc-confirm-btn-ok:hover {
+            background: linear-gradient(135deg, #d35400, #b84800);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(211, 84, 0, 0.45);
+        }
+        .cc-confirm-btn-ok.cc-danger {
+            background: linear-gradient(135deg, #e53935, #c62828);
+            box-shadow: 0 4px 14px rgba(198, 40, 40, 0.35);
+        }
+        .cc-confirm-btn-ok.cc-danger:hover {
+            background: linear-gradient(135deg, #c62828, #b71c1c);
+            box-shadow: 0 6px 18px rgba(198, 40, 40, 0.45);
+        }
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="d-flex flex-column min-vh-100">
+
+    <!-- ========== TOAST CONTAINER (Global - CafeChain) ========== -->
+    <div id="cc-toast-container"></div>
+
+    <!-- ========== CONFIRM MODAL (Global - CafeChain) ========== -->
+    <div id="cc-confirm-overlay">
+        <div id="cc-confirm-box">
+            <div class="cc-confirm-icon-wrap" id="cc-confirm-icon">
+                <i class="bi bi-trash3-fill" id="cc-confirm-icon-inner"></i>
+            </div>
+            <div class="cc-confirm-title" id="cc-confirm-title">Xác nhận hành động</div>
+            <div class="cc-confirm-msg" id="cc-confirm-msg">Bạn có chắc chắn muốn thực hiện thao tác này không?</div>
+            <div class="cc-confirm-actions">
+                <button class="cc-confirm-btn-cancel" id="cc-confirm-cancel">Hủy bỏ</button>
+                <button class="cc-confirm-btn-ok" id="cc-confirm-ok">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <header class="bg-white sticky-top">
+        <nav class="navbar navbar-expand-lg py-3">
+            <div class="container">
+                <a class="navbar-brand text-orange fw-bold fs-4 d-flex align-items-center gap-2" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="bi bi-cup-hot-fill"></i> CafeChain
+                </a>
+
+                <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse" id="navbarMain">
+                    <ul class="navbar-nav me-auto ms-4 mb-2 mb-lg-0 fw-semibold">
+                        <li class="nav-item">
+                            <a class="nav-link px-3 @(currentController == "Home" ? "text-dark fw-bold" : "text-muted")" asp-area="" asp-controller="Home" asp-action="Index">Trang chủ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link px-3 @(currentController == "Drink" ? "text-dark fw-bold" : "text-muted")" asp-area="" asp-controller="Drink" asp-action="Menu">Thực đơn</a>
+                        </li>
+                    </ul>
+                    <div class="d-flex align-items-center gap-4">
+                        <form asp-controller="Drink" asp-action="Menu" method="get" class="search-box position-relative d-none d-md-block" style="width: 200px;">
+                            <i class="bi bi-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" style="font-size: 0.9rem;"></i>
+                            <input type="text" name="keyword" class="form-control rounded-pill ps-5 border-0" placeholder="Tìm cà phê..." value="@(ViewContext.RouteData.Values["controller"]?.ToString() == "Drink" ? Context.Request.Query["keyword"] : "")">
+                            
+                        </form>
+
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <a asp-controller="Order" asp-action="History" class="position-relative text-dark hover-orange transition-color" title="Lịch sử đơn hàng">
+                              <i class="fa fa-history" aria-hidden="true"></i>
+                            </a>
+                        }
+
+                        <a asp-controller="Cart" asp-action="Index" class="position-relative text-dark hover-orange transition-color" title="Giỏ hàng">
+                            <i class="bi bi-cart2 fs-4"></i>
+                            <span id="cart-badge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger border border-light @(cartCount > 0 ? "" : "d-none")" style="font-size: 0.65rem;">
+                                @cartCount
+                                <span class="visually-hidden">sản phẩm trong giỏ</span>
+                            </span>
+                        </a>
+                        @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
+                        {
+                            @if (!isAdminArea)
+                            {
+                                <!-- 👉 ĐANG Ở ADMIN → VỀ CLIENT -->
+                                <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="position-relative text-dark hover-orange transition-color no-underline">
+                                    <i class="bi bi-house-door me-1"></i> Quay lại Dashboard
+                                </a>
+                            }
+                        }
+
+                        @if (User.Identity != null && User.Identity.IsAuthenticated)
+                        {
+                            <div class="d-flex align-items-center ms-3">
+                                @if (User.IsInRole(RoleConstants.Customer))
+                                {
+                                    <a asp-controller="Customer" asp-action="Profile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                        <img id="headerAvatar"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
+                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             class="rounded-circle object-fit-cover me-2"
+                                             style="width: 28px; height: 28px; border: 1px solid #d35400;"
+                                             alt="Avatar">
+                                        <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
+                                    </a>
+                                }
+                                else
+                                {
+                                    <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                        <img id="headerAvatar"
+                                             src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
+                                             onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"
+                                             class="rounded-circle object-fit-cover me-2"
+                                             style="width: 28px; height: 28px; border: 1px solid #d35400;"
+                                             alt="Avatar">
+                                        <span class="text-dark fw-bold" style="font-size: 0.8rem;">@User.Identity.Name</span>
+                                    </a>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <a class="btn btn-outline-orange rounded-pill px-4" style="background-color: #fff3ed; border: none; color: #d35400; font-weight: 600;" asp-controller="Account" asp-action="Login">
+                                Đăng nhập
+                            </a>
+                            <a class="btn btn-outline-orange rounded-pill px-4" style="background-color: #fff3ed; border: none; color: #d35400; font-weight: 600;" asp-controller="Account" asp-action="Register">
+                                Đăng kí
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container-fluid p-0 flex-grow-1">
+        <main role="main">
+            @RenderBody()
+        </main>
+    </div>
+
+    <footer class="text-light mt-auto" style="background-color: var(--footer-bg); padding-top: 3rem;">
+        <div class="container py-5">
+            @await Component.InvokeAsync("FooterMap")
+
+            <div class="row g-4">
+                <div class="col-lg-4 col-md-6">
+                    <a class="navbar-brand text-orange fw-bold fs-4 d-flex align-items-center gap-2 mb-3" asp-controller="Home" asp-action="Index">
+                        <i class="bi bi-cup-hot-fill"></i> CafeChain
+                    </a>
+                    <p class="text-muted small">Hương vị cà phê nguyên bản từ những vùng nguyên liệu trứ danh, kết nối tâm hồn Việt.</p>
+                    <div class="d-flex gap-3 mt-4">
+                        <a href="#" class="text-light fs-5"><i class="bi bi-facebook"></i></a>
+                        <a href="#" class="text-light fs-5"><i class="bi bi-instagram"></i></a>
+                        <a href="#" class="text-light fs-5"><i class="bi bi-youtube"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-3">Về chúng tôi</h6>
+                    <ul class="list-unstyled text-muted small">
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Tuyển dụng</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Ưu đãi thành viên</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Chính sách bảo mật</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-2 col-md-6 col-6">
+                    <h6 class="fw-bold mb-3">Hỗ trợ khách hàng</h6>
+                    <ul class="list-unstyled text-muted small">
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Liên hệ</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Q&A</a></li>
+                        <li class="mb-2"><a href="#" class="text-decoration-none text-muted">Vận chuyển</a></li>
+                    </ul>
+                </div>
+
+                <div class="col-lg-4 col-md-6 small text-muted">
+                    <h6 class="fw-bold mb-3 text-light">Thông tin liên hệ</h6>
+                    <p><i class="bi bi-geo-alt-fill me-2 text-orange"></i> 123 Đường Cà Phê, Quận 1, TP. HCM</p>
+                    <p><i class="bi bi-telephone-fill me-2 text-orange"></i> 1900 xxxx</p>
+                    <p><i class="bi bi-envelope-fill me-2 text-orange"></i> contact@cafechain.vn</p>
+                </div>
+            </div>
+
+            <hr class="border-secondary mt-5 mb-4">
+
+            <div class="row small text-muted">
+                <div class="col-md-6 text-center text-md-start">
+                    &copy; 2026 CafeChain. Tất cả quyền được bảo lưu.
+                </div>
+                <div class="col-md-6 text-center text-md-end">
+                    <a href="#" class="text-decoration-none text-muted me-3">Điều khoản</a>
+                    <a href="#" class="text-decoration-none text-muted">Chính sách</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+    /* ========================================================
+       CAFECHAIN TOAST ENGINE
+       Dùng ở bất kỳ đâu:  showToast('Thông báo', 'success')
+       type: 'success' | 'error' | 'warning' | 'info'
+    ======================================================== */
+    (function () {
+        const ICONS = {
+            success: 'bi bi-check-lg',
+            error:   'bi bi-x-lg',
+            warning: 'bi bi-exclamation-lg',
+            info:    'bi bi-info-lg'
+        };
+        const TITLES = {
+            success: 'Thành công',
+            error:   'Có lỗi xảy ra',
+            warning: 'Lưu ý',
+            info:    'Thông báo'
+        };
+
+        window.showToast = function (message, type, title, duration) {
+            type     = type     || 'success';
+            duration = duration || 4000;
+            var container = document.getElementById('cc-toast-container');
+            if (!container || !message) return;
+
+            var toastTitle = title || TITLES[type] || TITLES.info;
+            var icon       = ICONS[type] || ICONS.info;
+            var id         = 'cc-toast-' + Date.now();
+
+            var toast = document.createElement('div');
+            toast.className = 'cc-toast cc-' + type;
+            toast.id = id;
+            toast.innerHTML =
+                '<div class="cc-toast-icon"><i class="' + icon + '"></i></div>' +
+                '<div class="cc-toast-body">' +
+                    '<div class="cc-toast-title">' + toastTitle + '</div>' +
+                    '<div class="cc-toast-msg">' + message + '</div>' +
+                '</div>' +
+                '<button class="cc-toast-close" onclick="window.closeToast(\'' + id + '\')" title="Đóng"><i class="bi bi-x"></i></button>' +
+                '<div class="cc-toast-progress" style="animation-duration: ' + duration + 'ms;"></div>';
+
+            container.appendChild(toast);
+
+            // Trigger entrance animation
+            requestAnimationFrame(function () {
+                requestAnimationFrame(function () {
+                    toast.classList.add('cc-show');
+                });
+            });
+
+            // Auto-dismiss
+            toast._ccTimer = setTimeout(function () { window.closeToast(id); }, duration);
+        };
+
+        window.closeToast = function (id) {
+            var toast = document.getElementById(id);
+            if (!toast) return;
+            clearTimeout(toast._ccTimer);
+            toast.classList.remove('cc-show');
+            toast.classList.add('cc-hide');
+            setTimeout(function () { if (toast.parentNode) toast.parentNode.removeChild(toast); }, 320);
+        };
+
+        // ============================================================
+        // CAFECHAIN CONFIRM ENGINE
+        // showConfirm(options) — thay thế browser confirm()
+        // options: { message, title, icon, okText, cancelText, type, onConfirm, onCancel }
+        // type: 'danger' | 'warning' | 'default'
+        // VD: showConfirm({ message: 'Xóa không?', type: 'danger', onConfirm: () => doDelete() })
+        // ============================================================
+        window.showConfirm = function(opts) {
+            opts = opts || {};
+            var overlay  = document.getElementById('cc-confirm-overlay');
+            var box      = document.getElementById('cc-confirm-box');
+            var titleEl  = document.getElementById('cc-confirm-title');
+            var msgEl    = document.getElementById('cc-confirm-msg');
+            var iconEl   = document.getElementById('cc-confirm-icon');
+            var iconInner = document.getElementById('cc-confirm-icon-inner');
+            var okBtn    = document.getElementById('cc-confirm-ok');
+            var cancelBtn = document.getElementById('cc-confirm-cancel');
+            if (!overlay) return;
+
+            // Thiết lập nội dung
+            titleEl.textContent  = opts.title   || 'Xác nhận hành động';
+            msgEl.textContent    = opts.message  || 'Bạn có chắc chắn muốn thực hiện thao tác này không?';
+            okBtn.textContent    = opts.okText   || 'Xác nhận';
+            cancelBtn.textContent = opts.cancelText || 'Hủy bỏ';
+
+            // Thiết lập style theo type
+            okBtn.className = 'cc-confirm-btn-ok';
+            iconEl.style.background = '#fff3ed';
+            iconEl.style.color = '#d35400';
+
+            var iconClass = opts.icon || (opts.type === 'danger' ? 'bi-trash3-fill' : opts.type === 'warning' ? 'bi-exclamation-triangle-fill' : 'bi-question-circle-fill');
+            iconInner.className = 'bi ' + iconClass;
+
+            if (opts.type === 'danger') {
+                okBtn.classList.add('cc-danger');
+                iconEl.style.background = '#fdecea';
+                iconEl.style.color = '#c62828';
+            } else if (opts.type === 'warning') {
+                iconEl.style.background = '#fff8e1';
+                iconEl.style.color = '#f57c00';
+            }
+
+            // Hiển thị
+            overlay.classList.add('cc-confirm-show');
+            document.body.style.overflow = 'hidden';
+
+            // Clone buttons để xóa event listeners cũ
+            var newOk = okBtn.cloneNode(true);
+            var newCancel = cancelBtn.cloneNode(true);
+            okBtn.parentNode.replaceChild(newOk, okBtn);
+            cancelBtn.parentNode.replaceChild(newCancel, cancelBtn);
+
+            function closeConfirm() {
+                overlay.classList.remove('cc-confirm-show');
+                document.body.style.overflow = '';
+            }
+
+            newOk.addEventListener('click', function() {
+                closeConfirm();
+                if (typeof opts.onConfirm === 'function') opts.onConfirm();
+            });
+
+            newCancel.addEventListener('click', function() {
+                closeConfirm();
+                if (typeof opts.onCancel === 'function') opts.onCancel();
+            });
+
+            // Click backdrop để đóng
+            overlay.addEventListener('click', function handler(e) {
+                if (e.target === overlay) {
+                    closeConfirm();
+                    overlay.removeEventListener('click', handler);
+                }
+            });
+
+            // ESC để đóng
+            document.addEventListener('keydown', function escHandler(e) {
+                if (e.key === 'Escape') {
+                    closeConfirm();
+                    document.removeEventListener('keydown', escHandler);
+                }
+            });
+        };
+
+        // Kích hoạt TempData thông báo từ Server-Side
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (!string.IsNullOrEmpty(tempSuccess))
+            {
+                <text>showToast('@Html.Raw(tempSuccess?.Replace("'", "\\'")??"" )', 'success');</text>
+            }
+            @if (!string.IsNullOrEmpty(tempError))
+            {
+                <text>showToast('@Html.Raw(tempError?.Replace("'", "\\'") ?? "")', 'error', null, 6000);</text>
+            }
+            @if (!string.IsNullOrEmpty(tempWarning))
+            {
+                <text>showToast('@Html.Raw(tempWarning?.Replace("'", "\\'") ?? "")', 'warning', null, 5000);</text>
+            }
+        });
+    })();
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,418 @@
+@model CafeChain.ViewModels.Profile.MyProfileVM
+@{
+    ViewData["Title"] = "Hồ sơ của tôi";
+
+    string statusText = Model.EmployeeStatus switch {
+        1 => "Thử việc",
+        2 => "Chính thức",
+        3 => "Đã nghỉ việc",
+        _ => "Không xác định"
+    };
+    string statusColor = Model.EmployeeStatus switch {
+        1 => "#f59e0b",
+        2 => "#22c55e",
+        3 => "#ef4444",
+        _ => "#94a3b8"
+    };
+    string genderText = Model.Gender switch {
+        0 => "Nữ",
+        1 => "Nam",
+        2 => "Khác",
+        _ => "—"
+    };
+}
+
+@section Styles {
+    <style>
+        :root { --accent: #e8643c; --accent-light: #fff3ef; }
+
+        .profile-page { max-width: 900px; margin: 0 auto; }
+
+        .profile-header {
+            background: linear-gradient(135deg, #e8643c 0%, #f59e0b 100%);
+            border-radius: 16px;
+            padding: 36px 32px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 28px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(232,100,60,0.2);
+        }
+        .profile-header .avatar-wrap {
+            position: relative;
+            flex-shrink: 0;
+        }
+        .profile-header .avatar-wrap img {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px;
+            object-fit: cover;
+            border: 3px solid rgba(255,255,255,0.5);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+        }
+        .profile-header .avatar-wrap .btn-change-avatar {
+            position: absolute;
+            bottom: -4px;
+            right: -4px;
+            background: white;
+            color: var(--accent);
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+        .profile-header .avatar-wrap .btn-change-avatar:hover { transform: scale(1.1); }
+        .profile-header .info h3 { margin: 0 0 4px; font-weight: 800; font-size: 22px; }
+        .profile-header .info .role-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .section-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.04);
+            padding: 24px 28px;
+            margin-bottom: 16px;
+        }
+        .section-title {
+            font-weight: 700;
+            font-size: 14px;
+            color: #1e293b;
+            margin-bottom: 18px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .section-title i { color: var(--accent); }
+
+        .field-row {
+            display: flex;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .field-row:last-child { border-bottom: none; }
+        .field-label {
+            width: 180px;
+            flex-shrink: 0;
+            font-size: 13px;
+            color: #64748b;
+            font-weight: 500;
+        }
+        .field-value {
+            flex: 1;
+            font-size: 13px;
+            color: #1e293b;
+            font-weight: 600;
+        }
+        .field-value .badge-status {
+            padding: 3px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .editable-field {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .editable-field input {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 6px 12px;
+            font-size: 13px;
+            flex: 1;
+            max-width: 250px;
+            transition: border-color 0.2s;
+        }
+        .editable-field input:focus { border-color: var(--accent); outline: none; }
+
+        .btn-accent {
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-accent:hover { background: #d4572f; color: white; }
+
+        .btn-outline-accent {
+            background: var(--accent-light);
+            color: var(--accent);
+            border: 1px solid var(--accent);
+            border-radius: 10px;
+            padding: 8px 20px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-outline-accent:hover { background: var(--accent); color: white; }
+
+        /* Modal */
+        .modal-header.accent { background: var(--accent); color: white; border-radius: 14px 14px 0 0; border: none; }
+        .modal-content { border-radius: 14px; border: none; box-shadow: 0 20px 60px rgba(0,0,0,0.15); }
+    </style>
+}
+
+<div class="profile-page">
+    <!-- ==================== HEADER ==================== -->
+    <div class="profile-header">
+        <div class="avatar-wrap">
+            <img id="profileAvatar"
+                 src="@(Model.AvatarUrl ?? "/Images/avatars/avtdf.jpg")"
+                 onerror="this.src='https://ui-avatars.com/api/?name=@Model.FullName&background=F97316&color=fff&rounded=true'"
+                 alt="Avatar" />
+            <button type="button" class="btn-change-avatar" onclick="document.getElementById('avatarInput').click();">
+                <i class="fas fa-camera"></i>
+            </button>
+            <input type="file" id="avatarInput" accept="image/*" style="display: none;" onchange="uploadAvatar(this)" />
+        </div>
+        <div class="info">
+            <h3>@Model.FullName</h3>
+            <span class="role-badge"><i class="fas fa-shield-alt me-1"></i> @Model.RoleName</span>
+        </div>
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <!-- ==================== THÔNG TIN CÁ NHÂN (Read-only) ==================== -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-id-card"></i> Thông tin cá nhân</div>
+        <div class="field-row">
+            <div class="field-label">Họ và tên</div>
+            <div class="field-value">@Model.FullName</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Email</div>
+            <div class="field-value">@Model.Email</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">CCCD</div>
+            <div class="field-value">@(Model.CCCD ?? "—")</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Ngày sinh</div>
+            <div class="field-value">@(Model.DateOfBirth?.ToString("dd/MM/yyyy") ?? "—")</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Giới tính</div>
+            <div class="field-value">@genderText</div>
+        </div>
+    </div>
+
+    <!-- ==================== CÔNG VIỆC (Read-only) ==================== -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-briefcase"></i> Thông tin công việc</div>
+        <div class="field-row">
+            <div class="field-label">Vai trò</div>
+            <div class="field-value">@Model.RoleName</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Cửa hàng</div>
+            <div class="field-value">@Model.StoreName</div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Trạng thái</div>
+            <div class="field-value">
+                <span class="badge-status" style="background: @statusColor;">@statusText</span>
+            </div>
+        </div>
+        <div class="field-row">
+            <div class="field-label">Ngày bắt đầu</div>
+            <div class="field-value">@(Model.StartDate?.ToString("dd/MM/yyyy") ?? "—")</div>
+        </div>
+    </div>
+
+    <!-- ==================== LIÊN HỆ (Editable) ==================== -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-phone-alt"></i> Liên hệ</div>
+        <div class="field-row">
+            <div class="field-label">Số điện thoại</div>
+            <div class="field-value">
+                <div class="editable-field">
+                    <input type="tel" id="phoneInput" value="@Model.PhoneNumber" placeholder="Nhập số điện thoại..." maxlength="10" />
+                    <button class="btn-accent" onclick="updatePhone()"><i class="fas fa-save me-1"></i> Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== BẢO MẬT ==================== -->
+    <div class="section-card">
+        <div class="section-title"><i class="fas fa-lock"></i> Bảo mật tài khoản</div>
+        <div class="field-row">
+            <div class="field-label">Mật khẩu</div>
+            <div class="field-value">
+                <button class="btn-outline-accent" data-bs-toggle="modal" data-bs-target="#changePasswordModal">
+                    <i class="fas fa-key me-1"></i> Đổi mật khẩu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== CHANGE PASSWORD MODAL ==================== -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header accent">
+                <h5 class="modal-title"><i class="fas fa-key me-2"></i> Đổi mật khẩu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 13px;">Mật khẩu hiện tại</label>
+                    <input type="password" id="oldPassword" class="form-control" style="border-radius: 10px;" placeholder="Nhập mật khẩu hiện tại..." />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 13px;">Mật khẩu mới</label>
+                    <input type="password" id="newPassword" class="form-control" style="border-radius: 10px;" placeholder="Tối thiểu 6 ký tự..." />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold" style="font-size: 13px;">Xác nhận mật khẩu mới</label>
+                    <input type="password" id="confirmNewPassword" class="form-control" style="border-radius: 10px;" placeholder="Nhập lại mật khẩu mới..." />
+                </div>
+            </div>
+            <div class="modal-footer border-0 d-flex justify-content-between px-4 pb-4">
+                <button type="button" class="btn btn-light px-4" style="border-radius: 10px;" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn px-4" style="background: var(--accent); color: white; border-radius: 10px; font-weight: 600;" onclick="changePassword()">
+                    <i class="fas fa-check me-1"></i> Xác nhận đổi
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SweetAlert2 CDN -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+@section Scripts {
+    <script>
+        function getToken() {
+            return $("input[name='__RequestVerificationToken']").val();
+        }
+
+        // ===== Upload Avatar =====
+        function uploadAvatar(input) {
+            if (!input.files || !input.files[0]) return;
+
+            var formData = new FormData();
+            formData.append('AvatarFile', input.files[0]);
+
+            $.ajax({
+                url: '/Profile/UpdateMyProfile',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                headers: { "RequestVerificationToken": getToken() },
+                success: function (res) {
+                    if (res.success) {
+                        // Cập nhật avatar trên UI ngay lập tức (không cần reload)
+                        var reader = new FileReader();
+                        reader.onload = function (e) {
+                            $('#profileAvatar').attr('src', e.target.result);
+                        };
+                        reader.readAsDataURL(input.files[0]);
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                },
+                error: function () {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật ảnh đại diện.' });
+                }
+            });
+        }
+
+        // ===== Update Phone =====
+        function updatePhone() {
+            var phone = $('#phoneInput').val().trim();
+            if (!phone) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng nhập số điện thoại.' });
+                return;
+            }
+            // Validate format: 0[3-9]xxxxxxxx
+            if (!/^(0[3-9])\d{8}$/.test(phone)) {
+                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Số điện thoại phải đúng 10 chữ số, bắt đầu bằng 03-09.' });
+                return;
+            }
+
+            $.ajax({
+                url: '/Profile/UpdateMyProfile',
+                type: 'POST',
+                data: { PhoneNumber: phone },
+                headers: { "RequestVerificationToken": getToken() },
+                success: function (res) {
+                    if (res.success) {
+                        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                },
+                error: function () {
+                    Swal.fire({ icon: 'error', title: 'Lỗi', text: 'Không thể cập nhật số điện thoại.' });
+                }
+            });
+        }
+
+        // ===== Change Password =====
+        function changePassword() {
+            var oldPw = $('#oldPassword').val();
+            var newPw = $('#newPassword').val();
+            var confirmPw = $('#confirmNewPassword').val();
+
+            if (!oldPw || !newPw || !confirmPw) {
+                Swal.fire({ icon: 'warning', title: 'Thiếu thông tin', text: 'Vui lòng điền đầy đủ các trường.' });
+                return;
+            }
+            if (newPw.length < 6) {
+                Swal.fire({ icon: 'warning', title: 'Không hợp lệ', text: 'Mật khẩu mới phải có ít nhất 6 ký tự.' });
+                return;
+            }
+            if (newPw !== confirmPw) {
+                Swal.fire({ icon: 'warning', title: 'Không khớp', text: 'Mật khẩu xác nhận không trùng khớp.' });
+                return;
+            }
+
+            $.ajax({
+                url: '/Profile/ChangePassword',
+                type: 'POST',
+                data: { OldPassword: oldPw, NewPassword: newPw, ConfirmNewPassword: confirmPw },
+                headers: { "RequestVerificationToken": getToken() },
+                success: function (res) {
+                    if (res.success) {
+                        $('#changePasswordModal').modal('hide');
+                        $('#oldPassword, #newPassword, #confirmNewPassword').val('');
+                        Swal.fire({ icon: 'success', title: 'Thành công', text: res.message });
+                    } else {
+                        Swal.fire({ icon: 'error', title: 'Lỗi', text: res.message });
+                    }
+                },
+                error: function () {
+                    Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể đổi mật khẩu.' });
+                }
+            });
+        }
+    </script>
+}

@@ -1,0 +1,774 @@
+@inject Microsoft.AspNetCore.Hosting.IWebHostEnvironment env
+@{
+    ViewData["Title"] = "Bảng điều phối đơn hàng";
+}
+
+@section Styles {
+    <style>
+        :root {
+            --pos-bg: #f4f7f6;
+            --kanban-col-bg: #ebedef;
+            --card-border-radius: 12px;
+            --orange-main: #d35400;
+        }
+
+        body {
+            background-color: var(--pos-bg);
+        }
+
+        .kanban-board {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem;
+            height: calc(100vh - 120px);
+            overflow-x: auto;
+            align-items: flex-start;
+        }
+
+        .kanban-col {
+            flex: 0 0 270px; /* [FIX UI] Thu nhỏ để vừa 5 cột */
+            background-color: var(--kanban-col-bg);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            max-height: 100%;
+            border: 1px solid #dee2e6;
+        }
+
+        .kanban-col-header {
+            padding: 1rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid rgba(0,0,0,0.05);
+            background: #fff;
+            border-top-left-radius: 10px;
+            border-top-right-radius: 10px;
+        }
+
+        .kanban-col-body {
+            padding: 0.75rem;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .order-card {
+            background: #fff;
+            border-radius: var(--card-border-radius);
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            border: 1px solid transparent;
+            transition: transform 0.2s, box-shadow 0.2s;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .order-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .order-card .order-id {
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .order-card .order-time {
+            font-size: 0.75rem;
+            color: #7f8c8d;
+        }
+
+        .order-card .order-total {
+            font-weight: 700;
+            color: var(--orange-main);
+            font-size: 1rem;
+        }
+
+        .order-card .order-type-icon {
+            font-size: 1.2rem;
+            color: #34495e;
+        }
+
+        /* Red Flashing Animation for Warnings */
+        @@keyframes pulse-red {
+            0% { border-color: #ff4757; box-shadow: 0 0 0 0 rgba(255, 71, 87, 0.4); }
+            50% { border-color: #ff4757; box-shadow: 0 0 0 10px rgba(255, 71, 87, 0); }
+            100% { border-color: #ff4757; box-shadow: 0 0 0 0 rgba(255, 71, 87, 0); }
+        }
+
+        .card-warning {
+            animation: pulse-red 1.5s infinite;
+        }
+
+        /* Offcanvas Styling */
+        .offcanvas-header {
+            background: var(--orange-main);
+            color: #fff;
+        }
+
+        .item-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .item-entry {
+            border-bottom: 1px dashed #eee;
+            padding: 0.75rem 0;
+        }
+
+        .topping-tag {
+            background: #f1f2f6;
+            font-size: 0.7rem;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-right: 4px;
+            color: #57606f;
+        }
+
+        /* Sound Toggle Switch */
+        .form-check-input:checked {
+            background-color: var(--orange-main);
+            border-color: var(--orange-main);
+        }
+
+        /* [Phase 1] Item summary on card */
+        .item-summary-list {
+            border-top: 1px dashed #e0e0e0;
+            padding-top: 6px;
+        }
+        .item-summary-row {
+            font-size: 0.95rem; /* [FIX UI] Tăng size ưu tiên tên đồ uống */
+            font-weight: 600;   /* [FIX UI] In đậm tên đồ uống */
+            color: #2c3e50;
+            padding: 3px 0;
+            line-height: 1.4;
+            border-bottom: 1px dotted #f0f0f0;
+        }
+        .item-summary-row:last-child { border-bottom: none; }
+
+        .quick-actions .btn { font-size: 0.78rem; }
+
+        /* [Phase 1] Print styles */
+        @@media print {
+            body * { visibility: hidden; }
+            #printArea, #printArea * { visibility: visible; }
+            #printArea { position: absolute; left: 0; top: 0; width: 80mm; font-size: 12px; }
+        }
+        /* [Fix UI] Order Type Badges */
+        .badge-delivery {
+            background-color: #ffe8d6 !important;
+            color: #d35400 !important;
+        }
+        .badge-pickup {
+            background-color: #d1fae5 !important;
+            color: #065f46 !important;
+        }
+        .badge-dinein {
+            background-color: #e2e8f0 !important;
+            color: #1e293b !important;
+        }
+    </style>
+}
+
+<div class="container-fluid py-3">
+    @* <div class="d-flex justify-content-between align-items-center mb-4 px-3">
+        <div class="d-flex align-items-center gap-4 bg-white p-2 px-3 rounded-pill shadow-sm">
+             <div id="connectionStatus" class="small text-muted">
+                <span class="badge bg-secondary rounded-pill">Đang kết nối...</span>
+            </div>
+        </div>
+        
+        @if (env.IsDevelopment())
+        {
+            <!-- [Phase 2] Giả lập Webhook -->
+            <button class="btn btn-dark btn-sm rounded-pill px-3 fw-bold" onclick="simulateWebhook()">
+                <i class="bi bi-robot me-1"></i> [Test] Simulate Partner Webhook
+            </button>
+        }
+    </div> *@
+    <div style=" margin: 10px;color: var(--orange-main);"> <h2>Quản lý đơn hàng<h2>
+    </div>
+    @Html.AntiForgeryToken()
+
+    <div class="kanban-board">
+        <!-- Đơn Mới (1) -->
+        <div class="kanban-col" id="col-new">
+            <div class="kanban-col-header">
+                <span class="text-primary"><i class="bi bi-star-fill me-2"></i>Đơn Mới</span>
+                <span class="badge bg-primary rounded-pill count">0</span>
+            </div>
+            <div class="kanban-col-body" data-statuses="1"></div>
+        </div>
+
+        <!-- Đang Pha Chế (2) -->
+        <div class="kanban-col" id="col-preparing">
+            <div class="kanban-col-header">
+                <span class="text-warning"><i class="bi bi-cup-hot-fill me-2"></i>Đang Pha Chế</span>
+                <span class="badge bg-warning text-dark rounded-pill count">0</span>
+            </div>
+            <div class="kanban-col-body" data-statuses="2"></div>
+        </div>
+
+        <!-- Chờ Lấy / Giao (3) -->
+        <div class="kanban-col" id="col-ready">
+            <div class="kanban-col-header">
+                <span class="text-info"><i class="bi bi-box-seam-fill me-2"></i>Chờ Lấy/Giao</span>
+                <span class="badge bg-info text-dark rounded-pill count">0</span>
+            </div>
+            <div class="kanban-col-body" data-statuses="3"></div>
+        </div>
+
+        <!-- Đang Giao (4) -->
+        <div class="kanban-col" id="col-delivering">
+            <div class="kanban-col-header">
+                <span class="text-indigo" style="color: #6610f2;"><i class="bi bi-truck me-2"></i>Đang Giao</span>
+                <span class="badge rounded-pill count" style="background-color: #6610f2;">0</span>
+            </div>
+            <div class="kanban-col-body" data-statuses="4"></div>
+        </div>
+
+        <!-- Hoàn Thành (5) -->
+        <div class="kanban-col" id="col-history">
+            <div class="kanban-col-header">
+                <span class="text-success"><i class="bi bi-check-circle-fill me-2"></i>HOÀN THÀNH</span>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success rounded-pill count">0</span>
+                    <a asp-area="Admin" asp-action="History" asp-controller="AdminOrder" class="text-decoration-none small fw-bold" style="font-size: 10px; color: var(--orange-main);">Xem tất cả ➔</a>
+                </div>
+            </div>
+            <div class="kanban-col-body" data-statuses="5"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Offcanvas Chi Tiết -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="orderDetailPanel" aria-labelledby="orderDetailTitle" style="width: 450px;">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title fw-bold" id="orderDetailTitle">CHI TIẾT ĐƠN HÀNG</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <div id="orderDetailContent">
+            <!-- Content loaded via AJAX -->
+            <div class="text-center py-5">
+                <div class="spinner-border text-orange" role="status"></div>
+            </div>
+        </div>
+    </div>
+    <div class="offcanvas-footer p-3 border-top bg-light" id="orderDetailActions">
+        <!-- Buttons injected here -->
+    </div>
+</div>
+
+<!-- [Phase 1] Hidden Print Area for Receipt -->
+<div id="printArea" style="display:none;">
+    <div style="text-align:center; font-family:monospace; padding:10px;">
+        <h3 style="margin:0;">CAFECHAIN</h3>
+        <p style="margin:4px 0; font-size:11px;">Phiếu pha chế</p>
+        <hr style="border-top:1px dashed #000;">
+        <div id="printContent"></div>
+        <hr style="border-top:1px dashed #000;">
+        <p style="font-size:10px; margin-top:8px;">Cảm ơn quý khách!</p>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- SignalR Client -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/6.0.1/signalr.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        $(document).ready(function () {
+            const statusMap = {
+                Pending: 1,
+                Preparing: 2,
+                Ready: 3,
+                Delivering: 4,
+                Completed: 5,
+                Cancelled: 6,
+                AwaitingPayment: 7
+            };
+
+            const orderTypes = {
+                DineIn: 1,
+                TakeAway: 2,
+                Delivery: 3
+            };
+
+            const soundPath = "https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3";
+            const notificationSound = new Audio(soundPath);
+            let isSoundEnabled = false;
+
+            // [Phase 3] Sound Toggle via Global Bell Icon
+            $('#globalSoundToggle').on('click', function() {
+                isSoundEnabled = !isSoundEnabled;
+                const $icon = $('#globalSoundIcon');
+                if(isSoundEnabled) {
+                    $icon.removeClass('fa-bell-slash text-muted').addClass('fa-bell text-danger');
+                    notificationSound.play().then(() => {
+                        notificationSound.pause();
+                        notificationSound.currentTime = 0;
+                    }).catch(e => console.error("Sound init failed:", e));
+                } else {
+                    $icon.removeClass('fa-bell text-danger').addClass('fa-bell-slash text-muted');
+                }
+            });
+
+            // SignalR Connection
+            const connection = new signalR.HubConnectionBuilder()
+                .withUrl("/orderHub")
+                .withAutomaticReconnect()
+                .build();
+
+            connection.start().then(() => {
+                // [Skill.md §1.1] Đăng ký vào group AdminDashboard để nhận broadcast nội bộ
+                connection.invoke("JoinAdminGroup").catch(err => console.error("JoinAdminGroup failed:", err));
+                $('#connectionStatus span').removeClass('bg-secondary').addClass('bg-success').text('Đã kết nối Real-time');
+                loadOrders(); // Load initial data
+            }).catch(err => {
+                console.error(err);
+                $('#connectionStatus span').addClass('bg-danger').text('Mất kết nối');
+            });
+
+            // Re-join group sau khi tự động reconnect (mất kết nối tạm thời)
+            connection.onreconnected(() => {
+                connection.invoke("JoinAdminGroup").catch(err => console.error("Re-JoinAdminGroup failed:", err));
+                $('#connectionStatus span').removeClass('bg-danger bg-secondary').addClass('bg-success').text('Đã kết nối Real-time');
+                loadOrders();
+            });
+
+            connection.on("ReceiveNewOrder", function (orderId) {
+                if (isSoundEnabled) notificationSound.play();
+                loadOrders(); // Refresh all or single card logic
+            });
+
+            connection.on("ReceiveOrderStatusUpdate", function (orderId, newStatusId) {
+                // [Phase 4] Thông báo Toast khi đơn hoàn thành (giả lập xong)
+                if (newStatusId === 5) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'success',
+                        title: `Đơn hàng #${orderId} đã giao thành công!`
+                    });
+                }
+
+                // [YÊU CẦU 1] Thông báo khi đơn chuyển sang "Chờ lấy/giao" (Pha chế xong)
+                if (newStatusId === 3) {
+                    const Toast = Swal.mixin({
+                        toast: true,
+                        position: 'top-end',
+                        showConfirmButton: false,
+                        timer: 4000,
+                        timerProgressBar: true
+                    });
+                    Toast.fire({
+                        icon: 'info',
+                        title: `🛵 Đang giao đơn cho shipper...`
+                    });
+                }
+
+                // Tối ưu Rendering: Kiểm tra xem Card đã ở đúng cột chưa
+                const $existingCard = $(`.order-card[data-id="${orderId}"]`);
+                if ($existingCard.length > 0) {
+                    const $colBody = $existingCard.closest('.kanban-col-body');
+                    const statusesAttr = $colBody.attr('data-statuses');
+                    if (statusesAttr) {
+                        const currentColStatuses = statusesAttr.toString().split(',').map(Number);
+                        if (currentColStatuses.includes(newStatusId)) {
+                            console.log(`Order ${orderId} already in correct column. Skipping re-render.`);
+                            return;
+                        }
+                    }
+                }
+                loadOrders(); // Nếu chưa đúng hoặc chưa có thì load lại
+            });
+
+            // Load Orders from Server
+            function loadOrders() {
+                $.get('/api/AdminOrder/GetOrders', function (orders) {
+                    $('.kanban-col-body').empty();
+                    
+                    orders.forEach(order => {
+                        const $card = createOrderCard(order);
+                        const targetCol = getTargetColumn(order.orderStatusId);
+                        if (targetCol) {
+                            $(`#col-${targetCol} .kanban-col-body`).append($card);
+                        }
+                    });
+                    
+                    updateCounts();
+                });
+            }
+
+            function getTargetColumn(statusId) {
+                if (statusId === 1) return 'new';
+                if (statusId === 2) return 'preparing';
+                if (statusId === 3) return 'ready';
+                if (statusId === 4) return 'delivering';
+                if (statusId === 5) return 'history';
+                return null;
+            }
+
+            function createOrderCard(order) {
+                const isWarning = order.note && order.note.includes("[CẢNH BÁO: CHUYỂN THIẾU TIỀN]");
+                const typeIcon = order.orderTypeId === 1 ? 'bi-shop' : (order.orderTypeId === 2 ? 'bi-bag-check' : 'bi-truck');
+                
+                // [Phase 1] Build item summary HTML
+                let itemsHtml = '';
+                if (order.itemSummaries && order.itemSummaries.length > 0) {
+                    itemsHtml = '<div class="item-summary-list mt-2 mb-2">';
+                    order.itemSummaries.forEach(s => {
+                        itemsHtml += `<div class="item-summary-row"><i class="bi bi-cup-hot-fill me-1 text-muted" style="font-size:0.65rem;"></i>${s}</div>`;
+                    });
+                    if (order.totalItemCount > order.itemSummaries.length) {
+                        itemsHtml += `<div class="item-summary-row text-muted fst-italic">...và ${order.totalItemCount - order.itemSummaries.length} món khác</div>`;
+                    }
+                    itemsHtml += '</div>';
+                }
+
+                // [Phase 4] Quick action buttons
+                let quickActionsHtml = '';
+                if (order.orderStatusId === 1) {
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1 fw-bold" onclick="event.stopPropagation(); quickAccept(this, ${order.orderId})">
+                                <i class="bi bi-check-circle me-1"></i> Nhận Đơn
+                            </button>
+                        </div>`;
+                } else if (order.orderStatusId === 2) {
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-success btn-sm px-2 fw-bold" style="width: auto; font-size: 11px;" onclick="event.stopPropagation(); quickComplete(this, ${order.orderId})" title="Xong món">
+                                <i class="bi bi-check-lg"></i> Xong
+                            </button>
+                            <button class="btn btn-outline-secondary btn-sm flex-grow-1 fw-bold text-nowrap" style="font-size: 11px;" onclick="event.stopPropagation(); printOrder(${order.orderId})">
+                                <i class="bi bi-printer me-1"></i> In hóa đơn
+                            </button>
+                        </div>`;
+                } else if (order.orderStatusId === 3 && order.orderTypeId === 3) {
+                    // [Phase 2] Quick action for Handover to Partner
+                    quickActionsHtml = `
+                        <div class="quick-actions mt-2 pt-2 border-top d-flex gap-2">
+                            <button class="btn btn-primary btn-sm flex-grow-1 fw-bold" onclick="event.stopPropagation(); dispatch1Click(this, ${order.orderId})">
+                                🛵 Giao cho Tài xế
+                            </button>
+                        </div>`;
+                }
+
+                // [FIX UI] Việt hóa và style cho badge loại đơn
+                let typeBadgeName = order.orderTypeName;
+                let typeBadgeClass = "bg-light text-dark border";
+                
+                if (order.orderTypeName === "Delivery") {
+                    typeBadgeName = "Giao tận nơi";
+                    typeBadgeClass = "badge-delivery border-0";
+                } else if (order.orderTypeName === "Takeaway" || order.orderTypeName === "Pickup") {
+                    typeBadgeName = "Tự đến lấy";
+                    typeBadgeClass = "badge-pickup border-0";
+                } else if (order.orderTypeName === "Dine In" || order.orderTypeName === "Dine-In") {
+                    typeBadgeName = "Nhận tại quán";
+                    typeBadgeClass = "badge-dinein border-0";
+                }
+
+                return $(`
+                    <div class="order-card ${isWarning ? 'card-warning' : ''}" data-id="${order.orderId}" data-created="${order.createdAt}" onclick="viewDetails(${order.orderId})">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="order-id">#${order.orderId}</span>
+                            <i class="bi ${typeIcon} order-type-icon"></i>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="order-total text-muted fw-normal" style="font-size: 0.85rem;">${order.total.toLocaleString()}đ</span>
+                            <span class="badge small ${typeBadgeClass}">${typeBadgeName}</span>
+                        </div>
+                        ${itemsHtml}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="order-time">
+                                <i class="bi bi-clock me-1"></i>
+                                <span class="time-text">Đang tính...</span>
+                            </span>
+                            <span class="small text-muted">${order.customerName || ''}</span>
+                        </div>
+                        ${quickActionsHtml}
+                    </div>
+                `);
+            }
+
+            // Real-time Timeago Function
+            function updateTimeAgo() {
+                $('.order-card').each(function() {
+                    const createdStr = $(this).data('created');
+                    if (!createdStr) return;
+                    
+                    const createdDate = new Date(createdStr);
+                    const now = new Date();
+                    const diffMs = now - createdDate;
+                    const diffMins = Math.floor(diffMs / 60000);
+                    
+                    let timeText = "";
+                    if (diffMins < 1) timeText = "Vừa xong";
+                    else if (diffMins < 60) timeText = `${diffMins} phút trước`;
+                    else {
+                        const diffHours = Math.floor(diffMins / 60);
+                        if (diffHours < 24) timeText = `${diffHours} giờ trước`;
+                        else timeText = createdDate.toLocaleDateString('vi-VN');
+                    }
+                    
+                    $(this).find('.time-text').text(timeText);
+                });
+            }
+
+            // Chạy quét mỗi 60 giây
+            setInterval(updateTimeAgo, 60000);
+
+            function updateCounts() {
+                $('.kanban-col').each(function() {
+                    const count = $(this).find('.order-card').length;
+                    $(this).find('.count').text(count);
+                });
+                updateTimeAgo(); // Update ngay sau khi render xong
+            }
+
+            // View Details & Offcanvas
+            window.viewDetails = function(orderId) {
+                const offcanvas = new bootstrap.Offcanvas(document.getElementById('orderDetailPanel'));
+                $('#orderDetailContent').html('<div class="text-center py-5"><div class="spinner-border text-orange" role="status"></div></div>');
+                $('#orderDetailActions').empty();
+                offcanvas.show();
+
+                $.get(`/api/AdminOrder/GetOrderDetails/${orderId}`, function(order) {
+                    let itemsHtml = '';
+                    order.items.forEach(item => {
+                        let toppingsHtml = item.toppings.map(t => `<span class="topping-tag">${t}</span>`).join('');
+                        itemsHtml += `
+                            <div class="item-entry">
+                                <div class="d-flex justify-content-between fw-bold">
+                                    <span>${item.quantity}x ${item.drinkName} (${item.sizeName})</span>
+                                    <span>${(item.price * item.quantity).toLocaleString()}đ</span>
+                                </div>
+                                <div class="mt-1">${toppingsHtml}</div>
+                                ${item.note ? `<div class="small text-muted mt-1 italic">Note: ${item.note}</div>` : ''}
+                            </div>
+                        `;
+                    });
+
+                    $('#orderDetailContent').html(`
+                        <div class="mb-4">
+                            <h6 class="fw-bold border-bottom pb-2">THÔNG TIN KHÁCH HÀNG</h6>
+                            <p class="mb-1"><strong>Họ tên:</strong> ${order.receiverName}</p>
+                            <p class="mb-1"><strong>SĐT:</strong> ${order.receiverPhone}</p>
+                            ${order.orderTypeId === 3 ? `<p class="mb-1"><strong>Địa chỉ:</strong> ${order.deliveryAddress}</p>` : ''}
+                        </div>
+                        <div class="mb-4">
+                            <h6 class="fw-bold border-bottom pb-2">CHI TIẾT MÓN</h6>
+                            <div class="item-list">${itemsHtml}</div>
+                        </div>
+                        <div class="p-3 bg-light rounded">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span>Tạm tính:</span>
+                                <span>${order.total.toLocaleString()}đ</span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center fw-bold fs-5 text-orange">
+                                <span>TỔNG CỘNG:</span>
+                                <span>${order.total.toLocaleString()}đ</span>
+                            </div>
+                        </div>
+                        ${order.note ? `
+                        <div class="mt-3 p-2 border rounded bg-white">
+                            <small class="text-muted fw-bold">Ghi chú đơn:</small>
+                            <div class="small text-danger">${order.note}</div>
+                        </div>` : ''}
+                    `);
+
+                    renderActions(order);
+                });
+            };
+
+            function renderActions(order) {
+                const $container = $('#orderDetailActions');
+                const status = order.orderStatusId;
+                const type = order.orderTypeId;
+
+                // Nút Hủy luôn hiện cho đơn chưa xong
+                if ([1, 2, 3, 4].includes(status)) {
+                    $container.append(`<button class="btn btn-outline-danger w-100 mb-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'FailDelivery')">HỦY ĐƠN</button>`);
+                }
+
+                if (status === 1) { // Pending
+                    $container.append(`<button class="btn btn-primary w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'AcceptOrder')">NHẬN ĐƠN</button>`);
+                } else if (status === 2) { // Preparing
+                    $container.append(`<button class="btn btn-success w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'ReadyForPickup')">XONG MÓN</button>`);
+                } else if (status === 3) { // Ready
+                    if (type === 3) {
+                        $container.append(`<button class="btn btn-primary w-100 py-2 fw-bold" onclick="dispatch1Click(this, ${order.orderId})">🛵 GIAO CHO TÀI XẾ (1-CLICK)</button>`);
+                    } else {
+                        $container.append(`<button class="btn btn-dark w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'CompleteOrder')">HOÀN THÀNH</button>`);
+                    }
+                } else if (status === 4) { // Delivering
+                    $container.append(`<button class="btn btn-dark w-100 py-2 fw-bold" onclick="processOrder(this, ${order.orderId}, 'CompleteOrder')">GIAO THÀNH CÔNG</button>`);
+                }
+            }
+
+            window.processOrder = async function(btn, orderId, action) {
+                const $btn = $(btn);
+                const originalText = $btn.html();
+                
+                let url = `/api/AdminOrder/${action}/${orderId}`;
+                let params = {};
+
+                if (action === 'FailDelivery') {
+                    const { value: reason } = await Swal.fire({
+                        title: 'Lý do hủy đơn',
+                        input: 'text',
+                        inputPlaceholder: 'Nhập lý do hủy tại đây...',
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        confirmButtonText: 'Xác nhận Hủy',
+                        cancelButtonText: 'Đóng'
+                    });
+                    if (!reason) return;
+                    params.reason = reason;
+                }
+
+                // Idempotency: Disable button and show spinner
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang xử lý...');
+
+                let ajaxOptions = {
+                    url: `/api/AdminOrder/${action}` + (action !== 'Dispatched' ? `/${orderId}` : ''),
+                    type: 'POST',
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function(response) {
+                        Swal.fire('Thành công', response, 'success');
+                        bootstrap.Offcanvas.getInstance(document.getElementById('orderDetailPanel')).hide();
+                        loadOrders(); 
+                    },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html(originalText);
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                };
+
+                if (Object.keys(params).length > 0) {
+                    ajaxOptions.url += '?' + $.param(params);
+                }
+
+                $.ajax(ajaxOptions);
+            };
+
+            // [Phase 2] 1-Click Handover for Partners
+            window.dispatch1Click = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Đang xử lý...');
+                
+                var payload = {
+                    orderId: orderId,
+                    shipperType: "EXTERNAL",
+                    deliveryPartner: "Nền tảng đối tác (AhaMove/Grab)",
+                    partnerOrderCode: ""
+                };
+
+                $.ajax({
+                    url: '/api/AdminOrder/Dispatched',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { 
+                        const panel = document.getElementById('orderDetailPanel');
+                        if (panel && panel.classList.contains('show')) {
+                            bootstrap.Offcanvas.getInstance(panel).hide();
+                        }
+                        loadOrders(); 
+                    },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('🛵 Giao cho Tài xế');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 2] Simulate Partner Webhook
+            window.simulateWebhook = function() {
+                Swal.fire({
+                    title: 'Giả lập Webhook?',
+                    text: "Chuyển tất cả đơn đang giao (InDelivery) sang hoàn thành (Completed).",
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Chạy giả lập',
+                    cancelButtonText: 'Hủy'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.post('/api/AdminOrder/SimulateWebhook', function(res) {
+                            Swal.fire('Thành công', res, 'success');
+                            loadOrders();
+                        }).fail(function(xhr) {
+                            Swal.fire('Lỗi', xhr.responseText, 'error');
+                        });
+                    }
+                });
+            };
+
+            // [Phase 4] Quick Accept — gọi AcceptOrder trực tiếp từ card
+            window.quickAccept = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                $.ajax({
+                    url: `/api/AdminOrder/AcceptOrder/${orderId}`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { loadOrders(); },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('<i class="bi bi-check-circle me-1"></i>Nhận Đơn');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 1] Quick Complete — gọi ReadyForPickup trực tiếp từ card
+            window.quickComplete = function(btn, orderId) {
+                const $btn = $(btn);
+                $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+                $.ajax({
+                    url: `/api/AdminOrder/ReadyForPickup/${orderId}`,
+                    type: 'POST',
+                    headers: { 'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() },
+                    success: function() { loadOrders(); },
+                    error: function(xhr) {
+                        $btn.prop('disabled', false).html('<i class="bi bi-check-lg me-1"></i>Xong');
+                        Swal.fire('Lỗi', xhr.responseText || 'Có lỗi xảy ra', 'error');
+                    }
+                });
+            };
+
+            // [Phase 1] Print Order — fetch detail rồi in
+            window.printOrder = function(orderId) {
+                $.get(`/api/AdminOrder/GetOrderDetails/${orderId}`, function(order) {
+                    let html = `<p style="text-align:left;"><strong>Đơn #${order.orderId}</strong></p>`;
+                    html += '<table style="width:100%; font-size:11px; text-align:left;">';
+                    order.items.forEach(item => {
+                        let toppings = item.toppings.length > 0 ? ' + ' + item.toppings.join(', ') : '';
+                        html += `<tr><td>${item.quantity}x ${item.drinkName} (${item.sizeName})${toppings}</td></tr>`;
+                    });
+                    html += '</table>';
+                    html += `<p style="text-align:right; font-weight:bold; margin-top:8px;">Tổng: ${order.total.toLocaleString()}đ</p>`;
+                    $('#printContent').html(html);
+                    $('#printArea').show();
+                    window.print();
+                    $('#printArea').hide();
+                });
+            };
+        });
+    </script>
+}

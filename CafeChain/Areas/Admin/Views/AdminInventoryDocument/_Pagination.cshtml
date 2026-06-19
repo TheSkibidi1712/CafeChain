@@ -1,0 +1,47 @@
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.AdminInventoryDocumentIndexVM
+
+@if (Model.Documents.TotalPages > 1)
+{
+    <div class="pagination">
+
+        @if (Model.Documents.HasPreviousPage)
+        {
+            <button type="button"
+                    class="page-btn"
+                    onclick="InventoryDocument.goToPage(@(Model.Documents.PageIndex + 1))"
+            >
+                <i class="fas fa-chevron-left"></i>
+
+            </button>
+        }
+
+        @{
+            var current = Model.Documents.PageIndex;
+            var total = Model.Documents.TotalPages;
+
+            var start = Math.Max(1, current - 2);
+            var end = Math.Min(total, current + 2);
+        }
+
+        @for (int i = start; i <= end; i++)
+        {
+            <button type="button"
+                    class="page-btn @(i == current ? "active" : "")"
+                    onclick="InventoryDocument.goToPage(@i)">
+                @i
+            </button>
+        }
+
+        @if (Model.Documents.HasNextPage)
+        {
+            <button type="button"
+                    class="page-btn"
+                    onclick="InventoryDocument.goToPage(@(Model.Documents.PageIndex + 1))">
+
+                <i class="fas fa-chevron-right"></i>
+
+            </button>
+        }
+
+    </div>
+}

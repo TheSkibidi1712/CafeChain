@@ -1,0 +1,167 @@
+@using CafeChain.Models.Vouchers
+@model WheelConfig
+@{
+    ViewData["Title"] = "Cấu hình Vòng quay Voucher";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var availableVouchers = ViewBag.Vouchers as List<Voucher> ?? new List<Voucher>();
+}
+
+@if (TempData["Success"] != null)
+{
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            Swal.fire('Thành công', '@TempData["Success"]', 'success');
+        });
+    </script>
+}
+
+<div class="mb-4 mt-4">
+    <h2 style="font-weight: 700; color: #343a40;">Cấu hình Vòng quay chính</h2>
+    <p class="text-muted" style="font-size: 14px;">Quản lý xác suất và phần thưởng cho vòng quay duy nhất trên trang chủ</p>
+</div>
+
+<div class="row g-4">
+    <!-- Cấu hình cơ bản -->
+    <div class="col-lg-4">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0">
+                <h5 class="fw-bold mb-0">Cài đặt cơ bản</h5>
+            </div>
+            <div class="card-body p-4">
+                <form action="/Admin/AdminWheel/Create" method="post">
+                    <input type="hidden" name="WheelConfigId" value="@Model.WheelConfigId">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Tên hiển thị</label>
+                        <input type="text" name="Name" class="form-control rounded-3" value="@Model.Name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Giá mỗi lần quay (Điểm)</label>
+                        <input type="number" name="SpinCost" class="form-control rounded-3" value="@Model.SpinCost" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Số lượng ô</label>
+                        <select name="SlotCount" class="form-select rounded-3">
+                            <option value="6" selected="@(Model.SlotCount == 6)">6 ô</option>
+                            <option value="8" selected="@(Model.SlotCount == 8)">8 ô</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" name="Active" value="true" @(Model.Active ? "checked" : "") id="activeSwitch">
+                            <label class="form-check-label fw-semibold" for="activeSwitch">Kích hoạt vòng quay</label>
+                            <input type="hidden" name="Active" value="false">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn text-white w-100 rounded-3 fw-bold py-2 shadow-sm" style="background-color: #d93d20;">LƯU THAY ĐỔI</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cấu hình giải thưởng -->
+    <div class="col-lg-8">
+        <div class="card border-0 shadow-sm" style="border-radius: 12px;">
+            <div class="card-header bg-white border-0 pt-4 px-4 pb-0 d-flex justify-content-between align-items-center">
+                <h5 class="fw-bold mb-0">Thiết lập giải thưởng (@Model.SlotCount ô)</h5>
+                <span class="badge" style="background-color: #fdf2f0; color: #d93d20; font-weight: 600;">Ô #1 là ô trên cùng</span>
+            </div>
+            <div class="card-body p-4">
+                <div id="prizesContainer" class="row g-3">
+                    <!-- Slots will be generated here -->
+                </div>
+                <div class="mt-4 border-top pt-4 text-end">
+                    <button type="button" onclick="savePrizes()" class="btn text-white rounded-3 fw-bold px-5 py-2 shadow-sm" style="background-color: #343a40;">LƯU DANH SÁCH GIẢI THƯỞNG</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <style>
+        .slot-card { border: 1px solid #f1f3f5; border-radius: 12px; padding: 18px; background: #fafafa; transition: 0.3s; }
+        .slot-card:hover { border-color: #d93d20; background: #fff; box-shadow: 0 5px 15px rgba(217, 61, 32, 0.05); }
+        .slot-number { width: 28px; height: 28px; background: #343a40; color: white; display: flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 12px; font-weight: 700; margin-bottom: 15px; }
+    </style>
+}
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        const currentWheelId = @Model.WheelConfigId;
+        const currentSlotCount = @Model.SlotCount;
+
+        $(document).ready(function() {
+            loadPrizes();
+        });
+
+        function loadPrizes() {
+            $.get('/Admin/AdminWheel/GetConfigJson/' + currentWheelId, function(data) {
+                $('#prizesContainer').empty();
+                for (let i = 0; i < currentSlotCount; i++) {
+                    const prize = data.prizes.find(p => p.slotIndex === i) || { probability: 1, isLose: false };
+                    addSlotUI(i, prize);
+                }
+            });
+        }
+
+        function addSlotUI(index, data) {
+            let optionsHtml = '<' + 'option value="lose"' + (data.isLose ? ' selected' : '') + '>❌ Mất lượt / Không trúng<' + '/option>';
+            const vouchers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(availableVouchers.Select(v => new { v.VoucherId, v.Code })));
+            
+            vouchers.forEach(v => {
+                const selected = data.voucherId == v.VoucherId ? ' selected' : '';
+                optionsHtml += '<' + 'option value="' + v.VoucherId + '"' + selected + '>🎁 Voucher: ' + v.Code + '<' + '/option>';
+            });
+
+            const html = `
+                <div class="col-md-6 slot-item" data-slot="${index}">
+                    <div class="slot-card position-relative">
+                        <div class="slot-number">${index + 1}</div>
+                        <div class="row g-2">
+                            <div class="col-12 mb-2">
+                                <label class="small fw-bold text-muted">Phần thưởng</label>
+                                <select class="form-select form-select-sm prize-voucher rounded-2">
+                                    ${optionsHtml}
+                                </select>
+                            </div>
+                            <input type="hidden" class="prize-prob" value="1" />
+                        </div>
+                    </div>
+                </div>
+            `;
+            $('#prizesContainer').append(html);
+        }
+
+        function savePrizes() {
+            const prizes = [];
+            $('.slot-item').each(function() {
+                const slot = $(this).data('slot');
+                const vValue = $(this).find('.prize-voucher').val();
+                const prob = $(this).find('.prize-prob').val();
+                
+                prizes.push({
+                    SlotIndex: slot,
+                    VoucherId: vValue === 'lose' ? null : parseInt(vValue),
+                    Probability: parseFloat(prob),
+                    IsLose: vValue === 'lose'
+                });
+            });
+
+            $.ajax({
+                url: '/Admin/AdminWheel/SavePrizes',
+                type: 'POST',
+                data: {
+                    WheelConfigId: currentWheelId,
+                    Prizes: prizes
+                },
+                success: function(res) {
+                    if (res.success) {
+                        Swal.fire('Thành công', 'Đã lưu cấu hình giải thưởng!', 'success');
+                    }
+                }
+            });
+        }
+    </script>
+}

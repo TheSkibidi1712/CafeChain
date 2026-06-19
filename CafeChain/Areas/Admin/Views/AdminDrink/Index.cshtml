@@ -1,0 +1,131 @@
+@model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
+
+@{
+    ViewData["Title"] = "Quản lý Nước uống";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid px-4">
+    <h1 class="mt-4">Quản lý Nước uống</h1>
+    <ol class="breadcrumb mb-4">
+        <li class="breadcrumb-item active">Danh sách Nước uống</li>
+    </ol>
+
+
+    <div class="card mb-4 shadow-sm">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <i class="fas fa-table me-1"></i>
+                Danh sách Nước uống
+            </div>
+            <a asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fas fa-plus"></i> Thêm mới
+            </a>
+        </div>
+        <div class="card-body">
+            <table class="table table-bordered table-hover align-middle" id="datatablesSimple">
+                <thead class="table-light">
+                    <tr>
+                        <th>Hình ảnh</th>
+                        <th>Tên nước uống</th>
+                        <th>Danh mục</th>
+                        <th>Loại sản phẩm</th>
+                        <th>Trạng thái</th>
+                        <th class="text-center">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr>
+                            <td class="text-center">
+                                <img src="@item.ImageUrl" alt="@item.Name" style="height: 50px; width: 50px; object-fit: cover; border-radius: 5px;" />
+                            </td>
+                            <td class="fw-bold">@item.Name</td>
+                            <td><span class="badge bg-info text-dark">@item.CategoryName</span></td>
+                            <td><span class="badge bg-secondary">@item.ProductTypeName</span></td>
+                            <td>
+                                @if (item.Active)
+                                {
+                                    <span class="badge bg-success">Đang bán</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Ngừng bán</span>
+                                }
+                            </td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-sm btn-outline-info btn-manage-images" data-id="@item.DrinkId" data-name="@item.Name" title="Quản lý Ảnh"><i class="fas fa-images"></i></button>
+                                <a asp-action="Edit" asp-route-id="@item.DrinkId" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="fas fa-edit"></i></a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Image Management -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-primary">Quản lý Ảnh - <span id="modalDrinkName"></span></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="currentDrinkId" value="" />
+                
+
+                <!-- Image List -->
+                <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-layer-group"></i> Danh Sách Ảnh Đã Tải Lên</h6>
+                <div class="row g-3" id="imageListContainer">
+                    <div class="col-12 text-center text-muted">Đang tải...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Edit Image -->
+<div class="modal fade" id="editImageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-warning"><i class="fas fa-pencil-alt"></i> Chỉnh sửa ảnh</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editImageId" value="" />
+                <div class="mb-3 text-center">
+                    <p class="text-muted small mb-2">Ảnh hiện tại:</p>
+                    <img id="editCurrentPreview" src="" alt="Current Image"
+                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px solid #dee2e6;" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Chọn ảnh mới <span class="text-danger">*</span></label>
+                    <input type="file" class="form-control" id="newImageFileInput" accept=".jpg,.jpeg,.png" />
+                    <div class="form-text">Chỉ chấp nhận JPG, JPEG, PNG.</div>
+                </div>
+                <div id="newImagePreviewWrapper" class="text-center mb-2" style="display:none;">
+                    <p class="text-muted small mb-1">Xem trước ảnh mới:</p>
+                    <img id="newImagePreview" src="" alt="New Image Preview"
+                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px dashed #0d6efd;" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-warning btn-sm" id="btnConfirmEditImage">
+                    <i class="fas fa-save"></i> Lưu ảnh mới
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Admin/Drink/drink.js">
+        
+    </script>
+}

@@ -1,0 +1,113 @@
+@model List<CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM>
+
+@{
+    ViewData["Title"] = "Quản lý Quy đổi Đơn vị";
+}
+
+<style>
+    .uc-badge-from {
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .uc-badge-to {
+        background: linear-gradient(135deg, #f97316, #ea580c);
+        color: white;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    .uc-arrow {
+        font-size: 1.2rem;
+        color: #94a3b8;
+    }
+    .uc-card {
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
+        background: white;
+    }
+</style>
+
+<div class="container-fluid px-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h3 class="fw-bold text-dark mb-0">
+                <i class="fas fa-exchange-alt me-2" style="color: #f97316;"></i>Quy đổi Đơn vị (Unit Conversion)
+            </h3>
+            <p class="text-muted mb-0">Khai báo tỷ lệ quy đổi giữa các đơn vị tính theo từng nguyên liệu</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary shadow-sm" style="background-color: #f97316; border-color: #f97316;">
+            <i class="fas fa-plus me-1"></i> Thêm quy đổi
+        </a>
+    </div>
+
+    @if (TempData["SuccessMsg"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMsg"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="uc-card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr style="background-color: #f1f5f9;">
+                        <th class="text-uppercase text-muted" style="font-size: 0.75rem;">#</th>
+                        <th class="text-uppercase text-muted" style="font-size: 0.75rem;">Nguyên liệu</th>
+                        <th class="text-uppercase text-muted text-center" style="font-size: 0.75rem;">Quy đổi</th>
+                        <th class="text-uppercase text-muted text-center" style="font-size: 0.75rem;">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (Model != null && Model.Any())
+                    {
+                        var idx = 0;
+                        foreach (var item in Model)
+                        {
+                            idx++;
+                            <tr>
+                                <td class="align-middle text-muted fw-bold">@idx</td>
+                                <td class="align-middle">
+                                    <span class="fw-bold">@item.IngredientName</span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <span class="uc-badge-from">@item.FromQuantity @item.FromUnitName</span>
+                                    <i class="fas fa-equals uc-arrow mx-2"></i>
+                                    <span class="uc-badge-to">@item.ToQuantity @item.ToUnitName</span>
+                                </td>
+                                <td class="align-middle text-center">
+                                    <a asp-action="Edit" asp-route-id="@item.UnitConversionId" class="btn btn-sm btn-outline-primary me-1">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form asp-action="Delete" asp-route-id="@item.UnitConversionId" method="post" class="d-inline"
+                                          onsubmit="return confirm('Bạn chắc chắn muốn xóa quy đổi này?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center text-muted py-5">
+                                <i class="fas fa-inbox fa-3x mb-3 d-block" style="color: #cbd5e1;"></i>
+                                Chưa có quy đổi nào. Bấm <strong>"Thêm quy đổi"</strong> để bắt đầu.
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

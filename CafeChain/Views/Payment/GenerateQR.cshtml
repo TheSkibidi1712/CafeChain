@@ -1,0 +1,194 @@
+@inject CafeChain.Application.Interfaces.IOrderService OrderService
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Thanh toán đơn hàng";
+    decimal totalAmount = ViewBag.TotalAmount ?? 0;
+    int orderId = ViewBag.OrderId ?? 0;
+    DateTime createdAt = ViewBag.CreatedAt ?? DateTime.Now;
+
+    // Lấy thông tin đơn hàng để render receipt sẵn
+    var customerIdStr = User.FindFirstValue("CustomerId");
+    int.TryParse(customerIdStr, out int customerId);
+    var orderDetail = await OrderService.GetCustomerOrderDetailAsync(orderId, customerId);
+    int totalItems = orderDetail?.Items.Sum(i => i.Quantity) ?? 0;
+}
+
+<div class="container mt-5 mb-5" style="max-width: 600px;">
+    <!-- [BƯỚC 3.A] Khối hiển thị mã QR -->
+    <div class="card border-0 shadow rounded-4 overflow-hidden" id="qr-container">
+        <div class="bg-orange text-white p-4 text-center" style="background-color: #d35400;">
+            <h4 class="fw-bold mb-1"><i class="bi bi-qr-code-scan me-2"></i>Thanh toán đơn hàng</h4>
+            <p class="mb-0 small opacity-75">Quét mã QR bằng ứng dụng ngân hàng hoặc MoMo</p>
+        </div>
+        
+        <div class="card-body p-4 text-center">
+            <div id="countdownArea" class="mb-3">
+                <span class="text-muted small">Thời gian còn lại để thanh toán:</span>
+                <div class="fs-3 fw-bold text-danger mt-1" id="timerDisplay">02:00</div>
+            </div>
+
+            <div class="bg-light p-2 rounded-4 d-inline-block border mb-4">
+                @{
+                    var bin = ViewBag.Bin ?? "970422";
+                    var accNo = ViewBag.AccountNumber ?? "0935515321";
+                    var amt = ViewBag.Amount ?? totalAmount;
+                    var desc = ViewBag.Description ?? $"PAYOS{orderId}";
+                    var accName = ViewBag.AccountName ?? "PayOS - CAFE CHAIN";
+                    
+                    var qrUrl = $"https://img.vietqr.io/image/{bin}-{accNo}-compact2.png?amount={amt}&addInfo={desc}&accountName={Uri.EscapeDataString(accName.ToString())}";
+                }
+                <img src="@qrUrl" alt="VietQR Code" width="280" style="border-radius: 8px;">
+            </div>
+
+            <div class="row text-start g-3 mb-4">
+                <div class="col-6">
+                    <span class="text-muted small d-block">Mã Đơn hàng</span>
+                    <span class="fw-bold fs-5">#@orderId</span>
+                </div>
+                <div class="col-6 text-end">
+                    <span class="text-muted small d-block">Số tiền thanh toán</span>
+                    <span class="fw-bold fs-5 text-orange" style="color: #d35400;">@totalAmount.ToString("N0")đ</span>
+                </div>
+            </div>
+
+            <div class="alert alert-secondary small text-start border-0 text-muted">
+                <i class="bi bi-info-circle-fill me-2"></i>
+                Hệ thống sẽ xác nhận ngay khi tiền vào tài khoản. Vui lòng không tắt cửa sổ này.
+            </div>
+
+            <hr class="opacity-10">
+            <div class="d-flex justify-content-center">
+                <button type="button" class="btn btn-outline-danger btn-sm" onclick="cancelPayment()">Hủy thanh toán</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- [BƯỚC 3.A] Khối E-Receipt (Biên lai điện tử) -->
+    <div id="receipt-container" class="card border-0 shadow rounded-4 p-5 text-center d-none">
+        <div class="mb-4">
+            <div class="bg-success text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3 shadow-sm" style="width: 70px; height: 70px;">
+                <i class="bi bi-check-lg fs-1"></i>
+            </div>
+            <h3 class="fw-bold text-success">THANH TOÁN ĐÃ HOÀN TẤT</h3>
+        </div>
+
+        <div class="bg-light rounded-4 p-4 mb-4 text-start border">
+            <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted">Mã đơn hàng:</span>
+                <span class="fw-bold" id="receipt-order-id">#0</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted">Tổng số lượng:</span>
+                <span class="fw-bold" id="receipt-item-count">0 sản phẩm</span>
+            </div>
+            <div class="d-flex justify-content-between mb-3">
+                <span class="text-muted">Tổng tiền:</span>
+                <span class="fw-bold text-orange fs-4" id="receipt-total">0đ</span>
+            </div>
+            <div class="d-flex justify-content-between">
+                <span class="text-muted">Phương thức:</span>
+                <span class="fw-bold" id="receipt-method">PayOS</span>
+            </div>
+        </div>
+
+        <div class="text-center">
+            <p class="text-muted mb-2">Hệ thống sẽ chuyển về trang Lịch sử đơn hàng sau <span id="countdown" class="fw-bold text-orange">5</span>s...</p>
+            <div class="progress" style="height: 5px;">
+                <div id="countdown-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%; transition: width 5s linear;"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="expiredCard" class="card border-0 shadow rounded-4 p-5 text-center d-none">
+        <i class="bi bi-x-circle text-danger mb-3" style="font-size: 4rem;"></i>
+        <h4 class="fw-bold">Giao dịch đã hết hạn</h4>
+        <p class="text-muted mt-2">Thời gian giữ đơn hàng đã kết thúc. Vui lòng quay lại giỏ hàng và đặt lại thao tác mới.</p>
+        <a href="/Cart" class="btn btn-outline-danger px-4 rounded-pill mt-2">Quay lại Giỏ hàng</a>
+    </div>
+</div>
+
+@section Scripts {
+    <!-- [BƯỚC 3.B] Logic Javascript & SignalR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
+    <script>
+        const currentOrderId = '@orderId';
+        let timerCanceled = false;
+
+        // 1. Khởi tạo kết nối SignalR PaymentHub
+        const connection = new signalR.HubConnectionBuilder()
+            .withUrl("/paymentHub")
+            .withAutomaticReconnect()
+            .build();
+
+        connection.start().then(function () {
+            console.log(">>>>> [SIGNALR] Connected to PaymentHub");
+            // Join vào group của orderId này
+            connection.invoke("JoinOrderGroup", currentOrderId).catch(err => console.error(err));
+        }).catch(err => console.error(err));
+
+        // 2. Đăng ký lắng nghe sự kiện ReceivePaymentSuccess
+        connection.on("ReceivePaymentSuccess", function (data) {
+            console.log(">>>>> [SIGNALR] Payment Success Received:", data);
+            handlePaymentSuccess(data);
+        });
+
+        function handlePaymentSuccess(data) {
+            if (timerCanceled) return;
+            timerCanceled = true;
+
+            // Step 1 & 2: Hide QR, Show Receipt (Fade-in)
+            $('#qr-container').addClass('d-none');
+            $('#receipt-container').removeClass('d-none').hide().fadeIn(800);
+
+            // Step 3: Fill data
+            $('#receipt-order-id').text('#' + data.orderId);
+            $('#receipt-item-count').text(data.itemCount + ' sản phẩm');
+            $('#receipt-total').text(data.totalAmount.toLocaleString() + 'đ');
+            $('#receipt-method').text(data.paymentMethod);
+
+            // Step 4 & 5: Countdown 5s and Redirect
+            let seconds = 5;
+            $('#countdown-bar').css('width', '0%');
+            
+            const countdownInterval = setInterval(() => {
+                seconds--;
+                $('#countdown').text(seconds);
+                if (seconds <= 0) {
+                    clearInterval(countdownInterval);
+                    window.location.href = '/Order/History';
+                }
+            }, 1000);
+        }
+
+        // Logic đếm ngược 2 phút hết hạn (đã có từ trước)
+        const createdAtStr = '@createdAt.ToString("yyyy-MM-ddTHH:mm:ss")';
+        const createdAtDate = new Date(createdAtStr);
+        const expireTime = new Date(createdAtDate.getTime() + 2 * 60000);
+
+        function updateCountdown() {
+            if (timerCanceled) return;
+            const now = new Date();
+            const diff = expireTime - now;
+
+            if (diff <= 0) {
+                timerCanceled = true;
+                $('#qr-container').addClass('d-none');
+                $('#expiredCard').removeClass('d-none');
+                cancelPayment(true);
+                return;
+            }
+
+            const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+            $('#timerDisplay').text(minutes.toString().padStart(2, '0') + ':' + seconds.toString().padStart(2, '0'));
+            requestAnimationFrame(updateCountdown);
+        }
+        updateCountdown();
+
+        function cancelPayment(isAuto = false) {
+            if (!isAuto && !confirm("Bạn có chắc muốn hủy thanh toán?")) return;
+            timerCanceled = true;
+            $('#cancelForm').submit();
+        }
+    </script>
+}

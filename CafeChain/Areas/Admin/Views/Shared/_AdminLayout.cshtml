@@ -1,0 +1,233 @@
+@using CafeChain.Helpers
+@{
+    var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+}
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>@ViewData["Title"] - CafeChain Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" />
+    <link rel="stylesheet" href="~/css/toast/toast.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8f9fa;
+        }
+
+        .sidebar {
+            height: 100vh;
+            background-color: white;
+            border-right: 1px solid #e9ecef;
+            position: fixed;
+            width: 250px;
+            left: 0;
+            top: 0;
+            padding-top: 20px;
+        }
+
+        .sidebar a {
+            padding: 12px 20px;
+            display: block;
+            color: #495057;
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .sidebar a:hover,
+        .sidebar a.active {
+            background-color: #fdf2f0;
+            color: #d93d20;
+            border-right: 4px solid #d93d20;
+        }
+
+        .sidebar i {
+            width: 24px;
+            text-align: center;
+            margin-right: 10px;
+        }
+
+        .main-content {
+            margin-left: 250px;
+            padding: 30px;
+        }
+
+        .logo-wrap {
+            display: flex;
+            align-items: center;
+            padding: 0 20px 30px;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .logo-icon {
+            background: #d93d20;
+            color: white;
+            border-radius: 8px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            font-weight: 800;
+        }
+
+        .logo-text {
+            font-size: 18px;
+            font-weight: 700;
+            color: #212529;
+            line-height: 1.2;
+        }
+
+        .logo-sub {
+            font-size: 11px;
+            color: #adb5bd;
+            font-weight: 500;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: flex-end;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #e9ecef;
+        }
+        #toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 999999;
+        }
+    </style>
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body>
+    <div class="sidebar">
+        <div class="logo-wrap">
+            <div class="logo-icon">C</div>
+            <div>
+                <div class="logo-text">CafeChain</div>
+                <div class="logo-sub">Admin Dashboard</div>
+            </div>
+        </div>
+
+        <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="@Html.IsActive("Dashboard")"><i class="fas fa-border-all"></i> Dashboard</a>
+        
+        @using Microsoft.AspNetCore.Authorization
+        @inject IAuthorizationService AuthorizationService
+        
+        @if ((await AuthorizationService.AuthorizeAsync(User, "RequireAdminPanelAccess")).Succeeded)
+        {
+            <!-- Parent Menu DEMO: Quản lý sản phẩm -->
+            <a href="#collapseProducts" data-bs-toggle="collapse" 
+               aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping") != "" ? "true" : "false")"
+               class="@Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping")">
+                <i class="fas fa-boxes"></i> Sản phẩm <i class="fas fa-chevron-down ms-auto" style="font-size: 10px; width: auto; float: right; margin-top: 5px;"></i>
+            </a>
+            <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping", cssClass: "show")" id="collapseProducts">
+                <div style="background-color: #fafafa; border-left: 2px solid #e9ecef; margin-left: 20px;">
+                    <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Danh mục</a>
+                    <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Đồ uống</a>
+                    <a asp-area="Admin" asp-controller="AdminSize" asp-action="Index" class="@Html.IsActive("AdminSize")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Size</a>
+                    <a asp-area="Admin" asp-controller="AdminTopping" asp-action="Index" class="@Html.IsActive("AdminTopping")" style="padding-left: 15px;"><i class="fas fa-angle-right" style="font-size: 10px;"></i> Topping</a>
+                    <a asp-area="Admin" asp-controller="AdminRecipe" asp-action="Index" class="@Html.IsActive("AdminRecipe")" style="padding-left: 15px;"><i class="fas fa-flask" style="font-size: 12px; margin-right: 5px;"></i> Cấu trúc BOM</a>
+                    <a asp-area="Admin" asp-controller="AdminProductionOrder" asp-action="Create" class="@Html.IsActive("AdminProductionOrder")" style="padding-left: 15px;"><i class="fas fa-fire-burner" style="font-size: 12px; margin-right: 5px;"></i> Lệnh Sơ Chế</a>
+                </div>
+            </div>
+
+            <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-warehouse"></i> Quản lý tồn kho</a>
+            <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-box-open"></i> Nguyên liệu</a>
+            <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-exchange-alt"></i> Quy đổi đơn vị</a>
+            <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-file-alt"></i> Phiếu tồn kho</a>
+            <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-truck"></i> Quản lý nhà cung cấp</a>
+            <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-gift"></i> Quản lý voucher</a>
+            <a asp-area="Admin" asp-controller="AdminWheel" asp-action="Index" class="@Html.IsActive("AdminWheel")"><i class="fas fa-dharmachakra"></i> Quản lý vòng quay</a>
+            <a asp-area="Admin" asp-controller="AdminOrder" asp-action="Index" class="@Html.IsActive("AdminOrder", "Index")"><i class="fas fa-columns"></i> Bảng điều phối</a>
+            <a asp-area="Admin" asp-controller="AdminOrder" asp-action="History" class="@Html.IsActive("AdminOrder", "History")"><i class="fas fa-history"></i> Lịch sử đơn hàng</a>
+        }
+        
+        <!-- Nhân sự (Link trực tiếp) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-users"></i> Quản lý nhân viên</a>
+        }
+
+        <!-- Lịch làm việc (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Khu vực"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStaffShift" asp-action="Index" class="@Html.IsActive("AdminStaffShift")"><i class="fas fa-calendar-alt"></i> Lịch làm việc</a>
+        }
+
+        <!-- Quản lý IP Chấm công (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStoreIP" asp-action="Index" class="@Html.IsActive("AdminStoreIP")"><i class="fas fa-network-wired"></i> Quản lý IP chấm công</a>
+        }
+
+        <!-- Cửa hàng (Link riêng) -->
+        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Giám đốc Vận hành"))
+        {
+            <a asp-area="Admin" asp-controller="AdminStore" asp-action="Index" class="@Html.IsActive("AdminStore")"><i class="fas fa-store"></i> Quản lý cửa hàng</a>
+        }
+
+        <!-- Hồ sơ cá nhân (Cho TẤT CẢ roles) -->
+        <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="@Html.IsActive("Profile")"><i class="fas fa-user-circle"></i> Hồ sơ của tôi</a>
+
+        @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
+        {
+
+            @if (isAdminArea)
+            {
+                <!-- 👉 ĐANG Ở ADMIN → VỀ CLIENT -->
+                <a asp-area="" asp-controller="Home" asp-action="Index"><i class="bi bi-house-door me-1"></i> Quay lại trang chủ</a>
+            }
+
+        }
+        <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="margin-top:10px; border-top: 1px solid #e9ecef; padding-top: 10px;">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link shadow-none" style="text-decoration:none; color:#dc3545; font-weight: 500; font-size:14px; padding: 12px 20px;">
+                <i class="fas fa-sign-out-alt"></i> Đăng xuất
+            </button>
+        </form>
+        
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <!-- Notification Sound Toggle -->
+            <button id="globalSoundToggle" class="btn btn-link text-muted shadow-none p-0 me-3" title="Âm thanh thông báo">
+                <i class="fas fa-bell-slash" id="globalSoundIcon"></i>
+            </button>
+            <i class="fas fa-user-circle text-muted fs-4"></i>
+        </div>
+        @RenderBody()
+    </div>
+
+    <!-- ✅ THÊM Ở ĐÂY -->
+    <div id="toast-container"></div>
+
+    <!-- Bootstrap & Plugins -->
+    <script src="~/js/toast/toast.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Select2 (Global for BOM ecosystem) -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>

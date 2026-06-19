@@ -1,0 +1,644 @@
+@model CafeChain.ViewModels.Cart.CheckoutViewModel
+
+@{
+    ViewData["Title"] = "Thanh toán";
+}
+
+<div class="container mt-4 mb-5">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/Cart" class="text-muted text-decoration-none">Giỏ hàng</a></li>
+            <li class="breadcrumb-item active text-orange fw-semibold" aria-current="page">Xác nhận thanh toán</li>
+        </ol>
+    </nav>
+
+    <h2 class="fw-bold mb-4">Thanh toán</h2>
+
+    <form asp-action="Index" method="post" id="checkoutForm">
+        <input type="hidden" asp-for="CheckoutToken" />
+        <input type="hidden" asp-for="AssignedStoreId" id="AssignedStoreId" />
+        <input type="hidden" name="Latitude" id="Latitude" />
+        <input type="hidden" name="Longitude" id="Longitude" />
+        <input type="hidden" asp-for="ShippingFee" id="ShippingFeeInput" value="@Model.ShippingFee" />
+        <div class="row">
+            <!-- CỘT TRÁI: THÔNG TIN GIAO HÀNG & THANH TOÁN -->
+            <div class="col-lg-8">
+                <!-- 1. Thông tin người nhận -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4"><i class="bi bi-geo-alt text-orange me-2"></i>Thông tin giao hàng</h5>
+                        
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label small fw-bold mb-2">Chọn địa chỉ giao hàng</label>
+                                <div class="list-group shadow-sm mb-2 border-0">
+                                    @if(ViewBag.SavedAddresses != null && ((List<CafeChain.ViewModels.Customers.CustomerAddressViewModel>)ViewBag.SavedAddresses).Any())
+                                    {
+                                        foreach(var addr in ViewBag.SavedAddresses)
+                                        {
+                                            <label class="list-group-item d-flex gap-3 align-items-center p-3 cursor-pointer border-0 rounded-3 mb-2" style="background-color: #f8f9fa;">
+                                                <input class="form-check-input flex-shrink-0 border-dark mt-0" type="radio" name="SelectedAddressId" value="@addr.CustomerAddressId" @(Model.SelectedAddressId == addr.CustomerAddressId ? "checked" : "") required>
+                                                <span>
+                                                    <strong class="text-dark">@(!string.IsNullOrEmpty(ViewBag.CustomerName)? ViewBag.CustomerName : "Người nhận")</strong>
+                                                    @if(addr.IsDefault) { <span class="badge border border-orange text-orange ms-2">Mặc định</span> }
+                                                    <span class="d-block text-muted small mt-1"><i class="bi bi-geo-alt-fill me-1 opacity-50"></i>@addr.DisplayAddress</span>
+                                                </span>
+                                            </label>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-warning small border-0">Bạn chưa có địa chỉ giao hàng nào.</div>
+                                    }
+                                </div>
+                                <span asp-validation-for="SelectedAddressId" class="text-danger small d-block mb-3"></span>
+                                <button type="button" class="btn btn-sm btn-outline-orange w-100 rounded-3 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#addAddressModal">
+                                    <i class="bi bi-plus-lg me-1"></i>Thêm địa chỉ mới
+                                </button>
+                            </div>
+                            
+                            <hr class="opacity-10 my-1">
+                            
+                            <div class="col-12">
+                                <label class="form-label small fw-bold mb-2 mt-2">Chọn số điện thoại liên hệ</label>
+                                <div class="list-group shadow-sm border-0">
+                                    @if(ViewBag.SavedPhones != null && ((List<CafeChain.ViewModels.Customers.CustomerPhoneViewModel>)ViewBag.SavedPhones).Any())
+                                    {
+                                        foreach(var phone in ViewBag.SavedPhones)
+                                        {
+                                            <label class="list-group-item d-flex gap-3 align-items-center p-3 cursor-pointer border-0 rounded-3 mb-2" style="background-color: #f8f9fa;">
+                                                <input class="form-check-input flex-shrink-0 border-dark mt-0" type="radio" name="SelectedPhoneId" value="@phone.CustomerPhoneId" @(Model.SelectedPhoneId == phone.CustomerPhoneId ? "checked" : "") required>
+                                                <span>
+                                                    <strong class="text-dark"><i class="bi bi-telephone-fill me-2 opacity-50"></i>@phone.Phone</strong>
+                                                </span>
+                                            </label>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <div class="alert alert-warning small border-0">Bạn chưa có số điện thoại liên hệ. Vui lòng cập nhật ở Hồ sơ.</div>
+                                    }
+                                </div>
+                                <span asp-validation-for="SelectedPhoneId" class="text-danger small d-block mb-2"></span>
+                            </div>
+                            
+                            <div class="col-12 mt-3">
+                                <label asp-for="Note" class="form-label small fw-bold">Ghi chú đơn hàng (Tùy chọn)</label>
+                                <input asp-for="Note" class="form-control rounded-3" placeholder="Ví dụ: Giao giờ hành chính, gọi trước khi đến...">
+                            </div>
+
+                            <div class="col-12 mt-4">
+                                <label class="form-label small fw-bold mb-2"><i class="bi bi-map text-orange me-2"></i>Xác nhận vị trí giao hàng</label>
+                                <div class="alert alert-info small py-2 mb-2"><i class="bi bi-info-circle me-1"></i>Vui lòng di chuyển ghim đỏ (Marker) trên bản đồ đến đúng vị trí của bạn để chúng tôi tính phí giao hàng chính xác.</div>
+                                <div id="checkoutMap" class="rounded-3 shadow-sm border" style="height: 350px; width: 100%; z-index: 1;"></div>
+                                
+                                <div id="shippingInfoBox" class="mt-3 p-3 bg-light rounded-3 d-none border">
+                                    <h6 class="fw-bold mb-2 text-dark"><i class="bi bi-shop text-orange me-2"></i>Cửa hàng phụ trách: <span id="lblStoreName" class="text-orange"></span></h6>
+                                    <div class="d-flex justify-content-between mb-1 small">
+                                        <span class="text-muted">Khoảng cách:</span>
+                                        <span class="fw-bold"><span id="lblDistance">0</span> km</span>
+                                    </div>
+                                    <div class="d-flex justify-content-between small mb-1">
+                                        <span class="text-muted">Phí giao hàng:</span>
+                                        <span class="fw-bold"><span id="lblCalculatedShippingFee">0</span>đ</span>
+                                    </div>
+                                </div>
+                                
+                                <div id="shippingError" class="alert alert-danger small mt-2 d-none fw-bold">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Rất tiếc, địa chỉ nằm ngoài vùng phục vụ (tối đa 30km).
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Phương thức thanh toán -->
+                <div class="card border-0 shadow-sm rounded-4 mb-4">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4"><i class="bi bi-credit-card text-orange me-2"></i>Phương thức thanh toán</h5>
+                        
+                        <div class="row g-3">
+                            @foreach (var ptm in ViewBag.PaymentMethods)
+                            {
+                                <div class="col-md-4">
+                                    <input type="radio" name="PaymentMethodId" id="ptm_@ptm.Id" value="@ptm.Id" class="btn-check" @(ptm.Id == 1 ? "checked" : "")>
+                                    <label class="btn btn-outline-light border text-dark w-100 p-3 rounded-4 shadow-sm h-100 d-flex flex-column align-items-center justify-content-center payment-card" for="ptm_@ptm.Id">
+                                        <i class="bi @ptm.Icon fs-2 mb-2 text-orange"></i>
+                                        <span class="small fw-bold">@ptm.Name</span>
+                                    </label>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Mã giảm giá -->
+                        <div class="mb-4">
+                            <label class="small fw-bold mb-2">Mã giảm giá</label>
+                            <div class="input-group">
+                                <select asp-for="SelectedVoucherId" class="form-select rounded-pill px-3" id="voucher-select">
+                                    <option value="">-- Chọn mã giảm giá có sẵn --</option>
+                                    @if(ViewBag.AvailableVouchers != null)
+                                    {
+                                        var vouchers = (List<CafeChain.Models.Vouchers.Voucher>)ViewBag.AvailableVouchers;
+                                        foreach (var voucher in vouchers)
+                                        {
+                                            bool isEligible = Model.SubTotal >= (voucher.MinOrderValue ?? 0);
+                                            string text = voucher.DiscountAmount != null ? $"GIẢM {voucher.DiscountAmount:N0}đ" : $"GIẢM {voucher.DiscountPercent}%";
+                                            if (voucher.MinOrderValue != null) text += $" - Đơn từ {voucher.MinOrderValue:N0}đ";
+                                            
+                                            if (isEligible)
+                                            {
+                                                <option value="@voucher.VoucherId">@voucher.Code - @voucher.Title | @text</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@voucher.VoucherId" disabled>@voucher.Code - @voucher.Title | @text (Chưa đạt đơn tối thiểu)</option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <div id="voucherStatus" class="small mt-2 d-none"></div>
+                        </div>
+
+                        <hr class="opacity-10 my-4">
+
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Tạm tính</span>
+                            <span class="fw-bold">@Model.SubTotal.ToString("N0")đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Phí vận chuyển</span>
+                            <span class="fw-bold" id="shippingFeeDisplay">@Model.ShippingFee.ToString("N0")đ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-3 d-none" id="voucherRow">
+                            <span class="text-muted small">Giảm giá</span>
+                            <span class="fw-bold text-success">-<span id="voucherValText">0</span>đ</span>
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4 align-items-center">
+                            <span class="fw-bold fs-5">Tổng cộng</span>
+                            <span class="fw-bold fs-4 text-orange" id="totalText">@Model.Total.ToString("N0")đ</span>
+                        </div>
+
+                        <div asp-validation-summary="ModelOnly" class="alert alert-danger small mt-3 border-0 py-2"></div>
+
+                        <button type="submit" class="btn btn-orange w-100 rounded-3 py-3 fw-bold mt-4 shadow-sm border-0" id="btnSubmitCheckout">
+                            ĐẶT HÀNG NGAY
+                        </button>
+
+                        <div class="text-center text-muted mt-3" style="font-size: 0.7rem;">
+                            Bằng cách đặt hàng, bạn đồng ý với <a href="#" class="text-orange text-decoration-none">Điều khoản dịch vụ</a> của CafeChain.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- CỘT PHẢI: CHI TIẾT SẢN PHẨM -->
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm rounded-4 position-sticky" style="top: 20px;">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4"><i class="bi bi-cart3 text-orange me-2"></i>Đơn hàng của bạn</h5>
+                        
+                        <div class="order-items-list pe-2" style="max-height: 450px; overflow-y: auto;">
+                            @if (Model.Items != null && Model.Items.Any())
+                            {
+                                foreach (var item in Model.Items)
+                                {
+                                    <div class="d-flex mb-3 align-items-center mt-2">
+                                        <div class="flex-shrink-0 position-relative">
+                                            <img src="@item.ImageUrl" alt="@item.Name" class="rounded-3 object-fit-cover shadow-sm" width="65" height="65">
+                                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill text-white" style="background-color: #d35400; font-size: 0.75rem;">
+                                                @item.Quantity
+                                            </span>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-1 fw-bold fs-6">@item.Name</h6>
+                                            <div class="text-muted small mb-1">Size: <span class="fw-semibold">@item.SizeName</span></div>
+                                            @if (item.ToppingNames != null && item.ToppingNames.Any())
+                                            {
+                                                <div class="text-muted" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-plus-circle me-1"></i>@string.Join(", ", item.ToppingNames)
+                                                </div>
+                                            }
+                                            @if (!string.IsNullOrEmpty(item.Note))
+                                            {
+                                                <div class="text-muted fst-italic mt-1" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-chat-text me-1"></i>@item.Note
+                                                </div>
+                                            }
+                                            <div class="text-orange fw-bold mt-1">@((item.Price * item.Quantity).ToString("N0"))đ</div>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                            else
+                            {
+                                <div class="text-center text-muted py-3 small">
+                                    Không có sản phẩm nào
+                                </div>
+                            }
+                        </div>
+                        
+                        <hr class="opacity-10 my-3">
+                        <div class="text-center">
+                            <a href="/Cart" class="text-decoration-none text-muted small hover-orange transition-color">
+                                <i class="bi bi-pencil-square me-1"></i>Chỉnh sửa giỏ hàng
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Modal Thêm Địa Chỉ -->
+<div class="modal fade" id="addAddressModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow">
+      <div class="modal-header border-bottom-0 pb-0 pt-4 px-4">
+        <h5 class="modal-title fw-bold text-dark"><i class="bi bi-geo-alt-fill text-orange me-2"></i>Thêm địa chỉ mới</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <form id="addAddressForm">
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Tỉnh / Thành phố <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3" id="provinceSelect" name="provinceId" required></select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Quận / Huyện <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3 bg-light" id="districtSelect" name="districtId" required disabled></select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-bold">Phường / Xã <span class="text-danger">*</span></label>
+                <select class="form-select rounded-3 bg-light" id="wardSelect" name="wardId" required disabled></select>
+            </div>
+            <div class="mb-4">
+                <label class="form-label small fw-bold">Số nhà, Tên đường <span class="text-danger">*</span></label>
+                <input type="text" class="form-control rounded-3" name="address" required placeholder="VD: 69 Nguyễn Huệ">
+            </div>
+            <div class="form-check mb-4">
+                <input class="form-check-input" type="checkbox" name="isDefault" id="isDefaultCheck" value="true">
+                <label class="form-check-label small" for="isDefaultCheck">
+                    Đặt làm địa chỉ mặc định
+                </label>
+            </div>
+            <button type="submit" class="btn btn-orange w-100 rounded-3 py-2 fw-bold" id="btnSaveAddress">
+                <span class="spinner-border spinner-border-sm d-none" id="saveAddrSpinner"></span>
+                LƯU ĐỊA CHỈ
+            </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        .text-orange { color: #d35400; }
+        .btn-orange { background-color: #d35400; color: white; transition: 0.3s; }
+        .btn-orange:hover { background-color: #a04000; color: white; transform: translateY(-2px); }
+        
+        .payment-card { transition: 0.2s; border-width: 2px !important; }
+        .payment-card:hover { border-color: #ffaa7a !important; background-color: #fff9f5 !important; }
+        .btn-check:checked + .payment-card { 
+            border-color: #d35400 !important; 
+            background-color: #fff3ed !important; 
+            box-shadow: 0 4px 12px rgba(211, 84, 0, 0.1) !important;
+        }
+
+        .order-items-list::-webkit-scrollbar { width: 5px; }
+        .order-items-list::-webkit-scrollbar-track { background: #f1f1f1; }
+        .order-items-list::-webkit-scrollbar-thumb { background: #d35400; border-radius: 10px; }
+
+        /* Google-style Floating Action Button trên Map */
+        .leaflet-control-locate {
+            background: #fff;
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            cursor: pointer;
+            box-shadow: 0 1px 5px rgba(0,0,0,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+        .leaflet-control-locate:hover {
+            background: #f4f4f4;
+        }
+        .leaflet-control-locate i {
+            font-size: 1.3rem; 
+            color: #0d6efd; /* Blue Google-like color */
+        }
+    </style>
+
+   <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Logic Cascading Dropdowns
+            const provinceSelect = document.getElementById('provinceSelect');
+            const districtSelect = document.getElementById('districtSelect');
+            const wardSelect = document.getElementById('wardSelect');
+
+            // 1. Tải danh sách tỉnh thành ngay khi mở trang/modal
+            fetch('/Customer/GetProvinces')
+                .then(res => res.json())
+                .then(data => {
+                    provinceSelect.innerHTML = '<option value="">-- Chọn Tỉnh/Thành phố --</option>';
+                    data.forEach(p => {
+                        provinceSelect.innerHTML += `<option value="${p.code}">${p.name}</option>`;
+                    });
+                });
+
+            provinceSelect.addEventListener('change', function() {
+                districtSelect.innerHTML = '<option value="">-- Chọn Quận/Huyện --</option>';
+                wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+                districtSelect.disabled = true;
+                wardSelect.disabled = true;
+                districtSelect.classList.add('bg-light');
+                wardSelect.classList.add('bg-light');
+
+                if (this.value) {
+                    fetch('/Customer/GetDistricts?provinceId=' + this.value)
+                        .then(res => res.json())
+                        .then(data => {
+                            data.forEach(d => {
+                                districtSelect.innerHTML += `<option value="${d.code}">${d.name}</option>`;
+                            });
+                            districtSelect.disabled = false;
+                            districtSelect.classList.remove('bg-light');
+                        });
+                }
+            });
+
+            districtSelect.addEventListener('change', function() {
+                wardSelect.innerHTML = '<option value="">-- Chọn Phường/Xã --</option>';
+                wardSelect.disabled = true;
+                wardSelect.classList.add('bg-light');
+
+                if (this.value) {
+                    fetch('/Customer/GetWards?districtId=' + this.value)
+                        .then(res => res.json())
+                        .then(data => {
+                            data.forEach(w => {
+                                wardSelect.innerHTML += `<option value="${w.code}">${w.name}</option>`;
+                            });
+                            wardSelect.disabled = false;
+                            wardSelect.classList.remove('bg-light');
+                        });
+                }
+            });
+
+            // 2. Submit form Thêm Địa chỉ
+            const addForm = document.getElementById('addAddressForm');
+            addForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                $('#saveAddrSpinner').removeClass('d-none');
+                $('#btnSaveAddress').prop('disabled', true);
+
+                const formData = new FormData(addForm);
+                formData.set('isDefault', document.getElementById('isDefaultCheck').checked);
+
+                fetch('/CustomerAddress/AddAddress', {
+                    method: 'POST',
+                    body: formData 
+                })
+                .then(res => res.json())
+                .then(res => {
+                    if(res.success) {
+                        window.location.reload(); 
+                    } else {
+                        Swal.fire('Lỗi', res.message, 'error');
+                        $('#saveAddrSpinner').addClass('d-none');
+                        $('#btnSaveAddress').prop('disabled', false);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    $('#saveAddrSpinner').addClass('d-none');
+                    $('#btnSaveAddress').prop('disabled', false);
+                });
+            });
+        });
+
+        $(document).ready(function() {
+            let subtotal = @Model.SubTotal;
+            let shippingFee = @Model.ShippingFee;
+            let currentVoucherDiscount = 0; // ĐÃ FIX TÊN BIẾN
+
+            function updateTotal() {
+                const total = subtotal + shippingFee - currentVoucherDiscount;
+                // Đảm bảo tổng tiền không bị âm
+                const finalTotal = total < 0 ? 0 : total;
+                $('#totalText').text(finalTotal.toLocaleString('vi-VN') + 'đ');
+                $('#shippingFeeDisplay').text(shippingFee.toLocaleString('vi-VN') + 'đ');
+                $('#ShippingFeeInput').val(shippingFee);
+            }
+
+            // --- MAP & HARESINE LOGIC ---
+            var googleStreets = L.tileLayer('http://mt0.google.com/vt/lyrs=m&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps'
+            });
+
+            var googleSat = L.tileLayer('http://mt0.google.com/vt/lyrs=s&hl=vi&x={x}&y={y}&z={z}', {
+                maxZoom: 20,
+                attribution: '&copy; Google Maps Satellite'
+            });
+
+            let map = L.map('checkoutMap', {
+                center: [10.762622, 106.660172],
+                zoom: 16,
+                layers: [googleStreets]
+            });
+
+            var baseMaps = {
+                "🗺️ Bản đồ Đường xá": googleStreets,
+                "🌍 Ảnh vệ tinh": googleSat
+            };
+            L.control.layers(baseMaps).addTo(map);
+
+            let marker = L.marker([10.762622, 106.660172], { draggable: true }).addTo(map);
+
+            L.Control.Locate = L.Control.extend({
+                onAdd: function(map) {
+                    var container = L.DomUtil.create('div', 'leaflet-bar leaflet-control');
+                    var button = L.DomUtil.create('a', 'leaflet-control-locate', container);
+                    button.innerHTML = '<i class="bi bi-crosshair"></i>';
+                    button.title = "Định vị vị trí của tôi";
+
+                    L.DomEvent.on(button, 'click', function(e) {
+                        L.DomEvent.stopPropagation(e);
+                        L.DomEvent.preventDefault(e);
+                        locateUserOnly(map, button);
+                    });
+                    return container;
+                }
+            });
+            new L.Control.Locate({ position: 'bottomright' }).addTo(map);
+
+            function locateUserOnly(map, btn) {
+                if (!navigator.geolocation) return Swal.fire("Lỗi", "Thiết bị không hỗ trợ GPS", "error");
+                var oldIcon = btn.innerHTML;
+                btn.innerHTML = '<span class="spinner-border spinner-border-sm" style="width:1rem;height:1rem;"></span>';
+
+                navigator.geolocation.getCurrentPosition(function(pos) {
+                    var lt = pos.coords.latitude;
+                    var lg = pos.coords.longitude;
+                    map.flyTo([lt, lg], 17, { duration: 1.5 });
+                    marker.setLatLng([lt, lg]);
+                    calculateShipping(lt, lg);
+                    btn.innerHTML = oldIcon;
+                }, function(err) {
+                    Swal.fire("Cảnh báo", "Vui lòng cho phép quyền truy cập vị trí trong trình duyệt.", "warning");
+                    btn.innerHTML = oldIcon;
+                }, { enableHighAccuracy: true });
+            }
+
+            // Cố gắng định vị user lần đầu nếu trình duyệt hỗ trợ
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    map.setView([lat, lng], 17);
+                    marker.setLatLng([lat, lng]);
+                    calculateShipping(lat, lng);
+                }, function(err) {
+                    calculateShipping(10.762622, 106.660172);
+                });
+            } else {
+                calculateShipping(10.762622, 106.660172);
+            }
+
+            function calculateShipping(lat, lng) {
+                $.ajax({
+                    url: '/Checkout/CalculateShippingFee',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ lat: lat, lng: lng }),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#AssignedStoreId').val(res.storeId);
+                            $('#Latitude').val(lat);
+                            $('#Longitude').val(lng);
+                            
+                            $('#lblStoreName').text(res.storeName);
+                            $('#lblDistance').text(res.distance);
+                            $('#lblCalculatedShippingFee').text(res.shippingFee.toLocaleString('vi-VN'));
+                            $('#shippingInfoBox').removeClass('d-none');
+                            
+                            shippingFee = res.shippingFee;
+                            updateTotal();
+                            
+                            const btnSubmit = $('#btnSubmitCheckout');
+                            const errorBox = $('#shippingError');
+                            const noteBox = $('#Note');
+                            
+                            if (res.isOutOfRange) {
+                                btnSubmit.prop('disabled', true);
+                                errorBox.removeClass('d-none');
+                            } else if (res.isOrangeZone) {
+                                errorBox.addClass('d-none');
+                                btnSubmit.prop('disabled', true);
+                                
+                                Swal.fire({
+                                    title: '⚠️ THÔNG BÁO GIAO XA',
+                                    text: `Địa chỉ của bạn cách quán ${res.distance}km. Để đảm bảo chất lượng, thức uống sẽ được tách đá riêng và giao trong khoảng 60 phút. Bạn đồng ý tiếp tục chứ?`,
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#d35400',
+                                    cancelButtonColor: '#6c757d',
+                                    confirmButtonText: 'Đồng ý',
+                                    cancelButtonText: 'Hủy/Đổi địa chỉ',
+                                    allowOutsideClick: false
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        btnSubmit.prop('disabled', false);
+                                        let currentNote = noteBox.val();
+                                        const systemNote = '[HỆ THỐNG]: Đơn hàng giao xa - Tách đá riêng';
+                                        if (currentNote.indexOf(systemNote) === -1) {
+                                            noteBox.val(currentNote + (currentNote ? '\n' : '') + systemNote);
+                                        }
+                                    } else {
+                                        btnSubmit.prop('disabled', true);
+                                    }
+                                });
+                            } else {
+                                errorBox.addClass('d-none');
+                                btnSubmit.prop('disabled', false);
+                            }
+                        } else {
+                            Swal.fire('Lỗi', res.message, 'error');
+                        }
+                    }
+                });
+            }
+
+            marker.on('dragend', function (e) {
+                const latlng = marker.getLatLng();
+                calculateShipping(latlng.lat, latlng.lng);
+            });
+
+            // VOUCHER LOGIC - ĐÃ FIX
+            $('#voucher-select').change(function() {
+                const voucherId = $(this).val();
+                const statusEl = $('#voucherStatus');
+                
+                if(!voucherId) {
+                    currentVoucherDiscount = 0; // ĐÃ FIX
+                    $('#voucherRow').addClass('d-none');
+                    statusEl.addClass('d-none');
+                    updateTotal();
+                    return;
+                }
+
+                $.ajax({
+                    url: '/Checkout/CalculateDiscount',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ 
+                        voucherId: parseInt(voucherId), 
+                        subTotal: subtotal 
+                    }),
+                    success: function(res) {
+                        if(res.success) {
+                            currentVoucherDiscount = res.discountValue; // ĐÃ FIX
+                            $('#voucherValText').text(currentVoucherDiscount.toLocaleString('vi-VN'));
+                            $('#voucherRow').removeClass('d-none');
+                            
+                            statusEl.removeClass('d-none text-danger').addClass('text-success').html('<i class="bi bi-check-circle-fill"></i> ' + res.message);
+                            updateTotal();
+                        } else {
+                            Swal.fire('Cảnh báo', res.message, 'warning');
+                            $('#voucher-select').val('');
+                            currentVoucherDiscount = 0; // ĐÃ FIX
+                            $('#voucherRow').addClass('d-none');
+                            statusEl.removeClass('d-none text-success').addClass('text-danger').html('<i class="bi bi-x-circle-fill"></i> ' + res.message);
+                            updateTotal();
+                        }
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi', 'Lỗi kết nối khi kiểm tra mã giảm giá.', 'error');
+                    }
+                });
+            });
+
+            // Ngăn chặn bấm nút Đặt hàng 2 lần (Idempotency)
+            const checkoutForm = document.getElementById('checkoutForm');
+            const btnSubmitCheckout = document.getElementById('btnSubmitCheckout');
+            if(checkoutForm && btnSubmitCheckout) {
+                checkoutForm.addEventListener('submit', function(e) {
+                    if (checkoutForm.checkValidity()) {
+                        btnSubmitCheckout.disabled = true;
+                        btnSubmitCheckout.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> Đang xử lý...';
+                    }
+                });
+            }
+        });
+    </script>
+}

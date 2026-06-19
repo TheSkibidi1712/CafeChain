@@ -1,0 +1,321 @@
+@model CafeChain.ViewModels.CartViewModel
+
+@{
+    ViewData["Title"] = "Giỏ hàng";
+    // Logic phí ship thực tế: Tính ở bước thanh toán (Checkout)
+    var currentShippingFee = 0;
+    var finalTotal = Model.SubTotal - Model.Discount;
+}
+
+<div class="container mt-4 mb-5" style="min-height: 60vh;">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb small">
+            <li class="breadcrumb-item"><a href="/" class="text-muted text-decoration-none">Trang chủ</a></li>
+            <li class="breadcrumb-item active text-orange fw-semibold" aria-current="page">Giỏ hàng của bạn</li>
+        </ol>
+    </nav>
+
+    <h2 class="fw-bold mb-1">Giỏ hàng</h2>
+    <p class="text-muted mb-4">Bạn đang có @Model.Items.Sum(i => i.Quantity) món trong giỏ hàng</p>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            @if (Model.Items.Any())
+            {
+                <div class="d-flex flex-column gap-3">
+                    @foreach (var item in Model.Items)
+                    {
+                        <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                            <div class="card-body p-3 d-flex align-items-center position-relative">
+                                <button onclick="removeItem('@item.CartItemId')" class="btn btn-link text-muted position-absolute top-0 end-0 p-3 shadow-none">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+
+                                <img src="@item.ImageUrl" alt="@item.Name" class="rounded-3 object-fit-cover" style="width: 90px; height: 90px; aspect-ratio: 1/1;">
+
+                                <div class="ms-3 flex-grow-1">
+                                    <h6 class="fw-bold mb-1">@item.Name</h6>
+                                    <div class="mb-2">
+                                        <span class="badge bg-light text-dark border fw-normal me-1">Size: @item.SizeName</span>
+                                        @foreach (var add in item.AddedToppings)
+                                        {
+                                            <span class="badge bg-orange-light text-orange border-orange-subtle me-1 mb-1 fw-normal">@add</span>
+                                        }
+                                        @foreach (var rem in item.RemovedToppings)
+                                        {
+                                            <span class="badge bg-light text-muted border me-1 mb-1 fw-normal text-decoration-line-through">Bỏ: @rem</span>
+                                        }
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(item.Note))
+                                    {
+                                        <div class="mt-2 text-muted small" style="font-style: italic;">
+                                            <i class="bi bi-pencil-square me-1"></i> Ghi chú: <span class="text-dark fw-medium">@item.Note</span>
+                                        </div>
+                                    }
+                                    <span class="fw-bold text-orange">@item.Price.ToString("N0")đ</span>
+                                </div>
+
+                                <div class="d-flex align-items-center border rounded-pill px-2 py-1 me-4 bg-white shadow-sm">
+                                    <button onclick="updateQuantity('@item.CartItemId', @(item.Quantity - 1))" class="btn btn-sm btn-link text-dark text-decoration-none px-2 shadow-none">-</button>
+                                    <span class="mx-2 fw-semibold" style="min-width: 20px; text-align: center;">@item.Quantity</span>
+                                    <button onclick="updateQuantity('@item.CartItemId', @(item.Quantity + 1))" class="btn btn-sm btn-link text-dark text-decoration-none px-2 shadow-none">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="text-center py-5 bg-light rounded-4 shadow-sm border border-dashed">
+                    <i class="bi bi-cart-x text-muted opacity-50" style="font-size: 4rem;"></i>
+                    <h5 class="mt-3 fw-bold text-muted">Giỏ hàng đang trống</h5>
+                    <a href="/Drink/Menu" class="btn btn-orange rounded-pill px-5 py-2 fw-bold shadow-sm mt-3">XEM THỰC ĐƠN</a>
+                </div>
+            }
+
+            <div class="mt-4">
+                <a href="/Drink/Menu" class="text-orange text-decoration-none fw-bold small">
+                    <i class="bi bi-plus-circle-fill me-1"></i> THÊM MÓN KHÁC
+                </a>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
+                <div class="card-body p-4">
+                    <h5 class="fw-bold mb-4">Tóm tắt đơn hàng</h5>
+
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted small">Tạm tính</span>
+                        <span class="fw-bold"><span id="subTotalText">@Model.SubTotal.ToString("N0")</span>đ</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-3">
+                        <span class="text-muted small">Phí vận chuyển</span>
+                        <span class="fw-bold"><span id="shippingFeeText">Phí ship sẽ tính khi thanh toán</span></span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 d-none" id="voucherRow">
+                        <span class="text-muted small">Voucher giảm giá</span>
+                        <span class="fw-bold text-success">-<span id="voucherDiscountText">0</span>đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 d-none" id="memberDiscountRow">
+                        <span class="text-muted small">Giảm giá thành viên</span>
+                        <span class="fw-bold text-success">-<span id="memberDiscountText">0</span>đ</span>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 d-none" id="pointRow">
+                        <span class="text-muted small">Dùng điểm tích lũy</span>
+                        <span class="fw-bold text-success">-<span id="pointDiscountText">0</span>đ</span>
+                    </div>
+
+                    <hr class="opacity-10 my-4">
+
+                    <div class="d-flex justify-content-between mb-4 align-items-center">
+                        <span class="fw-bold fs-6">Tổng cộng</span>
+                        <span class="fw-bold fs-4 text-orange"><span id="finalTotalText">@finalTotal.ToString("N0")</span>đ</span>
+                    </div>
+
+                    <a href="/Checkout" class="btn btn-orange w-100 rounded-3 py-3 fw-bold mb-3 shadow-sm border-0 @(!Model.Items.Any() ? "disabled" : "")">
+                        TIẾN HÀNH THANH TOÁN
+                    </a>
+
+                    <div class="text-center text-muted" style="font-size: 0.7rem;">
+                        <i class="bi bi-shield-check text-success me-1"></i> THANH TOÁN AN TOÀN & BẢO MẬT
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <style>
+        .bg-orange-light {
+            background-color: #fff3ed;
+        }
+
+        .border-orange-subtle {
+            border: 1px solid #ffccb3 !important;
+        }
+
+        .text-orange {
+            color: #d35400;
+        }
+
+        .btn-orange {
+            background-color: #d35400;
+            color: white;
+            transition: 0.3s;
+        }
+
+            .btn-orange:hover {
+                background-color: #a04000;
+                color: white;
+                transform: translateY(-2px);
+            }
+
+            .btn-orange:disabled {
+                background-color: #ccc;
+                transform: none;
+            }
+    </style>
+
+    <script>
+        // --- POS VOCUHER SYSTEM LOGIC ---
+        let currentCustomerId = 0;
+        let subtotal = @Model.SubTotal;
+        let shippingFee = 0;
+        let voucherDiscount = 0;
+        let pointDiscount = 0;
+        let userPoints = 0;
+
+        function updateUI() {
+            const finalTotal = subtotal + shippingFee - voucherDiscount - pointDiscount;
+            
+            // Cập nhật text summary
+            $('#voucherDiscountText').text(voucherDiscount.toLocaleString());
+            if(voucherDiscount > 0) $('#voucherRow').removeClass('d-none'); else $('#voucherRow').addClass('d-none');
+
+            $('#pointDiscountText').text(pointDiscount.toLocaleString());
+            if(pointDiscount > 0) $('#pointRow').removeClass('d-none'); else $('#pointRow').addClass('d-none');
+
+            $('#finalTotalText').text(finalTotal.toLocaleString());
+            $('#pointDiscountValue').text(pointDiscount.toLocaleString() + 'đ');
+        }
+
+        // AC1: Tra cứu khách hàng
+        $('#lookupBtn').click(function() {
+            const phone = $('#customerPhone').val();
+            if(!phone) return;
+            
+            $.get('/api/Pos/customer-lookup', { phone: phone }, function(res) {
+                if(res.found) {
+                    currentCustomerId = res.customerId;
+                    userPoints = res.points;
+                    $('#customerName').text(res.fullName);
+                    $('#customerRank').text(res.rank);
+                    $('#customerPointsDisplay').text(res.points.toLocaleString());
+                    
+                    $('#customerInfo').removeClass('d-none');
+                    $('#registerPrompt').addClass('d-none');
+                    $('#phoneLookupSection').addClass('d-none');
+                } else {
+                    currentCustomerId = 0;
+                    $('#regPhone').val(phone);
+                    $('#registerPrompt').removeClass('d-none');
+                    $('#customerInfo').addClass('d-none');
+                }
+            });
+        });
+
+        // AC1: Đăng ký nhanh
+        $(document).on('click', '#confirmRegisterBtn', function() {
+            const name = $('#regFullName').val();
+            const phone = $('#regPhone').val();
+            if(!name) { showToast('Vui lòng nhập tên khách hàng!', 'warning'); return; }
+
+            $.ajax({
+                url: '/api/Pos/quick-register',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ fullName: name, phone: phone }),
+                success: function(res) {
+                    $('#quickRegisterModal').modal('hide');
+                    $('#customerPhone').val(phone);
+                    // Re-trigger lookup to login
+                    setTimeout(() => $('#lookupBtn').click(), 500);
+                }
+            });
+        });
+
+        // AC2: Sử dụng điểm
+        $('#usePoints').change(function() {
+            if($(this).is(':checked')) {
+                pointDiscount = Math.min(userPoints, subtotal - voucherDiscount);
+                $('#pointUsageInfo').removeClass('d-none');
+            } else {
+                pointDiscount = 0;
+                $('#pointUsageInfo').addClass('d-none');
+            }
+            updateUI();
+        });
+
+        // AC3: Áp dụng Voucher
+        $('#applyVoucherBtn').click(function() {
+            const code = $('#promoCodeInput').val();
+            if(!code) return;
+
+            $.ajax({
+                url: '/api/Pos/validate-voucher',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({ 
+                    code: code, 
+                    customerId: currentCustomerId, 
+                    subTotal: subtotal 
+                }),
+                success: function(res) {
+                    if(res.success) {
+                        voucherDiscount = res.discountAmount;
+                        if($('#usePoints').is(':checked')) {
+                            pointDiscount = Math.min(userPoints, subtotal - voucherDiscount);
+                        }
+                        $('#voucherStatus').text(res.message).removeClass('d-none text-danger').addClass('text-success');
+                        updateUI();
+                    } else {
+                        $('#voucherStatus').text(res.message).removeClass('d-none text-success').addClass('text-danger');
+                    }
+                }
+            });
+        });
+
+        function updateQuantity(cartItemId, newQty) {
+            if(newQty < 1) { removeItem(cartItemId); return; }
+            $.post('/Cart/UpdateQuantity', { id: cartItemId, quantity: newQty }, function (res) {
+                if (res.success) { location.reload(); }
+            });
+        }
+
+        function removeItem(cartItemId) {
+            showConfirm({
+                title: 'Xóa món khỏi giỏ hàng',
+                message: 'Bạn có chắc muốn xóa món này không? Hành động này không thể hoàn tác.',
+                type: 'danger',
+                okText: 'Xóa ngay',
+                cancelText: 'Giữ lại',
+                onConfirm: function() {
+                    $.post('/Cart/RemoveItem', { id: cartItemId }, function (res) {
+                        if (res.success) { location.reload(); }
+                    });
+                }
+            });
+        }
+    </script>
+
+    <!-- Modal Quick Register -->
+    <div class="modal fade" id="quickRegisterModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-0 pb-0 pt-4 px-4">
+                    <h5 class="modal-title fw-bold">Đăng ký thành viên</h5>
+                    <button type="button" class="btn-close shadow-none" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Số điện thoại</label>
+                        <input type="text" id="regPhone" class="form-control rounded-3 bg-light" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Họ và tên khách hàng</label>
+                        <input type="text" id="regFullName" class="form-control rounded-3" placeholder="Ví dụ: Nguyễn Văn A">
+                        <div class="form-text small">Chỉ cần Tên + SĐT để tích điểm ngay.</div>
+                    </div>
+                    <button type="button" class="btn btn-orange w-100 rounded-3 py-3 fw-bold mt-2" id="confirmRegisterBtn">XÁC NHẬN ĐĂNG KÝ</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}

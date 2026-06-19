@@ -1,0 +1,394 @@
+@model CafeChain.ViewModels.Shared.PaginatedListViewModel<CafeChain.ViewModels.Admin.Categories.AdminCategoryViewModel>
+
+@{
+    ViewData["Title"] = "Quản lý danh mục";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/Admin/Category/category.css" />
+
+@Html.AntiForgeryToken()
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+
+    <div>
+
+        <h2 class="category-page-title">
+            Quản lý danh mục
+        </h2>
+
+        <p class="text-muted category-page-description">
+            Quản lý và tổ chức các nhóm sản phẩm đồ uống của CafeChain
+        </p>
+
+    </div>
+
+    <button type="button"
+            class="btn category-primary-btn"
+            data-bs-toggle="modal"
+            data-bs-target="#createCategoryModal">
+
+        <i class="fas fa-plus me-2"></i>
+        Thêm danh mục mới
+
+    </button>
+
+</div>
+
+<div class="card border-0 shadow-sm category-card">
+
+    <div class="card-body p-0">
+
+        <table class="table table-hover mb-0 category-table">
+
+            <thead class="bg-light text-muted">
+
+                <tr>
+
+                    <th class="border-0 py-3">
+                        Tên danh mục
+                    </th>
+
+                    <th class="border-0 py-3">
+                        Trạng thái
+                    </th>
+
+                    <th class="border-0 text-end px-4 py-3">
+                        Hành động
+                    </th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @if (!Model.Items.Any())
+                {
+                    <tr>
+
+                        <td colspan="3"
+                            class="text-center py-4 text-muted">
+
+                            Chưa có danh mục nào.
+
+                        </td>
+
+                    </tr>
+                }
+
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+
+                        <td class="py-3 category-name">
+
+                            @item.Name
+
+                        </td>
+
+                        <td class="py-3">
+
+                            @if (item.Active)
+                            {
+                                <span class="badge badge-active">
+                                    Hiển thị
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-muted badge-inactive">
+                                    Ẩn
+                                </span>
+                            }
+
+                        </td>
+
+                        <td class="text-end px-4 py-3">
+
+                            <button type="button"
+                                    class="btn btn-sm text-@(item.Active ? "warning" : "success") px-1"
+                                    onclick="toggleCategory(@item.CategoryId)"
+                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
+
+                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+
+                            </button>
+
+                            <button type="button"
+                                    class="btn btn-sm text-primary px-1 btn-edit-category"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCategoryModal"
+                                    data-id="@item.CategoryId"
+                                    data-name="@item.Name"
+                                    data-active="@item.Active">
+
+                                <i class="fas fa-pen"></i>
+
+                            </button>
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="card-footer bg-white border-top-0 py-3 px-4 d-flex justify-content-between align-items-center">
+
+        <span class="text-muted">
+
+            Hiển thị @Model.TotalCount danh mục
+
+        </span>
+
+        <div class="pagination mb-0 d-flex gap-1">
+
+            <a asp-action="Index"
+               asp-route-page="@(Model.PageIndex - 1)"
+               class="btn btn-sm btn-light border @(Model.HasPreviousPage ? "" : "disabled")">
+
+                <i class="fas fa-chevron-left text-muted"></i>
+
+            </a>
+
+            @for (int i = 1; i <= Model.TotalPages; i++)
+            {
+                <a asp-action="Index"
+                   asp-route-page="@i"
+                   class="btn btn-sm @(i == Model.PageIndex ? "text-white" : "btn-light border")"
+                   style="@(i == Model.PageIndex ? "background-color:#d93d20;" : "")">
+
+                    @i
+
+                </a>
+            }
+
+            <a asp-action="Index"
+               asp-route-page="@(Model.PageIndex + 1)"
+               class="btn btn-sm btn-light border @(Model.HasNextPage ? "" : "disabled")">
+
+                <i class="fas fa-chevron-right text-muted"></i>
+
+            </a>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================= -->
+<!-- CREATE MODAL -->
+<!-- ========================================= -->
+
+<div class="modal fade"
+     id="createCategoryModal"
+     tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content category-modal-content">
+
+            <div class="modal-header border-0">
+
+                <h5 class="modal-title">
+
+                    Thêm danh mục mới
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <form id="createCategoryForm"
+                      asp-action="Create"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <div class="mb-3">
+
+                        <label class="form-label fw-semibold">
+
+                            Tên danh mục
+
+                        </label>
+
+                        <input type="text"
+                               name="Name"
+                               class="form-control category-input"
+                               placeholder="Nhập tên danh mục..." />
+
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+
+                        <input type="hidden"
+                               name="Active"
+                               value="false" />
+
+                        <input type="checkbox"
+                               name="Active"
+                               value="true"
+                               checked
+                               class="form-check-input" />
+
+                        <label class="form-check-label">
+
+                            Hoạt động
+
+                        </label>
+
+                    </div>
+
+                    <div class="text-end">
+
+                        <button type="button"
+                                class="btn btn-light"
+                                data-bs-dismiss="modal">
+
+                            Hủy
+
+                        </button>
+
+                        <button type="submit"
+                                id="btnCreateCategory"
+                                class="btn category-primary-btn">
+
+                            <i class="fas fa-save me-2"></i>
+                            Lưu danh mục
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- ========================================= -->
+<!-- EDIT MODAL -->
+<!-- ========================================= -->
+
+<div class="modal fade"
+     id="editCategoryModal"
+     tabindex="-1">
+
+    <div class="modal-dialog modal-dialog-centered">
+
+        <div class="modal-content category-modal-content">
+
+            <div class="modal-header border-0">
+
+                <h5 class="modal-title">
+
+                    Chỉnh sửa danh mục
+
+                </h5>
+
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <form id="editCategoryForm"
+                      asp-action="Edit"
+                      method="post">
+
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden"
+                           id="editCategoryId"
+                           name="CategoryId" />
+
+                    <div class="mb-3">
+
+                        <label class="form-label fw-semibold">
+
+                            Tên danh mục
+
+                        </label>
+
+                        <input type="text"
+                               id="editCategoryName"
+                               name="Name"
+                               class="form-control category-input" />
+
+                    </div>
+
+                    <div class="form-check form-switch mb-4">
+
+                        <input type="hidden"
+                               name="Active"
+                               value="false" />
+
+                        <input type="checkbox"
+                               id="editCategoryActive"
+                               name="Active"
+                               value="true"
+                               class="form-check-input" />
+
+                        <label class="form-check-label">
+
+                            Hoạt động
+
+                        </label>
+
+                    </div>
+
+                    <div class="text-end">
+
+                        <button type="button"
+                                class="btn btn-light"
+                                data-bs-dismiss="modal">
+
+                            Hủy
+
+                        </button>
+
+                        <button type="submit"
+                                id="btnEditCategory"
+                                class="btn category-primary-btn">
+
+                            <i class="fas fa-save me-2"></i>
+                            Cập nhật
+
+                        </button>
+
+                    </div>
+
+                </form>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+    <script src="~/js/Toast/toast.js"></script>
+    <script src="~/js/Admin/Category/category.js"></script>
+}

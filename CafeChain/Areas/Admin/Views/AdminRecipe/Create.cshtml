@@ -1,0 +1,462 @@
+@model CafeChain.ViewModels.Admin.Recipes.RecipeCreateVM
+
+@{
+    ViewData["Title"] = "Chi tiết Công thức";
+}
+
+<link rel="stylesheet" href="~/css/recipe-builder.css" />
+
+<div class="rb-page">
+<div class="container-fluid px-4 pt-4">
+    <!-- Breadcrumb -->
+    <div class="rb-breadcrumb">
+        <a asp-controller="AdminRecipe" asp-action="Index">Recipes</a> &gt; <span>BOM Builder</span>
+    </div>
+    <h2 class="rb-page-title">Chi tiết Công thức</h2>
+
+    <form asp-action="Create" method="post" id="recipeForm">
+        @Html.AntiForgeryToken()
+
+        <!-- CARD 1: Header & Recipe Info -->
+        <div class="rb-card mb-4">
+            <div class="card-body p-4">
+                <div class="row g-4">
+                    <!-- Left: Recipe Type + Info -->
+                    <div class="col-lg-7">
+                        <!-- Type Toggle -->
+                        <div class="rb-toggle btn-group w-100 mb-3" role="group">
+                            <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" checked>
+                            <label class="btn py-2 px-4" for="typePOS">
+                                <i class="fas fa-cash-register me-1"></i> Món bán (POS)
+                            </label>
+                            <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off">
+                            <label class="btn py-2 px-4" for="typeSUBRECIPE">
+                                <i class="fas fa-flask me-1"></i> Bán thành phẩm
+                            </label>
+                        </div>
+
+                        <div class="row g-3">
+                            <!-- POS: Drink -->
+                            <div class="col-md-6 conditional-section" id="sectionPOS_Drink">
+                                <label class="form-label fw-bold small">Thức uống áp dụng <span class="text-danger">*</span></label>
+                                <select name="DrinkId" id="drinkSelect" class="form-select">
+                                    <option value="">-- Chọn sản phẩm --</option>
+                                    @if (ViewBag.Drinks != null)
+                                    {
+                                        foreach (dynamic drink in ViewBag.Drinks)
+                                        {
+                                            <option value="@drink.DrinkId">@drink.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <!-- POS: Size -->
+                            <div class="col-md-3 conditional-section" id="sectionPOS_Size" style="display:none;">
+                                <label class="form-label fw-bold small">Size <span class="text-danger">*</span></label>
+                                <select name="SizeId" id="sizeSelect" class="form-select">
+                                    <option value="">-- Size --</option>
+                                </select>
+                                <small class="text-muted" id="sizePriceHint" style="font-size:0.72rem;"></small>
+                            </div>
+                            <!-- SUBRECIPE fields -->
+                            <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="display:none;">
+                                <label class="form-label fw-bold small">Tên Bán thành phẩm <span class="text-danger">*</span></label>
+                                <input name="SubRecipeName" id="subRecipeInput" class="form-control" placeholder="VD: Cốt trà Oolong">
+                            </div>
+                            <div class="col-md-3 conditional-section" id="sectionSub_Yield" style="display:none;">
+                                <label class="form-label fw-bold small">Sản lượng đầu ra</label>
+                                <input asp-for="ExpectedYield" class="form-control text-end" type="number" step="0.01" placeholder="VD: 5"/>
+                            </div>
+                            <div class="col-md-3 conditional-section" id="sectionSub_Unit" style="display:none;">
+                                <label class="form-label fw-bold small">ĐVT đầu ra</label>
+                                <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
+                                    <option value="">-- ĐVT --</option>
+                                    @if (ViewBag.Units != null)
+                                    {
+                                        foreach (dynamic unit in ViewBag.Units)
+                                        {
+                                            <option value="@unit.UnitId">@unit.Name</option>
+                                        }
+                                    }
+                                </select>
+                            </div>
+                            <!-- Common fields -->
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Ngày hiệu lực <span class="text-danger">*</span></label>
+                                <input asp-for="EffectiveDate" class="form-control" type="date" />
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label fw-bold small">Trạng thái</label>
+                                <div class="mt-1">
+                                    <span class="rb-status-dot active"></span>
+                                    <div class="form-check form-switch d-inline-block ms-1">
+                                        <input asp-for="Active" class="form-check-input" type="checkbox" checked style="transform:scale(1.2);cursor:pointer;">
+                                        <label class="form-check-label small" for="Active">Kích hoạt</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: COGS Box -->
+                    <div class="col-lg-5 d-flex flex-column justify-content-center">
+                        <div class="rb-cogs-box">
+                            <div class="rb-cogs-label">Dự toán Giá vốn (COGS)</div>
+                            <div class="rb-cogs-value" id="displayTotalCost">0 <small style="font-size:0.5em;">VND</small></div>
+                            <div class="rb-cogs-sub">Cập nhật theo giá nhập gần nhất</div>
+                        </div>
+                        <input type="hidden" asp-for="TotalCost" id="hiddenTotalCost" value="0" />
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CARD 2: BOM Details Table -->
+        <div class="rb-card mb-4">
+            <div class="rb-card-header">
+                <i class="fas fa-list-check text-primary"></i> Danh mục Thành phần (BOM)
+            </div>
+            <div class="table-responsive">
+                <table class="table rb-table" id="bomTable">
+                    <thead>
+                        <tr>
+                            <th width="4%" class="text-center">#</th>
+                            <th width="8%">Loại</th>
+                            <th width="24%">Tên nguyên liệu</th>
+                            <th width="12%" class="text-end">Số lượng</th>
+                            <th width="10%">Đơn vị</th>
+                            <th width="10%" class="text-center">Thu hồi %</th>
+                            <th width="15%" class="text-end">Thành tiền</th>
+                            <th width="6%" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bomTableBody"></tbody>
+                </table>
+            </div>
+            <!-- Dashed Add Row -->
+            <button type="button" class="rb-add-row" id="btnAddRow">
+                <i class="fas fa-plus-circle me-2"></i> Thêm thành phần
+            </button>
+        </div>
+
+        <!-- CARD 3: Notes (SOP) -->
+        <div class="rb-card mb-4">
+            <div class="rb-card-header">
+                <i class="fas fa-clipboard-list text-warning"></i> Lưu ý Kỹ thuật & Chế biến
+            </div>
+            <div class="card-body p-3">
+                <textarea asp-for="Description" class="form-control border-0" rows="3" placeholder="VD: Pha đá trước khi cho sữa, khuấy đều 30 giây..." style="resize:none;"></textarea>
+            </div>
+        </div>
+    </form>
+</div>
+</div>
+
+<!-- Sticky Footer Bar -->
+<div class="rb-footer-bar">
+    <div class="d-flex gap-4">
+        <div class="rb-footer-metric">
+            <span class="rb-footer-metric-label">Tổng giá vốn</span>
+            <span class="rb-footer-metric-value" id="footerTotalCost">0 VND</span>
+            <small class="text-muted">/ ly</small>
+        </div>
+        <div class="rb-footer-metric">
+            <span class="rb-footer-metric-label">Food Cost %</span>
+            <span class="rb-footer-pct" id="footerFoodCostPct">0%</span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="button" class="btn btn-rb-ghost" onclick="window.location.reload()">Hủy</button>
+        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe"><i class="fas fa-save me-2"></i>Lưu Công thức</button>
+    </div>
+</div>
+
+<!-- Select2 Template Cache (hidden) -->
+<select id="itemTemplateSelect" style="display:none;">
+    <option value="">-- Chọn thành phần --</option>
+    <optgroup label="Nguyên liệu thô">
+        @if (ViewBag.Ingredients != null)
+        {
+            foreach (dynamic item in ViewBag.Ingredients)
+            {
+                <option value="ING_@(item.Id)" data-basecost="@(item.BaseCost)" data-unitid="@(item.UnitId)" data-unitname="@(item.UnitName)">@(item.Name)</option>
+            }
+        }
+    </optgroup>
+    <optgroup label="Bán thành phẩm">
+        @if (ViewBag.SubRecipes != null)
+        {
+            foreach (dynamic item in ViewBag.SubRecipes)
+            {
+                <option value="REC_@(item.Id)" data-basecost="@(item.BaseCost)" data-unitid="@(item.UnitId)" data-unitname="@(item.UnitName)">@(item.Name)</option>
+            }
+        }
+    </optgroup>
+</select>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function () {
+            let rowCount = 0;
+            const tableBody = $('#bomTableBody');
+
+            // === ITEM DATA CACHE ===
+            const itemDataMap = {};
+            $('#itemTemplateSelect option').each(function () {
+                const val = $(this).val();
+                if (val) {
+                    itemDataMap[val] = {
+                        basecost: parseFloat($(this).attr('data-basecost')) || 0,
+                        unitid: parseInt($(this).attr('data-unitid')) || 0,
+                        unitname: $(this).attr('data-unitname') || ''
+                    };
+                }
+            });
+
+            // === 1. TOGGLE: POS vs SUBRECIPE ===
+            $('input[name="RecipeType"]').on('change', function () {
+                const type = $(this).val();
+                if (type === 'POS') {
+                    $('#sectionPOS_Drink, #sectionPOS_Size').show();
+                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#subRecipeInput').val('');
+                    $('input[name="ExpectedYield"]').val('');
+                    $('select[name="OutputUnitId"]').val('');
+                } else {
+                    $('#sectionPOS_Drink, #sectionPOS_Size').hide();
+                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
+                    $('#drinkSelect').val('').trigger('change');
+                    $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
+                    $('#sectionPOS_Size').hide();
+                }
+            });
+
+            $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
+
+            // === 2. CASCADED: Drink → Size ===
+            $('#drinkSelect').on('change', function () {
+                const drinkId = $(this).val();
+                const sizeSection = $('#sectionPOS_Size');
+                const sizeSelect = $('#sizeSelect');
+                if (!drinkId) { sizeSection.hide(); sizeSelect.html('<option value="">-- Chọn Size --</option>'); return; }
+
+                $.getJSON('@Url.Action("GetSizesByDrink", "AdminRecipe", new { area = "Admin" })', { drinkId: drinkId }, function (data) {
+                    let html = '<option value="">-- Chọn Size --</option>';
+                    if (data && data.length > 0) {
+                        data.forEach(function (s) {
+                            const price = new Intl.NumberFormat('vi-VN').format(s.price);
+                            html += `<option value="${s.sizeId}" data-price="${s.price}">${s.sizeName} (${price}đ)</option>`;
+                        });
+                        sizeSection.fadeIn(200);
+                    } else {
+                        html += '<option value="" disabled>Chưa có Size</option>';
+                        sizeSection.fadeIn(200);
+                    }
+                    sizeSelect.html(html);
+                });
+            });
+
+            $('#sizeSelect').on('change', function () {
+                const price = $(this).find(':selected').data('price');
+                $('#sizePriceHint').text(price ? 'Giá bán: ' + new Intl.NumberFormat('vi-VN').format(price) + 'đ' : '');
+                calculateTotal(); // recalc food cost %
+            });
+
+            // === 3. COST CALCULATION ===
+            function calculateTotal() {
+                let grandTotal = 0;
+                $('#bomTableBody tr').each(function () {
+                    const itemCode = $(this).find('.item-select').val();
+                    const quantity = parseFloat($(this).find('.item-qty').val()) || 0;
+                    const yieldPct = parseFloat($(this).find('.item-yield').val()) || 100;
+                    const itemInfo = itemDataMap[itemCode];
+                    const baseCost = itemInfo ? itemInfo.basecost : 0;
+                    const yieldFactor = yieldPct > 0 ? (yieldPct / 100) : 1;
+                    const actualCost = (quantity * baseCost) / yieldFactor;
+
+                    // Type badge
+                    const typeBadge = itemCode && itemCode.startsWith('ING_')
+                        ? '<span class="rb-badge-raw">Raw Ingredient</span>'
+                        : itemCode && itemCode.startsWith('REC_')
+                            ? '<span class="rb-badge-sub"><i class="fas fa-flask me-1"></i>Bán thành phẩm</span>'
+                            : '<span class="text-muted small">—</span>';
+                    $(this).find('.row-type-badge').html(typeBadge);
+
+                    // Cost display
+                    if (baseCost > 0) {
+                        const costFormatted = new Intl.NumberFormat('vi-VN').format(Math.round(actualCost));
+                        const unitCost = new Intl.NumberFormat('vi-VN').format(Math.round(baseCost));
+                        $(this).find('.row-total-display').html(
+                            `<span class="rb-cost-main">${costFormatted} <small>VND</small></span>` +
+                            `<span class="rb-cost-sub">@@ ${unitCost}/${itemInfo.unitname || 'ĐVT'}</span>`
+                        );
+                    } else {
+                        $(this).find('.row-total-display').html('<span class="text-muted small">Chưa có giá</span>');
+                    }
+                    grandTotal += actualCost;
+                });
+
+                const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(grandTotal));
+                $('#displayTotalCost').html(grandTotal > 0 ? formatted + ' <small style="font-size:0.5em;">VND</small>' : '0 <small style="font-size:0.5em;">VND</small>');
+                $('#footerTotalCost').text(formatted + ' VND');
+                $('#hiddenTotalCost').val(Math.round(grandTotal));
+
+                // Food Cost %
+                const sellingPrice = parseFloat($('#sizeSelect').find(':selected').data('price')) || 0;
+                if (sellingPrice > 0 && grandTotal > 0) {
+                    const pct = ((grandTotal / sellingPrice) * 100).toFixed(1);
+                    $('#footerFoodCostPct').text(pct + '%').css('color', pct > 35 ? '#ef4444' : '#10b981');
+                } else {
+                    $('#footerFoodCostPct').text('—');
+                }
+            }
+
+            // === 4. ADD ROW (V4 Premium) ===
+            function addRow() {
+                const index = rowCount++;
+                const selectOptionsHtml = $('#itemTemplateSelect').html();
+                const tr = $('<tr></tr>');
+                tr.html(`
+                    <td class="text-center text-muted fw-bold">${index + 1}</td>
+                    <td class="row-type-badge"><span class="text-muted small">—</span></td>
+                    <td>
+                        <select name="Details[${index}].ItemCode" class="form-select form-select-sm item-select" required>
+                            ${selectOptionsHtml}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.01" min="0.01" name="Details[${index}].Quantity"
+                               class="form-control form-control-sm text-end item-qty" value="1" required />
+                    </td>
+                    <td>
+                        <input type="text" class="form-control form-control-sm bg-light item-unitname"
+                               name="Details[${index}].UnitName" readonly tabindex="-1" placeholder="Tự động" />
+                        <input type="hidden" name="Details[${index}].UnitId" class="item-unitid" value="0" />
+                    </td>
+                    <td>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="0.01" min="0" max="200"
+                                   name="Details[${index}].YieldPercentage"
+                                   class="form-control text-end item-yield" value="100" />
+                            <span class="input-group-text">%</span>
+                        </div>
+                    </td>
+                    <td class="text-end row-total-display"><span class="text-muted small">Chưa chọn</span></td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash-alt"></i></button>
+                    </td>
+                `);
+
+                tableBody.append(tr);
+                const newSelect = tr.find('.item-select');
+                newSelect.select2({ theme: 'bootstrap-5', placeholder: "-- Tìm thành phần --", width: '100%' });
+
+                newSelect.on('select2:select', function (e) {
+                    const selectedVal = e.params.data.id;
+                    const itemInfo = itemDataMap[selectedVal];
+                    if (itemInfo) {
+                        tr.find('.item-unitname').val(itemInfo.unitname);
+                        tr.find('.item-unitid').val(itemInfo.unitid);
+                        tr.find('.item-qty').focus().select();
+                    }
+                    calculateTotal();
+                });
+                newSelect.on('select2:clear', function () {
+                    tr.find('.item-unitname').val('');
+                    tr.find('.item-unitid').val(0);
+                    calculateTotal();
+                });
+                tr.find('.item-qty').on('input', calculateTotal);
+                tr.find('.item-yield').on('input', calculateTotal);
+            }
+
+            // === 5. EVENTS ===
+            $('#btnAddRow').click(function () { addRow(); });
+
+            $(document).on('click', '.btn-remove-row', function () {
+                $(this).closest('tr').remove();
+                $('#bomTableBody tr').each(function (i) {
+                    $(this).find('td:first').text(i + 1);
+                    $(this).find('.item-select').attr('name', `Details[${i}].ItemCode`);
+                    $(this).find('.item-qty').attr('name', `Details[${i}].Quantity`);
+                    $(this).find('.item-unitname').attr('name', `Details[${i}].UnitName`);
+                    $(this).find('.item-unitid').attr('name', `Details[${i}].UnitId`);
+                    $(this).find('.item-yield').attr('name', `Details[${i}].YieldPercentage`);
+                });
+                rowCount = $('#bomTableBody tr').length;
+                calculateTotal();
+            });
+
+            addRow(); // Initial row
+
+            // === 6. SUBMIT (AJAX + SWEETALERT2) ===
+            $('#btnSaveRecipe').on('click', function () {
+                const recipeType = $('input[name="RecipeType"]:checked').val();
+                const drinkVal = $('#drinkSelect').val();
+                const sizeVal = $('#sizeSelect').val();
+                const outputUnitVal = $('#outputUnitSelect').val();
+                const expectedYieldVal = $('input[name="ExpectedYield"]').val();
+
+                const payload = {
+                    RecipeType: recipeType,
+                    DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
+                    SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
+                    SubRecipeName: recipeType === 'SUBRECIPE' ? $('#subRecipeInput').val() : null,
+                    ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
+                    OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,
+                    Description: $('textarea[name="Description"]').val(),
+                    Active: $('#Active').is(':checked'),
+                    EffectiveDate: $('input[name="EffectiveDate"]').val(),
+                    Details: []
+                };
+
+                $('#bomTableBody tr').each(function () {
+                    const row = $(this);
+                    const itemCode = row.find('.item-select').val();
+                    if (itemCode) {
+                        payload.Details.push({
+                            ItemCode: itemCode,
+                            Quantity: parseFloat(row.find('.item-qty').val()) || 0,
+                            UnitName: row.find('.item-unitname').val(),
+                            UnitId: parseInt(row.find('.item-unitid').val()) || 0,
+                            YieldPercentage: parseFloat(row.find('.item-yield').val()) || 100
+                        });
+                    }
+                });
+
+                if (payload.Details.length === 0) {
+                    Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng thêm ít nhất một nguyên liệu vào công thức.' });
+                    return;
+                }
+
+                Swal.fire({ title: 'Đang lưu...', text: 'Vui lòng chờ trong giây lát', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
+
+                $.ajax({
+                    url: '@Url.Action("Create", "AdminRecipe", new { area = "Admin" })',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify(payload),
+                    success: function (res) {
+                        if (res.success) {
+                            Swal.fire({ icon: 'success', title: 'Thành công!', text: res.message, confirmButtonColor: '#16a34a' })
+                                .then(() => { window.location.href = '@Url.Action("Index", "AdminRecipe", new { area = "Admin" })'; });
+                        } else {
+                            let errorHtml = `<p class="fw-bold">${res.message}</p>`;
+                            if (res.errors && res.errors.length > 0) {
+                                errorHtml += '<ul class="text-start text-danger small">';
+                                res.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
+                                errorHtml += '</ul>';
+                            }
+                            Swal.fire({ icon: 'error', title: 'Lỗi lưu công thức', html: errorHtml });
+                        }
+                    },
+                    error: function (xhr) {
+                        console.error(xhr.responseText);
+                        Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể kết nối tới server.' });
+                    }
+                });
+            });
+        });
+    </script>
+}
