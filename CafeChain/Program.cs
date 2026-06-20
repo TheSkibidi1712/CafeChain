@@ -493,6 +493,8 @@ builder.Services.AddScoped<IHrAttendanceService, HrAttendanceService>();
 builder.Services.AddScoped<IWorkShiftService, WorkShiftService>();
 builder.Services.AddScoped<ISupervisorAuthService, SupervisorAuthService>();
 builder.Services.AddScoped<IPOSOrderService, POSOrderService>();
+builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Attendance.IAttendanceRepository, CafeChain.Infrastructure.Repositories.Attendance.AttendanceRepository>();
+builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.POS.IWorkShiftRepository, CafeChain.Infrastructure.Repositories.Admin.POS.WorkShiftRepository>();
 
 #endregion
 
@@ -500,6 +502,8 @@ builder.Services.AddScoped<IPOSOrderService, POSOrderService>();
 
 builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.POSOrderRepository>();
 builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.ISupervisorRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.SupervisorRepository>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IPrintDispatcher, CafeChain.Application.Services.POS.PrintDispatcher>();
+builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IEscPosBuilder, CafeChain.Application.Services.POS.EscPosReceiptBuilder>();
 
 #endregion
 
