@@ -1,6 +1,6 @@
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
-using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Orders;
 using Microsoft.Extensions.Caching.Memory;
 using System;

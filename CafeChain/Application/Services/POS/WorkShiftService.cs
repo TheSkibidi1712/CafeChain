@@ -14,13 +14,13 @@ namespace CafeChain.Application.Services.POS
     {
         private readonly IWorkShiftRepository _shiftRepo;
         private readonly IHrAttendanceService _hrAttendanceService;
-        private readonly Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository _posRepo;
+        private readonly IPOSOrderRepository _posRepo;
         private readonly ILogger<WorkShiftService> _logger;
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
             IHrAttendanceService hrAttendanceService,
-            Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository posRepo,
+            IPOSOrderRepository posRepo,
             ILogger<WorkShiftService> logger)
         {
             _shiftRepo = shiftRepo;
