@@ -1,4 +1,4 @@
-using CafeChain.Models.Staffs;
+using CafeChain.Models.Permissions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

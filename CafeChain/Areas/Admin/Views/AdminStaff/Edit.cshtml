@@ -1,6 +1,6 @@
 @model CafeChain.ViewModels.Admin.Staffs.StaffEditVM
 @{
-    var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
+    var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
     var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
     var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
     ViewData["Title"] = "Cập nhật nhân viên";

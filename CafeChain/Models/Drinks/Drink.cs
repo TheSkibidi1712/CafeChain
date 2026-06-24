@@ -6,6 +6,7 @@ namespace CafeChain.Models.Drinks
     public class Drink
     {
         public int DrinkId { get; set; }
+        public string DrinkCode { get; set; }
         public int? CategoryId { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }

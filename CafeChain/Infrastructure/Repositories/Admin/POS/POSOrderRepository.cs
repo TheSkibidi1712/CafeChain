@@ -1,5 +1,5 @@
 using CafeChain.Data;
-using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
@@ -13,7 +13,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace CafeChain.Infrastrusture.Repositories.Admin.POS
+namespace CafeChain.Infrastructure.Repositories.Admin.POS
 {
     public class POSOrderRepository : IPOSOrderRepository
     {

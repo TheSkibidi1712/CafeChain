@@ -100,6 +100,7 @@ namespace CafeChain.Migrations
                 {
                     CategoryId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    CategoryCode = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
@@ -249,6 +250,22 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PermissionGroups",
+                columns: table => new
+                {
+                    PermissionGroupId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
+                    DisplayOrder = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PermissionGroups", x => x.PermissionGroupId);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PointTransactionTypes",
                 columns: table => new
                 {
@@ -361,6 +378,7 @@ namespace CafeChain.Migrations
                 {
                     SizeId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    SizeCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
@@ -455,6 +473,7 @@ namespace CafeChain.Migrations
                 {
                     ToppingId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    ToppingCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     ImageUrl = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
@@ -663,11 +682,37 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Permissions",
+                columns: table => new
+                {
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PermissionGroupId = table.Column<int>(type: "int", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Permissions", x => x.PermissionId);
+                    table.ForeignKey(
+                        name: "FK_Permissions_PermissionGroups_PermissionGroupId",
+                        column: x => x.PermissionGroupId,
+                        principalTable: "PermissionGroups",
+                        principalColumn: "PermissionGroupId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Drinks",
                 columns: table => new
                 {
                     DrinkId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    DrinkCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     CategoryId = table.Column<int>(type: "int", nullable: true),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
@@ -961,6 +1006,58 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "AccountPermissionOverrides",
+                columns: table => new
+                {
+                    AccountPermissionOverrideId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AccountId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false),
+                    Effect = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AccountPermissionOverrides", x => x.AccountPermissionOverrideId);
+                    table.ForeignKey(
+                        name: "FK_AccountPermissionOverrides_Accounts_AccountId",
+                        column: x => x.AccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "AccountId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AccountPermissionOverrides_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "PermissionId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RolePermissions",
+                columns: table => new
+                {
+                    RoleId = table.Column<int>(type: "int", nullable: false),
+                    PermissionId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RolePermissions", x => new { x.RoleId, x.PermissionId });
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Permissions_PermissionId",
+                        column: x => x.PermissionId,
+                        principalTable: "Permissions",
+                        principalColumn: "PermissionId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_RolePermissions_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DrinkDefaultToppings",
                 columns: table => new
                 {
@@ -1108,6 +1205,7 @@ namespace CafeChain.Migrations
                 {
                     RecipeId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
+                    RecipeCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 100m),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
@@ -2667,12 +2765,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "DrinkCategories",
-                columns: new[] { "CategoryId", "Active", "Name" },
+                columns: new[] { "CategoryId", "Active", "CategoryCode", "Name" },
                 values: new object[,]
                 {
-                    { 1, true, "Coffee" },
-                    { 2, true, "Trà sữa" },
-                    { 3, true, "Nước ngọt" }
+                    { 1, true, "COFFEE", "Coffee" },
+                    { 2, true, "TRASUA", "Trà sữa" },
+                    { 3, true, "NUOCNGOT", "Nước ngọt" }
                 });
 
             migrationBuilder.InsertData(
@@ -2733,6 +2831,18 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "PermissionGroups",
+                columns: new[] { "PermissionGroupId", "Active", "Code", "DisplayOrder", "Name" },
+                values: new object[,]
+                {
+                    { 1, true, "DRINK", 1, "Quản lý đồ uống" },
+                    { 2, true, "TOPPING", 2, "Quản lý Topping" },
+                    { 3, true, "ORDER", 3, "Quản lý đơn hàng" },
+                    { 4, true, "CUSTOMER", 4, "Quản lý khách hàng" },
+                    { 5, true, "SYSTEM", 999, "Hệ thống" }
+                });
+
+            migrationBuilder.InsertData(
                 table: "PointTransactionTypes",
                 columns: new[] { "PointTransactionTypeId", "Code", "Name" },
                 values: new object[,]
@@ -2786,17 +2896,17 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Sizes",
-                columns: new[] { "SizeId", "Active", "Description", "Name" },
+                columns: new[] { "SizeId", "Active", "Description", "Name", "SizeCode" },
                 values: new object[,]
                 {
-                    { 1, true, "Kích thước nhỏ", "S" },
-                    { 2, true, "Kích thước trung bình", "M" },
-                    { 3, true, "Kích thước lớn", "L" },
-                    { 4, true, "Kích thước rất lớn", "XL" },
-                    { 5, true, "Kích thước 150ml", "150ml" },
-                    { 6, true, "Kích thước 200ml", "200ml" },
-                    { 7, true, "Kích thước 250ml", "250ml" },
-                    { 8, true, "Kích thước 300ml", "300ml" }
+                    { 1, true, "Kích thước nhỏ", "S", "S" },
+                    { 2, true, "Kích thước trung bình", "M", "M" },
+                    { 3, true, "Kích thước lớn", "L", "L" },
+                    { 4, true, "Kích thước rất lớn", "XL", "XL" },
+                    { 5, true, "Kích thước 150ml", "150ml", "150ML" },
+                    { 6, true, "Kích thước 200ml", "200ml", "200ML" },
+                    { 7, true, "Kích thước 250ml", "250ml", "250ML" },
+                    { 8, true, "Kích thước 300ml", "300ml", "300ML" }
                 });
 
             migrationBuilder.InsertData(
@@ -2843,15 +2953,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Toppings",
-                columns: new[] { "ToppingId", "Active", "ImagePublicId", "ImageUrl", "Name", "Price" },
+                columns: new[] { "ToppingId", "Active", "ImagePublicId", "ImageUrl", "Name", "Price", "ToppingCode" },
                 values: new object[,]
                 {
-                    { 1, true, "tranchauden_ftddpx", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchauden_ftddpx.jpg", "Trân châu đen", 5000m },
-                    { 2, true, "tranchautrang_c2pylw", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchautrang_c2pylw.jpg", "Trân châu trắng", 5000m },
-                    { 3, true, "phomaivien_ujfenk", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804075/phomaivien_ujfenk.jpg", "Phô mai viên", 7000m },
-                    { 4, true, "khucbachchanmeo_r2fxzd", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804082/khucbachchanmeo_r2fxzd.jpg", "Khúc bạch chân mèo", 7000m },
-                    { 5, true, "thachkhoaimon_fwpprq", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachkhoaimon_fwpprq.jpg", "Thạch khoai môn", 6000m },
-                    { 6, true, "banhflan_zndwvl", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804080/banhflan_zndwvl.jpg", "Bánh flan", 6000m }
+                    { 1, true, "tranchauden_ftddpx", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchauden_ftddpx.jpg", "Trân châu đen", 5000m, "TC_DEN" },
+                    { 2, true, "tranchautrang_c2pylw", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchautrang_c2pylw.jpg", "Trân châu trắng", 5000m, "TC_TRANG" },
+                    { 3, true, "phomaivien_ujfenk", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804075/phomaivien_ujfenk.jpg", "Phô mai viên", 7000m, "PM_VIEN" },
+                    { 4, true, "khucbachchanmeo_r2fxzd", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804082/khucbachchanmeo_r2fxzd.jpg", "Khúc bạch chân mèo", 7000m, "KB_CM" },
+                    { 5, true, "thachkhoaimon_fwpprq", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachkhoaimon_fwpprq.jpg", "Thạch khoai môn", 6000m, "TH_KM" },
+                    { 6, true, "banhflan_zndwvl", "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804080/banhflan_zndwvl.jpg", "Bánh flan", 6000m, "BH_FLAN" }
                 });
 
             migrationBuilder.InsertData(
@@ -2878,9 +2988,9 @@ namespace CafeChain.Migrations
                 columns: new[] { "VoucherId", "Active", "Code", "DaysOfWeek", "Description", "DiscountAmount", "DiscountPercent", "EndDate", "EndHour", "MaxDiscount", "MaxUsage", "MaxUsagePerUser", "MinOrderValue", "StartDate", "StartHour", "Title" },
                 values: new object[,]
                 {
-                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 7, 20, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1628), null, 20000m, 100, null, 40000m, new DateTime(2026, 6, 13, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1608), null, null },
-                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 7, 5, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1634), null, null, 500, null, 50000m, new DateTime(2026, 6, 19, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1633), null, null },
-                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 8, 19, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1639), null, 100000m, 1000, null, 0m, new DateTime(2026, 5, 21, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1639), null, null }
+                    { 1, true, "CAFECHAIN50", null, null, null, 50, new DateTime(2026, 7, 24, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9837), null, 20000m, 100, null, 40000m, new DateTime(2026, 6, 17, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9827), null, null },
+                    { 2, true, "GIAM10K", null, null, 10000m, null, new DateTime(2026, 7, 9, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9850), null, null, 500, null, 50000m, new DateTime(2026, 6, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9849), null, null },
+                    { 3, true, "NEWUSER", null, null, null, 20, new DateTime(2026, 8, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852), null, 100000m, 1000, null, 0m, new DateTime(2026, 5, 25, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852), null, null }
                 });
 
             migrationBuilder.InsertData(
@@ -2910,15 +3020,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Drinks",
-                columns: new[] { "DrinkId", "Active", "CalculatedCogs", "CategoryId", "CreatedAt", "Description", "Name", "ProductTypeId" },
+                columns: new[] { "DrinkId", "Active", "CalculatedCogs", "CategoryId", "CreatedAt", "Description", "DrinkCode", "Name", "ProductTypeId" },
                 values: new object[,]
                 {
-                    { 1, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với sữa đặc.", "Cà phê sữa", 1 },
-                    { 2, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với nước sôi, không có sữa.", "Cà phê đen", 1 },
-                    { 3, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa pha với trân châu đen và đá viên.", "Trà sữa truyền thống", 1 },
-                    { 4, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa socola thơm ngon, béo ngậy.", "Trà sữa socola", 1 },
-                    { 5, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Sting mát lạnh", "Sting", 2 },
-                    { 6, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Coca-cola mát lạnh", "Coca-cola", 2 }
+                    { 1, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với sữa đặc.", "CF_Sua", "Cà phê sữa", 1 },
+                    { 2, true, 0m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cà phê pha với nước sôi, không có sữa.", "CF_Den", "Cà phê đen", 1 },
+                    { 3, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa pha với trân châu đen và đá viên.", "TS_TruyenThong", "Trà sữa truyền thống", 1 },
+                    { 4, true, 0m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Trà sữa socola thơm ngon, béo ngậy.", "TS_Socola", "Trà sữa socola", 1 },
+                    { 5, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Sting mát lạnh", "STING", "Sting", 2 },
+                    { 6, true, 0m, 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Coca-cola mát lạnh", "COCA", "Coca-cola", 2 }
                 });
 
             migrationBuilder.InsertData(
@@ -2942,12 +3052,23 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "Recipes",
-                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "Status", "ToppingId", "YieldPercentage" },
+                table: "Permissions",
+                columns: new[] { "PermissionId", "Action", "Active", "Code", "CreatedAt", "Description", "Name", "PermissionGroupId" },
                 values: new object[,]
                 {
-                    { 5, true, null, null, "Trân châu đen", null, "Active", 1, 100m },
-                    { 6, true, null, null, "Trân châu trắng", null, "Active", 2, 100m }
+                    { 1, "View", true, "Drink.View", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Xem đồ uống", 1 },
+                    { 2, "Create", true, "Drink.Create", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Thêm đồ uống", 1 },
+                    { 3, "Update", true, "Drink.Update", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Cập nhật đồ uống", 1 },
+                    { 4, "Delete", true, "Drink.Delete", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Xóa đồ uống", 1 }
+                });
+
+            migrationBuilder.InsertData(
+                table: "Recipes",
+                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "RecipeCode", "Status", "ToppingId", "YieldPercentage" },
+                values: new object[,]
+                {
+                    { 5, true, null, null, "Trân châu đen", null, "RCP_TC_DEN", "Active", 1, 100m },
+                    { 6, true, null, null, "Trân châu trắng", null, "RCP_TC_TRANG", "Active", 2, 100m }
                 });
 
             migrationBuilder.InsertData(
@@ -3260,13 +3381,13 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Recipes",
-                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "Status", "ToppingId", "YieldPercentage" },
+                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "RecipeCode", "Status", "ToppingId", "YieldPercentage" },
                 values: new object[,]
                 {
-                    { 1, true, 1, null, "Recipe CF Sữa", null, "Active", null, 100m },
-                    { 2, true, 2, null, "Recipe CF Đen", null, "Active", null, 100m },
-                    { 3, true, 3, null, "Recipe Trà sữa", null, "Active", null, 100m },
-                    { 4, true, 4, null, "Recipe Trà sữa socola", null, "Active", null, 100m }
+                    { 1, true, 1, null, "Recipe CF Sữa", null, "RCP_CF_SUA", "Active", null, 100m },
+                    { 2, true, 2, null, "Recipe CF Đen", null, "RCP_CF_DEN", "Active", null, 100m },
+                    { 3, true, 3, null, "Recipe Trà sữa", null, "RCP_TS", "Active", null, 100m },
+                    { 4, true, 4, null, "Recipe Trà sữa socola", null, "RCP_TS_SOCOLA", "Active", null, 100m }
                 });
 
             migrationBuilder.InsertData(
@@ -3439,6 +3560,17 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateIndex(
+                name: "IX_AccountPermissionOverrides_AccountId_PermissionId",
+                table: "AccountPermissionOverrides",
+                columns: new[] { "AccountId", "PermissionId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AccountPermissionOverrides_PermissionId",
+                table: "AccountPermissionOverrides",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_AccountRoles_RoleId",
                 table: "AccountRoles",
                 column: "RoleId");
@@ -3583,6 +3715,12 @@ namespace CafeChain.Migrations
                 filter: "[ProvinceId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DrinkCategories_CategoryCode",
+                table: "DrinkCategories",
+                column: "CategoryCode",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DrinkCategories_Name",
                 table: "DrinkCategories",
                 column: "Name",
@@ -3613,6 +3751,12 @@ namespace CafeChain.Migrations
                 name: "IX_Drinks_CategoryId_ProductTypeId",
                 table: "Drinks",
                 columns: new[] { "CategoryId", "ProductTypeId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Drinks_DrinkCode",
+                table: "Drinks",
+                column: "DrinkCode",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_Drinks_Name",
@@ -4122,6 +4266,30 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PermissionGroups_Code",
+                table: "PermissionGroups",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PermissionGroups_Name",
+                table: "PermissionGroups",
+                column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_Code",
+                table: "Permissions",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Permissions_PermissionGroupId_Action",
+                table: "Permissions",
+                columns: new[] { "PermissionGroupId", "Action" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PointTransactions_CustomerId",
                 table: "PointTransactions",
                 column: "CustomerId");
@@ -4249,6 +4417,11 @@ namespace CafeChain.Migrations
                 column: "ParentVersionId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Recipes_RecipeCode",
+                table: "Recipes",
+                column: "RecipeCode");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Recipes_ToppingId",
                 table: "Recipes",
                 column: "ToppingId");
@@ -4290,6 +4463,11 @@ namespace CafeChain.Migrations
                 columns: new[] { "Status", "ExpiredAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_RolePermissions_PermissionId",
+                table: "RolePermissions",
+                column: "PermissionId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Roles_Name",
                 table: "Roles",
                 column: "Name",
@@ -4316,6 +4494,12 @@ namespace CafeChain.Migrations
                 name: "IX_Sizes_Name",
                 table: "Sizes",
                 column: "Name",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Sizes_SizeCode",
+                table: "Sizes",
+                column: "SizeCode",
                 unique: true);
 
             migrationBuilder.CreateIndex(
@@ -4624,6 +4808,12 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Toppings_ToppingCode",
+                table: "Toppings",
+                column: "ToppingCode",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_UnitConversions_FromUnitId",
                 table: "UnitConversions",
                 column: "FromUnitId");
@@ -4749,6 +4939,9 @@ namespace CafeChain.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "AccountPermissionOverrides");
+
+            migrationBuilder.DropTable(
                 name: "AccountRoles");
 
             migrationBuilder.DropTable(
@@ -4848,6 +5041,9 @@ namespace CafeChain.Migrations
                 name: "RevenueDto");
 
             migrationBuilder.DropTable(
+                name: "RolePermissions");
+
+            migrationBuilder.DropTable(
                 name: "StaffAddresses");
 
             migrationBuilder.DropTable(
@@ -4917,9 +5113,6 @@ namespace CafeChain.Migrations
                 name: "WheelSpins");
 
             migrationBuilder.DropTable(
-                name: "Roles");
-
-            migrationBuilder.DropTable(
                 name: "IngredientSuppliers");
 
             migrationBuilder.DropTable(
@@ -4953,6 +5146,12 @@ namespace CafeChain.Migrations
                 name: "Ratings");
 
             migrationBuilder.DropTable(
+                name: "Permissions");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
+
+            migrationBuilder.DropTable(
                 name: "ScopeTypes");
 
             migrationBuilder.DropTable(
@@ -4984,6 +5183,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Sizes");
+
+            migrationBuilder.DropTable(
+                name: "PermissionGroups");
 
             migrationBuilder.DropTable(
                 name: "Vouchers");

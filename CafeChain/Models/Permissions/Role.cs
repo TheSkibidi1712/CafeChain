@@ -1,7 +1,7 @@
 using CafeChain.Models.Customers;
 using System.Collections;
 
-namespace CafeChain.Models.Staffs
+namespace CafeChain.Models.Permissions
 {
     public class Role
     {
@@ -11,7 +11,10 @@ namespace CafeChain.Models.Staffs
         public bool IsStoreLevel { get; set; }
         public DateTime CreatedAt { get; set; }
 
+
+        // Navigation properties
         public virtual ICollection<AccountRole> AccountRoles { get; set; }
+        public virtual ICollection<RolePermission> RolePermissions { get; set; }
 
     }
 }

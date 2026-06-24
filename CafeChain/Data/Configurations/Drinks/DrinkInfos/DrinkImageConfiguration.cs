@@ -2,7 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace CafeChain.Data.Configurations.Drinks
+namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
 {
     public class DrinkImageConfiguration : IEntityTypeConfiguration<DrinkImage>
     {

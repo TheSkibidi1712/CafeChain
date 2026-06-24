@@ -5,6 +5,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Data.SqlClient;
+using CafeChain.Models.Permissions;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 {
