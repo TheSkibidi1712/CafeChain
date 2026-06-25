@@ -2,7 +2,7 @@ using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
-using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;

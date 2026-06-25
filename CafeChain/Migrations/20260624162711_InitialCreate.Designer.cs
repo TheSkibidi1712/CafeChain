@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260620065209_InitialCreate")]
+    [Migration("20260624162711_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -937,6 +937,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("DrinkCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -946,6 +951,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("DrinkId");
+
+                    b.HasIndex("DrinkCode")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -965,6 +973,7 @@ namespace CafeChain.Migrations
                             CategoryId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cà phê pha với sữa đặc.",
+                            DrinkCode = "CF_Sua",
                             Name = "Cà phê sữa",
                             ProductTypeId = 1
                         },
@@ -976,6 +985,7 @@ namespace CafeChain.Migrations
                             CategoryId = 1,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Cà phê pha với nước sôi, không có sữa.",
+                            DrinkCode = "CF_Den",
                             Name = "Cà phê đen",
                             ProductTypeId = 1
                         },
@@ -987,6 +997,7 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Trà sữa pha với trân châu đen và đá viên.",
+                            DrinkCode = "TS_TruyenThong",
                             Name = "Trà sữa truyền thống",
                             ProductTypeId = 1
                         },
@@ -998,6 +1009,7 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Trà sữa socola thơm ngon, béo ngậy.",
+                            DrinkCode = "TS_Socola",
                             Name = "Trà sữa socola",
                             ProductTypeId = 1
                         },
@@ -1009,6 +1021,7 @@ namespace CafeChain.Migrations
                             CategoryId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Sting mát lạnh",
+                            DrinkCode = "STING",
                             Name = "Sting",
                             ProductTypeId = 2
                         },
@@ -1020,6 +1033,7 @@ namespace CafeChain.Migrations
                             CategoryId = 3,
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             Description = "Coca-cola mát lạnh",
+                            DrinkCode = "COCA",
                             Name = "Coca-cola",
                             ProductTypeId = 2
                         });
@@ -1038,12 +1052,20 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<string>("CategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
                     b.HasKey("CategoryId");
+
+                    b.HasIndex("CategoryCode")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1055,18 +1077,21 @@ namespace CafeChain.Migrations
                         {
                             CategoryId = 1,
                             Active = true,
+                            CategoryCode = "COFFEE",
                             Name = "Coffee"
                         },
                         new
                         {
                             CategoryId = 2,
                             Active = true,
+                            CategoryCode = "TRASUA",
                             Name = "Trà sữa"
                         },
                         new
                         {
                             CategoryId = 3,
                             Active = true,
+                            CategoryCode = "NUOCNGOT",
                             Name = "Nước ngọt"
                         });
                 });
@@ -1732,6 +1757,11 @@ namespace CafeChain.Migrations
                     b.Property<int?>("ParentVersionId")
                         .HasColumnType("int");
 
+                    b.Property<string>("RecipeCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1753,6 +1783,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("ParentVersionId");
 
+                    b.HasIndex("RecipeCode");
+
                     b.HasIndex("ToppingId");
 
                     b.ToTable("Recipes", (string)null);
@@ -1764,6 +1796,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 1,
                             Name = "Recipe CF Sữa",
+                            RecipeCode = "RCP_CF_SUA",
                             Status = "Active",
                             YieldPercentage = 100m
                         },
@@ -1773,6 +1806,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 2,
                             Name = "Recipe CF Đen",
+                            RecipeCode = "RCP_CF_DEN",
                             Status = "Active",
                             YieldPercentage = 100m
                         },
@@ -1782,6 +1816,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 3,
                             Name = "Recipe Trà sữa",
+                            RecipeCode = "RCP_TS",
                             Status = "Active",
                             YieldPercentage = 100m
                         },
@@ -1791,6 +1826,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             Name = "Recipe Trà sữa socola",
+                            RecipeCode = "RCP_TS_SOCOLA",
                             Status = "Active",
                             YieldPercentage = 100m
                         },
@@ -1799,6 +1835,7 @@ namespace CafeChain.Migrations
                             RecipeId = 5,
                             Active = true,
                             Name = "Trân châu đen",
+                            RecipeCode = "RCP_TC_DEN",
                             Status = "Active",
                             ToppingId = 1,
                             YieldPercentage = 100m
@@ -1808,6 +1845,7 @@ namespace CafeChain.Migrations
                             RecipeId = 6,
                             Active = true,
                             Name = "Trân châu trắng",
+                            RecipeCode = "RCP_TC_TRANG",
                             Status = "Active",
                             ToppingId = 2,
                             YieldPercentage = 100m
@@ -2052,9 +2090,17 @@ namespace CafeChain.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<string>("SizeCode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("SizeId");
 
                     b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("SizeCode")
                         .IsUnique();
 
                     b.ToTable("Sizes", (string)null);
@@ -2065,56 +2111,64 @@ namespace CafeChain.Migrations
                             SizeId = 1,
                             Active = true,
                             Description = "Kích thước nhỏ",
-                            Name = "S"
+                            Name = "S",
+                            SizeCode = "S"
                         },
                         new
                         {
                             SizeId = 2,
                             Active = true,
                             Description = "Kích thước trung bình",
-                            Name = "M"
+                            Name = "M",
+                            SizeCode = "M"
                         },
                         new
                         {
                             SizeId = 3,
                             Active = true,
                             Description = "Kích thước lớn",
-                            Name = "L"
+                            Name = "L",
+                            SizeCode = "L"
                         },
                         new
                         {
                             SizeId = 4,
                             Active = true,
                             Description = "Kích thước rất lớn",
-                            Name = "XL"
+                            Name = "XL",
+                            SizeCode = "XL"
                         },
                         new
                         {
                             SizeId = 5,
                             Active = true,
                             Description = "Kích thước 150ml",
-                            Name = "150ml"
+                            Name = "150ml",
+                            SizeCode = "150ML"
                         },
                         new
                         {
                             SizeId = 6,
                             Active = true,
                             Description = "Kích thước 200ml",
-                            Name = "200ml"
+                            Name = "200ml",
+                            SizeCode = "200ML"
                         },
                         new
                         {
                             SizeId = 7,
                             Active = true,
                             Description = "Kích thước 250ml",
-                            Name = "250ml"
+                            Name = "250ml",
+                            SizeCode = "250ML"
                         },
                         new
                         {
                             SizeId = 8,
                             Active = true,
                             Description = "Kích thước 300ml",
-                            Name = "300ml"
+                            Name = "300ml",
+                            SizeCode = "300ML"
                         });
                 });
 
@@ -2147,9 +2201,17 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("ToppingCode")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
                     b.HasKey("ToppingId");
 
                     b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.HasIndex("ToppingCode")
                         .IsUnique();
 
                     b.ToTable("Toppings", (string)null);
@@ -2162,7 +2224,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "tranchauden_ftddpx",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchauden_ftddpx.jpg",
                             Name = "Trân châu đen",
-                            Price = 5000m
+                            Price = 5000m,
+                            ToppingCode = "TC_DEN"
                         },
                         new
                         {
@@ -2171,7 +2234,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "tranchautrang_c2pylw",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804079/tranchautrang_c2pylw.jpg",
                             Name = "Trân châu trắng",
-                            Price = 5000m
+                            Price = 5000m,
+                            ToppingCode = "TC_TRANG"
                         },
                         new
                         {
@@ -2180,7 +2244,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "phomaivien_ujfenk",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804075/phomaivien_ujfenk.jpg",
                             Name = "Phô mai viên",
-                            Price = 7000m
+                            Price = 7000m,
+                            ToppingCode = "PM_VIEN"
                         },
                         new
                         {
@@ -2189,7 +2254,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "khucbachchanmeo_r2fxzd",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804082/khucbachchanmeo_r2fxzd.jpg",
                             Name = "Khúc bạch chân mèo",
-                            Price = 7000m
+                            Price = 7000m,
+                            ToppingCode = "KB_CM"
                         },
                         new
                         {
@@ -2198,7 +2264,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "thachkhoaimon_fwpprq",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804078/thachkhoaimon_fwpprq.jpg",
                             Name = "Thạch khoai môn",
-                            Price = 6000m
+                            Price = 6000m,
+                            ToppingCode = "TH_KM"
                         },
                         new
                         {
@@ -2207,7 +2274,8 @@ namespace CafeChain.Migrations
                             ImagePublicId = "banhflan_zndwvl",
                             ImageUrl = "https://res.cloudinary.com/dzfizobk8/image/upload/v1779804080/banhflan_zndwvl.jpg",
                             Name = "Bánh flan",
-                            Price = 6000m
+                            Price = 6000m,
+                            ToppingCode = "BH_FLAN"
                         });
                 });
 
@@ -5168,46 +5236,212 @@ namespace CafeChain.Migrations
                     b.ToTable("TransactionLogs");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
+            modelBuilder.Entity("CafeChain.Models.Permissions.AccountPermissionOverride", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("AccountPermissionOverrideId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AccountPermissionOverrideId"));
 
-                    b.Property<DateTime>("CheckInTime")
-                        .HasColumnType("datetime2");
+                    b.Property<int>("AccountId")
+                        .HasColumnType("int");
 
-                    b.Property<string>("IpAddress")
+                    b.Property<int>("Effect")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("AccountPermissionOverrideId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.HasIndex("AccountId", "PermissionId")
+                        .IsUnique();
+
+                    b.ToTable("AccountPermissionOverrides", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.Permission", b =>
+                {
+                    b.Property<int>("PermissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PermissionId"));
+
+                    b.Property<string>("Action")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<bool>("IsFaceVerified")
-                        .HasColumnType("bit");
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
-                    b.Property<string>("Status")
+                    b.Property<string>("Code")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
-                    b.Property<int>("StoreId")
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("PermissionGroupId")
                         .HasColumnType("int");
 
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
+                    b.HasKey("PermissionId");
 
-                    b.HasKey("Id");
+                    b.HasIndex("Code")
+                        .IsUnique();
 
-                    b.HasIndex("StoreId");
+                    b.HasIndex("PermissionGroupId", "Action")
+                        .IsUnique();
 
-                    b.HasIndex("UserId");
+                    b.ToTable("Permissions", (string)null);
 
-                    b.ToTable("AttendanceLogs");
+                    b.HasData(
+                        new
+                        {
+                            PermissionId = 1,
+                            Action = "View",
+                            Active = true,
+                            Code = "Drink.View",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Xem đồ uống",
+                            PermissionGroupId = 1
+                        },
+                        new
+                        {
+                            PermissionId = 2,
+                            Action = "Create",
+                            Active = true,
+                            Code = "Drink.Create",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Thêm đồ uống",
+                            PermissionGroupId = 1
+                        },
+                        new
+                        {
+                            PermissionId = 3,
+                            Action = "Update",
+                            Active = true,
+                            Code = "Drink.Update",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Cập nhật đồ uống",
+                            PermissionGroupId = 1
+                        },
+                        new
+                        {
+                            PermissionId = 4,
+                            Action = "Delete",
+                            Active = true,
+                            Code = "Drink.Delete",
+                            CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Name = "Xóa đồ uống",
+                            PermissionGroupId = 1
+                        });
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
+            modelBuilder.Entity("CafeChain.Models.Permissions.PermissionGroup", b =>
+                {
+                    b.Property<int>("PermissionGroupId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PermissionGroupId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("DisplayOrder")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(0);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.HasKey("PermissionGroupId");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("PermissionGroups", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            PermissionGroupId = 1,
+                            Active = true,
+                            Code = "DRINK",
+                            DisplayOrder = 1,
+                            Name = "Quản lý đồ uống"
+                        },
+                        new
+                        {
+                            PermissionGroupId = 2,
+                            Active = true,
+                            Code = "TOPPING",
+                            DisplayOrder = 2,
+                            Name = "Quản lý Topping"
+                        },
+                        new
+                        {
+                            PermissionGroupId = 3,
+                            Active = true,
+                            Code = "ORDER",
+                            DisplayOrder = 3,
+                            Name = "Quản lý đơn hàng"
+                        },
+                        new
+                        {
+                            PermissionGroupId = 4,
+                            Active = true,
+                            Code = "CUSTOMER",
+                            DisplayOrder = 4,
+                            Name = "Quản lý khách hàng"
+                        },
+                        new
+                        {
+                            PermissionGroupId = 5,
+                            Active = true,
+                            Code = "SYSTEM",
+                            DisplayOrder = 999,
+                            Name = "Hệ thống"
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.Role", b =>
                 {
                     b.Property<int>("RoleId")
                         .ValueGeneratedOnAdd()
@@ -5345,6 +5579,60 @@ namespace CafeChain.Migrations
                             IsStoreLevel = true,
                             Name = "Nhân viên chung"
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.RolePermission", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PermissionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RoleId", "PermissionId");
+
+                    b.HasIndex("PermissionId");
+
+                    b.ToTable("RolePermissions", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CheckInTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsFaceVerified")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("AttendanceLogs");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.ScopeType", b =>
@@ -7134,11 +7422,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 7, 20, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1628),
+                            EndDate = new DateTime(2026, 7, 24, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9837),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 6, 13, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1608)
+                            StartDate = new DateTime(2026, 6, 17, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9827)
                         },
                         new
                         {
@@ -7146,10 +7434,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 7, 5, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1634),
+                            EndDate = new DateTime(2026, 7, 9, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9850),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 6, 19, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1633)
+                            StartDate = new DateTime(2026, 6, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9849)
                         },
                         new
                         {
@@ -7157,11 +7445,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 8, 19, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1639),
+                            EndDate = new DateTime(2026, 8, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 5, 21, 13, 52, 6, 815, DateTimeKind.Local).AddTicks(1639)
+                            StartDate = new DateTime(2026, 5, 25, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852)
                         });
                 });
 
@@ -7315,7 +7603,7 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("CafeChain.Models.Staffs.Role", "Role")
+                    b.HasOne("CafeChain.Models.Permissions.Role", "Role")
                         .WithMany("AccountRoles")
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade)
@@ -8188,6 +8476,55 @@ namespace CafeChain.Migrations
                     b.Navigation("PaymentStatus");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Permissions.AccountPermissionOverride", b =>
+                {
+                    b.HasOne("CafeChain.Models.Customers.Account", "Account")
+                        .WithMany()
+                        .HasForeignKey("AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Permissions.Permission", "Permission")
+                        .WithMany("AccountPermissionOverrides")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Account");
+
+                    b.Navigation("Permission");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.Permission", b =>
+                {
+                    b.HasOne("CafeChain.Models.Permissions.PermissionGroup", "PermissionGroup")
+                        .WithMany("Permissions")
+                        .HasForeignKey("PermissionGroupId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("PermissionGroup");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.RolePermission", b =>
+                {
+                    b.HasOne("CafeChain.Models.Permissions.Permission", "Permission")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("PermissionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Permissions.Role", "Role")
+                        .WithMany("RolePermissions")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Permission");
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Staffs.AttendanceLog", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
@@ -8794,9 +9131,23 @@ namespace CafeChain.Migrations
                     b.Navigation("Payments");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Staffs.Role", b =>
+            modelBuilder.Entity("CafeChain.Models.Permissions.Permission", b =>
+                {
+                    b.Navigation("AccountPermissionOverrides");
+
+                    b.Navigation("RolePermissions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.PermissionGroup", b =>
+                {
+                    b.Navigation("Permissions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Permissions.Role", b =>
                 {
                     b.Navigation("AccountRoles");
+
+                    b.Navigation("RolePermissions");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Staffs.Shift", b =>

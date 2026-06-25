@@ -74,6 +74,7 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
                 var recipe = new Recipe
                 {
                     Name = "BOM Matcha Latte Test",
+                    RecipeCode = "BOM-MATCHA-TEST",
                     DrinkId = TEST_DRINK_ID,
                     Active = true,
                     Status = "Active",

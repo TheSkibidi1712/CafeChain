@@ -1,7 +1,7 @@
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
-using CafeChain.Infrastrusture.Interfaces.Admin.POS;
+using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

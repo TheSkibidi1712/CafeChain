@@ -6,6 +6,8 @@ namespace CafeChain.Models.Drinks
     {
         public int RecipeId { get; set; }
 
+        public string RecipeCode { get; set; }
+
         public string Name { get; set; }
 
         public decimal YieldPercentage { get; set; } = 100;

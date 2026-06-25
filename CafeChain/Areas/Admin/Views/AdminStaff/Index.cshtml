@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Quản lý nhân sự";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    var roles = ViewBag.Roles as List<CafeChain.Models.Staffs.Role>;
+    var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
     var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
     var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
     bool isStoreManager = ViewBag.IsStoreManager ?? false;

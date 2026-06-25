@@ -7,7 +7,7 @@ using CafeChain.Models.Vouchers;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace CafeChain.Infrastrusture.Interfaces.Admin.POS
+namespace CafeChain.Infrastructure.Interfaces.Admin.POS
 {
     /// <summary>
     /// Repository xử lý data access cho POS Order module

@@ -1,10 +1,26 @@
+// ==========================================
+// Third-party Libraries
+// ==========================================
 using CloudinaryDotNet;
-using QuestPDF.Infrastructure;
-
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using QuestPDF.Infrastructure;
+using Serilog;
+using Serilog.Events;
 
+
+// ==========================================
+// CafeChain - Data & Infrastructure
+// ==========================================
+using CafeChain.Data;
+using CafeChain.Hubs;
+using CafeChain.Infrastrusture.Configurations;
+
+
+// ==========================================
+// Application - Interfaces
+// ==========================================
 using CafeChain.Application.Interfaces;
 using CafeChain.Application.Interfaces.Accounts;
 using CafeChain.Application.Interfaces.Admin;
@@ -31,6 +47,10 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Security;
 
+
+// ==========================================
+// Application - Services
+// ==========================================
 using CafeChain.Application.Services;
 using CafeChain.Application.Services.Accounts;
 using CafeChain.Application.Services.Admin;
@@ -60,14 +80,16 @@ using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Application.Services.POS;
 using CafeChain.Application.Services.Security;
 using CafeChain.Application.Services.Workers;
-
 using CafeChain.Application.Workers;
 
-using CafeChain.Infrastructure.Interfaces.Customers;
-using CafeChain.Infrastructure.Repositories.Customers;
 
-using CafeChain.Infrastrusture.Configurations;
+// ==========================================
+// Infrastructure - Interfaces
+// ==========================================
+using CafeChain.Infrastructure.Interfaces.Customers;
 using CafeChain.Infrastrusture.Interfaces.Accounts;
+using CafeChain.Infrastructure.Interfaces.Attendance;
+using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Dashboard;
 using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
@@ -82,7 +104,14 @@ using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
 
+
+
+// ==========================================
+// Infrastructure - Repositories
+// ==========================================
+using CafeChain.Infrastructure.Repositories.Customers;
 using CafeChain.Infrastrusture.Repositories.Accounts;
+using CafeChain.Infrastructure.Repositories.Attendance;
 using CafeChain.Infrastrusture.Repositories.Admin.Categories;
 using CafeChain.Infrastrusture.Repositories.Admin.Dashboard;
 using CafeChain.Infrastrusture.Repositories.Admin.Drinks;
@@ -96,11 +125,7 @@ using CafeChain.Infrastrusture.Repositories.Admin.Staffs;
 using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
-using CafeChain.Data;
-using CafeChain.Hubs;
-using Serilog;
-using Serilog.Events;
-
+using CafeChain.Infrastructure.Repositories.Admin.POS;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -271,9 +296,8 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 #region Customer
 
 builder.Services.AddScoped<ICustomerService, CustomerService>();
-builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Customers.ICustomerRepository, CafeChain.Infrastructure.Repositories.Customers.CustomerRepository>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Cloudinaries.ICloudinaryService, CafeChain.Application.Services.Cloudinaries.CloudinaryService>();
-
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<ICloudinaryService, CloudinaryService>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 
 #endregion
@@ -319,13 +343,6 @@ builder.Services.AddHostedService<PaymentCleanupWorker>();
 #region PayOS
 
 builder.Services.AddScoped<IPayOSService, PayOSService>();
-
-builder.Services.AddSingleton(new Net.payOS.PayOS(
-    builder.Configuration["PayOS:ClientId"],
-    builder.Configuration["PayOS:ApiKey"],
-    builder.Configuration["PayOS:ChecksumKey"]
-));
-
 
 builder.Services.AddHttpClient("PayOS")
     .ConfigurePrimaryHttpMessageHandler((IServiceProvider sp) =>
@@ -493,23 +510,20 @@ builder.Services.AddScoped<IHrAttendanceService, HrAttendanceService>();
 builder.Services.AddScoped<IWorkShiftService, WorkShiftService>();
 builder.Services.AddScoped<ISupervisorAuthService, SupervisorAuthService>();
 builder.Services.AddScoped<IPOSOrderService, POSOrderService>();
-builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Attendance.IAttendanceRepository, CafeChain.Infrastructure.Repositories.Attendance.AttendanceRepository>();
-builder.Services.AddScoped<CafeChain.Infrastructure.Interfaces.Admin.POS.IWorkShiftRepository, CafeChain.Infrastructure.Repositories.Admin.POS.WorkShiftRepository>();
+builder.Services.AddScoped<IAttendanceRepository, AttendanceRepository>();
+builder.Services.AddScoped<IWorkShiftRepository, WorkShiftRepository>();
 
 #endregion
 
 #region POS
 
-builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.IPOSOrderRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.POSOrderRepository>();
-builder.Services.AddScoped<CafeChain.Infrastrusture.Interfaces.Admin.POS.ISupervisorRepository, CafeChain.Infrastrusture.Repositories.Admin.POS.SupervisorRepository>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IPrintDispatcher, CafeChain.Application.Services.POS.PrintDispatcher>();
-builder.Services.AddScoped<CafeChain.Application.Interfaces.POS.IEscPosBuilder, CafeChain.Application.Services.POS.EscPosReceiptBuilder>();
+builder.Services.AddScoped<IPOSOrderRepository, POSOrderRepository>();
+builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+builder.Services.AddScoped<IPrintDispatcher, PrintDispatcher>();
+builder.Services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
 
 #endregion
 
-
-// Settings
-builder.Services.AddScoped<CafeChain.Application.Interfaces.Admin.Settings.IAdminSettingService, CafeChain.Application.Services.Admin.Settings.AdminSettingService>();
 
 var app = builder.Build();
 

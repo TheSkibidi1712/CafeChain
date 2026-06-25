@@ -1,4 +1,5 @@
 using CafeChain.Models.Customers;
+using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 

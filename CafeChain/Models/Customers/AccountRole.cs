@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Staffs;
+﻿using CafeChain.Models.Permissions;
 
 namespace CafeChain.Models.Customers
 {

@@ -21,6 +21,7 @@ using CafeChain.Models.Stores;
 using CafeChain.Models.Vouchers;
 using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Models.Permissions;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -40,6 +41,7 @@ namespace CafeChain.Data
         public DbSet<Rating> Ratings { get; set; }
         public DbSet<RatingImage> RatingImages { get; set; }
         public DbSet<RatingReaction> RatingReactions { get; set; }
+
         // ========================= STAFF =========================
         public DbSet<Role> Roles { get; set; }
         public DbSet<ScopeType> ScopeTypes { get; set; }
@@ -53,6 +55,12 @@ namespace CafeChain.Data
         public DbSet<StaffPhone> StaffPhones { get; set; }
         public DbSet<StaffAddress> StaffAddresses { get; set; }
         public DbSet<StaffDependent> StaffDependents { get; set; }
+
+        // ========================= PERMISSION =========================
+        public DbSet<Permission> Permissions { get; set; }
+        public DbSet<PermissionGroup> PermissionGroups { get; set; }
+        public DbSet<RolePermission> RolePermissions { get; set; }
+        public DbSet<AccountPermissionOverride> AccountPermissionOverrides { get; set; }
 
         // ========================= ORDER =========================
         public DbSet<Order> Orders { get; set; }
