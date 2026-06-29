@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Drinks;
+using CafeChain.Models.Drinks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -27,10 +27,13 @@ namespace CafeChain.Data.Configurations.Drinks.DrinkInfos
 
             entity.HasIndex(x => x.CategoryCode).IsUnique();
 
+            entity.Property(x => x.Icon)
+                .HasMaxLength(10);
+
             entity.HasData(
-                new DrinkCategory { CategoryId = 1, Name = "Coffee", CategoryCode = "COFFEE", Active = true },
-                new DrinkCategory { CategoryId = 2, Name = "Trà sữa", CategoryCode = "TRASUA", Active = true },
-                new DrinkCategory { CategoryId = 3, Name = "Nước ngọt", CategoryCode = "NUOCNGOT", Active = true }
+                new DrinkCategory { CategoryId = 1, Name = "Coffee", CategoryCode = "COFFEE", Icon = "☕", Active = true },
+                new DrinkCategory { CategoryId = 2, Name = "Trà sữa", CategoryCode = "TRASUA", Icon = "🧋", Active = true },
+                new DrinkCategory { CategoryId = 3, Name = "Nước ngọt", CategoryCode = "NUOCNGOT", Icon = "🥤", Active = true }
             );
         }
     }

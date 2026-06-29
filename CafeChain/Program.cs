@@ -200,7 +200,7 @@ builder.Services.AddSession(options =>
 });
 
 // =======================
-// 4. Authentication (COOKIE)
+// 4. Authentication (COOKIE + JWT Bearer)
 // =======================
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -214,6 +214,25 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // 🔥 HTTPS only
         options.Cookie.SameSite = SameSiteMode.Lax;
+    })
+    .AddJwtBearer(options =>
+    {
+        var jwtKey = builder.Configuration["Jwt:Key"]
+            ?? "CafeChain-POS-JWT-Secret-Key-Change-In-Production-2026-Min32Chars!";
+        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CafeChain";
+        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CafeChain.POS";
+
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(jwtKey))
+        };
     });
 
 // =======================
