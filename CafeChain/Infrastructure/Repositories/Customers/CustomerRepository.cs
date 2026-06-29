@@ -3,6 +3,7 @@ using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Customers;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Locations;
+using CafeChain.Models.Vouchers;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Infrastructure.Repositories.Customers
@@ -35,6 +36,19 @@ namespace CafeChain.Infrastructure.Repositories.Customers
                 .AsNoTracking()
                 .FirstOrDefaultAsync(
                     a => a.AccountId == accountId);
+        }
+
+        // =====================================================
+        // VOUCHERS
+        // =====================================================
+
+        public async Task<List<CustomerVoucher>> GetCustomerVouchersAsync(int customerId)
+        {
+            return await _context.CustomerVouchers
+                .Include(x => x.Voucher)
+                .Where(x => x.CustomerId == customerId)
+                .AsNoTracking()
+                .ToListAsync();
         }
 
         // =====================================================

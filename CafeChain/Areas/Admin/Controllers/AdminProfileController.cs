@@ -1,24 +1,18 @@
-using System.Security.Claims;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using CafeChain.Data;
+﻿using CafeChain.Data;
 using CafeChain.ViewModels.Profile;
+using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using Microsoft.EntityFrameworkCore;
 
-namespace CafeChain.Controllers
+namespace CafeChain.Areas.Admin.Controllers
 {
-    /// <summary>
-    /// ProfileController — Module "Hồ sơ của tôi"
-    /// Kiến trúc Zero-Trust: KHÔNG nhận bất kỳ ID nào từ Client.
-    /// Mọi identity đều extract từ ClaimTypes.NameIdentifier (Cookie).
-    /// </summary>
-    [Authorize]
-    public class ProfileController : Controller
+    [Area("Admin")]
+    public class AdminProfileController : Controller
     {
         private readonly AppDbContext _context;
         private readonly IWebHostEnvironment _env;
 
-        public ProfileController(AppDbContext context, IWebHostEnvironment env)
+        public AdminProfileController(AppDbContext context, IWebHostEnvironment env)
         {
             _context = context;
             _env = env;
@@ -160,7 +154,7 @@ namespace CafeChain.Controllers
                 return Json(new { success = false, message = "Tài khoản không tồn tại." });
 
             // Xác minh mật khẩu cũ bằng BCrypt
-            if (string.IsNullOrEmpty(account.PasswordHash) || 
+            if (string.IsNullOrEmpty(account.PasswordHash) ||
                 !BCrypt.Net.BCrypt.Verify(model.OldPassword, account.PasswordHash))
             {
                 return Json(new { success = false, message = "Mật khẩu hiện tại không đúng." });
