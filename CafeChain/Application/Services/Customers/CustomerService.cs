@@ -349,6 +349,34 @@ namespace CafeChain.Application.Services.Customers
             return (true, "Đăng ký thành viên thành công!", customerId);
         }
 
+        // =========================
+        // MY VOUCHERS
+        // =========================
+
+        public async Task<MyVouchersViewModel> GetMyVouchersAsync(int customerId, string accountId)
+        {
+            var profile = await GetCustomerProfileAsync(accountId);
+
+            var customerVouchers = await _customerRepository.GetCustomerVouchersAsync(customerId);
+
+            var now = DateTime.Now;
+
+            return new MyVouchersViewModel
+            {
+                Profile = profile,
+
+                ValidVouchers =
+                    customerVouchers
+                        .Where(x => !x.IsUsed && (!x.Voucher.EndDate.HasValue || x.Voucher.EndDate >= now)).ToList(),
+
+                UsedVouchers = customerVouchers.Where(x => x.IsUsed).ToList(),
+
+                ExpiredVouchers =
+                    customerVouchers
+                        .Where(x => !x.IsUsed && x.Voucher.EndDate.HasValue && x.Voucher.EndDate < now).ToList()
+            };
+        }
+
 
         // ======================= LOCATION METHODS =========================
         public async Task<List<Province>> GetProvincesAsync()

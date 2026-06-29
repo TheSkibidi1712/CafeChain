@@ -1054,6 +1054,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<string>("Icon")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(150)
@@ -1075,6 +1079,7 @@ namespace CafeChain.Migrations
                             CategoryId = 1,
                             Active = true,
                             CategoryCode = "COFFEE",
+                            Icon = "☕",
                             Name = "Coffee"
                         },
                         new
@@ -1082,6 +1087,7 @@ namespace CafeChain.Migrations
                             CategoryId = 2,
                             Active = true,
                             CategoryCode = "TRASUA",
+                            Icon = "🧋",
                             Name = "Trà sữa"
                         },
                         new
@@ -1089,6 +1095,7 @@ namespace CafeChain.Migrations
                             CategoryId = 3,
                             Active = true,
                             CategoryCode = "NUOCNGOT",
+                            Icon = "🥤",
                             Name = "Nước ngọt"
                         });
                 });
@@ -7419,11 +7426,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 7, 24, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9837),
+                            EndDate = new DateTime(2026, 7, 29, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5859),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 6, 17, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9827)
+                            StartDate = new DateTime(2026, 6, 22, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5850)
                         },
                         new
                         {
@@ -7431,10 +7438,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 7, 9, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9850),
+                            EndDate = new DateTime(2026, 7, 14, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5863),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 6, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9849)
+                            StartDate = new DateTime(2026, 6, 28, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5863)
                         },
                         new
                         {
@@ -7442,11 +7449,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 8, 23, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852),
+                            EndDate = new DateTime(2026, 8, 28, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5865),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 5, 25, 23, 27, 10, 602, DateTimeKind.Local).AddTicks(9852)
+                            StartDate = new DateTime(2026, 5, 30, 22, 12, 57, 15, DateTimeKind.Local).AddTicks(5865)
                         });
                 });
 

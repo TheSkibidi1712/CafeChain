@@ -328,7 +328,7 @@
                                 }
                                 else
                                 {
-                                    <a asp-area="" asp-controller="Profile" asp-action="MyProfile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
+                                    <a asp-area="Admin" asp-controller="AdminProfile" asp-action="MyProfile" class="d-flex align-items-center text-decoration-none bg-light rounded-pill px-2 py-1 shadow-sm border">
                                         <img id="headerAvatar"
                                              src="@(User.FindFirst("AvatarUrl")?.Value ?? "/Images/Upload/avtdf.jpg")"
                                              onerror="this.onerror=null; this.src='/Images/Upload/avtdf.jpg';"

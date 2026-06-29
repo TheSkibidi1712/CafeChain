@@ -1,0 +1,15 @@
+namespace CafeChain.Application.DTOs.POS
+{
+    /// <summary>
+    /// Request DTO cho POST /api/v1/pos/shifts/open
+    /// StoreId và StaffId lấy từ JWT Claims — KHÔNG từ request body.
+    /// </summary>
+    public class OpenShiftRequestDto
+    {
+        /// <summary>Tiền lẻ đầu ca đặt vào két</summary>
+        public decimal StartingCash { get; set; }
+
+        /// <summary>GUID thiết bị POS (từ browser localStorage)</summary>
+        public string? PosTerminalId { get; set; }
+    }
+}

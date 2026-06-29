@@ -46,7 +46,7 @@ using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Security;
-
+using CafeChain.Application.Interfaces.Admin.Permissions;
 
 // ==========================================
 // Application - Services
@@ -81,6 +81,7 @@ using CafeChain.Application.Services.POS;
 using CafeChain.Application.Services.Security;
 using CafeChain.Application.Services.Workers;
 using CafeChain.Application.Workers;
+using CafeChain.Application.Services.Admin.Permissions;
 
 
 // ==========================================
@@ -103,6 +104,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.Staffs;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
+using CafeChain.Infrastructure.Interfaces.Admin.Permissions;
 
 
 
@@ -126,6 +128,7 @@ using CafeChain.Infrastrusture.Repositories.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
+using CafeChain.Infrastructure.Repositories.Admin.Permissions;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -200,7 +203,7 @@ builder.Services.AddSession(options =>
 });
 
 // =======================
-// 4. Authentication (COOKIE)
+// 4. Authentication (COOKIE + JWT Bearer)
 // =======================
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
@@ -214,6 +217,25 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
         options.Cookie.HttpOnly = true;
         options.Cookie.SecurePolicy = CookieSecurePolicy.Always; // 🔥 HTTPS only
         options.Cookie.SameSite = SameSiteMode.Lax;
+    })
+    .AddJwtBearer(options =>
+    {
+        var jwtKey = builder.Configuration["Jwt:Key"]
+            ?? "CafeChain-POS-JWT-Secret-Key-Change-In-Production-2026-Min32Chars!";
+        var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CafeChain";
+        var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CafeChain.POS";
+
+        options.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(
+                System.Text.Encoding.UTF8.GetBytes(jwtKey))
+        };
     });
 
 // =======================
@@ -524,6 +546,12 @@ builder.Services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
 
 #endregion
 
+#region Permissions
+
+builder.Services.AddScoped<IAdminPermissionRepository, AdminPermissionRepository>();
+builder.Services.AddScoped<IAdminPermissionService, AdminPermissionService>();
+
+#endregion
 
 var app = builder.Build();
 

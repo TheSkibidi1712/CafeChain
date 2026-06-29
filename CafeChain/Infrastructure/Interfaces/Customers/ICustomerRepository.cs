@@ -1,6 +1,7 @@
 ﻿using CafeChain.Application.DTOs.Customer;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Locations;
+using CafeChain.Models.Vouchers;
 
 namespace CafeChain.Infrastructure.Interfaces.Customers
 {
@@ -11,6 +12,12 @@ namespace CafeChain.Infrastructure.Interfaces.Customers
         // =========================
 
         Task<Account?> GetCustomerProfileAccountAsync(int accountId);
+
+        // =========================
+        // VOUCHERS
+        // =========================
+
+        Task<List<CustomerVoucher>> GetCustomerVouchersAsync(int customerId);
 
         // =========================
         // CUSTOMER

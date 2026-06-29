@@ -1,0 +1,50 @@
+using System.Collections.Generic;
+
+namespace CafeChain.Application.DTOs.POS
+{
+    /// <summary>
+    /// Response DTO cho GET /api/v1/pos/menu-items
+    /// Maps: Drink + DrinkSize + DrinkTopping → POSMenuItemDto
+    /// </summary>
+    public class POSMenuItemDto
+    {
+        /// <summary>Drink.DrinkId</summary>
+        public int Id { get; set; }
+
+        /// <summary>Drink.Name</summary>
+        public string Name { get; set; } = null!;
+
+        /// <summary>Giá base (Size S / size nhỏ nhất)</summary>
+        public decimal Price { get; set; }
+
+        /// <summary>Drink.CategoryId</summary>
+        public int CategoryId { get; set; }
+
+        /// <summary>DrinkImage.ImageUrl (first, nullable)</summary>
+        public string? Image { get; set; }
+
+        /// <summary>Drink.Active && StoreDrink.Active</summary>
+        public bool IsAvailable { get; set; }
+
+        /// <summary>Danh sách size khả dụng + giá</summary>
+        public List<POSMenuItemSizeDto> Sizes { get; set; } = new();
+
+        /// <summary>Danh sách topping khả dụng cho món này tại store</summary>
+        public List<POSToppingDto> AvailableToppings { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Size + giá của 1 MenuItem — nested trong POSMenuItemDto
+    /// </summary>
+    public class POSMenuItemSizeDto
+    {
+        /// <summary>Size.SizeId</summary>
+        public int SizeId { get; set; }
+
+        /// <summary>Size.Name (S/M/L)</summary>
+        public string SizeName { get; set; } = null!;
+
+        /// <summary>DrinkSize.Price</summary>
+        public decimal Price { get; set; }
+    }
+}
