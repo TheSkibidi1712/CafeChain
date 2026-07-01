@@ -1,4 +1,5 @@
 using CafeChain.Data;
+using CafeChain.Application.Constants;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
@@ -94,17 +95,22 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         }
 
         // === DRINK & TOPPING LOOKUP ===
-        public async Task<Drink> GetDrinkWithSizesAsync(int drinkId)
+        public async Task<Drink> GetDrinkWithSizesAsync(int drinkId, int storeId)
         {
             return await _context.Drinks
                 .Include(d => d.DrinkSizes).ThenInclude(ds => ds.Size)
-                .FirstOrDefaultAsync(d => d.DrinkId == drinkId);
+                .FirstOrDefaultAsync(d => d.DrinkId == drinkId
+                    && d.Active
+                    && d.StoreDrinks.Any(sd => sd.StoreId == storeId && sd.Active));
         }
 
-        public async Task<List<Topping>> GetToppingsByIdsAsync(List<int> toppingIds)
+        public async Task<List<Topping>> GetValidToppingsForOrderItemAsync(int storeId, int drinkId, List<int> toppingIds)
         {
             return await _context.Toppings
-                .Where(t => toppingIds.Contains(t.ToppingId))
+                .Where(t => toppingIds.Contains(t.ToppingId)
+                    && t.Active
+                    && t.StoreToppings.Any(st => st.StoreId == storeId && st.Active)
+                    && t.DrinkToppings.Any(dt => dt.DrinkId == drinkId))
                 .ToListAsync();
         }
 
@@ -123,7 +129,51 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         public async Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId)
         {
             return await _context.Orders
+                .Include(o => o.Payments)
                 .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
+        }
+
+        /// <summary>
+        /// Issue #68: Phân trang lịch sử đơn hàng POS.
+        /// Dùng .Select() projection — EF Core dịch thành 1 SQL duy nhất, không N+1.
+        /// </summary>
+        public async Task<(List<Application.DTOs.POS.POSOrderHistoryDto> Items, int TotalCount)> GetOrderHistoryAsync(
+            int storeId, int page, int pageSize)
+        {
+            var query = _context.Orders
+                .Where(o => o.StoreId == storeId && o.Source == "POS")
+                .OrderByDescending(o => o.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(o => new Application.DTOs.POS.POSOrderHistoryDto
+                {
+                    OrderId = o.OrderId,
+                    ClientOrderId = o.ClientOrderId.HasValue ? o.ClientOrderId.Value.ToString() : null,
+                    OrderType = o.OrderType != null ? o.OrderType.Name : "N/A",
+                    CreatedAt = o.CreatedAt,
+                    Total = o.Total,
+                    PaymentMethod = o.Payments
+                        .Select(p => p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A")
+                        .FirstOrDefault() ?? "N/A",
+                    StaffName = o.Staff != null ? o.Staff.FullName : "POS",
+                    OrderDetails = o.OrderDetails.Select(od => new Application.DTOs.POS.POSOrderDetailHistoryDto
+                    {
+                        DrinkName = od.DrinkName,
+                        SizeName = od.SizeName,
+                        Quantity = od.Quantity,
+                        Price = od.Price,
+                        Toppings = od.OrderToppings
+                            .Select(ot => ot.ToppingName)
+                            .ToList()
+                    }).ToList()
+                })
+                .ToListAsync();
+
+            return (items, totalCount);
         }
 
         public async Task CreatePaymentAsync(Payment payment)
@@ -175,13 +225,14 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Where(o => o.WorkShiftId == shiftId)
                 .Join(_context.Payments, o => o.OrderId, p => p.OrderId, (o, p) => p)
                 .Where(p => p.PaymentMethodId == paymentMethodId)
+                .Where(p => p.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
                 .SumAsync(p => (decimal?)p.Amount) ?? 0m;
         }
 
         public async Task<int> GetCompletedOrderCountAsync(int shiftId)
         {
             return await _context.Orders
-                .CountAsync(o => o.WorkShiftId == shiftId && o.OrderStatusId == 4);
+                .CountAsync(o => o.WorkShiftId == shiftId && o.OrderStatusId == SystemConstants.OrderStatuses.Completed);
         }
 
         // === AUDIT LOG ===

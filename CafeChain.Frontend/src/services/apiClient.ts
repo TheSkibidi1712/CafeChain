@@ -1,4 +1,8 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL ?? 'https://localhost:7231'
+import { POS_TOKEN_KEY } from './posSession'
+
+const configuredApiBase = import.meta.env.VITE_API_BASE_URL?.trim()
+const API_BASE = (configuredApiBase || 'http://localhost:5111').replace(/\/$/, '')
+export const API_BASE_URL = API_BASE
 
 export interface ApiResponse<T> {
   data: T | null
@@ -12,11 +16,14 @@ async function request<T>(
   options?: RequestInit
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE}${path}`
+  // Issue #69: Đọc JWT token từ localStorage — gắn vào mọi request
+  const token = localStorage.getItem(POS_TOKEN_KEY)
   try {
     const response = await fetch(url, {
       ...options,
       headers: {
         'Accept': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
         ...options?.headers,
       },
     })
@@ -54,7 +61,7 @@ export const apiClient = {
   get: <T>(path: string, options?: RequestInit) =>
     request<T>(path, { ...options, method: 'GET' }),
 
-  post: <T>(path: string, body: any, options?: RequestInit) =>
+  post: <T>(path: string, body: unknown, options?: RequestInit) =>
     request<T>(path, {
       ...options,
       method: 'POST',

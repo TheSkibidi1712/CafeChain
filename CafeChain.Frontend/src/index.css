@@ -40,3 +40,64 @@
   --shadow-card-hover: 0 4px 12px rgba(255, 140, 0, 0.15);
   --shadow-button: 0 2px 4px rgba(255, 140, 0, 0.2);
 }
+
+.receipt-print-host {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 80mm;
+  background: #ffffff;
+  color: #000000;
+  pointer-events: none;
+}
+
+.receipt-template {
+  color: #000000;
+  background: #ffffff;
+  font-family: Consolas, "Courier New", monospace;
+}
+
+@media print {
+  @page {
+    size: 80mm 200mm;
+    margin: 0;
+  }
+
+  html,
+  body {
+    width: 80mm !important;
+    min-width: 80mm !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #ffffff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-print-host,
+  .receipt-print-host * {
+    visibility: visible !important;
+  }
+
+  .receipt-print-host {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 80mm !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 3mm 3mm 6mm !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-sizing: border-box !important;
+  }
+
+  .receipt-template {
+    width: 74mm !important;
+    max-width: 74mm !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+}

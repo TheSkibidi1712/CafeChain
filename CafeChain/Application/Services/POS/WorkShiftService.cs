@@ -69,7 +69,18 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
-                // 4. EXECUTION: Open Financial Shift
+                // 4. Ensure POS terminal exists before WorkShift FK insert
+                var normalizedTerminalId = string.IsNullOrWhiteSpace(posTerminalId)
+                    ? null
+                    : posTerminalId.Trim();
+
+                if (normalizedTerminalId != null)
+                {
+                    var terminalName = $"POS-Store{storeId}-{DateTime.Now:MMdd-HHmm}";
+                    await _shiftRepo.EnsurePosTerminalAsync(normalizedTerminalId, storeId, terminalName);
+                }
+
+                // 5. EXECUTION: Open Financial Shift
                 var newShift = new WorkShift
                 {
                     UserId = userId,
@@ -78,12 +89,12 @@ namespace CafeChain.Application.Services.POS
                     StartingCash = startingCash,
                     ExpectedEndingCash = startingCash,
                     Status = "Open",
-                    PosTerminalId = posTerminalId
+                    PosTerminalId = normalizedTerminalId
                 };
 
                 await _shiftRepo.CreateShiftAsync(newShift);
 
-                // 5. Nếu có pending bypass mở ca trễ, liên kết ShiftId vào audit log
+                // 6. Nếu có pending bypass mở ca trễ, liên kết ShiftId vào audit log
                 if (staffShiftToday != null && staffShiftToday.Shift != null)
                 {
                     var today = DateTime.Today;

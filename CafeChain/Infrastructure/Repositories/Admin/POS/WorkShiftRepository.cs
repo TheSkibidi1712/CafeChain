@@ -40,6 +40,25 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             await _context.SaveChangesAsync();
         }
 
+        public async Task EnsurePosTerminalAsync(string terminalId, int storeId, string name)
+        {
+            var exists = await _context.PosTerminals
+                .AnyAsync(terminal => terminal.TerminalId == terminalId);
+
+            if (exists) return;
+
+            _context.PosTerminals.Add(new PosTerminal
+            {
+                TerminalId = terminalId,
+                StoreId = storeId,
+                Name = name,
+                Active = true,
+                CreatedAt = DateTime.Now
+            });
+
+            await _context.SaveChangesAsync();
+        }
+
         public async Task<StaffShift?> GetTodayStaffShiftAsync(int staffId)
         {
             var today = DateTime.Today;

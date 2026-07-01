@@ -29,6 +29,10 @@
                             <label class="btn py-2 px-4" for="typePOS">
                                 <i class="fas fa-cash-register me-1"></i> Món bán (POS)
                             </label>
+                            <input type="radio" class="btn-check" name="RecipeType" id="typeTOPPING" value="TOPPING" autocomplete="off">
+                            <label class="btn py-2 px-4" for="typeTOPPING">
+                                <i class="fas fa-plus-circle me-1"></i> Topping
+                            </label>
                             <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off">
                             <label class="btn py-2 px-4" for="typeSUBRECIPE">
                                 <i class="fas fa-flask me-1"></i> Bán thành phẩm
@@ -57,6 +61,20 @@
                                     <option value="">-- Size --</option>
                                 </select>
                                 <small class="text-muted" id="sizePriceHint" style="font-size:0.72rem;"></small>
+                            </div>
+                            <!-- TOPPING: Topping -->
+                            <div class="col-md-6 conditional-section" id="sectionTopping" style="display:none;">
+                                <label class="form-label fw-bold small">Topping áp dụng <span class="text-danger">*</span></label>
+                                <select name="ToppingId" id="toppingSelect" class="form-select">
+                                    <option value="">-- Chọn topping --</option>
+                                    @if (ViewBag.Toppings != null)
+                                    {
+                                        foreach (dynamic topping in ViewBag.Toppings)
+                                        {
+                                            <option value="@topping.ToppingId">@topping.Name</option>
+                                        }
+                                    }
+                                </select>
                             </div>
                             <!-- SUBRECIPE fields -->
                             <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="display:none;">
@@ -218,21 +236,35 @@
             $('input[name="RecipeType"]').on('change', function () {
                 const type = $(this).val();
                 if (type === 'POS') {
-                    $('#sectionPOS_Drink, #sectionPOS_Size').show();
-                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#sectionPOS_Drink').show();
+                    if ($('#drinkSelect').val()) {
+                        $('#sectionPOS_Size').show();
+                    }
+                    $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#toppingSelect').val('').trigger('change');
+                    $('#subRecipeInput').val('');
+                    $('input[name="ExpectedYield"]').val('');
+                    $('select[name="OutputUnitId"]').val('');
+                } else if (type === 'TOPPING') {
+                    $('#sectionTopping').fadeIn(200);
+                    $('#sectionPOS_Drink, #sectionPOS_Size, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#drinkSelect').val('').trigger('change');
+                    $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
                     $('#subRecipeInput').val('');
                     $('input[name="ExpectedYield"]').val('');
                     $('select[name="OutputUnitId"]').val('');
                 } else {
-                    $('#sectionPOS_Drink, #sectionPOS_Size').hide();
+                    $('#sectionPOS_Drink, #sectionPOS_Size, #sectionTopping').hide();
                     $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
                     $('#drinkSelect').val('').trigger('change');
                     $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
+                    $('#toppingSelect').val('').trigger('change');
                     $('#sectionPOS_Size').hide();
                 }
             });
 
             $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
+            $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
 
             // === 2. CASCADED: Drink → Size ===
             $('#drinkSelect').on('change', function () {
@@ -395,6 +427,7 @@
                 const recipeType = $('input[name="RecipeType"]:checked').val();
                 const drinkVal = $('#drinkSelect').val();
                 const sizeVal = $('#sizeSelect').val();
+                const toppingVal = $('#toppingSelect').val();
                 const outputUnitVal = $('#outputUnitSelect').val();
                 const expectedYieldVal = $('input[name="ExpectedYield"]').val();
 
@@ -402,6 +435,7 @@
                     RecipeType: recipeType,
                     DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
                     SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
+                    ToppingId: (recipeType === 'TOPPING' && toppingVal) ? parseInt(toppingVal) : null,
                     SubRecipeName: recipeType === 'SUBRECIPE' ? $('#subRecipeInput').val() : null,
                     ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
                     OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,

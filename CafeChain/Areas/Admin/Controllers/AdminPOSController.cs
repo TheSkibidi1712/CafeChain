@@ -307,7 +307,9 @@ namespace CafeChain.Areas.Admin.Controllers
                         Items = orderDto.Details?.Select(d => new POSOrderItemDto
                         {
                             DrinkId = d.ItemId,
-                            Quantity = d.Quantity
+                            SizeId = d.SizeId,
+                            Quantity = d.Quantity,
+                            Toppings = d.Toppings ?? new List<POSOrderToppingDto>()
                         }).ToList() ?? new List<POSOrderItemDto>(),
                         OrderTypeId = orderDto.OrderTypeId > 0 ? orderDto.OrderTypeId : 1,
                         ReceivedAmount = orderDto.ReceivedAmount,
@@ -324,7 +326,9 @@ namespace CafeChain.Areas.Admin.Controllers
                             var soldItems = commitDto.Items.Select(item => new CafeChain.Application.DTOs.POS.POSSoldItemDto
                             {
                                 DrinkId = item.DrinkId,
-                                Quantity = item.Quantity
+                                SizeId = item.SizeId,
+                                Quantity = item.Quantity,
+                                Toppings = item.Toppings ?? new List<CafeChain.Application.DTOs.POS.POSOrderToppingDto>()
                             }).ToList();
                             await _inventoryDeductionService.DeductStockForOrderAsync(soldItems, orderDto.StoreId ?? storeId);
                         }

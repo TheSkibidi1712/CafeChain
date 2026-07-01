@@ -58,6 +58,10 @@ namespace CafeChain.Controllers.Api.v1
         public async Task<IActionResult> GetMenuItems([FromQuery] int? categoryId)
         {
             var storeId = CurrentStoreId;
+            var storeToppingIds = await _context.StoreToppings
+                .Where(st => st.StoreId == storeId && st.Active && st.Topping.Active)
+                .Select(st => st.ToppingId)
+                .ToListAsync();
 
             var query = _context.Drinks
                 .Where(d => d.Active
@@ -81,14 +85,17 @@ namespace CafeChain.Controllers.Api.v1
                         ?? d.DrinkImages
                             .Select(di => di.ImageUrl)
                             .FirstOrDefault(),
-                    IsAvailable = true,
+                    IsAvailable = false,
                     Price = d.DrinkSizes
                         .Where(ds => ds.Active)
                         .OrderBy(ds => ds.Price)
+                        .ThenBy(ds => ds.SizeId)
                         .Select(ds => ds.Price)
                         .FirstOrDefault(),
                     Sizes = d.DrinkSizes
                         .Where(ds => ds.Active)
+                        .OrderBy(ds => ds.Price)
+                        .ThenBy(ds => ds.SizeId)
                         .Select(ds => new POSMenuItemSizeDto
                         {
                             SizeId = ds.SizeId,
@@ -96,7 +103,7 @@ namespace CafeChain.Controllers.Api.v1
                             Price = ds.Price
                         }).ToList(),
                     AvailableToppings = d.DrinkToppings
-                        .Where(dt => dt.Topping.Active)
+                        .Where(dt => dt.Topping.Active && storeToppingIds.Contains(dt.ToppingId))
                         .Select(dt => new POSToppingDto
                         {
                             Id = dt.ToppingId,
@@ -106,6 +113,22 @@ namespace CafeChain.Controllers.Api.v1
                         }).ToList()
                 })
                 .ToListAsync();
+
+            foreach (var item in menuItems)
+            {
+                var availableToppings = new List<POSToppingDto>();
+                foreach (var topping in item.AvailableToppings)
+                {
+                    if (await HasSufficientRecipeInventoryAsync(storeId, null, null, topping.Id))
+                    {
+                        availableToppings.Add(topping);
+                    }
+                }
+
+                item.AvailableToppings = availableToppings;
+                item.IsAvailable = item.Sizes.Any()
+                    && await AnySizeHasSufficientRecipeInventoryAsync(storeId, item.Id, item.Sizes);
+            }
 
             return Ok(menuItems);
         }
@@ -131,6 +154,91 @@ namespace CafeChain.Controllers.Api.v1
                 .ToListAsync();
 
             return Ok(toppings);
+        }
+
+        private async Task<bool> AnySizeHasSufficientRecipeInventoryAsync(
+            int storeId,
+            int drinkId,
+            List<POSMenuItemSizeDto> sizes)
+        {
+            foreach (var size in sizes)
+            {
+                if (await HasSufficientRecipeInventoryAsync(storeId, drinkId, size.SizeId, null))
+                    return true;
+            }
+
+            return false;
+        }
+
+        private async Task<bool> HasSufficientRecipeInventoryAsync(
+            int storeId,
+            int? drinkId,
+            int? sizeId,
+            int? toppingId)
+        {
+            var recipe = await _context.Recipes
+                .Include(r => r.RecipeDetails)
+                .FirstOrDefaultAsync(r =>
+                    r.Active &&
+                    r.Status == "Active" &&
+                    r.DrinkId == drinkId &&
+                    r.SizeId == sizeId &&
+                    r.ToppingId == toppingId);
+
+            if (recipe == null)
+                return false;
+
+            foreach (var detail in recipe.RecipeDetails)
+            {
+                var requiredQty = detail.IngredientId.HasValue
+                    ? await ConvertQuantityToBaseUnitAsync(detail.IngredientId.Value, detail.Quantity, detail.UnitId)
+                    : detail.Quantity;
+
+                var inventory = await _context.StoreInventories
+                    .FirstOrDefaultAsync(i =>
+                        i.StoreId == storeId &&
+                        i.IngredientId == detail.IngredientId &&
+                        i.RecipeId == detail.ChildRecipeId);
+
+                if (inventory == null || inventory.AvailableQty < requiredQty)
+                    return false;
+            }
+
+            return true;
+        }
+
+        private async Task<decimal> ConvertQuantityToBaseUnitAsync(
+            int ingredientId,
+            decimal quantity,
+            int fromUnitId)
+        {
+            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
+            if (ingredient == null || fromUnitId == ingredient.BaseUnitId)
+                return quantity;
+
+            var conversion = await _context.UnitConversions
+                .FirstOrDefaultAsync(uc =>
+                    uc.IngredientId == ingredientId &&
+                    uc.FromUnitId == fromUnitId &&
+                    uc.ToUnitId == ingredient.BaseUnitId);
+
+            if (conversion != null && conversion.FromQuantity > 0)
+                return quantity * (conversion.ToQuantity / conversion.FromQuantity);
+
+            var reverseConversion = await _context.UnitConversions
+                .FirstOrDefaultAsync(uc =>
+                    uc.IngredientId == ingredientId &&
+                    uc.FromUnitId == ingredient.BaseUnitId &&
+                    uc.ToUnitId == fromUnitId);
+
+            if (reverseConversion != null && reverseConversion.ToQuantity > 0)
+                return quantity * (reverseConversion.FromQuantity / reverseConversion.ToQuantity);
+
+            _logger.LogWarning(
+                "[POSCatalog] Missing unit conversion for IngredientId={IngredientId}, UnitId={UnitId}. Using raw quantity.",
+                ingredientId,
+                fromUnitId);
+            return quantity;
         }
     }
 }

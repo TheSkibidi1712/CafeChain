@@ -1,10 +1,24 @@
+import { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import NetworkStatusIndicator from './NetworkStatusIndicator'
 import PrinterStatusBadge from './PrinterStatusBadge'
+import { getPosSession, type PosSession } from '../services/posSession'
 
 export default function TopNavbar() {
   const location = useLocation()
   const currentPath = location.pathname
+  const [session, setSession] = useState<PosSession>(() => getPosSession())
+
+  useEffect(() => {
+    const refreshSession = () => setSession(getPosSession())
+    window.addEventListener('pos-session-changed', refreshSession)
+    window.addEventListener('storage', refreshSession)
+
+    return () => {
+      window.removeEventListener('pos-session-changed', refreshSession)
+      window.removeEventListener('storage', refreshSession)
+    }
+  }, [])
 
   const isTabActive = (path: string) => {
     if (path === '/order') {
@@ -49,14 +63,24 @@ export default function TopNavbar() {
       {/* Right Side Info & Network Status */}
       <div className="flex items-center gap-4">
         <NetworkStatusIndicator />
-        <PrinterStatusBadge />
+        <PrinterStatusBadge storeId={session.storeId ?? 1} />
         <div className="flex items-center gap-2 border-l border-border pl-4">
           <div className="w-8 h-8 rounded-full bg-brand-orange-light flex items-center justify-center">
-            <span className="text-brand-orange text-xs font-bold">NV</span>
+            <span className="text-brand-orange text-xs font-bold">
+              {session.staffName
+                .split(' ')
+                .filter(Boolean)
+                .slice(-2)
+                .map((part) => part[0])
+                .join('')
+                .toUpperCase() || 'POS'}
+            </span>
           </div>
           <div className="hidden sm:block">
-            <p className="text-xs font-semibold text-text-primary leading-tight">Nguyễn Văn A</p>
-            <p className="text-[9px] text-text-muted">Thu ngân • Ca sáng</p>
+            <p className="text-xs font-semibold text-text-primary leading-tight">{session.staffName}</p>
+            <p className="text-[9px] text-text-muted">
+              {session.role}{session.storeId ? ` • Cửa hàng #${session.storeId}` : ''}
+            </p>
           </div>
         </div>
       </div>

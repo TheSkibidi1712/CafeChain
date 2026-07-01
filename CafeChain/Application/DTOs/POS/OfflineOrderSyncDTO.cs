@@ -25,8 +25,10 @@ namespace CafeChain.Application.DTOs.POS
     {
         public int ItemId { get; set; } // DrinkId
         public string ItemName { get; set; }
+        public int? SizeId { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
         public decimal TotalPrice { get; set; }
+        public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
     }
 }
