@@ -194,9 +194,11 @@ namespace CafeChain.Areas.Admin.Controllers
             // Map sang ViewModel
             var vm = new RecipeCreateVM
             {
-                RecipeType = recipe.DrinkId.HasValue ? "POS" : "SUBRECIPE",
+                RecipeType = recipe.ToppingId.HasValue ? "TOPPING" : recipe.DrinkId.HasValue ? "POS" : "SUBRECIPE",
                 DrinkId = recipe.DrinkId,
-                SubRecipeName = recipe.DrinkId.HasValue ? null : recipe.Name,
+                SizeId = recipe.SizeId,
+                ToppingId = recipe.ToppingId,
+                SubRecipeName = recipe.DrinkId.HasValue || recipe.ToppingId.HasValue ? null : recipe.Name,
                 Active = recipe.Active,
                 EffectiveDate = recipe.EffectiveDate ?? System.DateTime.Today,
                 Details = recipe.RecipeDetails.Select(rd => new RecipeDetailVM
@@ -310,6 +312,11 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.Drinks = _context.Drinks
                 .Where(x => x.Active)
                 .Select(x => new { x.DrinkId, x.Name })
+                .ToList<object>();
+
+            ViewBag.Toppings = _context.Toppings
+                .Where(x => x.Active)
+                .Select(x => new { x.ToppingId, x.Name })
                 .ToList<object>();
 
             // Đơn vị tính (OutputUnit dropdown)

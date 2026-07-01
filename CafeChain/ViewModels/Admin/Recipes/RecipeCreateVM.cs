@@ -15,6 +15,9 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public int? DrinkId { get; set; }       // Dropdown 1: Chọn sản phẩm
         public int? SizeId { get; set; }        // Dropdown 2: Chọn Size (cascaded từ DrinkId)
 
+        // ===== CHO LOẠI TOPPING =====
+        public int? ToppingId { get; set; }
+
         // ===== CHO LOẠI SUBRECIPE (Bán thành phẩm) =====
         // Cho người dùng gõ tên Bán thành phẩm mới (VD: Cốt trà sâm bí đao)
         public string? SubRecipeName { get; set; }

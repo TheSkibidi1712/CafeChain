@@ -50,8 +50,8 @@ namespace CafeChain.Application.Services.PayOSIntegration
         private string ClientId => _config["PayOS:ClientId"];
         private string ApiKey => _config["PayOS:ApiKey"];
         private string ChecksumKey => _config["PayOS:ChecksumKey"];
-        private string ReturnUrl => _config["PayOS:ReturnUrl"];
-        private string CancelUrl => _config["PayOS:CancelUrl"];
+        private string ReturnUrl => GetPaymentResultUrl("ReturnUrl", "payment-success");
+        private string CancelUrl => GetPaymentResultUrl("CancelUrl", "payment-cancel");
 
         public PayOSService(AppDbContext context, IConfiguration config, IHttpClientFactory httpClientFactory)
         {
@@ -167,6 +167,20 @@ namespace CafeChain.Application.Services.PayOSIntegration
             var computed = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
 
             return computed == signature.ToLowerInvariant();
+        }
+
+        private string GetPaymentResultUrl(string payOsKey, string fallbackPath)
+        {
+            var configured = _config[$"PayOS:{payOsKey}"];
+            if (!string.IsNullOrWhiteSpace(configured))
+                return configured;
+
+            var frontendBase = _config["PosFrontend:Url"];
+            if (string.IsNullOrWhiteSpace(frontendBase))
+                frontendBase = "http://localhost:5173/order";
+
+            var origin = new Uri(frontendBase).GetLeftPart(UriPartial.Authority);
+            return $"{origin}/{fallbackPath}";
         }
     }
 }

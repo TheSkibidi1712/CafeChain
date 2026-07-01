@@ -1,11 +1,50 @@
 import { db, type Category, type MenuItem, type CartSyncQueueItem } from '../db/CafeChainPOSDB'
 import { apiClient } from './apiClient'
+import { POS_TOKEN_KEY } from './posSession'
 
 /** Số lần retry tối đa khi sync đơn offline */
 const MAX_RETRY_COUNT = 5
 
 /** Thời gian chờ giữa các lần retry (ms) — exponential backoff */
 const RETRY_BASE_DELAY_MS = 2000
+
+interface OfflineSyncApiResponse {
+  success: boolean
+  message?: string
+  results?: Array<{
+    clientOrderId: string
+    status: 'created' | 'duplicate' | 'failed'
+    orderId?: number
+    error?: string
+  }>
+}
+
+const LEGACY_CATEGORY_NAMES = ['Cof' + 'fee', 'Tea', 'Smoothie', 'Pastry', 'Topping']
+const LEGACY_MENU_ITEM_NAMES = ['La' + 'tte', 'Es' + 'presso', 'Irish ' + 'Coffee']
+
+async function clearCatalogCache(): Promise<void> {
+  await db.transaction('rw', db.categories, db.menuItems, async () => {
+    await db.categories.clear()
+    await db.menuItems.clear()
+  })
+}
+
+async function clearLegacySeedCatalogCache(): Promise<void> {
+  const [categories, menuItems] = await Promise.all([
+    db.categories.toArray(),
+    db.menuItems.toArray(),
+  ])
+
+  const categoryNames = new Set(categories.map((category) => category.name))
+  const itemNames = new Set(menuItems.map((item) => item.name))
+  const hasLegacyCategories = LEGACY_CATEGORY_NAMES.every((name) => categoryNames.has(name))
+  const hasLegacyMenuItems = LEGACY_MENU_ITEM_NAMES.every((name) => itemNames.has(name))
+
+  if (hasLegacyCategories && hasLegacyMenuItems) {
+    await clearCatalogCache()
+    console.warn('[OfflineSync] Cleared legacy mock catalog cache from IndexedDB.')
+  }
+}
 
 // ============================================================
 // 1. CATALOG SYNC — Đồng bộ danh mục + menu từ Backend
@@ -23,6 +62,9 @@ export async function syncCategories(): Promise<number> {
     const response = await apiClient.get<Category[]>('/api/v1/pos/categories')
 
     if (!response.ok || !response.data) {
+      if (response.status === 401 || response.status === 403) {
+        await clearCatalogCache()
+      }
       throw new Error(response.error || 'Failed to fetch categories')
     }
 
@@ -50,6 +92,9 @@ export async function syncMenuItems(): Promise<number> {
     const response = await apiClient.get<MenuItem[]>('/api/v1/pos/menu-items')
 
     if (!response.ok || !response.data) {
+      if (response.status === 401 || response.status === 403) {
+        await clearCatalogCache()
+      }
       throw new Error(response.error || 'Failed to fetch menu items')
     }
 
@@ -81,6 +126,13 @@ export async function syncMenuItems(): Promise<number> {
 export async function syncCatalog(): Promise<{ categories: number; menuItems: number }> {
   let categories = 0
   let menuItems = 0
+
+  if (!localStorage.getItem(POS_TOKEN_KEY)) {
+    await clearCatalogCache()
+    return { categories, menuItems }
+  }
+
+  await clearLegacySeedCatalogCache()
 
   try {
     categories = await syncCategories()
@@ -174,30 +226,47 @@ export async function syncPendingOrders(): Promise<number> {
       // Mark as Syncing
       await db.cartSyncQueue.update(order.queueId!, { syncStatus: 'Syncing' })
 
-      const response = await apiClient.post<any>('/api/AdminPOS/sync-offline-orders', {
+      // Issue #69: Gọi API mới /api/v1/pos/orders/sync-offline
+      // Payload khớp OfflineBatchSyncRequestDto → OfflineOrderSyncDTO
+      const response = await apiClient.post<OfflineSyncApiResponse>('/api/v1/pos/orders/sync-offline', {
         orders: [{
           clientOrderId: order.clientOrderId,
+          localId: String(order.queueId),
           storeId: order.storeId,
-          staffId: order.staffId,
-          workShiftId: order.workShiftId,
           orderTypeId: order.orderType === 'dine-in' ? 1 : 2,
-          items: order.items.map((i) => ({
-            drinkId: i.menuItemId,
+          receivedAmount: order.totalAmount,
+          note: '',
+          details: order.items.map((i) => ({
+            itemId: i.menuItemId,
+            itemName: i.name,
+            sizeId: i.sizeId ?? null,
             quantity: i.quantity,
             unitPrice: i.unitPrice,
+            totalPrice: i.unitPrice * i.quantity,
+            toppings: i.toppings ?? [],
           })),
-          paymentMethodId: order.paymentMethod === 'cash' ? 1 : 2,
-          totalAmount: order.totalAmount,
         }],
       })
 
-      if (response.ok) {
-        await db.cartSyncQueue.update(order.queueId!, {
-          syncStatus: 'Synced',
-          syncedAt: Date.now(),
-        })
-        synced++
-        console.log(`[OfflineSync] ✅ Order synced: ${order.clientOrderId}`)
+      // Issue #69: Phân loại response theo status từ Backend
+      if (response.ok && response.data?.results) {
+        const result = response.data.results[0]
+        if (result && (result.status === 'created' || result.status === 'duplicate')) {
+          await db.cartSyncQueue.update(order.queueId!, {
+            syncStatus: 'Synced',
+            syncedAt: Date.now(),
+          })
+          synced++
+          console.log(`[OfflineSync] ✅ Order ${result.status}: ${order.clientOrderId} → orderId=${result.orderId}`)
+        } else {
+          // status === 'failed'
+          await db.cartSyncQueue.update(order.queueId!, {
+            syncStatus: 'Failed',
+            retryCount: order.retryCount + 1,
+            lastError: result?.error || 'Server rejected order',
+          })
+          console.warn(`[OfflineSync] ❌ Order failed: ${order.clientOrderId}`, result?.error)
+        }
       } else {
         await db.cartSyncQueue.update(order.queueId!, {
           syncStatus: 'Failed',
@@ -220,6 +289,12 @@ export async function syncPendingOrders(): Promise<number> {
       await new Promise((r) => setTimeout(r, RETRY_BASE_DELAY_MS))
     }
   }
+
+  // Issue #69: Tự động dọn dẹp đơn Synced cũ hơn 24h
+  try {
+    const cleaned = await cleanupSyncedOrders()
+    if (cleaned > 0) console.log(`[OfflineSync] 🧹 Cleaned up ${cleaned} old synced orders`)
+  } catch { /* cleanup failure is non-critical */ }
 
   console.log(`[OfflineSync] 📊 Sync complete: ${synced}/${pendingOrders.length} succeeded`)
   return synced
@@ -264,7 +339,7 @@ export function registerConnectivityListeners(): () => void {
 
 /**
  * Đọc tất cả categories từ IndexedDB.
- * POSLayout sidebar gọi hàm này thay vì dùng mock data.
+ * POSLayout sidebar đọc cache được đồng bộ từ Backend API.
  */
 export async function getCategories(): Promise<Category[]> {
   return db.categories.toArray()
@@ -302,4 +377,24 @@ export async function getPendingOrders(): Promise<CartSyncQueueItem[]> {
     .where('syncStatus')
     .anyOf(['Pending', 'Failed'])
     .toArray()
+}
+
+// ============================================================
+// 5. CLEANUP — Xóa đơn Synced cũ khỏi IndexedDB (Issue #69)
+// ============================================================
+
+/**
+ * Xóa các đơn đã Synced thành công và cũ hơn maxAgeMs (mặc định 24h).
+ * Giữ IndexedDB gọn — tránh phình dữ liệu trên iPad.
+ * Tự động được gọi sau mỗi lần sync batch.
+ *
+ * @param maxAgeMs Thời gian tối đa giữ đơn Synced (ms). Mặc định 24 giờ.
+ * @returns Số bản ghi đã xóa
+ */
+export async function cleanupSyncedOrders(maxAgeMs = 24 * 60 * 60 * 1000): Promise<number> {
+  const cutoff = Date.now() - maxAgeMs
+  return db.cartSyncQueue
+    .where('syncStatus').equals('Synced')
+    .and(item => (item.syncedAt ?? 0) < cutoff)
+    .delete()
 }

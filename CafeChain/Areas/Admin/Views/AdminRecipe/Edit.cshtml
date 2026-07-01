@@ -60,6 +60,10 @@
                     <label class="btn btn-outline-primary py-3" for="typePOS">
                         <i class="fas fa-cash-register me-2"></i> Món bán (POS)
                     </label>
+                    <input type="radio" class="btn-check" name="RecipeType" id="typeTOPPING" value="TOPPING" autocomplete="off" @(Model.RecipeType == "TOPPING" ? "checked" : "")>
+                    <label class="btn btn-outline-primary py-3" for="typeTOPPING">
+                        <i class="fas fa-plus-circle me-2"></i> Topping
+                    </label>
                     <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off" @(Model.RecipeType == "SUBRECIPE" ? "checked" : "")>
                     <label class="btn btn-outline-primary py-3" for="typeSUBRECIPE">
                         <i class="fas fa-flask me-2"></i> Bán thành phẩm (Sơ chế)
@@ -98,6 +102,27 @@
                         <label class="form-label fw-bold">Size</label>
                         <select name="SizeId" id="sizeSelect" class="form-select">
                             <option value="">-- Chọn Size --</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 conditional-section" id="sectionTopping" style="@(Model.RecipeType == "TOPPING" ? "" : "display:none;")">
+                        <label class="form-label fw-bold">Topping <span class="text-danger">*</span></label>
+                        <select name="ToppingId" id="toppingSelect" class="form-select">
+                            <option value="">-- Chọn topping --</option>
+                            @if (ViewBag.Toppings != null)
+                            {
+                                foreach (dynamic topping in ViewBag.Toppings)
+                                {
+                                    var isSelected = Model.ToppingId.HasValue && Model.ToppingId.Value == (int)topping.ToppingId;
+                                    if (isSelected)
+                                    {
+                                        <option value="@topping.ToppingId" selected>@topping.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@topping.ToppingId">@topping.Name</option>
+                                    }
+                                }
+                            }
                         </select>
                     </div>
                     <div class="col-md-4 conditional-section" id="sectionSub_Recipe" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
@@ -232,15 +257,67 @@
             $('input[name="RecipeType"]').on('change', function () {
                 const type = $(this).val();
                 if (type === 'POS') {
-                    $('#sectionPOS_Drink, #sectionPOS_Size').show();
-                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#sectionPOS_Drink').show();
+                    if ($('#drinkSelect').val()) {
+                        $('#sectionPOS_Size').show();
+                    }
+                    $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                    $('#toppingSelect').val('').trigger('change');
                 } else {
                     $('#sectionPOS_Drink, #sectionPOS_Size').hide();
-                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
+                    if (type === 'TOPPING') {
+                        $('#sectionTopping').fadeIn(200);
+                        $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
+                        $('#subRecipeInput').val('');
+                        $('input[name="ExpectedYield"]').val('');
+                        $('select[name="OutputUnitId"]').val('');
+                    } else {
+                        $('#sectionTopping').hide();
+                        $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
+                        $('#toppingSelect').val('').trigger('change');
+                    }
                 }
             });
 
             $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
+            $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
+
+            const selectedSizeId = @((Model.SizeId ?? 0));
+
+            function loadSizesForDrink(drinkId, selectedSize) {
+                const sizeSection = $('#sectionPOS_Size');
+                const sizeSelect = $('#sizeSelect');
+                if (!drinkId) {
+                    sizeSection.hide();
+                    sizeSelect.html('<option value="">-- Chọn Size --</option>');
+                    return;
+                }
+
+                $.getJSON('@Url.Action("GetSizesByDrink", "AdminRecipe", new { area = "Admin" })', { drinkId: drinkId }, function (data) {
+                    let html = '<option value="">-- Chọn Size --</option>';
+                    if (data && data.length > 0) {
+                        data.forEach(function (s) {
+                            const selected = selectedSize && selectedSize === s.sizeId ? ' selected' : '';
+                            const price = new Intl.NumberFormat('vi-VN').format(s.price);
+                            html += `<option value="${s.sizeId}" data-price="${s.price}"${selected}>${s.sizeName} (${price}đ)</option>`;
+                        });
+                    } else {
+                        html += '<option value="" disabled>Chưa có Size</option>';
+                    }
+                    sizeSelect.html(html);
+                    if ($('input[name="RecipeType"]:checked').val() === 'POS') {
+                        sizeSection.fadeIn(200);
+                    }
+                });
+            }
+
+            $('#drinkSelect').on('change', function () {
+                loadSizesForDrink($(this).val(), 0);
+            });
+
+            if ($('input[name="RecipeType"]:checked').val() === 'POS' && $('#drinkSelect').val()) {
+                loadSizesForDrink($('#drinkSelect').val(), selectedSizeId);
+            }
 
             function calculateTotal() {
                 let grandTotal = 0;

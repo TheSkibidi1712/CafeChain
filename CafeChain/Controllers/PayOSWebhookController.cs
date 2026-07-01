@@ -1,4 +1,7 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Data;
 using CafeChain.Hubs;
@@ -24,23 +27,33 @@ namespace CafeChain.Controllers
     public class PayOSWebhookController : ControllerBase
     {
         private readonly AppDbContext _context;
-        private readonly IPayOSService _payOSService;
-        private readonly IHubContext<OrderHub> _hubContext;
+        private readonly Net.payOS.PayOS _payOS;
+        private readonly IHubContext<OrderHub> _orderHubContext;
+        private readonly IHubContext<PaymentHub> _paymentHubContext;
+        private readonly IPrintDispatcher _printDispatcher;
+        private readonly IInventoryDeductionService _inventoryService;
         private readonly ILogger<PayOSWebhookController> _logger;
 
         public PayOSWebhookController(
             AppDbContext context,
-            IPayOSService payOSService,
-            IHubContext<OrderHub> hubContext,
+            Net.payOS.PayOS payOS,
+            IHubContext<OrderHub> orderHubContext,
+            IHubContext<PaymentHub> paymentHubContext,
+            IPrintDispatcher printDispatcher,
+            IInventoryDeductionService inventoryService,
             ILogger<PayOSWebhookController> logger)
         {
             _context = context;
-            _payOSService = payOSService;
-            _hubContext = hubContext;
+            _payOS = payOS;
+            _orderHubContext = orderHubContext;
+            _paymentHubContext = paymentHubContext;
+            _printDispatcher = printDispatcher;
+            _inventoryService = inventoryService;
             _logger = logger;
         }
 
         [HttpPost("api/payos-webhook")]
+        [HttpPost("api/v1/pos/payments/webhook")]
         public async Task<IActionResult> HandleWebhook()
         {
             string rawBody = "";
@@ -53,10 +66,23 @@ namespace CafeChain.Controllers
                 _logger.LogInformation("[PayOS Webhook] Received: {Body}", rawBody);
 
                 // ===== BƯỚC 1: VERIFY SIGNATURE (Zero-Trust) =====
-                var signature = Request.Headers["x-payos-signature"].FirstOrDefault();
-                if (!_payOSService.VerifyWebhookSignature(rawBody, signature))
+                var webhookBody = JsonSerializer.Deserialize<Net.payOS.Types.WebhookType>(
+                    rawBody,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (webhookBody == null)
                 {
-                    _logger.LogWarning("[PayOS Webhook] SIGNATURE INVALID.");
+                    return Ok(new { code = "INVALID_PAYLOAD", message = "Payload không hợp lệ." });
+                }
+
+                Net.payOS.Types.WebhookData verifiedData;
+                try
+                {
+                    verifiedData = _payOS.verifyPaymentWebhookData(webhookBody);
+                }
+                catch (Exception verifyEx)
+                {
+                    _logger.LogWarning(verifyEx, "[PayOS Webhook] SIGNATURE INVALID.");
                     return Ok(new { code = "INVALID_SIGNATURE", message = "Chữ ký không hợp lệ." });
                 }
 
@@ -70,29 +96,47 @@ namespace CafeChain.Controllers
                     return Ok(new { code = "INVALID_PAYLOAD", message = "Thiếu trường data." });
                 }
 
-                var orderCode = data.GetProperty("orderCode").GetInt64();
-                var amount = data.GetProperty("amount").GetDecimal();
+                var orderCode = verifiedData.orderCode;
+                var orderCodeText = orderCode.ToString();
+                var amount = Convert.ToDecimal(verifiedData.amount);
                 var description = data.TryGetProperty("description", out var desc)
-                    ? desc.GetString() : "";
-                var transactionId = data.TryGetProperty("reference", out var refProp)
-                    ? refProp.GetString()
-                    : data.TryGetProperty("paymentLinkId", out var plId)
-                        ? plId.GetString() : $"PAYOS_{orderCode}";
+                    ? desc.GetString() ?? ""
+                    : "";
+                var transactionId = verifiedData.reference;
+                if (string.IsNullOrWhiteSpace(transactionId))
+                {
+                    transactionId = data.TryGetProperty("paymentLinkId", out var plId)
+                        ? plId.GetString()
+                        : $"PAYOS_{orderCodeText}";
+                }
                 var status = data.TryGetProperty("code", out var codeProp)
                     ? codeProp.GetString() : "00"; // "00" = success
-
-                int orderId = (int)orderCode; // Mapping ngược: long → int
 
                 // ===== BƯỚC 3: IDEMPOTENCY CHECK =====
                 var order = await _context.Orders
                     .Include(o => o.Payments)
-                    .FirstOrDefaultAsync(o => o.OrderId == orderId);
+                    .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
+                    .Include(o => o.Store)
+                    .Include(o => o.Staff)
+                    .FirstOrDefaultAsync(o => o.PaymentReference == orderCodeText);
+
+                if (order == null && TryExtractOrderId(orderCodeText, out var fallbackOrderId))
+                {
+                    order = await _context.Orders
+                        .Include(o => o.Payments)
+                        .Include(o => o.OrderDetails).ThenInclude(od => od.OrderToppings)
+                        .Include(o => o.Store)
+                        .Include(o => o.Staff)
+                        .FirstOrDefaultAsync(o => o.OrderId == fallbackOrderId);
+                }
 
                 if (order == null)
                 {
-                    _logger.LogWarning("[PayOS Webhook] Order #{OrderId} not found.", orderId);
-                    return Ok(new { code = "ORDER_NOT_FOUND", message = $"Đơn #{orderId} không tồn tại." });
+                    _logger.LogWarning("[PayOS Webhook] OrderCode {OrderCode} not found.", orderCodeText);
+                    return Ok(new { code = "ORDER_NOT_FOUND", message = $"Không tìm thấy đơn cho orderCode {orderCodeText}." });
                 }
+
+                var orderId = order.OrderId;
 
                 // Đã thanh toán rồi → skip (Idempotent)
                 if (order.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
@@ -145,9 +189,11 @@ namespace CafeChain.Controllers
                 using var transaction = await _context.Database.BeginTransactionAsync();
                 try
                 {
-                    // 5a. Cập nhật Order: PaymentStatus = Paid, giữ OrderStatus = Pending
+                    // 5a. Cập nhật Order: POS hoàn tất ngay, Website chuyển sang Pending để Admin/KDS xử lý
                     order.PaymentStatusId = SystemConstants.PaymentStatuses.Paid;
-                    // OrderStatus giữ nguyên Pending — Admin sẽ duyệt trên Kanban
+                    order.OrderStatusId = string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase)
+                        ? SystemConstants.OrderStatuses.Completed
+                        : SystemConstants.OrderStatuses.Pending;
 
                     // 5b. Cập nhật Payment record
                     var payment = order.Payments.FirstOrDefault(p =>
@@ -185,12 +231,35 @@ namespace CafeChain.Controllers
                 }
 
                 // ===== BƯỚC 6: SIGNALR — SAU KHI COMMIT THÀNH CÔNG =====
-                // [FIX.md §2] Chỉ bắn tín hiệu cho Group("Order_{orderId}") — KHÔNG dùng Clients.All
-                await _hubContext.Clients.Group($"Order_{orderId}")
+                if (string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase))
+                {
+                    await DeductInventoryForPaidPosOrderSafeAsync(order);
+
+                    var cashierName = order.Staff?.FullName ?? "POS";
+                    await _printDispatcher.DispatchPrintJobAsync(
+                        order,
+                        order.StoreId,
+                        cashierName,
+                        order.Total,
+                        isCashPayment: false);
+                }
+
+                // [FIX.md §2] Chỉ bắn tín hiệu cho đúng group — KHÔNG dùng Clients.All
+                await _orderHubContext.Clients.Group($"Order_{orderId}")
                     .SendAsync("PaymentCompleted", orderId);
 
+                await _paymentHubContext.Clients.Group(orderId.ToString())
+                    .SendAsync("ReceivePaymentSuccess", new
+                    {
+                        OrderId = orderId,
+                        TotalAmount = order.Total,
+                        ItemCount = order.OrderDetails?.Sum(d => d.Quantity) ?? 0,
+                        PaymentMethod = "Chuyển khoản VietQR - PayOS",
+                        PaidAt = DateTime.Now.ToString("HH:mm:ss dd/MM/yyyy")
+                    });
+
                 // Đồng thời thông báo Admin Kanban
-                await _hubContext.Clients.Group("AdminDashboard")
+                await _orderHubContext.Clients.Group("AdminDashboard")
                     .SendAsync("ReceiveNewOrder", orderId);
 
                 return Ok(new { code = "SUCCESS", message = "Thanh toán thành công." });
@@ -201,6 +270,58 @@ namespace CafeChain.Controllers
                 // Trả 200 OK để PayOS không retry
                 return Ok(new { code = "INTERNAL_ERROR", message = "Lỗi hệ thống." });
             }
+        }
+
+        private async Task DeductInventoryForPaidPosOrderSafeAsync(CafeChain.Models.Orders.Order order)
+        {
+            try
+            {
+                var soldItems = order.OrderDetails
+                    .Select(item => new POSSoldItemDto
+                    {
+                        DrinkId = item.DrinkId,
+                        SizeId = item.SizeId,
+                        Quantity = item.Quantity,
+                        Toppings = item.OrderToppings
+                            .Select(topping => new POSOrderToppingDto { ToppingId = topping.ToppingId })
+                            .ToList()
+                    })
+                    .ToList();
+
+                var result = await _inventoryService.DeductStockForOrderAsync(soldItems, order.StoreId);
+                if (!result.IsSuccess)
+                {
+                    _logger.LogError(
+                        "[PayOS Webhook] Inventory deduction failed for POS Order #{OrderId}: {Message}",
+                        order.OrderId,
+                        result.Message);
+                }
+                else if (result.Errors != null && result.Errors.Any())
+                {
+                    _logger.LogWarning(
+                        "[PayOS Webhook] Inventory warnings for POS Order #{OrderId}: {Warnings}",
+                        order.OrderId,
+                        string.Join(" | ", result.Errors));
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[PayOS Webhook] Unexpected inventory error for POS Order #{OrderId}.", order.OrderId);
+            }
+        }
+
+        private static bool TryExtractOrderId(string orderCodeText, out int orderId)
+        {
+            orderId = 0;
+
+            if (int.TryParse(orderCodeText, out orderId))
+                return true;
+
+            if (orderCodeText.Length <= 9)
+                return false;
+
+            var prefix = orderCodeText[..^9];
+            return int.TryParse(prefix, out orderId);
         }
     }
 }

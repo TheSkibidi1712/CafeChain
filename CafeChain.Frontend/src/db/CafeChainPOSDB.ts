@@ -13,7 +13,7 @@ import Dexie, { type EntityTable } from 'dexie'
 export interface Category {
   /** Primary Key — từ Backend (categories.CategoryId) */
   id: number
-  /** Tên danh mục (VD: "Coffee", "Tea") */
+  /** Tên danh mục từ Backend */
   name: string
   /** Emoji icon hiển thị trên sidebar */
   icon: string
@@ -40,8 +40,25 @@ export interface MenuItem {
   image?: string
   /** Trạng thái: true = đang bán, false = ngừng bán */
   isAvailable: boolean
+  /** Danh sách size khả dụng từ Backend */
+  sizes?: MenuItemSize[]
+  /** Danh sách topping khả dụng cho món này từ Backend */
+  availableToppings?: ToppingOption[]
   /** Timestamp lần sync gần nhất (epoch ms) */
   syncedAt: number
+}
+
+export interface MenuItemSize {
+  sizeId: number
+  sizeName: string
+  price: number
+}
+
+export interface ToppingOption {
+  id: number
+  name: string
+  price: number
+  imageUrl?: string
 }
 
 /**
@@ -77,8 +94,10 @@ export interface CartSyncQueueItem {
   items: Array<{
     menuItemId: number
     name: string
+    sizeId?: number | null
     quantity: number
     unitPrice: number
+    toppings?: Array<{ toppingId: number }>
   }>
   /** Tổng tiền */
   totalAmount: number

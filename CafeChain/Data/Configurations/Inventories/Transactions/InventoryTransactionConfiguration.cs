@@ -16,12 +16,6 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                     "[Quantity] <> 0"
                 );
 
-                // Tồn kho sau giao dịch không được âm
-                table.HasCheckConstraint(
-                    "CK_InventoryTransaction_AfterQty",
-                    "[AfterQty] >= 0"
-                );
-
                 // Giá vốn không âm
                 table.HasCheckConstraint(
                     "CK_InventoryTransaction_UnitCost",

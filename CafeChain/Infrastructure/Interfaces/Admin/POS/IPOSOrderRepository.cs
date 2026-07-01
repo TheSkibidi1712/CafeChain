@@ -1,3 +1,4 @@
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Orders;
@@ -24,8 +25,8 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         Task<object> SearchCustomerByPhoneAsync(string phone);
 
         // === DRINK & TOPPING LOOKUP ===
-        Task<Drink> GetDrinkWithSizesAsync(int drinkId);
-        Task<List<Topping>> GetToppingsByIdsAsync(List<int> toppingIds);
+        Task<Drink> GetDrinkWithSizesAsync(int drinkId, int storeId);
+        Task<List<Topping>> GetValidToppingsForOrderItemAsync(int storeId, int drinkId, List<int> toppingIds);
 
         // === ORDER CRUD ===
         Task<Order> CreateOrderAsync(Order order);
@@ -35,6 +36,12 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         /// Trả về null nếu chưa tồn tại — an toàn để commit đơn mới.
         /// </summary>
         Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId);
+
+        /// <summary>
+        /// Issue #68: Lấy danh sách đơn hàng POS có phân trang.
+        /// Sử dụng .Select() projection để tránh N+1.
+        /// </summary>
+        Task<(List<POSOrderHistoryDto> Items, int TotalCount)> GetOrderHistoryAsync(int storeId, int page, int pageSize);
 
         Task CreatePaymentAsync(Payment payment);
         Task CreateOrderVoucherAsync(OrderVoucher orderVoucher);

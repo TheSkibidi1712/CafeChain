@@ -34,5 +34,10 @@ namespace CafeChain.Application.Interfaces.POS
         /// Đăng ký nhanh khách hàng hội viên từ POS
         /// </summary>
         Task<ServiceResult<object>> RegisterCustomerAsync(CafeChain.Application.DTOs.POS.QuickCustomerRegisterDto dto);
+
+        /// <summary>
+        /// Issue #68: Lấy lịch sử đơn hàng POS có phân trang
+        /// </summary>
+        Task<ServiceResult<object>> GetOrderHistoryAsync(int storeId, int page, int pageSize);
     }
 }

@@ -33,6 +33,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần (Details trống).");
             }
 
+            var targetValidation = await ValidateRecipeTargetAsync(model);
+            if (!targetValidation.IsSuccess)
+                return targetValidation;
+
             // === VALIDATION LAYER (Zero-Trust) ===
             var validationResult = ValidateDetails(model.Details);
             if (!validationResult.IsSuccess)
@@ -57,26 +61,15 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     return unitValidation;
                 }
 
-                // V3: Name resolution — no free-text allowed
-                string recipeName;
-                if (model.RecipeType == "POS" && model.DrinkId.HasValue)
-                {
-                    var drink = await _context.Drinks.FindAsync(model.DrinkId.Value);
-                    recipeName = drink?.Name ?? $"POS_Recipe_{model.DrinkId}";
-                }
-                else if (model.RecipeType == "SUBRECIPE" && !string.IsNullOrWhiteSpace(model.SubRecipeName))
-                {
-                    recipeName = model.SubRecipeName;
-                }
-                else
-                {
-                    recipeName = $"Recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
-                }
+                string recipeName = await ResolveRecipeNameAsync(model);
 
                 var recipe = new Recipe
                 {
+                    RecipeCode = GenerateRecipeCode(model),
                     Name = recipeName,
                     DrinkId = model.RecipeType == "POS" ? model.DrinkId : null,
+                    SizeId = model.RecipeType == "POS" ? model.SizeId : null,
+                    ToppingId = model.RecipeType == "TOPPING" ? model.ToppingId : null,
                     YieldPercentage = 100,
                     Active = model.Active,
                     Status = "Active",
@@ -140,6 +133,10 @@ namespace CafeChain.Application.Services.Admin.Recipes
             {
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần.");
             }
+
+            var targetValidation = await ValidateRecipeTargetAsync(model);
+            if (!targetValidation.IsSuccess)
+                return targetValidation;
 
             // === VALIDATION LAYER (Zero-Trust) ===
             var validationResult = ValidateDetails(model.Details);
@@ -210,31 +207,20 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 oldRecipe.Active = false;
 
                 // 5. Tạo phiên bản MỚI với ParentVersionId trỏ về bản cũ
-                string recipeName;
-                if (model.RecipeType == "POS" && model.DrinkId.HasValue)
-                {
-                    var drink = await _context.Drinks.FindAsync(model.DrinkId.Value);
-                    recipeName = drink?.Name ?? oldRecipe.Name;
-                }
-                else if (model.RecipeType == "SUBRECIPE" && !string.IsNullOrWhiteSpace(model.SubRecipeName))
-                {
-                    recipeName = model.SubRecipeName;
-                }
-                else
-                {
-                    recipeName = oldRecipe.Name;
-                }
+                string recipeName = await ResolveRecipeNameAsync(model);
 
                 var newRecipe = new Recipe
                 {
+                    RecipeCode = GenerateRecipeCode(model),
                     Name = recipeName,
                     YieldPercentage = 100,
                     Active = model.Active,
                     Status = "Active",
                     EffectiveDate = model.EffectiveDate,
                     ParentVersionId = oldRecipe.RecipeId, // Audit Trail
-                    DrinkId = oldRecipe.DrinkId,
-                    ToppingId = oldRecipe.ToppingId,
+                    DrinkId = model.RecipeType == "POS" ? model.DrinkId : null,
+                    SizeId = model.RecipeType == "POS" ? model.SizeId : null,
+                    ToppingId = model.RecipeType == "TOPPING" ? model.ToppingId : null,
                     RecipeDetails = new List<RecipeDetail>()
                 };
 
@@ -340,6 +326,84 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 await transaction.RollbackAsync();
                 return ServiceResult.Failure($"Lỗi hệ thống khi xóa: {ex.Message}");
             }
+        }
+
+        // ============================================================
+        // PRIVATE: Validate target Recipe — POS drink/size, topping, or subrecipe
+        // ============================================================
+        private async Task<ServiceResult> ValidateRecipeTargetAsync(RecipeCreateVM model)
+        {
+            if (model.RecipeType == "POS")
+            {
+                if (!model.DrinkId.HasValue)
+                    return ServiceResult.Failure("Công thức món bán phải chọn sản phẩm.");
+
+                if (!model.SizeId.HasValue)
+                    return ServiceResult.Failure("Công thức món bán phải chọn size.");
+
+                var hasDrinkSize = await _context.DrinkSizes
+                    .AnyAsync(ds => ds.DrinkId == model.DrinkId.Value
+                                 && ds.SizeId == model.SizeId.Value
+                                 && ds.Active);
+
+                if (!hasDrinkSize)
+                    return ServiceResult.Failure("Size không hợp lệ hoặc không hoạt động cho sản phẩm đã chọn.");
+            }
+            else if (model.RecipeType == "TOPPING")
+            {
+                if (!model.ToppingId.HasValue)
+                    return ServiceResult.Failure("Công thức topping phải chọn topping.");
+
+                var hasTopping = await _context.Toppings
+                    .AnyAsync(t => t.ToppingId == model.ToppingId.Value && t.Active);
+
+                if (!hasTopping)
+                    return ServiceResult.Failure("Topping không tồn tại hoặc đã ngưng hoạt động.");
+            }
+            else if (model.RecipeType == "SUBRECIPE")
+            {
+                if (string.IsNullOrWhiteSpace(model.SubRecipeName))
+                    return ServiceResult.Failure("Công thức bán thành phẩm phải có tên.");
+            }
+            else
+            {
+                return ServiceResult.Failure("Loại công thức không hợp lệ.");
+            }
+
+            return ServiceResult.Success();
+        }
+
+        private async Task<string> ResolveRecipeNameAsync(RecipeCreateVM model)
+        {
+            if (model.RecipeType == "POS" && model.DrinkId.HasValue)
+            {
+                var drink = await _context.Drinks.FindAsync(model.DrinkId.Value);
+                var size = model.SizeId.HasValue ? await _context.Sizes.FindAsync(model.SizeId.Value) : null;
+                return size == null ? drink?.Name ?? $"POS_Recipe_{model.DrinkId}" : $"{drink?.Name ?? "POS"} - Size {size.Name}";
+            }
+
+            if (model.RecipeType == "TOPPING" && model.ToppingId.HasValue)
+            {
+                var topping = await _context.Toppings.FindAsync(model.ToppingId.Value);
+                return topping?.Name ?? $"Topping_Recipe_{model.ToppingId}";
+            }
+
+            if (model.RecipeType == "SUBRECIPE" && !string.IsNullOrWhiteSpace(model.SubRecipeName))
+                return model.SubRecipeName.Trim();
+
+            return $"Recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
+        }
+
+        private string GenerateRecipeCode(RecipeCreateVM model)
+        {
+            var stamp = DateTime.UtcNow.ToString("yyyyMMddHHmmssfff");
+            return model.RecipeType switch
+            {
+                "POS" => $"RCP_D{model.DrinkId}_S{model.SizeId}_{stamp}",
+                "TOPPING" => $"RCP_T{model.ToppingId}_{stamp}",
+                "SUBRECIPE" => $"RCP_SUB_{stamp}",
+                _ => $"RCP_{stamp}"
+            };
         }
 
         // ============================================================

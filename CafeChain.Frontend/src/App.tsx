@@ -3,6 +3,7 @@ import TopNavbar from './components/TopNavbar'
 import POSLayout from './POSLayout'
 import OrderHistory from './pages/OrderHistory'
 import ShiftSummary from './pages/ShiftSummary'
+import PaymentResult from './pages/PaymentResult'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
 function RootLayout() {
@@ -21,6 +22,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        <Route path="/payment-success" element={<PaymentResult status="success" />} />
+        <Route path="/payment-cancel" element={<PaymentResult status="cancel" />} />
         <Route path="/" element={<RootLayout />}>
           <Route index element={<Navigate to="/order" replace />} />
           <Route path="order" element={<POSLayout />} />

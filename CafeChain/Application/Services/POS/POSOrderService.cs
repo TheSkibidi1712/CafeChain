@@ -1,7 +1,9 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
+using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Orders;
@@ -25,6 +27,7 @@ namespace CafeChain.Application.Services.POS
         private readonly IWorkShiftService _workShiftService;
         private readonly IAdminVoucherService _voucherService;
         private readonly IPrintDispatcher _printDispatcher;
+        private readonly IPayOSService _payOSService;
         private readonly ILogger<POSOrderService> _logger;
 
         public POSOrderService(
@@ -32,12 +35,14 @@ namespace CafeChain.Application.Services.POS
             IWorkShiftService workShiftService,
             IAdminVoucherService voucherService,
             IPrintDispatcher printDispatcher,
+            IPayOSService payOSService,
             ILogger<POSOrderService> logger)
         {
             _repository = repository;
             _workShiftService = workShiftService;
             _voucherService = voucherService;
             _printDispatcher = printDispatcher;
+            _payOSService = payOSService;
             _logger = logger;
         }
 
@@ -125,11 +130,79 @@ namespace CafeChain.Application.Services.POS
         // ============================================================
         public async Task<ServiceResult<object>> CommitOrderAsync(POSOrderCommitDto dto, int userId, int storeId)
         {
+            // ── ADR-0002: IDEMPOTENCY CHECK — trước khi bắt đầu transaction ──
+            // Nếu ClientOrderId đã tồn tại → trả order cũ (200), không tạo duplicate
+            if (dto.ClientOrderId.HasValue)
+            {
+                var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+                if (existingOrder != null)
+                {
+                    _logger.LogInformation(
+                        "[CommitOrder] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
+                        existingOrder.OrderId, dto.ClientOrderId);
+
+                    var idempotentChange = dto.ReceivedAmount - existingOrder.Total;
+                    var isExistingPayOsOrder = existingOrder.Payments?.Any(p => p.PaymentMethodId == 2) == true
+                        && existingOrder.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid;
+
+                    if (isExistingPayOsOrder)
+                    {
+                        PayOSCreateLinkResult existingPaymentLink;
+                        try
+                        {
+                            existingPaymentLink = await _payOSService.CreatePaymentLinkAsync(existingOrder.OrderId);
+                        }
+                        catch (Exception payOsEx)
+                        {
+                            _logger.LogError(
+                                payOsEx,
+                                "[CommitOrder] Không thể tạo lại PayOS link cho Order #{OrderId}.",
+                                existingOrder.OrderId);
+                            return ServiceResult<object>.Failure("Không thể tạo mã thanh toán VietQR: " + payOsEx.Message);
+                        }
+
+                        return ServiceResult<object>.Success(new
+                        {
+                            orderId = existingOrder.OrderId,
+                            clientOrderId = existingOrder.ClientOrderId?.ToString(),
+                            subTotal = existingOrder.SubTotal,
+                            voucherDiscount = existingOrder.VoucherDiscount,
+                            pointDiscount = existingOrder.PointDiscount,
+                            total = existingOrder.Total,
+                            receivedAmount = dto.ReceivedAmount,
+                            changeAmount = 0m,
+                            earnedPoints = 0,
+                            isIdempotent = true,
+                            requiresPayment = true,
+                            paymentMethodId = 2,
+                            checkoutUrl = existingPaymentLink.CheckoutUrl,
+                            qrCode = existingPaymentLink.QrCode,
+                            orderCode = existingPaymentLink.OrderCode
+                        } as object, "Đơn chuyển khoản đã tồn tại, tiếp tục chờ thanh toán.");
+                    }
+
+                    return ServiceResult<object>.Success(new
+                    {
+                        orderId = existingOrder.OrderId,
+                        clientOrderId = existingOrder.ClientOrderId?.ToString(),
+                        subTotal = existingOrder.SubTotal,
+                        voucherDiscount = existingOrder.VoucherDiscount,
+                        pointDiscount = existingOrder.PointDiscount,
+                        total = existingOrder.Total,
+                        receivedAmount = dto.ReceivedAmount,
+                        changeAmount = idempotentChange > 0 ? idempotentChange : 0m,
+                        earnedPoints = 0,  // Không tính lại điểm — order cũ đã xử lý
+                        isIdempotent = true
+                    } as object, "Đơn hàng đã tồn tại (idempotent).");
+                }
+            }
+
             var activeShift = await _workShiftService.GetActiveShiftAsync(userId, storeId);
             if (activeShift == null)
                 return ServiceResult<object>.Failure("Phiên két tiền đã đóng, vui lòng mở ca mới để tiếp tục bán hàng.");
 
             await _repository.BeginTransactionAsync();
+            var transactionCommitted = false;
             try
             {
                 // 1. Calculate order totals
@@ -138,29 +211,47 @@ namespace CafeChain.Application.Services.POS
 
                 foreach (var item in dto.Items)
                 {
-                    var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId);
-                    if (drink == null) continue;
+                    var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId, storeId);
+                    if (drink == null)
+                        return ServiceResult<object>.Failure($"Sản phẩm #{item.DrinkId} không tồn tại hoặc không bán tại cửa hàng này.");
 
                     decimal itemBasePrice = 0;
                     string? sizeName = null;
 
                     if (item.SizeId.HasValue)
                     {
-                        var drinkSize = drink.DrinkSizes.FirstOrDefault(ds => ds.SizeId == item.SizeId.Value);
-                        if (drinkSize != null) { itemBasePrice = drinkSize.Price; sizeName = drinkSize.Size?.Name; }
+                        var drinkSize = drink.DrinkSizes.FirstOrDefault(ds => ds.SizeId == item.SizeId.Value && ds.Active);
+                        if (drinkSize == null)
+                            return ServiceResult<object>.Failure($"Size #{item.SizeId.Value} không hợp lệ cho sản phẩm {drink.Name}.");
+
+                        itemBasePrice = drinkSize.Price;
+                        sizeName = drinkSize.Size?.Name;
                     }
                     else
                     {
-                        var defaultSize = drink.DrinkSizes.FirstOrDefault(ds => ds.Active);
-                        if (defaultSize != null) { itemBasePrice = defaultSize.Price; sizeName = defaultSize.Size?.Name; item.SizeId = defaultSize.SizeId; }
+                        var defaultSize = drink.DrinkSizes
+                            .Where(ds => ds.Active)
+                            .OrderBy(ds => ds.Price)
+                            .ThenBy(ds => ds.SizeId)
+                            .FirstOrDefault();
+
+                        if (defaultSize == null)
+                            return ServiceResult<object>.Failure($"Sản phẩm {drink.Name} chưa có size đang hoạt động.");
+
+                        itemBasePrice = defaultSize.Price;
+                        sizeName = defaultSize.Size?.Name;
+                        item.SizeId = defaultSize.SizeId;
                     }
 
                     decimal toppingTotal = 0;
                     var orderToppings = new List<OrderTopping>();
                     if (item.Toppings != null && item.Toppings.Any())
                     {
-                        var toppingIds = item.Toppings.Select(t => t.ToppingId).ToList();
-                        var toppings = await _repository.GetToppingsByIdsAsync(toppingIds);
+                        var toppingIds = item.Toppings.Select(t => t.ToppingId).Distinct().ToList();
+                        var toppings = await _repository.GetValidToppingsForOrderItemAsync(storeId, item.DrinkId, toppingIds);
+                        if (toppings.Count != toppingIds.Count)
+                            return ServiceResult<object>.Failure($"Có topping không hợp lệ cho sản phẩm {drink.Name} hoặc cửa hàng hiện tại.");
+
                         foreach (var topping in toppings)
                         {
                             toppingTotal += topping.Price;
@@ -233,11 +324,23 @@ namespace CafeChain.Application.Services.POS
 
                 // 5. Create Order via Repository
                 // ADR-0002: ClientOrderId được gán nguyên tử cùng Order — không tách bước
+                var paymentLines = dto.Payments != null && dto.Payments.Any()
+                    ? dto.Payments
+                    : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = dto.PaymentMethodId > 0 ? dto.PaymentMethodId : 1, Amount = total } };
+
+                var isPayOsPayment = paymentLines.Count == 1 && paymentLines[0].PaymentMethodId == 2;
+                var orderStatusId = isPayOsPayment
+                    ? SystemConstants.OrderStatuses.AwaitingPayment
+                    : SystemConstants.OrderStatuses.Completed;
+                var paymentStatusId = isPayOsPayment
+                    ? SystemConstants.PaymentStatuses.Unpaid
+                    : SystemConstants.PaymentStatuses.Paid;
+
                 var newOrder = await _repository.CreateOrderAsync(new Order
                 {
                     StoreId = storeId, StaffId = userId > 0 ? userId : null, WorkShiftId = activeShift.ShiftId,
                     CustomerId = dto.CustomerId, OrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1,
-                    OrderStatusId = 4, PaymentStatusId = 2, SubTotal = subTotal,
+                    OrderStatusId = orderStatusId, PaymentStatusId = paymentStatusId, SubTotal = subTotal,
                     VoucherDiscount = voucherDiscount, PointDiscount = pointDiscount, PointsUsed = actualPointsUsed,
                     Total = total, ShippingFee = 0, Source = "POS", Note = dto.Note,
                     ClientOrderId = dto.ClientOrderId,  // ADR-0002: Idempotency Key — null cho đơn online
@@ -245,16 +348,14 @@ namespace CafeChain.Application.Services.POS
                 });
 
                 // 6. Create Payment records — Hỗ trợ thanh toán hỗn hợp (Split Payments)
-                var paymentLines = dto.Payments != null && dto.Payments.Any()
-                    ? dto.Payments
-                    : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = dto.PaymentMethodId > 0 ? dto.PaymentMethodId : 1, Amount = total } };
-
                 foreach (var payLine in paymentLines)
                 {
                     await _repository.CreatePaymentAsync(new Payment
                     {
                         OrderId = newOrder.OrderId, PaymentMethodId = payLine.PaymentMethodId,
-                        Amount = payLine.Amount, PaymentStatusId = 2, PaidAt = DateTime.Now
+                        Amount = payLine.Amount,
+                        PaymentStatusId = paymentStatusId,
+                        PaidAt = isPayOsPayment ? null : DateTime.Now
                     });
                 }
 
@@ -315,7 +416,56 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
+                // 10. Update WorkShift.ExpectedEndingCash — cộng dồn tiền mặt trong cùng transaction
+                // Chỉ cộng khi PaymentMethodId == 1 (Tiền mặt) → tiền vào két
+                decimal cashAmount = paymentLines
+                    .Where(p => p.PaymentMethodId == 1)
+                    .Sum(p => p.Amount);
+
+                if (cashAmount > 0)
+                {
+                    activeShift.ExpectedEndingCash += cashAmount;
+                    // EF Change Tracker sẽ detect thay đổi trên entity đã tracked
+                    // SaveChangesAsync persist vào DB trong cùng transaction
+                    await _repository.SaveChangesAsync();
+                }
+
                 await _repository.CommitTransactionAsync();
+                transactionCommitted = true;
+
+                if (isPayOsPayment)
+                {
+                    PayOSCreateLinkResult paymentLink;
+                    try
+                    {
+                        paymentLink = await _payOSService.CreatePaymentLinkAsync(newOrder.OrderId);
+                    }
+                    catch (Exception payOsEx)
+                    {
+                        _logger.LogError(
+                            payOsEx,
+                            "[CommitOrder] Order #{OrderId} đã tạo nhưng không tạo được PayOS link.",
+                            newOrder.OrderId);
+                        return ServiceResult<object>.Failure("Đơn đã được tạo nhưng không thể tạo mã thanh toán VietQR: " + payOsEx.Message);
+                    }
+
+                    return ServiceResult<object>.Success(new
+                    {
+                        orderId = newOrder.OrderId,
+                        subTotal,
+                        voucherDiscount,
+                        pointDiscount,
+                        total,
+                        receivedAmount = dto.ReceivedAmount,
+                        changeAmount = 0m,
+                        earnedPoints,
+                        requiresPayment = true,
+                        paymentMethodId = 2,
+                        checkoutUrl = paymentLink.CheckoutUrl,
+                        qrCode = paymentLink.QrCode,
+                        orderCode = paymentLink.OrderCode
+                    } as object, "Đã tạo mã thanh toán VietQR. Đang chờ khách quét mã.");
+                }
 
                 // ADR-0003: Trigger Silent Print sau commit thành công
                 // Fire-and-forget — print failure KHÔNG ảnh hưởng order đã commit
@@ -353,7 +503,11 @@ namespace CafeChain.Application.Services.POS
             }
             catch (Exception ex)
             {
-                await _repository.RollbackTransactionAsync();
+                if (!transactionCommitted)
+                {
+                    await _repository.RollbackTransactionAsync();
+                }
+
                 return ServiceResult<object>.Failure("Lỗi hệ thống khi thanh toán: " + ex.Message);
             }
         }
@@ -384,6 +538,31 @@ namespace CafeChain.Application.Services.POS
                 totalOrders, startingCash = activeShift.StartingCash,
                 totalCashSales, totalQrSales, cashChangeGiven = 0m,
                 expectedEndingCash, netRevenue = totalCashSales + totalQrSales
+            } as object);
+        }
+
+        // ============================================================
+        // GET ORDER HISTORY — Issue #68: Phân trang lịch sử đơn hàng
+        // ============================================================
+        public async Task<ServiceResult<object>> GetOrderHistoryAsync(int storeId, int page, int pageSize)
+        {
+            // Guard: page/pageSize hợp lệ
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 20;
+            if (pageSize > 100) pageSize = 100;  // Hard cap tránh abuse
+
+            var (items, totalCount) = await _repository.GetOrderHistoryAsync(storeId, page, pageSize);
+
+            return ServiceResult<object>.Success(new
+            {
+                items,
+                pagination = new
+                {
+                    page,
+                    pageSize,
+                    totalCount,
+                    totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
+                }
             } as object);
         }
     }

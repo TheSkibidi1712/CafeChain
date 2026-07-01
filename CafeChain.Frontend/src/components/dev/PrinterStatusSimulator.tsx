@@ -1,12 +1,12 @@
 import { useState } from 'react'
 
 export default function PrinterStatusSimulator() {
+  const [activeMock, setActiveMock] = useState<string | null>(null)
+
   // Only display in development environment
   if (!import.meta.env.DEV) {
     return null
   }
-
-  const [activeMock, setActiveMock] = useState<string | null>(null)
 
   const triggerMock = (status: 'ready' | 'error' | 'offline') => {
     setActiveMock(status)

@@ -121,5 +121,14 @@ namespace CafeChain.Application.DTOs.POS
         public string Name { get; set; } = null!;
         public int StoreId { get; set; }
     }
+
+    /// <summary>
+    /// DTO hủy giao dịch VietQR/PayOS đang chờ thanh toán trên POS.
+    /// </summary>
+    public class CancelPaymentRequestDto
+    {
+        public int OrderId { get; set; }
+        public string? Reason { get; set; }
+    }
 }
 

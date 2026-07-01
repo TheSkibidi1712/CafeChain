@@ -35,7 +35,10 @@ namespace CafeChain.Models.Drinks
 
         // Relationships for inventory lookup
         public int? DrinkId { get; set; }
+        public int? SizeId { get; set; }
         public int? ToppingId { get; set; }
+
+        public virtual Size Size { get; set; }
 
         public virtual ICollection<RecipeDetail> RecipeDetails { get; set; }
 

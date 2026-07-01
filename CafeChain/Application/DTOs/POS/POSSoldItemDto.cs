@@ -5,5 +5,6 @@ namespace CafeChain.Application.DTOs.POS
         public int DrinkId { get; set; }
         public int? SizeId { get; set; }
         public int Quantity { get; set; }
+        public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
     }
 }

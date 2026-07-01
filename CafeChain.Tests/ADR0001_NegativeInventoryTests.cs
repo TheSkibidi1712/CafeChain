@@ -42,7 +42,10 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
         private const int TEST_STORE_ID = 1;
         private const int TEST_DRINK_ID = 100;       // Drink mới (chưa tồn tại trong seed)
         private const int MATCHA_INGREDIENT_ID = 9;   // "Matcha Nhật Bản 500g" — HasData seed
+        private const int TAPIOCA_INGREDIENT_ID = 11; // "Bột năng Vĩnh Thuận 400g" — HasData seed
         private const int GRAM_UNIT_ID = 1;            // "Gram" — HasData seed, = BaseUnitId
+        private const int SIZE_L_ID = 3;
+        private const int PEARL_TOPPING_ID = 99;      // Topping test riêng để không dùng nhầm recipe seed
 
         public NegativeInventoryTests()
         {
@@ -99,8 +102,13 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
         /// </summary>
         private void SeedInventory(AppDbContext ctx, int storeId, decimal availableQty)
         {
+            SeedInventoryForIngredient(ctx, storeId, MATCHA_INGREDIENT_ID, availableQty);
+        }
+
+        private void SeedInventoryForIngredient(AppDbContext ctx, int storeId, int ingredientId, decimal availableQty)
+        {
             var existing = ctx.StoreInventories
-                .FirstOrDefault(si => si.StoreId == storeId && si.IngredientId == MATCHA_INGREDIENT_ID);
+                .FirstOrDefault(si => si.StoreId == storeId && si.IngredientId == ingredientId);
 
             if (existing != null)
             {
@@ -111,13 +119,63 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
                 ctx.StoreInventories.Add(new StoreInventory
                 {
                     StoreId = storeId,
-                    IngredientId = MATCHA_INGREDIENT_ID,
+                    IngredientId = ingredientId,
                     RecipeId = null,
                     AvailableQty = availableQty,
                     ReservedQty = 0,
                     LastUpdated = DateTime.UtcNow
                 });
             }
+            ctx.SaveChanges();
+        }
+
+        private void SeedSizedDrinkAndToppingRecipes(AppDbContext ctx)
+        {
+            if (!ctx.Recipes.Any(r => r.DrinkId == TEST_DRINK_ID && r.SizeId == SIZE_L_ID && r.Active))
+            {
+                ctx.Recipes.Add(new Recipe
+                {
+                    Name = "BOM Matcha Latte Size L Test",
+                    RecipeCode = "BOM-MATCHA-L-TEST",
+                    DrinkId = TEST_DRINK_ID,
+                    SizeId = SIZE_L_ID,
+                    Active = true,
+                    Status = "Active",
+                    YieldPercentage = 100,
+                    RecipeDetails = new List<RecipeDetail>
+                    {
+                        new()
+                        {
+                            IngredientId = MATCHA_INGREDIENT_ID,
+                            Quantity = 5,
+                            UnitId = GRAM_UNIT_ID
+                        }
+                    }
+                });
+            }
+
+            if (!ctx.Recipes.Any(r => r.ToppingId == PEARL_TOPPING_ID && r.Active))
+            {
+                ctx.Recipes.Add(new Recipe
+                {
+                    Name = "BOM Trân châu Test",
+                    RecipeCode = "BOM-PEARL-TEST",
+                    ToppingId = PEARL_TOPPING_ID,
+                    Active = true,
+                    Status = "Active",
+                    YieldPercentage = 100,
+                    RecipeDetails = new List<RecipeDetail>
+                    {
+                        new()
+                        {
+                            IngredientId = TAPIOCA_INGREDIENT_ID,
+                            Quantity = 3,
+                            UnitId = GRAM_UNIT_ID
+                        }
+                    }
+                });
+            }
+
             ctx.SaveChanges();
         }
 
@@ -153,9 +211,63 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
                 .FirstOrDefaultAsync(t => t.StoreInventoryId == inventory.StoreInventoryId
                                        && t.Type == InventoryDocumentType.SALES_DEDUCTION);
             Assert.NotNull(txn);
-            Assert.Equal(20, txn.Quantity);     // 10 ly × 2 gram = 20
+            Assert.Equal(-20, txn.Quantity);    // xuất kho: 10 ly × 2 gram = -20
             Assert.Equal(50, txn.BeforeQty);    // Kho trước khi trừ
             Assert.Equal(30, txn.AfterQty);     // Kho sau khi trừ
+        }
+
+        [Fact]
+        public async Task DeductStock_WithSizeLAndPearlTopping_DeductsDrinkAndToppingRecipes()
+        {
+            // Arrange: Size L dùng 5g matcha, topping trân châu dùng 3g bột năng.
+            SeedSizedDrinkAndToppingRecipes(_context);
+            SeedInventoryForIngredient(_context, TEST_STORE_ID, MATCHA_INGREDIENT_ID, availableQty: 100);
+            SeedInventoryForIngredient(_context, TEST_STORE_ID, TAPIOCA_INGREDIENT_ID, availableQty: 50);
+
+            var soldItems = new List<POSSoldItemDto>
+            {
+                new()
+                {
+                    DrinkId = TEST_DRINK_ID,
+                    SizeId = SIZE_L_ID,
+                    Quantity = 1,
+                    Toppings = new List<POSOrderToppingDto>
+                    {
+                        new() { ToppingId = PEARL_TOPPING_ID }
+                    }
+                }
+            };
+
+            // Act
+            var result = await _service.DeductStockForOrderAsync(soldItems, TEST_STORE_ID);
+
+            // Assert
+            Assert.True(result.IsSuccess, $"DeductStock phải thành công. Message: {result.Message}");
+
+            using var verifyCtx = CreateDbContext();
+            var matchaInventory = await verifyCtx.StoreInventories
+                .FirstAsync(si => si.StoreId == TEST_STORE_ID && si.IngredientId == MATCHA_INGREDIENT_ID);
+            var tapiocaInventory = await verifyCtx.StoreInventories
+                .FirstAsync(si => si.StoreId == TEST_STORE_ID && si.IngredientId == TAPIOCA_INGREDIENT_ID);
+
+            Assert.Equal(95, matchaInventory.AvailableQty);
+            Assert.Equal(47, tapiocaInventory.AvailableQty);
+
+            var transactions = await verifyCtx.InventoryTransactions
+                .Where(t => t.Type == InventoryDocumentType.SALES_DEDUCTION)
+                .ToListAsync();
+
+            Assert.Contains(transactions, t =>
+                t.StoreInventoryId == matchaInventory.StoreInventoryId &&
+                t.Quantity == -5 &&
+                t.BeforeQty == 100 &&
+                t.AfterQty == 95);
+
+            Assert.Contains(transactions, t =>
+                t.StoreInventoryId == tapiocaInventory.StoreInventoryId &&
+                t.Quantity == -3 &&
+                t.BeforeQty == 50 &&
+                t.AfterQty == 47);
         }
 
         // ═══════════════════════════════════════════════════════════
@@ -192,7 +304,7 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
                                        && t.Type == InventoryDocumentType.SALES_DEDUCTION);
             Assert.NotNull(txn);
             Assert.Equal(InventoryDocumentType.SALES_DEDUCTION, txn.Type);
-            Assert.Equal(20, txn.Quantity);     // Lượng trừ: 10 ly × 2 gram
+            Assert.Equal(-20, txn.Quantity);    // Lượng trừ: 10 ly × 2 gram
             Assert.Equal(3, txn.BeforeQty);     // Kho ban đầu: chỉ còn 3
             Assert.Equal(-17, txn.AfterQty);    // ⚠️ SỐ ÂM — trạng thái chờ đối soát
         }
@@ -258,7 +370,7 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
                                        && t.Type == InventoryDocumentType.SALES_DEDUCTION);
             Assert.NotNull(txn);
             Assert.Equal(InventoryDocumentType.SALES_DEDUCTION, txn.Type);
-            Assert.Equal(4, txn.Quantity);      // Lượng trừ: 2 ly × 2 gram
+            Assert.Equal(-4, txn.Quantity);     // Lượng trừ: 2 ly × 2 gram
             Assert.Equal(0, txn.BeforeQty);     // Kho vừa tạo mới = 0
             Assert.Equal(-4, txn.AfterQty);     // ⚠️ SỐ ÂM — store mới bán trước nhập kho sau
         }
