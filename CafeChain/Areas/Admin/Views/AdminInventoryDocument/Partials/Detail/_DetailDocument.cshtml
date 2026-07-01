@@ -1,0 +1,144 @@
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
+
+<link rel="stylesheet"
+      href="~/css/Admin/InventoryDocument/inventorydocument.css" />
+
+<div class="voucher-preview voucher-preview-readonly">
+
+    <div class="voucher-title">
+
+        <h2>CAFECHAIN</h2>
+
+        <h5>PHIEU NHAP KHO</h5>
+
+        <span class="voucher-readonly-badge">
+            Chi xem
+        </span>
+
+    </div>
+
+    <div class="voucher-info voucher-readonly-grid">
+
+        <div class="voucher-readonly-field">
+            <label>So phieu</label>
+            <strong>@Model.Code</strong>
+        </div>
+
+        <div class="voucher-readonly-field">
+            <label>Ngay chung tu</label>
+            <strong>@Model.DocumentDate.ToString("dd/MM/yyyy")</strong>
+        </div>
+
+        <div class="voucher-readonly-field">
+            <label>Kho</label>
+            <strong>@Model.StoreName</strong>
+        </div>
+
+        <div class="voucher-readonly-field">
+            <label>Nguoi lap</label>
+            <strong>@Model.StaffName</strong>
+        </div>
+
+        <div class="voucher-readonly-field">
+            <label>Nha cung cap</label>
+            <strong>@(Model.SupplierName ?? "-")</strong>
+        </div>
+
+        <div class="voucher-readonly-field">
+            <label>Doi tac</label>
+            <strong>@(Model.PartnerName ?? "-")</strong>
+        </div>
+
+    </div>
+
+    <div class="voucher-table-wrap">
+
+        <table class="voucher-table voucher-readonly-table">
+
+            <thead>
+
+                <tr>
+
+                    <th>STT</th>
+                    <th>Ten hang</th>
+                    <th class="text-center">
+                        DVT
+                    </th>
+                    <th class="text-end">SL</th>
+                    <th class="text-end">
+                        Don gia
+                    </th>
+                    <th class="text-end">Thanh tien</th>
+
+                </tr>
+
+            </thead>
+
+            <tbody>
+
+                @{
+                    var stt = 1;
+                }
+
+                @foreach (var item in Model.Details)
+                {
+                    <tr>
+
+                        <td>@stt</td>
+
+                        <td>
+                            <strong>@item.IngredientName</strong>
+                        </td>
+
+                        <td class="text-center">
+                            <span class="readonly-pill">
+                                @item.UnitName
+                            </span>
+                        </td>
+
+                        <td class="text-end">
+                            @item.Quantity.ToString("0.##")
+                        </td>
+
+                        <td class="text-end">
+                            <span class="readonly-pill">
+                                @(item.UnitPrice?.ToString("N0") ?? "0")
+                            </span>
+                        </td>
+
+                        <td class="text-end item-total"
+                            data-value="@(item.TotalAmount ?? 0)">
+                            @(item.TotalAmount?.ToString("N0") ?? "0")
+                        </td>
+
+                    </tr>
+
+                    stt++;
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <div class="voucher-summary">
+
+        <div>
+            <span>Tong tien</span>
+            <strong>@(Model.TotalAmount?.ToString("N0") ?? "0")</strong>
+        </div>
+
+        <div>
+            <span>VAT</span>
+            <strong>@(Model.VatAmount?.ToString("N0") ?? "0")</strong>
+        </div>
+
+        <div class="final">
+            <span>Thanh tien</span>
+            <strong>@(Model.FinalAmount?.ToString("N0") ?? "0")</strong>
+        </div>
+
+    </div>
+
+</div>

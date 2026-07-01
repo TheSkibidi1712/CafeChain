@@ -1,0 +1,117 @@
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+@using CafeChain.Models.Enums.Inventory;
+
+@{
+    var typeClass = Model.Type.ToString().ToLowerInvariant().Replace("_", "-");
+    var title = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT => "Tạo Phiếu Nhập Kho",
+        InventoryDocumentType.EXPORT => "Tạo Phiếu Xuất Kho",
+        InventoryDocumentType.STOCK_TAKE => "Tạo Phiếu Kiểm Kê",
+        InventoryDocumentType.WASTE => "Tạo Phiếu Hủy Hàng",
+        _ => "Tạo Phiếu Kho"
+    };
+
+    var subtitle = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT => "Nhập nguyên liệu từ nhà cung cấp hoặc nội bộ",
+        InventoryDocumentType.EXPORT => "Xuất hàng bán hoặc xuất nội bộ",
+        InventoryDocumentType.STOCK_TAKE => "Ghi nhận số lượng kiểm kê thực tế",
+        InventoryDocumentType.WASTE => "Ghi nhận hủy hàng hết hạn, hỏng hoặc thất thoát",
+        _ => "Khởi tạo chứng từ kho"
+    };
+
+    var icon = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT => "fa-arrow-down",
+        InventoryDocumentType.EXPORT => "fa-arrow-up",
+        InventoryDocumentType.STOCK_TAKE => "fa-clipboard-check",
+        InventoryDocumentType.WASTE => "fa-trash-alt",
+        _ => "fa-boxes"
+    };
+}
+
+<form id="inventoryCreateForm"
+      class="inventory-create-form"
+      data-document-type="@((int)Model.Type)"
+      data-document-type-name="@Model.Type"
+      novalidate>
+
+    <input type="hidden"
+           id="inventoryDocumentType"
+           name="Type"
+           value="@((int)Model.Type)" />
+
+    <div class="modal-header inventory-create-header inventory-create-header-@typeClass">
+
+        <div class="inventory-create-title">
+
+            <span class="inventory-create-icon">
+                <i class="fas @icon"></i>
+            </span>
+
+            <div>
+                <div class="inventory-create-breadcrumb">
+                    Phiếu kho / Tạo phiếu mới
+                </div>
+
+                <h4>@title</h4>
+
+                <p>@subtitle</p>
+            </div>
+
+        </div>
+
+        <div class="inventory-create-header-meta">
+
+            <span class="inventory-create-code">
+                @(string.IsNullOrWhiteSpace(Model.Code) ? "Tự động sinh khi lưu" : Model.Code)
+            </span>
+
+            <span class="inventory-create-status">
+                Draft
+            </span>
+
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Đóng">
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="modal-body inventory-create-body">
+
+        <div class="inventory-create-workspace">
+
+            <main class="inventory-create-main">
+
+                <partial name="Partials/Create/_DocumentInfo"
+                         model="Model" />
+
+                <partial name="Partials/Create/_DetailTable"
+                         model="Model" />
+
+            </main>
+
+            <aside class="inventory-create-side">
+
+                <partial name="Partials/Create/_Summary"
+                         model="Model" />
+
+            </aside>
+
+        </div>
+
+    </div>
+
+    <div class="modal-footer inventory-create-footer">
+
+        <partial name="Partials/Create/_ActionBar"
+                 model="Model" />
+
+    </div>
+
+</form>

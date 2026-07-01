@@ -3,7 +3,8 @@
     public enum InventoryDocumentStatus
     {
         DRAFT = 1,
-        CONFIRMED = 2,
-        CANCELLED = 3
+        PENDING = 2,
+        CONFIRMED = 3,
+        CANCELLED = 4
     }
 }

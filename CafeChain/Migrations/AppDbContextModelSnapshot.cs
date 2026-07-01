@@ -2426,9 +2426,6 @@ namespace CafeChain.Migrations
                     b.Property<int>("InventoryDocumentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("InventoryDocumentId1")
-                        .HasColumnType("int");
-
                     b.Property<decimal>("PaidAmount")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("decimal(18,2)")
@@ -2451,8 +2448,6 @@ namespace CafeChain.Migrations
                     b.HasKey("InventoryDebtId");
 
                     b.HasIndex("InventoryDocumentId");
-
-                    b.HasIndex("InventoryDocumentId1");
 
                     b.HasIndex("PaidAmount");
 
@@ -7921,16 +7916,10 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Debts.InventoryDebt", b =>
                 {
-                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", null)
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
                         .WithMany("Debts")
                         .HasForeignKey("InventoryDocumentId")
                         .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
-                        .WithMany()
-                        .HasForeignKey("InventoryDocumentId1")
-                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("InventoryDocument");

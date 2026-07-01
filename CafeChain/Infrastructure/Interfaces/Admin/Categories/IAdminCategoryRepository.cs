@@ -8,11 +8,11 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Categories
 
         Task<DrinkCategory?> GetCategoryByIdAsync(int id);
 
-        Task<(IEnumerable<DrinkCategory> Items, int TotalCount)> GetPaginatedCategoriesAsync(int pageIndex, int pageSize);
+        Task<(IEnumerable<DrinkCategory> Items, int TotalCount)> GetPaginatedCategoriesAsync(string? keyword, bool? active, int pageIndex, int pageSize);
 
         Task CreateCategoryAsync(DrinkCategory category);
 
-        Task UpdateCategoryAsync(DrinkCategory category);
+        void UpdateCategory(DrinkCategory category);
 
         Task<bool> CategoryExistsAsync(string name, int? excludeId = null);
 

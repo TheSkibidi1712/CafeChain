@@ -1,0 +1,174 @@
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+@using CafeChain.Models.Enums.Inventory;
+
+@{
+    var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
+    var requiresSupplier = Model.Type == InventoryDocumentType.IMPORT;
+    var purposeOptions = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT => new[]
+        {
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" },
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_INTERNAL, Label = "Nhập nội bộ", Description = "Nhận hàng từ nguồn nội bộ" },
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Label = "Điều chỉnh tăng", Description = "Bổ sung do kiểm tra hoặc đối soát" }
+        },
+        InventoryDocumentType.EXPORT => new[]
+        {
+            new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" },
+            new { Value = (int)InventoryDocumentPurpose.INTERNAL_OUT, Label = "Xuất nội bộ", Description = "Xuất cho nhu cầu vận hành" },
+            new { Value = (int)InventoryDocumentPurpose.ADJUSTMENT_OUT, Label = "Điều chỉnh giảm", Description = "Giảm tồn do đối soát" }
+        },
+        InventoryDocumentType.STOCK_TAKE => new[]
+        {
+            new { Value = (int)InventoryDocumentPurpose.STOCK_TAKE, Label = "Kiểm kê", Description = "Ghi nhận số lượng thực tế" }
+        },
+        InventoryDocumentType.WASTE => new[]
+        {
+            new { Value = (int)InventoryDocumentPurpose.DAMAGED, Label = "Hàng hỏng", Description = "Hủy do hư hỏng" },
+            new { Value = (int)InventoryDocumentPurpose.EXPIRED, Label = "Hết hạn", Description = "Hủy do quá hạn sử dụng" },
+            new { Value = (int)InventoryDocumentPurpose.LOST, Label = "Thất thoát", Description = "Ghi nhận mất mát" }
+        },
+        _ => new[]
+        {
+            new { Value = (int)InventoryDocumentPurpose.NONE, Label = "Không xác định", Description = "Chọn mục đích phù hợp" }
+        }
+    };
+
+    var selectedPurpose = Model.Purpose == InventoryDocumentPurpose.NONE
+        ? purposeOptions[0].Value
+        : (int)Model.Purpose;
+}
+
+<section class="create-section create-document-info">
+
+    <div class="create-section-header">
+        <div>
+            <span class="create-section-eyebrow">
+                Thông tin chung
+            </span>
+            <h5>Thông tin phiếu</h5>
+        </div>
+
+        <span class="create-section-badge">
+            Tự động điền
+        </span>
+    </div>
+
+    <div class="create-field-grid">
+
+        <div class="create-field">
+            <label for="Code">Mã phiếu</label>
+            <input id="Code"
+                   name="Code"
+                   class="form-control create-control"
+                   value="@Model.Code"
+                   placeholder="Tự động sinh khi lưu"
+                   readonly />
+        </div>
+
+        <div class="create-field">
+            <label for="DocumentDate">Ngày chứng từ</label>
+            <input id="DocumentDate"
+                   name="DocumentDate"
+                   type="date"
+                   class="form-control create-control"
+                   value="@documentDate.ToString("yyyy-MM-dd")"
+                   required />
+        </div>
+
+        <div class="create-field">
+            <label for="storeSelect">Cửa hàng</label>
+            <select id="storeSelect"
+                    name="StoreId"
+                    class="form-select create-control"
+                    required>
+                <option value="">Chọn cửa hàng</option>
+                @foreach (var item in Model.Stores)
+                {
+                    <option value="@item.StoreId"
+                            selected="@(Model.StoreId == item.StoreId)">
+                        @item.StoreName
+                    </option>
+                }
+            </select>
+        </div>
+
+        <div class="create-field">
+            <label for="supplierSelect">Nhà cung cấp</label>
+            <select id="supplierSelect"
+                    name="SupplierId"
+                    class="form-select create-control"
+                    disabled="@(!requiresSupplier)">
+                <option value="">Chọn nhà cung cấp</option>
+                @foreach (var item in Model.Suppliers)
+                {
+                    <option value="@item.SupplierId"
+                            selected="@(Model.SupplierId == item.SupplierId)">
+                        @item.SupplierName
+                    </option>
+                }
+            </select>
+            <small>
+                Chọn nhà cung cấp để tải danh sách nguyên liệu.
+            </small>
+        </div>
+
+    </div>
+
+    <div class="create-purpose-block">
+
+        <div class="create-section-subtitle">
+            <i class="fas fa-bullseye"></i>
+            Mục đích nghiệp vụ
+        </div>
+
+        <div class="create-purpose-list">
+            @foreach (var option in purposeOptions)
+            {
+                <label class="create-purpose-card"
+                       for="purpose_@option.Value">
+
+                    <input id="purpose_@option.Value"
+                           class="create-purpose-input"
+                           type="radio"
+                           name="Purpose"
+                           value="@option.Value"
+                           checked="@(selectedPurpose == option.Value)" />
+
+                    <span class="create-purpose-dot"></span>
+
+                    <span>
+                        <strong>@option.Label</strong>
+                        <small>@option.Description</small>
+                    </span>
+
+                </label>
+            }
+        </div>
+
+    </div>
+
+    <div class="create-field-grid create-field-grid-secondary">
+
+        <div class="create-field">
+            <label for="PartnerName">Đối tác / Partner</label>
+            <input id="PartnerName"
+                   name="PartnerName"
+                   class="form-control create-control partner-name-input"
+                   value="@Model.SupplierName"
+                   placeholder="Nhập tên đối tác nếu cần"
+                   readonly="@(Model.SupplierId.HasValue)" />
+        </div>
+
+        <div class="create-field create-field-wide">
+            <label for="Note">Ghi chú</label>
+            <textarea id="Note"
+                      name="Note"
+                      rows="3"
+                      class="form-control create-control"
+                      placeholder="Nhập ghi chú cho phiếu kho">@Model.Note</textarea>
+        </div>
+
+    </div>
+
+</section>

@@ -1,0 +1,70 @@
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+
+<section class="create-side-panel create-summary-panel">
+
+    <div class="create-side-header">
+        <span class="create-side-icon">
+            <i class="fas fa-receipt"></i>
+        </span>
+
+        <div>
+            <span>Panel tác vụ</span>
+            <strong>Live preview</strong>
+        </div>
+    </div>
+
+    <div class="create-side-alert">
+        <i class="fas fa-info-circle"></i>
+        Dữ liệu tổng hợp sẽ cập nhật sau mỗi lần thêm, sửa hoặc xóa nguyên liệu.
+    </div>
+
+    <div class="create-summary-list">
+
+        <div class="create-summary-row">
+            <span>Items</span>
+            <strong id="summaryItems">@Model.Summary.TotalItems</strong>
+        </div>
+
+        <div class="create-summary-row">
+            <span>Quantity</span>
+            <strong id="summaryQty">@Model.Summary.TotalQuantity.ToString("N0")</strong>
+        </div>
+
+        <div class="create-summary-row">
+            <span>Quy đổi base</span>
+            <strong id="summaryBaseQty">@Model.Summary.BaseQuantityText</strong>
+        </div>
+
+        <div class="create-summary-row">
+            <span>Total</span>
+            <strong id="summaryTotal">@Model.Summary.TotalAmount.ToString("N0")</strong>
+        </div>
+
+        <div class="create-summary-row">
+            <span>VAT</span>
+            <strong id="summaryVat">@Model.Summary.VatAmount.ToString("N0")</strong>
+        </div>
+
+        <div class="create-summary-row create-summary-final">
+            <span>Final</span>
+            <strong id="summaryFinal">@Model.Summary.FinalAmount.ToString("N0")</strong>
+        </div>
+
+    </div>
+
+    <div class="create-side-checklist">
+        <div>
+            <i class="fas fa-store"></i>
+            <span>Chọn cửa hàng</span>
+        </div>
+        <div>
+            <i class="fas fa-truck-loading"></i>
+            <span>Chọn nhà cung cấp nếu nhập kho</span>
+        </div>
+        <div>
+            <i class="fas fa-list-ul"></i>
+            <span>Có ít nhất một dòng nguyên liệu hợp lệ</span>
+        </div>
+    </div>
+
+</section>

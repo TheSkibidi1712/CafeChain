@@ -208,6 +208,12 @@
    ACTION BUTTON
 ===================================================== */
 
+.action-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .table-action {
     width: 38px;
     height: 38px;
@@ -221,6 +227,33 @@
         background: #f97316;
         color: white;
     }
+
+    .table-action.btn-draft-confirm {
+        background: #ecfdf5;
+        color: #16a34a;
+    }
+
+        .table-action.btn-draft-confirm:hover {
+            background: #16a34a;
+            color: #fff;
+        }
+
+.draft-preview-actions {
+    align-items: center;
+    gap: 10px;
+    border-top: 1px solid #e5e7eb;
+    background: #fff;
+}
+
+    .draft-preview-actions .btn {
+        border-radius: 8px;
+        font-weight: 600;
+    }
+
+.is-loading {
+    opacity: .75;
+    pointer-events: none;
+}
 
 /* =====================================================
    FOOTER
@@ -345,6 +378,20 @@
         font-weight: 700;
     }
 
+.voucher-readonly-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    padding: 6px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    color: #64748b;
+    background: #f8fafc;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .voucher-info {
     display: grid;
     grid-template-columns: repeat(2,1fr);
@@ -357,6 +404,30 @@
         display: block;
         font-size: 13px;
     }
+
+.voucher-readonly-grid {
+    align-items: stretch;
+}
+
+.voucher-readonly-field {
+    min-width: 0;
+    padding: 12px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f8fafc;
+}
+
+    .voucher-readonly-field strong {
+        display: block;
+        margin-top: 4px;
+        color: #0f172a;
+        font-size: 14px;
+        overflow-wrap: anywhere;
+    }
+
+.voucher-table-wrap {
+    overflow-x: auto;
+}
 
 .voucher-table {
     width: 100%;
@@ -374,6 +445,23 @@
         border-bottom: 1px solid #eee;
     }
 
+.voucher-readonly-table {
+    min-width: 720px;
+}
+
+.readonly-pill {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 4px 10px;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    color: #475569;
+    background: #f1f5f9;
+    font-size: 12px;
+    font-weight: 800;
+}
+
 .voucher-summary {
     margin-top: 24px;
     background: #f8fafc;
@@ -381,11 +469,31 @@
     border-radius: 12px;
 }
 
-    .voucher-summary .final {
-        color: #f97316;
-        font-size: 24px;
+    .voucher-summary span {
+        display: block;
+        color: #64748b;
+        font-size: 12px;
         font-weight: 700;
     }
+
+    .voucher-summary strong {
+        display: block;
+        margin-top: 4px;
+        color: #0f172a;
+        font-size: 16px;
+    }
+
+    .voucher-summary .final {
+        color: #f97316;
+        font-size: 18px;
+        font-weight: 800;
+    }
+
+        .voucher-summary .final strong {
+            color: #f97316;
+            font-size: 24px;
+            font-weight: 900;
+        }
 
 .summary-box {
     display: grid;

@@ -1,4 +1,4 @@
-﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.AdminInventoryDocumentIndexVM
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 
 @{
     ViewData["Title"] = "Quản lý phiếu kho";
@@ -6,6 +6,8 @@
 
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocument.css" />
+<link rel="stylesheet"
+      href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
 
 <div class="inventory-page">
 
@@ -18,11 +20,15 @@
         </div>
 
         <div class="inventory-actions">
-            <a asp-action="Create"
-               class="btn btn-primary">
+            <button
+                class="btn btn-primary"
+                id="btnCreateInventory">
+
                 <i class="fas fa-plus"></i>
+
                 Tạo phiếu mới
-            </a>
+
+            </button>
 
             <button class="btn btn-outline-secondary">
                 <i class="fas fa-file-excel"></i>
@@ -36,21 +42,22 @@
         </div>
     </div>
 
-    <partial name="Partials/_DashboardCards"
+    <partial name="Partials/Detail/_DashboardCards"
              model="Model" />
 
-    <partial name="Partials/_FilterSection"
+    <partial name="Partials/Detail/_FilterSection"
              model="Model" />
 
-    <partial name="Partials/_DocumentTabs"
+    <partial name="Partials/Detail/_DocumentTabs"
              model="Model.Filter" />
 
-    <partial name="Partials/_DocumentTable"
+    <partial name="Partials/Detail/_DocumentTable"
              model="Model" />
 
 </div>
 
 
+<!-- Modal Detail-->
 <div class="modal fade"
      id="inventoryDetailModal"
      tabindex="-1">
@@ -65,4 +72,24 @@
 
 </div>
 
+<!-- Modal Create -->
+<div class="modal fade"
+     id="inventoryCreateModal"
+     tabindex="-1">
+
+    <div
+        class="modal-dialog
+               modal-fullscreen
+               modal-dialog-scrollable">
+
+        <div class="modal-content"
+             id="inventoryCreateContent">
+
+        </div>
+
+    </div>
+
+</div>
+
 <script src="~/js/Admin/InventoryDocument/inventorydocument.js"></script>
+<script src="~/js/Admin/InventoryDocument/inventorydocumentcreate.js"></script>

@@ -32,12 +32,12 @@ function unlockButton(btn, html) {
 // VALIDATION
 // =====================================================
 
-function validateName(name) {
+function validateCategoryName(name) {
 
     if (!name || !name.trim()) {
 
         toast(
-            "Tên danh mục không được để trống",
+            "Tên danh mục không được để trống.",
             "error"
         );
 
@@ -49,7 +49,7 @@ function validateName(name) {
     if (value.length < 2) {
 
         toast(
-            "Tên danh mục phải từ 2 ký tự trở lên",
+            "Tên danh mục phải từ 2 ký tự trở lên.",
             "error"
         );
 
@@ -59,7 +59,44 @@ function validateName(name) {
     if (value.length > 100) {
 
         toast(
-            "Tên danh mục tối đa 100 ký tự",
+            "Tên danh mục tối đa 100 ký tự.",
+            "error"
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+function validateCategoryCode(code) {
+
+    if (!code || !code.trim()) {
+
+        toast(
+            "Mã danh mục không được để trống.",
+            "error"
+        );
+
+        return false;
+    }
+
+    const value = code.trim();
+
+    if (value.length < 2) {
+
+        toast(
+            "Mã danh mục phải từ 2 ký tự trở lên.",
+            "error"
+        );
+
+        return false;
+    }
+
+    if (value.length > 50) {
+
+        toast(
+            "Mã danh mục tối đa 50 ký tự.",
             "error"
         );
 
@@ -75,12 +112,17 @@ function validateName(name) {
 
 async function createCategory(form) {
 
-    const name =
-        form.querySelector(
-            '[name="Name"]'
-        ).value;
+    const code =
+    form.querySelector('[name="CategoryCode"]').value;
 
-    if (!validateName(name)) {
+    const name =
+        form.querySelector('[name="Name"]').value;
+
+    if (!validateCategoryCode(code)) {
+        return;
+    }
+
+    if (!validateCategoryName(name)) {
         return;
     }
 
@@ -162,12 +204,17 @@ async function createCategory(form) {
 
 async function editCategory(form) {
 
-    const name =
-        document.getElementById(
-            "editCategoryName"
-        ).value;
+    const code =
+    document.getElementById("editCategoryCode").value;
 
-    if (!validateName(name)) {
+    const name =
+        document.getElementById("editCategoryName").value;
+
+    if (!validateCategoryCode(code)) {
+        return;
+    }
+
+    if (!validateCategoryName(name)) {
         return;
     }
 
@@ -247,22 +294,50 @@ async function editCategory(form) {
 // OPEN EDIT MODAL
 // =====================================================
 
-function openEditModal(btn) {
+async function openEditModal(categoryId) {
 
-    document.getElementById(
-        "editCategoryId"
-    ).value =
-        btn.dataset.id;
+    try {
 
-    document.getElementById(
-        "editCategoryName"
-    ).value =
-        btn.dataset.name;
+        const response =
+            await fetch(
+                `/Admin/AdminCategory/GetById?id=${categoryId}`
+            );
 
-    document.getElementById(
-        "editCategoryActive"
-    ).checked =
-        btn.dataset.active.toLowerCase() === "true";
+        const result =
+            await response.json();
+
+        if (!response.ok || !result.success) {
+
+            toast(
+                result.message || "Không tìm thấy danh mục",
+                "error"
+            );
+
+            return;
+        }
+
+        const category = result.data;
+
+        document.getElementById(
+            "editCategoryId"
+        ).value = category.categoryId;
+
+        document.getElementById(
+            "editCategoryName"
+        ).value = category.name;
+
+        document.getElementById(
+            "editCategoryActive"
+        ).checked = category.active;
+
+    }
+    catch {
+
+        toast(
+            "Có lỗi xảy ra",
+            "error"
+        );
+    }
 }
 
 // =====================================================
@@ -377,8 +452,9 @@ document.addEventListener(
 
                 btn.addEventListener(
                     "click",
-                    () => openEditModal(btn)
+                    () => openEditModal(btn.dataset.id)
                 );
+
             });
     });
 

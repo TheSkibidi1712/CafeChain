@@ -14,7 +14,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             _context = context;
         }
 
-        #region Queries
+        // QUERIES METHODS
 
         public async Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync()
         {
@@ -30,16 +30,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
                 .FirstOrDefaultAsync(c => c.CategoryId == id);
         }
 
-        public async Task<(IEnumerable<DrinkCategory> Items, int TotalCount)>
-            GetPaginatedCategoriesAsync(int pageIndex, int pageSize)
+        public async Task<(IEnumerable<DrinkCategory> Items, int TotalCount)> GetPaginatedCategoriesAsync(string? keyword, bool? active, int pageIndex, int pageSize)
         {
-            var query = _context.DrinkCategories
-                .AsNoTracking();
+            IQueryable<DrinkCategory> query = _context.DrinkCategories.AsNoTracking();
+
+            query = ApplyFilters(
+                query,
+                keyword,
+                active);
 
             var totalCount = await query.CountAsync();
 
             var items = await query
-                .OrderByDescending(c => c.CategoryId)
+                .OrderByDescending(x => x.CategoryId)
                 .Skip((pageIndex - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -47,9 +50,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             return (items, totalCount);
         }
 
-        public async Task<bool> CategoryExistsAsync(
-            string name,
-            int? excludeId = null)
+        public async Task<bool> CategoryExistsAsync(string name, int? excludeId = null)
         {
             name = name.Trim();
 
@@ -66,9 +67,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             return await query.AnyAsync();
         }
 
-        #endregion
 
-        #region Commands
+        // CRUD OPERATIONS
 
         public async Task CreateCategoryAsync(
             DrinkCategory category)
@@ -76,12 +76,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             await _context.DrinkCategories.AddAsync(category);
         }
 
-        public Task UpdateCategoryAsync(
-            DrinkCategory category)
+        public void UpdateCategory(DrinkCategory category)
         {
             _context.DrinkCategories.Update(category);
-
-            return Task.CompletedTask;
         }
 
         public async Task<bool> ToggleStatusAsync(int id)
@@ -104,6 +101,25 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             return await _context.SaveChangesAsync();
         }
 
-        #endregion
+        // PRIVATE METHODS
+        private static IQueryable<DrinkCategory> ApplyFilters(IQueryable<DrinkCategory> query, string? keyword, bool? active)
+        {
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                keyword = keyword.Trim();
+
+                query = query.Where(x =>
+                    x.CategoryCode.Contains(keyword) ||
+                    x.Name.Contains(keyword));
+            }
+
+            if (active.HasValue)
+            {
+                query = query.Where(x =>
+                    x.Active == active.Value);
+            }
+
+            return query;
+        }
     }
 }

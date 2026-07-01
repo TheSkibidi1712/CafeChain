@@ -1,0 +1,54 @@
+@model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+
+<section class="create-section create-detail-section">
+
+    <div class="create-section-header">
+        <div>
+            <span class="create-section-eyebrow">
+                Chi tiết nguyên liệu
+            </span>
+            <h5>Danh sách nguyên liệu</h5>
+        </div>
+
+        <button type="button"
+                class="create-add-row-btn"
+                id="btnAddIngredient">
+            <i class="fas fa-plus"></i>
+            Thêm nguyên liệu
+        </button>
+    </div>
+
+    <p class="create-section-hint">
+        Chọn nhà cung cấp trước, sau đó thêm nguyên liệu và nhập số lượng cần xử lý.
+    </p>
+
+    <div class="create-table-wrap">
+
+        <table class="table align-middle inventory-create-table">
+
+            <thead>
+                <tr>
+                    <th class="create-col-index">#</th>
+                    <th>Nguyên liệu</th>
+                    <th class="create-col-unit">ĐVT</th>
+                    <th class="create-col-qty">Số lượng</th>
+                    <th class="create-col-price">Đơn giá</th>
+                    <th class="create-col-moq">MOQ</th>
+                    <th class="create-col-total">Thành tiền</th>
+                    <th class="create-col-action"></th>
+                </tr>
+            </thead>
+
+            <tbody id="ingredientTableBody">
+                <partial name="Partials/Create/_IngredientRow" />
+            </tbody>
+
+        </table>
+
+    </div>
+
+    <template id="ingredientRowTemplate">
+        <partial name="Partials/Create/_IngredientRow" />
+    </template>
+
+</section>

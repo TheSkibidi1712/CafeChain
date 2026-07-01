@@ -1,5 +1,4 @@
-﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
-using CafeChain.Models.Inventories.Auditing;
+﻿using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
@@ -9,9 +8,9 @@ using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
-using CafeChain.ViewModels.Admin.InventoryDocuments;
-using CafeChain.ViewModels.Shared;
-using Microsoft.EntityFrameworkCore.Storage;
+using CafeChain.Models.Enums.Inventory;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
+
 
 
 namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
@@ -63,6 +62,14 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task AddSnapshotDetailsAsync(IEnumerable<InventoryDocumentSnapshotDetail> details);
 
         // =====================================================
+        // CREATE DOCUMENT
+        // =====================================================
+
+        Task AddDocumentAsync(InventoryDocument document);
+
+        Task AddDocumentDetailsAsync(IEnumerable<InventoryDocumentDetail> details);
+
+        // =====================================================
         // STORE INVENTORY
         // =====================================================
 
@@ -78,9 +85,13 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         // INVENTORY SNAPSHOT
         // =====================================================
 
+        Task<StoreInventorySnapshot?> GetStoreInventorySnapshotAsync(int storeId, int ingredientId);
+
         Task AddStoreInventorySnapshotAsync(StoreInventorySnapshot snapshot);
 
         Task AddStoreInventorySnapshotsAsync(IEnumerable<StoreInventorySnapshot> snapshots);
+
+        void UpdateStoreInventorySnapshot(StoreInventorySnapshot snapshot);
 
         // =====================================================
         // INVENTORY TRANSACTION
@@ -134,6 +145,12 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<Supplier?> GetSupplierAsync(int supplierId);
 
         Task<Staff?> GetStaffAsync(int staffId);
+
+        Task<List<SupplierDropdownVM>> GetSupplierDropdownAsync();
+
+        Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId);
+
+        Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type);
 
         // =====================================================
         // AUDIT

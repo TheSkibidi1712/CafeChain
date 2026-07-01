@@ -1,0 +1,76 @@
+<tr class="ingredient-row">
+
+    <td class="create-col-index text-center">
+        <span class="row-number">1</span>
+    </td>
+
+    <td>
+        <select class="form-select create-control ingredient-select">
+            <option value="">Chọn nguyên liệu</option>
+        </select>
+
+        <div class="ingredient-row-meta">
+            <span class="base-unit-name">Base unit</span>
+            <span class="ingredient-source">Chưa chọn</span>
+            <span class="unit-conversion-display">Quy đổi: -</span>
+        </div>
+
+        <input type="hidden"
+               class="ingredient-id"
+               value="" />
+
+        <input type="hidden"
+               class="unit-id"
+               value="" />
+
+        <input type="hidden"
+               class="base-quantity"
+               value="0" />
+    </td>
+
+    <td class="create-col-unit">
+        <input class="form-control create-control unit-name"
+               placeholder="ĐVT"
+               readonly />
+    </td>
+
+    <td class="create-col-qty">
+        <input type="number"
+               class="form-control create-control quantity"
+               min="1"
+               step="1"
+               inputmode="numeric"
+               placeholder="1" />
+    </td>
+
+    <td class="create-col-price">
+        <input type="number"
+               class="form-control create-control unit-price"
+               min="0"
+               step="1000"
+               placeholder="0"
+               readonly />
+    </td>
+
+    <td class="create-col-moq">
+        <span class="minimum-order-quantity">-</span>
+    </td>
+
+    <td class="create-col-total">
+        <span class="line-total-display">0</span>
+        <small>VNĐ</small>
+
+        <input type="hidden"
+               class="total line-total"
+               value="0" />
+    </td>
+
+    <td class="create-col-action">
+        <button type="button"
+                class="create-remove-row-btn btn-remove-row"
+                title="Xóa dòng">
+            <i class="fas fa-trash-alt"></i>
+        </button>
+    </td>
+
+</tr>

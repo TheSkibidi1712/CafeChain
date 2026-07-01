@@ -475,6 +475,11 @@ builder.Services.AddScoped<IUserContext, UserContext>();
 builder.Services.AddScoped<IAdminInventoryDocumentRepository, AdminInventoryDocumentRepository>();
 builder.Services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
 builder.Services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();
+builder.Services.AddScoped<IAdminInventoryDocumentValidationService, AdminInventoryDocumentValidationService>();
+builder.Services.AddScoped<IAdminInventoryDocumentSnapshotService, AdminInventoryDocumentSnapshotService>();
+builder.Services.AddScoped<IAdminInventoryDocumentProcessService, AdminInventoryDocumentProcessService>();
+builder.Services.AddScoped<IAdminInventoryDocumentConfirmService, AdminInventoryDocumentConfirmService>();
+builder.Services.AddScoped<IAdminInventoryDocumentCreateService, AdminInventoryDocumentCreateService>();
 
 #endregion
 

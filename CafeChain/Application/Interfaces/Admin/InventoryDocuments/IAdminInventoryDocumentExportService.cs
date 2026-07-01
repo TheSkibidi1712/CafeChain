@@ -1,4 +1,4 @@
-﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
+﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Snapshot;
 
 namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 {

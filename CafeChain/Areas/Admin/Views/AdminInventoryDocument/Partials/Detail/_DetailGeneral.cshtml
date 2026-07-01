@@ -1,0 +1,217 @@
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
+
+<div class="detail-card">
+
+    <h6>
+        <i class="fas fa-circle-info me-2"></i>
+        Thông Tin Chung
+    </h6>
+
+    <div class="detail-grid">
+
+        <div>
+            <span class="detail-label">Mã Phiếu</span>
+            <strong>@Model.Code</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Loại Phiếu</span>
+            <strong>@Model.Type</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Trạng Thái</span>
+
+            <span class="status-badge @Model.Status.ToString().ToLower()">
+                @Model.Status
+            </span>
+        </div>
+
+        <div>
+            <span class="detail-label">Mục Đích</span>
+            <strong>@Model.Purpose</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Ngày Chứng Từ</span>
+            <strong>
+                @Model.DocumentDate.ToString("dd/MM/yyyy")
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="detail-card">
+
+    <h6>
+        <i class="fas fa-warehouse me-2"></i>
+        Kho Và Nhân Sự
+    </h6>
+
+    <div class="detail-grid">
+
+        <div>
+            <span class="detail-label">Cửa Hàng</span>
+            <strong>@Model.StoreName</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Người Lập</span>
+            <strong>@Model.StaffName</strong>
+        </div>
+
+
+        <div>
+            <span class="detail-label">Đang Xử Lý</span>
+
+            <strong>
+                @(Model.IsProcessing ? "Có" : "Không")
+            </strong>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="detail-card">
+
+    <h6>
+        <i class="fas fa-users me-2"></i>
+        Đối Tượng Liên Quan
+    </h6>
+
+    <div class="detail-grid">
+
+        <div>
+            <span class="detail-label">Nhà Cung Cấp</span>
+            <strong>@(Model.SupplierName ?? "-")</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Đối Tác</span>
+            <strong>@(Model.PartnerName ?? "-")</strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Loại Đối Tượng</span>
+            <strong>@Model.PartnerType</strong>
+        </div>
+
+    </div>
+
+</div>
+
+<div class="detail-card">
+
+    <h6>
+        <i class="fas fa-boxes-stacked me-2"></i>
+        Chi Tiết Nguyên Liệu
+    </h6>
+
+    <div class="table-responsive">
+
+        <table class="table inventory-detail-table">
+
+            <thead>
+                <tr>
+
+                    <th>Tên Nguyên Liệu</th>
+                    <th>ĐVT</th>
+                    <th class="text-end">Số Lượng</th>
+                    <th class="text-end">Quy Đổi</th>
+                    <th class="text-end">Đơn Giá</th>
+                    <th class="text-end">Thành Tiền</th>
+
+                </tr>
+            </thead>
+
+            <tbody>
+
+                @foreach (var item in Model.Details)
+                {
+                    <tr>
+
+                        <td>
+                            @item.IngredientName
+                        </td>
+
+                        <td>
+                            @item.UnitName
+                        </td>
+
+                        <td class="text-end">
+                            @item.Quantity.ToString("0.##")
+                        </td>
+
+                        <td class="text-end">
+                            @item.BaseQuantity.ToString("0.##")
+                        </td>
+
+                        <td class="text-end">
+
+                            @(
+                                item.UnitPrice?.ToString("N0")
+                                ?? "0"
+                            )
+
+                        </td>
+
+                        <td class="text-end item-total"
+                            data-value="@(item.TotalAmount ?? 0)">
+
+                            @(
+                                item.TotalAmount?.ToString("N0")
+                                ?? "0"
+                            )
+
+                        </td>
+
+                    </tr>
+                }
+
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<div class="summary-box"
+     data-total="@(Model.TotalAmount ?? 0)"
+     data-vat="@(Model.VatAmount ?? 0)"
+     data-final="@(Model.FinalAmount ?? 0)">
+
+    <div class="summary-item">
+
+        <span>Tổng Tiền</span>
+
+        <h4 id="totalAmount">
+            @(Model.TotalAmount?.ToString("N0") ?? "0")
+        </h4>
+
+    </div>
+
+    <div class="summary-item">
+
+        <span>VAT</span>
+
+        <h4 id="vatAmount">
+            @(Model.VatAmount?.ToString("N0") ?? "0")
+        </h4>
+
+    </div>
+
+    <div class="summary-item final">
+
+        <span>Thành Tiền</span>
+
+        <h3 id="finalAmount">
+            @(Model.FinalAmount?.ToString("N0") ?? "0")
+        </h3>
+
+    </div>
+
+</div>

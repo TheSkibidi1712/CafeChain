@@ -16,7 +16,7 @@ namespace CafeChain.Application.Services.Admin.Categories
             _repository = repository;
         }
 
-        #region Queries
+        // QUERIES METHODS
 
         public async Task<IEnumerable<AdminCategoryViewModel>> GetAllCategoriesAsync()
         {
@@ -25,40 +25,53 @@ namespace CafeChain.Application.Services.Admin.Categories
             return categories.Select(MapToViewModel);
         }
 
-        public async Task<PaginatedListViewModel<AdminCategoryViewModel>> GetPaginatedCategoriesAsync(int pageIndex, int pageSize)
+        public async Task<AdminCategoryIndexViewModel> GetIndexDataAsync(CategoryFilterDto filter)
         {
-            var result = await _repository.GetPaginatedCategoriesAsync(pageIndex, pageSize);
+            NormalizeFilter(filter);
 
-            var items = result.Items.Select(MapToViewModel).ToList();
+            var result = await _repository.GetPaginatedCategoriesAsync(
+                filter.Keyword,
+                filter.Active,
+                filter.Page,
+                filter.PageSize);
 
-            return new PaginatedListViewModel<AdminCategoryViewModel>(items, result.TotalCount, pageIndex, pageSize);
+            var items = result.Items
+                .Select(MapToViewModel)
+                .ToList();
+
+            return new AdminCategoryIndexViewModel
+            {
+                Filter = filter,
+                Categories = new PaginatedListViewModel<AdminCategoryViewModel>(
+                    items,
+                    result.TotalCount,
+                    filter.Page,
+                    filter.PageSize)
+            };
         }
 
         public async Task<AdminCategoryViewModel?> GetCategoryByIdAsync(int id)
         {
             var category = await _repository.GetCategoryByIdAsync(id);
 
-            return category == null ? null : MapToViewModel(category);
+            return category == null
+                ? null
+                : MapToViewModel(category);
         }
 
         public async Task<bool> CheckCategoryNameExistAsync(string name, int? excludeId = null)
         {
-            name = NormalizeName(name);
-
-            return await _repository.CategoryExistsAsync(name, excludeId);
+            return await _repository.CategoryExistsAsync(
+                Normalize(name),
+                excludeId);
         }
 
-        #endregion
 
-        #region Commands
+        // COMMANDS METHODS
 
         public async Task<AdminCategoryViewModel> CreateCategoryAsync(AdminCreateCategoryDto dto)
         {
-            var category = new DrinkCategory
-            {
-                Name = NormalizeName(dto.Name),
-                Active = dto.Active
-            };
+            var category = BuildCategory(dto);
 
             await _repository.CreateCategoryAsync(category);
 
@@ -76,10 +89,9 @@ namespace CafeChain.Application.Services.Admin.Categories
                 return null;
             }
 
-            category.Name = NormalizeName(dto.Name);
-            category.Active = dto.Active;
+            UpdateCategoryEntity(category, dto);
 
-            await _repository.UpdateCategoryAsync(category);
+            _repository.UpdateCategory(category);
 
             await _repository.SaveChangesAsync();
 
@@ -98,16 +110,18 @@ namespace CafeChain.Application.Services.Admin.Categories
             return new AdminUpdateCategoryDto
             {
                 CategoryId = category.CategoryId,
+                CategoryCode = category.CategoryCode,
                 Name = category.Name,
+                Icon = category.Icon,
                 Active = category.Active
             };
         }
 
         public async Task<bool> ToggleCategoryStatusAsync(int id)
         {
-            var result = await _repository.ToggleStatusAsync(id);
+            var success = await _repository.ToggleStatusAsync(id);
 
-            if (!result)
+            if (!success)
             {
                 return false;
             }
@@ -117,13 +131,48 @@ namespace CafeChain.Application.Services.Admin.Categories
             return true;
         }
 
-        #endregion
+        // PRIVATE METHODS
 
-        #region Private Methods
-
-        private static string NormalizeName(string name)
+        private static void NormalizeFilter(CategoryFilterDto filter)
         {
-            return string.IsNullOrWhiteSpace(name) ? string.Empty : name.Trim();
+            filter.Keyword = Normalize(filter.Keyword);
+
+            filter.Page = filter.Page <= 0
+                ? 1
+                : filter.Page;
+
+            filter.PageSize = filter.PageSize <= 0
+                ? 10
+                : filter.PageSize;
+        }
+
+        private static DrinkCategory BuildCategory(AdminCreateCategoryDto dto)
+        {
+            return new DrinkCategory
+            {
+                CategoryCode = Normalize(dto.CategoryCode),
+                Name = Normalize(dto.Name),
+                Icon = dto.Icon,
+                Active = dto.Active
+            };
+        }
+
+        private static void UpdateCategoryEntity(DrinkCategory category, AdminUpdateCategoryDto dto)
+        {
+            category.CategoryCode = Normalize(dto.CategoryCode);
+
+            category.Name = Normalize(dto.Name);
+
+            category.Icon = dto.Icon;
+
+            category.Active = dto.Active;
+        }
+
+        private static string Normalize(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim();
         }
 
         private static AdminCategoryViewModel MapToViewModel(DrinkCategory category)
@@ -131,11 +180,12 @@ namespace CafeChain.Application.Services.Admin.Categories
             return new AdminCategoryViewModel
             {
                 CategoryId = category.CategoryId,
+                CategoryCode = category.CategoryCode,
                 Name = category.Name,
+                Icon = category.Icon,
                 Active = category.Active
             };
         }
 
-        #endregion
     }
 }

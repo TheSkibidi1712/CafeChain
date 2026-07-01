@@ -10,9 +10,10 @@ using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
-using CafeChain.ViewModels.Admin.InventoryDocuments;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
+using CafeChain.Models.Enums.Inventory;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
 {
@@ -108,6 +109,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Ingredient)
+                        .ThenInclude(x => x.BaseUnit)
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Unit)
@@ -130,6 +132,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Ingredient)
+                        .ThenInclude(x => x.BaseUnit)
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Unit)
@@ -184,6 +187,22 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         }
 
         // =====================================================
+        // CREATE DOCUMENT
+        // =====================================================
+
+        public async Task AddDocumentAsync(InventoryDocument document)
+        {
+            await _context.InventoryDocuments
+                .AddAsync(document);
+        }
+
+        public async Task AddDocumentDetailsAsync(IEnumerable<InventoryDocumentDetail> details)
+        {
+            await _context.InventoryDocumentDetails
+                .AddRangeAsync(details);
+        }
+
+        // =====================================================
         // STORE INVENTORY
         // =====================================================
 
@@ -223,6 +242,15 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         // STORE INVENTORY SNAPSHOT
         // =====================================================
 
+        public async Task<StoreInventorySnapshot?> GetStoreInventorySnapshotAsync(int storeId, int ingredientId)
+        {
+            return await _context.StoreInventorySnapshots
+
+                .FirstOrDefaultAsync(x =>
+                    x.StoreId == storeId
+                    && x.IngredientId == ingredientId);
+        }
+
         public async Task AddStoreInventorySnapshotAsync(StoreInventorySnapshot snapshot)
         {
             await _context.StoreInventorySnapshots.AddAsync(snapshot);
@@ -231,6 +259,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task AddStoreInventorySnapshotsAsync(IEnumerable<StoreInventorySnapshot> snapshots)
         {
             await _context.StoreInventorySnapshots.AddRangeAsync(snapshots);
+        }
+
+        public void UpdateStoreInventorySnapshot(StoreInventorySnapshot snapshot)
+        {
+            _context.StoreInventorySnapshots.Update(snapshot);
         }
 
         // =====================================================
@@ -348,9 +381,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<Ingredient?> GetIngredientAsync(int ingredientId)
         {
             return await _context.Ingredients
-
                 .Include(x => x.BaseUnit)
-
+                .Include(x => x.UnitConversions)
                 .FirstOrDefaultAsync(x =>
                     x.IngredientId == ingredientId);
         }
@@ -358,7 +390,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<Unit?> GetUnitAsync(int unitId)
         {
             return await _context.Units
-
                 .FirstOrDefaultAsync(x =>
                     x.UnitId == unitId);
         }
@@ -366,7 +397,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<Store?> GetStoreAsync(int storeId)
         {
             return await _context.Stores
-
                 .FirstOrDefaultAsync(x =>
                     x.StoreId == storeId);
         }
@@ -374,7 +404,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<Supplier?> GetSupplierAsync(int supplierId)
         {
             return await _context.Suppliers
-
                 .FirstOrDefaultAsync(x =>
                     x.SupplierId == supplierId);
         }
@@ -382,9 +411,60 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<Staff?> GetStaffAsync(int staffId)
         {
             return await _context.Staffs
-
+                .AsNoTracking()
                 .FirstOrDefaultAsync(x =>
                     x.StaffId == staffId);
+        }
+
+        public async Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type)
+        {
+            string prefix = type switch
+            {
+                InventoryDocumentType.IMPORT => "PN",
+                InventoryDocumentType.EXPORT => "PX",
+                InventoryDocumentType.STOCK_TAKE => "KK",
+                InventoryDocumentType.WASTE => "HU",
+                InventoryDocumentType.PRODUCTION_IN => "SPN",
+                InventoryDocumentType.PRODUCTION_OUT => "SPX",
+                InventoryDocumentType.SALES_DEDUCTION => "HBH",
+                _ => "PK"
+            };
+
+            string date = DateTime.Today.ToString("yyyyMMdd");
+
+            int count = await _context.InventoryDocuments
+                .CountAsync(x => x.Type == type && x.DocumentDate.Date == DateTime.Today);
+
+            return $"{prefix}-{date}-{count + 1:000}";
+        }
+
+        public async Task<List<SupplierDropdownVM>>GetSupplierDropdownAsync()
+        {
+            return await _context.Suppliers
+                .AsNoTracking()
+                .Where(x => x.Active)
+                .OrderBy(x => x.Name)
+                .Select(x =>
+                    new SupplierDropdownVM
+                    {
+                        SupplierId = x.SupplierId,
+                        SupplierName = x.Name!
+                    })
+                .ToListAsync();
+        }
+
+        public async Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId)
+        {
+            return await _context.IngredientSuppliers
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.UnitConversions)
+                .Include(x => x.Unit)
+                .Where(x =>
+                    x.SupplierId == supplierId &&
+                    x.Active)
+                .ToListAsync();
         }
 
         // =====================================================

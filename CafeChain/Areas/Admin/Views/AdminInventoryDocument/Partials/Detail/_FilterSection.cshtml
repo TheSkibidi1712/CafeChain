@@ -1,0 +1,94 @@
+﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
+@using CafeChain.Models.Enums.Inventory
+
+<form method="get"
+      asp-action="Index"
+      id="filterForm">
+
+    <div class="filter-container">
+
+        <div class="search-box">
+            <input asp-for="Filter.Search"
+                   class="form-control"
+                   placeholder="Tìm theo mã phiếu, nhà cung cấp, đối tác, nhân viên..." />
+        </div>
+
+        <div class="filter-row">
+
+            <select asp-for="Filter.Type"
+                    class="form-select">
+
+                <option value="">Loại phiếu</option>
+
+                @foreach (var item in Enum.GetValues<InventoryDocumentType>())
+                {
+                    <option value="@item">@item</option>
+                }
+
+            </select>
+
+            <select asp-for="Filter.Status"
+                    class="form-select">
+
+                <option value="">Trạng thái</option>
+
+                @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
+                {
+                    <option value="@item">@item</option>
+                }
+
+            </select>
+
+            <select asp-for="Filter.Purpose"
+                    class="form-select">
+
+                <option value="">Mục đích</option>
+
+                @foreach (var item in Enum.GetValues<InventoryDocumentPurpose>())
+                {
+                    <option value="@item">@item</option>
+                }
+
+            </select>
+
+            <select asp-for="Filter.StoreId"
+                    class="form-select">
+
+                <option value="">Cửa hàng</option>
+
+                @foreach (var store in Model.Stores)
+                {
+                    <option value="@store.StoreId">
+                        @store.StoreName
+                    </option>
+                }
+
+            </select>
+
+            <input asp-for="Filter.FromDate"
+                   type="date"
+                   class="form-control" />
+
+            <input asp-for="Filter.ToDate"
+                   type="date"
+                   class="form-control" />
+
+        </div>
+
+        <div class="filter-actions">
+
+            <a asp-action="Index"
+               class="btn btn-light">
+                Reset
+            </a>
+
+            <button type="submit"
+                    class="btn btn-primary">
+                Áp dụng
+            </button>
+
+        </div>
+
+    </div>
+
+</form>

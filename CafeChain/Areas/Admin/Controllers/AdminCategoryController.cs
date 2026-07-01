@@ -4,24 +4,35 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    public class AdminCategoryController
-        : AdminBaseController
+    [Area("Admin")]
+    public class AdminCategoryController : AdminBaseController
     {
-        private readonly IAdminCategoryService
-            _categoryService;
+        private readonly IAdminCategoryService _categoryService;
 
-        public AdminCategoryController(
-            IAdminCategoryService categoryService)
+        public AdminCategoryController(IAdminCategoryService categoryService)
         {
             _categoryService = categoryService;
         }
 
-        public async Task<IActionResult> Index(int page = 1)
-        {
-            var categories = await _categoryService.GetPaginatedCategoriesAsync(page, 6);
+        // =====================================================
+        // INDEX
+        // =====================================================
 
-            return View(categories);
+        [HttpGet]
+        public async Task<IActionResult> Index(CategoryFilterDto filter)
+        {
+            filter.Page = filter.Page <= 0 ? 1 : filter.Page;
+
+            filter.PageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
+
+            var vm = await _categoryService.GetIndexDataAsync(filter);
+
+            return View(vm);
         }
+
+        // =====================================================
+        // GET CATEGORY
+        // =====================================================
 
         [HttpGet]
         public async Task<IActionResult> GetById(int id)
@@ -30,7 +41,9 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (category == null)
             {
-                return Error( "Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
+                return Error(
+                    "Không tìm thấy danh mục.",
+                    StatusCodes.Status404NotFound);
             }
 
             return Json(new
@@ -39,6 +52,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 data = category
             });
         }
+
+        // =====================================================
+        // CREATE
+        // =====================================================
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -51,13 +68,19 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (await _categoryService.CheckCategoryNameExistAsync(dto.Name))
             {
-                return Error("Tên danh mục đã tồn tại.", StatusCodes.Status409Conflict);
+                return Error(
+                    "Tên danh mục đã tồn tại.",
+                    StatusCodes.Status409Conflict);
             }
 
             await _categoryService.CreateCategoryAsync(dto);
 
             return Success("Thêm danh mục thành công.");
         }
+
+        // =====================================================
+        // UPDATE
+        // =====================================================
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -68,20 +91,30 @@ namespace CafeChain.Areas.Admin.Controllers
                 return ValidationError();
             }
 
-            if (await _categoryService.CheckCategoryNameExistAsync(dto.Name, dto.CategoryId))
+            if (await _categoryService.CheckCategoryNameExistAsync(
+                dto.Name,
+                dto.CategoryId))
             {
-                return Error("Tên danh mục đã tồn tại.", StatusCodes.Status409Conflict);
+                return Error(
+                    "Tên danh mục đã tồn tại.",
+                    StatusCodes.Status409Conflict);
             }
 
             var result = await _categoryService.UpdateCategoryAsync(dto);
 
             if (result == null)
             {
-                return Error("Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
+                return Error(
+                    "Không tìm thấy danh mục.",
+                    StatusCodes.Status404NotFound);
             }
 
             return Success("Cập nhật danh mục thành công.");
         }
+
+        // =====================================================
+        // TOGGLE STATUS
+        // =====================================================
 
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -91,18 +124,22 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (!success)
             {
-                return Error("Không tìm thấy danh mục.", StatusCodes.Status404NotFound);
+                return Error(
+                    "Không tìm thấy danh mục.",
+                    StatusCodes.Status404NotFound);
             }
 
             return Success("Cập nhật trạng thái thành công.");
         }
 
-        #region Private Helpers
+        // =====================================================
+        // PRIVATE METHODS
+        // =====================================================
 
         private JsonResult Success(string message)
         {
             return Json(new
-            {   
+            {
                 success = true,
                 message
             });
@@ -136,7 +173,5 @@ namespace CafeChain.Areas.Admin.Controllers
                             .ToArray())
             });
         }
-
-        #endregion
     }
 }

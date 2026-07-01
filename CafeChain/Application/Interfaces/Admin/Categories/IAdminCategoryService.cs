@@ -8,7 +8,7 @@ namespace CafeChain.Application.Interfaces.Admin.Categories
     {
         Task<IEnumerable<AdminCategoryViewModel>> GetAllCategoriesAsync();
 
-        Task<PaginatedListViewModel<AdminCategoryViewModel>> GetPaginatedCategoriesAsync(int pageIndex, int pageSize);
+        Task<AdminCategoryIndexViewModel> GetIndexDataAsync(CategoryFilterDto filter);
 
         Task<AdminCategoryViewModel?> GetCategoryByIdAsync(int id);
 

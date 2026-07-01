@@ -1,8 +1,8 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
-using CafeChain.Models.Inventories.Ingredients;
-using CafeChain.Models.Inventories.Suppliers;
-using CafeChain.Models.Stores;
-using CafeChain.ViewModels.Admin.InventoryDocuments;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments.Index;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Detail;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Index;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Preview;
 using CafeChain.ViewModels.Shared;
 
 
@@ -31,18 +31,6 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<AdminInventoryDocumentPreviewVM?> GetPreviewAsync(int documentId);
 
-        // =====================================================
-        // SNAPSHOT
-        // =====================================================
-
-        Task<InventoryDocumentSnapshotDTO?> GetSnapshotAsync(int documentId);
-
-
-        // =====================================================
-        // CONFIRM
-        // =====================================================
-
-        Task<bool> ConfirmAsync(ConfirmInventoryDocumentDTO dto);
 
         // =====================================================
         // EXPORT FILE

@@ -39,7 +39,7 @@ namespace CafeChain.Data.Configurations.Inventories.Debts
             builder.HasIndex(x => x.PaidAmount);
 
             // ================= RELATION =================
-            builder.HasOne<InventoryDocument>()
+            builder.HasOne(x => x.InventoryDocument)
                 .WithMany(x => x.Debts)
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.Restrict);
