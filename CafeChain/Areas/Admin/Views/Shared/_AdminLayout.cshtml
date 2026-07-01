@@ -344,6 +344,10 @@
                 </a>
                 <div class="collapse @(isHrGroupActive ? "show" : "")" id="collapseHR">
                     <div class="sidebar-sub">
+                        @if(User.IsInRole("Super Admin"))
+                        {
+                            <a asp-area="Admin" asp-controller="AdminPermission" asp-action="Role" class="@Html.IsActive("AdminPermission")"><i class="fas fa-circle"></i> Bảng phân quyền</a>
+                        }   
                         @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự"))
                         {
                             <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-circle"></i> Quản lý nhân viên</a>

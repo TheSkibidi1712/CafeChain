@@ -107,6 +107,17 @@ namespace CafeChain.Data.Configurations.Permissions
                     Action = "Delete",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
+                },
+
+                new Permission
+                {
+                    PermissionId = 100,
+                    PermissionGroupId = 5,
+                    Code = "System.Permission.Manage",
+                    Name = "Quản lý phân quyền",
+                    Action = "Manage",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
                 }
             );
         }

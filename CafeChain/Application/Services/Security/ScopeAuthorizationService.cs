@@ -1,10 +1,8 @@
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.Security
 {
@@ -19,82 +17,101 @@ namespace CafeChain.Application.Services.Security
 
         public async Task<List<Store>> GetAllowedStoresAsync(int currentStaffId)
         {
-            var staff = await _context.Staffs
-                .Include(s => s.StaffScopes)
-                .FirstOrDefaultAsync(s => s.StaffId == currentStaffId);
-
-            if (staff == null) return new List<Store>();
-
-            var query = _context.Stores.Where(s => s.Active);
-
-            // 1. Kiểm tra cấp độ vùng cao nhất (HQ)
-            if (staff.StaffScopes.Any(s => s.ScopeTypeId == (int)ScopeLevel.HQ))
+            var scopes = await GetStaffScopesAsync(currentStaffId);
+            if (!scopes.Any())
             {
-                return await query.ToListAsync();
+                return new List<Store>();
             }
 
-            // 2. Chế độ Hỗ trợ ĐA Tỉnh (Multiple Provinces)
-            var provinceIds = staff.StaffScopes
-                .Where(s => s.ScopeTypeId == (int)ScopeLevel.Province)
-                .Select(s => s.ScopeRefId)
-                .ToList();
-            if (provinceIds.Any())
+            var query = _context.Stores
+                .AsNoTracking()
+                .Where(x => x.Active);
+
+            if (scopes.Any(x => x.ScopeTypeId == (int)ScopeLevel.Country))
             {
-                return await query.Where(s => s.Ward.DistrictId.HasValue && provinceIds.Contains(s.Ward.DistrictId.Value)).ToListAsync();
+                return await query.OrderBy(x => x.Name).ToListAsync();
             }
 
-            // 3. Chế độ Hỗ trợ ĐA Phường/Xã (Multiple Wards)
-            var wardIds = staff.StaffScopes
-                .Where(s => s.ScopeTypeId == (int)ScopeLevel.Ward)
-                .Select(s => s.ScopeRefId)
-                .ToList();
-            if (wardIds.Any())
-            {
-                return await query.Where(s => s.WardId.HasValue && wardIds.Contains(s.WardId.Value)).ToListAsync();
-            }
+            var provinceIds = GetScopeRefs(scopes, ScopeLevel.Province);
+            var districtIds = GetScopeRefs(scopes, ScopeLevel.District);
+            var wardIds = GetScopeRefs(scopes, ScopeLevel.Ward);
+            var storeIds = GetScopeRefs(scopes, ScopeLevel.Store);
 
-            // 4. Mặc định Cửa Hàng (Store Manager) - Mức quyền thấp nhất
-            return await query.Where(s => s.StoreId == staff.StoreId).ToListAsync();
+            return await query
+                .Where(x =>
+                    (x.ProvinceId.HasValue && provinceIds.Contains(x.ProvinceId.Value)) ||
+                    (x.DistrictId.HasValue && districtIds.Contains(x.DistrictId.Value)) ||
+                    (x.WardId.HasValue && wardIds.Contains(x.WardId.Value)) ||
+                    storeIds.Contains(x.StoreId))
+                .OrderBy(x => x.Name)
+                .ToListAsync();
         }
 
-        public async Task<bool> CheckIfStoreIsWithinManagerScopeAsync(int currentStaffId, int targetStoreId)
+        public Task<bool> CheckIfStoreIsWithinManagerScopeAsync(int currentStaffId, int targetStoreId)
         {
-            var staff = await _context.Staffs
-                .Include(s => s.StaffScopes)
-                .FirstOrDefaultAsync(s => s.StaffId == currentStaffId);
+            return CanAccessStoreAsync(currentStaffId, targetStoreId);
+        }
 
-            if (staff == null) return false;
-
-            var storeQuery = _context.Stores.Where(s => s.StoreId == targetStoreId && s.Active);
-
-            // 1. HQ System
-            if (staff.StaffScopes.Any(s => s.ScopeTypeId == (int)ScopeLevel.HQ))
+        public async Task<bool> CanAccessStoreAsync(int currentStaffId, int targetStoreId)
+        {
+            if (currentStaffId <= 0 || targetStoreId <= 0)
             {
-                return await storeQuery.AnyAsync();
+                return false;
             }
 
-            // 2. Province Check
-            var provinceIds = staff.StaffScopes
-                .Where(s => s.ScopeTypeId == (int)ScopeLevel.Province)
-                .Select(s => s.ScopeRefId)
+            var scopes = await GetStaffScopesAsync(currentStaffId);
+            if (!scopes.Any())
+            {
+                return false;
+            }
+
+            var store = await _context.Stores
+                .AsNoTracking()
+                .Where(x => x.StoreId == targetStoreId && x.Active)
+                .Select(x => new
+                {
+                    x.StoreId,
+                    x.ProvinceId,
+                    x.DistrictId,
+                    x.WardId
+                })
+                .FirstOrDefaultAsync();
+
+            if (store == null)
+            {
+                return false;
+            }
+
+            if (scopes.Any(x => x.ScopeTypeId == (int)ScopeLevel.Country))
+            {
+                return true;
+            }
+
+            return scopes.Any(scope => scope.ScopeTypeId switch
+            {
+                (int)ScopeLevel.Province => store.ProvinceId == scope.ScopeRefId,
+                (int)ScopeLevel.District => store.DistrictId == scope.ScopeRefId,
+                (int)ScopeLevel.Ward => store.WardId == scope.ScopeRefId,
+                (int)ScopeLevel.Store => store.StoreId == scope.ScopeRefId,
+                _ => false
+            });
+        }
+
+        private Task<List<StaffScope>> GetStaffScopesAsync(int staffId)
+        {
+            return _context.StaffScopes
+                .AsNoTracking()
+                .Where(x => x.StaffId == staffId)
+                .ToListAsync();
+        }
+
+        private static List<int> GetScopeRefs(IEnumerable<StaffScope> scopes, ScopeLevel scopeLevel)
+        {
+            return scopes
+                .Where(x => x.ScopeTypeId == (int)scopeLevel)
+                .Select(x => x.ScopeRefId)
+                .Distinct()
                 .ToList();
-            if (provinceIds.Any())
-            {
-                return await storeQuery.AnyAsync(s => s.Ward.DistrictId.HasValue && provinceIds.Contains(s.Ward.DistrictId.Value));
-            }
-
-            // 3. Ward Check
-            var wardIds = staff.StaffScopes
-                .Where(s => s.ScopeTypeId == (int)ScopeLevel.Ward)
-                .Select(s => s.ScopeRefId)
-                .ToList();
-            if (wardIds.Any())
-            {
-                return await storeQuery.AnyAsync(s => s.WardId.HasValue && wardIds.Contains(s.WardId.Value));
-            }
-
-            // 4. Store Level Security Match
-            return staff.StoreId == targetStoreId;
         }
     }
 }

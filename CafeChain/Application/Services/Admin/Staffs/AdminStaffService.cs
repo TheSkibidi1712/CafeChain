@@ -33,6 +33,10 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private const int ROLE_CUSTOMER = 11;
         private const int ROLE_WAREHOUSE_KEEPER = 12;
         private const int ROLE_GENERAL_STAFF = 13;
+        private const int SCOPE_COUNTRY = 1;
+        private const int SCOPE_PROVINCE = 2;
+        private const int SCOPE_DISTRICT = 3;
+        private const int SCOPE_STORE = 5;
 
         // 🔥 Forbidden roles cho Store Manager (cấp HQ + Area + chính mình)
         private static readonly int[] FORBIDDEN_ROLES_FOR_STORE_MANAGER = { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -43,9 +47,9 @@ namespace CafeChain.Application.Services.Admin.Staffs
         /// </summary>
         private static int GetRequiredScopeTypeForRole(int roleId) => roleId switch
         {
-            >= 1 and <= 6 => 1,   // COUNTRY (HQ-level)
-            7 => 2,                // PROVINCE (Area Manager)
-            _ => 4                 // STORE (Store Manager, Ca trưởng, Thu ngân, Thủ kho, NV chung)
+            >= 1 and <= 6 => SCOPE_COUNTRY,
+            7 => SCOPE_PROVINCE,
+            _ => SCOPE_STORE
         };
 
         public AdminStaffService(IAdminStaffRepository repository, IWebHostEnvironment env, IScopeAuthorizationService scopeAuthorizationService)
@@ -138,21 +142,21 @@ namespace CafeChain.Application.Services.Admin.Staffs
         {
             try
             {
-                if (scopeTypeId == 1) // HQ
+                if (scopeTypeId == SCOPE_COUNTRY) // HQ
                 {
                     return new[] { new { id = 1, name = "Trụ sở chính" } };
                 }
-                if (scopeTypeId == 4) // Store
+                if (scopeTypeId == SCOPE_STORE) // Store
                 {
                     var stores = await _repository.GetActiveStoresAsync();
                     return stores.Select(s => new { id = s.StoreId, name = s.Name });
                 }
-                if (scopeTypeId == 2) // Province
+                if (scopeTypeId == SCOPE_PROVINCE) // Province
                 {
                     var provinces = await _repository.GetProvincesAsync();
                     return provinces.Select(p => new { id = p.ProvinceId, name = p.Name });
                 }
-                if (scopeTypeId == 3 && parentId.HasValue) // District
+                if (scopeTypeId == SCOPE_DISTRICT && parentId.HasValue) // District
                 {
                     var districts = await _repository.GetDistrictsAsync(parentId.Value);
                     return districts.Select(d => new { id = d.DistrictId, name = d.Name });
@@ -229,7 +233,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 DateOfBirth = staff.DateOfBirth,
                 StoreId = staff.StoreId,
                 SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? ROLE_CASHIER,
-                ScopeTypeId = staff.StaffScopes?.FirstOrDefault()?.ScopeTypeId ?? 4,
+                ScopeTypeId = staff.StaffScopes?.FirstOrDefault()?.ScopeTypeId ?? SCOPE_STORE,
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
                 Addresses = staff.StaffAddresses?.OrderByDescending(a => a.IsDefault).Select(a => a.Address).ToList() ?? new List<string>(),
@@ -259,7 +263,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             if (isStoreManager && !isAdmin)
             {
                 model.StoreId = currentStoreId;
-                model.ScopeTypeId = 4; // STORE
+                model.ScopeTypeId = SCOPE_STORE; // STORE
                 model.ScopeRefId = currentStoreId;
             }
 
@@ -280,7 +284,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             {
                 model.ScopeRefId = 1;
             }
-            else if (requiredScope == 4) // Store-level: bắt buộc chọn cửa hàng
+            else if (requiredScope == SCOPE_STORE) // Store-level: bắt buộc chọn cửa hàng
             {
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
                     return ServiceResult.Failure("Vai trò này yêu cầu phải chọn một Cửa hàng vật lý cụ thể.");
@@ -396,7 +400,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             {
                 new StaffScope
                 {
-                    ScopeTypeId = model.ScopeTypeId > 0 ? model.ScopeTypeId : 4,
+                    ScopeTypeId = model.ScopeTypeId > 0 ? model.ScopeTypeId : SCOPE_STORE,
                     ScopeRefId = model.ScopeRefId > 0 ? model.ScopeRefId : (model.StoreId ?? 1)
                 }
             };
@@ -488,7 +492,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             if (isStoreManager && !isAdmin)
             {
                 model.StoreId = currentStoreId;
-                model.ScopeTypeId = 4;
+                model.ScopeTypeId = SCOPE_STORE;
                 model.ScopeRefId = currentStoreId;
             }
 
@@ -509,7 +513,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             {
                 model.ScopeRefId = 1;
             }
-            else if (requiredScopeEdit == 4) // Store-level: bắt buộc chọn cửa hàng
+            else if (requiredScopeEdit == SCOPE_STORE) // Store-level: bắt buộc chọn cửa hàng
             {
                 if (!model.StoreId.HasValue || model.StoreId <= 0)
                     return ServiceResult.Failure("Vai trò này yêu cầu phải chọn một Cửa hàng vật lý cụ thể.");
@@ -609,7 +613,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
             {
                 new StaffScope
                 {
-                    ScopeTypeId = model.ScopeTypeId > 0 ? model.ScopeTypeId : 4,
+                    ScopeTypeId = model.ScopeTypeId > 0 ? model.ScopeTypeId : SCOPE_STORE,
                     ScopeRefId = model.ScopeRefId > 0 ? model.ScopeRefId : (model.StoreId ?? existingStaff.StoreId)
                 }
             };

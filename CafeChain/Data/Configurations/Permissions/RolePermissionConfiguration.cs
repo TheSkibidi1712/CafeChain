@@ -25,6 +25,14 @@ namespace CafeChain.Data.Configurations.Permissions
                 .WithMany(x => x.RolePermissions)
                 .HasForeignKey(x => x.PermissionId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasData(
+                new RolePermission { RoleId = 1, PermissionId = 1 },
+                new RolePermission { RoleId = 1, PermissionId = 2 },
+                new RolePermission { RoleId = 1, PermissionId = 3 },
+                new RolePermission { RoleId = 1, PermissionId = 4 },
+                new RolePermission { RoleId = 1, PermissionId = 100 }
+            );
         }
     }
 }
