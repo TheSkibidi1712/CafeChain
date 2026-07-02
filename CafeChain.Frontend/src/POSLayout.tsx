@@ -475,9 +475,11 @@ export default function POSLayout() {
 
           const warnings = response.data.inventoryWarnings
           const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
-          printReceipt(buildReceiptData(paymentMethod, commitData?.orderId, commitData?.total ?? totalAmount))
+          if (paymentMethod === 'banking') {
+            printReceipt(buildReceiptData('banking', commitData?.orderId, commitData?.total ?? totalAmount))
+          }
           resetCart()
-          showMessage(`Thanh toán thành công, lệnh in đã gửi tới Print Bridge.${warningText}`)
+          showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         } else if (!response.ok && response.status === 0 && paymentMethod === 'cash') {
           console.warn('[POS] Network commit failed, saving offline:', response.error)
           const savedOffline = await enqueueOrderFallback(paymentMethod)

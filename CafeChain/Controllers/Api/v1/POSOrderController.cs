@@ -56,9 +56,12 @@ namespace CafeChain.Controllers.Api.v1
             if (!result.IsSuccess)
                 return Ok(new { success = false, message = result.Message });
 
-            // Side-effects: Cash/Paid orders deduct stock immediately.
+            var isIdempotent = IsIdempotentResponse(result.Data);
+
+            // Side-effects: Cash/Paid orders deduct stock once for newly-created orders only.
             // VietQR/PayOS orders are still AwaitingPayment here, so stock is deducted by webhook after Paid.
-            var inventoryWarnings = IsPayOsPayment(dto)
+            // Idempotent retries return the existing order and must not re-run Inventory Deduction.
+            var inventoryWarnings = IsPayOsPayment(dto) || isIdempotent
                 ? null
                 : await DeductInventorySafeAsync(dto.Items, CurrentStoreId);
 
