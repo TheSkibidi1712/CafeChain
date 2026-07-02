@@ -398,10 +398,15 @@ export default function POSLayout() {
   }, [buildReceiptData, pendingPayment, printReceipt, resetCart, showMessage])
 
   const enqueueOrderFallback = async (paymentMethod: 'cash' | 'banking') => {
+    if (!hasOpenShift || !shift?.shiftId) {
+      showMessage('Bạn cần mở ca làm việc trước khi lưu đơn offline.')
+      return false
+    }
+
     await enqueueOrder({
       storeId: session.storeId ?? 1,
       staffId: session.staffId ?? 0,
-      workShiftId: shift?.shiftId ?? 0,
+      workShiftId: shift.shiftId,
       orderType,
       items: cart.map((ci) => ({
         menuItemId: ci.id,
@@ -414,6 +419,8 @@ export default function POSLayout() {
       totalAmount,
       paymentMethod,
     })
+
+    return true
   }
 
   const handleCheckout = async (paymentMethod: 'cash' | 'banking') => {
@@ -471,30 +478,37 @@ export default function POSLayout() {
           printReceipt(buildReceiptData(paymentMethod, commitData?.orderId, commitData?.total ?? totalAmount))
           resetCart()
           showMessage(`Thanh toán thành công, lệnh in đã gửi tới Print Bridge.${warningText}`)
-        } else {
-          if (paymentMethod === 'banking') {
-            showMessage(response.data?.message || response.error || 'Không thể tạo mã thanh toán VietQR.')
-            return
+        } else if (!response.ok && response.status === 0 && paymentMethod === 'cash') {
+          console.warn('[POS] Network commit failed, saving offline:', response.error)
+          const savedOffline = await enqueueOrderFallback(paymentMethod)
+          if (savedOffline) {
+            resetCart()
+            showMessage('Đơn đã lưu offline, sẽ tự đồng bộ khi có mạng.')
           }
-
-          console.warn('[POS] API commit failed, saving offline:', response.data?.message || response.error)
-          await enqueueOrderFallback(paymentMethod)
-          resetCart()
-          showMessage('Đơn đã lưu offline, sẽ tự đồng bộ khi có mạng.')
+        } else {
+          showMessage(response.data?.message || response.error || 'Không thể thanh toán. Vui lòng kiểm tra lại ca két tiền.')
         }
       } else {
-        await enqueueOrderFallback(paymentMethod)
-        resetCart()
-        showMessage('Offline: đơn đã lưu và sẽ tự đồng bộ khi có mạng.')
+        const savedOffline = await enqueueOrderFallback(paymentMethod)
+        if (savedOffline) {
+          resetCart()
+          showMessage('Offline: đơn đã lưu và sẽ tự đồng bộ khi có mạng.')
+        }
       }
     } catch (err) {
       console.error('[POS] Checkout error:', err)
-      try {
-        await enqueueOrderFallback(paymentMethod)
-        resetCart()
-        showMessage('Đơn đã lưu offline do lỗi mạng.')
-      } catch {
-        window.alert('Lỗi nghiêm trọng: Không thể lưu đơn hàng.')
+      if (!navigator.onLine && paymentMethod === 'cash') {
+        try {
+          const savedOffline = await enqueueOrderFallback(paymentMethod)
+          if (savedOffline) {
+            resetCart()
+            showMessage('Đơn đã lưu offline do lỗi mạng.')
+          }
+        } catch {
+          window.alert('Lỗi nghiêm trọng: Không thể lưu đơn hàng.')
+        }
+      } else {
+        showMessage('Không thể thanh toán. Vui lòng thử lại.')
       }
     } finally {
       checkoutInFlightRef.current = false
