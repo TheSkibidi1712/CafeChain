@@ -80,7 +80,6 @@ namespace CafeChain.Controllers.Api.v1
                     : $"{order.Note} | [PAYOS-CANCELLED] {reason}";
 
                 foreach (var payment in order.Payments.Where(p =>
-                    p.PaymentMethodId == 2 &&
                     p.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid))
                 {
                     payment.PaymentStatusId = SystemConstants.PaymentStatuses.Failed;

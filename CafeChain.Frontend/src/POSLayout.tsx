@@ -40,16 +40,23 @@ interface POSCommitApiResponse {
     qrCode?: string | null
     requiresPayment?: boolean
     paymentMethodId?: number
+    pendingCashAmount?: number
+    pendingVietQrAmount?: number
   }
   inventoryWarnings?: string[]
 }
 
 interface PendingPayment {
-  orderId: number
-  checkoutUrl: string
+  status: 'collecting' | 'awaiting-vietqr'
+  cartSnapshot: CartItem[]
+  orderTypeSnapshot: 'dine-in' | 'take-away'
+  totalAmount: number
+  pendingCashAmount: number
+  vietQrAmount: number
+  orderId?: number
+  checkoutUrl?: string
   qrCode?: string | null
-  amount: number
-  expiresAt: number
+  expiresAt?: number
 }
 
 interface CancelPaymentApiResponse {
@@ -115,6 +122,7 @@ export default function POSLayout() {
   const [activeItemForModifiers, setActiveItemForModifiers] = useState<MenuItem | null>(null)
   const [shift, setShift] = useState<ShiftSummary | null>(null)
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
+  const [pendingCashInput, setPendingCashInput] = useState('')
   const [paymentRemainingSeconds, setPaymentRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const checkoutInFlightRef = useRef(false)
@@ -155,6 +163,10 @@ export default function POSLayout() {
   const currentCategory = categories.find((cat) => cat.id === selectedCategoryId)
   const hasOpenShift = shift?.status === 'Open' && !!shift.shiftId
   const hasPendingPayment = pendingPayment !== null
+  const isCartLocked = hasPendingPayment
+  const parsedPendingCash = Math.max(0, Number(pendingCashInput) || 0)
+  const pendingCashForCart = Math.min(parsedPendingCash, totalAmount)
+  const remainingAfterPendingCash = Math.max(0, totalAmount - pendingCashForCart)
 
   const showMessage = useCallback((message: string) => {
     setCheckoutMessage(message)
@@ -162,6 +174,11 @@ export default function POSLayout() {
   }, [])
 
   const addToCartWithModifiers = (item: MenuItem, selection: ModifierSelection) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
     const toppingKey = selection.selectedToppings
       .map((topping) => topping.id)
       .sort((a, b) => a - b)
@@ -203,6 +220,11 @@ export default function POSLayout() {
   }
 
   const handleQuickAdd = (item: MenuItem) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
     if (item.isAvailable === false) {
       showMessage('Món này chưa khả dụng do thiếu BOM hoặc tồn kho.')
       return
@@ -223,6 +245,11 @@ export default function POSLayout() {
     cart.filter((ci) => ci.id === itemId).reduce((sum, ci) => sum + ci.quantity, 0)
 
   const decreaseFromCart = (cartId: string) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
     setCart((prev) => {
       const existing = prev.find((ci) => ci.cartId === cartId)
       if (existing && existing.quantity > 1) {
@@ -235,19 +262,38 @@ export default function POSLayout() {
   }
 
   const removeFromCart = (cartId: string) => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
     setCart((prev) => prev.filter((ci) => ci.cartId !== cartId))
   }
 
-  const resetCart = useCallback(() => setCart([]), [])
+  const clearCart = useCallback(() => setCart([]), [])
+
+  const resetCart = useCallback(() => {
+    if (isCartLocked) {
+      showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+      return
+    }
+
+    clearCart()
+  }, [clearCart, isCartLocked, showMessage])
 
   const closePaymentModalManually = useCallback(() => {
-    setPendingPayment(null)
-    setIsCancellingPayment(false)
-    showMessage('Đã đóng cửa sổ VietQR. Tải lại trang nếu cần đồng bộ trạng thái mới nhất.')
+    showMessage('Đang thanh toán. Hãy hủy giao dịch nếu muốn sửa giỏ.')
   }, [showMessage])
 
   const cancelPendingPayment = useCallback(async (reason: 'manual' | 'timeout') => {
-    if (!pendingPayment?.orderId || isCancellingPayment) return
+    if (!pendingPayment || isCancellingPayment) return
+
+    if (pendingPayment.status === 'collecting' || !pendingPayment.orderId) {
+      setPendingPayment(null)
+      setIsCancellingPayment(false)
+      showMessage('Đã hủy thanh toán tạm. Kiểm tra lại tiền mặt đã nhận.')
+      return
+    }
 
     setIsCancellingPayment(true)
     const response = await apiClient.post<CancelPaymentApiResponse>(
@@ -260,33 +306,35 @@ export default function POSLayout() {
       }
     )
 
+    const cancelledCashAmount = pendingPayment.pendingCashAmount
     setPendingPayment(null)
     setIsCancellingPayment(false)
+    if (cancelledCashAmount > 0) setPendingCashInput(String(cancelledCashAmount))
 
     if (response.ok && response.data?.code === 'ALREADY_PAID') {
-      resetCart()
+      clearCart()
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
       return
     }
 
     if (response.ok && response.data?.success) {
       showMessage(reason === 'timeout'
-        ? 'Giao dịch VietQR đã hết hạn và được hủy.'
-        : 'Đã hủy giao dịch VietQR.')
+        ? 'Giao dịch VietQR đã hết hạn. Kiểm tra lại tiền mặt đã nhận.'
+        : 'Đã hủy giao dịch VietQR. Kiểm tra lại tiền mặt đã nhận.')
       return
     }
 
     showMessage(response.data?.message || response.error || 'Không thể hủy giao dịch VietQR.')
-  }, [isCancellingPayment, pendingPayment, resetCart, showMessage])
+  }, [clearCart, isCancellingPayment, pendingPayment, showMessage])
 
   useEffect(() => {
-    if (!pendingPayment) return
+    if (!pendingPayment || pendingPayment.status !== 'awaiting-vietqr' || !pendingPayment.expiresAt) return
 
     let didAutoCancel = false
     const updateCountdown = () => {
       if (didAutoCancel) return
 
-      const nextSeconds = Math.max(0, Math.ceil((pendingPayment.expiresAt - Date.now()) / 1000))
+      const nextSeconds = Math.max(0, Math.ceil((pendingPayment.expiresAt! - Date.now()) / 1000))
       setPaymentRemainingSeconds(nextSeconds)
       if (nextSeconds === 0) {
         didAutoCancel = true
@@ -299,7 +347,7 @@ export default function POSLayout() {
   }, [cancelPendingPayment, pendingPayment])
 
   useEffect(() => {
-    if (!pendingPayment?.orderId) return
+    if (pendingPayment?.status !== 'awaiting-vietqr' || !pendingPayment.orderId) return
 
     let isDisposed = false
     const connection = new signalR.HubConnectionBuilder()
@@ -310,7 +358,8 @@ export default function POSLayout() {
     const completePayment = () => {
       if (isDisposed) return
       setPendingPayment(null)
-      resetCart()
+      setPendingCashInput('')
+      clearCart()
       showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
     }
 
@@ -333,7 +382,7 @@ export default function POSLayout() {
         console.warn('[POS Payment SignalR] Stop failed:', error)
       })
     }
-  }, [pendingPayment, resetCart, showMessage])
+  }, [clearCart, pendingPayment, showMessage])
 
   const enqueueOrderFallback = async (paymentMethod: 'cash' | 'banking') => {
     if (!hasOpenShift || !shift?.shiftId) {
@@ -361,6 +410,154 @@ export default function POSLayout() {
     return true
   }
 
+  const snapshotCart = (items: CartItem[]) =>
+    items.map((item) => ({
+      ...item,
+      selectedToppings: [...item.selectedToppings],
+    }))
+
+  const buildCommitItems = (items: CartItem[]) =>
+    items.map((ci) => ({
+      drinkId: ci.id,
+      sizeId: ci.sizeId,
+      quantity: ci.quantity,
+      note: ci.note,
+      toppings: ci.selectedToppings.map((topping) => ({ toppingId: topping.id })),
+    }))
+
+  const postOrderCommit = (
+    items: CartItem[],
+    orderTypeValue: 'dine-in' | 'take-away',
+    payments: Array<{ paymentMethodId: number; amount: number }>,
+    receivedAmount: number
+  ) =>
+    apiClient.post<POSCommitApiResponse>('/api/v1/pos/orders/commit', {
+      items: buildCommitItems(items),
+      clientOrderId: getClientOrderId(),
+      payments,
+      receivedAmount,
+      orderTypeId: orderTypeValue === 'dine-in' ? 1 : 2,
+      note: '',
+    })
+
+  const beginSplitCashFlow = () => {
+    if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
+    if (!hasOpenShift) {
+      showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
+      return
+    }
+    if (!navigator.onLine) {
+      showMessage('Không hỗ trợ tách thanh toán khi offline.')
+      return
+    }
+    if (pendingCashForCart <= 0 || pendingCashForCart >= totalAmount) {
+      showMessage('Tiền mặt tạm phải nhỏ hơn tổng đơn.')
+      return
+    }
+
+    setPendingPayment({
+      status: 'collecting',
+      cartSnapshot: snapshotCart(cart),
+      orderTypeSnapshot: orderType,
+      totalAmount,
+      pendingCashAmount: pendingCashForCart,
+      vietQrAmount: remainingAfterPendingCash,
+    })
+    showMessage('Đang thanh toán: đã ghi nhận tiền mặt tạm.')
+  }
+
+  const createVietQrForPendingPayment = async () => {
+    if (!pendingPayment || pendingPayment.status !== 'collecting') return
+    if (checkoutInFlightRef.current) return
+    if (!navigator.onLine) {
+      showMessage('Cần kết nối mạng để tạo mã VietQR.')
+      return
+    }
+
+    checkoutInFlightRef.current = true
+    setIsCheckingOut(true)
+    try {
+      const response = await postOrderCommit(
+        pendingPayment.cartSnapshot,
+        pendingPayment.orderTypeSnapshot,
+        [
+          { paymentMethodId: 1, amount: pendingPayment.pendingCashAmount },
+          { paymentMethodId: 2, amount: pendingPayment.vietQrAmount },
+        ],
+        pendingPayment.pendingCashAmount
+      )
+
+      if (
+        response.ok &&
+        response.data?.success &&
+        response.data.data?.requiresPayment &&
+        response.data.data.orderId &&
+        response.data.data.checkoutUrl
+      ) {
+        const commitData = response.data.data
+        setPaymentRemainingSeconds(PAYMENT_TIMEOUT_SECONDS)
+        setPendingPayment({
+          ...pendingPayment,
+          status: 'awaiting-vietqr',
+          orderId: commitData.orderId,
+          checkoutUrl: commitData.checkoutUrl,
+          qrCode: commitData.qrCode,
+          pendingCashAmount: commitData.pendingCashAmount ?? pendingPayment.pendingCashAmount,
+          vietQrAmount: commitData.pendingVietQrAmount ?? pendingPayment.vietQrAmount,
+          expiresAt: createPaymentExpiryTimestamp(),
+        })
+        showMessage('Đã tạo mã VietQR cho phần còn lại.')
+        return
+      }
+
+      showMessage(response.data?.message || response.error || 'Không thể tạo mã VietQR.')
+    } catch (err) {
+      console.error('[POS] Split VietQR error:', err)
+      showMessage('Không thể tạo mã VietQR. Vui lòng thử lại.')
+    } finally {
+      checkoutInFlightRef.current = false
+      setIsCheckingOut(false)
+    }
+  }
+
+  const settlePendingPaymentWithCash = async () => {
+    if (!pendingPayment || pendingPayment.status !== 'collecting') return
+    if (checkoutInFlightRef.current) return
+    if (!navigator.onLine) {
+      showMessage('Không hỗ trợ hoàn tất tách thanh toán khi offline.')
+      return
+    }
+
+    checkoutInFlightRef.current = true
+    setIsCheckingOut(true)
+    try {
+      const response = await postOrderCommit(
+        pendingPayment.cartSnapshot,
+        pendingPayment.orderTypeSnapshot,
+        [{ paymentMethodId: 1, amount: pendingPayment.totalAmount }],
+        pendingPayment.totalAmount
+      )
+
+      if (response.ok && response.data?.success) {
+        const warnings = response.data.inventoryWarnings
+        const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
+        setPendingPayment(null)
+        setPendingCashInput('')
+        clearCart()
+        showMessage(`Thanh toán tiền mặt thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
+        return
+      }
+
+      showMessage(response.data?.message || response.error || 'Không thể thanh toán tiền mặt.')
+    } catch (err) {
+      console.error('[POS] Pending cash settlement error:', err)
+      showMessage('Không thể thanh toán tiền mặt. Vui lòng thử lại.')
+    } finally {
+      checkoutInFlightRef.current = false
+      setIsCheckingOut(false)
+    }
+  }
+
   const handleCheckout = async (paymentMethod: 'cash' | 'banking') => {
     if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
     if (!hasOpenShift) {
@@ -371,25 +568,29 @@ export default function POSLayout() {
       showMessage('Cần kết nối mạng để tạo mã thanh toán VietQR.')
       return
     }
+    if (paymentMethod === 'cash' && parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
+      showMessage('Tiền mặt chưa đủ, hãy ghi nhận tạm hoặc nhập đủ tiền.')
+      return
+    }
+    if (paymentMethod === 'banking' && parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
+      beginSplitCashFlow()
+      return
+    }
+    if (paymentMethod === 'banking' && parsedPendingCash >= totalAmount) {
+      showMessage('Tiền mặt đã đủ cho đơn này.')
+      return
+    }
 
     checkoutInFlightRef.current = true
     setIsCheckingOut(true)
     try {
       if (navigator.onLine) {
-        const response = await apiClient.post<POSCommitApiResponse>('/api/v1/pos/orders/commit', {
-          items: cart.map((ci) => ({
-            drinkId: ci.id,
-            sizeId: ci.sizeId,
-            quantity: ci.quantity,
-            note: ci.note,
-            toppings: ci.selectedToppings.map((topping) => ({ toppingId: topping.id })),
-          })),
-          clientOrderId: getClientOrderId(),
-          payments: [{ paymentMethodId: paymentMethod === 'cash' ? 1 : 2, amount: totalAmount }],
-          receivedAmount: totalAmount,
-          orderTypeId: orderType === 'dine-in' ? 1 : 2,
-          note: '',
-        })
+        const response = await postOrderCommit(
+          cart,
+          orderType,
+          [{ paymentMethodId: paymentMethod === 'cash' ? 1 : 2, amount: totalAmount }],
+          paymentMethod === 'cash' ? Math.max(parsedPendingCash, totalAmount) : totalAmount
+        )
 
         if (response.ok && response.data?.success) {
           const commitData = response.data.data
@@ -401,10 +602,15 @@ export default function POSLayout() {
           ) {
             setPaymentRemainingSeconds(PAYMENT_TIMEOUT_SECONDS)
             setPendingPayment({
+              status: 'awaiting-vietqr',
+              cartSnapshot: snapshotCart(cart),
+              orderTypeSnapshot: orderType,
+              totalAmount,
+              pendingCashAmount: 0,
+              vietQrAmount: commitData.pendingVietQrAmount ?? commitData.total ?? totalAmount,
               orderId: commitData.orderId,
               checkoutUrl: commitData.checkoutUrl,
               qrCode: commitData.qrCode,
-              amount: commitData.total ?? totalAmount,
               expiresAt: createPaymentExpiryTimestamp(),
             })
             showMessage('Đã tạo mã VietQR, đang chờ xác nhận thanh toán.')
@@ -413,13 +619,15 @@ export default function POSLayout() {
 
           const warnings = response.data.inventoryWarnings
           const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
-          resetCart()
+          setPendingCashInput('')
+          clearCart()
           showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         } else if (!response.ok && response.status === 0 && paymentMethod === 'cash') {
           console.warn('[POS] Network commit failed, saving offline:', response.error)
           const savedOffline = await enqueueOrderFallback(paymentMethod)
           if (savedOffline) {
-            resetCart()
+            setPendingCashInput('')
+            clearCart()
             showMessage('Đơn đã lưu offline, sẽ tự đồng bộ khi có mạng.')
           }
         } else {
@@ -428,7 +636,8 @@ export default function POSLayout() {
       } else {
         const savedOffline = await enqueueOrderFallback(paymentMethod)
         if (savedOffline) {
-          resetCart()
+          setPendingCashInput('')
+          clearCart()
           showMessage('Offline: đơn đã lưu và sẽ tự đồng bộ khi có mạng.')
         }
       }
@@ -438,7 +647,8 @@ export default function POSLayout() {
         try {
           const savedOffline = await enqueueOrderFallback(paymentMethod)
           if (savedOffline) {
-            resetCart()
+            setPendingCashInput('')
+            clearCart()
             showMessage('Đơn đã lưu offline do lỗi mạng.')
           }
         } catch {
@@ -459,22 +669,36 @@ export default function POSLayout() {
         <div className="px-3 py-3 border-b border-border">
           <div className="flex gap-1.5">
             <button
-              onClick={() => setOrderType('dine-in')}
+              onClick={() => {
+                if (isCartLocked) {
+                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
+                  return
+                }
+                setOrderType('dine-in')
+              }}
+              disabled={isCartLocked}
               className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 orderType === 'dine-in'
                   ? 'bg-brand-orange text-white'
                   : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              }`}
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               Tại quán
             </button>
             <button
-              onClick={() => setOrderType('take-away')}
+              onClick={() => {
+                if (isCartLocked) {
+                  showMessage('Đang thanh toán, hãy hủy giao dịch trước khi đổi loại đơn.')
+                  return
+                }
+                setOrderType('take-away')
+              }}
+              disabled={isCartLocked}
               className={`flex-1 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 orderType === 'take-away'
                   ? 'bg-brand-orange text-white'
                   : 'bg-surface text-text-secondary hover:bg-surface-hover'
-              }`}
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               Mang đi
             </button>
@@ -566,12 +790,13 @@ export default function POSLayout() {
               {filteredItems.map((item) => {
                 const qtyInCart = getQuantityInCart(item.id)
                 const isUnavailable = item.isAvailable === false
+                const isProductLocked = isCartLocked || isUnavailable
                 return (
                   <div
                     key={item.id}
                     onClick={() => handleQuickAdd(item)}
                     className={`relative bg-surface-card rounded-xl border border-border p-4 flex flex-col items-center select-none shadow-[var(--shadow-card)] transition-all duration-200 min-h-[150px] ${
-                      isUnavailable
+                      isProductLocked
                         ? 'opacity-60 cursor-not-allowed'
                         : 'cursor-pointer hover:shadow-[var(--shadow-card-hover)] hover:border-brand-orange-border'
                     }`}
@@ -595,9 +820,13 @@ export default function POSLayout() {
                           showMessage('Món này chưa khả dụng do thiếu BOM hoặc tồn kho.')
                           return
                         }
+                        if (isCartLocked) {
+                          showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+                          return
+                        }
                         setActiveItemForModifiers(item)
                       }}
-                      disabled={isUnavailable}
+                      disabled={isProductLocked}
                       className="absolute top-2.5 right-2.5 px-2 py-1 bg-brand-orange-light border border-brand-orange-border text-brand-orange text-[9px] font-extrabold rounded-lg hover:bg-brand-orange hover:text-white transition-colors cursor-pointer disabled:cursor-not-allowed disabled:bg-surface disabled:border-border disabled:text-text-muted z-10"
                     >
                       Tùy chỉnh
@@ -641,7 +870,8 @@ export default function POSLayout() {
             {cart.length > 0 && (
               <button
                 onClick={resetCart}
-                className="text-[10px] font-semibold text-danger hover:text-danger-hover border border-danger/30 px-2 py-0.5 rounded-full hover:bg-danger/5 transition-colors cursor-pointer"
+                disabled={isCartLocked}
+                className="text-[10px] font-semibold text-danger hover:text-danger-hover border border-danger/30 px-2 py-0.5 rounded-full hover:bg-danger/5 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 Xóa giỏ
               </button>
@@ -678,7 +908,8 @@ export default function POSLayout() {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => decreaseFromCart(item.cartId)}
-                      className="w-6 h-6 rounded-md bg-surface border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border text-xs font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      disabled={isCartLocked}
+                      className="w-6 h-6 rounded-md bg-surface border border-border text-text-secondary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border text-xs font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       -
                     </button>
@@ -686,10 +917,17 @@ export default function POSLayout() {
                       {item.quantity}
                     </span>
                     <button
-                      onClick={() => setCart((prev) => prev.map((ci) =>
-                        ci.cartId === item.cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
-                      ))}
-                      className="w-6 h-6 rounded-md bg-brand-orange text-white hover:bg-brand-orange-hover text-xs font-bold flex items-center justify-center cursor-pointer transition-colors"
+                      onClick={() => {
+                        if (isCartLocked) {
+                          showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+                          return
+                        }
+                        setCart((prev) => prev.map((ci) =>
+                          ci.cartId === item.cartId ? { ...ci, quantity: ci.quantity + 1 } : ci
+                        ))
+                      }}
+                      disabled={isCartLocked}
+                      className="w-6 h-6 rounded-md bg-brand-orange text-white hover:bg-brand-orange-hover text-xs font-bold flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       +
                     </button>
@@ -697,7 +935,8 @@ export default function POSLayout() {
 
                   <button
                     onClick={() => removeFromCart(item.cartId)}
-                    className="w-6 h-6 rounded-md border border-danger/30 text-danger hover:bg-danger hover:text-white hover:border-danger text-xs flex items-center justify-center cursor-pointer transition-colors"
+                    disabled={isCartLocked}
+                    className="w-6 h-6 rounded-md border border-danger/30 text-danger hover:bg-danger hover:text-white hover:border-danger text-xs flex items-center justify-center cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     title="Xóa món"
                   >
                     x
@@ -724,6 +963,92 @@ export default function POSLayout() {
               <span className="text-brand-orange">{formatVND(totalAmount)}</span>
             </div>
           </div>
+
+          {cart.length > 0 && !hasPendingPayment && (
+            <div className="rounded-lg border border-border bg-surface px-3 py-2 space-y-2">
+              <label className="block text-[11px] font-bold text-text-secondary" htmlFor="pending-cash-input">
+                Tiền mặt tạm
+              </label>
+              <div className="flex items-center gap-2">
+                <input
+                  id="pending-cash-input"
+                  type="number"
+                  min="0"
+                  step="1000"
+                  value={pendingCashInput}
+                  onChange={(event) => setPendingCashInput(event.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-border bg-white px-3 py-2 text-xs font-bold text-text-primary outline-none focus:border-brand-orange"
+                  placeholder="0"
+                />
+                <span className="text-[11px] font-extrabold text-text-secondary">VNĐ</span>
+              </div>
+              {parsedPendingCash > 0 && (
+                <div className="flex items-center justify-between text-[11px] font-bold text-text-secondary">
+                  <span>Còn lại</span>
+                  <span className="text-brand-orange">{formatVND(remainingAfterPendingCash)}</span>
+                </div>
+              )}
+              {pendingCashForCart > 0 && pendingCashForCart < totalAmount && (
+                <button
+                  type="button"
+                  onClick={beginSplitCashFlow}
+                  disabled={isCheckingOut || !hasOpenShift}
+                  className="w-full rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 text-xs font-extrabold text-brand-orange hover:bg-brand-orange hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  Ghi nhận tạm
+                </button>
+              )}
+            </div>
+          )}
+
+          {pendingPayment && (
+            <div className="rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-extrabold text-brand-orange">Đang thanh toán</span>
+                <span className="rounded-full bg-white px-2 py-0.5 text-[10px] font-extrabold text-brand-orange">
+                  {pendingPayment.status === 'awaiting-vietqr' ? 'Chờ VietQR' : 'Tiền mặt tạm'}
+                </span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[11px] font-bold text-text-secondary">
+                <div>
+                  <p>Tiền mặt</p>
+                  <p className="text-text-primary">{formatVND(pendingPayment.pendingCashAmount)}</p>
+                </div>
+                <div>
+                  <p>Còn lại</p>
+                  <p className="text-brand-orange">{formatVND(pendingPayment.vietQrAmount)}</p>
+                </div>
+              </div>
+              {pendingPayment.status === 'collecting' && (
+                <div className="grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => void createVietQrForPendingPayment()}
+                    disabled={isCheckingOut}
+                    className="rounded-lg bg-text-primary px-2 py-2 text-[10px] font-extrabold text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    VietQR
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void settlePendingPaymentWithCash()}
+                    disabled={isCheckingOut}
+                    className="rounded-lg bg-brand-orange px-2 py-2 text-[10px] font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    Tiền mặt
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void cancelPendingPayment('manual')}
+                    disabled={isCheckingOut || isCancellingPayment}
+                    className="rounded-lg border border-danger/40 bg-white px-2 py-2 text-[10px] font-extrabold text-danger hover:bg-danger hover:text-white disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    Hủy
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {!hasOpenShift && (
             <Link
@@ -773,7 +1098,7 @@ export default function POSLayout() {
         </div>
       )}
 
-      {pendingPayment && (
+      {pendingPayment?.status === 'awaiting-vietqr' && pendingPayment.checkoutUrl && pendingPayment.orderId && (
         <div className="fixed inset-0 z-[60] bg-black/55 flex items-center justify-center px-4">
           <div
             role="dialog"
@@ -784,7 +1109,7 @@ export default function POSLayout() {
               <div className="min-w-0">
                 <p className="text-sm font-extrabold text-text-primary">Thanh toán VietQR</p>
                 <p className="text-[11px] font-semibold text-text-muted">
-                  Đơn #{pendingPayment.orderId} · {formatVND(pendingPayment.amount)}
+                  Đơn #{pendingPayment.orderId} · {formatVND(pendingPayment.vietQrAmount)}
                 </p>
               </div>
               <div className="flex items-center gap-3 shrink-0">
@@ -853,7 +1178,14 @@ export default function POSLayout() {
         onClose={() => setActiveItemForModifiers(null)}
         menuItem={activeItemForModifiers}
         onConfirm={(selection) => {
+          if (isCartLocked) {
+            showMessage('Đang thanh toán, hãy hủy giao dịch trước khi sửa giỏ.')
+            setActiveItemForModifiers(null)
+            return
+          }
+
           if (activeItemForModifiers) addToCartWithModifiers(activeItemForModifiers, selection)
+          setActiveItemForModifiers(null)
         }}
       />
     </div>

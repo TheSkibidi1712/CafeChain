@@ -74,12 +74,18 @@ namespace CafeChain.Application.Services.POS
                     orderId);
             }
 
-            if (payload.Amount < order.Total)
+            var pendingPayOsAmount = order.Payments
+                .Where(payment =>
+                    payment.PaymentMethodId == 2 &&
+                    payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                .Sum(payment => payment.Amount);
+
+            if (pendingPayOsAmount > 0 && payload.Amount != pendingPayOsAmount)
             {
                 _logger.LogWarning(
-                    "[PayOS Webhook] Amount mismatch: received={Amount}, expected={Total}.",
+                    "[PayOS Webhook] Amount mismatch: received={Amount}, expectedPayOsAmount={ExpectedAmount}.",
                     payload.Amount,
-                    order.Total);
+                    pendingPayOsAmount);
 
                 await AddTransactionLogAsync(orderId, payload, "AMOUNT_MISMATCH");
                 return PayOSWebhookProcessResult.From("AMOUNT_MISMATCH", "Số tiền không khớp.", orderId);
@@ -131,6 +137,7 @@ namespace CafeChain.Application.Services.POS
                     {
                         order.OrderId,
                         order.Source,
+                        order.WorkShiftId,
                         order.OrderStatusId,
                         order.PaymentStatusId
                     })
@@ -157,6 +164,40 @@ namespace CafeChain.Application.Services.POS
                         "Giao dịch không còn ở trạng thái chờ thanh toán.",
                         orderId);
                 }
+
+                var pendingPayOsAmounts = await _context.Payments
+                    .Where(payment =>
+                        payment.OrderId == orderId &&
+                        payment.PaymentMethodId == 2 &&
+                        payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                    .Select(payment => payment.Amount)
+                    .ToListAsync();
+                var pendingPayOsAmount = pendingPayOsAmounts.Sum();
+
+                if (pendingPayOsAmount <= 0)
+                {
+                    await transaction.CommitAsync();
+                    return PayOSWebhookProcessResult.From(
+                        "PAYMENT_NOT_PAYABLE",
+                        "Không tìm thấy dòng thanh toán VietQR đang chờ.",
+                        orderId);
+                }
+
+                if (payload.Amount != pendingPayOsAmount)
+                {
+                    await AddTransactionLogAsync(orderId, payload, "AMOUNT_MISMATCH");
+                    await transaction.CommitAsync();
+                    return PayOSWebhookProcessResult.From("AMOUNT_MISMATCH", "Số tiền không khớp.", orderId);
+                }
+
+                var pendingCashAmounts = await _context.Payments
+                    .Where(payment =>
+                        payment.OrderId == orderId &&
+                        payment.PaymentMethodId == 1 &&
+                        payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                    .Select(payment => payment.Amount)
+                    .ToListAsync();
+                var pendingCashAmount = pendingCashAmounts.Sum();
 
                 var nextOrderStatusId = string.Equals(state.Source, "POS", StringComparison.OrdinalIgnoreCase)
                     ? SystemConstants.OrderStatuses.Completed
@@ -196,6 +237,25 @@ namespace CafeChain.Application.Services.POS
                         "PAYMENT_NOT_PAYABLE",
                         "Không tìm thấy dòng thanh toán VietQR đang chờ.",
                         orderId);
+                }
+
+                await _context.Payments
+                    .Where(payment =>
+                        payment.OrderId == orderId &&
+                        payment.PaymentMethodId != 2 &&
+                        payment.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                    .ExecuteUpdateAsync(setters => setters
+                        .SetProperty(payment => payment.PaymentStatusId, SystemConstants.PaymentStatuses.Paid)
+                        .SetProperty(payment => payment.PaidAt, paidAt));
+
+                if (pendingCashAmount > 0 && state.WorkShiftId.HasValue)
+                {
+                    await _context.WorkShifts
+                        .Where(shift => shift.ShiftId == state.WorkShiftId.Value)
+                        .ExecuteUpdateAsync(setters => setters
+                            .SetProperty(
+                                shift => shift.ExpectedEndingCash,
+                                shift => shift.ExpectedEndingCash + pendingCashAmount));
                 }
 
                 _context.Set<TransactionLog>().Add(new TransactionLog
@@ -344,12 +404,17 @@ namespace CafeChain.Application.Services.POS
             try
             {
                 var cashierName = order.Staff?.FullName ?? "POS";
+                var cashReceived = order.Payments?
+                    .Where(payment => payment.PaymentMethodId == 1)
+                    .Sum(payment => payment.Amount) ?? 0m;
+                var hasCashPayment = cashReceived > 0;
+
                 await _printDispatcher.DispatchPrintJobAsync(
                     order,
                     order.StoreId,
                     cashierName,
-                    order.Total,
-                    isCashPayment: false);
+                    hasCashPayment ? cashReceived : order.Total,
+                    isCashPayment: hasCashPayment);
             }
             catch (Exception ex)
             {

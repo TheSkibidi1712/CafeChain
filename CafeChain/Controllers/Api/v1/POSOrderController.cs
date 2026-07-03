@@ -203,8 +203,8 @@ namespace CafeChain.Controllers.Api.v1
 
         private static bool IsPayOsPayment(POSOrderCommitDto dto)
         {
-            if (dto.Payments != null && dto.Payments.Count == 1)
-                return dto.Payments[0].PaymentMethodId == 2;
+            if (dto.Payments != null && dto.Payments.Any())
+                return dto.Payments.Any(payment => payment.PaymentMethodId == 2);
 
             return (dto.Payments == null || dto.Payments.Count == 0) && dto.PaymentMethodId == 2;
         }

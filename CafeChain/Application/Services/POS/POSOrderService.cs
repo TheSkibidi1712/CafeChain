@@ -148,9 +148,17 @@ namespace CafeChain.Application.Services.POS
                     if (isExistingPayOsOrder)
                     {
                         PayOSCreateLinkResult existingPaymentLink;
+                        var pendingCashAmount = existingOrder.Payments?
+                            .Where(p => p.PaymentMethodId == 1 && p.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                            .Sum(p => p.Amount) ?? 0m;
+                        var pendingVietQrAmount = existingOrder.Payments?
+                            .Where(p => p.PaymentMethodId == 2 && p.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid)
+                            .Sum(p => p.Amount) ?? existingOrder.Total;
                         try
                         {
-                            existingPaymentLink = await _payOSService.CreatePaymentLinkAsync(existingOrder.OrderId);
+                            existingPaymentLink = pendingVietQrAmount == existingOrder.Total
+                                ? await _payOSService.CreatePaymentLinkAsync(existingOrder.OrderId)
+                                : await _payOSService.CreatePaymentLinkAsync(existingOrder.OrderId, pendingVietQrAmount);
                         }
                         catch (Exception payOsEx)
                         {
@@ -175,6 +183,8 @@ namespace CafeChain.Application.Services.POS
                             isIdempotent = true,
                             requiresPayment = true,
                             paymentMethodId = 2,
+                            pendingCashAmount,
+                            pendingVietQrAmount,
                             checkoutUrl = existingPaymentLink.CheckoutUrl,
                             qrCode = existingPaymentLink.QrCode,
                             orderCode = existingPaymentLink.OrderCode
@@ -328,11 +338,49 @@ namespace CafeChain.Application.Services.POS
                     ? dto.Payments
                     : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = dto.PaymentMethodId > 0 ? dto.PaymentMethodId : 1, Amount = total } };
 
-                var isPayOsPayment = paymentLines.Count == 1 && paymentLines[0].PaymentMethodId == 2;
-                var orderStatusId = isPayOsPayment
+                if (paymentLines.Any(p => p.Amount < 0))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Số tiền thanh toán không được âm.");
+                }
+
+                if (paymentLines.Any(p => p.PaymentMethodId <= 0))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Phương thức thanh toán không hợp lệ.");
+                }
+
+                var paymentTotal = paymentLines.Sum(p => p.Amount);
+                if (paymentTotal != total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tổng các dòng thanh toán phải bằng tổng tiền đơn hàng.");
+                }
+
+                var hasPayOsPayment = paymentLines.Any(p => p.PaymentMethodId == 2);
+                var pendingCashAmount = paymentLines
+                    .Where(p => p.PaymentMethodId == 1)
+                    .Sum(p => p.Amount);
+                var pendingVietQrAmount = paymentLines
+                    .Where(p => p.PaymentMethodId == 2)
+                    .Sum(p => p.Amount);
+
+                if (hasPayOsPayment && pendingVietQrAmount <= 0)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Số tiền VietQR còn lại không hợp lệ.");
+                }
+
+                if (hasPayOsPayment && paymentLines.Any(p => p.PaymentMethodId != 1 && p.PaymentMethodId != 2))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tách thanh toán hiện chỉ hỗ trợ tiền mặt và VietQR.");
+                }
+
+                var orderStatusId = hasPayOsPayment
                     ? SystemConstants.OrderStatuses.AwaitingPayment
                     : SystemConstants.OrderStatuses.Completed;
-                var paymentStatusId = isPayOsPayment
+                var paymentStatusId = hasPayOsPayment
                     ? SystemConstants.PaymentStatuses.Unpaid
                     : SystemConstants.PaymentStatuses.Paid;
 
@@ -355,7 +403,7 @@ namespace CafeChain.Application.Services.POS
                         OrderId = newOrder.OrderId, PaymentMethodId = payLine.PaymentMethodId,
                         Amount = payLine.Amount,
                         PaymentStatusId = paymentStatusId,
-                        PaidAt = isPayOsPayment ? null : DateTime.Now
+                        PaidAt = hasPayOsPayment ? null : DateTime.Now
                     });
                 }
 
@@ -422,7 +470,7 @@ namespace CafeChain.Application.Services.POS
                     .Where(p => p.PaymentMethodId == 1)
                     .Sum(p => p.Amount);
 
-                if (cashAmount > 0)
+                if (!hasPayOsPayment && cashAmount > 0)
                 {
                     activeShift.ExpectedEndingCash += cashAmount;
                     // EF Change Tracker sẽ detect thay đổi trên entity đã tracked
@@ -433,12 +481,14 @@ namespace CafeChain.Application.Services.POS
                 await _repository.CommitTransactionAsync();
                 transactionCommitted = true;
 
-                if (isPayOsPayment)
+                if (hasPayOsPayment)
                 {
                     PayOSCreateLinkResult paymentLink;
                     try
                     {
-                        paymentLink = await _payOSService.CreatePaymentLinkAsync(newOrder.OrderId);
+                        paymentLink = pendingVietQrAmount == total
+                            ? await _payOSService.CreatePaymentLinkAsync(newOrder.OrderId)
+                            : await _payOSService.CreatePaymentLinkAsync(newOrder.OrderId, pendingVietQrAmount);
                     }
                     catch (Exception payOsEx)
                     {
@@ -461,6 +511,8 @@ namespace CafeChain.Application.Services.POS
                         earnedPoints,
                         requiresPayment = true,
                         paymentMethodId = 2,
+                        pendingCashAmount,
+                        pendingVietQrAmount,
                         checkoutUrl = paymentLink.CheckoutUrl,
                         qrCode = paymentLink.QrCode,
                         orderCode = paymentLink.OrderCode
