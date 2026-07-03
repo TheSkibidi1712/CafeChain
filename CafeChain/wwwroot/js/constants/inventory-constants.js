@@ -2,7 +2,9 @@
     IMPORT: 1,
     EXPORT: 2,
     WASTE: 3,
-    STOCK_TAKE: 4
+    STOCK_TAKE: 4,
+    ADJUSTMENT_IN: 8,
+    INTERNAL_IMPORT: 9
 };
 
 export const PURPOSE = {

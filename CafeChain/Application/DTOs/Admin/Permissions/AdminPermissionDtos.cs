@@ -22,6 +22,32 @@ namespace CafeChain.Application.DTOs.Admin.Permissions
         public DateTime CreatedAt { get; set; }
     }
 
+    public class AdminPermissionStaffPagedResultDto
+    {
+        public List<AdminPermissionStaffListItemDto> Items { get; set; } = new();
+        public int PageIndex { get; set; }
+        public int PageSize { get; set; }
+        public int TotalCount { get; set; }
+        public int TotalPages { get; set; }
+    }
+
+    public class AdminPermissionStaffListItemDto
+    {
+        public int StaffId { get; set; }
+        public int AccountId { get; set; }
+        public string FullName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string StoreName { get; set; } = string.Empty;
+        public bool Active { get; set; }
+        public List<string> RoleNames { get; set; } = new();
+    }
+
+    public class ScopeReferenceDto
+    {
+        public int Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+    }
+
     public class PermissionCatalogGroupDto
     {
         public int PermissionGroupId { get; set; }

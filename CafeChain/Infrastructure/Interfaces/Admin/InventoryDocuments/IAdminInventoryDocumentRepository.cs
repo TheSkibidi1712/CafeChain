@@ -6,6 +6,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Enums.Inventory;
@@ -111,6 +112,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, int ingredientId);
 
+        Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, IEnumerable<int> ingredientIds);
+
         Task<decimal> GetAvailableQuantityAsync(int storeId, int ingredientId);
 
         Task<InventoryCostLayer?> GetCostLayerByIdAsync(int costLayerId);
@@ -150,7 +153,19 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId);
 
-        Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type);
+        Task<List<Ingredient>> GetActiveIngredientsAsync();
+
+        Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds);
+
+        Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId);
+
+        Task<InventoryTransfer?> GetTransferForInternalImportAsync(int transferId);
+
+        Task AddTransferAsync(InventoryTransfer transfer);
+
+        void UpdateTransfer(InventoryTransfer transfer);
+
+        Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type, InventoryDocumentPurpose? purpose = null);
 
         // =====================================================
         // AUDIT

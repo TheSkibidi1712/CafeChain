@@ -59,6 +59,111 @@ namespace CafeChain.Infrastructure.Repositories.Admin.Permissions
             return (items, totalCount);
         }
 
+        public async Task<(List<AdminPermissionStaffListItemDto> Items, int TotalCount)> GetPagedStaffAsync(
+            int pageIndex,
+            int pageSize,
+            string? search)
+        {
+            var query = _context.Staffs
+                .AsNoTracking()
+                .Where(x => x.Account != null)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var keyword = search.Trim().ToLower();
+                query = query.Where(x =>
+                    x.FullName.ToLower().Contains(keyword) ||
+                    x.Account.Email.ToLower().Contains(keyword) ||
+                    x.Store.Name.ToLower().Contains(keyword) ||
+                    x.Account.AccountRoles.Any(ar => ar.Role.Name.ToLower().Contains(keyword)));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderBy(x => x.FullName)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => new AdminPermissionStaffListItemDto
+                {
+                    StaffId = x.StaffId,
+                    AccountId = x.AccountId,
+                    FullName = x.FullName,
+                    Email = x.Account.Email,
+                    StoreName = x.Store.Name,
+                    Active = x.Active && x.Account.Active,
+                    RoleNames = x.Account.AccountRoles
+                        .OrderBy(ar => ar.RoleId)
+                        .Select(ar => ar.Role.Name)
+                        .ToList()
+                })
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public Task<List<ScopeReferenceDto>> GetScopeReferencesAsync(int scopeTypeId, int? parentId = null)
+        {
+            return scopeTypeId switch
+            {
+                ScopeCountry => _context.Countries
+                    .AsNoTracking()
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ScopeReferenceDto
+                    {
+                        Id = x.CountryId,
+                        Name = x.Name
+                    })
+                    .ToListAsync(),
+
+                ScopeProvince => _context.Provinces
+                    .AsNoTracking()
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ScopeReferenceDto
+                    {
+                        Id = x.ProvinceId,
+                        Name = x.Name
+                    })
+                    .ToListAsync(),
+
+                ScopeDistrict => _context.Districts
+                    .AsNoTracking()
+                    .Where(x => !parentId.HasValue || x.ProvinceId == parentId.Value)
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ScopeReferenceDto
+                    {
+                        Id = x.DistrictId,
+                        Name = x.Name
+                    })
+                    .ToListAsync(),
+
+                ScopeWard => _context.Wards
+                    .AsNoTracking()
+                    .Where(x => !parentId.HasValue || x.DistrictId == parentId.Value)
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ScopeReferenceDto
+                    {
+                        Id = x.WardId,
+                        Name = x.Name
+                    })
+                    .ToListAsync(),
+
+                ScopeStore => _context.Stores
+                    .AsNoTracking()
+                    .Where(x => x.Active)
+                    .OrderBy(x => x.Name)
+                    .Select(x => new ScopeReferenceDto
+                    {
+                        Id = x.StoreId,
+                        Name = x.Name
+                    })
+                    .ToListAsync(),
+
+                _ => Task.FromResult(new List<ScopeReferenceDto>())
+            };
+        }
+
         public Task<AdminRoleListItemDto?> GetRoleSummaryAsync(int roleId)
         {
             return _context.Roles

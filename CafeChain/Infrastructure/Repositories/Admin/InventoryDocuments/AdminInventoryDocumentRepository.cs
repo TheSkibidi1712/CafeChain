@@ -8,6 +8,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
@@ -220,6 +221,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             return await _context.StoreInventories
 
                 .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.BaseUnit)
+
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.UnitConversions)
+                        .ThenInclude(x => x.FromUnit)
 
                 .Where(x => x.StoreId == storeId)
 
@@ -308,6 +314,29 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .ToListAsync();
         }
 
+        public async Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, IEnumerable<int> ingredientIds)
+        {
+            var ids =
+                ingredientIds
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
+
+            if (ids.Count == 0)
+            {
+                return [];
+            }
+
+            return await _context.InventoryCostLayers
+                .AsNoTracking()
+                .Where(x =>
+                    x.StoreId == storeId
+                    && ids.Contains(x.IngredientId)
+                    && x.RemainingQuantity > 0)
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
+        }
+
         public async Task<decimal> GetAvailableQuantityAsync(int storeId, int ingredientId)
         {
             return await _context.StoreInventories
@@ -383,6 +412,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             return await _context.Ingredients
                 .Include(x => x.BaseUnit)
                 .Include(x => x.UnitConversions)
+                    .ThenInclude(x => x.FromUnit)
                 .FirstOrDefaultAsync(x =>
                     x.IngredientId == ingredientId);
         }
@@ -416,24 +446,39 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     x.StaffId == staffId);
         }
 
-        public async Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type)
+        public async Task<string> GenerateDocumentCodeAsync(
+            InventoryDocumentType type,
+            InventoryDocumentPurpose? purpose = null)
         {
-            string prefix = type switch
+            string prefix = (type, purpose) switch
             {
-                InventoryDocumentType.IMPORT => "PN",
-                InventoryDocumentType.EXPORT => "PX",
-                InventoryDocumentType.STOCK_TAKE => "KK",
-                InventoryDocumentType.WASTE => "HU",
-                InventoryDocumentType.PRODUCTION_IN => "SPN",
-                InventoryDocumentType.PRODUCTION_OUT => "SPX",
-                InventoryDocumentType.SALES_DEDUCTION => "HBH",
+                (InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_INTERNAL) => "NNB",
+                (InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_ADJUSTMENT) => "DCN",
+                (InventoryDocumentType.IMPORT, _) => "PN",
+                (InventoryDocumentType.EXPORT, _) => "PX",
+                (InventoryDocumentType.STOCK_TAKE, _) => "KK",
+                (InventoryDocumentType.WASTE, _) => "HU",
+                (InventoryDocumentType.PRODUCTION_IN, _) => "SPN",
+                (InventoryDocumentType.PRODUCTION_OUT, _) => "SPX",
+                (InventoryDocumentType.SALES_DEDUCTION, _) => "HBH",
+                (InventoryDocumentType.ADJUSTMENT_IN, _) => "DCN",
+                (InventoryDocumentType.INTERNAL_IMPORT, _) => "NNB",
                 _ => "PK"
             };
 
             string date = DateTime.Today.ToString("yyyyMMdd");
 
-            int count = await _context.InventoryDocuments
-                .CountAsync(x => x.Type == type && x.DocumentDate.Date == DateTime.Today);
+            var query = _context.InventoryDocuments
+                .Where(x =>
+                    x.Type == type
+                    && x.DocumentDate.Date == DateTime.Today);
+
+            if (purpose.HasValue)
+            {
+                query = query.Where(x => x.Purpose == purpose.Value);
+            }
+
+            int count = await query.CountAsync();
 
             return $"{prefix}-{date}-{count + 1:000}";
         }
@@ -460,11 +505,95 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     .ThenInclude(x => x.BaseUnit)
                 .Include(x => x.Ingredient)
                     .ThenInclude(x => x.UnitConversions)
+                        .ThenInclude(x => x.FromUnit)
                 .Include(x => x.Unit)
+                .Include(x => x.PriceHistories)
                 .Where(x =>
                     x.SupplierId == supplierId &&
                     x.Active)
                 .ToListAsync();
+        }
+
+        public async Task<List<Ingredient>> GetActiveIngredientsAsync()
+        {
+            return await _context.Ingredients
+                .AsNoTracking()
+                .Include(x => x.BaseUnit)
+                .Include(x => x.UnitConversions)
+                    .ThenInclude(x => x.FromUnit)
+                .Where(x => x.Active)
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+        }
+
+        public async Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds)
+        {
+            var ids =
+                ingredientIds
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
+
+            if (ids.Count == 0)
+            {
+                return [];
+            }
+
+            return await _context.IngredientSuppliers
+                .AsNoTracking()
+                .Include(x => x.Unit)
+                .Include(x => x.PriceHistories)
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.UnitConversions)
+                        .ThenInclude(x => x.FromUnit)
+                .Where(x =>
+                    ids.Contains(x.IngredientId)
+                    && x.Active)
+                .ToListAsync();
+        }
+
+        public async Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId)
+        {
+            return await _context.InventoryTransfers
+                .AsNoTracking()
+                .Include(x => x.ExportDocument)
+                .Include(x => x.FromStore)
+                .Include(x => x.ToStore)
+                .Where(x =>
+                    x.ToStoreId == storeId
+                    && x.ImportDocumentId == null
+                    && x.Status != InventoryTransferStatus.COMPLETED
+                    && x.Status != InventoryTransferStatus.CANCELLED)
+                .OrderByDescending(x => x.CreatedAt)
+                .ToListAsync();
+        }
+
+        public async Task<InventoryTransfer?> GetTransferForInternalImportAsync(int transferId)
+        {
+            return await _context.InventoryTransfers
+                .Include(x => x.ExportDocument)
+                .Include(x => x.ImportDocument)
+                .Include(x => x.FromStore)
+                .Include(x => x.ToStore)
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.Ingredient)
+                        .ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.Ingredient)
+                        .ThenInclude(x => x.UnitConversions)
+                .FirstOrDefaultAsync(x => x.InventoryTransferId == transferId);
+        }
+
+        public async Task AddTransferAsync(InventoryTransfer transfer)
+        {
+            await _context.InventoryTransfers.AddAsync(transfer);
+        }
+
+        public void UpdateTransfer(InventoryTransfer transfer)
+        {
+            _context.InventoryTransfers.Update(transfer);
         }
 
         // =====================================================

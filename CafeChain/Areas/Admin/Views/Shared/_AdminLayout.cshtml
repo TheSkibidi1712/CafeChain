@@ -1,6 +1,17 @@
 @using CafeChain.Helpers
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 @{
     var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+    var canManagePermissions = false;
+    var currentAccountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+    if (int.TryParse(currentAccountIdValue, out var currentAccountId))
+    {
+        var permissionDecision = await PermissionService.HasPermissionAsync(currentAccountId, PermissionConstants.SystemPermissionManage);
+        canManagePermissions = permissionDecision.IsSuccess && permissionDecision.Data?.Allowed == true;
+    }
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -330,11 +341,11 @@
 
             <!-- ━━━ 👥 NHÂN SỰ & VẬN HÀNH ━━━ -->
             @{
-                var hrControllers = "AdminStaff,AdminStaffShift,AdminStoreIP,AdminStore";
+                var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStoreIP,AdminStore";
                 var isHrGroupActive = Html.IsActive(hrControllers) != "";
             }
 
-            @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự") || User.IsInRole("Giám đốc Vận hành"))
+            @if (canManagePermissions || User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự") || User.IsInRole("Giám đốc Vận hành"))
             {
                 <a href="#collapseHR" data-bs-toggle="collapse"
                    aria-expanded="@(isHrGroupActive ? "true" : "false")"
@@ -344,9 +355,9 @@
                 </a>
                 <div class="collapse @(isHrGroupActive ? "show" : "")" id="collapseHR">
                     <div class="sidebar-sub">
-                        @if(User.IsInRole("Super Admin"))
+                        @if(canManagePermissions)
                         {
-                            <a asp-area="Admin" asp-controller="AdminPermission" asp-action="Role" class="@Html.IsActive("AdminPermission")"><i class="fas fa-circle"></i> Bảng phân quyền</a>
+                            <a asp-area="Admin" asp-controller="AdminPermission" asp-action="Index" class="@Html.IsActive("AdminPermission")"><i class="fas fa-circle"></i> Bảng phân quyền</a>
                         }   
                         @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự"))
                         {

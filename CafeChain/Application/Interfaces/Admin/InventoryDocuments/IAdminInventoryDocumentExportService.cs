@@ -1,4 +1,5 @@
-﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Snapshot;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments.Export;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments.Snapshot;
 
 namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 {
@@ -7,5 +8,7 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
         Task<byte[]> ExportPdfAsync(InventoryDocumentSnapshotDTO snapshot);
 
         Task<byte[]> ExportWordAsync(InventoryDocumentSnapshotDTO snapshot);
+
+        Task<byte[]> ExportExcelAsync(IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows);
     }
 }

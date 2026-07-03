@@ -3,19 +3,23 @@
 
 @{
     var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
-    var requiresSupplier = Model.Type == InventoryDocumentType.IMPORT;
+    var isImport = Model.Type == InventoryDocumentType.IMPORT
+        || Model.Type == InventoryDocumentType.ADJUSTMENT_IN
+        || Model.Type == InventoryDocumentType.INTERNAL_IMPORT;
+    var isExport = Model.Type == InventoryDocumentType.EXPORT;
+
     var purposeOptions = Model.Type switch
     {
-        InventoryDocumentType.IMPORT => new[]
+        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN or InventoryDocumentType.INTERNAL_IMPORT => new[]
         {
             new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" },
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_INTERNAL, Label = "Nhập nội bộ", Description = "Nhận hàng từ nguồn nội bộ" },
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Label = "Điều chỉnh tăng", Description = "Bổ sung do kiểm tra hoặc đối soát" }
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_INTERNAL, Label = "Nhập nội bộ", Description = "Nhận hàng từ phiếu xuất nội bộ đã xác nhận" },
+            new { Value = (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Label = "Điều chỉnh tăng", Description = "Bổ sung tồn do kiểm tra, kiểm kê lệch hoặc đối soát dữ liệu" }
         },
         InventoryDocumentType.EXPORT => new[]
         {
             new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" },
-            new { Value = (int)InventoryDocumentPurpose.INTERNAL_OUT, Label = "Xuất nội bộ", Description = "Xuất cho nhu cầu vận hành" },
+            new { Value = (int)InventoryDocumentPurpose.INTERNAL_OUT, Label = "Xuất nội bộ", Description = "Xuất cho cửa hàng khác trong chuỗi" },
             new { Value = (int)InventoryDocumentPurpose.ADJUSTMENT_OUT, Label = "Điều chỉnh giảm", Description = "Giảm tồn do đối soát" }
         },
         InventoryDocumentType.STOCK_TAKE => new[]
@@ -34,9 +38,14 @@
         }
     };
 
-    var selectedPurpose = Model.Purpose == InventoryDocumentPurpose.NONE
-        ? purposeOptions[0].Value
-        : (int)Model.Purpose;
+    var selectedPurpose = Model.Type switch
+    {
+        InventoryDocumentType.ADJUSTMENT_IN => (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
+        InventoryDocumentType.INTERNAL_IMPORT => (int)InventoryDocumentPurpose.IMPORT_INTERNAL,
+        _ => Model.Purpose == InventoryDocumentPurpose.NONE
+            ? purposeOptions[0].Value
+            : (int)Model.Purpose
+    };
 }
 
 <section class="create-section create-document-info">
@@ -71,8 +80,10 @@
             <input id="DocumentDate"
                    name="DocumentDate"
                    type="date"
-                   class="form-control create-control"
+                   class="form-control create-control create-control-readonly"
                    value="@documentDate.ToString("yyyy-MM-dd")"
+                   readonly
+                   disabled
                    required />
         </div>
 
@@ -93,25 +104,63 @@
             </select>
         </div>
 
-        <div class="create-field">
-            <label for="supplierSelect">Nhà cung cấp</label>
-            <select id="supplierSelect"
-                    name="SupplierId"
-                    class="form-select create-control"
-                    disabled="@(!requiresSupplier)">
-                <option value="">Chọn nhà cung cấp</option>
-                @foreach (var item in Model.Suppliers)
-                {
-                    <option value="@item.SupplierId"
-                            selected="@(Model.SupplierId == item.SupplierId)">
-                        @item.SupplierName
-                    </option>
-                }
-            </select>
-            <small>
-                Chọn nhà cung cấp để tải danh sách nguyên liệu.
-            </small>
-        </div>
+        @if (isImport)
+        {
+            <div class="create-field"
+                 id="supplierField">
+                <label for="supplierSelect">Nhà cung cấp</label>
+                <select id="supplierSelect"
+                        name="SupplierId"
+                        class="form-select create-control">
+                    <option value="">Chọn nhà cung cấp</option>
+                    @foreach (var item in Model.Suppliers)
+                    {
+                        <option value="@item.SupplierId"
+                                selected="@(Model.SupplierId == item.SupplierId)">
+                            @item.SupplierName
+                        </option>
+                    }
+                </select>
+                <small>
+                    Chỉ dùng khi mục đích là nhập từ nhà cung cấp.
+                </small>
+            </div>
+
+            <div class="create-field create-field-wide d-none"
+                 id="sourceTransferField">
+                <label for="sourceTransferSelect">Phiếu xuất nội bộ</label>
+                <select id="sourceTransferSelect"
+                        name="SourceTransferId"
+                        class="form-select create-control">
+                    <option value="">Chọn cửa hàng nhận trước</option>
+                </select>
+                <small>
+                    Nhập nội bộ phải nhận theo phiếu xuất nội bộ đang chờ nhận của cửa hàng đã chọn.
+                </small>
+            </div>
+        }
+
+        @if (isExport)
+        {
+            <div class="create-field create-field-wide d-none"
+                 id="targetStoreField">
+                <label for="targetStoreSelect">Cửa hàng nhận</label>
+                <select id="targetStoreSelect"
+                        name="TargetStoreId"
+                        class="form-select create-control">
+                    <option value="">Chọn cửa hàng nhận khi xuất nội bộ</option>
+                    @foreach (var item in Model.Stores)
+                    {
+                        <option value="@item.StoreId">
+                            @item.StoreName
+                        </option>
+                    }
+                </select>
+                <small>
+                    Chỉ bắt buộc khi mục đích nghiệp vụ là xuất nội bộ.
+                </small>
+            </div>
+        }
 
     </div>
 
@@ -150,14 +199,23 @@
 
     <div class="create-field-grid create-field-grid-secondary">
 
-        <div class="create-field">
-            <label for="PartnerName">Đối tác / Partner</label>
+        <input type="hidden"
+               id="PartnerType"
+               name="PartnerType"
+               value="@((int)InventoryPartnerType.NONE)" />
+
+        <div class="create-field"
+             id="partnerField">
+            <label id="partnerNameLabel"
+                   for="PartnerName">Đối tác / Partner</label>
             <input id="PartnerName"
                    name="PartnerName"
                    class="form-control create-control partner-name-input"
                    value="@Model.SupplierName"
-                   placeholder="Nhập tên đối tác nếu cần"
-                   readonly="@(Model.SupplierId.HasValue)" />
+                   placeholder="Nhập tên đối tác nếu cần" />
+            <small id="partnerHint">
+                Hệ thống tự xác định loại đối tác theo mục đích nghiệp vụ.
+            </small>
         </div>
 
         <div class="create-field create-field-wide">
@@ -167,6 +225,10 @@
                       rows="3"
                       class="form-control create-control"
                       placeholder="Nhập ghi chú cho phiếu kho">@Model.Note</textarea>
+            <small id="notePurposeHint"
+                   class="d-none">
+                Phiếu điều chỉnh bắt buộc ghi rõ lý do điều chỉnh.
+            </small>
         </div>
 
     </div>

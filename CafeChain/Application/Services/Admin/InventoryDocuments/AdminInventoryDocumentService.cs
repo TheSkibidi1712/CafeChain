@@ -1,9 +1,11 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments.Export;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Index;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Documents;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Detail;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Index;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Preview;
@@ -36,49 +38,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task<PaginatedListViewModel<AdminInventoryDocumentListVM>> GetPagedDocumentsAsync(AdminInventoryDocumentFilterDTO filter)
         {
-            var query = _repository.GetDocumentsQuery();
-
-            if (!string.IsNullOrWhiteSpace(filter.Search))
-            {
-                query = query.Where(x => x.Code.Contains(filter.Search) || (x.PartnerName != null && x.PartnerName.Contains(filter.Search)));
-            }
-
-            if (filter.Type.HasValue)
-            {
-                query = query.Where(x => x.Type == filter.Type);
-            }
-
-            if (filter.Status.HasValue)
-            {
-                query = query.Where(x => x.Status == filter.Status);
-            }
-
-            if (filter.Purpose.HasValue)
-            {
-                query = query.Where(x => x.Purpose == filter.Purpose);
-            }
-
-            if (filter.StoreId.HasValue)
-            {
-                query = query.Where(x => x.StoreId == filter.StoreId);
-            }
-
-            if (filter.FromDate.HasValue)
-            {
-                query = query.Where(x => x.DocumentDate >= filter.FromDate);
-            }
-
-            if (filter.ToDate.HasValue)
-            {
-                query = query.Where(x => x.DocumentDate <= filter.ToDate);
-            }
+            var query =
+                BuildFilteredDocumentsQuery(filter);
 
             var totalCount = await query.CountAsync();
 
+            var page =
+                filter.Page <= 0
+                    ? 1
+                    : filter.Page;
+
+            var pageSize =
+                filter.PageSize <= 0
+                    ? 20
+                    : filter.PageSize;
+
             var items = await query
                 .OrderByDescending(x => x.DocumentDate)
-                .Skip((filter.Page - 1) * filter.PageSize)
-                .Take(filter.PageSize)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .Select(x =>
                     new AdminInventoryDocumentListVM
                     {
@@ -104,7 +82,70 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     })
                 .ToListAsync();
 
-            return new PaginatedListViewModel<AdminInventoryDocumentListVM>(items, totalCount, filter.Page, filter.PageSize);
+            return new PaginatedListViewModel<AdminInventoryDocumentListVM>(items, totalCount, page, pageSize);
+        }
+
+        private IQueryable<InventoryDocument> BuildFilteredDocumentsQuery(
+            AdminInventoryDocumentFilterDTO filter)
+        {
+            var query =
+                _repository.GetDocumentsQuery();
+
+            if (!string.IsNullOrWhiteSpace(filter.Search))
+            {
+                var search =
+                    filter.Search.Trim();
+
+                query =
+                    query.Where(x =>
+                        x.Code.Contains(search)
+                        || (x.PartnerName != null
+                            && x.PartnerName.Contains(search)));
+            }
+
+            if (filter.Type.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.Type == filter.Type);
+            }
+
+            if (filter.Status.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.Status == filter.Status);
+            }
+
+            if (filter.Purpose.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.Purpose == filter.Purpose);
+            }
+
+            if (filter.StoreId.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.StoreId == filter.StoreId);
+            }
+
+            if (filter.FromDate.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.DocumentDate >= filter.FromDate);
+            }
+
+            if (filter.ToDate.HasValue)
+            {
+                query =
+                    query.Where(x =>
+                        x.DocumentDate <= filter.ToDate);
+            }
+
+            return query;
         }
 
         public async Task<AdminInventoryDocumentIndexVM> GetIndexDataAsync(AdminInventoryDocumentFilterDTO filter)
@@ -313,6 +354,44 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _ => null
             };
+        }
+
+        public async Task<byte[]> ExportExcelAsync(
+            AdminInventoryDocumentFilterDTO filter)
+        {
+            var rows =
+                await BuildFilteredDocumentsQuery(filter)
+                    .OrderByDescending(x => x.DocumentDate)
+                    .Select(x =>
+                        new AdminInventoryDocumentExcelRowDTO
+                        {
+                            Code = x.Code,
+
+                            Type = x.Type,
+
+                            Purpose = x.Purpose,
+
+                            StoreName = x.Store.Name,
+
+                            PartnerName = x.PartnerName,
+
+                            DocumentDate = x.DocumentDate,
+
+                            FinalAmount = x.FinalAmount ?? 0,
+
+                            Status = x.Status,
+
+                            ConfirmedAt = x.ConfirmedAt
+                        })
+                    .ToListAsync();
+
+            for (var i = 0; i < rows.Count; i++)
+            {
+                rows[i].No =
+                    i + 1;
+            }
+
+            return await _exportService.ExportExcelAsync(rows);
         }
 
     }

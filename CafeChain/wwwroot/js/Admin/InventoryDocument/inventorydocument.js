@@ -11,7 +11,8 @@ const InventoryDocument = (() => {
 
         exportModal: "#exportModal",
         exportDocumentId: "#exportDocumentId",
-        exportButton: "#btnConfirmExport"
+        exportButton: "#btnConfirmExport",
+        excelExportButton: "#btnExportExcel"
     };
 
     const createSelector = {
@@ -348,6 +349,23 @@ const InventoryDocument = (() => {
                     return;
 
                 }
+
+                const excelExportBtn =
+                    e.target.closest(
+                        selectors.excelExportButton
+                    );
+
+                if (excelExportBtn) {
+
+                    e.preventDefault();
+
+                    exportExcelList(
+                        excelExportBtn
+                    );
+
+                    return;
+
+                }
                 
                 const detailBtn =
                     e.target.closest(
@@ -554,6 +572,202 @@ const InventoryDocument = (() => {
     // ====================================================
     // EXPORT FUNCTION
     // ====================================================
+
+    async function exportExcelList(button) {
+
+        const query =
+            buildExcelExportQuery();
+
+        const url =
+            query
+                ? `/Admin/AdminInventoryDocument/ExportExcel?${query}`
+                : "/Admin/AdminInventoryDocument/ExportExcel";
+
+        setActionBusy(
+            button,
+            true
+        );
+
+        try {
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method:
+                            "GET",
+
+                        headers: {
+                            "X-Requested-With":
+                                "XMLHttpRequest"
+                        }
+                    });
+
+            if (!response.ok) {
+
+                const message =
+                    await response.text();
+
+                throw new Error(
+                    message || "Không thể xuất Excel."
+                );
+            }
+
+            const contentType =
+                response.headers.get("content-type") || "";
+
+            if (!contentType.includes("spreadsheetml.sheet")) {
+
+                const message =
+                    await response.text();
+
+                throw new Error(
+                    message || "Phản hồi xuất Excel không hợp lệ."
+                );
+            }
+
+            const blob =
+                await response.blob();
+
+            if (!blob.size) {
+
+                throw new Error(
+                    "File Excel trả về không có dữ liệu."
+                );
+            }
+
+            downloadBlob(
+                blob,
+                getDownloadFileName(
+                    response,
+                    buildExcelFileName()
+                )
+            );
+        }
+        catch (error) {
+
+            alert(
+                error.message || "Không thể xuất Excel."
+            );
+        }
+        finally {
+
+            setActionBusy(
+                button,
+                false
+            );
+        }
+    }
+
+    function downloadBlob(blob, fileName) {
+
+        const url =
+            window.URL.createObjectURL(blob);
+
+        const a =
+            document.createElement("a");
+
+        a.href =
+            url;
+
+        a.download =
+            fileName;
+
+        document.body.appendChild(a);
+
+        a.click();
+
+        a.remove();
+
+        window.URL.revokeObjectURL(url);
+    }
+
+    function getDownloadFileName(response, fallback) {
+
+        const disposition =
+            response.headers.get("content-disposition") || "";
+
+        const encodedFileName =
+            disposition.match(/filename\*=UTF-8''([^;]+)/i);
+
+        if (encodedFileName?.[1]) {
+
+            return decodeURIComponent(
+                encodedFileName[1].replace(/"/g, "")
+            );
+        }
+
+        const fileName =
+            disposition.match(/filename="?([^";]+)"?/i);
+
+        if (fileName?.[1]) {
+
+            return fileName[1];
+        }
+
+        return fallback;
+    }
+
+    function buildExcelFileName() {
+
+        const now =
+            new Date();
+
+        const pad =
+            value => String(value).padStart(2, "0");
+
+        return `PhieuKho_${now.getFullYear()}${pad(now.getMonth() + 1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}.xlsx`;
+
+    }
+
+    function buildExcelExportQuery() {
+
+        const form =
+            document.querySelector(
+                selectors.filterForm
+            );
+
+        if (!form) {
+
+            return "";
+        }
+
+        const formData =
+            new FormData(form);
+
+        const params =
+            new URLSearchParams();
+
+        formData.forEach(
+            (value, key) => {
+
+                if (!value) {
+
+                    return;
+                }
+
+                const normalizedKey =
+                    key.startsWith("Filter.")
+                        ? key.substring("Filter.".length)
+                        : key;
+
+                if (
+                    normalizedKey === "Page"
+                    || normalizedKey === "PageSize"
+                ) {
+
+                    return;
+                }
+
+                params.append(
+                    normalizedKey,
+                    value
+                );
+            });
+
+        return params.toString();
+    }
+
     function openExportModal(documentId) {
 
         document.querySelector(selectors.exportDocumentId).value = documentId;

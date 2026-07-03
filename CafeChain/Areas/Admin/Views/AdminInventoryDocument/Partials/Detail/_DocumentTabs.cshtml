@@ -1,33 +1,58 @@
-﻿@model CafeChain.Application.DTOs.Admin.InventoryDocuments.Index.AdminInventoryDocumentFilterDTO
+@model CafeChain.Application.DTOs.Admin.InventoryDocuments.Index.AdminInventoryDocumentFilterDTO
+@using CafeChain.Models.Enums.Inventory
+
+@{
+    string ActiveFor(InventoryDocumentType? type, InventoryDocumentPurpose? purpose = null)
+    {
+        return Model.Type == type && Model.Purpose == purpose ? "active" : "";
+    }
+
+    var allActive = !Model.Type.HasValue && !Model.Purpose.HasValue ? "active" : "";
+}
 
 <div class="inventory-tabs">
 
     <a asp-action="Index"
-       class="tab-btn active">
+       class="tab-btn @allActive">
         Tất cả
     </a>
 
     <a asp-action="Index"
        asp-route-Type="IMPORT"
-       class="tab-btn">
-        Nhập
+       asp-route-Purpose="IMPORT_PURCHASE"
+       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_PURCHASE)">
+        Nhập NCC
+    </a>
+
+    <a asp-action="Index"
+       asp-route-Type="IMPORT"
+       asp-route-Purpose="IMPORT_ADJUSTMENT"
+       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_ADJUSTMENT)">
+        Nhập điều chỉnh
+    </a>
+
+    <a asp-action="Index"
+       asp-route-Type="IMPORT"
+       asp-route-Purpose="IMPORT_INTERNAL"
+       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_INTERNAL)">
+        Nhập nội bộ
     </a>
 
     <a asp-action="Index"
        asp-route-Type="EXPORT"
-       class="tab-btn">
+       class="tab-btn @ActiveFor(InventoryDocumentType.EXPORT)">
         Xuất
     </a>
 
     <a asp-action="Index"
        asp-route-Type="STOCK_TAKE"
-       class="tab-btn">
+       class="tab-btn @ActiveFor(InventoryDocumentType.STOCK_TAKE)">
         Kiểm kê
     </a>
 
     <a asp-action="Index"
        asp-route-Type="WASTE"
-       class="tab-btn">
+       class="tab-btn @ActiveFor(InventoryDocumentType.WASTE)">
         Hủy
     </a>
 

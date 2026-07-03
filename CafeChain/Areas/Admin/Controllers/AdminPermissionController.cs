@@ -16,7 +16,16 @@ namespace CafeChain.Areas.Admin.Controllers
             _permissionService = permissionService;
         }
 
-        [HttpGet("Roles")]
+        [HttpGet]
+        public async Task<IActionResult> Index()
+        {
+            var guard = await EnsureCanManagePermissionsAsync();
+            if (guard != null) return guard;
+
+            return View();
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Roles(int pageIndex = 1, int pageSize = 10, string? search = null)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -26,7 +35,27 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpGet("Permissions")]
+        [HttpGet]
+        public async Task<IActionResult> Staff(int pageIndex = 1, int pageSize = 10, string? search = null)
+        {
+            var guard = await EnsureCanManagePermissionsAsync();
+            if (guard != null) return guard;
+
+            var result = await _permissionService.GetStaffAsync(pageIndex, pageSize, search);
+            return ToJsonResult(result);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ScopeReferences(int scopeTypeId, int? parentId = null)
+        {
+            var guard = await EnsureCanManagePermissionsAsync();
+            if (guard != null) return guard;
+
+            var result = await _permissionService.GetScopeReferencesAsync(scopeTypeId, parentId);
+            return ToJsonResult(result);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Permissions()
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -36,7 +65,7 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpGet("Roles/{roleId:int}/Permissions")]
+        [HttpGet]
         public async Task<IActionResult> RolePermissions(int roleId)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -46,10 +75,8 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpPost("Roles/{roleId:int}/Permissions")]
-        public async Task<IActionResult> SaveRolePermissions(
-            int roleId,
-            [FromBody] SaveRolePermissionsRequest request)
+        [HttpPost]
+        public async Task<IActionResult> SaveRolePermissions(int roleId, [FromBody] SaveRolePermissionsRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
@@ -61,7 +88,7 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpGet("Staff/{staffId:int}/Roles")]
+        [HttpGet]
         public async Task<IActionResult> StaffRoles(int staffId)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -71,10 +98,8 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpPost("Staff/{staffId:int}/Roles")]
-        public async Task<IActionResult> SaveStaffRoles(
-            int staffId,
-            [FromBody] SaveStaffRolesRequest request)
+        [HttpPost]
+        public async Task<IActionResult> SaveStaffRoles(int staffId, [FromBody] SaveStaffRolesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
@@ -86,7 +111,7 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpGet("Staff/{staffId:int}/Scopes")]
+        [HttpGet]
         public async Task<IActionResult> StaffScopes(int staffId)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -96,10 +121,8 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpPost("Staff/{staffId:int}/Scopes")]
-        public async Task<IActionResult> SaveStaffScopes(
-            int staffId,
-            [FromBody] SaveStaffScopesRequest request)
+        [HttpPost]
+        public async Task<IActionResult> SaveStaffScopes(int staffId, [FromBody] SaveStaffScopesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
@@ -111,7 +134,7 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpGet("Staff/{staffId:int}/Overrides")]
+        [HttpGet]
         public async Task<IActionResult> StaffOverrides(int staffId)
         {
             var guard = await EnsureCanManagePermissionsAsync();
@@ -121,10 +144,8 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
-        [HttpPost("Staff/{staffId:int}/Overrides")]
-        public async Task<IActionResult> SaveStaffOverrides(
-            int staffId,
-            [FromBody] SaveAccountPermissionOverridesRequest request)
+        [HttpPost]
+        public async Task<IActionResult> SaveStaffOverrides(int staffId, [FromBody] SaveAccountPermissionOverridesRequest request)
         {
             var guard = await EnsureCanManagePermissionsAsync();
             if (guard != null) return guard;
@@ -136,6 +157,10 @@ namespace CafeChain.Areas.Admin.Controllers
             return ToJsonResult(result);
         }
 
+
+        // ===================================================
+        // PRIVATE METHODS
+        // ===================================================
         private async Task<IActionResult?> EnsureCanManagePermissionsAsync()
         {
             var accountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);

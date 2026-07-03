@@ -25,6 +25,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             ValidateBasic(dto);
 
+            ValidateImportPurpose(dto);
+
+            ValidateExportPurpose(dto);
+
+            ValidateAdjustmentNote(dto);
+
+            ValidateAdjustmentPrice(dto);
+
             await ValidateStoreAsync(dto.StoreId);
 
             await ValidateSupplierAsync(dto);
@@ -85,7 +93,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private async Task ValidateSupplierAsync(CreateInventoryDocumentDTO dto)
         {
-            if (dto.Type != InventoryDocumentType.IMPORT)
+            if (dto.Type != InventoryDocumentType.IMPORT
+                || dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE)
             {
                 return;
             }
@@ -161,7 +170,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private async Task ValidateInventoryAsync(CreateInventoryDocumentDTO dto)
         {
-            if (dto.Type == InventoryDocumentType.IMPORT)
+            if (IsIncreaseDocument(dto.Type))
             {
                 return;
             }
@@ -185,6 +194,80 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         $"Không đủ tồn kho.");
                 }
             }
+        }
+
+        private static void ValidateImportPurpose(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.IMPORT)
+            {
+                return;
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE
+                && dto.Purpose != InventoryDocumentPurpose.IMPORT_INTERNAL
+                && dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            {
+                throw new InvalidOperationException("Mục đích phiếu nhập không hợp lệ.");
+            }
+        }
+
+        private static void ValidateAdjustmentNote(CreateInventoryDocumentDTO dto)
+        {
+            var isAdjustment =
+                dto.Type == InventoryDocumentType.IMPORT
+                    && dto.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT
+                || dto.Type == InventoryDocumentType.EXPORT
+                    && dto.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT;
+
+            if (!isAdjustment)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(dto.Note))
+            {
+                throw new InvalidOperationException("Phiếu điều chỉnh phải có ghi chú lý do điều chỉnh.");
+            }
+        }
+
+        private static void ValidateAdjustmentPrice(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.IMPORT
+                || dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            {
+                return;
+            }
+
+            if (dto.Details.Any(x => x.UnitPrice <= 0))
+            {
+                throw new InvalidOperationException("Phiếu nhập điều chỉnh phải có đơn giá lớn hơn 0.");
+            }
+        }
+
+        private static void ValidateExportPurpose(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.EXPORT)
+            {
+                return;
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.SALE
+                && dto.Purpose != InventoryDocumentPurpose.INTERNAL_OUT
+                && dto.Purpose != InventoryDocumentPurpose.GIFT
+                && dto.Purpose != InventoryDocumentPurpose.DEBT
+                && dto.Purpose != InventoryDocumentPurpose.SAMPLE
+                && dto.Purpose != InventoryDocumentPurpose.ADJUSTMENT_OUT)
+            {
+                throw new InvalidOperationException("Mục đích phiếu xuất không hợp lệ.");
+            }
+        }
+
+        private static bool IsIncreaseDocument(InventoryDocumentType type)
+        {
+            return type == InventoryDocumentType.IMPORT
+                || type == InventoryDocumentType.ADJUSTMENT_IN
+                || type == InventoryDocumentType.INTERNAL_IMPORT
+                || type == InventoryDocumentType.PRODUCTION_IN;
         }
 
         private static void ValidateExportSnapshot(InventoryDocumentSnapshotDTO? snapshot)

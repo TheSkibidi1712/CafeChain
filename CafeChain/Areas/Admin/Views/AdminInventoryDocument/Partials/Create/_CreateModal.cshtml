@@ -2,26 +2,32 @@
 @using CafeChain.Models.Enums.Inventory;
 
 @{
-    var typeClass = Model.Type.ToString().ToLowerInvariant().Replace("_", "-");
-    var title = Model.Type switch
+    var effectiveType = Model.Type == InventoryDocumentType.ADJUSTMENT_IN
+        || Model.Type == InventoryDocumentType.INTERNAL_IMPORT
+            ? InventoryDocumentType.IMPORT
+            : Model.Type;
+    var typeClass = effectiveType.ToString().ToLowerInvariant().Replace("_", "-");
+    var title = effectiveType switch
     {
         InventoryDocumentType.IMPORT => "Tạo Phiếu Nhập Kho",
         InventoryDocumentType.EXPORT => "Tạo Phiếu Xuất Kho",
         InventoryDocumentType.STOCK_TAKE => "Tạo Phiếu Kiểm Kê",
         InventoryDocumentType.WASTE => "Tạo Phiếu Hủy Hàng",
+        InventoryDocumentType.ADJUSTMENT_IN => "Tạo Phiếu Nhập Kho",
+        InventoryDocumentType.INTERNAL_IMPORT => "Tạo Phiếu Nhập Kho",
         _ => "Tạo Phiếu Kho"
     };
 
-    var subtitle = Model.Type switch
+    var subtitle = effectiveType switch
     {
-        InventoryDocumentType.IMPORT => "Nhập nguyên liệu từ nhà cung cấp hoặc nội bộ",
+        InventoryDocumentType.IMPORT => "Chọn mục đích nhập để hệ thống đổi nghiệp vụ phù hợp",
         InventoryDocumentType.EXPORT => "Xuất hàng bán hoặc xuất nội bộ",
         InventoryDocumentType.STOCK_TAKE => "Ghi nhận số lượng kiểm kê thực tế",
         InventoryDocumentType.WASTE => "Ghi nhận hủy hàng hết hạn, hỏng hoặc thất thoát",
         _ => "Khởi tạo chứng từ kho"
     };
 
-    var icon = Model.Type switch
+    var icon = effectiveType switch
     {
         InventoryDocumentType.IMPORT => "fa-arrow-down",
         InventoryDocumentType.EXPORT => "fa-arrow-up",
@@ -33,21 +39,22 @@
 
 <form id="inventoryCreateForm"
       class="inventory-create-form"
-      data-document-type="@((int)Model.Type)"
-      data-document-type-name="@Model.Type"
+      data-document-type="@((int)effectiveType)"
+      data-document-type-name="@effectiveType"
       novalidate>
 
     <input type="hidden"
            id="inventoryDocumentType"
            name="Type"
-           value="@((int)Model.Type)" />
+           value="@((int)effectiveType)" />
 
     <div class="modal-header inventory-create-header inventory-create-header-@typeClass">
 
         <div class="inventory-create-title">
 
             <span class="inventory-create-icon">
-                <i class="fas @icon"></i>
+                <i id="inventoryCreateIcon"
+                   class="fas @icon"></i>
             </span>
 
             <div>
@@ -55,9 +62,9 @@
                     Phiếu kho / Tạo phiếu mới
                 </div>
 
-                <h4>@title</h4>
+                <h4 id="inventoryCreateTitle">@title</h4>
 
-                <p>@subtitle</p>
+                <p id="inventoryCreateSubtitle">@subtitle</p>
             </div>
 
         </div>
@@ -86,7 +93,7 @@
 
         <div class="inventory-create-workspace">
 
-            <main class="inventory-create-main">
+            <div class="inventory-create-main">
 
                 <partial name="Partials/Create/_DocumentInfo"
                          model="Model" />
@@ -94,14 +101,10 @@
                 <partial name="Partials/Create/_DetailTable"
                          model="Model" />
 
-            </main>
-
-            <aside class="inventory-create-side">
-
                 <partial name="Partials/Create/_Summary"
                          model="Model" />
 
-            </aside>
+            </div>
 
         </div>
 

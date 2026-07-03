@@ -1,4 +1,5 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Snapshot;
+using CafeChain.Application.DTOs.Admin.InventoryDocuments.Export;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
@@ -7,6 +8,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using System.Globalization;
+using X = DocumentFormat.OpenXml.Spreadsheet;
 using WordDocument =
     DocumentFormat.OpenXml.Wordprocessing.Document;
 
@@ -14,6 +16,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 {
     public class AdminInventoryDocumentExportService : IAdminInventoryDocumentExportService
     {
+        private const uint ExcelHeaderStyleIndex = 1;
+
+        private const uint ExcelDateStyleIndex = 2;
+
+        private const uint ExcelMoneyStyleIndex = 3;
+
+        private const uint ExcelCenterStyleIndex = 4;
+
+        private const uint ExcelBodyStyleIndex = 5;
+
+        private const uint ExcelDateFormatId = 164;
+
+        private const uint ExcelMoneyFormatId = 165;
+
         // =====================================================
         // PDF
         // =====================================================
@@ -267,8 +283,417 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         }
 
         // =====================================================
+        // EXCEL
+        // =====================================================
+
+        public Task<byte[]> ExportExcelAsync(
+            IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows)
+        {
+            using var stream =
+                new MemoryStream();
+
+            using (
+                var document =
+                SpreadsheetDocument.Create(
+                    stream,
+                    SpreadsheetDocumentType.Workbook))
+            {
+                var workbookPart =
+                    document.AddWorkbookPart();
+
+                workbookPart.Workbook =
+                    new X.Workbook();
+
+                var stylesPart =
+                    workbookPart.AddNewPart<WorkbookStylesPart>();
+
+                stylesPart.Stylesheet =
+                    CreateExcelStylesheet();
+
+                stylesPart.Stylesheet.Save();
+
+                var worksheetPart =
+                    workbookPart.AddNewPart<WorksheetPart>();
+
+                var sheetData =
+                    new X.SheetData();
+
+                worksheetPart.Worksheet =
+                    new X.Worksheet(
+                        CreateExcelSheetViews(),
+                        CreateExcelColumns(),
+                        sheetData);
+
+                sheetData.Append(
+                    CreateExcelRow(
+                        1,
+                        ExcelHeaderStyleIndex,
+                        "STT",
+                        "Mã phiếu",
+                        "Loại",
+                        "Mục đích",
+                        "Cửa hàng",
+                        "Đối tác",
+                        "Ngày chứng từ",
+                        "Giá trị",
+                        "Trạng thái",
+                        "Ngày xác nhận"));
+
+                var rowIndex =
+                    2U;
+
+                foreach (var row in rows)
+                {
+                    sheetData.Append(
+                        CreateExcelDataRow(
+                            rowIndex,
+                            row));
+
+                    rowIndex++;
+                }
+
+                var lastRowIndex =
+                    rowIndex > 1
+                        ? rowIndex - 1
+                        : 1;
+
+                worksheetPart.Worksheet.Append(
+                    new X.AutoFilter
+                    {
+                        Reference = $"A1:J{lastRowIndex}"
+                    });
+
+                worksheetPart.Worksheet.Save();
+
+                var sheets =
+                    workbookPart.Workbook.AppendChild(
+                        new X.Sheets());
+
+                sheets.Append(
+                    new X.Sheet
+                    {
+                        Id = workbookPart.GetIdOfPart(worksheetPart),
+                        SheetId = 1,
+                        Name = "PhieuKho"
+                    });
+
+                workbookPart.Workbook.Save();
+            }
+
+            return Task.FromResult(
+                stream.ToArray());
+        }
+
+        // =====================================================
         // HELPERS
         // =====================================================
+
+        private static X.SheetViews CreateExcelSheetViews()
+        {
+            var sheetView =
+                new X.SheetView
+                {
+                    WorkbookViewId = 0U
+                };
+
+            sheetView.Append(
+                new X.Pane
+                {
+                    VerticalSplit = 1D,
+                    TopLeftCell = "A2",
+                    ActivePane = X.PaneValues.BottomLeft,
+                    State = X.PaneStateValues.Frozen
+                });
+
+            return new X.SheetViews(sheetView);
+        }
+
+        private static X.Columns CreateExcelColumns()
+        {
+            return new X.Columns(
+                new X.Column { Min = 1, Max = 1, Width = 8, CustomWidth = true },
+                new X.Column { Min = 2, Max = 2, Width = 18, CustomWidth = true },
+                new X.Column { Min = 3, Max = 3, Width = 16, CustomWidth = true },
+                new X.Column { Min = 4, Max = 4, Width = 22, CustomWidth = true },
+                new X.Column { Min = 5, Max = 5, Width = 24, CustomWidth = true },
+                new X.Column { Min = 6, Max = 6, Width = 24, CustomWidth = true },
+                new X.Column { Min = 7, Max = 7, Width = 16, CustomWidth = true },
+                new X.Column { Min = 8, Max = 8, Width = 18, CustomWidth = true },
+                new X.Column { Min = 9, Max = 9, Width = 16, CustomWidth = true },
+                new X.Column { Min = 10, Max = 10, Width = 18, CustomWidth = true });
+        }
+
+        private static X.Row CreateExcelRow(
+            uint rowIndex,
+            uint styleIndex,
+            params string[] values)
+        {
+            var row =
+                new X.Row
+                {
+                    RowIndex = rowIndex
+                };
+
+            foreach (var value in values)
+            {
+                row.Append(
+                    CreateExcelTextCell(
+                        value,
+                        styleIndex));
+            }
+
+            return row;
+        }
+
+        private static X.Row CreateExcelDataRow(
+            uint rowIndex,
+            AdminInventoryDocumentExcelRowDTO document)
+        {
+            var row =
+                new X.Row
+                {
+                    RowIndex = rowIndex
+                };
+
+            row.Append(
+                CreateExcelNumberCell(document.No, ExcelCenterStyleIndex),
+                CreateExcelTextCell(document.Code, ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.Type.ToString(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.Purpose.ToString(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.StoreName, ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.PartnerName ?? "-", ExcelBodyStyleIndex),
+                CreateExcelDateCell(document.DocumentDate),
+                CreateExcelNumberCell(document.FinalAmount, ExcelMoneyStyleIndex),
+                CreateExcelTextCell(document.Status.ToString(), ExcelBodyStyleIndex),
+                CreateExcelDateCell(document.ConfirmedAt));
+
+            return row;
+        }
+
+        private static X.Cell CreateExcelTextCell(
+            string? value,
+            uint styleIndex)
+        {
+            return new X.Cell
+            {
+                DataType = X.CellValues.InlineString,
+                StyleIndex = styleIndex,
+                InlineString =
+                    new X.InlineString(
+                        new X.Text(value ?? string.Empty)
+                        {
+                            Space = SpaceProcessingModeValues.Preserve
+                        })
+            };
+        }
+
+        private static X.Cell CreateExcelNumberCell(
+            int value,
+            uint styleIndex)
+        {
+            return CreateExcelNumberCell(
+                (decimal)value,
+                styleIndex);
+        }
+
+        private static X.Cell CreateExcelNumberCell(
+            decimal value,
+            uint styleIndex)
+        {
+            return new X.Cell
+            {
+                StyleIndex = styleIndex,
+                CellValue =
+                    new X.CellValue(
+                        value.ToString(
+                            CultureInfo.InvariantCulture))
+            };
+        }
+
+        private static X.Cell CreateExcelDateCell(
+            DateTime? value)
+        {
+            if (!value.HasValue)
+            {
+                return CreateExcelTextCell(
+                    string.Empty,
+                    ExcelBodyStyleIndex);
+            }
+
+            return new X.Cell
+            {
+                StyleIndex = ExcelDateStyleIndex,
+                CellValue =
+                    new X.CellValue(
+                        value.Value
+                            .ToOADate()
+                            .ToString(
+                                CultureInfo.InvariantCulture))
+            };
+        }
+
+        private static X.Stylesheet CreateExcelStylesheet()
+        {
+            return new X.Stylesheet(
+                new X.NumberingFormats(
+                    new X.NumberingFormat
+                    {
+                        NumberFormatId = ExcelDateFormatId,
+                        FormatCode = "dd/mm/yyyy"
+                    },
+                    new X.NumberingFormat
+                    {
+                        NumberFormatId = ExcelMoneyFormatId,
+                        FormatCode = "#,##0"
+                    })
+                {
+                    Count = 2
+                },
+                new X.Fonts(
+                    new X.Font(),
+                    new X.Font(
+                        new X.Bold(),
+                        new X.Color
+                        {
+                            Rgb = "FFFFFFFF"
+                        }))
+                {
+                    Count = 2
+                },
+                new X.Fills(
+                    new X.Fill(
+                        new X.PatternFill
+                        {
+                            PatternType = X.PatternValues.None
+                        }),
+                    new X.Fill(
+                        new X.PatternFill
+                        {
+                            PatternType = X.PatternValues.Gray125
+                        }),
+                    new X.Fill(
+                        new X.PatternFill
+                        {
+                            PatternType = X.PatternValues.Solid,
+                            ForegroundColor =
+                                new X.ForegroundColor
+                                {
+                                    Rgb = "FFF97316"
+                                },
+                            BackgroundColor =
+                                new X.BackgroundColor
+                                {
+                                    Indexed = 64U
+                                }
+                        }))
+                {
+                    Count = 3
+                },
+                new X.Borders(
+                    new X.Border(),
+                    CreateExcelThinBorder())
+                {
+                    Count = 2
+                },
+                new X.CellStyleFormats(
+                    new X.CellFormat())
+                {
+                    Count = 1
+                },
+                new X.CellFormats(
+                    new X.CellFormat(),
+                    new X.CellFormat
+                    {
+                        FontId = 1,
+                        FillId = 2,
+                        BorderId = 1,
+                        ApplyFont = true,
+                        ApplyFill = true,
+                        ApplyBorder = true,
+                        ApplyAlignment = true,
+                        Alignment =
+                            new X.Alignment
+                            {
+                                Horizontal = X.HorizontalAlignmentValues.Center,
+                                Vertical = X.VerticalAlignmentValues.Center
+                            }
+                    },
+                    new X.CellFormat
+                    {
+                        NumberFormatId = ExcelDateFormatId,
+                        BorderId = 1,
+                        ApplyNumberFormat = true,
+                        ApplyBorder = true
+                    },
+                    new X.CellFormat
+                    {
+                        NumberFormatId = ExcelMoneyFormatId,
+                        BorderId = 1,
+                        ApplyNumberFormat = true,
+                        ApplyBorder = true
+                    },
+                    new X.CellFormat
+                    {
+                        BorderId = 1,
+                        ApplyBorder = true,
+                        ApplyAlignment = true,
+                        Alignment =
+                            new X.Alignment
+                            {
+                                Horizontal = X.HorizontalAlignmentValues.Center
+                            }
+                    },
+                    new X.CellFormat
+                    {
+                        BorderId = 1,
+                        ApplyBorder = true
+                    })
+                {
+                    Count = 6
+                },
+                new X.CellStyles(
+                    new X.CellStyle
+                    {
+                        Name = "Normal",
+                        FormatId = 0,
+                        BuiltinId = 0
+                    })
+                {
+                    Count = 1
+                },
+                new X.DifferentialFormats()
+                {
+                    Count = 0
+                },
+                new X.TableStyles
+                {
+                    Count = 0,
+                    DefaultTableStyle = "TableStyleMedium2",
+                    DefaultPivotStyle = "PivotStyleLight16"
+                });
+        }
+
+        private static X.Border CreateExcelThinBorder()
+        {
+            return new X.Border(
+                new X.LeftBorder
+                {
+                    Style = X.BorderStyleValues.Thin
+                },
+                new X.RightBorder
+                {
+                    Style = X.BorderStyleValues.Thin
+                },
+                new X.TopBorder
+                {
+                    Style = X.BorderStyleValues.Thin
+                },
+                new X.BottomBorder
+                {
+                    Style = X.BorderStyleValues.Thin
+                },
+                new X.DiagonalBorder());
+        }
 
         private static IContainer PdfInfoBox(IContainer container)
         {

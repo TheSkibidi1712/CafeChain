@@ -37,6 +37,8 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
         // =====================================================
         Task<byte[]?> ExportFileAsync(ExportInventoryDocumentDTO dto);
 
+        Task<byte[]> ExportExcelAsync(AdminInventoryDocumentFilterDTO filter);
+
 
     }
 }

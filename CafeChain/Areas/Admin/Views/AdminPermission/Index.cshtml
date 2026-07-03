@@ -1,0 +1,264 @@
+@{
+    ViewData["Title"] = "Bảng phân quyền";
+}
+@using CafeChain.Areas.Admin.Controllers;
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Permissions/admin-permissions.css" asp-append-version="true" />
+}
+
+<div class="perm-page"
+     data-roles-url="@Url.Action(nameof(AdminPermissionController.Roles), "AdminPermission", new { area = "Admin" })"
+     data-staff-url="@Url.Action(nameof(AdminPermissionController.Staff), "AdminPermission", new { area = "Admin" })"
+     data-permissions-url="@Url.Action(nameof(AdminPermissionController.Permissions), "AdminPermission", new { area = "Admin" })"
+     data-role-permissions-url="@Url.Action(nameof(AdminPermissionController.RolePermissions), "AdminPermission", new { area = "Admin" })"
+     data-save-role-permissions-url="@Url.Action(nameof(AdminPermissionController.SaveRolePermissions), "AdminPermission", new { area = "Admin" })"
+     data-staff-roles-url="@Url.Action(nameof(AdminPermissionController.StaffRoles), "AdminPermission", new { area = "Admin" })"
+     data-save-staff-roles-url="@Url.Action(nameof(AdminPermissionController.SaveStaffRoles), "AdminPermission", new { area = "Admin" })"
+     data-staff-scopes-url="@Url.Action(nameof(AdminPermissionController.StaffScopes), "AdminPermission", new { area = "Admin" })"
+     data-save-staff-scopes-url="@Url.Action(nameof(AdminPermissionController.SaveStaffScopes), "AdminPermission", new { area = "Admin" })"
+     data-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.StaffOverrides), "AdminPermission", new { area = "Admin" })"
+     data-save-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.SaveStaffOverrides), "AdminPermission", new { area = "Admin" })"
+     data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })">
+    <div class="perm-heading">
+        <div>
+            <div class="perm-breadcrumb">Hệ thống / Bảng phân quyền</div>
+            <h1>Bảng phân quyền</h1>
+        </div>
+        <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại">
+            <i class="fas fa-rotate-right"></i>
+        </button>
+    </div>
+
+    <div class="perm-tabs" role="tablist" aria-label="Permission tabs">
+        <button type="button" class="perm-tab is-active" data-tab="roles">
+            <i class="fas fa-shield-halved"></i>
+            <span>Role Management</span>
+        </button>
+        <button type="button" class="perm-tab" data-tab="assign">
+            <i class="fas fa-user-tag"></i>
+            <span>Gán vai trò</span>
+        </button>
+        <button type="button" class="perm-tab" data-tab="override">
+            <i class="fas fa-sliders"></i>
+            <span>User Override</span>
+        </button>
+        <button type="button" class="perm-tab" data-tab="scope">
+            <i class="fas fa-store"></i>
+            <span>Store Scope</span>
+        </button>
+    </div>
+
+    <section class="perm-panel is-active" data-panel="roles">
+        <div class="perm-toolbar">
+            <label class="perm-search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="search" id="permRoleSearch" placeholder="Tìm kiếm role..." autocomplete="off" />
+            </label>
+            <div class="perm-count" id="permRoleCount">0 role</div>
+        </div>
+
+        <div class="perm-table-wrap">
+            <table class="perm-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Tên role</th>
+                        <th>Users</th>
+                        <th>Permissions</th>
+                        <th>Active</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="permRoleTable"></tbody>
+            </table>
+        </div>
+        <div class="perm-pagination" id="permRolePagination"></div>
+    </section>
+
+    <section class="perm-panel" data-panel="assign">
+        <div class="perm-toolbar">
+            <label class="perm-search">
+                <i class="fas fa-magnifying-glass"></i>
+                <input type="search" id="permAssignStaffSearch" placeholder="Tìm nhân viên..." autocomplete="off" />
+            </label>
+            <div class="perm-count" id="permAssignStaffCount">0 nhân viên</div>
+        </div>
+
+        <div class="perm-table-wrap">
+            <table class="perm-table">
+                <thead>
+                    <tr>
+                        <th>Nhân viên</th>
+                        <th>Email</th>
+                        <th>Cửa hàng</th>
+                        <th>Role</th>
+                        <th>Active</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="permAssignStaffTable"></tbody>
+            </table>
+        </div>
+        <div class="perm-pagination" id="permAssignStaffPagination"></div>
+    </section>
+
+    <section class="perm-panel" data-panel="override">
+        <div class="perm-split">
+            <div class="perm-side">
+                <div class="perm-toolbar perm-toolbar-compact">
+                    <label class="perm-search">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="search" id="permOverrideStaffSearch" placeholder="Tìm nhân viên..." autocomplete="off" />
+                    </label>
+                </div>
+                <div class="perm-staff-list" id="permOverrideStaffList"></div>
+                <div class="perm-pagination" id="permOverrideStaffPagination"></div>
+            </div>
+            <div class="perm-workspace">
+                <div class="perm-selected-head" id="permOverrideSelected">
+                    <div>
+                        <span>Nhân viên</span>
+                        <strong>Chưa chọn</strong>
+                    </div>
+                    <button type="button" class="perm-primary-button" id="permSaveOverrideBtn" disabled>
+                        <i class="fas fa-floppy-disk"></i>
+                        Lưu
+                    </button>
+                </div>
+                <div class="perm-toolbar perm-toolbar-compact">
+                    <label class="perm-search">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="search" id="permOverrideSearch" placeholder="Tìm permission..." autocomplete="off" />
+                    </label>
+                </div>
+                <div class="perm-empty" id="permOverrideEmpty">Chọn một nhân viên để chỉnh override.</div>
+                <div class="perm-override-grid" id="permOverrideGrid"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="perm-panel" data-panel="scope">
+        <div class="perm-split">
+            <div class="perm-side">
+                <div class="perm-toolbar perm-toolbar-compact">
+                    <label class="perm-search">
+                        <i class="fas fa-magnifying-glass"></i>
+                        <input type="search" id="permScopeStaffSearch" placeholder="Tìm nhân viên..." autocomplete="off" />
+                    </label>
+                </div>
+                <div class="perm-staff-list" id="permScopeStaffList"></div>
+                <div class="perm-pagination" id="permScopeStaffPagination"></div>
+            </div>
+            <div class="perm-workspace">
+                <div class="perm-selected-head" id="permScopeSelected">
+                    <div>
+                        <span>Nhân viên</span>
+                        <strong>Chưa chọn</strong>
+                    </div>
+                    <button type="button" class="perm-primary-button" id="permSaveScopeBtn" disabled>
+                        <i class="fas fa-floppy-disk"></i>
+                        Lưu
+                    </button>
+                </div>
+
+                <div class="perm-scope-editor">
+                    <div class="perm-form-row">
+                        <label>
+                            <span>Scope</span>
+                            <select id="permScopeTypeSelect" disabled></select>
+                        </label>
+                        <label id="permScopeParentWrap" hidden>
+                            <span>Khu vực cha</span>
+                            <select id="permScopeParentSelect"></select>
+                        </label>
+                        <label>
+                            <span>Đối tượng</span>
+                            <select id="permScopeRefSelect" disabled></select>
+                        </label>
+                        <button type="button" class="perm-outline-button" id="permAddScopeBtn" disabled>
+                            <i class="fas fa-plus"></i>
+                            Thêm
+                        </button>
+                    </div>
+                    <div class="perm-scope-list" id="permScopeList"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="modal fade" id="permRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content perm-modal">
+            <div class="perm-modal-head">
+                <div>
+                    <h2>Phân quyền vai trò</h2>
+                    <div class="perm-modal-meta" id="permRoleModalMeta"></div>
+                </div>
+                <button type="button" class="perm-icon-button" data-bs-dismiss="modal" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="perm-modal-tools">
+                <label class="perm-search">
+                    <i class="fas fa-magnifying-glass"></i>
+                    <input type="search" id="permRolePermissionSearch" placeholder="Tìm permission..." autocomplete="off" />
+                </label>
+                <button type="button" class="perm-outline-button" id="permSelectAllPermissions">
+                    <i class="fas fa-check-square"></i>
+                    Chọn tất cả
+                </button>
+                <button type="button" class="perm-outline-button" id="permClearPermissions">
+                    <i class="far fa-square"></i>
+                    Bỏ chọn
+                </button>
+                <button type="button" class="perm-outline-button" id="permExpandPermissions">
+                    <i class="fas fa-chevron-down"></i>
+                    Mở tất cả
+                </button>
+            </div>
+            <div class="perm-permission-groups" id="permRolePermissionGroups"></div>
+            <div class="perm-modal-foot">
+                <div class="perm-count" id="permSelectedPermissionCount">Đã chọn: 0 quyền</div>
+                <button type="button" class="perm-ghost-button" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="perm-primary-button" id="permSaveRolePermissions">
+                    <i class="fas fa-floppy-disk"></i>
+                    Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="permStaffRoleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content perm-modal">
+            <div class="perm-modal-head">
+                <div>
+                    <h2>Gán vai trò cho nhân viên</h2>
+                    <div class="perm-modal-meta" id="permStaffRoleMeta"></div>
+                </div>
+                <button type="button" class="perm-icon-button" data-bs-dismiss="modal" title="Đóng">
+                    <i class="fas fa-xmark"></i>
+                </button>
+            </div>
+            <div class="perm-role-options" id="permStaffRoleOptions"></div>
+            <div class="perm-note">
+                <i class="fas fa-lightbulb"></i>
+                <span>Chọn nhiều role nếu nhân viên đảm nhận nhiều vị trí.</span>
+            </div>
+            <div class="perm-modal-foot">
+                <button type="button" class="perm-ghost-button" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="perm-primary-button" id="permSaveStaffRoles">
+                    <i class="fas fa-floppy-disk"></i>
+                    Lưu
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/Admin/Permissions/admin-permissions.js" asp-append-version="true"></script>
+}

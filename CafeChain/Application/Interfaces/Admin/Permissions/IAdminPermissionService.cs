@@ -6,6 +6,8 @@ namespace CafeChain.Application.Interfaces.Admin.Permissions
     public interface IAdminPermissionService
     {
         Task<ServiceResult<AdminRolePagedResultDto>> GetRolesAsync(int pageIndex, int pageSize, string? search);
+        Task<ServiceResult<AdminPermissionStaffPagedResultDto>> GetStaffAsync(int pageIndex, int pageSize, string? search);
+        Task<ServiceResult<List<ScopeReferenceDto>>> GetScopeReferencesAsync(int scopeTypeId, int? parentId = null);
         Task<ServiceResult<List<PermissionCatalogGroupDto>>> GetPermissionCatalogAsync();
         Task<ServiceResult<RolePermissionMatrixDto>> GetRolePermissionsAsync(int roleId);
         Task<ServiceResult> UpdateRolePermissionsAsync(int roleId, SaveRolePermissionsRequest request);

@@ -20,7 +20,9 @@
 
                 <option value="">Loại phiếu</option>
 
-                @foreach (var item in Enum.GetValues<InventoryDocumentType>())
+                @foreach (var item in Enum.GetValues<InventoryDocumentType>()
+                    .Where(x => x != InventoryDocumentType.ADJUSTMENT_IN
+                                && x != InventoryDocumentType.INTERNAL_IMPORT))
                 {
                     <option value="@item">@item</option>
                 }

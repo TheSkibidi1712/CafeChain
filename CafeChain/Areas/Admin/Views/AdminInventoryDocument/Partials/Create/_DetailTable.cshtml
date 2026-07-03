@@ -1,4 +1,11 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+@using CafeChain.Models.Enums.Inventory;
+
+@{
+    var hint = Model.Type == InventoryDocumentType.IMPORT
+        ? "Chọn mục đích nhập để hệ thống tải đúng nguồn nguyên liệu."
+        : "Thêm nguyên liệu và nhập số lượng cần xử lý.";
+}
 
 <section class="create-section create-detail-section">
 
@@ -18,8 +25,9 @@
         </button>
     </div>
 
-    <p class="create-section-hint">
-        Chọn nhà cung cấp trước, sau đó thêm nguyên liệu và nhập số lượng cần xử lý.
+    <p class="create-section-hint"
+       id="createDetailHint">
+        @hint
     </p>
 
     <div class="create-table-wrap">
@@ -33,7 +41,7 @@
                     <th class="create-col-unit">ĐVT</th>
                     <th class="create-col-qty">Số lượng</th>
                     <th class="create-col-price">Đơn giá</th>
-                    <th class="create-col-moq">MOQ</th>
+                    <th class="create-col-moq" id="quantityReferenceHeader">MOQ/Còn nhận</th>
                     <th class="create-col-total">Thành tiền</th>
                     <th class="create-col-action"></th>
                 </tr>

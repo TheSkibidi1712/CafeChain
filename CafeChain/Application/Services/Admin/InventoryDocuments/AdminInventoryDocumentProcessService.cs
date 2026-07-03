@@ -28,6 +28,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             switch (document.Type)
             {
                 case InventoryDocumentType.IMPORT:
+                case InventoryDocumentType.ADJUSTMENT_IN:
+                case InventoryDocumentType.INTERNAL_IMPORT:
                     await ProcessImportAsync(document, result);
                     break;
 
@@ -151,7 +153,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     {
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.IMPORT,
+                        Type = document.Type,
 
                         Quantity = detail.BaseQuantity,
 

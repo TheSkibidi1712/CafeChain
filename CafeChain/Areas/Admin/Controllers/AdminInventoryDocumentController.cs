@@ -87,6 +87,56 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(data);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ActiveIngredients(
+            int storeId,
+            InventoryDocumentPurpose purpose = InventoryDocumentPurpose.NONE)
+        {
+            var data = await _serviceCreate.GetActiveIngredientsAsync(storeId, purpose);
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> StoreExportIngredients(int storeId)
+        {
+            var data = await _serviceCreate.GetStoreExportIngredientsAsync(storeId);
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> PendingInternalTransfers(int storeId)
+        {
+            if (storeId <= 0)
+            {
+                return Json(Array.Empty<object>());
+            }
+
+            var data = await _serviceCreate.GetPendingInternalTransfersAsync(storeId);
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> InternalTransferIngredients(int transferId)
+        {
+            try
+            {
+                var data = await _serviceCreate.GetInternalTransferIngredientsAsync(transferId);
+
+                return Json(data);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+        }
+
         // =====================================================
         // AJAX
         // CALCULATE
@@ -249,6 +299,37 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
         // EXPORT FILE
         // =====================================================
+
+        [HttpGet]
+        public async Task<IActionResult> ExportExcel(AdminInventoryDocumentFilterDTO filter)
+        {
+            try
+            {
+                var file =
+                    await _service.ExportExcelAsync(filter);
+
+                const string contentType =
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+
+                var fileName =
+                    $"PhieuKho_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+
+                return File(
+                    file,
+                    contentType,
+                    fileName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to export inventory documents to Excel.");
+
+                return StatusCode(
+                    500,
+                    "Không thể xuất Excel phiếu kho.");
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> ExportFile([FromBody] ExportInventoryDocumentDTO dto)

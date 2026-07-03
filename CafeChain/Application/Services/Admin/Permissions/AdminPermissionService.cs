@@ -44,6 +44,40 @@ namespace CafeChain.Application.Services.Admin.Permissions
             });
         }
 
+        public async Task<ServiceResult<AdminPermissionStaffPagedResultDto>> GetStaffAsync(
+            int pageIndex,
+            int pageSize,
+            string? search)
+        {
+            pageIndex = pageIndex < 1 ? DefaultPageIndex : pageIndex;
+            pageSize = pageSize < 1 ? DefaultPageSize : Math.Min(pageSize, MaxPageSize);
+
+            var (items, totalCount) = await _repository.GetPagedStaffAsync(pageIndex, pageSize, search);
+
+            return ServiceResult<AdminPermissionStaffPagedResultDto>.Success(new AdminPermissionStaffPagedResultDto
+            {
+                Items = items,
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                TotalCount = totalCount,
+                TotalPages = (int)Math.Ceiling(totalCount / (double)pageSize)
+            });
+        }
+
+        public async Task<ServiceResult<List<ScopeReferenceDto>>> GetScopeReferencesAsync(
+            int scopeTypeId,
+            int? parentId = null)
+        {
+            if (scopeTypeId <= 0)
+            {
+                return ServiceResult<List<ScopeReferenceDto>>.Failure("Scope type is required.");
+            }
+
+            var references = await _repository.GetScopeReferencesAsync(scopeTypeId, parentId);
+
+            return ServiceResult<List<ScopeReferenceDto>>.Success(references);
+        }
+
         public async Task<ServiceResult<List<PermissionCatalogGroupDto>>> GetPermissionCatalogAsync()
         {
             var catalog = await _repository.GetPermissionCatalogAsync();
