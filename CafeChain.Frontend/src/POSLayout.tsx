@@ -10,9 +10,6 @@ import ProductModifierModal, {
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
-import ReceiptTemplate, {
-  type ReceiptTemplateData,
-} from './components/ReceiptTemplate'
 
 interface CartItem {
   id: number
@@ -75,8 +72,6 @@ const formatCountdown = (seconds: number): string => {
 const createPaymentExpiryTimestamp = () =>
   new Date().getTime() + PAYMENT_TIMEOUT_SECONDS * 1000
 
-const createReceiptTimestamp = () => new Date().toISOString()
-
 function getClientOrderId() {
   if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID()
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`
@@ -122,19 +117,9 @@ export default function POSLayout() {
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
   const [paymentRemainingSeconds, setPaymentRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
-  const [receiptData, setReceiptData] = useState<ReceiptTemplateData | null>(null)
   const checkoutInFlightRef = useRef(false)
-  const receiptPrintTimerRef = useRef<number | null>(null)
 
   const session = getPosSession()
-
-  useEffect(() => {
-    return () => {
-      if (receiptPrintTimerRef.current !== null) {
-        window.clearTimeout(receiptPrintTimerRef.current)
-      }
-    }
-  }, [])
 
   useEffect(() => {
     let active = true
@@ -174,51 +159,6 @@ export default function POSLayout() {
   const showMessage = useCallback((message: string) => {
     setCheckoutMessage(message)
     window.setTimeout(() => setCheckoutMessage(null), 3500)
-  }, [])
-
-  const buildReceiptData = useCallback((
-    paymentMethod: 'cash' | 'banking',
-    orderId?: number,
-    totalOverride?: number
-  ): ReceiptTemplateData => {
-    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0)
-    const createdAt = createReceiptTimestamp()
-
-    return {
-      storeName: 'CAFECHAIN',
-      storeAddress: `Cửa hàng #${session.storeId ?? 1}`,
-      hotline: '1900 0000',
-      orderCode: orderId ? `#${orderId}` : `POS-${createdAt.replace(/\D/g, '').slice(0, 12)}`,
-      createdAt,
-      cashierName: session.staffName,
-      posMachine: `POS Store ${session.storeId ?? 1}`,
-      items: cart.map((item) => ({
-        key: item.cartId,
-        name: item.name,
-        quantity: item.quantity,
-        unitPrice: item.price,
-        lineTotal: item.price * item.quantity,
-        modifiers: item.detailText ? [item.detailText] : [],
-      })),
-      subtotal,
-      discount: 0,
-      total: totalOverride ?? subtotal,
-      paymentMethod: paymentMethod === 'cash' ? 'Tiền mặt' : 'VietQR',
-      wifiName: 'CafeChain Guest',
-    }
-  }, [cart, session.staffName, session.storeId])
-
-  const printReceipt = useCallback((receipt: ReceiptTemplateData) => {
-    setReceiptData(receipt)
-
-    if (receiptPrintTimerRef.current !== null) {
-      window.clearTimeout(receiptPrintTimerRef.current)
-    }
-
-    receiptPrintTimerRef.current = window.setTimeout(() => {
-      receiptPrintTimerRef.current = null
-      window.print()
-    }, 120)
   }, [])
 
   const addToCartWithModifiers = (item: MenuItem, selection: ModifierSelection) => {
@@ -324,9 +264,8 @@ export default function POSLayout() {
     setIsCancellingPayment(false)
 
     if (response.ok && response.data?.code === 'ALREADY_PAID') {
-      printReceipt(buildReceiptData('banking', pendingPayment.orderId, pendingPayment.amount))
       resetCart()
-      showMessage('Giao dịch đã thanh toán thành công trước khi hủy.')
+      showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
       return
     }
 
@@ -338,7 +277,7 @@ export default function POSLayout() {
     }
 
     showMessage(response.data?.message || response.error || 'Không thể hủy giao dịch VietQR.')
-  }, [buildReceiptData, isCancellingPayment, pendingPayment, printReceipt, resetCart, showMessage])
+  }, [isCancellingPayment, pendingPayment, resetCart, showMessage])
 
   useEffect(() => {
     if (!pendingPayment) return
@@ -370,10 +309,9 @@ export default function POSLayout() {
 
     const completePayment = () => {
       if (isDisposed) return
-      printReceipt(buildReceiptData('banking', pendingPayment.orderId, pendingPayment.amount))
       setPendingPayment(null)
       resetCart()
-      showMessage('Thanh toán VietQR thành công, lệnh in đã gửi tới Print Bridge.')
+      showMessage('Thanh toán VietQR thành công. Lệnh in đã gửi tới Print Bridge.')
     }
 
     connection.on('PaymentCompleted', (payload: number | { orderId?: number }) => {
@@ -395,7 +333,7 @@ export default function POSLayout() {
         console.warn('[POS Payment SignalR] Stop failed:', error)
       })
     }
-  }, [buildReceiptData, pendingPayment, printReceipt, resetCart, showMessage])
+  }, [pendingPayment, resetCart, showMessage])
 
   const enqueueOrderFallback = async (paymentMethod: 'cash' | 'banking') => {
     if (!hasOpenShift || !shift?.shiftId) {
@@ -475,9 +413,6 @@ export default function POSLayout() {
 
           const warnings = response.data.inventoryWarnings
           const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
-          if (paymentMethod === 'banking') {
-            printReceipt(buildReceiptData('banking', commitData?.orderId, commitData?.total ?? totalAmount))
-          }
           resetCart()
           showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
         } else if (!response.ok && response.status === 0 && paymentMethod === 'cash') {
@@ -520,12 +455,6 @@ export default function POSLayout() {
 
   return (
     <div className="h-full w-full overflow-hidden flex bg-surface font-sans select-none">
-      {receiptData && (
-        <div className="receipt-print-host" aria-hidden="true">
-          <ReceiptTemplate receipt={receiptData} />
-        </div>
-      )}
-
       <aside className="w-2/12 bg-surface-white flex flex-col border-r border-border">
         <div className="px-3 py-3 border-b border-border">
           <div className="flex gap-1.5">
