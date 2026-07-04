@@ -18,5 +18,15 @@ namespace CafeChain.Application.Interfaces.POS
         /// <param name="isCashPayment">true = thanh toán tiền mặt → kick cash drawer</param>
         /// <returns>Raw ESC/POS byte array</returns>
         byte[] BuildReceipt(Order order, string storeName, string cashierName, decimal cashReceived, bool isCashPayment);
+
+        /// <summary>
+        /// Build cup label ESC/POS bytes cho khu vực pha chế.
+        /// Mỗi ly tương ứng một tem; nếu item quantity > 1 thì lặp tem theo số lượng.
+        /// </summary>
+        /// <param name="order">Order entity (include OrderDetails, OrderToppings)</param>
+        /// <param name="storeName">Tên quán hiển thị trên tem</param>
+        /// <param name="cashierName">Tên thu ngân tạo đơn</param>
+        /// <returns>Raw ESC/POS byte array cho toàn bộ tem trong đơn</returns>
+        byte[] BuildCupLabels(Order order, string storeName, string cashierName);
     }
 }

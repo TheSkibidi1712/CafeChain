@@ -222,9 +222,128 @@ namespace CafeChain.Application.Services.POS
             return buffer.ToArray();
         }
 
+        /// <summary>
+        /// Build tem pha chế cho từng ly trong đơn.
+        /// Nghiệp vụ: tem dán lên ly, phục vụ nhân viên pha chế; không thay thế hóa đơn bán hàng.
+        /// </summary>
+        public byte[] BuildCupLabels(Order order, string storeName, string cashierName)
+        {
+            var buffer = new List<byte>();
+            if (order.OrderDetails == null)
+                return Array.Empty<byte>();
+
+            var totalCups = 0;
+            foreach (var detail in order.OrderDetails)
+            {
+                if (detail.Quantity > 0)
+                    totalCups += detail.Quantity;
+            }
+
+            if (totalCups == 0)
+                return Array.Empty<byte>();
+
+            var cupNo = 1;
+            foreach (var detail in order.OrderDetails)
+            {
+                if (detail.Quantity <= 0)
+                    continue;
+
+                for (var i = 0; i < detail.Quantity; i++)
+                {
+                    AddCupLabel(buffer, order, detail, storeName, cashierName, cupNo, totalCups);
+                    cupNo++;
+                }
+            }
+
+            buffer.AddRange(CMD_INIT);
+            return buffer.ToArray();
+        }
+
         // ═══════════════════════════════════════════════════════════
         // PRIVATE HELPERS
         // ═══════════════════════════════════════════════════════════
+
+        private static void AddCupLabel(
+            List<byte> buffer,
+            Order order,
+            OrderDetail detail,
+            string storeName,
+            string cashierName,
+            int cupNo,
+            int totalCups)
+        {
+            buffer.AddRange(CMD_INIT);
+
+            buffer.AddRange(CMD_ALIGN_CENTER);
+            buffer.AddRange(CMD_BOLD_ON);
+            AddTextLine(buffer, StripVietnamese(storeName));
+            buffer.AddRange(CMD_SIZE_WIDE);
+            AddTextLine(buffer, "TEM PHA CHE");
+            buffer.AddRange(CMD_SIZE_NORMAL);
+            buffer.AddRange(CMD_BOLD_OFF);
+            AddTextLine(buffer, DashedLine());
+
+            buffer.AddRange(CMD_ALIGN_LEFT);
+            AddTextLine(buffer, $"Don: #{order.OrderId}".PadRight(22) + $"Ly: {cupNo}/{totalCups}");
+            AddTextLine(buffer, $"Gio: {order.CreatedAt:HH:mm dd/MM/yyyy}");
+            AddTextLine(buffer, $"Loai: {GetOrderTypeName(order.OrderTypeId)}");
+            AddTextLine(buffer, DashedLine());
+
+            buffer.AddRange(CMD_ALIGN_CENTER);
+            buffer.AddRange(CMD_SIZE_WIDE);
+            buffer.AddRange(CMD_BOLD_ON);
+            foreach (var line in WrapText(StripVietnamese(detail.DrinkName ?? "Mon"), 21))
+            {
+                AddTextLine(buffer, line);
+            }
+            buffer.AddRange(CMD_SIZE_NORMAL);
+            buffer.AddRange(CMD_BOLD_OFF);
+            AddTextLine(buffer, "");
+
+            buffer.AddRange(CMD_ALIGN_LEFT);
+            AddTextLine(buffer, $"Size    : {StripVietnamese(detail.SizeName ?? "Mac dinh")}");
+
+            var note = StripVietnamese(detail.Note ?? "").Trim();
+            if (!string.IsNullOrWhiteSpace(note))
+            {
+                foreach (var line in WrapText("Tuy chon: " + note, LINE_WIDTH))
+                {
+                    AddTextLine(buffer, line);
+                }
+            }
+
+            var toppingNames = new List<string>();
+            if (detail.OrderToppings != null)
+            {
+                foreach (var topping in detail.OrderToppings)
+                {
+                    if (!string.IsNullOrWhiteSpace(topping.ToppingName))
+                        toppingNames.Add(StripVietnamese(topping.ToppingName));
+                }
+            }
+
+            if (toppingNames.Count > 0)
+            {
+                foreach (var line in WrapText("Topping : " + string.Join(", ", toppingNames), LINE_WIDTH))
+                {
+                    AddTextLine(buffer, line);
+                }
+            }
+
+            AddTextLine(buffer, $"Thu ngan: {StripVietnamese(cashierName)}");
+            AddTextLine(buffer, DashedLine());
+
+            buffer.AddRange(CMD_ALIGN_CENTER);
+            AddTextLine(buffer, "DAN TEM LEN LY");
+            AddTextLine(buffer, "");
+            buffer.AddRange(CMD_CUT);
+        }
+
+        private static void AddTextLine(List<byte> buffer, string text)
+        {
+            buffer.AddRange(TextToBytes(text));
+            buffer.AddRange(CMD_LF);
+        }
 
         /// <summary>Convert text to bytes using Codepage 437</summary>
         private static byte[] TextToBytes(string text)
@@ -269,6 +388,29 @@ namespace CafeChain.Application.Services.POS
         private static string FormatMoney(decimal amount)
         {
             return $"{amount:#,##0}d";
+        }
+
+        private static IEnumerable<string> WrapText(string text, int width)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                yield return "";
+                yield break;
+            }
+
+            var remaining = text.Trim();
+            while (remaining.Length > width)
+            {
+                var splitAt = remaining.LastIndexOf(' ', width);
+                if (splitAt <= 0)
+                    splitAt = width;
+
+                yield return remaining.Substring(0, splitAt).TrimEnd();
+                remaining = remaining.Substring(splitAt).TrimStart();
+            }
+
+            if (remaining.Length > 0)
+                yield return remaining;
         }
 
         /// <summary>Map OrderTypeId to display name (ASCII, no diacritics)</summary>

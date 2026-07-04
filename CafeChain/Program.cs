@@ -552,6 +552,7 @@ builder.Services.AddScoped<IPOSOrderRepository, POSOrderRepository>();
 builder.Services.AddScoped<ISupervisorRepository, SupervisorRepository>();
 builder.Services.AddScoped<IPrintDispatcher, PrintDispatcher>();
 builder.Services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
+builder.Services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
 
 #endregion
 

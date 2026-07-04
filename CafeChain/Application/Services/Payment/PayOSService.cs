@@ -31,6 +31,7 @@ namespace CafeChain.Application.Services.PayOSIntegration
     public interface IPayOSService
     {
         Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId);
+        Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId, decimal amount);
         bool VerifyWebhookSignature(string rawBody, string signature);
     }
 
@@ -62,6 +63,16 @@ namespace CafeChain.Application.Services.PayOSIntegration
 
         public async Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId)
         {
+            return await CreatePaymentLinkAsync(orderId, null);
+        }
+
+        public async Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId, decimal amount)
+        {
+            return await CreatePaymentLinkAsync(orderId, (decimal?)amount);
+        }
+
+        private async Task<PayOSCreateLinkResult> CreatePaymentLinkAsync(int orderId, decimal? amountOverride)
+        {
             var order = await _context.Orders
                 .Include(o => o.OrderDetails)
                 .FirstOrDefaultAsync(o => o.OrderId == orderId);
@@ -76,14 +87,28 @@ namespace CafeChain.Application.Services.PayOSIntegration
             order.PaymentReference = orderCodeStr;
             await _context.SaveChangesAsync();
 
-            var items = order.OrderDetails.Select(od => new
-            {
-                name = od.DrinkName ?? "Sản phẩm",
-                quantity = od.Quantity,
-                price = (int)od.Price
-            }).ToList();
+            int amount = (int)Math.Round(amountOverride ?? order.Total, MidpointRounding.AwayFromZero);
+            if (amount <= 0)
+                throw new Exception("Số tiền thanh toán PayOS không hợp lệ.");
 
-            int amount = (int)order.Total;
+            var isPartialPayment = amountOverride.HasValue && amountOverride.Value != order.Total;
+            var items = isPartialPayment
+                ? new[]
+                {
+                    new
+                    {
+                        name = "Thanh toán phần còn lại",
+                        quantity = 1,
+                        price = amount
+                    }
+                }.ToList()
+                : order.OrderDetails.Select(od => new
+                {
+                    name = od.DrinkName ?? "Sản phẩm",
+                    quantity = od.Quantity,
+                    price = (int)od.Price
+                }).ToList();
+
             string description = $"CafeChain #{order.OrderId}";
 
             // 1. Tạo chuỗi ký (signature data) dựa trên các key theo alphabet
