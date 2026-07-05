@@ -3,7 +3,6 @@
 
 @{
     var effectiveType = Model.Type == InventoryDocumentType.ADJUSTMENT_IN
-        || Model.Type == InventoryDocumentType.INTERNAL_IMPORT
             ? InventoryDocumentType.IMPORT
             : Model.Type;
     var typeClass = effectiveType.ToString().ToLowerInvariant().Replace("_", "-");
@@ -14,14 +13,13 @@
         InventoryDocumentType.STOCK_TAKE => "Tạo Phiếu Kiểm Kê",
         InventoryDocumentType.WASTE => "Tạo Phiếu Hủy Hàng",
         InventoryDocumentType.ADJUSTMENT_IN => "Tạo Phiếu Nhập Kho",
-        InventoryDocumentType.INTERNAL_IMPORT => "Tạo Phiếu Nhập Kho",
         _ => "Tạo Phiếu Kho"
     };
 
     var subtitle = effectiveType switch
     {
         InventoryDocumentType.IMPORT => "Chọn mục đích nhập để hệ thống đổi nghiệp vụ phù hợp",
-        InventoryDocumentType.EXPORT => "Xuất hàng bán hoặc xuất nội bộ",
+        InventoryDocumentType.EXPORT => "Xuất bán hàng hoặc điều chỉnh giảm",
         InventoryDocumentType.STOCK_TAKE => "Ghi nhận số lượng kiểm kê thực tế",
         InventoryDocumentType.WASTE => "Ghi nhận hủy hàng hết hạn, hỏng hoặc thất thoát",
         _ => "Khởi tạo chứng từ kho"

@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Transfers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,40 +8,42 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
     {
         public void Configure(EntityTypeBuilder<InventoryTransferDetail> entity)
         {
-            entity.ToTable("InventoryTransferDetails", t =>
+            entity.ToTable("InventoryTransferDetails", table =>
             {
-                t.HasCheckConstraint(
-                    "CK_InventoryTransferDetail_ExportQuantity",
-                    "[ExportQuantity] > 0"
-                );
+                table.HasCheckConstraint(
+                    "CK_InventoryTransferDetail_Quantity",
+                    "[Quantity] > 0");
 
-                t.HasCheckConstraint(
-                    "CK_InventoryTransferDetail_ReceivedQuantity",
-                    "[ReceivedQuantity] >= 0"
-                );
+                table.HasCheckConstraint(
+                    "CK_InventoryTransferDetail_BaseQuantity",
+                    "[BaseQuantity] > 0");
 
-                t.HasCheckConstraint(
-                    "CK_InventoryTransferDetail_Received_NotGreater_Export",
-                    "[ReceivedQuantity] <= [ExportQuantity]"
-                );
-
-                t.HasCheckConstraint(
+                table.HasCheckConstraint(
                     "CK_InventoryTransferDetail_UnitPrice",
-                    "[UnitPrice] IS NULL OR [UnitPrice] >= 0"
-                );
+                    "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
             });
 
             entity.HasKey(x => x.InventoryTransferDetailId);
 
-            // ================= PROPERTY =================
-
-            entity.Property(x => x.ExportQuantity)
+            entity.Property(x => x.Quantity)
                 .HasColumnType("decimal(18,3)")
                 .IsRequired();
 
-            entity.Property(x => x.ReceivedQuantity)
+            entity.Property(x => x.BaseQuantity)
                 .HasColumnType("decimal(18,3)")
-                .HasDefaultValue(0);
+                .IsRequired();
+
+            entity.Property(x => x.SourceBeforeQty)
+                .HasColumnType("decimal(18,3)");
+
+            entity.Property(x => x.SourceAfterQty)
+                .HasColumnType("decimal(18,3)");
+
+            entity.Property(x => x.DestinationBeforeQty)
+                .HasColumnType("decimal(18,3)");
+
+            entity.Property(x => x.DestinationAfterQty)
+                .HasColumnType("decimal(18,3)");
 
             entity.Property(x => x.UnitPrice)
                 .HasColumnType("decimal(18,2)");
@@ -49,33 +51,27 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
-            // ================= RELATION =================
-
             entity.HasOne(x => x.InventoryTransfer)
                 .WithMany(x => x.Details)
                 .HasForeignKey(x => x.InventoryTransferId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(x => x.Ingredient)
-                .WithMany(i => i.InventoryTransferDetails)
+                .WithMany(x => x.InventoryTransferDetails)
                 .HasForeignKey(x => x.IngredientId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ================= INDEX =================
+            entity.HasOne(x => x.Unit)
+                .WithMany()
+                .HasForeignKey(x => x.UnitId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasIndex(x => new
-            {
-                x.InventoryTransferId,
-                x.IngredientId
-            }).IsUnique();
+            entity.HasIndex(x => new { x.InventoryTransferId, x.IngredientId })
+                .IsUnique();
 
             entity.HasIndex(x => x.IngredientId);
-
-            entity.HasIndex(x => new
-            {
-                x.IngredientId,
-                x.InventoryTransferId
-            });
+            entity.HasIndex(x => x.UnitId);
+            entity.HasIndex(x => new { x.IngredientId, x.InventoryTransferId });
         }
     }
 }

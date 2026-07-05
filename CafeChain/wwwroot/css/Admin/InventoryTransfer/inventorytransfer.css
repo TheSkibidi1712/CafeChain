@@ -1,0 +1,120 @@
+.transfer-page {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.transfer-header {
+    align-items: flex-start;
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.transfer-header h3 {
+    margin: 0;
+}
+
+.transfer-header p {
+    color: #6c757d;
+    margin: 4px 0 0;
+}
+
+.transfer-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.transfer-panel {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.transfer-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.transfer-toolbar {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.transfer-toolbar h5 {
+    margin: 0;
+}
+
+.transfer-toolbar span {
+    color: #6c757d;
+    display: block;
+    font-size: .875rem;
+    margin-top: 4px;
+}
+
+.transfer-table {
+    margin-bottom: 0;
+}
+
+.transfer-table th,
+.transfer-table td {
+    vertical-align: middle;
+}
+
+.transfer-table select,
+.transfer-table input {
+    min-width: 110px;
+}
+
+.transfer-empty-row td {
+    color: #6c757d;
+    padding: 24px;
+    text-align: center;
+}
+
+.transfer-row-warning {
+    color: #dc3545;
+    display: block;
+    font-size: .8125rem;
+    margin-top: 4px;
+}
+
+.transfer-warning {
+    background: #fff3cd;
+    border: 1px solid #ffecb5;
+    border-radius: 8px;
+    color: #664d03;
+    margin-top: 12px;
+    padding: 12px;
+}
+
+.transfer-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+@media (max-width: 992px) {
+    .transfer-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 576px) {
+    .transfer-header,
+    .transfer-toolbar,
+    .transfer-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .transfer-grid {
+        grid-template-columns: 1fr;
+    }
+}

@@ -53,7 +53,7 @@ namespace CafeChain.Models.Stores
         public virtual ICollection<Shift> Shifts { get; set; } = new List<Shift>();
         public virtual ICollection<CashSession> CashSessions { get; set; } = new List<CashSession>();
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
-        public virtual ICollection<InventoryTransfer> ExportTransfers { get; set; } = new List<InventoryTransfer>();
-        public virtual ICollection<InventoryTransfer> ImportTransfers { get; set; } = new List<InventoryTransfer>();
+        public virtual ICollection<InventoryTransfer> FromTransfers { get; set; } = new List<InventoryTransfer>();
+        public virtual ICollection<InventoryTransfer> ToTransfers { get; set; } = new List<InventoryTransfer>();
     }
 }

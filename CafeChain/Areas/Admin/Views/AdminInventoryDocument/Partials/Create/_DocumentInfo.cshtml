@@ -4,22 +4,19 @@
 @{
     var documentDate = Model.DocumentDate == default ? DateTime.Today : Model.DocumentDate;
     var isImport = Model.Type == InventoryDocumentType.IMPORT
-        || Model.Type == InventoryDocumentType.ADJUSTMENT_IN
-        || Model.Type == InventoryDocumentType.INTERNAL_IMPORT;
+        || Model.Type == InventoryDocumentType.ADJUSTMENT_IN;
     var isExport = Model.Type == InventoryDocumentType.EXPORT;
 
     var purposeOptions = Model.Type switch
     {
-        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN or InventoryDocumentType.INTERNAL_IMPORT => new[]
+        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN => new[]
         {
             new { Value = (int)InventoryDocumentPurpose.IMPORT_PURCHASE, Label = "Nhập từ nhà cung cấp", Description = "Tăng tồn kho từ đơn mua hàng" },
-            new { Value = (int)InventoryDocumentPurpose.IMPORT_INTERNAL, Label = "Nhập nội bộ", Description = "Nhận hàng từ phiếu xuất nội bộ đã xác nhận" },
             new { Value = (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT, Label = "Điều chỉnh tăng", Description = "Bổ sung tồn do kiểm tra, kiểm kê lệch hoặc đối soát dữ liệu" }
         },
         InventoryDocumentType.EXPORT => new[]
         {
             new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" },
-            new { Value = (int)InventoryDocumentPurpose.INTERNAL_OUT, Label = "Xuất nội bộ", Description = "Xuất cho cửa hàng khác trong chuỗi" },
             new { Value = (int)InventoryDocumentPurpose.ADJUSTMENT_OUT, Label = "Điều chỉnh giảm", Description = "Giảm tồn do đối soát" }
         },
         InventoryDocumentType.STOCK_TAKE => new[]
@@ -41,7 +38,6 @@
     var selectedPurpose = Model.Type switch
     {
         InventoryDocumentType.ADJUSTMENT_IN => (int)InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
-        InventoryDocumentType.INTERNAL_IMPORT => (int)InventoryDocumentPurpose.IMPORT_INTERNAL,
         _ => Model.Purpose == InventoryDocumentPurpose.NONE
             ? purposeOptions[0].Value
             : (int)Model.Purpose
@@ -126,40 +122,6 @@
                 </small>
             </div>
 
-            <div class="create-field create-field-wide d-none"
-                 id="sourceTransferField">
-                <label for="sourceTransferSelect">Phiếu xuất nội bộ</label>
-                <select id="sourceTransferSelect"
-                        name="SourceTransferId"
-                        class="form-select create-control">
-                    <option value="">Chọn cửa hàng nhận trước</option>
-                </select>
-                <small>
-                    Nhập nội bộ phải nhận theo phiếu xuất nội bộ đang chờ nhận của cửa hàng đã chọn.
-                </small>
-            </div>
-        }
-
-        @if (isExport)
-        {
-            <div class="create-field create-field-wide d-none"
-                 id="targetStoreField">
-                <label for="targetStoreSelect">Cửa hàng nhận</label>
-                <select id="targetStoreSelect"
-                        name="TargetStoreId"
-                        class="form-select create-control">
-                    <option value="">Chọn cửa hàng nhận khi xuất nội bộ</option>
-                    @foreach (var item in Model.Stores)
-                    {
-                        <option value="@item.StoreId">
-                            @item.StoreName
-                        </option>
-                    }
-                </select>
-                <small>
-                    Chỉ bắt buộc khi mục đích nghiệp vụ là xuất nội bộ.
-                </small>
-            </div>
         }
 
     </div>

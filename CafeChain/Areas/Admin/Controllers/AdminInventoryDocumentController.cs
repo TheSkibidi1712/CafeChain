@@ -108,33 +108,29 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> PendingInternalTransfers(int storeId)
         {
-            if (storeId <= 0)
-            {
-                return Json(Array.Empty<object>());
-            }
+            await Task.CompletedTask;
 
-            var data = await _serviceCreate.GetPendingInternalTransfersAsync(storeId);
-
-            return Json(data);
+            return StatusCode(
+                StatusCodes.Status410Gone,
+                new
+                {
+                    success = false,
+                    message = "Chuyển kho liên chi nhánh đã được tách sang Phiếu Chuyển Kho."
+                });
         }
 
         [HttpGet]
         public async Task<IActionResult> InternalTransferIngredients(int transferId)
         {
-            try
-            {
-                var data = await _serviceCreate.GetInternalTransferIngredientsAsync(transferId);
+            await Task.CompletedTask;
 
-                return Json(data);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return BadRequest(new
+            return StatusCode(
+                StatusCodes.Status410Gone,
+                new
                 {
                     success = false,
-                    message = ex.Message
+                    message = "Nhập nội bộ không còn xử lý bằng InventoryDocument."
                 });
-            }
         }
 
         // =====================================================
@@ -213,12 +209,12 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
 
         [HttpPost]
-        public async Task<IActionResult> ConfirmDraft(int documentId)
+        public async Task<IActionResult> ConfirmDraft(int documentId, string? requestKey)
         {
             try
             {
                 var result =
-                    await _serviceCreate.ConfirmDraftAsync(documentId);
+                    await _serviceCreate.ConfirmDraftAsync(documentId, requestKey);
 
                 if (result == null)
                 {
@@ -260,12 +256,12 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
 
         [HttpPost]
-        public async Task<IActionResult> CancelInventoryDocument(int documentId)
+        public async Task<IActionResult> CancelInventoryDocument(int documentId, string? requestKey)
         {
             try
             {
                 var success =
-                    await _serviceCreate.CancelInventoryDocumentAsync(documentId);
+                    await _serviceCreate.CancelInventoryDocumentAsync(documentId, requestKey);
 
                 if (!success)
                 {

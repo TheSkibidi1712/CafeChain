@@ -10,10 +10,10 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
         {
             entity.ToTable("InventoryTransactions", table =>
             {
-                // Quantity không được = 0
+                // Quantity luôn là số dương tuyệt đối; Type quyết định chiều tăng/giảm kho.
                 table.HasCheckConstraint(
-                    "CK_InventoryTransaction_Quantity_NotZero",
-                    "[Quantity] <> 0"
+                    "CK_InventoryTransaction_Quantity_Positive",
+                    "[Quantity] > 0"
                 );
 
                 // Giá vốn không âm
@@ -27,10 +27,6 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                     "CK_InventoryTransaction_TotalCost",
                     "[TotalCost] IS NULL OR [TotalCost] >= 0"
                 );
-                table.HasCheckConstraint(
-                    "CK_InventoryTransaction_QtyBalance",
-                    "[BeforeQty] + [Quantity] = [AfterQty]"
-                );
             });
 
             entity.HasKey(x => x.InventoryTransactionId);
@@ -39,6 +35,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
 
             entity.Property(x => x.Type)
                 .HasConversion<int>()
+                .IsRequired();
+
+            entity.Property(x => x.StockStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(CafeChain.Models.Enums.Inventory.InventoryStockStatus.NORMAL)
                 .IsRequired();
 
             entity.Property(x => x.Quantity)
@@ -75,6 +76,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.InventoryTransfer)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryTransferId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasOne(x => x.ReferenceOrder)
                 .WithMany()
                 .HasForeignKey(x => x.ReferenceOrderId)
@@ -86,7 +92,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
 
             entity.HasIndex(x => x.Type);
 
+            entity.HasIndex(x => x.StockStatus);
+
             entity.HasIndex(x => x.InventoryDocumentId);
+
+            entity.HasIndex(x => x.InventoryTransferId);
 
             entity.HasIndex(x => x.ReferenceOrderId);
 
@@ -107,8 +117,10 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
             // ================= BUSINESS NOTE =================
             /*
                 Quantity:
-                    + nhập kho  -> dương
-                    + xuất kho  -> âm
+                    Luôn là số dương tuyệt đối.
+                    Type quyết định chiều giao dịch:
+                    IMPORT/IN_TRANSFER/... cộng kho.
+                    EXPORT/OUT_TRANSFER/... trừ kho.
 
                 BeforeQty:
                     tồn trước giao dịch

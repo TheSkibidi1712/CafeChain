@@ -42,7 +42,7 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.RecentHistory = _context.InventoryTransactions
                 .Include(it => it.StoreInventory)
                     .ThenInclude(si => si.Recipe)
-                .Where(it => it.Type == InventoryDocumentType.PRODUCTION_IN)
+                .Where(it => it.Type == InventoryTransactionTypeEnum.PRODUCTION_IN)
                 .OrderByDescending(it => it.CreatedAt)
                 .Take(5)
                 .Select(it => new ProductionHistoryDTO
@@ -166,8 +166,9 @@ namespace CafeChain.Areas.Admin.Controllers
                         _context.InventoryTransactions.Add(new InventoryTransaction
                         {
                             StoreInventoryId = inv.StoreInventoryId,
-                            Type = InventoryDocumentType.PRODUCTION_OUT,
-                            Quantity = -qtyToDeduct,
+                            Type = InventoryTransactionTypeEnum.PRODUCTION_OUT,
+                            StockStatus = InventoryStockStatus.NORMAL,
+                            Quantity = qtyToDeduct,
                             BeforeQty = beforeQty,
                             AfterQty = inv.AvailableQty,
                             CreatedAt = DateTime.UtcNow
@@ -193,8 +194,9 @@ namespace CafeChain.Areas.Admin.Controllers
                         _context.InventoryTransactions.Add(new InventoryTransaction
                         {
                             StoreInventoryId = inv.StoreInventoryId,
-                            Type = InventoryDocumentType.PRODUCTION_OUT,
-                            Quantity = -qtyToDeduct,
+                            Type = InventoryTransactionTypeEnum.PRODUCTION_OUT,
+                            StockStatus = InventoryStockStatus.NORMAL,
+                            Quantity = qtyToDeduct,
                             BeforeQty = beforeQty,
                             AfterQty = inv.AvailableQty,
                             CreatedAt = DateTime.UtcNow
@@ -241,7 +243,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 _context.InventoryTransactions.Add(new InventoryTransaction
                 {
                     StoreInventoryId = outputInv.StoreInventoryId,
-                    Type = InventoryDocumentType.PRODUCTION_IN,
+                    Type = InventoryTransactionTypeEnum.PRODUCTION_IN,
                     Quantity = outputQty,
                     BeforeQty = beforeOutputQty,
                     AfterQty = outputInv.AvailableQty,

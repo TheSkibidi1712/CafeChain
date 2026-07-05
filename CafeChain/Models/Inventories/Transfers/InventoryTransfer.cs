@@ -1,38 +1,40 @@
-﻿using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
-using System.ComponentModel.DataAnnotations.Schema;
+
 namespace CafeChain.Models.Inventories.Transfers
 {
     public class InventoryTransfer
     {
         public int InventoryTransferId { get; set; }
 
-        // ================= DOCUMENT LINK =================
-
-        public int ExportDocumentId { get; set; }     // phiếu xuất
-        public int? ImportDocumentId { get; set; }    // phiếu nhập (có thể null nếu chưa nhận)
-
-        // ================= STORE =================
+        public string Code { get; set; } = null!;
+        public string? RequestKey { get; set; }
 
         public int FromStoreId { get; set; }
         public int ToStoreId { get; set; }
 
-        // ================= TRACKING =================
+        public InventoryTransferType Type { get; set; }
+        public InventoryTransferPurpose Purpose { get; set; }
+        public InventoryTransferStatus Status { get; set; }
 
-        public decimal TotalExportQty { get; set; }
-        public decimal TotalReceivedQty { get; set; }
+        public DateTime DocumentDate { get; set; }
 
-        public InventoryTransferStatus Status { get; set; } // PENDING / PARTIAL / COMPLETED
+        public int CreatedByStaffId { get; set; }
+        public int? ConfirmedByStaffId { get; set; }
+        public int? CancelledByStaffId { get; set; }
 
+        public DateTime? ConfirmedAt { get; set; }
+        public DateTime? CancelledAt { get; set; }
         public DateTime CreatedAt { get; set; }
 
-        // ================= NAVIGATION =================
+        public string? Note { get; set; }
 
-        public virtual InventoryDocument ExportDocument { get; set; }
-        public virtual InventoryDocument ImportDocument { get; set; }
         public virtual Store FromStore { get; set; }
         public virtual Store ToStore { get; set; }
+        public virtual Staff CreatedByStaff { get; set; }
+        public virtual Staff? ConfirmedByStaff { get; set; }
+        public virtual Staff? CancelledByStaff { get; set; }
         public virtual ICollection<InventoryTransferDetail> Details { get; set; } = new List<InventoryTransferDetail>();
     }
 }

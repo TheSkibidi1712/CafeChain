@@ -5,5 +5,7 @@
         public int InventoryDocumentId { get; set; }
 
         public int ConfirmedByStaffId { get; set; }
+
+        public string? RequestKey { get; set; }
     }
 }

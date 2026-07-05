@@ -4,7 +4,7 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
     {
         public int InventoryTransferId { get; set; }
 
-        public string ExportDocumentCode { get; set; } = string.Empty;
+        public string TransferCode { get; set; } = string.Empty;
 
         public int FromStoreId { get; set; }
 
@@ -16,10 +16,6 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 
         public DateTime CreatedAt { get; set; }
 
-        public decimal TotalExportQuantity { get; set; }
-
-        public decimal TotalReceivedQuantity { get; set; }
-
-        public decimal RemainingQuantity => TotalExportQuantity - TotalReceivedQuantity;
+        public decimal TotalBaseQuantity { get; set; }
     }
 }

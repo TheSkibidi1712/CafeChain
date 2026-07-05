@@ -176,11 +176,11 @@ const InventoryDocument = (() => {
         `;
     }
 
-    async function postDocumentAction(url, documentId) {
+    async function postDocumentAction(url, documentId, requestKey) {
 
         const response =
             await fetch(
-                `${url}?documentId=${encodeURIComponent(documentId)}`,
+                `${url}?documentId=${encodeURIComponent(documentId)}&requestKey=${encodeURIComponent(requestKey)}`,
                 {
                     method: "POST",
                     headers: {
@@ -218,13 +218,16 @@ const InventoryDocument = (() => {
     async function confirmDraft(documentId, button) {
 
         setActionBusy(button, true);
+        const requestKey =
+            getButtonRequestKey(button);
 
         try {
 
             const result =
                 await postDocumentAction(
                 "/Admin/AdminInventoryDocument/ConfirmDraft",
-                documentId);
+                documentId,
+                requestKey);
 
             await showStockWarnings(
                 result.warnings || result.Warnings || []);
@@ -247,12 +250,15 @@ const InventoryDocument = (() => {
         }
 
         setActionBusy(button, true);
+        const requestKey =
+            getButtonRequestKey(button);
 
         try {
 
             await postDocumentAction(
                 "/Admin/AdminInventoryDocument/CancelInventoryDocument",
-                documentId);
+                documentId,
+                requestKey);
 
             window.location.reload();
         }
@@ -276,6 +282,25 @@ const InventoryDocument = (() => {
         button.classList.toggle(
             "is-loading",
             isBusy);
+    }
+
+    function getButtonRequestKey(button) {
+
+        if (!button.dataset.requestKey) {
+            button.dataset.requestKey =
+                createRequestKey();
+        }
+
+        return button.dataset.requestKey;
+    }
+
+    function createRequestKey() {
+
+        if (window.crypto?.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
     async function showStockWarnings(warnings) {

@@ -10,6 +10,7 @@ namespace CafeChain.Models.Enums.Inventory
         PRODUCTION_OUT = 6,
         SALES_DEDUCTION = 7,
         ADJUSTMENT_IN = 8,
+        [Obsolete("Chuyển kho nội bộ đã được tách sang InventoryTransfer. Không dùng để tạo chứng từ mới.")]
         INTERNAL_IMPORT = 9
     }
 }

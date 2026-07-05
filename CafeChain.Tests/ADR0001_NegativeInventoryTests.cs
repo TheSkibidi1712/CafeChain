@@ -209,7 +209,7 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
             // Assert — InventoryTransaction log ghi nhận SALES_DEDUCTION
             var txn = await verifyCtx.InventoryTransactions
                 .FirstOrDefaultAsync(t => t.StoreInventoryId == inventory.StoreInventoryId
-                                       && t.Type == InventoryDocumentType.SALES_DEDUCTION);
+                                       && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
             Assert.NotNull(txn);
             Assert.Equal(-20, txn.Quantity);    // xuất kho: 10 ly × 2 gram = -20
             Assert.Equal(50, txn.BeforeQty);    // Kho trước khi trừ
@@ -254,7 +254,7 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
             Assert.Equal(47, tapiocaInventory.AvailableQty);
 
             var transactions = await verifyCtx.InventoryTransactions
-                .Where(t => t.Type == InventoryDocumentType.SALES_DEDUCTION)
+                .Where(t => t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION)
                 .ToListAsync();
 
             Assert.Contains(transactions, t =>
@@ -301,9 +301,9 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
             // Assert — InventoryTransaction log chứng minh kho âm có thể kiểm soát
             var txn = await verifyCtx.InventoryTransactions
                 .FirstOrDefaultAsync(t => t.StoreInventoryId == inventory.StoreInventoryId
-                                       && t.Type == InventoryDocumentType.SALES_DEDUCTION);
+                                       && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
             Assert.NotNull(txn);
-            Assert.Equal(InventoryDocumentType.SALES_DEDUCTION, txn.Type);
+            Assert.Equal(InventoryTransactionTypeEnum.SALES_DEDUCTION, txn.Type);
             Assert.Equal(-20, txn.Quantity);    // Lượng trừ: 10 ly × 2 gram
             Assert.Equal(3, txn.BeforeQty);     // Kho ban đầu: chỉ còn 3
             Assert.Equal(-17, txn.AfterQty);    // ⚠️ SỐ ÂM — trạng thái chờ đối soát
@@ -367,9 +367,9 @@ namespace CafeChain.Tests.ADR0001_BlindSelling
             // Assert — InventoryTransaction log ghi nhận BeforeQty=0, AfterQty=-4
             var txn = await verifyCtx.InventoryTransactions
                 .FirstOrDefaultAsync(t => t.StoreInventoryId == inventory.StoreInventoryId
-                                       && t.Type == InventoryDocumentType.SALES_DEDUCTION);
+                                       && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
             Assert.NotNull(txn);
-            Assert.Equal(InventoryDocumentType.SALES_DEDUCTION, txn.Type);
+            Assert.Equal(InventoryTransactionTypeEnum.SALES_DEDUCTION, txn.Type);
             Assert.Equal(-4, txn.Quantity);     // Lượng trừ: 2 ly × 2 gram
             Assert.Equal(0, txn.BeforeQty);     // Kho vừa tạo mới = 0
             Assert.Equal(-4, txn.AfterQty);     // ⚠️ SỐ ÂM — store mới bán trước nhập kho sau

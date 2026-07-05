@@ -12,6 +12,7 @@ namespace CafeChain.Models.Stores
         public int? RecipeId { get; set; }
         public decimal AvailableQty { get; set; }
         public decimal ReservedQty { get; set; }
+        public decimal? MaxNegativeQty { get; set; }
         public DateTime LastUpdated { get; set; }
 
         [Timestamp]

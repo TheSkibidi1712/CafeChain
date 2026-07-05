@@ -34,8 +34,8 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<InventoryDocumentMutationResultDTO> CreateAndConfirmAsync(CreateInventoryDocumentDTO dto);
 
-        Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId);
+        Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey);
 
-        Task<bool> CancelInventoryDocumentAsync(int documentId);
+        Task<bool> CancelInventoryDocumentAsync(int documentId, string? requestKey);
     }
 }

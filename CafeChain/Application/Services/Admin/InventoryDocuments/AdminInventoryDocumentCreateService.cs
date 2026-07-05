@@ -1,5 +1,6 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Documents;
@@ -23,19 +24,22 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private readonly IAdminInventoryDocumentSnapshotService _snapshotService;
 
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IRequestDeduplicationService _deduplicationService;
 
         public AdminInventoryDocumentCreateService(
             IAdminInventoryDocumentRepository repository,
             IAdminInventoryDocumentValidationService validationService,
             IAdminInventoryDocumentConfirmService confirmService,
             IAdminInventoryDocumentSnapshotService snapshotService,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IRequestDeduplicationService deduplicationService)
         {
             _repository = repository;
             _validationService = validationService;
             _confirmService = confirmService;
             _snapshotService = snapshotService;
             _httpContextAccessor = httpContextAccessor;
+            _deduplicationService = deduplicationService;
         }
 
         // =====================================================
@@ -45,15 +49,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             var effectiveType =
                 type == InventoryDocumentType.ADJUSTMENT_IN
-                || type == InventoryDocumentType.INTERNAL_IMPORT
                     ? InventoryDocumentType.IMPORT
                     : type;
 
             var purpose =
                 type == InventoryDocumentType.ADJUSTMENT_IN
                     ? InventoryDocumentPurpose.IMPORT_ADJUSTMENT
-                    : type == InventoryDocumentType.INTERNAL_IMPORT
-                    ? InventoryDocumentPurpose.IMPORT_INTERNAL
                     : effectiveType == InventoryDocumentType.IMPORT
                     ? InventoryDocumentPurpose.IMPORT_PURCHASE
                     : InventoryDocumentPurpose.NONE;
@@ -195,67 +196,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task<List<InternalTransferOptionDTO>> GetPendingInternalTransfersAsync(int storeId)
         {
-            var transfers = await _repository.GetPendingTransfersToStoreAsync(storeId);
+            await Task.CompletedTask;
 
-            return transfers
-                .Select(x => new InternalTransferOptionDTO
-                {
-                    InventoryTransferId = x.InventoryTransferId,
-                    ExportDocumentCode = x.ExportDocument?.Code ?? $"#{x.ExportDocumentId}",
-                    FromStoreId = x.FromStoreId,
-                    FromStoreName = x.FromStore?.Name ?? string.Empty,
-                    ToStoreId = x.ToStoreId,
-                    ToStoreName = x.ToStore?.Name ?? string.Empty,
-                    CreatedAt = x.CreatedAt,
-                    TotalExportQuantity = x.TotalExportQty,
-                    TotalReceivedQuantity = x.TotalReceivedQty
-                })
-                .ToList();
+            return [];
         }
 
         public async Task<List<SupplierIngredientDTO>> GetInternalTransferIngredientsAsync(int transferId)
         {
-            var transfer = await _repository.GetTransferForInternalImportAsync(transferId)
-                ?? throw new InvalidOperationException("Phiếu chuyển nội bộ không tồn tại.");
+            await Task.CompletedTask;
 
-            if (transfer.ImportDocumentId.HasValue
-                || transfer.Status == InventoryTransferStatus.COMPLETED
-                || transfer.Status == InventoryTransferStatus.CANCELLED)
-            {
-                throw new InvalidOperationException("Phiếu chuyển nội bộ không còn chờ nhận.");
-            }
-
-            return transfer.Details
-                .OrderBy(x => x.Ingredient.Name)
-                .Select(x =>
-                {
-                    var remainingQuantity = x.ExportQuantity - x.ReceivedQuantity;
-
-                    return new SupplierIngredientDTO
-                    {
-                        IngredientId = x.IngredientId,
-                        IngredientName = x.Ingredient.Name,
-                        UnitId = x.Ingredient.BaseUnitId,
-                        UnitName = x.Ingredient.BaseUnit?.Name ?? string.Empty,
-                        UnitCode = x.Ingredient.BaseUnit?.UnitCode ?? string.Empty,
-                        CurrentPrice = x.UnitPrice ?? 0,
-                        MinimumOrderQuantity = remainingQuantity,
-                        BaseUnitId = x.Ingredient.BaseUnitId,
-                        BaseUnitName = x.Ingredient.BaseUnit?.Name ?? string.Empty,
-                        BaseUnitCode = x.Ingredient.BaseUnit?.UnitCode ?? string.Empty,
-                        ConversionFactorToBase = 1,
-                        CanConvertToBase = true,
-                        AvailableBaseQuantity = remainingQuantity,
-                        SuggestedBaseUnitCost = x.UnitPrice ?? 0,
-                        SuggestedUnitPrice = x.UnitPrice ?? 0,
-                        PriceSource = "Phiếu xuất nội bộ",
-                        IsQuantityLocked = true,
-                        IsPriceLocked = true,
-                        UnitOptions = BuildBaseUnitOptions(x.Ingredient)
-                    };
-                })
-                .Where(x => x.MinimumOrderQuantity > 0)
-                .ToList();
+            throw new InvalidOperationException("Chuyển kho liên chi nhánh không còn xử lý bằng phiếu nhập nội bộ. Vui lòng dùng nghiệp vụ InventoryTransfer.");
         }
 
         public async Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto)
@@ -275,17 +225,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             NormalizeImportDocumentType(dto);
 
-            if (IsInternalImport(dto))
-            {
-                throw new InvalidOperationException("Nhập nội bộ phải tạo trực tiếp từ phiếu xuất nội bộ và xác nhận ngay.");
-            }
-
-            if (dto.Type == InventoryDocumentType.EXPORT
-                && dto.Purpose == InventoryDocumentPurpose.INTERNAL_OUT)
-            {
-                throw new InvalidOperationException("Xuất nội bộ phải tạo và xác nhận ngay để sinh phiếu chuyển nội bộ.");
-            }
-
             await NormalizeCreateDetailsAsync(dto);
 
             await _validationService.ValidateCreateAsync(dto);
@@ -299,6 +238,24 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             try
             {
+                var dedup = await _deduplicationService.BeginAsync(
+                    dto.RequestKey,
+                    "InventoryDocument.CreateDraft",
+                    GetCurrentStaffId(),
+                    dto);
+
+                if (!dedup.CanProcess)
+                {
+                    await _repository.RollbackTransactionAsync();
+
+                    if (dedup.Status == "SUCCESS" && dedup.ReferenceId.HasValue)
+                    {
+                        return dedup.ReferenceId.Value;
+                    }
+
+                    throw new InvalidOperationException(dedup.ErrorMessage);
+                }
+
                 var summary = await BuildSummaryAsync(dto);
 
                 var document = await BuildDraftDocument(dto, summary);
@@ -321,6 +278,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 await _repository.SaveChangesAsync();
 
+                await _deduplicationService.MarkSuccessAsync(
+                    dedup.Entry!,
+                    document.InventoryDocumentId,
+                    new { documentId = document.InventoryDocumentId });
+
                 await _repository.CommitTransactionAsync();
 
                 return document.InventoryDocumentId;
@@ -341,13 +303,30 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             try
             {
+                var dedup = await _deduplicationService.BeginAsync(
+                    dto.RequestKey,
+                    GetCreateActionName(dto),
+                    GetCurrentStaffId(),
+                    dto);
+
+                if (!dedup.CanProcess)
+                {
+                    await _repository.RollbackTransactionAsync();
+
+                    if (dedup.Status == "SUCCESS" && dedup.ReferenceId.HasValue)
+                    {
+                        return new InventoryDocumentMutationResultDTO
+                        {
+                            DocumentId = dedup.ReferenceId.Value
+                        };
+                    }
+
+                    throw new InvalidOperationException(dedup.ErrorMessage);
+                }
+
                 await NormalizeCreateDetailsAsync(dto);
 
                 await _validationService.ValidateCreateAsync(dto);
-
-                await ValidateInternalExportAsync(dto);
-
-                await ValidateInternalImportAsync(dto);
 
                 var document = await CreateDocumentAsync(dto);
 
@@ -360,19 +339,22 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         document,
                         GetCurrentStaffId());
 
-                await ApplyInternalImportAsync(dto, document);
-
-                await ApplyInternalExportAsync(dto, document);
-
                 await _repository.SaveChangesAsync();
 
-                await _repository.CommitTransactionAsync();
-
-                return new InventoryDocumentMutationResultDTO
+                var response = new InventoryDocumentMutationResultDTO
                 {
                     DocumentId = document.InventoryDocumentId,
                     Warnings = processResult.Warnings
                 };
+
+                await _deduplicationService.MarkSuccessAsync(
+                    dedup.Entry!,
+                    document.InventoryDocumentId,
+                    response);
+
+                await _repository.CommitTransactionAsync();
+
+                return response;
             }
             catch
             {
@@ -381,7 +363,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        public async Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId)
+        public async Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey)
         {
             await _repository.BeginTransactionAsync();
 
@@ -397,30 +379,48 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return null;
                 }
 
+                var dedup = await _deduplicationService.BeginAsync(
+                    requestKey,
+                    GetConfirmActionName(document),
+                    GetCurrentStaffId(),
+                    new { documentId, requestKey },
+                    documentId);
+
+                if (!dedup.CanProcess)
+                {
+                    await _repository.RollbackTransactionAsync();
+
+                    if (dedup.Status == "SUCCESS" && dedup.ReferenceId.HasValue)
+                    {
+                        return new InventoryDocumentMutationResultDTO
+                        {
+                            DocumentId = dedup.ReferenceId.Value
+                        };
+                    }
+
+                    throw new InvalidOperationException(dedup.ErrorMessage);
+                }
+
                 if (document.Status == InventoryDocumentStatus.CANCELLED)
                 {
                     throw new InvalidOperationException("Phiếu đã hủy, không thể xác nhận.");
                 }
 
-                if (IsInternalImport(document))
-                {
-                    throw new InvalidOperationException("Phiếu nhập nội bộ phải được xác nhận trực tiếp từ phiếu xuất nội bộ.");
-                }
-
-                if (document.Type == InventoryDocumentType.EXPORT
-                    && document.Purpose == InventoryDocumentPurpose.INTERNAL_OUT)
-                {
-                    throw new InvalidOperationException("Phiếu xuất nội bộ phải tạo mới và xác nhận trực tiếp để sinh phiếu chuyển nội bộ.");
-                }
-
                 if (document.Status == InventoryDocumentStatus.CONFIRMED)
                 {
-                    await _repository.RollbackTransactionAsync();
-
-                    return new InventoryDocumentMutationResultDTO
+                    var alreadyConfirmedResponse = new InventoryDocumentMutationResultDTO
                     {
                         DocumentId = document.InventoryDocumentId
                     };
+
+                    await _deduplicationService.MarkSuccessAsync(
+                        dedup.Entry!,
+                        document.InventoryDocumentId,
+                        alreadyConfirmedResponse);
+
+                    await _repository.CommitTransactionAsync();
+
+                    return alreadyConfirmedResponse;
                 }
 
                 if (document.Status != InventoryDocumentStatus.DRAFT
@@ -436,13 +436,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 await _repository.SaveChangesAsync();
 
-                await _repository.CommitTransactionAsync();
-
-                return new InventoryDocumentMutationResultDTO
+                var response = new InventoryDocumentMutationResultDTO
                 {
                     DocumentId = document.InventoryDocumentId,
                     Warnings = processResult.Warnings
                 };
+
+                await _deduplicationService.MarkSuccessAsync(
+                    dedup.Entry!,
+                    document.InventoryDocumentId,
+                    response);
+
+                await _repository.CommitTransactionAsync();
+
+                return response;
             }
             catch
             {
@@ -452,7 +459,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        public async Task<bool> CancelInventoryDocumentAsync(int documentId)
+        public async Task<bool> CancelInventoryDocumentAsync(int documentId, string? requestKey)
         {
             await _repository.BeginTransactionAsync();
 
@@ -468,6 +475,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return false;
                 }
 
+                var dedup = await _deduplicationService.BeginAsync(
+                    requestKey,
+                    "InventoryDocument.Cancel",
+                    GetCurrentStaffId(),
+                    new { documentId, requestKey },
+                    documentId);
+
+                if (!dedup.CanProcess)
+                {
+                    await _repository.RollbackTransactionAsync();
+
+                    if (dedup.Status == "SUCCESS")
+                    {
+                        return true;
+                    }
+
+                    throw new InvalidOperationException(dedup.ErrorMessage);
+                }
+
                 if (document.Status == InventoryDocumentStatus.CONFIRMED)
                 {
                     throw new InvalidOperationException("Phiếu đã xác nhận, không thể hủy.");
@@ -475,7 +501,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 if (document.Status == InventoryDocumentStatus.CANCELLED)
                 {
-                    await _repository.RollbackTransactionAsync();
+                    await _deduplicationService.MarkSuccessAsync(
+                        dedup.Entry!,
+                        document.InventoryDocumentId,
+                        new { cancelled = true, documentId });
+
+                    await _repository.CommitTransactionAsync();
 
                     return true;
                 }
@@ -486,6 +517,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 _repository.UpdateDocument(document);
 
                 await _repository.SaveChangesAsync();
+
+                await _deduplicationService.MarkSuccessAsync(
+                    dedup.Entry!,
+                    document.InventoryDocumentId,
+                    new { cancelled = true, documentId });
 
                 await _repository.CommitTransactionAsync();
 
@@ -515,6 +551,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 Type = dto.Type,
                 Purpose = dto.Purpose,
                 Status = InventoryDocumentStatus.DRAFT,
+                RequestKey = dto.RequestKey,
                 PartnerType = dto.PartnerType,
                 PartnerId = dto.PartnerId,
                 PartnerName = dto.PartnerName,
@@ -557,6 +594,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     DocumentDate = dto.DocumentDate,
                     Type = dto.Type,
                     Purpose = dto.Purpose,
+                    RequestKey = dto.RequestKey,
                     PartnerType = dto.PartnerType,
                     SupplierId = dto.SupplierId,
                     PartnerId = dto.PartnerId,
@@ -597,208 +635,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             await _repository.SaveChangesAsync();
         }
 
-        private async Task ValidateInternalExportAsync(CreateInventoryDocumentDTO dto)
-        {
-            if (dto.Type != InventoryDocumentType.EXPORT
-                || dto.Purpose != InventoryDocumentPurpose.INTERNAL_OUT)
-            {
-                return;
-            }
-
-            if (!dto.TargetStoreId.HasValue)
-            {
-                throw new InvalidOperationException("Chưa chọn cửa hàng nhận cho phiếu xuất nội bộ.");
-            }
-
-            if (dto.TargetStoreId.Value == dto.StoreId)
-            {
-                throw new InvalidOperationException("Cửa hàng nhận phải khác cửa hàng xuất.");
-            }
-
-            var targetStore =
-                await _repository.GetStoreAsync(dto.TargetStoreId.Value)
-                ?? throw new InvalidOperationException("Cửa hàng nhận không tồn tại.");
-
-            if (!targetStore.Active)
-            {
-                throw new InvalidOperationException("Cửa hàng nhận đã ngừng hoạt động.");
-            }
-
-            dto.PartnerType = InventoryPartnerType.STORE;
-            dto.PartnerId = targetStore.StoreId;
-            dto.PartnerName = targetStore.Name;
-            dto.SupplierId = null;
-        }
-
-        private async Task ValidateInternalImportAsync(CreateInventoryDocumentDTO dto)
-        {
-            if (!IsInternalImport(dto))
-            {
-                return;
-            }
-
-            if (!dto.SourceTransferId.HasValue)
-            {
-                throw new InvalidOperationException("Chưa chọn phiếu xuất nội bộ để nhập.");
-            }
-
-            var transfer =
-                await _repository.GetTransferForInternalImportAsync(dto.SourceTransferId.Value)
-                ?? throw new InvalidOperationException("Phiếu xuất nội bộ không tồn tại.");
-
-            if (transfer.ImportDocumentId.HasValue
-                || transfer.Status == InventoryTransferStatus.COMPLETED
-                || transfer.Status == InventoryTransferStatus.CANCELLED)
-            {
-                throw new InvalidOperationException("Phiếu xuất nội bộ không còn ở trạng thái chờ nhận.");
-            }
-
-            if (transfer.ToStoreId != dto.StoreId)
-            {
-                throw new InvalidOperationException("Cửa hàng nhận không khớp với phiếu xuất nội bộ.");
-            }
-
-            var detailsByIngredient =
-                dto.Details
-                    .GroupBy(x => x.IngredientId)
-                    .ToDictionary(
-                        x => x.Key,
-                        x => x.Sum(item => item.BaseQuantity));
-
-            foreach (var transferDetail in transfer.Details)
-            {
-                var remainingQuantity =
-                    transferDetail.ExportQuantity - transferDetail.ReceivedQuantity;
-
-                if (remainingQuantity <= 0)
-                {
-                    continue;
-                }
-
-                if (!detailsByIngredient.TryGetValue(transferDetail.IngredientId, out var receivedQuantity))
-                {
-                    throw new InvalidOperationException(
-                        $"Thiếu nguyên liệu {transferDetail.Ingredient.Name} trong phiếu nhập nội bộ.");
-                }
-
-                if (!IsSameQuantity(receivedQuantity, remainingQuantity))
-                {
-                    throw new InvalidOperationException(
-                        $"Số lượng nhận của {transferDetail.Ingredient.Name} phải bằng số lượng còn chờ nhận ({FormatQuantity(remainingQuantity)}).");
-                }
-            }
-
-            var allowedIngredientIds =
-                transfer.Details
-                    .Where(x => x.ExportQuantity - x.ReceivedQuantity > 0)
-                    .Select(x => x.IngredientId)
-                    .ToHashSet();
-
-            if (detailsByIngredient.Keys.Any(x => !allowedIngredientIds.Contains(x)))
-            {
-                throw new InvalidOperationException("Phiếu nhập nội bộ có nguyên liệu không thuộc phiếu xuất nội bộ.");
-            }
-
-            dto.Purpose = InventoryDocumentPurpose.IMPORT_INTERNAL;
-            dto.PartnerType = InventoryPartnerType.STORE;
-            dto.PartnerId = transfer.FromStoreId;
-            dto.PartnerName = transfer.FromStore?.Name;
-            dto.SupplierId = null;
-        }
-
-        private async Task ApplyInternalImportAsync(CreateInventoryDocumentDTO dto, InventoryDocument document)
-        {
-            if (!IsInternalImport(dto))
-            {
-                return;
-            }
-
-            if (!dto.SourceTransferId.HasValue)
-            {
-                throw new InvalidOperationException("Thiếu phiếu xuất nội bộ nguồn.");
-            }
-
-            var transfer =
-                await _repository.GetTransferForInternalImportAsync(dto.SourceTransferId.Value)
-                ?? throw new InvalidOperationException("Phiếu xuất nội bộ không tồn tại.");
-
-            var receivedByIngredient =
-                dto.Details
-                    .GroupBy(x => x.IngredientId)
-                    .ToDictionary(
-                        x => x.Key,
-                        x => x.Sum(item => item.BaseQuantity));
-
-            foreach (var transferDetail in transfer.Details)
-            {
-                if (!receivedByIngredient.TryGetValue(transferDetail.IngredientId, out var receivedQuantity))
-                {
-                    continue;
-                }
-
-                transferDetail.ReceivedQuantity += receivedQuantity;
-            }
-
-            transfer.ImportDocumentId = document.InventoryDocumentId;
-            transfer.TotalReceivedQty = transfer.Details.Sum(x => x.ReceivedQuantity);
-            transfer.Status = InventoryTransferStatus.COMPLETED;
-
-            _repository.UpdateTransfer(transfer);
-        }
-
-        private async Task ApplyInternalExportAsync(CreateInventoryDocumentDTO dto, InventoryDocument document)
-        {
-            if (dto.Type != InventoryDocumentType.EXPORT
-                || dto.Purpose != InventoryDocumentPurpose.INTERNAL_OUT)
-            {
-                return;
-            }
-
-            if (!dto.TargetStoreId.HasValue)
-            {
-                throw new InvalidOperationException("Thiếu cửa hàng nhận cho phiếu xuất nội bộ.");
-            }
-
-            var transfer =
-                new InventoryTransfer
-                {
-                    ExportDocumentId = document.InventoryDocumentId,
-                    FromStoreId = document.StoreId,
-                    ToStoreId = dto.TargetStoreId.Value,
-                    TotalExportQty = document.Details.Sum(x => x.BaseQuantity),
-                    TotalReceivedQty = 0,
-                    Status = InventoryTransferStatus.PENDING,
-                    CreatedAt = DateTime.UtcNow,
-                    Details = document.Details
-                        .Select(x =>
-                            new InventoryTransferDetail
-                            {
-                                IngredientId = x.IngredientId,
-                                ExportQuantity = x.BaseQuantity,
-                                ReceivedQuantity = 0,
-                                UnitPrice = x.CostPrice,
-                                Note = x.Note
-                            })
-                        .ToList()
-                };
-
-            await _repository.AddTransferAsync(transfer);
-        }
-
         private static void NormalizeImportDocumentType(CreateInventoryDocumentDTO dto)
         {
             if (dto.Type == InventoryDocumentType.ADJUSTMENT_IN)
             {
                 dto.Type = InventoryDocumentType.IMPORT;
                 dto.Purpose = InventoryDocumentPurpose.IMPORT_ADJUSTMENT;
-                dto.SupplierId = null;
-                return;
-            }
-
-            if (dto.Type == InventoryDocumentType.INTERNAL_IMPORT)
-            {
-                dto.Type = InventoryDocumentType.IMPORT;
-                dto.Purpose = InventoryDocumentPurpose.IMPORT_INTERNAL;
                 dto.SupplierId = null;
                 return;
             }
@@ -823,11 +665,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     dto.SupplierId = null;
                 }
 
-                if (dto.Purpose != InventoryDocumentPurpose.IMPORT_INTERNAL)
-                {
-                    dto.SourceTransferId = null;
-                }
-
                 if (dto.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
                 {
                     ClearPartner(dto);
@@ -848,11 +685,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     ClearPartner(dto);
                 }
 
-                if (dto.Purpose != InventoryDocumentPurpose.INTERNAL_OUT)
-                {
-                    dto.TargetStoreId = null;
-                }
-
                 if (dto.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT)
                 {
                     ClearPartner(dto);
@@ -865,19 +697,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             dto.PartnerType = InventoryPartnerType.NONE;
             dto.PartnerId = null;
             dto.PartnerName = null;
-        }
-
-        private static bool IsInternalImport(CreateInventoryDocumentDTO dto)
-        {
-            return dto.Type == InventoryDocumentType.IMPORT
-                && dto.Purpose == InventoryDocumentPurpose.IMPORT_INTERNAL;
-        }
-
-        private static bool IsInternalImport(InventoryDocument document)
-        {
-            return (document.Type == InventoryDocumentType.IMPORT
-                    && document.Purpose == InventoryDocumentPurpose.IMPORT_INTERNAL)
-                || document.Type == InventoryDocumentType.INTERNAL_IMPORT;
         }
 
         private static SupplierIngredientDTO BuildStoreIngredientDto(
@@ -1258,6 +1077,26 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private static bool IsSameQuantity(decimal left, decimal right)
         {
             return Math.Abs(left - right) < 0.001m;
+        }
+
+        private static string GetCreateActionName(CreateInventoryDocumentDTO dto)
+        {
+            return dto.Type switch
+            {
+                InventoryDocumentType.IMPORT => "InventoryDocument.CreateImport",
+                InventoryDocumentType.EXPORT => "InventoryDocument.CreateExport",
+                _ => $"InventoryDocument.Create.{dto.Type}"
+            };
+        }
+
+        private static string GetConfirmActionName(InventoryDocument document)
+        {
+            return document.Type switch
+            {
+                InventoryDocumentType.IMPORT => "InventoryDocument.ConfirmImport",
+                InventoryDocumentType.EXPORT => "InventoryDocument.ConfirmExport",
+                _ => $"InventoryDocument.Confirm.{document.Type}"
+            };
         }
 
         private int GetCurrentStaffId()

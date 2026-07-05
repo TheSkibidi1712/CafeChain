@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Transfers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -8,110 +8,89 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
     {
         public void Configure(EntityTypeBuilder<InventoryTransfer> entity)
         {
-            entity.ToTable("InventoryTransfers", t =>
+            entity.ToTable("InventoryTransfers", table =>
             {
-                t.HasCheckConstraint(
+                table.HasCheckConstraint(
                     "CK_InventoryTransfer_DifferentStore",
-                    "[FromStoreId] <> [ToStoreId]"
-                );
-
-                t.HasCheckConstraint(
-                    "CK_InventoryTransfer_TotalExportQty",
-                    "[TotalExportQty] >= 0"
-                );
-
-                t.HasCheckConstraint(
-                    "CK_InventoryTransfer_TotalReceivedQty",
-                    "[TotalReceivedQty] >= 0"
-                );
-
-                t.HasCheckConstraint(
-                    "CK_InventoryTransfer_Received_NotGreater_Export",
-                    "[TotalReceivedQty] <= [TotalExportQty]"
-                );
+                    "[FromStoreId] <> [ToStoreId]");
             });
 
             entity.HasKey(x => x.InventoryTransferId);
 
-            // ================= PROPERTY =================
+            entity.Property(x => x.Code)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(x => x.RequestKey)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.Type)
+                .HasConversion<int>()
+                .IsRequired();
+
+            entity.Property(x => x.Purpose)
+                .HasConversion<int>()
+                .IsRequired();
 
             entity.Property(x => x.Status)
                 .HasConversion<int>()
                 .IsRequired();
 
-            entity.Property(x => x.TotalExportQty)
-                .HasColumnType("decimal(18,3)")
-                .HasDefaultValue(0);
-
-            entity.Property(x => x.TotalReceivedQty)
-                .HasColumnType("decimal(18,3)")
-                .HasDefaultValue(0);
+            entity.Property(x => x.DocumentDate)
+                .HasDefaultValueSql("GETDATE()")
+                .IsRequired();
 
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()")
                 .IsRequired();
 
-            // ================= RELATION : DOCUMENT =================
-
-            entity.HasOne(x => x.ExportDocument)
-                .WithOne(d => d.ExportTransfer)
-                .HasForeignKey<InventoryTransfer>(x => x.ExportDocumentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            entity.HasOne(x => x.ImportDocument)
-                .WithOne(d => d.ImportTransfer)
-                .HasForeignKey<InventoryTransfer>(x => x.ImportDocumentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // ================= RELATION : STORE =================
+            entity.Property(x => x.Note)
+                .HasMaxLength(500);
 
             entity.HasOne(x => x.FromStore)
-                .WithMany(s => s.ExportTransfers)
+                .WithMany(x => x.FromTransfers)
                 .HasForeignKey(x => x.FromStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.ToStore)
-                .WithMany(s => s.ImportTransfers)
+                .WithMany(x => x.ToTransfers)
                 .HasForeignKey(x => x.ToStoreId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // ================= RELATION : DETAIL =================
+            entity.HasOne(x => x.CreatedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.CreatedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ConfirmedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ConfirmedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CancelledByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.CancelledByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasMany(x => x.Details)
                 .WithOne(x => x.InventoryTransfer)
                 .HasForeignKey(x => x.InventoryTransferId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // ================= INDEX =================
-
-            entity.HasIndex(x => x.ExportDocumentId)
+            entity.HasIndex(x => x.Code)
                 .IsUnique();
 
-            entity.HasIndex(x => x.ImportDocumentId)
+            entity.HasIndex(x => x.RequestKey)
                 .IsUnique()
-                .HasFilter("[ImportDocumentId] IS NOT NULL");
+                .HasFilter("[RequestKey] IS NOT NULL");
 
             entity.HasIndex(x => x.Status);
-
+            entity.HasIndex(x => x.DocumentDate);
             entity.HasIndex(x => x.CreatedAt);
-
-            entity.HasIndex(x => new
-            {
-                x.FromStoreId,
-                x.ToStoreId
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.FromStoreId,
-                x.Status
-            });
-
-            entity.HasIndex(x => new
-            {
-                x.ToStoreId,
-                x.Status
-            });
+            entity.HasIndex(x => new { x.FromStoreId, x.ToStoreId });
+            entity.HasIndex(x => new { x.FromStoreId, x.Status });
+            entity.HasIndex(x => new { x.ToStoreId, x.Status });
+            entity.HasIndex(x => new { x.CreatedByStaffId, x.CreatedAt });
         }
     }
 }

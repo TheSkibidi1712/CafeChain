@@ -43,7 +43,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             await ValidateUnitsAsync(dto);
 
-            await ValidateInventoryAsync(dto);
+            await Task.CompletedTask;
         }
 
         public async Task ValidateConfirmAsync(InventoryDocument document)
@@ -204,7 +204,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
 
             if (dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE
-                && dto.Purpose != InventoryDocumentPurpose.IMPORT_INTERNAL
                 && dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
             {
                 throw new InvalidOperationException("Mục đích phiếu nhập không hợp lệ.");
@@ -252,7 +251,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
 
             if (dto.Purpose != InventoryDocumentPurpose.SALE
-                && dto.Purpose != InventoryDocumentPurpose.INTERNAL_OUT
                 && dto.Purpose != InventoryDocumentPurpose.GIFT
                 && dto.Purpose != InventoryDocumentPurpose.DEBT
                 && dto.Purpose != InventoryDocumentPurpose.SAMPLE
@@ -266,7 +264,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             return type == InventoryDocumentType.IMPORT
                 || type == InventoryDocumentType.ADJUSTMENT_IN
-                || type == InventoryDocumentType.INTERNAL_IMPORT
                 || type == InventoryDocumentType.PRODUCTION_IN;
         }
 

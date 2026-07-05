@@ -1,4 +1,5 @@
 ﻿using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Models.Enums.Unit;
@@ -15,10 +16,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
     public class AdminInventoryDocumentProcessService : IAdminInventoryDocumentProcessService
     {
         private readonly IAdminInventoryDocumentRepository _repository;
+        private readonly INegativeInventoryService _negativeInventoryService;
 
-        public AdminInventoryDocumentProcessService(IAdminInventoryDocumentRepository repository)
+        public AdminInventoryDocumentProcessService(
+            IAdminInventoryDocumentRepository repository,
+            INegativeInventoryService negativeInventoryService)
         {
             _repository = repository;
+            _negativeInventoryService = negativeInventoryService;
         }
 
         public async Task<InventoryProcessResultDTO> ExecuteProcessAsync(InventoryDocument document)
@@ -29,7 +34,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 case InventoryDocumentType.IMPORT:
                 case InventoryDocumentType.ADJUSTMENT_IN:
-                case InventoryDocumentType.INTERNAL_IMPORT:
                     await ProcessImportAsync(document, result);
                     break;
 
@@ -153,7 +157,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     {
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = document.Type,
+                        Type = document.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT
+                            ? InventoryTransactionTypeEnum.ADJUSTMENT_IN
+                            : InventoryTransactionTypeEnum.IMPORT,
+
+                        StockStatus = InventoryStockStatus.NORMAL,
 
                         Quantity = detail.BaseQuantity,
 
@@ -259,9 +267,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
-                if (inventory.AvailableQty < detail.BaseQuantity)
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
+                    inventory,
+                    detail.BaseQuantity,
+                    detail.Ingredient.Name);
+
+                if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException($"Không đủ tồn kho: {detail.Ingredient.Name}");
+                    throw new InvalidOperationException(stockValidation.Message);
                 }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
@@ -290,9 +303,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.EXPORT,
+                        Type = document.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT
+                            ? InventoryTransactionTypeEnum.ADJUSTMENT_OUT
+                            : InventoryTransactionTypeEnum.EXPORT,
 
-                        Quantity = -detail.BaseQuantity,
+                        StockStatus = stockValidation.StockStatus,
+
+                        Quantity = detail.BaseQuantity,
 
                         BeforeQty = beforeQty,
 
@@ -340,9 +357,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
-                if (inventory.AvailableQty < detail.BaseQuantity)
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
+                    inventory,
+                    detail.BaseQuantity,
+                    detail.Ingredient.Name);
+
+                if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException($"Không đủ tồn kho: {detail.Ingredient.Name}");
+                    throw new InvalidOperationException(stockValidation.Message);
                 }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
@@ -371,9 +393,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.WASTE,
+                        Type = InventoryTransactionTypeEnum.WASTE,
 
-                        Quantity = -detail.BaseQuantity,
+                        StockStatus = stockValidation.StockStatus,
+
+                        Quantity = detail.BaseQuantity,
 
                         BeforeQty = beforeQty,
 
@@ -398,6 +422,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
+                    inventory,
+                    detail.BaseQuantity,
+                    detail.Ingredient.Name);
+
+                if (!stockValidation.IsAllowed)
+                {
+                    throw new InvalidOperationException(stockValidation.Message);
+                }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
 
@@ -426,9 +459,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         InventoryDocumentId =
                             document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.SALES_DEDUCTION,
+                        Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
 
-                        Quantity = -detail.BaseQuantity,
+                        StockStatus = stockValidation.StockStatus,
+
+                        Quantity = detail.BaseQuantity,
 
                         BeforeQty = beforeQty,
 
@@ -453,6 +488,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
+                    inventory,
+                    detail.BaseQuantity,
+                    detail.Ingredient.Name);
+
+                if (!stockValidation.IsAllowed)
+                {
+                    throw new InvalidOperationException(stockValidation.Message);
+                }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
 
@@ -480,9 +524,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.PRODUCTION_OUT,
+                        Type = InventoryTransactionTypeEnum.PRODUCTION_OUT,
 
-                        Quantity = -detail.BaseQuantity,
+                        StockStatus = stockValidation.StockStatus,
+
+                        Quantity = detail.BaseQuantity,
 
                         BeforeQty = beforeQty,
 
@@ -543,7 +589,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
-                        Type = InventoryDocumentType.PRODUCTION_IN,
+                        Type = InventoryTransactionTypeEnum.PRODUCTION_IN,
+
+                        StockStatus = InventoryStockStatus.NORMAL,
 
                         Quantity = detail.BaseQuantity,
 
@@ -602,7 +650,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                             InventoryDocumentId = document.InventoryDocumentId,
 
-                            Quantity = variance,
+                            Type = InventoryTransactionTypeEnum.STOCK_TAKE,
+
+                            StockStatus = InventoryStockStatus.NORMAL,
+
+                            Quantity = Math.Abs(variance),
 
                             BeforeQty = systemQty,
 
@@ -760,10 +812,19 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             if (requiredQty > 0)
             {
-                throw new InvalidOperationException($"Không đủ tồn FIFO cho nguyên liệu {detail.Ingredient.Name}");
+                var fallbackCost =
+                    allocations.LastOrDefault()?.UnitCost
+                    ?? detail.CostPrice
+                    ?? detail.UnitPrice
+                    ?? 0;
+
+                totalCost += requiredQty * fallbackCost;
             }
 
-            await _repository.AddCostAllocationsAsync(allocations);
+            if (allocations.Any())
+            {
+                await _repository.AddCostAllocationsAsync(allocations);
+            }
 
             var avgCost = totalCost / detail.BaseQuantity;
 

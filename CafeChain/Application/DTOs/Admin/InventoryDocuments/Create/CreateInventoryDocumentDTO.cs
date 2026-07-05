@@ -23,6 +23,8 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 
         public string? Note { get; set; }
 
+        public string? RequestKey { get; set; }
+
         // =====================================================
         // PARTNER
         // =====================================================

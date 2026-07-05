@@ -58,8 +58,12 @@ const InventoryCreate = (() => {
     let supplierIngredients = [];
     let pendingTransfers = [];
     let summaryTimer = null;
+    let currentRequestKey = null;
 
     async function open(type) {
+
+        currentRequestKey =
+            createRequestKey();
 
         const container =
             document.querySelector(
@@ -159,6 +163,18 @@ const InventoryCreate = (() => {
                         "click",
                         () => Swal.close()
                     );
+
+                popup
+                    .querySelector(
+                        "[data-inventory-transfer]"
+                    )
+                    ?.addEventListener(
+                        "click",
+                        () => {
+                            Swal.close();
+                            window.location.href =
+                                "/Admin/AdminInventoryTransfer/Create";
+                        });
             }
 
         });
@@ -1139,11 +1155,11 @@ const InventoryCreate = (() => {
 
         pendingTransfers.forEach(item => {
 
-            const remaining =
-                item.remainingQuantity ?? item.RemainingQuantity ?? 0;
+            const quantity =
+                item.totalBaseQuantity ?? item.TotalBaseQuantity ?? 0;
 
             const label =
-                `${item.exportDocumentCode || item.ExportDocumentCode} - ${item.fromStoreName || item.FromStoreName} (${formatQuantity(remaining)} còn nhận)`;
+                `${item.transferCode || item.TransferCode || ""} - ${item.fromStoreName || item.FromStoreName} (${formatQuantity(quantity)} còn nhận)`;
 
             const option =
                 new Option(
@@ -2191,6 +2207,9 @@ const InventoryCreate = (() => {
 
             saveAsDraft,
 
+            requestKey:
+                currentRequestKey,
+
             details:
                 collectDetails()
         };
@@ -2428,7 +2447,7 @@ const InventoryCreate = (() => {
                     </span>
                     <span>
                         <strong>Nhập kho</strong>
-                        <small>Nhận hàng từ NCC hoặc nội bộ</small>
+                        <small>Nhận hàng từ nhà cung cấp</small>
                     </span>
                 </button>
 
@@ -2440,7 +2459,19 @@ const InventoryCreate = (() => {
                     </span>
                     <span>
                         <strong>Xuất kho</strong>
-                        <small>Xuất hàng bán hoặc nội bộ</small>
+                        <small>Xuất bán hàng hoặc điều chỉnh</small>
+                    </span>
+                </button>
+
+                <button type="button"
+                        class="inventory-type-card inventory-type-transfer"
+                        data-inventory-transfer>
+                    <span class="inventory-type-card-icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </span>
+                    <span>
+                        <strong>Phiếu chuyển kho</strong>
+                        <small>Chuyển nguyên liệu giữa các chi nhánh</small>
                     </span>
                 </button>
 
@@ -2849,6 +2880,15 @@ const InventoryCreate = (() => {
 
         return getCurrentDocumentType() === documentType.export
             && readInt(document.querySelector('input[name="Purpose"]:checked')?.value) === documentPurpose.internalOut;
+    }
+
+    function createRequestKey() {
+
+        if (window.crypto?.randomUUID) {
+            return window.crypto.randomUUID();
+        }
+
+        return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
     }
 
     function readQuantity(value) {

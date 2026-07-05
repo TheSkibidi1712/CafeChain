@@ -320,8 +320,11 @@ namespace CafeChain.Application.Services.Inventories
                 _context.InventoryTransactions.Add(new InventoryTransaction
                 {
                     StoreInventoryId = inventoryItem.StoreInventoryId,
-                    Type = InventoryDocumentType.SALES_DEDUCTION,
-                    Quantity = -convertedQty,
+                    Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
+                    StockStatus = inventoryItem.AvailableQty < 0
+                        ? InventoryStockStatus.NEGATIVE_CONFIRMED
+                        : InventoryStockStatus.NORMAL,
+                    Quantity = convertedQty,
                     BeforeQty = beforeQty,
                     AfterQty = inventoryItem.AvailableQty,
                     CreatedAt = DateTime.UtcNow

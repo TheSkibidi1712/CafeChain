@@ -47,6 +47,7 @@ using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Systems;
 
 // ==========================================
 // Application - Services
@@ -82,6 +83,7 @@ using CafeChain.Application.Services.Security;
 using CafeChain.Application.Services.Workers;
 using CafeChain.Application.Workers;
 using CafeChain.Application.Services.Admin.Permissions;
+using CafeChain.Application.Services.Systems;
 
 
 // ==========================================
@@ -105,6 +107,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Infrastrusture.Interfaces.Admin.Toppings;
 using CafeChain.Infrastructure.Interfaces.Admin.Permissions;
+using CafeChain.Infrastrusture.Interfaces.Systems;
 
 
 
@@ -129,6 +132,7 @@ using CafeChain.Infrastrusture.Repositories.Admin.Suppliers;
 using CafeChain.Infrastrusture.Repositories.Admin.Toppings;
 using CafeChain.Infrastructure.Repositories.Admin.POS;
 using CafeChain.Infrastructure.Repositories.Admin.Permissions;
+using CafeChain.Infrastrusture.Repositories.Systems;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -343,6 +347,16 @@ builder.Services.AddScoped<IOrderService, OrderService>();
 builder.Services.AddScoped<IInventoryService, InventoryService>();
 
 builder.Services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
+
+builder.Services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
+
+#endregion
+
+#region System Infrastructure
+
+builder.Services.AddScoped<IRequestDeduplicationRepository, RequestDeduplicationRepository>();
+builder.Services.AddScoped<IRequestDeduplicationService, RequestDeduplicationService>();
+builder.Services.AddScoped<ISystemSettingRepository, SystemSettingRepository>();
 
 #endregion
 

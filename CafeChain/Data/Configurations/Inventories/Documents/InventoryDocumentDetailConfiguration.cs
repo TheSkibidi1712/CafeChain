@@ -8,7 +8,24 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
     {
         public void Configure(EntityTypeBuilder<InventoryDocumentDetail> entity)
         {
-            entity.ToTable("InventoryDocumentDetails");
+            entity.ToTable("InventoryDocumentDetails", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_InventoryDocumentDetail_Quantity",
+                    "[Quantity] > 0");
+
+                table.HasCheckConstraint(
+                    "CK_InventoryDocumentDetail_BaseQuantity",
+                    "[BaseQuantity] > 0");
+
+                table.HasCheckConstraint(
+                    "CK_InventoryDocumentDetail_UnitPrice",
+                    "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
+
+                table.HasCheckConstraint(
+                    "CK_InventoryDocumentDetail_TotalAmount",
+                    "[TotalAmount] IS NULL OR [TotalAmount] >= 0");
+            });
 
             entity.HasKey(x => x.InventoryDocumentDetailId);
 

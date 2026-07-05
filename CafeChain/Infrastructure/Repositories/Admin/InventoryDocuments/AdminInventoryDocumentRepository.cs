@@ -558,14 +558,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         {
             return await _context.InventoryTransfers
                 .AsNoTracking()
-                .Include(x => x.ExportDocument)
                 .Include(x => x.FromStore)
                 .Include(x => x.ToStore)
                 .Where(x =>
                     x.ToStoreId == storeId
-                    && x.ImportDocumentId == null
-                    && x.Status != InventoryTransferStatus.COMPLETED
-                    && x.Status != InventoryTransferStatus.CANCELLED)
+                    && x.Status == InventoryTransferStatus.DRAFT)
                 .OrderByDescending(x => x.CreatedAt)
                 .ToListAsync();
         }
@@ -573,8 +570,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         public async Task<InventoryTransfer?> GetTransferForInternalImportAsync(int transferId)
         {
             return await _context.InventoryTransfers
-                .Include(x => x.ExportDocument)
-                .Include(x => x.ImportDocument)
                 .Include(x => x.FromStore)
                 .Include(x => x.ToStore)
                 .Include(x => x.Details)
@@ -583,6 +578,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Ingredient)
                         .ThenInclude(x => x.UnitConversions)
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.Unit)
                 .FirstOrDefaultAsync(x => x.InventoryTransferId == transferId);
         }
 

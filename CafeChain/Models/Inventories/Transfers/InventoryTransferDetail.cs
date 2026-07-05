@@ -1,4 +1,4 @@
-﻿using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Ingredients;
 
 namespace CafeChain.Models.Inventories.Transfers
 {
@@ -9,17 +9,21 @@ namespace CafeChain.Models.Inventories.Transfers
         public int InventoryTransferId { get; set; }
 
         public int IngredientId { get; set; }
+        public int UnitId { get; set; }
 
-        // ===== SỐ LƯỢNG =====
-        public decimal ExportQuantity { get; set; }     // số lượng xuất (base)
-        public decimal ReceivedQuantity { get; set; }   // đã nhận
+        public decimal Quantity { get; set; }
+        public decimal BaseQuantity { get; set; }
 
-        // ===== OPTIONAL =====
+        public decimal? SourceBeforeQty { get; set; }
+        public decimal? SourceAfterQty { get; set; }
+        public decimal? DestinationBeforeQty { get; set; }
+        public decimal? DestinationAfterQty { get; set; }
+
         public decimal? UnitPrice { get; set; }
         public string? Note { get; set; }
 
-        // ===== NAVIGATION =====
         public virtual InventoryTransfer InventoryTransfer { get; set; }
         public virtual Ingredient Ingredient { get; set; }
+        public virtual Unit Unit { get; set; }
     }
 }

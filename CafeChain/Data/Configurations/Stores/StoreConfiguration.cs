@@ -199,6 +199,9 @@ namespace CafeChain.Data.Configurations.Stores
                 .HasColumnType("decimal(18,3)")
                 .HasDefaultValue(0);
 
+            entity.Property(x => x.MaxNegativeQty)
+                .HasColumnType("decimal(18,3)");
+
             entity.Property(x => x.LastUpdated)
                 .HasDefaultValueSql("GETDATE()");
 
