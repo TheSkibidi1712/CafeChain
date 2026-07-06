@@ -3,6 +3,11 @@ import { Link } from 'react-router-dom'
 import * as signalR from '@microsoft/signalr'
 import { enqueueOrder } from './services/OfflineSyncService'
 import { API_BASE_URL, apiClient } from './services/apiClient'
+import {
+  allowOfflineTemporaryDrinkLabel,
+  printTemporaryDrinkLabels,
+  printTemporaryReceipt,
+} from './services/offlineTemporaryPrint'
 import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import ProductModifierModal, {
@@ -10,6 +15,7 @@ import ProductModifierModal, {
   type ToppingOption,
   type MenuItem,
 } from './components/ProductModifierModal'
+import type { CartSyncQueueItem } from './db/CafeChainPOSDB'
 
 interface CartItem {
   id: number
@@ -129,6 +135,8 @@ export default function POSLayout() {
   const [pendingCashInput, setPendingCashInput] = useState('')
   const [paymentRemainingSeconds, setPaymentRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
+  const [lastOfflineOrder, setLastOfflineOrder] = useState<CartSyncQueueItem | null>(null)
+  const [temporaryPrintTarget, setTemporaryPrintTarget] = useState<'receipt' | 'labels' | null>(null)
   const checkoutInFlightRef = useRef(false)
 
   const session = getPosSession()
@@ -449,7 +457,7 @@ export default function POSLayout() {
       return false
     }
 
-    await enqueueOrder({
+    const offlineOrder: Omit<CartSyncQueueItem, 'queueId' | 'syncStatus' | 'createdAt' | 'retryCount'> = {
       clientOrderId,
       storeId: session.storeId,
       staffId: session.staffId,
@@ -468,6 +476,15 @@ export default function POSLayout() {
       },
       totalAmount: orderTotal,
       paymentMethod: 'cash',
+    }
+
+    const queueId = await enqueueOrder(offlineOrder)
+    setLastOfflineOrder({
+      ...offlineOrder,
+      queueId,
+      syncStatus: 'Pending',
+      createdAt: Date.parse(soldAt),
+      retryCount: 0,
     })
 
     return true
@@ -487,6 +504,36 @@ export default function POSLayout() {
       note: ci.note,
       toppings: ci.selectedToppings.map((topping) => ({ toppingId: topping.id })),
     }))
+
+  const handlePrintTemporaryReceipt = async () => {
+    if (!lastOfflineOrder || temporaryPrintTarget) return
+
+    setTemporaryPrintTarget('receipt')
+    try {
+      await printTemporaryReceipt(lastOfflineOrder)
+      showMessage('Đã mở hộp thoại in phiếu tạm.')
+    } catch (error) {
+      console.error('[POS] Temporary receipt print failed:', error)
+      showMessage('Không thể in phiếu tạm. Vui lòng thử lại.')
+    } finally {
+      setTemporaryPrintTarget(null)
+    }
+  }
+
+  const handlePrintTemporaryLabels = async () => {
+    if (!lastOfflineOrder || temporaryPrintTarget) return
+
+    setTemporaryPrintTarget('labels')
+    try {
+      await printTemporaryDrinkLabels(lastOfflineOrder)
+      showMessage('Đã mở hộp thoại in tem tạm.')
+    } catch (error) {
+      console.error('[POS] Temporary label print failed:', error)
+      showMessage(error instanceof Error ? error.message : 'Không thể in tem tạm.')
+    } finally {
+      setTemporaryPrintTarget(null)
+    }
+  }
 
   const postOrderCommit = (
     items: CartItem[],
@@ -1151,6 +1198,48 @@ export default function POSLayout() {
             >
               Mở ca trước khi thanh toán
             </Link>
+          )}
+
+          {lastOfflineOrder && (
+            <div className="rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="text-xs font-extrabold text-brand-orange">Đơn offline vừa lưu</p>
+                  <p className="text-[10px] font-bold text-text-secondary truncate">
+                    {lastOfflineOrder.clientOrderId}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLastOfflineOrder(null)}
+                  className="h-6 w-6 shrink-0 rounded-md border border-brand-orange-border bg-white text-[11px] font-extrabold text-brand-orange hover:bg-brand-orange hover:text-white transition-colors cursor-pointer"
+                  title="Ẩn đơn offline vừa lưu"
+                  aria-label="Ẩn đơn offline vừa lưu"
+                >
+                  x
+                </button>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => void handlePrintTemporaryReceipt()}
+                  disabled={temporaryPrintTarget !== null}
+                  className="rounded-lg bg-brand-orange px-3 py-2 text-[11px] font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                >
+                  {temporaryPrintTarget === 'receipt' ? 'Đang in' : 'In phiếu tạm'}
+                </button>
+                {allowOfflineTemporaryDrinkLabel && (
+                  <button
+                    type="button"
+                    onClick={() => void handlePrintTemporaryLabels()}
+                    disabled={temporaryPrintTarget !== null}
+                    className="rounded-lg bg-text-primary px-3 py-2 text-[11px] font-extrabold text-white hover:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  >
+                    {temporaryPrintTarget === 'labels' ? 'Đang in' : 'In tem tạm'}
+                  </button>
+                )}
+              </div>
+            </div>
           )}
 
           <div className="flex gap-2">
