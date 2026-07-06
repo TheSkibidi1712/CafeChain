@@ -70,6 +70,35 @@ export interface ToppingOption {
  */
 export type SyncStatus = 'Pending' | 'Syncing' | 'Synced' | 'Failed'
 
+export interface CartQueueToppingSnapshot {
+  toppingId: number
+  name?: string
+  price?: number
+}
+
+export interface CartQueueItemSnapshot {
+  cartId?: string
+  menuItemId: number
+  name: string
+  categoryId?: number
+  sizeId?: number | null
+  sizeName?: string
+  quantity: number
+  unitPrice: number
+  note?: string
+  detailText?: string
+  toppings?: CartQueueToppingSnapshot[]
+}
+
+export interface CartQueuePaymentSnapshot {
+  method: 'cash'
+  paymentMethodId: 1
+  amount: number
+  receivedAmount: number
+  changeAmount: number
+  capturedAt: string
+}
+
 /**
  * Đơn hàng trong hàng đợi đồng bộ — tạo khi thanh toán offline
  * Lưu toàn bộ payload cần thiết để replay lên Backend khi có mạng lại.
@@ -88,6 +117,8 @@ export interface CartSyncQueueItem {
   staffId: number
   /** Mã ca làm việc POS */
   workShiftId: number
+  /** Thời điểm bán thực tế tại POS (ISO string) */
+  soldAt: string
   /** Loại order: 'dine-in' | 'take-away' */
   orderType: string
   /** Danh sách sản phẩm trong đơn */
@@ -97,8 +128,13 @@ export interface CartSyncQueueItem {
     sizeId?: number | null
     quantity: number
     unitPrice: number
+    note?: string
     toppings?: Array<{ toppingId: number }>
   }>
+  /** Snapshot đầy đủ của giỏ hàng lúc thu ngân bấm thanh toán */
+  cartSnapshot: CartQueueItemSnapshot[]
+  /** Snapshot thanh toán tiền mặt lúc thu ngân bấm thanh toán */
+  paymentSnapshot: CartQueuePaymentSnapshot
   /** Tổng tiền */
   totalAmount: number
   /** Phương thức thanh toán: 'cash' | 'banking' */

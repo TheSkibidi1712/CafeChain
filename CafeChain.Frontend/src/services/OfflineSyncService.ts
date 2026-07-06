@@ -150,35 +150,29 @@ export async function syncCatalog(): Promise<{ categories: number; menuItems: nu
 // ============================================================
 
 /**
- * Tạo UUID v4 cho Idempotency Key (ADR-0002).
- * Không phụ thuộc thư viện ngoài — dùng crypto.randomUUID().
- */
-function generateClientOrderId(): string {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  // Fallback cho browser cũ
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0
-    const v = c === 'x' ? r : (r & 0x3) | 0x8
-    return v.toString(16)
-  })
-}
-
-/**
  * Lưu đơn hàng vào hàng đợi offline (cartSyncQueue).
- * Gọi khi: Nhấn "Thanh toán" — bất kể online/offline.
- * Đơn sẽ được sync lên Backend ngay nếu có mạng, hoặc nằm chờ nếu offline.
+ * Gọi khi: Thanh toán tiền mặt gặp offline/network error.
  *
- * @param order Thông tin đơn hàng (không cần queueId, clientOrderId, syncStatus)
+ * @param order Thông tin đơn hàng offline cash, có ClientOrderId sinh từ POS click.
  * @returns queueId của bản ghi vừa tạo
  */
 export async function enqueueOrder(
-  order: Omit<CartSyncQueueItem, 'queueId' | 'clientOrderId' | 'syncStatus' | 'createdAt' | 'retryCount'>
+  order: Omit<CartSyncQueueItem, 'queueId' | 'syncStatus' | 'createdAt' | 'retryCount'>
 ): Promise<number> {
+  if (order.paymentMethod !== 'cash') {
+    throw new Error('Offline chỉ hỗ trợ thanh toán tiền mặt.')
+  }
+
+  if (!order.clientOrderId) {
+    throw new Error('Thiếu ClientOrderId cho đơn offline.')
+  }
+
+  if (!order.workShiftId || !order.staffId || !order.storeId) {
+    throw new Error('Thiếu WorkShiftId, StaffId hoặc StoreId cho đơn offline.')
+  }
+
   const queueItem: CartSyncQueueItem = {
     ...order,
-    clientOrderId: generateClientOrderId(),
     syncStatus: 'Pending',
     createdAt: Date.now(),
     retryCount: 0,
