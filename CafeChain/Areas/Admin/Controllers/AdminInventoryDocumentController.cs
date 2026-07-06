@@ -2,10 +2,8 @@ using CafeChain.Application.DTOs.Admin.InventoryDocuments;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Index;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
-using CafeChain.ViewModels.Admin.InventoryDocuments;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -88,9 +86,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> ActiveIngredients(
-            int storeId,
-            InventoryDocumentPurpose purpose = InventoryDocumentPurpose.NONE)
+        public async Task<IActionResult> ActiveIngredients(int storeId, InventoryDocumentPurpose purpose = InventoryDocumentPurpose.NONE)
         {
             var data = await _serviceCreate.GetActiveIngredientsAsync(storeId, purpose);
 
@@ -105,34 +101,6 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(data);
         }
 
-        [HttpGet]
-        public async Task<IActionResult> PendingInternalTransfers(int storeId)
-        {
-            await Task.CompletedTask;
-
-            return StatusCode(
-                StatusCodes.Status410Gone,
-                new
-                {
-                    success = false,
-                    message = "Chuyển kho liên chi nhánh đã được tách sang Phiếu Chuyển Kho."
-                });
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> InternalTransferIngredients(int transferId)
-        {
-            await Task.CompletedTask;
-
-            return StatusCode(
-                StatusCodes.Status410Gone,
-                new
-                {
-                    success = false,
-                    message = "Nhập nội bộ không còn xử lý bằng InventoryDocument."
-                });
-        }
-
         // =====================================================
         // AJAX
         // CALCULATE
@@ -141,8 +109,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Calculate([FromBody] CreateInventoryDocumentDTO dto)
         {
-            var result =
-                await _serviceCreate.CalculateSummaryAsync(dto);
+            var result = await _serviceCreate.CalculateSummaryAsync(dto);
 
             return Json(result);
         }
@@ -154,8 +121,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveDraft([FromBody] CreateInventoryDocumentDTO dto)
         {
-            var id =
-                await _serviceCreate.SaveDraftAsync(dto);
+            var id = await _serviceCreate.SaveDraftAsync(dto);
 
             return Json(new
             {
@@ -213,8 +179,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var result =
-                    await _serviceCreate.ConfirmDraftAsync(documentId, requestKey);
+                var result = await _serviceCreate.ConfirmDraftAsync(documentId, requestKey);
 
                 if (result == null)
                 {
@@ -260,8 +225,7 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var success =
-                    await _serviceCreate.CancelInventoryDocumentAsync(documentId, requestKey);
+                var success = await _serviceCreate.CancelInventoryDocumentAsync(documentId, requestKey);
 
                 if (!success)
                 {
@@ -301,29 +265,19 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                var file =
-                    await _service.ExportExcelAsync(filter);
+                var file = await _service.ExportExcelAsync(filter);
 
-                const string contentType =
-                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+                const string contentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
-                var fileName =
-                    $"PhieuKho_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+                var fileName = $"PhieuKho_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
 
-                return File(
-                    file,
-                    contentType,
-                    fileName);
+                return File(file, contentType, fileName);
             }
             catch (Exception ex)
             {
-                _logger.LogError(
-                    ex,
-                    "Failed to export inventory documents to Excel.");
+                _logger.LogError(ex, "Failed to export inventory documents to Excel.");
 
-                return StatusCode(
-                    500,
-                    "Không thể xuất Excel phiếu kho.");
+                return StatusCode(500, "Không thể xuất Excel phiếu kho.");
             }
         }
 

@@ -1,4 +1,21 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
+@using CafeChain.Models.Enums.Inventory
+
+@{
+    var documentTitle = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT => "PHIẾU NHẬP KHO",
+        InventoryDocumentType.EXPORT => "PHIẾU XUẤT KHO",
+        InventoryDocumentType.STOCK_TAKE => "PHIẾU KIỂM KÊ",
+        InventoryDocumentType.WASTE => "PHIẾU HỦY HÀNG",
+        InventoryDocumentType.PRODUCTION_IN => "PHIẾU NHẬP SẢN XUẤT",
+        InventoryDocumentType.PRODUCTION_OUT => "PHIẾU XUẤT SẢN XUẤT",
+        InventoryDocumentType.SALES_DEDUCTION => "PHIẾU TRỪ TỒN BÁN HÀNG",
+        _ => "PHIẾU KHO"
+    };
+
+    var isSupplierPurchase = Model.Type == InventoryDocumentType.IMPORT && Model.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
+}
 
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocument.css" />
@@ -9,10 +26,10 @@
 
         <h2>CAFECHAIN</h2>
 
-        <h5>PHIEU NHAP KHO</h5>
+        <h5>@documentTitle</h5>
 
         <span class="voucher-readonly-badge">
-            Chi xem
+            Chỉ xem
         </span>
 
     </div>
@@ -20,12 +37,12 @@
     <div class="voucher-info voucher-readonly-grid">
 
         <div class="voucher-readonly-field">
-            <label>So phieu</label>
+            <label>Số phiếu</label>
             <strong>@Model.Code</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Ngay chung tu</label>
+            <label>Ngày chứng từ</label>
             <strong>@Model.DocumentDate.ToString("dd/MM/yyyy")</strong>
         </div>
 
@@ -35,19 +52,22 @@
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Nguoi lap</label>
+            <label>Người lập</label>
             <strong>@Model.StaffName</strong>
         </div>
 
         <div class="voucher-readonly-field">
-            <label>Nha cung cap</label>
+            <label>Nhà cung cấp</label>
             <strong>@(Model.SupplierName ?? "-")</strong>
         </div>
 
-        <div class="voucher-readonly-field">
-            <label>Doi tac</label>
-            <strong>@(Model.PartnerName ?? "-")</strong>
-        </div>
+        @if (!isSupplierPurchase && !string.IsNullOrWhiteSpace(Model.PartnerName))
+        {
+            <div class="voucher-readonly-field">
+                <label>Đối tác</label>
+                <strong>@Model.PartnerName</strong>
+            </div>
+        }
 
     </div>
 
@@ -60,15 +80,15 @@
                 <tr>
 
                     <th>STT</th>
-                    <th>Ten hang</th>
+                    <th>Tên hàng</th>
                     <th class="text-center">
                         DVT
                     </th>
                     <th class="text-end">SL</th>
                     <th class="text-end">
-                        Don gia
+                        Đơn giá
                     </th>
-                    <th class="text-end">Thanh tien</th>
+                    <th class="text-end">Thành tiền</th>
 
                 </tr>
 
@@ -125,7 +145,7 @@
     <div class="voucher-summary">
 
         <div>
-            <span>Tong tien</span>
+            <span>Tổng tiền</span>
             <strong>@(Model.TotalAmount?.ToString("N0") ?? "0")</strong>
         </div>
 
@@ -135,7 +155,7 @@
         </div>
 
         <div class="final">
-            <span>Thanh tien</span>
+            <span>Thành tiền</span>
             <strong>@(Model.FinalAmount?.ToString("N0") ?? "0")</strong>
         </div>
 

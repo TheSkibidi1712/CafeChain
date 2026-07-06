@@ -13,8 +13,14 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
         [Required]
         public decimal Quantity { get; set; }
 
-        // Giá nhập hiện tại
+        // Giá nhập theo đơn vị đang chọn. Với phiếu xuất có thể để 0.
         public decimal UnitPrice { get; set; }
+
+        // Giá vốn theo đơn vị cơ sở. Dùng khi nghiệp vụ tạo ra tồn kho nhưng không có giá nhập trực tiếp, ví dụ Production In.
+        public decimal? CostPrice { get; set; }
+
+        // Tổng giá vốn theo BaseQuantity. Nếu không truyền, service sẽ tính bằng BaseQuantity * CostPrice khi có CostPrice.
+        public decimal? CostAmount { get; set; }
 
         // ======================
         // AUTO CALCULATE

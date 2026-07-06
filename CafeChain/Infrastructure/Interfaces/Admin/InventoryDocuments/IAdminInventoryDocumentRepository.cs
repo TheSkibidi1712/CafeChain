@@ -118,6 +118,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<InventoryCostLayer?> GetCostLayerByIdAsync(int costLayerId);
 
+        Task<InventoryCostLayer?> GetLatestCostLayerAsync(int storeId, int ingredientId);
+
         void UpdateCostLayer(InventoryCostLayer layer);
 
         // =====================================================
@@ -156,14 +158,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 
         Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds);
-
-        Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId);
-
-        Task<InventoryTransfer?> GetTransferForInternalImportAsync(int transferId);
-
-        Task AddTransferAsync(InventoryTransfer transfer);
-
-        void UpdateTransfer(InventoryTransfer transfer);
 
         Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type, InventoryDocumentPurpose? purpose = null);
 

@@ -20,9 +20,16 @@
 
                 <option value="">Loại phiếu</option>
 
-                @foreach (var item in Enum.GetValues<InventoryDocumentType>()
-                    .Where(x => x != InventoryDocumentType.ADJUSTMENT_IN
-                                && x != InventoryDocumentType.INTERNAL_IMPORT))
+                @foreach (var item in new[]
+                {
+                    InventoryDocumentType.IMPORT,
+                    InventoryDocumentType.EXPORT,
+                    InventoryDocumentType.STOCK_TAKE,
+                    InventoryDocumentType.WASTE,
+                    InventoryDocumentType.PRODUCTION_IN,
+                    InventoryDocumentType.PRODUCTION_OUT,
+                    InventoryDocumentType.SALES_DEDUCTION
+                })
                 {
                     <option value="@item">@item</option>
                 }
@@ -46,7 +53,18 @@
 
                 <option value="">Mục đích</option>
 
-                @foreach (var item in Enum.GetValues<InventoryDocumentPurpose>())
+                @foreach (var item in new[]
+                {
+                    InventoryDocumentPurpose.IMPORT_PURCHASE,
+                    InventoryDocumentPurpose.IMPORT_ADJUSTMENT,
+                    InventoryDocumentPurpose.SALE,
+                    InventoryDocumentPurpose.ADJUSTMENT_OUT,
+                    InventoryDocumentPurpose.STOCK_TAKE,
+                    InventoryDocumentPurpose.DAMAGED,
+                    InventoryDocumentPurpose.EXPIRED,
+                    InventoryDocumentPurpose.LOST,
+                    InventoryDocumentPurpose.DEBT
+                })
                 {
                     <option value="@item">@item</option>
                 }

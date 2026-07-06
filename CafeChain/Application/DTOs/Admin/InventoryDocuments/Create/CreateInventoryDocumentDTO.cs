@@ -37,10 +37,6 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 
         public string? PartnerName { get; set; }
 
-        public int? TargetStoreId { get; set; }
-
-        public int? SourceTransferId { get; set; }
-
         // =====================================================
         // DETAIL
         // =====================================================

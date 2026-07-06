@@ -32,13 +32,6 @@
     </a>
 
     <a asp-action="Index"
-       asp-route-Type="IMPORT"
-       asp-route-Purpose="IMPORT_INTERNAL"
-       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_INTERNAL)">
-        Nhập nội bộ
-    </a>
-
-    <a asp-action="Index"
        asp-route-Type="EXPORT"
        class="tab-btn @ActiveFor(InventoryDocumentType.EXPORT)">
         Xuất

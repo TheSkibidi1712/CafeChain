@@ -16,11 +16,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
     public class AdminInventoryDocumentProcessService : IAdminInventoryDocumentProcessService
     {
         private readonly IAdminInventoryDocumentRepository _repository;
+
         private readonly INegativeInventoryService _negativeInventoryService;
 
-        public AdminInventoryDocumentProcessService(
-            IAdminInventoryDocumentRepository repository,
-            INegativeInventoryService negativeInventoryService)
+        public AdminInventoryDocumentProcessService(IAdminInventoryDocumentRepository repository, INegativeInventoryService negativeInventoryService)
         {
             _repository = repository;
             _negativeInventoryService = negativeInventoryService;
@@ -71,30 +70,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // IMPORT
         // =====================================================
 
-        private async Task ProcessImportAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessImportAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
-                var lineTotal =
-                    detail.TotalAmount
-                    ?? detail.Quantity * (detail.UnitPrice ?? 0);
+                var lineTotal = detail.TotalAmount ?? detail.Quantity * (detail.UnitPrice ?? 0);
 
-                var baseUnitCost =
-                    detail.BaseQuantity > 0
-                        ? lineTotal / detail.BaseQuantity
-                        : 0;
+                var baseUnitCost = detail.BaseQuantity > 0 ? lineTotal / detail.BaseQuantity : 0;
 
                 detail.CostPrice = baseUnitCost;
                 detail.CostAmount = lineTotal;
                 detail.TotalAmount = lineTotal;
                 _repository.UpdateDocumentDetail(detail);
 
-                var existingInventory =
-                    await _repository.GetStoreInventoryAsync(
-                        document.StoreId,
-                        detail.IngredientId);
+                var existingInventory = await _repository.GetStoreInventoryAsync(document.StoreId, detail.IngredientId);
 
                 StoreInventory inventory;
 
@@ -129,11 +118,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     _repository.UpdateStoreInventory(inventory);
                 }
 
-                await UpsertStoreInventorySnapshotAsync(
-                    document.StoreId,
-                    detail.IngredientId,
-                    inventory.AvailableQty,
-                    baseUnitCost);
+                await UpsertStoreInventorySnapshotAsync(document.StoreId, detail.IngredientId, inventory.AvailableQty, baseUnitCost);
 
                 await _repository
                     .AddCostLayerAsync(
@@ -187,11 +172,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 await _repository.AddInventoryTransactionAsync(transaction);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
             }
 
             if (document.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE)
@@ -218,16 +199,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        private async Task UpsertStoreInventorySnapshotAsync(
-            int storeId,
-            int ingredientId,
-            decimal quantity,
-            decimal avgCost)
+        private async Task UpsertStoreInventorySnapshotAsync(int storeId, int ingredientId, decimal quantity, decimal avgCost)
         {
-            var snapshot =
-                await _repository.GetStoreInventorySnapshotAsync(
-                    storeId,
-                    ingredientId);
+            var snapshot = await _repository.GetStoreInventorySnapshotAsync(storeId, ingredientId);
 
             if (snapshot == null)
             {
@@ -259,18 +233,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // EXPORT
         // =====================================================
 
-        private async Task ProcessExportAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessExportAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
-                    inventory,
-                    detail.BaseQuantity,
-                    detail.Ingredient.Name);
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
 
                 if (!stockValidation.IsAllowed)
                 {
@@ -290,11 +259,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository.AddInventoryTransactionAsync(
                     new InventoryTransaction
@@ -349,18 +314,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // WASTE
         // =====================================================
 
-        private async Task ProcessWasteAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessWasteAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
-                    inventory,
-                    detail.BaseQuantity,
-                    detail.Ingredient.Name);
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
 
                 if (!stockValidation.IsAllowed)
                 {
@@ -380,11 +340,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository.AddInventoryTransactionAsync(
                     new InventoryTransaction
@@ -415,17 +371,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         // SALES DEDUCTION
         // =====================================================
-        private async Task ProcessSalesDeductionAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessSalesDeductionAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
-                    inventory,
-                    detail.BaseQuantity,
-                    detail.Ingredient.Name);
+                
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync( inventory, detail.BaseQuantity, detail.Ingredient.Name);
 
                 if (!stockValidation.IsAllowed)
                 {
@@ -445,19 +397,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository.AddInventoryTransactionAsync(
                     new InventoryTransaction
                     {
                         StoreInventoryId = inventory.StoreInventoryId,
 
-                        InventoryDocumentId =
-                            document.InventoryDocumentId,
+                        InventoryDocumentId = document.InventoryDocumentId,
 
                         Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
 
@@ -481,17 +428,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // ====================================================
         // PRODUCTION OUT
         // ====================================================
-        private async Task ProcessProductionOutAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessProductionOutAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
-                    inventory,
-                    detail.BaseQuantity,
-                    detail.Ingredient.Name);
+                
+                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
 
                 if (!stockValidation.IsAllowed)
                 {
@@ -511,11 +454,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository.AddInventoryTransactionAsync(
                     new InventoryTransaction
@@ -546,9 +485,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         // PRODUCTION IN
         // =====================================================
-        private async Task ProcessProductionInAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessProductionInAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
@@ -560,11 +497,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository.AddCostLayerAsync(
                     new InventoryCostLayer
@@ -612,10 +545,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         // STOCK TAKE
         // =====================================================
-
-        private async Task ProcessStockTakeAsync(
-            InventoryDocument document,
-            InventoryProcessResultDTO result)
+        private async Task ProcessStockTakeAsync(InventoryDocument document, InventoryProcessResultDTO result)
         {
             foreach (var detail in document.Details)
             {
@@ -636,11 +566,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                AddLowStockWarning(
-                    result,
-                    document,
-                    detail,
-                    inventory);
+                AddLowStockWarning(result, document, detail, inventory);
 
                 await _repository
                     .AddInventoryTransactionAsync(
@@ -668,7 +594,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         // INVENTORY
         // =====================================================
-
         private async Task<StoreInventory> GetOrCreateInventoryAsync(int storeId, int ingredientId)
         {
             var inventory = await _repository.GetStoreInventoryAsync(storeId, ingredientId);
@@ -697,40 +622,30 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return inventory;
         }
 
-        private static void AddLowStockWarning(
-            InventoryProcessResultDTO result,
-            InventoryDocument document,
-            InventoryDocumentDetail detail,
-            StoreInventory inventory)
+        private static void AddLowStockWarning(InventoryProcessResultDTO result, InventoryDocument document, InventoryDocumentDetail detail, StoreInventory inventory)
         {
-            var threshold =
-                GetDefaultLowStockThreshold(detail);
+            var threshold = GetDefaultLowStockThreshold(detail);
 
             if (threshold <= 0)
             {
                 return;
             }
 
-            var usableQuantity =
-                inventory.AvailableQty - inventory.ReservedQty;
+            var usableQuantity = inventory.AvailableQty - inventory.ReservedQty;
 
             if (usableQuantity > threshold)
             {
                 return;
             }
 
-            if (result.Warnings.Any(x =>
-                x.StoreId == document.StoreId
-                && x.IngredientId == detail.IngredientId))
+            if (result.Warnings.Any(x => x.StoreId == document.StoreId && x.IngredientId == detail.IngredientId))
             {
                 return;
             }
 
-            var unitCode =
-                detail.Ingredient?.BaseUnit?.UnitCode ?? string.Empty;
+            var unitCode = detail.Ingredient?.BaseUnit?.UnitCode ?? string.Empty;
 
-            var ingredientName =
-                detail.Ingredient?.Name ?? $"#{detail.IngredientId}";
+            var ingredientName = detail.Ingredient?.Name ?? $"#{detail.IngredientId}";
 
             result.Warnings.Add(
                 new InventoryStockWarningDTO
@@ -749,8 +664,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 });
         }
 
-        private static decimal GetDefaultLowStockThreshold(
-            InventoryDocumentDetail detail)
+        private static decimal GetDefaultLowStockThreshold(InventoryDocumentDetail detail)
         {
             return detail.Ingredient?.BaseUnit?.Type switch
             {
@@ -772,6 +686,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private async Task<(decimal CostPrice, decimal CostAmount)> AllocateFifoAsync(InventoryDocumentDetail detail, int storeId)
         {
+            if (detail.BaseQuantity <= 0)
+            {
+                return (0, 0);
+            }
+
             decimal requiredQty = detail.BaseQuantity;
 
             decimal totalCost = 0;
@@ -788,6 +707,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 }
 
                 var consumeQty = Math.Min(requiredQty, layer.RemainingQuantity);
+
+                if (consumeQty <= 0)
+                {
+                    continue;
+                }
 
                 allocations.Add(
                     new InventoryCostAllocation
@@ -812,11 +736,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             if (requiredQty > 0)
             {
-                var fallbackCost =
-                    allocations.LastOrDefault()?.UnitCost
-                    ?? detail.CostPrice
-                    ?? detail.UnitPrice
-                    ?? 0;
+                var fallbackCost = await ResolveFallbackIssueCostAsync(detail, storeId, allocations);
 
                 totalCost += requiredQty * fallbackCost;
             }
@@ -829,6 +749,41 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             var avgCost = totalCost / detail.BaseQuantity;
 
             return (avgCost, totalCost);
+        }
+
+        private async Task<decimal> ResolveFallbackIssueCostAsync(InventoryDocumentDetail detail, int storeId, IReadOnlyCollection<InventoryCostAllocation> allocations)
+        {
+            var lastAllocatedCost = allocations
+                    .Where(x => x.UnitCost > 0)
+                    .Select(x => (decimal?)x.UnitCost)
+                    .LastOrDefault();
+
+            if (lastAllocatedCost.HasValue)
+            {
+                return lastAllocatedCost.Value;
+            }
+
+            var latestLayer = await _repository.GetLatestCostLayerAsync(storeId, detail.IngredientId);
+
+            if (latestLayer?.UnitCost > 0)
+            {
+                return latestLayer.UnitCost;
+            }
+
+            if (detail.CostPrice.HasValue && detail.CostPrice.Value > 0)
+            {
+                return detail.CostPrice.Value;
+            }
+
+            if (detail.UnitPrice.HasValue
+                && detail.UnitPrice.Value > 0
+                && detail.Quantity > 0
+                && detail.BaseQuantity > 0)
+            {
+                return detail.UnitPrice.Value * detail.Quantity / detail.BaseQuantity;
+            }
+
+            return 0;
         }
 
     }

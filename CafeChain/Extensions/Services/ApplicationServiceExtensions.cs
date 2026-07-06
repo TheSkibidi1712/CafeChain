@@ -1,0 +1,184 @@
+﻿// ==========================================
+// Application - Interfaces
+// ==========================================
+using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces.Accounts;
+using CafeChain.Application.Interfaces.Admin;
+using CafeChain.Application.Interfaces.Admin.Categories;
+using CafeChain.Application.Interfaces.Admin.Dashboard;
+using CafeChain.Application.Interfaces.Admin.Drinks;
+using CafeChain.Application.Interfaces.Admin.DrinkSizes;
+using CafeChain.Application.Interfaces.Admin.DrinkToppings;
+using CafeChain.Application.Interfaces.Admin.Ingredients;
+using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
+using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Settings;
+using CafeChain.Application.Interfaces.Admin.Sizes;
+using CafeChain.Application.Interfaces.Admin.Staffs;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Interfaces.Admin.Toppings;
+using CafeChain.Application.Interfaces.Admin.Vouchers;
+using CafeChain.Application.Interfaces.Attendance;
+using CafeChain.Application.Interfaces.Cloudinaries;
+using CafeChain.Application.Interfaces.Customers;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.Systems;
+
+// ==========================================
+// Application - Services
+// ==========================================
+using CafeChain.Application.Services;
+using CafeChain.Application.Services.Accounts;
+using CafeChain.Application.Services.Admin;
+using CafeChain.Application.Services.Admin.Categories;
+using CafeChain.Application.Services.Admin.Dashboard;
+using CafeChain.Application.Services.Admin.Drinks;
+using CafeChain.Application.Services.Admin.DrinkSizes;
+using CafeChain.Application.Services.Admin.DrinkToppings;
+using CafeChain.Application.Services.Admin.Ingredients;
+using CafeChain.Application.Services.Admin.InventoryDocuments;
+using CafeChain.Application.Services.Admin.InventoryTransfers;
+using CafeChain.Application.Services.Admin.Recipes;
+using CafeChain.Application.Services.Admin.Settings;
+using CafeChain.Application.Services.Admin.Sizes;
+using CafeChain.Application.Services.Admin.Staffs;
+using CafeChain.Application.Services.Admin.StoreInventories;
+using CafeChain.Application.Services.Admin.Suppliers;
+using CafeChain.Application.Services.Admin.Toppings;
+using CafeChain.Application.Services.Admin.Vouchers;
+using CafeChain.Application.Services.Attendance;
+using CafeChain.Application.Services.Cart;
+using CafeChain.Application.Services.Cloudinaries;
+using CafeChain.Application.Services.Customers;
+using CafeChain.Application.Services.Inventories;
+using CafeChain.Application.Services.Inventory;
+using CafeChain.Application.Services.PayOSIntegration;
+using CafeChain.Application.Services.POS;
+using CafeChain.Application.Services.Security;
+using CafeChain.Application.Services.Workers;
+using CafeChain.Application.Workers;
+using CafeChain.Application.Services.Admin.Permissions;
+using CafeChain.Application.Services.Systems;
+
+namespace CafeChain.Extensions.Services
+{
+    public static class ApplicationServiceExtensions
+    {
+        public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
+        {
+            services.AddScoped<IUserContext, UserContext>();
+
+            // Account
+            services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IPasswordResetService, PasswordResetService>();
+            services.AddScoped<IEmailService, EmailService>();
+
+            // Customer
+            services.AddScoped<ICustomerService, CustomerService>();
+
+            // Home / POS / Cart
+            services.AddScoped<IDrinkService, DrinkService>();
+            services.AddScoped<ICartService, CartService>();
+            services.AddScoped<IOrderService, OrderService>();
+
+            // Inventory Core
+            services.AddScoped<IInventoryService, InventoryService>();
+            services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
+            services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
+
+            // System
+            services.AddScoped<IRequestDeduplicationService, RequestDeduplicationService>();
+
+            // File
+            services.AddScoped<IFileService, FileService>();
+
+            // Geocoding
+            services.AddHttpClient<IGeocodingService, NominatimGeocodingService>();
+
+            // Admin - Category
+            services.AddScoped<IAdminCategoryService, AdminCategoryService>();
+
+            // Admin - Sizes
+            services.AddScoped<IAdminSizeService, AdminSizeService>();
+
+            // Admin - DrinkSizes
+            services.AddScoped<IAdminDrinkSizeService, AdminDrinkSizeService>();
+
+            // Admin - Toppings
+            services.AddScoped<IAdminToppingService, AdminToppingService>();
+
+            // Admin - DrinkToppings
+            services.AddScoped<IAdminDrinkToppingService, AdminDrinkToppingService>();
+
+            // Admin - Drinks
+            services.AddScoped<IAdminDrinkService, AdminDrinkService>();
+
+            // Admin - Voucher
+            services.AddScoped<IAdminVoucherService, AdminVoucherService>();
+            services.AddScoped<IAdminWheelService, AdminWheelService>();
+
+            // Admin - Staff
+            services.AddScoped<IAdminStaffService, AdminStaffService>();
+            services.AddScoped<IAdminStaffShiftService, AdminStaffShiftService>();
+
+            // Admin - Ingredients
+            services.AddScoped<IAdminIngredientService, AdminIngredientService>();
+
+            // Admin - Recipes
+            services.AddScoped<IAdminRecipeService, AdminRecipeService>();
+
+            // Admin - Inventory Documents
+            services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
+            services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();
+            services.AddScoped<IAdminInventoryDocumentValidationService, AdminInventoryDocumentValidationService>();
+            services.AddScoped<IAdminInventoryDocumentSnapshotService, AdminInventoryDocumentSnapshotService>();
+            services.AddScoped<IAdminInventoryDocumentProcessService, AdminInventoryDocumentProcessService>();
+            services.AddScoped<IAdminInventoryDocumentConfirmService, AdminInventoryDocumentConfirmService>();
+            services.AddScoped<IAdminInventoryDocumentCreateService, AdminInventoryDocumentCreateService>();
+
+            // Admin - Inventory Transfers
+            services.AddScoped<IAdminInventoryTransferService, AdminInventoryTransferService>();
+
+            // Admin - Store Inventories
+            services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
+
+            // Admin - Suppliers
+            services.AddScoped<IAdminSupplierService, AdminSupplierService>();
+
+            // Admin - Orders Dashboard
+            services.AddScoped<IAdminOrderService, AdminOrderService>();
+
+            // Security
+            services.AddScoped<IScopeAuthorizationService, ScopeAuthorizationService>();
+            services.AddScoped<IAttendanceSecurityService, AttendanceSecurityService>();
+            services.AddScoped<IAttendanceActionService, AttendanceActionService>();
+
+            // Admin - Dashboard
+            services.AddScoped<IDashboardService, DashboardService>();
+
+            // Admin - Settings
+            services.AddScoped<IAdminSettingService, AdminSettingService>();
+
+            // HR & Attendance
+            services.AddScoped<IHrAttendanceService, HrAttendanceService>();
+            services.AddScoped<IWorkShiftService, WorkShiftService>();
+            services.AddScoped<ISupervisorAuthService, SupervisorAuthService>();
+
+            // POS
+            services.AddScoped<IPOSOrderService, POSOrderService>();
+            services.AddScoped<IPrintDispatcher, PrintDispatcher>();
+            services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
+            services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
+
+            // Permissions
+            services.AddScoped<IAdminPermissionService, AdminPermissionService>();
+
+            return services;
+        }
+    }
+}

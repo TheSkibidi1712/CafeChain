@@ -14,15 +14,9 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<List<SupplierIngredientDTO>> GetSupplierIngredientsAsync(int supplierId);
 
-        Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(
-            int storeId,
-            InventoryDocumentPurpose purpose);
+        Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(int storeId, InventoryDocumentPurpose purpose);
 
         Task<List<SupplierIngredientDTO>> GetStoreExportIngredientsAsync(int storeId);
-
-        Task<List<InternalTransferOptionDTO>> GetPendingInternalTransfersAsync(int storeId);
-
-        Task<List<SupplierIngredientDTO>> GetInternalTransferIngredientsAsync(int transferId);
 
         Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto);
 

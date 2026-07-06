@@ -1,4 +1,12 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Detail.AdminInventoryDocumentDetailVM
+@using CafeChain.Models.Enums.Inventory
+
+@{
+    var isSupplierPurchase = Model.Type == InventoryDocumentType.IMPORT
+        && Model.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
+    var showSupplier = !string.IsNullOrWhiteSpace(Model.SupplierName);
+    var showPartner = !isSupplierPurchase && !string.IsNullOrWhiteSpace(Model.PartnerName);
+}
 
 <div class="detail-card">
 
@@ -17,7 +25,7 @@
         <div>
             <span class="detail-label">Loại Phiếu</span>
             <strong>@Model.Type</strong>
-        </div>
+        </div>  
 
         <div>
             <span class="detail-label">Trạng Thái</span>
@@ -36,6 +44,13 @@
             <span class="detail-label">Ngày Chứng Từ</span>
             <strong>
                 @Model.DocumentDate.ToString("dd/MM/yyyy")
+            </strong>
+        </div>
+
+        <div>
+            <span class="detail-label">Request Key</span>
+            <strong>
+                @Model.RequestKey
             </strong>
         </div>
 
@@ -84,20 +99,37 @@
 
     <div class="detail-grid">
 
-        <div>
-            <span class="detail-label">Nhà Cung Cấp</span>
-            <strong>@(Model.SupplierName ?? "-")</strong>
-        </div>
+        @if (showSupplier)
+        {
+            <div>
+                <span class="detail-label">Nhà Cung Cấp</span>
+                <strong>@Model.SupplierName</strong>
+            </div>
+        }
 
-        <div>
-            <span class="detail-label">Đối Tác</span>
-            <strong>@(Model.PartnerName ?? "-")</strong>
-        </div>
+        @if (showPartner)
+        {
+            <div>
+                <span class="detail-label">Đối Tác</span>
+                <strong>@Model.PartnerName</strong>
+            </div>
+        }
 
-        <div>
-            <span class="detail-label">Loại Đối Tượng</span>
-            <strong>@Model.PartnerType</strong>
-        </div>
+        @if (!isSupplierPurchase && Model.PartnerType != InventoryPartnerType.NONE)
+        {
+            <div>
+                <span class="detail-label">Loại Đối Tượng</span>
+                <strong>@Model.PartnerType</strong>
+            </div>
+        }
+
+        @if (!showSupplier && !showPartner && Model.PartnerType == InventoryPartnerType.NONE)
+        {
+            <div>
+                <span class="detail-label">Đối Tượng</span>
+                <strong>-</strong>
+            </div>
+        }
 
     </div>
 

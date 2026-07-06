@@ -24,6 +24,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private readonly IAdminInventoryDocumentSnapshotService _snapshotService;
 
         private readonly IHttpContextAccessor _httpContextAccessor;
+
         private readonly IRequestDeduplicationService _deduplicationService;
 
         public AdminInventoryDocumentCreateService(
@@ -47,13 +48,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         public async Task<AdminInventoryDocumentCreateVM> GetCreateDataAsync(InventoryDocumentType type)
         {
-            var effectiveType =
-                type == InventoryDocumentType.ADJUSTMENT_IN
-                    ? InventoryDocumentType.IMPORT
+            var effectiveType = 
+                    type == InventoryDocumentType.ADJUSTMENT_IN 
+                    ? InventoryDocumentType.IMPORT 
                     : type;
 
-            var purpose =
-                type == InventoryDocumentType.ADJUSTMENT_IN
+            var purpose = 
+                    type == InventoryDocumentType.ADJUSTMENT_IN
                     ? InventoryDocumentPurpose.IMPORT_ADJUSTMENT
                     : effectiveType == InventoryDocumentType.IMPORT
                     ? InventoryDocumentPurpose.IMPORT_PURCHASE
@@ -64,9 +65,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 Type = effectiveType,
                 Purpose = purpose,
                 DocumentDate = DateTime.Now,
-                Code = await _repository.GenerateDocumentCodeAsync(
-                    effectiveType,
-                    purpose == InventoryDocumentPurpose.NONE ? null : purpose),
+                Code = await _repository.GenerateDocumentCodeAsync( effectiveType, purpose == InventoryDocumentPurpose.NONE ? null : purpose),
                 Stores = await _repository.GetStoreDropdownAsync(),
                 Suppliers = await _repository.GetSupplierDropdownAsync(),
                 Summary = new InventoryCreateSummaryDTO()
@@ -80,11 +79,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return ingredients
                 .Select(x =>
                 {
-                    var conversionFactor =
-                        CalculateConversionFactorToBase(
-                            x.Ingredient,
-                            x.UnitId,
-                            throwIfMissing: false);
+                    var conversionFactor = CalculateConversionFactorToBase(x.Ingredient, x.UnitId, throwIfMissing: false);
 
                     return new SupplierIngredientDTO
                     {
@@ -112,9 +107,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 .ToList();
         }
 
-        public async Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(
-            int storeId,
-            InventoryDocumentPurpose purpose)
+        public async Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(int storeId, InventoryDocumentPurpose purpose)
         {
             if (storeId <= 0)
             {
@@ -155,16 +148,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return [];
             }
 
-            var inventories =
-                await _repository.GetStoreInventoriesAsync(storeId);
+            var inventories = await _repository.GetStoreInventoriesAsync(storeId);
 
             var availableInventories =
                 inventories
                     .Where(x =>
-                        x.IngredientId.HasValue
-                        && x.Ingredient != null
-                        && x.Ingredient.Active
-                        && x.AvailableQty > 0)
+                        x.IngredientId.HasValue && x.Ingredient != null && x.Ingredient.Active && x.AvailableQty > 0)
                     .ToList();
 
             var ingredientIds =
@@ -173,14 +162,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     .Distinct()
                     .ToList();
 
-            var costLayers =
-                await _repository.GetAvailableCostLayersAsync(storeId, ingredientIds);
+            var costLayers =  await _repository.GetAvailableCostLayersAsync(storeId, ingredientIds);
 
-            var supplierPrices =
-                await _repository.GetActiveIngredientSuppliersByIngredientIdsAsync(ingredientIds);
+            var supplierPrices = await _repository.GetActiveIngredientSuppliersByIngredientIdsAsync(ingredientIds);
 
-            var priceLookup =
-                BuildPriceLookup(costLayers, supplierPrices);
+            var priceLookup = BuildPriceLookup(costLayers, supplierPrices);
 
             return availableInventories
                 .OrderBy(x => x.Ingredient.Name)
@@ -192,20 +178,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         isPriceLocked: true,
                         isQuantityLocked: false))
                 .ToList();
-        }
-
-        public async Task<List<InternalTransferOptionDTO>> GetPendingInternalTransfersAsync(int storeId)
-        {
-            await Task.CompletedTask;
-
-            return [];
-        }
-
-        public async Task<List<SupplierIngredientDTO>> GetInternalTransferIngredientsAsync(int transferId)
-        {
-            await Task.CompletedTask;
-
-            throw new InvalidOperationException("Chuyển kho liên chi nhánh không còn xử lý bằng phiếu nhập nội bộ. Vui lòng dùng nghiệp vụ InventoryTransfer.");
         }
 
         public async Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto)
@@ -224,6 +196,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<int> SaveDraftAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+
+            await ApplySupplierPartnerSnapshotAsync(dto);
 
             await NormalizeCreateDetailsAsync(dto);
 
@@ -299,6 +273,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             NormalizeImportDocumentType(dto);
 
+            await ApplySupplierPartnerSnapshotAsync(dto);
+
             await _repository.BeginTransactionAsync();
 
             try
@@ -334,10 +310,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 document = await _repository.GetDocumentForConfirmAsync(document.InventoryDocumentId) ?? throw new Exception("Không tìm thấy chứng từ.");
 
-                var processResult =
-                    await _confirmService.ConfirmDocumentAsync(
-                        document,
-                        GetCurrentStaffId());
+                var processResult = await _confirmService.ConfirmDocumentAsync(document, GetCurrentStaffId());
 
                 await _repository.SaveChangesAsync();
 
@@ -369,8 +342,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             try
             {
-                var document =
-                    await _repository.GetDocumentForConfirmAsync(documentId);
+                var document = await _repository.GetDocumentForConfirmAsync(documentId);
 
                 if (document == null)
                 {
@@ -423,16 +395,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return alreadyConfirmedResponse;
                 }
 
-                if (document.Status != InventoryDocumentStatus.DRAFT
-                    && document.Status != InventoryDocumentStatus.PENDING)
+                if (document.Status != InventoryDocumentStatus.DRAFT && document.Status != InventoryDocumentStatus.PENDING)
                 {
                     throw new InvalidOperationException("Trạng thái phiếu không hợp lệ để xác nhận.");
                 }
 
-                var processResult =
-                    await _confirmService.ConfirmDocumentAsync(
-                        document,
-                        GetCurrentStaffId());
+                var processResult = await _confirmService.ConfirmDocumentAsync(document, GetCurrentStaffId());
 
                 await _repository.SaveChangesAsync();
 
@@ -465,8 +433,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             try
             {
-                var document =
-                    await _repository.GetByIdAsync(documentId);
+                var document = await _repository.GetByIdAsync(documentId);
 
                 if (document == null)
                 {
@@ -575,6 +542,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     BaseQuantity = x.BaseQuantity,
                     UnitId = x.UnitId,
                     UnitPrice = x.UnitPrice,
+                    CostPrice = x.CostPrice,
+                    CostAmount = x.CostAmount,
                     TotalAmount = x.TotalAmount,
                     Note = NormalizeDetailNote(dto.Note)
                 })
@@ -626,6 +595,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         BaseQuantity = x.BaseQuantity,
                         UnitId = x.UnitId,
                         UnitPrice = x.UnitPrice,
+                        CostPrice = x.CostPrice,
+                        CostAmount = x.CostAmount,
                         TotalAmount = x.TotalAmount,
                         Note = NormalizeDetailNote(dto.Note)
                     });
@@ -645,16 +616,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return;
             }
 
-            if (dto.Type == InventoryDocumentType.IMPORT
-                && dto.Purpose == InventoryDocumentPurpose.NONE)
+            if (dto.Type == InventoryDocumentType.IMPORT && dto.Purpose == InventoryDocumentPurpose.NONE)
             {
                 dto.Purpose = InventoryDocumentPurpose.IMPORT_PURCHASE;
             }
 
             if (dto.Type == InventoryDocumentType.IMPORT)
             {
-                if (dto.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE
-                    && dto.SupplierId.HasValue)
+                if (dto.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE && dto.SupplierId.HasValue)
                 {
                     dto.PartnerType = InventoryPartnerType.SUPPLIER;
                     dto.PartnerId = dto.SupplierId;
@@ -673,8 +642,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             if (dto.Type == InventoryDocumentType.EXPORT)
             {
-                if (dto.Purpose == InventoryDocumentPurpose.SALE
-                    && !string.IsNullOrWhiteSpace(dto.PartnerName))
+                if (dto.Purpose == InventoryDocumentPurpose.SALE && !string.IsNullOrWhiteSpace(dto.PartnerName))
                 {
                     dto.PartnerType = InventoryPartnerType.CUSTOMER;
                     dto.PartnerId = null;
@@ -692,6 +660,27 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
+        private async Task ApplySupplierPartnerSnapshotAsync(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.IMPORT || dto.Purpose != InventoryDocumentPurpose.IMPORT_PURCHASE)
+            {
+                return;
+            }
+
+            if (!dto.SupplierId.HasValue || dto.SupplierId.Value <= 0)
+            {
+                ClearPartner(dto);
+                return;
+            }
+
+            var supplier =  await _repository.GetSupplierAsync(dto.SupplierId.Value) ?? throw new InvalidOperationException("Nhà cung cấp không tồn tại hoặc đã bị xóa.");
+
+            dto.SupplierId = supplier.SupplierId;
+            dto.PartnerType = InventoryPartnerType.SUPPLIER;
+            dto.PartnerId = supplier.SupplierId;
+            dto.PartnerName = string.IsNullOrWhiteSpace(supplier.Name) ? $"Nhà cung cấp #{supplier.SupplierId}" : supplier.Name.Trim();
+        }
+
         private static void ClearPartner(CreateInventoryDocumentDTO dto)
         {
             dto.PartnerType = InventoryPartnerType.NONE;
@@ -706,28 +695,17 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             bool isPriceLocked,
             bool isQuantityLocked)
         {
-            var unitOptions =
-                BuildUnitOptions(ingredient);
+            var unitOptions = BuildUnitOptions(ingredient);
 
-            var defaultUnit =
-                unitOptions.FirstOrDefault(x => x.IsBaseUnit)
-                ?? unitOptions.FirstOrDefault();
+            var defaultUnit = unitOptions.FirstOrDefault(x => x.IsBaseUnit) ?? unitOptions.FirstOrDefault();
 
-            var hasPrice =
-                priceLookup.TryGetValue(
-                    ingredient.IngredientId,
-                    out var price);
+            var hasPrice = priceLookup.TryGetValue(ingredient.IngredientId, out var price);
 
-            var baseUnitCost =
-                hasPrice ? price.BaseUnitCost : 0;
+            var baseUnitCost = hasPrice ? price.BaseUnitCost : 0;
 
-            var conversionFactor =
-                defaultUnit?.ConversionFactorToBase ?? 0;
+            var conversionFactor = defaultUnit?.ConversionFactorToBase ?? 0;
 
-            var unitPrice =
-                conversionFactor > 0
-                    ? baseUnitCost * conversionFactor
-                    : 0;
+            var unitPrice = conversionFactor > 0 ? baseUnitCost * conversionFactor : 0;
 
             return new SupplierIngredientDTO
             {
@@ -752,9 +730,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             };
         }
 
-        private static Dictionary<int, (decimal BaseUnitCost, string PriceSource)> BuildPriceLookup(
-            IEnumerable<InventoryCostLayer> costLayers,
-            IEnumerable<IngredientSupplier> supplierPrices)
+        private static Dictionary<int, (decimal BaseUnitCost, string PriceSource)> BuildPriceLookup(IEnumerable<InventoryCostLayer> costLayers, IEnumerable<IngredientSupplier> supplierPrices)
         {
             var result =
                 costLayers
@@ -764,15 +740,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         x => x.Key,
                         x =>
                         {
-                            var quantity =
-                                x.Sum(layer => layer.RemainingQuantity);
+                            var quantity = x.Sum(layer => layer.RemainingQuantity);
 
-                            var amount =
-                                x.Sum(layer => layer.RemainingQuantity * layer.UnitCost);
+                            var amount = x.Sum(layer => layer.RemainingQuantity * layer.UnitCost);
 
-                            return (
-                                BaseUnitCost: amount / quantity,
-                                PriceSource: "Giá vốn FIFO bình quân còn tồn");
+                            return (BaseUnitCost: amount / quantity, PriceSource: "Giá vốn FIFO bình quân còn tồn");
                         });
 
             foreach (var group in supplierPrices.GroupBy(x => x.IngredientId))
@@ -809,11 +781,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return result;
         }
 
-        private static List<InventoryIngredientUnitOptionDTO> BuildUnitOptions(
-            Ingredient ingredient)
+        private static List<InventoryIngredientUnitOptionDTO> BuildUnitOptions(Ingredient ingredient)
         {
-            var options =
-                new List<InventoryIngredientUnitOptionDTO>();
+            var options = new List<InventoryIngredientUnitOptionDTO>();
 
             if (ingredient.BaseUnit != null)
             {
@@ -855,8 +825,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return options;
         }
 
-        private static List<InventoryIngredientUnitOptionDTO> BuildBaseUnitOptions(
-            Ingredient ingredient)
+        private static List<InventoryIngredientUnitOptionDTO> BuildBaseUnitOptions(Ingredient ingredient)
         {
             return
             [
@@ -871,9 +840,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             ];
         }
 
-        private static List<InventoryIngredientUnitOptionDTO> BuildSupplierUnitOptions(
-            IngredientSupplier supplier,
-            decimal? conversionFactor)
+        private static List<InventoryIngredientUnitOptionDTO> BuildSupplierUnitOptions(IngredientSupplier supplier, decimal? conversionFactor)
         {
             return
             [
@@ -888,14 +855,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             ];
         }
 
-        private static decimal CalculateSupplierBaseUnitCost(
-            IngredientSupplier supplier)
+        private static decimal CalculateSupplierBaseUnitCost(IngredientSupplier supplier)
         {
-            var conversionFactor =
-                CalculateConversionFactorToBase(
-                    supplier.Ingredient,
-                    supplier.UnitId,
-                    throwIfMissing: false);
+            var conversionFactor = CalculateConversionFactorToBase(supplier.Ingredient, supplier.UnitId, throwIfMissing: false);
 
             if (!conversionFactor.HasValue || conversionFactor.Value <= 0)
             {
@@ -905,8 +867,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return GetCurrentSupplierPrice(supplier) / conversionFactor.Value;
         }
 
-        private static decimal GetCurrentSupplierPrice(
-            IngredientSupplier supplier)
+        private static decimal GetCurrentSupplierPrice(IngredientSupplier supplier)
         {
             var currentHistory =
                 supplier.PriceHistories
@@ -919,8 +880,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 : supplier.CurrentPrice;
         }
 
-        private static DateTime GetSupplierPriceEffectiveDate(
-            IngredientSupplier supplier)
+        private static DateTime GetSupplierPriceEffectiveDate(IngredientSupplier supplier)
         {
             return supplier.PriceHistories
                 .Where(x => x.IsCurrent)
@@ -959,6 +919,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 item.TotalAmount =
                     item.Quantity * item.UnitPrice;
+
+                if (item.CostPrice.HasValue && item.CostPrice.Value >= 0)
+                {
+                    item.CostAmount = item.BaseQuantity * item.CostPrice.Value;
+                }
             }
         }
 
@@ -980,8 +945,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return summary;
         }
 
-        private async Task<List<InventoryBaseQuantitySummaryDTO>> BuildBaseQuantitySummaryAsync(
-            CreateInventoryDocumentDTO dto)
+        private async Task<List<InventoryBaseQuantitySummaryDTO>> BuildBaseQuantitySummaryAsync(CreateInventoryDocumentDTO dto)
         {
             var result = new Dictionary<int, InventoryBaseQuantitySummaryDTO>();
 
@@ -992,8 +956,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     continue;
                 }
 
-                var ingredient =
-                    await _repository.GetIngredientAsync(item.IngredientId);
+                var ingredient = await _repository.GetIngredientAsync(item.IngredientId);
 
                 if (ingredient?.BaseUnit == null)
                 {
@@ -1016,16 +979,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 summary.Quantity += item.BaseQuantity;
             }
 
-            return result
-                .Values
-                .OrderBy(x => x.UnitCode)
-                .ToList();
+            return result.Values.OrderBy(x => x.UnitCode).ToList();
         }
 
-        private static decimal? CalculateConversionFactorToBase(
-            Ingredient ingredient,
-            int unitId,
-            bool throwIfMissing)
+        private static decimal? CalculateConversionFactorToBase(Ingredient ingredient, int unitId, bool throwIfMissing)
         {
             if (unitId == ingredient.BaseUnitId)
             {
@@ -1053,8 +1010,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return conversion.ToQuantity / conversion.FromQuantity;
         }
 
-        private static string FormatBaseQuantityText(
-            IEnumerable<InventoryBaseQuantitySummaryDTO> baseQuantities)
+        private static string FormatBaseQuantityText(IEnumerable<InventoryBaseQuantitySummaryDTO> baseQuantities)
         {
             var text =
                 baseQuantities

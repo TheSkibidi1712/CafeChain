@@ -358,6 +358,20 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     x.InventoryCostLayerId == costLayerId);
         }
 
+        public async Task<InventoryCostLayer?> GetLatestCostLayerAsync(int storeId, int ingredientId)
+        {
+            return await _context.InventoryCostLayers
+                .AsNoTracking()
+                .Where(x =>
+                    x.StoreId == storeId
+                    && x.IngredientId == ingredientId
+                    && x.Quantity > 0)
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.InventoryCostLayerId)
+                .FirstOrDefaultAsync();
+        }
+
+
         public void UpdateCostLayer(InventoryCostLayer layer)
         {
             _context.InventoryCostLayers.Update(layer);
@@ -552,45 +566,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     ids.Contains(x.IngredientId)
                     && x.Active)
                 .ToListAsync();
-        }
-
-        public async Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId)
-        {
-            return await _context.InventoryTransfers
-                .AsNoTracking()
-                .Include(x => x.FromStore)
-                .Include(x => x.ToStore)
-                .Where(x =>
-                    x.ToStoreId == storeId
-                    && x.Status == InventoryTransferStatus.DRAFT)
-                .OrderByDescending(x => x.CreatedAt)
-                .ToListAsync();
-        }
-
-        public async Task<InventoryTransfer?> GetTransferForInternalImportAsync(int transferId)
-        {
-            return await _context.InventoryTransfers
-                .Include(x => x.FromStore)
-                .Include(x => x.ToStore)
-                .Include(x => x.Details)
-                    .ThenInclude(x => x.Ingredient)
-                        .ThenInclude(x => x.BaseUnit)
-                .Include(x => x.Details)
-                    .ThenInclude(x => x.Ingredient)
-                        .ThenInclude(x => x.UnitConversions)
-                .Include(x => x.Details)
-                    .ThenInclude(x => x.Unit)
-                .FirstOrDefaultAsync(x => x.InventoryTransferId == transferId);
-        }
-
-        public async Task AddTransferAsync(InventoryTransfer transfer)
-        {
-            await _context.InventoryTransfers.AddAsync(transfer);
-        }
-
-        public void UpdateTransfer(InventoryTransfer transfer)
-        {
-            _context.InventoryTransfers.Update(transfer);
         }
 
         // =====================================================
