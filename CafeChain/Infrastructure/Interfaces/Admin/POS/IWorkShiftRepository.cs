@@ -12,6 +12,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
     {
         // === SHIFT CRUD ===
         Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId);
+        Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId);
         Task<WorkShift> CreateShiftAsync(WorkShift shift);
         Task UpdateShiftAsync(WorkShift shift);
         Task EnsurePosTerminalAsync(string terminalId, int storeId, string name);

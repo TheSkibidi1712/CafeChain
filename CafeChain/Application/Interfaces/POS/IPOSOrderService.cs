@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Results;
+using System;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Interfaces.POS
@@ -24,6 +25,17 @@ namespace CafeChain.Application.Interfaces.POS
         /// Validate → Calculate → Create Order → Create Payments → Handle Loyalty → Handle Voucher
         /// </summary>
         Task<ServiceResult<object>> CommitOrderAsync(POSOrderCommitDto dto, int userId, int storeId);
+
+        /// <summary>
+        /// Commit Offline Order được Sync từ IndexedDB vào đúng WorkShift gốc.
+        /// Không yêu cầu WorkShift đang mở và không trigger automatic print.
+        /// </summary>
+        Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
+            POSOrderCommitDto dto,
+            int userId,
+            int storeId,
+            int workShiftId,
+            DateTime soldAt);
 
         /// <summary>
         /// Lấy dữ liệu tóm tắt ca cho modal đóng ca

@@ -79,7 +79,7 @@ namespace CafeChain.Controllers.Api.v1
         // ============================================================
 
         /// <summary>
-        /// Batch sync offline orders — xử lý từng đơn qua CommitOrderAsync.
+        /// Batch sync offline orders — xử lý từng đơn qua CommitOfflineSyncedOrderAsync.
         /// 
         /// Response trả partial success:
         ///   - results[]: { clientOrderId, status, orderId?, error? }
@@ -105,6 +105,16 @@ namespace CafeChain.Controllers.Api.v1
 
                 try
                 {
+                    var validationError = ValidateOfflineSyncOrder(orderDto);
+                    if (validationError != null)
+                    {
+                        itemResult.Status = "failed";
+                        itemResult.Error = validationError;
+                        failedCount++;
+                        results.Add(itemResult);
+                        continue;
+                    }
+
                     // Chuyển OfflineOrderSyncDTO → POSOrderCommitDto
                     var commitDto = new POSOrderCommitDto
                     {
@@ -117,13 +127,18 @@ namespace CafeChain.Controllers.Api.v1
                         }).ToList() ?? new List<POSOrderItemDto>(),
                         OrderTypeId = orderDto.OrderTypeId > 0 ? orderDto.OrderTypeId : 1,
                         ReceivedAmount = orderDto.ReceivedAmount,
+                        PaymentMethodId = orderDto.PaymentMethodId,
                         Note = "[OFFLINE-SYNC] " + (orderDto.Note ?? ""),
                         ClientOrderId = orderDto.ClientOrderId,
                         SkipPrint = true  // Offline sync — không in bill
                     };
 
-                    var commitResult = await _orderService.CommitOrderAsync(
-                        commitDto, CurrentStaffId, orderDto.StoreId ?? CurrentStoreId);
+                    var commitResult = await _orderService.CommitOfflineSyncedOrderAsync(
+                        commitDto,
+                        orderDto.StaffId!.Value,
+                        orderDto.StoreId!.Value,
+                        orderDto.WorkShiftId!.Value,
+                        orderDto.SoldAt ?? DateTime.Now);
 
                     if (commitResult.IsSuccess)
                     {
@@ -142,8 +157,9 @@ namespace CafeChain.Controllers.Api.v1
                             itemResult.OrderId = ExtractOrderId(commitResult.Data);
                             createdCount++;
 
-                            // Side-effects: Inventory deduction cho đơn mới (fire-and-forget)
-                            await DeductInventorySafeAsync(commitDto.Items, orderDto.StoreId ?? CurrentStoreId);
+                            // Side-effects: Inventory deduction chỉ chạy cho đơn offline tạo mới.
+                            // Duplicate/idempotent sync tuyệt đối không trừ kho lại.
+                            await DeductInventorySafeAsync(commitDto.Items, orderDto.StoreId!.Value);
                         }
                     }
                     else
@@ -207,6 +223,32 @@ namespace CafeChain.Controllers.Api.v1
                 return dto.Payments.Any(payment => payment.PaymentMethodId == 2);
 
             return (dto.Payments == null || dto.Payments.Count == 0) && dto.PaymentMethodId == 2;
+        }
+
+        private static string? ValidateOfflineSyncOrder(OfflineOrderSyncDTO orderDto)
+        {
+            if (!orderDto.ClientOrderId.HasValue)
+                return "Thiếu ClientOrderId cho đơn offline.";
+
+            if (!orderDto.StoreId.HasValue)
+                return "Thiếu StoreId cho đơn offline.";
+
+            if (!orderDto.StaffId.HasValue)
+                return "Thiếu StaffId cho đơn offline.";
+
+            if (!orderDto.WorkShiftId.HasValue)
+                return "Thiếu WorkShiftId cho đơn offline.";
+
+            if (orderDto.PaymentMethodId != 1 ||
+                (orderDto.PaymentSnapshot != null && orderDto.PaymentSnapshot.PaymentMethodId != 1))
+            {
+                return "Offline Sync chỉ hỗ trợ thanh toán tiền mặt.";
+            }
+
+            if (orderDto.Details == null || !orderDto.Details.Any())
+                return "Giỏ hàng offline trống.";
+
+            return null;
         }
 
         /// <summary>

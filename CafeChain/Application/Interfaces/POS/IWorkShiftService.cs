@@ -20,6 +20,12 @@ namespace CafeChain.Application.Interfaces.POS
         Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId);
 
         /// <summary>
+        /// Gets a historical POS WorkShift by id for Offline Order Sync.
+        /// Allows closed shifts but requires same staff and store.
+        /// </summary>
+        Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId);
+
+        /// <summary>
         /// Closes an open WorkShift with cash reconciliation.
         /// Calculates expected ending cash and records discrepancy.
         /// </summary>

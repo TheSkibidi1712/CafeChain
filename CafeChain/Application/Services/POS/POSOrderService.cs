@@ -565,6 +565,260 @@ namespace CafeChain.Application.Services.POS
         }
 
         // ============================================================
+        // COMMIT OFFLINE SYNCED ORDER — Issue #81
+        // ============================================================
+        public async Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
+            POSOrderCommitDto dto,
+            int userId,
+            int storeId,
+            int workShiftId,
+            DateTime soldAt)
+        {
+            if (dto == null || dto.Items == null || !dto.Items.Any())
+                return ServiceResult<object>.Failure("Giỏ hàng offline trống.");
+
+            if (!dto.ClientOrderId.HasValue)
+                return ServiceResult<object>.Failure("Thiếu ClientOrderId cho đơn offline.");
+
+            if ((dto.Payments != null && dto.Payments.Any(p => p.PaymentMethodId != 1)) ||
+                ((dto.Payments == null || !dto.Payments.Any()) && dto.PaymentMethodId != 1))
+            {
+                return ServiceResult<object>.Failure("Offline Sync chỉ hỗ trợ thanh toán tiền mặt.");
+            }
+
+            var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+            if (existingOrder != null)
+            {
+                _logger.LogInformation(
+                    "[OfflineSync] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
+                    existingOrder.OrderId, dto.ClientOrderId);
+
+                return ServiceResult<object>.Success(BuildIdempotentResponse(existingOrder, dto.ReceivedAmount),
+                    "Đơn offline đã được đồng bộ trước đó.");
+            }
+
+            var originalShift = await _workShiftService.GetShiftByIdAsync(workShiftId, userId, storeId);
+            if (originalShift == null)
+                return ServiceResult<object>.Failure("Không tìm thấy WorkShift gốc cho đơn offline hoặc WorkShift không khớp nhân viên/cửa hàng.");
+
+            await _repository.BeginTransactionAsync();
+            var transactionCommitted = false;
+
+            try
+            {
+                decimal subTotal = 0;
+                var orderDetails = new List<OrderDetail>();
+
+                foreach (var item in dto.Items)
+                {
+                    if (item.Quantity <= 0)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure("Số lượng món trong đơn offline phải lớn hơn 0.");
+                    }
+
+                    var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId, storeId);
+                    if (drink == null)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure($"Sản phẩm #{item.DrinkId} không tồn tại hoặc không bán tại cửa hàng này.");
+                    }
+
+                    decimal itemBasePrice;
+                    string? sizeName;
+
+                    if (item.SizeId.HasValue)
+                    {
+                        var drinkSize = drink.DrinkSizes.FirstOrDefault(ds => ds.SizeId == item.SizeId.Value && ds.Active);
+                        if (drinkSize == null)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Size #{item.SizeId.Value} không hợp lệ cho sản phẩm {drink.Name}.");
+                        }
+
+                        itemBasePrice = drinkSize.Price;
+                        sizeName = drinkSize.Size?.Name;
+                    }
+                    else
+                    {
+                        var defaultSize = drink.DrinkSizes
+                            .Where(ds => ds.Active)
+                            .OrderBy(ds => ds.Price)
+                            .ThenBy(ds => ds.SizeId)
+                            .FirstOrDefault();
+
+                        if (defaultSize == null)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Sản phẩm {drink.Name} chưa có size đang hoạt động.");
+                        }
+
+                        itemBasePrice = defaultSize.Price;
+                        sizeName = defaultSize.Size?.Name;
+                        item.SizeId = defaultSize.SizeId;
+                    }
+
+                    decimal toppingTotal = 0;
+                    var orderToppings = new List<OrderTopping>();
+                    if (item.Toppings != null && item.Toppings.Any())
+                    {
+                        var toppingIds = item.Toppings.Select(t => t.ToppingId).Distinct().ToList();
+                        var toppings = await _repository.GetValidToppingsForOrderItemAsync(storeId, item.DrinkId, toppingIds);
+                        if (toppings.Count != toppingIds.Count)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Có topping không hợp lệ cho sản phẩm {drink.Name} hoặc cửa hàng hiện tại.");
+                        }
+
+                        foreach (var topping in toppings)
+                        {
+                            toppingTotal += topping.Price;
+                            orderToppings.Add(new OrderTopping
+                            {
+                                ToppingId = topping.ToppingId,
+                                ToppingName = topping.Name,
+                                Price = topping.Price
+                            });
+                        }
+                    }
+
+                    subTotal += (itemBasePrice + toppingTotal) * item.Quantity;
+                    orderDetails.Add(new OrderDetail
+                    {
+                        DrinkId = item.DrinkId,
+                        SizeId = item.SizeId,
+                        DrinkName = drink.Name,
+                        SizeName = sizeName,
+                        Price = itemBasePrice + toppingTotal,
+                        Quantity = item.Quantity,
+                        Note = item.Note ?? "",
+                        OrderToppings = orderToppings
+                    });
+                }
+
+                var total = subTotal;
+                var paymentLines = dto.Payments != null && dto.Payments.Any()
+                    ? dto.Payments
+                    : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = 1, Amount = total } };
+
+                if (paymentLines.Any(p => p.PaymentMethodId != 1))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Offline Sync chỉ hỗ trợ thanh toán tiền mặt.");
+                }
+
+                if (paymentLines.Any(p => p.Amount < 0))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Số tiền thanh toán không được âm.");
+                }
+
+                var paymentTotal = paymentLines.Sum(p => p.Amount);
+                if (paymentTotal != total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tổng thanh toán offline không khớp tổng tiền đơn hàng.");
+                }
+
+                var createdAt = soldAt == default ? DateTime.Now : soldAt;
+                var newOrder = await _repository.CreateOrderAsync(new Order
+                {
+                    StoreId = storeId,
+                    StaffId = userId,
+                    WorkShiftId = originalShift.ShiftId,
+                    CustomerId = dto.CustomerId,
+                    OrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1,
+                    OrderStatusId = SystemConstants.OrderStatuses.Completed,
+                    PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                    SubTotal = subTotal,
+                    VoucherDiscount = 0,
+                    PointDiscount = 0,
+                    PointsUsed = 0,
+                    Total = total,
+                    ShippingFee = 0,
+                    Source = "POS",
+                    Note = dto.Note,
+                    ClientOrderId = dto.ClientOrderId,
+                    CreatedAt = createdAt,
+                    OrderDetails = orderDetails
+                });
+
+                foreach (var payLine in paymentLines)
+                {
+                    await _repository.CreatePaymentAsync(new Payment
+                    {
+                        OrderId = newOrder.OrderId,
+                        PaymentMethodId = 1,
+                        Amount = payLine.Amount,
+                        PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                        PaidAt = createdAt
+                    });
+                }
+
+                var cashAmount = paymentLines.Sum(p => p.Amount);
+                if (string.Equals(originalShift.Status, "Open", StringComparison.OrdinalIgnoreCase) && cashAmount > 0)
+                {
+                    originalShift.ExpectedEndingCash += cashAmount;
+                    await _repository.SaveChangesAsync();
+                }
+
+                await _repository.CommitTransactionAsync();
+                transactionCommitted = true;
+
+                var changeAmount = dto.ReceivedAmount - total;
+                return ServiceResult<object>.Success(new
+                {
+                    orderId = newOrder.OrderId,
+                    clientOrderId = newOrder.ClientOrderId?.ToString(),
+                    workShiftId = newOrder.WorkShiftId,
+                    subTotal,
+                    total,
+                    receivedAmount = dto.ReceivedAmount,
+                    changeAmount = changeAmount > 0 ? changeAmount : 0,
+                    isIdempotent = false
+                } as object, "Đồng bộ đơn offline thành công.");
+            }
+            catch (Exception ex)
+            {
+                if (!transactionCommitted)
+                {
+                    await _repository.RollbackTransactionAsync();
+                }
+
+                var racedOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+                if (racedOrder != null)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "[OfflineSync] Unique race handled as duplicate for ClientOrderId={ClientOrderId}",
+                        dto.ClientOrderId);
+
+                    return ServiceResult<object>.Success(BuildIdempotentResponse(racedOrder, dto.ReceivedAmount),
+                        "Đơn offline đã được đồng bộ trước đó.");
+                }
+
+                return ServiceResult<object>.Failure("Lỗi hệ thống khi đồng bộ đơn offline: " + ex.Message);
+            }
+        }
+
+        private static object BuildIdempotentResponse(Order existingOrder, decimal receivedAmount)
+        {
+            var change = receivedAmount - existingOrder.Total;
+            return new
+            {
+                orderId = existingOrder.OrderId,
+                clientOrderId = existingOrder.ClientOrderId?.ToString(),
+                workShiftId = existingOrder.WorkShiftId,
+                subTotal = existingOrder.SubTotal,
+                total = existingOrder.Total,
+                receivedAmount,
+                changeAmount = change > 0 ? change : 0m,
+                earnedPoints = 0,
+                isIdempotent = true
+            } as object;
+        }
+
+        // ============================================================
         // GET CLOSE SHIFT DATA
         // ============================================================
         public async Task<ServiceResult<object>> GetCloseShiftDataAsync(int userId, int storeId)

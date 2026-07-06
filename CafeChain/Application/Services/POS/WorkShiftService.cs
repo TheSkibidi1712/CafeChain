@@ -122,6 +122,11 @@ namespace CafeChain.Application.Services.POS
             return await _shiftRepo.GetActiveShiftAsync(userId, storeId);
         }
 
+        public async Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId)
+        {
+            return await _shiftRepo.GetShiftByIdAsync(shiftId, userId, storeId);
+        }
+
         // ============================================================
         // CLOSE SHIFT + RECONCILIATION: Đối soát két tiền cuối ca
         // ============================================================
