@@ -149,13 +149,21 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
                 }
 
-                // 2. Calculate Expected Ending Cash via Repository
+                // 2. Backend-known PayOS/VietQR pending orders block normal close.
+                if (await _shiftRepo.HasOpenPosPaymentAsync(activeShift.ShiftId, storeId))
+                {
+                    return ServiceResult.Failure(
+                        "Không thể đóng ca thường. Đang có giao dịch thanh toán chưa hoàn tất. " +
+                        "Vui lòng hoàn tất hoặc hủy giao dịch trước khi đóng ca.");
+                }
+
+                // 3. Calculate Expected Ending Cash via Repository
                 var totalCashSales = await _shiftRepo.GetTotalCashSalesAsync(activeShift.ShiftId);
 
                 // ExpectedEndingCash = StartingCash + tổng doanh thu tiền mặt trong ca
                 var expectedEndingCash = activeShift.StartingCash + totalCashSales;
 
-                // 3. Calculate Discrepancy
+                // 4. Calculate Discrepancy
                 var discrepancy = request.ActualEndingCash - expectedEndingCash;
 
                 if (discrepancy != 0 && string.IsNullOrWhiteSpace(request.DiscrepancyReason))
@@ -163,7 +171,7 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult.Failure($"Phát hiện chênh lệch {discrepancy:N0}đ. Vui lòng nhập lý do chênh lệch.");
                 }
 
-                // 4. Close Shift — persist reconciliation data
+                // 5. Close Shift — persist reconciliation data
                 activeShift.ExpectedEndingCash = expectedEndingCash;
                 activeShift.ActualEndingCash = request.ActualEndingCash;
                 activeShift.CashDiscrepancy = discrepancy;
@@ -173,7 +181,7 @@ namespace CafeChain.Application.Services.POS
 
                 await _shiftRepo.UpdateShiftAsync(activeShift);
 
-                // 5. AUTO WARNING LOG: Nếu chênh lệch != 0 → ghi log cho Web Admin
+                // 6. AUTO WARNING LOG: Nếu chênh lệch != 0 → ghi log cho Web Admin
                 if (discrepancy != 0)
                 {
                     _logger.LogWarning(

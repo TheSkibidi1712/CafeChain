@@ -8,6 +8,10 @@ import {
   printTemporaryDrinkLabels,
   printTemporaryReceipt,
 } from './services/offlineTemporaryPrint'
+import {
+  clearActivePaymentCloseGuard,
+  writeActivePaymentCloseGuard,
+} from './services/posShiftCloseGuard'
 import { getPosSession } from './services/posSession'
 import { usePOSData } from './hooks/usePOSData'
 import ProductModifierModal, {
@@ -180,6 +184,25 @@ export default function POSLayout() {
   const parsedPendingCash = Math.max(0, Number(pendingCashInput) || 0)
   const pendingCashForCart = Math.min(parsedPendingCash, totalAmount)
   const remainingAfterPendingCash = Math.max(0, totalAmount - pendingCashForCart)
+
+  useEffect(() => {
+    if (!pendingPayment || !hasOpenShift || !shift?.shiftId || !session.staffId || !session.storeId) {
+      clearActivePaymentCloseGuard()
+      return
+    }
+
+    writeActivePaymentCloseGuard({
+      status: pendingPayment.status,
+      shiftId: shift.shiftId,
+      staffId: session.staffId,
+      storeId: session.storeId,
+      orderId: pendingPayment.orderId,
+      totalAmount: pendingPayment.totalAmount,
+      pendingCashAmount: pendingPayment.pendingCashAmount,
+      vietQrAmount: pendingPayment.vietQrAmount,
+      expiresAt: pendingPayment.expiresAt,
+    })
+  }, [hasOpenShift, pendingPayment, session.staffId, session.storeId, shift?.shiftId])
 
   const showMessage = useCallback((message: string) => {
     setCheckoutMessage(message)

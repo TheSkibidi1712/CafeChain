@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
@@ -87,6 +88,17 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     (o, p) => new { Order = o, Payment = p })
                 .Where(op => op.Payment.PaymentMethodId == 1) // 1 = Cash payment
                 .SumAsync(op => (decimal?)op.Payment.Amount) ?? 0m;
+        }
+
+        public async Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId)
+        {
+            return await _context.Orders
+                .AnyAsync(order =>
+                    order.WorkShiftId == shiftId &&
+                    order.StoreId == storeId &&
+                    order.Source == "POS" &&
+                    order.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment &&
+                    order.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid);
         }
 
         // === RECONCILIATION ===

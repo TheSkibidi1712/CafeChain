@@ -22,6 +22,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
 
         // === CLOSE SHIFT DATA ===
         Task<decimal> GetTotalCashSalesAsync(int shiftId);
+        Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId);
 
         // === RECONCILIATION ===
         /// <summary>
