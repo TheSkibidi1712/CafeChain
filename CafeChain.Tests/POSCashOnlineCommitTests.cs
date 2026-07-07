@@ -195,13 +195,14 @@ namespace CafeChain.Tests.POS
                 } as object));
 
             inventoryService
-                .Setup(service => service.DeductStockForOrderAsync(
+                .Setup(service => service.DeductStockForCommittedOrderAsync(
                     It.Is<List<POSSoldItemDto>>(items =>
                         items.Count == 1 &&
                         items[0].DrinkId == 10 &&
                         items[0].SizeId == 2 &&
                         items[0].Quantity == 1),
-                    3))
+                    3,
+                    101))
                 .ReturnsAsync(ServiceResult.Success());
 
             var controller = CreateController(orderService, inventoryService, logger);
@@ -210,12 +211,15 @@ namespace CafeChain.Tests.POS
 
             Assert.IsType<OkObjectResult>(response);
             inventoryService.Verify(
-                service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), 3),
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    101),
                 Times.Once);
         }
 
         [Fact]
-        public async Task CommitOrder_ControllerSkipsInventoryDeductionForIdempotentRetry()
+        public async Task CommitOrder_ControllerUsesCommittedOrderGuardForIdempotentRetryRepair()
         {
             var orderService = new Mock<IPOSOrderService>(MockBehavior.Strict);
             var inventoryService = new Mock<IInventoryDeductionService>(MockBehavior.Strict);
@@ -230,14 +234,24 @@ namespace CafeChain.Tests.POS
                     isIdempotent = true
                 } as object));
 
+            inventoryService
+                .Setup(service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    101))
+                .ReturnsAsync(ServiceResult.Success("Đơn hàng đã được trừ kho trước đó."));
+
             var controller = CreateController(orderService, inventoryService, logger);
 
             var response = await controller.CommitOrder(dto);
 
             Assert.IsType<OkObjectResult>(response);
             inventoryService.Verify(
-                service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>()),
-                Times.Never);
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    101),
+                Times.Once);
         }
 
         [Fact]

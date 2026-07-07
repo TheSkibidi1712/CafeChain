@@ -56,14 +56,15 @@ namespace CafeChain.Controllers.Api.v1
             if (!result.IsSuccess)
                 return Ok(new { success = false, message = result.Message });
 
-            var isIdempotent = IsIdempotentResponse(result.Data);
+            var orderId = ExtractOrderId(result.Data);
+            var requiresPayment = RequiresPaymentResponse(result.Data);
 
-            // Side-effects: Cash/Paid orders deduct stock once for newly-created orders only.
-            // VietQR/PayOS orders are still AwaitingPayment here, so stock is deducted by webhook after Paid.
-            // Idempotent retries return the existing order and must not re-run Inventory Deduction.
-            var inventoryWarnings = IsPayOsPayment(dto) || isIdempotent
-                ? null
-                : await DeductInventorySafeAsync(dto.Items, CurrentStoreId);
+            // Side-effects: only paid/committed orders attempt Inventory Deduction.
+            // The inventory service is idempotent by ReferenceOrderId, so retries can repair
+            // a missing post-commit deduction without deducting twice.
+            var inventoryWarnings = orderId.HasValue && !requiresPayment
+                ? await DeductInventorySafeAsync(dto.Items, CurrentStoreId, orderId.Value)
+                : null;
 
             return Ok(new
             {
@@ -150,6 +151,14 @@ namespace CafeChain.Controllers.Api.v1
                             itemResult.Status = "duplicate";
                             itemResult.OrderId = ExtractOrderId(commitResult.Data);
                             duplicateCount++;
+
+                            if (itemResult.OrderId.HasValue)
+                            {
+                                await DeductInventorySafeAsync(
+                                    commitDto.Items,
+                                    orderDto.StoreId!.Value,
+                                    itemResult.OrderId.Value);
+                            }
                         }
                         else
                         {
@@ -157,9 +166,14 @@ namespace CafeChain.Controllers.Api.v1
                             itemResult.OrderId = ExtractOrderId(commitResult.Data);
                             createdCount++;
 
-                            // Side-effects: Inventory deduction chỉ chạy cho đơn offline tạo mới.
-                            // Duplicate/idempotent sync tuyệt đối không trừ kho lại.
-                            await DeductInventorySafeAsync(commitDto.Items, orderDto.StoreId!.Value);
+                            // Side-effects: Inventory Deduction chạy qua guard committed-order.
+                            if (itemResult.OrderId.HasValue)
+                            {
+                                await DeductInventorySafeAsync(
+                                    commitDto.Items,
+                                    orderDto.StoreId!.Value,
+                                    itemResult.OrderId.Value);
+                            }
                         }
                     }
                     else
@@ -238,14 +252,6 @@ namespace CafeChain.Controllers.Api.v1
         // PRIVATE HELPERS
         // ============================================================
 
-        private static bool IsPayOsPayment(POSOrderCommitDto dto)
-        {
-            if (dto.Payments != null && dto.Payments.Any())
-                return dto.Payments.Any(payment => payment.PaymentMethodId == 2);
-
-            return (dto.Payments == null || dto.Payments.Count == 0) && dto.PaymentMethodId == 2;
-        }
-
         private static string? ValidateOfflineSyncOrder(OfflineOrderSyncDTO orderDto)
         {
             if (!orderDto.ClientOrderId.HasValue)
@@ -275,7 +281,10 @@ namespace CafeChain.Controllers.Api.v1
         /// <summary>
         /// Fire-and-forget inventory deduction — lỗi KHÔNG fail đơn đã commit
         /// </summary>
-        private async Task<List<string>> DeductInventorySafeAsync(List<POSOrderItemDto> items, int storeId)
+        private async Task<List<string>> DeductInventorySafeAsync(
+            List<POSOrderItemDto> items,
+            int storeId,
+            int referenceOrderId)
         {
             try
             {
@@ -287,7 +296,10 @@ namespace CafeChain.Controllers.Api.v1
                     Toppings = item.Toppings ?? new List<POSOrderToppingDto>()
                 }).ToList();
 
-                var inventoryResult = await _inventoryService.DeductStockForOrderAsync(soldItems, storeId);
+                var inventoryResult = await _inventoryService.DeductStockForCommittedOrderAsync(
+                    soldItems,
+                    storeId,
+                    referenceOrderId);
 
                 if (inventoryResult.IsSuccess && inventoryResult.Errors != null && inventoryResult.Errors.Any())
                 {
@@ -320,6 +332,13 @@ namespace CafeChain.Controllers.Api.v1
         {
             if (data == null) return false;
             var prop = data.GetType().GetProperty("isIdempotent");
+            return prop != null && prop.GetValue(data) is true;
+        }
+
+        private static bool RequiresPaymentResponse(object data)
+        {
+            if (data == null) return false;
+            var prop = data.GetType().GetProperty("requiresPayment");
             return prop != null && prop.GetValue(data) is true;
         }
 

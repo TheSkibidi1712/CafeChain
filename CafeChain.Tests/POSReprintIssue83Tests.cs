@@ -172,7 +172,10 @@ namespace CafeChain.Tests.POS
 
             Assert.IsType<OkObjectResult>(response);
             inventoryService.Verify(
-                service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>()),
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>()),
                 Times.Never);
         }
 
