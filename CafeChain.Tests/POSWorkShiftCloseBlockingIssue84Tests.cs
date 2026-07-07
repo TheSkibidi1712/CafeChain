@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Attendance;
+using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Services.POS;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
@@ -96,6 +97,7 @@ namespace CafeChain.Tests.POS
                 repository,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
+                Mock.Of<ISupervisorAuthService>(),
                 Mock.Of<ILogger<WorkShiftService>>());
         }
 

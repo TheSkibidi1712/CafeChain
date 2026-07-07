@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Orders;
@@ -24,8 +25,15 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Where(s => s.StoreId == storeId
                     && s.Active
                     && s.PinHash != null
-                    && s.PinHash != "")
+                    && s.PinHash != ""
+                    && s.Account != null
+                    && s.Account.AccountRoles.Any(ar =>
+                        ar.Role.Active &&
+                        (ar.Role.Name == RoleConstants.ShiftSupervisor ||
+                         ar.Role.Name == RoleConstants.StoreManager)))
                 .Include(s => s.Account)
+                    .ThenInclude(a => a.AccountRoles)
+                        .ThenInclude(ar => ar.Role)
                 .ToListAsync();
         }
 

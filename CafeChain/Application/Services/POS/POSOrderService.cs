@@ -761,6 +761,14 @@ namespace CafeChain.Application.Services.POS
                     originalShift.ExpectedEndingCash += cashAmount;
                     await _repository.SaveChangesAsync();
                 }
+                else if (!string.Equals(originalShift.Status, "Open", StringComparison.OrdinalIgnoreCase))
+                {
+                    originalShift.RequiresReconciliation = true;
+                    originalShift.HasLateOfflineSync = true;
+                    originalShift.LateOfflineSyncCount += 1;
+                    originalShift.LastLateOfflineSyncedAt = DateTime.Now;
+                    await _repository.SaveChangesAsync();
+                }
 
                 await _repository.CommitTransactionAsync();
                 transactionCommitted = true;

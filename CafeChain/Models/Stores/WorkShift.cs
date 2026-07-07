@@ -67,6 +67,62 @@ namespace CafeChain.Models.Stores
         public string? DiscrepancyReason { get; set; }
 
         /// <summary>
+        /// Ca được đóng bằng ngoại lệ bởi supervisor/manager.
+        /// </summary>
+        public bool IsExceptionClosed { get; set; }
+
+        /// <summary>
+        /// Lý do đóng ngoại lệ do supervisor/manager nhập.
+        /// </summary>
+        [MaxLength(500)]
+        public string? ExceptionCloseReason { get; set; }
+
+        /// <summary>
+        /// StaffId của supervisor/manager duyệt đóng ngoại lệ.
+        /// </summary>
+        public int? ExceptionClosedByStaffId { get; set; }
+
+        /// <summary>
+        /// Thời điểm supervisor/manager duyệt đóng ngoại lệ.
+        /// </summary>
+        public DateTime? ExceptionClosedAt { get; set; }
+
+        /// <summary>
+        /// Số Offline Order local chưa sync tại thời điểm đóng ngoại lệ.
+        /// </summary>
+        public int? OfflineOrderCountAtClose { get; set; }
+
+        /// <summary>
+        /// Tổng tiền ước tính của Offline Order local tại thời điểm đóng ngoại lệ.
+        /// </summary>
+        public decimal? OfflineEstimatedTotalAtClose { get; set; }
+
+        /// <summary>
+        /// Tổng tiền mặt local đã thu từ Offline Order tại thời điểm đóng ngoại lệ.
+        /// </summary>
+        public decimal? OfflineCashTotalAtClose { get; set; }
+
+        /// <summary>
+        /// Ca cần quản lý đối soát lại sau đóng ngoại lệ hoặc sync muộn.
+        /// </summary>
+        public bool RequiresReconciliation { get; set; }
+
+        /// <summary>
+        /// Có Offline Order sync vào sau khi WorkShift đã đóng.
+        /// </summary>
+        public bool HasLateOfflineSync { get; set; }
+
+        /// <summary>
+        /// Số Offline Order tạo mới sau khi WorkShift đã đóng.
+        /// </summary>
+        public int LateOfflineSyncCount { get; set; }
+
+        /// <summary>
+        /// Lần gần nhất Offline Order sync vào sau khi WorkShift đã đóng.
+        /// </summary>
+        public DateTime? LastLateOfflineSyncedAt { get; set; }
+
+        /// <summary>
         /// Khóa ca két gắn cứng theo thiết bị POS Terminal (GUID từ browser localStorage)
         /// </summary>
         [MaxLength(100)]
@@ -75,6 +131,7 @@ namespace CafeChain.Models.Stores
         // ================= NAVIGATION =================
         public virtual Store Store { get; set; }
         public virtual Staff User { get; set; }
+        public virtual Staff? ExceptionClosedByStaff { get; set; }
         public virtual PosTerminal? PosTerminal { get; set; }
         public virtual ICollection<Order> Orders { get; set; } = new List<Order>();
     }

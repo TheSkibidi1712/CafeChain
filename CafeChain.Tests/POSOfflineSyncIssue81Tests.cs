@@ -65,6 +65,7 @@ namespace CafeChain.Tests.POS
                 .Setup(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()))
                 .Callback<Payment>(payment => capturedPayment = payment)
                 .Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.SaveChangesAsync()).Returns(Task.CompletedTask);
             repository.Setup(repo => repo.CommitTransactionAsync()).Returns(Task.CompletedTask);
 
             var service = CreateOrderService(
@@ -89,10 +90,14 @@ namespace CafeChain.Tests.POS
             Assert.NotNull(capturedPayment);
             Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedPayment!.PaymentStatusId);
             Assert.Equal(500000m, closedShift.ExpectedEndingCash);
+            Assert.True(closedShift.RequiresReconciliation);
+            Assert.True(closedShift.HasLateOfflineSync);
+            Assert.Equal(1, closedShift.LateOfflineSyncCount);
+            Assert.NotNull(closedShift.LastLateOfflineSyncedAt);
             Assert.Equal(false, result.Data!.GetType().GetProperty("isIdempotent")?.GetValue(result.Data));
 
             workShiftService.Verify(service => service.GetActiveShiftAsync(It.IsAny<int>(), It.IsAny<int>()), Times.Never);
-            repository.Verify(repo => repo.SaveChangesAsync(), Times.Never);
+            repository.Verify(repo => repo.SaveChangesAsync(), Times.Once);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),

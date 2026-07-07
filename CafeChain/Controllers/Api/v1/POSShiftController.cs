@@ -104,6 +104,36 @@ namespace CafeChain.Controllers.Api.v1
         }
 
         /// <summary>
+        /// POST /api/v1/pos/shifts/{id}/close-exception
+        /// Đóng ca ngoại lệ bằng PIN supervisor/manager khi còn Offline Order local chưa Sync.
+        /// </summary>
+        [HttpPost("{id}/close-exception")]
+        public async Task<IActionResult> CloseShiftByException(int id, [FromBody] CloseShiftExceptionRequestDto request)
+        {
+            var result = await _shiftService.CloseShiftByExceptionAsync(
+                CurrentStaffId, CurrentStoreId, id, request);
+
+            if (!result.IsSuccess)
+            {
+                return BadRequest(new { success = false, message = result.Message });
+            }
+
+            var closedShift = await _context.WorkShifts
+                .AsNoTracking()
+                .FirstOrDefaultAsync(ws => ws.ShiftId == id && ws.StoreId == CurrentStoreId);
+
+            if (closedShift == null)
+                return Ok(new { success = true, message = result.Message });
+
+            var totalCash = await _shiftRepo.GetTotalCashSalesAsync(id);
+            var totalBanking = await _posRepo.GetTotalSalesByPaymentMethodAsync(id, 2);
+            var totalOrders = await _posRepo.GetCompletedOrderCountAsync(id);
+
+            var summary = MapToSummary(closedShift, totalCash, totalBanking, totalOrders);
+            return Ok(summary);
+        }
+
+        /// <summary>
         /// GET /api/v1/pos/shifts/current
         /// Trả ca đang mở. Nếu không có → { status: "NoActiveShift" }
         /// </summary>
@@ -145,6 +175,17 @@ namespace CafeChain.Controllers.Api.v1
                 ExpectedEndingCash = shift.ExpectedEndingCash,
                 ActualEndingCash = shift.ActualEndingCash,
                 CashDiscrepancy = shift.CashDiscrepancy,
+                IsExceptionClosed = shift.IsExceptionClosed,
+                ExceptionCloseReason = shift.ExceptionCloseReason,
+                ExceptionClosedByStaffId = shift.ExceptionClosedByStaffId,
+                ExceptionClosedAt = shift.ExceptionClosedAt,
+                OfflineOrderCountAtClose = shift.OfflineOrderCountAtClose,
+                OfflineEstimatedTotalAtClose = shift.OfflineEstimatedTotalAtClose,
+                OfflineCashTotalAtClose = shift.OfflineCashTotalAtClose,
+                RequiresReconciliation = shift.RequiresReconciliation,
+                HasLateOfflineSync = shift.HasLateOfflineSync,
+                LateOfflineSyncCount = shift.LateOfflineSyncCount,
+                LastLateOfflineSyncedAt = shift.LastLateOfflineSyncedAt,
                 TotalCashSales = totalCashSales,
                 TotalBankingSales = totalBankingSales,
                 TotalOrders = totalOrders,

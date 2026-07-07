@@ -18,6 +18,17 @@ interface ShiftSummaryDto {
   expectedEndingCash: number
   actualEndingCash?: number | null
   cashDiscrepancy?: number | null
+  isExceptionClosed?: boolean
+  exceptionCloseReason?: string | null
+  exceptionClosedByStaffId?: number | null
+  exceptionClosedAt?: string | null
+  offlineOrderCountAtClose?: number | null
+  offlineEstimatedTotalAtClose?: number | null
+  offlineCashTotalAtClose?: number | null
+  requiresReconciliation?: boolean
+  hasLateOfflineSync?: boolean
+  lateOfflineSyncCount?: number
+  lastLateOfflineSyncedAt?: string | null
   totalCashSales: number
   totalBankingSales: number
   totalOrders: number
@@ -94,6 +105,8 @@ export default function ShiftSummary() {
   const [startingCash, setStartingCash] = useState<number | ''>('')
   const [actualEndingCash, setActualEndingCash] = useState<number | ''>('')
   const [discrepancyReason, setDiscrepancyReason] = useState('')
+  const [exceptionReason, setExceptionReason] = useState('')
+  const [supervisorPin, setSupervisorPin] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -160,6 +173,17 @@ export default function ShiftSummary() {
   const pendingOfflineCount = shiftLocalSyncBlockers.filter((order) => order.syncStatus === 'Pending').length
   const syncingOfflineCount = shiftLocalSyncBlockers.filter((order) => order.syncStatus === 'Syncing').length
   const failedOfflineCount = shiftLocalSyncBlockers.filter((order) => order.syncStatus === 'Failed').length
+  const offlineBlockerCount = pendingOfflineCount + syncingOfflineCount + failedOfflineCount
+  const offlineEstimatedTotal = useMemo(
+    () => shiftLocalSyncBlockers.reduce((sum, order) => sum + order.totalAmount, 0),
+    [shiftLocalSyncBlockers]
+  )
+  const offlineCashTotal = useMemo(
+    () => shiftLocalSyncBlockers.reduce((sum, order) => sum + (order.paymentSnapshot?.amount ?? order.totalAmount), 0),
+    [shiftLocalSyncBlockers]
+  )
+  const hasOfflineQueueBlockers = offlineBlockerCount > 0
+  const canUseExceptionClose = hasOfflineQueueBlockers && !activePaymentGuard
   const closeBlockerReasons = useMemo(() => {
     const reasons: string[] = []
 
@@ -302,6 +326,63 @@ export default function ShiftSummary() {
     }
   }
 
+  const handleExceptionCloseShift = async () => {
+    if (!shift?.shiftId || actualEndingCash === '') return
+    if (!hasOfflineQueueBlockers) {
+      setMessage({
+        type: 'error',
+        text: 'Đóng ca ngoại lệ chỉ dùng khi còn đơn offline chưa đồng bộ trong ca này.',
+      })
+      return
+    }
+    if (activePaymentGuard) {
+      setMessage({
+        type: 'error',
+        text: 'Không thể đóng ca ngoại lệ khi còn giao dịch thanh toán chưa hoàn tất.',
+      })
+      return
+    }
+    if (needsReason && discrepancyReason.trim().length === 0) return
+    if (exceptionReason.trim().length === 0 || supervisorPin.trim().length === 0) return
+
+    setIsSubmitting(true)
+    setMessage(null)
+    try {
+      const response = await apiClient.post<ShiftActionResponse>(`/api/v1/pos/shifts/${shift.shiftId}/close-exception`, {
+        actualEndingCash,
+        discrepancyReason: discrepancyReason.trim() || null,
+        exceptionReason: exceptionReason.trim(),
+        supervisorPin: supervisorPin.trim(),
+        offlineQueueSummary: {
+          offlineOrderCount: offlineBlockerCount,
+          estimatedTotal: offlineEstimatedTotal,
+          localCashTotal: offlineCashTotal,
+        },
+      })
+
+      if (response.ok && response.data?.status === 'Closed') {
+        setShift(response.data as ShiftSummaryDto)
+        setActualEndingCash('')
+        setDiscrepancyReason('')
+        setExceptionReason('')
+        setSupervisorPin('')
+        setMessage({ type: 'success', text: 'Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi đồng bộ offline.' })
+      } else {
+        setMessage({
+          type: 'error',
+          text: getApiErrorMessage(response, 'Không thể đóng ca ngoại lệ.'),
+        })
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: getUnexpectedErrorMessage(error, 'Không thể đóng ca ngoại lệ.'),
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
   return (
     <div className="h-full w-full overflow-y-auto bg-surface p-6 font-sans select-none">
       <div className="max-w-5xl mx-auto space-y-5">
@@ -319,7 +400,7 @@ export default function ShiftSummary() {
                 ? 'bg-gray-50 text-gray-700 border-gray-200'
                 : 'bg-brand-orange-light text-brand-orange border-brand-orange-border'
           }`}>
-            {hasOpenShift ? 'Đang mở' : shift?.status === 'Closed' ? 'Đã đóng' : 'Chưa mở ca'}
+            {hasOpenShift ? 'Đang mở' : shift?.status === 'Closed' ? (shift.isExceptionClosed ? 'Đã đóng ngoại lệ' : 'Đã đóng') : 'Chưa mở ca'}
           </span>
         </div>
 
@@ -436,6 +517,92 @@ export default function ShiftSummary() {
                     <p className="mt-3 font-extrabold">Vui lòng xử lý các lý do trên trước khi đóng ca thường.</p>
                   </div>
                 )}
+                {hasOfflineQueueBlockers && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 space-y-3">
+                    <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <p className="font-extrabold text-text-primary">Đóng ca ngoại lệ</p>
+                        <p className="mt-1 font-semibold">
+                          Dành cho ca mất mạng lâu, còn đơn offline chưa đồng bộ. Các đơn này vẫn giữ WorkShift #{currentShiftId} và sẽ cần đối soát lại sau khi sync.
+                        </p>
+                      </div>
+                      <span className="shrink-0 rounded-full border border-amber-300 bg-white px-3 py-1 font-extrabold text-amber-700">
+                        Cần đối soát lại
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <div className="rounded-lg bg-white/75 p-3 border border-amber-100">
+                        <p className="text-[10px] uppercase font-extrabold text-text-secondary">Offline chưa sync</p>
+                        <p className="mt-1 text-base font-extrabold text-text-primary">{offlineBlockerCount} đơn</p>
+                      </div>
+                      <div className="rounded-lg bg-white/75 p-3 border border-amber-100">
+                        <p className="text-[10px] uppercase font-extrabold text-text-secondary">Tổng ước tính</p>
+                        <p className="mt-1 text-base font-extrabold text-text-primary">{formatVND(offlineEstimatedTotal)}</p>
+                      </div>
+                      <div className="rounded-lg bg-white/75 p-3 border border-amber-100">
+                        <p className="text-[10px] uppercase font-extrabold text-text-secondary">Tiền mặt local</p>
+                        <p className="mt-1 text-base font-extrabold text-text-primary">{formatVND(offlineCashTotal)}</p>
+                      </div>
+                    </div>
+
+                    {activePaymentGuard && (
+                      <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 font-bold text-red-700">
+                        Không thể đóng ca ngoại lệ khi còn giao dịch thanh toán chưa hoàn tất.
+                      </p>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-1">
+                          Lý do đóng ngoại lệ
+                        </label>
+                        <textarea
+                          value={exceptionReason}
+                          onChange={(event) => setExceptionReason(event.target.value)}
+                          rows={3}
+                          className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs outline-none focus:border-brand-orange text-text-primary bg-white font-semibold resize-none"
+                          placeholder="Ví dụ: mất mạng kéo dài, còn đơn offline chưa đồng bộ..."
+                          disabled={!canUseExceptionClose || isSubmitting}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold text-text-secondary mb-1">
+                          PIN supervisor/manager
+                        </label>
+                        <input
+                          type="password"
+                          inputMode="numeric"
+                          maxLength={4}
+                          value={supervisorPin}
+                          onChange={(event) => setSupervisorPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
+                          className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs outline-none focus:border-brand-orange text-text-primary bg-white font-semibold"
+                          placeholder="••••"
+                          disabled={!canUseExceptionClose || isSubmitting}
+                        />
+                        <p className="mt-2 font-semibold text-amber-700">
+                          Đơn offline không bị xóa khỏi máy này và sẽ sync lại vào WorkShift cũ.
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleExceptionCloseShift}
+                      disabled={
+                        isSubmitting ||
+                        actualEndingCash === '' ||
+                        !canUseExceptionClose ||
+                        exceptionReason.trim().length === 0 ||
+                        supervisorPin.trim().length !== 4 ||
+                        (needsReason && discrepancyReason.trim().length === 0)
+                      }
+                      className="px-4 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg cursor-pointer hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"
+                    >
+                      {isSubmitting ? 'Đang đóng ca ngoại lệ...' : 'Đóng ca ngoại lệ'}
+                    </button>
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-text-secondary mb-1">
@@ -542,6 +709,19 @@ export default function ShiftSummary() {
                     </p>
                   </div>
                 </div>
+                {shift?.requiresReconciliation && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold text-amber-800">
+                    <p className="font-extrabold text-text-primary">Cần đối soát lại</p>
+                    {shift.isExceptionClosed && (
+                      <p className="mt-1">Ca này được đóng ngoại lệ vì: {shift.exceptionCloseReason || 'Không có ghi chú'}</p>
+                    )}
+                    {shift.hasLateOfflineSync && (
+                      <p className="mt-1">
+                        Có {shift.lateOfflineSyncCount ?? 0} đơn offline đồng bộ sau khi ca đã đóng.
+                      </p>
+                    )}
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={loadCurrentShift}

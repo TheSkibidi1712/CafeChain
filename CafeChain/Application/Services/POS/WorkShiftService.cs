@@ -15,17 +15,20 @@ namespace CafeChain.Application.Services.POS
         private readonly IWorkShiftRepository _shiftRepo;
         private readonly IHrAttendanceService _hrAttendanceService;
         private readonly IPOSOrderRepository _posRepo;
+        private readonly ISupervisorAuthService _supervisorAuthService;
         private readonly ILogger<WorkShiftService> _logger;
 
         public WorkShiftService(
             IWorkShiftRepository shiftRepo,
             IHrAttendanceService hrAttendanceService,
             IPOSOrderRepository posRepo,
+            ISupervisorAuthService supervisorAuthService,
             ILogger<WorkShiftService> logger)
         {
             _shiftRepo = shiftRepo;
             _hrAttendanceService = hrAttendanceService;
             _posRepo = posRepo;
+            _supervisorAuthService = supervisorAuthService;
             _logger = logger;
         }
 
@@ -205,6 +208,87 @@ namespace CafeChain.Application.Services.POS
             catch (Exception ex)
             {
                 return ServiceResult.Failure("Lỗi hệ thống khi đóng ca: " + ex.Message);
+            }
+        }
+
+        public async Task<ServiceResult> CloseShiftByExceptionAsync(
+            int userId,
+            int storeId,
+            int shiftId,
+            CloseShiftExceptionRequestDto request)
+        {
+            try
+            {
+                if (request == null)
+                    return ServiceResult.Failure("Thiếu dữ liệu đóng ca ngoại lệ.");
+
+                var exceptionReason = request.ExceptionReason?.Trim();
+                if (string.IsNullOrWhiteSpace(exceptionReason))
+                    return ServiceResult.Failure("Vui lòng nhập lý do đóng ca ngoại lệ.");
+
+                if (string.IsNullOrWhiteSpace(request.SupervisorPin))
+                    return ServiceResult.Failure("Vui lòng nhập mã PIN supervisor/manager.");
+
+                var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
+                if (activeShift == null || activeShift.ShiftId != shiftId)
+                    return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở với ID này.");
+
+                if (await _shiftRepo.HasOpenPosPaymentAsync(activeShift.ShiftId, storeId))
+                {
+                    return ServiceResult.Failure(
+                        "Không thể đóng ca ngoại lệ. Đang có giao dịch thanh toán chưa hoàn tất. " +
+                        "Vui lòng hoàn tất hoặc hủy giao dịch trước khi đóng ca.");
+                }
+
+                var supervisorResult = await _supervisorAuthService.VerifySupervisorPinAsync(
+                    request.SupervisorPin, storeId);
+
+                if (!supervisorResult.IsSuccess || supervisorResult.Data == null)
+                    return ServiceResult.Failure(supervisorResult.Message);
+
+                var offlineSummary = request.OfflineQueueSummary ?? new OfflineQueueSummaryDto();
+                if (offlineSummary.OfflineOrderCount < 0 ||
+                    offlineSummary.EstimatedTotal < 0 ||
+                    offlineSummary.LocalCashTotal < 0)
+                {
+                    return ServiceResult.Failure("Tóm tắt đơn offline không hợp lệ.");
+                }
+
+                var totalCashSales = await _shiftRepo.GetTotalCashSalesAsync(activeShift.ShiftId);
+                var expectedEndingCash = activeShift.StartingCash + totalCashSales;
+                var discrepancy = request.ActualEndingCash - expectedEndingCash;
+
+                if (discrepancy != 0 && string.IsNullOrWhiteSpace(request.DiscrepancyReason))
+                {
+                    return ServiceResult.Failure($"Phát hiện chênh lệch {discrepancy:N0}đ. Vui lòng nhập lý do chênh lệch.");
+                }
+
+                var closedAt = DateTime.Now;
+                activeShift.ExpectedEndingCash = expectedEndingCash;
+                activeShift.ActualEndingCash = request.ActualEndingCash;
+                activeShift.CashDiscrepancy = discrepancy;
+                activeShift.DiscrepancyReason = request.DiscrepancyReason;
+                activeShift.EndTime = closedAt;
+                activeShift.Status = "Closed";
+                activeShift.IsExceptionClosed = true;
+                activeShift.ExceptionCloseReason = exceptionReason;
+                activeShift.ExceptionClosedByStaffId = supervisorResult.Data.SupervisorStaffId;
+                activeShift.ExceptionClosedAt = closedAt;
+                activeShift.OfflineOrderCountAtClose = offlineSummary.OfflineOrderCount;
+                activeShift.OfflineEstimatedTotalAtClose = offlineSummary.EstimatedTotal;
+                activeShift.OfflineCashTotalAtClose = offlineSummary.LocalCashTotal;
+                activeShift.RequiresReconciliation = true;
+
+                await _shiftRepo.UpdateShiftAsync(activeShift);
+
+                return ServiceResult.Success(
+                    $"Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi các đơn offline đồng bộ. " +
+                    $"Offline chưa sync: {offlineSummary.OfflineOrderCount} đơn, " +
+                    $"ước tính {offlineSummary.EstimatedTotal:N0}đ.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult.Failure("Lỗi hệ thống khi đóng ca ngoại lệ: " + ex.Message);
             }
         }
     }

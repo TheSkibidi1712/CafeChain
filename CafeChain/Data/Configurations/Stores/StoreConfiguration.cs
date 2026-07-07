@@ -374,6 +374,33 @@ namespace CafeChain.Data.Configurations.Stores
             entity.Property(x => x.CashDiscrepancy)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.IsExceptionClosed)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.ExceptionCloseReason)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.OfflineEstimatedTotalAtClose)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.OfflineCashTotalAtClose)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.RequiresReconciliation)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.HasLateOfflineSync)
+                .HasDefaultValue(false);
+
+            entity.Property(x => x.LateOfflineSyncCount)
+                .HasDefaultValue(0);
+
+            entity.HasIndex(x => x.ExceptionClosedByStaffId);
+
+            entity.HasIndex(x => x.StoreId);
+
+            entity.HasIndex(x => new { x.StoreId, x.RequiresReconciliation });
+
             // ─── Relationships ────────────────────────────
             entity.HasOne(x => x.Store)
                 .WithMany()
@@ -383,6 +410,11 @@ namespace CafeChain.Data.Configurations.Stores
             entity.HasOne(x => x.User)
                 .WithMany()
                 .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.ExceptionClosedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ExceptionClosedByStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             // WorkShift → Orders (1:N)

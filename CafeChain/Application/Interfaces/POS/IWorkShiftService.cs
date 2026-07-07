@@ -30,5 +30,11 @@ namespace CafeChain.Application.Interfaces.POS
         /// Calculates expected ending cash and records discrepancy.
         /// </summary>
         Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request);
+
+        /// <summary>
+        /// Closes an open WorkShift by supervisor/manager exception while preserving
+        /// local Offline Orders for later Sync into the original WorkShift.
+        /// </summary>
+        Task<ServiceResult> CloseShiftByExceptionAsync(int userId, int storeId, int shiftId, CloseShiftExceptionRequestDto request);
     }
 }
