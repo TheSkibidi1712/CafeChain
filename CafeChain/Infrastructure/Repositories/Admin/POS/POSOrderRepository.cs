@@ -153,19 +153,40 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 {
                     OrderId = o.OrderId,
                     ClientOrderId = o.ClientOrderId.HasValue ? o.ClientOrderId.Value.ToString() : null,
+                    StoreId = o.StoreId,
+                    StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
+                    WorkShiftId = o.WorkShiftId,
+                    Source = o.Source,
                     OrderType = o.OrderType != null ? o.OrderType.Name : "N/A",
                     CreatedAt = o.CreatedAt,
                     Total = o.Total,
                     PaymentMethod = o.Payments
                         .Select(p => p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A")
                         .FirstOrDefault() ?? "N/A",
+                    OrderStatusId = o.OrderStatusId,
+                    OrderStatusName = o.OrderStatus != null ? o.OrderStatus.Name : "N/A",
+                    PaymentStatusId = o.PaymentStatusId,
+                    PaymentStatusName = o.PaymentStatus != null ? o.PaymentStatus.Name : "N/A",
                     StaffName = o.Staff != null ? o.Staff.FullName : "POS",
+                    Note = o.Note,
+                    Payments = o.Payments.Select(p => new Application.DTOs.POS.POSPaymentHistoryDto
+                    {
+                        PaymentMethodId = p.PaymentMethodId,
+                        PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A",
+                        PaymentStatusId = p.PaymentStatusId,
+                        PaymentStatus = p.PaymentStatus != null ? p.PaymentStatus.Name : "N/A",
+                        Amount = p.Amount,
+                        PaidAt = p.PaidAt,
+                        TransactionCode = p.TransactionCode
+                    }).ToList(),
                     OrderDetails = o.OrderDetails.Select(od => new Application.DTOs.POS.POSOrderDetailHistoryDto
                     {
                         DrinkName = od.DrinkName,
                         SizeName = od.SizeName,
                         Quantity = od.Quantity,
                         Price = od.Price,
+                        LineTotal = od.Price * od.Quantity,
+                        Note = od.Note,
                         Toppings = od.OrderToppings
                             .Select(ot => ot.ToppingName)
                             .ToList()
