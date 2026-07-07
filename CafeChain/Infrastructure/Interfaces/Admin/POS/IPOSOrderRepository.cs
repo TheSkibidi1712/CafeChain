@@ -38,6 +38,11 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         Task<Order?> FindOrderByClientOrderIdAsync(Guid clientOrderId);
 
         /// <summary>
+        /// Load order đã commit để in lại, giới hạn theo store hiện tại của POS.
+        /// </summary>
+        Task<Order?> GetOrderForReprintAsync(int orderId, int storeId);
+
+        /// <summary>
         /// Issue #68: Lấy danh sách đơn hàng POS có phân trang.
         /// Sử dụng .Select() projection để tránh N+1.
         /// </summary>

@@ -20,6 +20,18 @@ namespace CafeChain.Application.Interfaces.POS
         byte[] BuildReceipt(Order order, string storeName, string cashierName, decimal cashReceived, bool isCashPayment);
 
         /// <summary>
+        /// Build receipt ESC/POS bytes với quyền điều khiển riêng việc mở két.
+        /// Dùng cho reprint: vẫn hiển thị thông tin tiền mặt nhưng không kick cash drawer.
+        /// </summary>
+        byte[] BuildReceipt(
+            Order order,
+            string storeName,
+            string cashierName,
+            decimal cashReceived,
+            bool isCashPayment,
+            bool kickCashDrawer);
+
+        /// <summary>
         /// Build cup label ESC/POS bytes cho khu vực pha chế.
         /// Mỗi ly tương ứng một tem; nếu item quantity > 1 thì lặp tem theo số lượng.
         /// </summary>

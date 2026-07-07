@@ -79,6 +79,17 @@ namespace CafeChain.Application.Services.POS
 
         public byte[] BuildReceipt(Order order, string storeName, string cashierName, decimal cashReceived, bool isCashPayment)
         {
+            return BuildReceipt(order, storeName, cashierName, cashReceived, isCashPayment, kickCashDrawer: isCashPayment);
+        }
+
+        public byte[] BuildReceipt(
+            Order order,
+            string storeName,
+            string cashierName,
+            decimal cashReceived,
+            bool isCashPayment,
+            bool kickCashDrawer)
+        {
             var buffer = new List<byte>();
 
             // 1. Initialize printer
@@ -86,7 +97,7 @@ namespace CafeChain.Application.Services.POS
 
             // 2. Cash Drawer Kick — NẾU thanh toán tiền mặt, kick TRƯỚC khi in
             //    Máy in nhận lệnh kick tức thì, không cần đợi in xong
-            if (isCashPayment)
+            if (isCashPayment && kickCashDrawer)
             {
                 buffer.AddRange(CMD_KICK_DRAWER);
             }

@@ -133,6 +133,17 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
         }
 
+        public async Task<Order?> GetOrderForReprintAsync(int orderId, int storeId)
+        {
+            return await _context.Orders
+                .Include(o => o.Store)
+                .Include(o => o.Staff)
+                .Include(o => o.Payments)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.OrderToppings)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId && o.StoreId == storeId);
+        }
+
         /// <summary>
         /// Issue #68: Phân trang lịch sử đơn hàng POS.
         /// Dùng .Select() projection — EF Core dịch thành 1 SQL duy nhất, không N+1.

@@ -87,6 +87,27 @@ interface OrderHistoryApiResponse {
   }
 }
 
+type ReprintType = 'receipt' | 'drinkLabel'
+
+interface ReprintApiResponse {
+  success: boolean
+  message?: string
+  data?: {
+    orderId: number
+    type: string
+  }
+}
+
+interface ReprintTarget {
+  orderKey: string
+  type: ReprintType
+}
+
+interface ReprintFeedback {
+  tone: 'info' | 'success' | 'error'
+  message: string
+}
+
 interface HistoryPaymentLine {
   method: string
   amount: number
@@ -292,11 +313,27 @@ function StatusPill({ label }: { label: string }) {
 function DetailDrawer({
   order,
   onClose,
+  onReprint,
+  reprintTarget,
+  reprintFeedback,
 }: {
   order: HistoryRow | null
   onClose: () => void
+  onReprint: (order: HistoryRow, type: ReprintType) => void
+  reprintTarget: ReprintTarget | null
+  reprintFeedback: ReprintFeedback | null
 }) {
   if (!order) return null
+
+  const canReprint = order.source === 'backend' && Boolean(order.orderId) && order.orderState === LABELS.paid
+  const isSending = reprintTarget !== null
+  const isReceiptSending = reprintTarget?.orderKey === order.key && reprintTarget.type === 'receipt'
+  const isLabelSending = reprintTarget?.orderKey === order.key && reprintTarget.type === 'drinkLabel'
+  const feedbackTone = reprintFeedback?.tone === 'success'
+    ? 'border-green-200 bg-green-50 text-green-700'
+    : reprintFeedback?.tone === 'error'
+      ? 'border-red-200 bg-red-50 text-red-700'
+      : 'border-amber-200 bg-amber-50 text-amber-700'
 
   return (
     <div className="fixed inset-0 z-40 flex justify-end bg-black/25" role="dialog" aria-modal="true">
@@ -411,8 +448,35 @@ function DetailDrawer({
           )}
 
           <section className="rounded-lg border border-dashed border-border bg-surface p-4">
-            <h3 className="mb-2 text-xs font-extrabold text-text-primary">In lại</h3>
-            <p className="text-xs text-text-muted">Chức năng in lại hóa đơn và in lại tem nằm ngoài phạm vi issue #82.</p>
+            <h3 className="mb-3 text-xs font-extrabold text-text-primary">In lại</h3>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onReprint(order, 'receipt')}
+                disabled={!canReprint || isSending}
+                className="rounded-lg border border-brand-orange-border bg-brand-orange px-3 py-2 text-xs font-bold text-white hover:bg-brand-orange-hover disabled:cursor-not-allowed disabled:border-border disabled:bg-surface disabled:text-text-muted"
+              >
+                {isReceiptSending ? 'Đang gửi lệnh in...' : 'In lại hóa đơn'}
+              </button>
+              <button
+                type="button"
+                onClick={() => onReprint(order, 'drinkLabel')}
+                disabled={!canReprint || isSending}
+                className="rounded-lg border border-brand-orange-border bg-brand-orange-light px-3 py-2 text-xs font-bold text-brand-orange hover:bg-surface-white disabled:cursor-not-allowed disabled:border-border disabled:bg-surface disabled:text-text-muted"
+              >
+                {isLabelSending ? 'Đang gửi lệnh in...' : 'In lại tem'}
+              </button>
+            </div>
+            {!canReprint && (
+              <p className="mt-2 text-[11px] text-text-muted">
+                Chỉ hỗ trợ in lại với đơn backend đã thanh toán.
+              </p>
+            )}
+            {reprintFeedback && (
+              <p className={`mt-3 rounded-lg border px-3 py-2 text-xs font-semibold ${feedbackTone}`}>
+                {reprintFeedback.message}
+              </p>
+            )}
           </section>
         </div>
       </aside>
@@ -445,6 +509,8 @@ export default function OrderHistory() {
   const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, pageSize: 20, totalCount: 0, totalPages: 1 })
   const [isLoading, setIsLoading] = useState(true)
   const [selectedOrder, setSelectedOrder] = useState<HistoryRow | null>(null)
+  const [reprintTarget, setReprintTarget] = useState<ReprintTarget | null>(null)
+  const [reprintFeedback, setReprintFeedback] = useState<ReprintFeedback | null>(null)
 
   const localOfflineOrders = useLiveQuery(
     () => db.cartSyncQueue
@@ -492,6 +558,44 @@ export default function OrderHistory() {
     if (newPage < 1 || newPage > pagination.totalPages) return
     setPagination(prev => ({ ...prev, page: newPage }))
     void fetchOrders(newPage)
+  }
+
+  const handleReprint = async (order: HistoryRow, type: ReprintType) => {
+    if (order.source === 'local' || !order.orderId || order.orderState !== LABELS.paid || reprintTarget) {
+      return
+    }
+
+    setReprintTarget({ orderKey: order.key, type })
+    setReprintFeedback({ tone: 'info', message: 'Đang gửi lệnh in...' })
+
+    try {
+      const res = await apiClient.post<ReprintApiResponse>(
+        `/api/v1/pos/orders/${order.orderId}/reprint`,
+        { type }
+      )
+
+      if (res.ok && res.data?.success) {
+        setReprintFeedback({
+          tone: 'success',
+          message: type === 'receipt'
+            ? 'Đã gửi lệnh in lại hóa đơn.'
+            : 'Đã gửi lệnh in lại tem.',
+        })
+        return
+      }
+
+      setReprintFeedback({
+        tone: 'error',
+        message: res.data?.message || res.error || 'Không gửi được lệnh in lại.',
+      })
+    } catch (error) {
+      setReprintFeedback({
+        tone: 'error',
+        message: error instanceof Error ? error.message : 'Không gửi được lệnh in lại.',
+      })
+    } finally {
+      setReprintTarget(null)
+    }
   }
 
   return (
@@ -542,7 +646,10 @@ export default function OrderHistory() {
                   <button
                     type="button"
                     key={order.key}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => {
+                      setSelectedOrder(order)
+                      setReprintFeedback(null)
+                    }}
                     className="grid w-full grid-cols-[150px_145px_minmax(210px,1.5fr)_150px_130px_170px_150px_120px] gap-3 px-4 py-3 text-left text-xs transition-colors hover:bg-brand-orange-light/35"
                   >
                     <div className="min-w-0">
@@ -599,7 +706,13 @@ export default function OrderHistory() {
         )}
       </div>
 
-      <DetailDrawer order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+      <DetailDrawer
+        order={selectedOrder}
+        onClose={() => setSelectedOrder(null)}
+        onReprint={handleReprint}
+        reprintTarget={reprintTarget}
+        reprintFeedback={reprintFeedback}
+      />
     </div>
   )
 }

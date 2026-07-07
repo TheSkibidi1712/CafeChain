@@ -59,7 +59,8 @@ namespace CafeChain.Application.Services.POS
                     receiptPayload,
                     printerTarget: "Cashier",
                     jobType: "Receipt",
-                    isCashPayment: isCashPayment);
+                    isCashPayment: isCashPayment,
+                    isReprint: false);
 
                 // 2. Build + dispatch drink label cho khu vực pha chế.
                 // Default target = Cashier để demo/test dùng ngay với 1 PrintBridge.
@@ -75,7 +76,8 @@ namespace CafeChain.Application.Services.POS
                         cupLabelPayload,
                         printerTarget: cupLabelTarget,
                         jobType: "DrinkLabel",
-                        isCashPayment: false);
+                        isCashPayment: false,
+                        isReprint: false);
                 }
 
                 return receiptSent;
@@ -91,13 +93,78 @@ namespace CafeChain.Application.Services.POS
             }
         }
 
+        public async Task<bool> DispatchReceiptReprintAsync(
+            Order order,
+            int storeId,
+            string cashierName,
+            decimal cashReceived,
+            bool isCashPayment)
+        {
+            try
+            {
+                var storeName = order.Store?.Name ?? "CafeChain";
+                var receiptPayload = _escPosBuilder.BuildReceipt(
+                    order,
+                    storeName,
+                    cashierName,
+                    cashReceived,
+                    isCashPayment,
+                    kickCashDrawer: false);
+
+                return await SendPrintJobAsync(
+                    order,
+                    storeId,
+                    receiptPayload,
+                    printerTarget: "Cashier",
+                    jobType: "ReceiptReprint",
+                    isCashPayment: false,
+                    isReprint: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "[PrintDispatcher] Lỗi gửi receipt reprint cho Order #{OrderId}.",
+                    order.OrderId);
+                return false;
+            }
+        }
+
+        public async Task<bool> DispatchDrinkLabelReprintAsync(Order order, int storeId, string cashierName)
+        {
+            try
+            {
+                var storeName = order.Store?.Name ?? "CafeChain";
+                var cupLabelPayload = _escPosBuilder.BuildCupLabels(order, storeName, cashierName);
+                var cupLabelTarget = GetCupLabelPrinterTarget();
+
+                return await SendPrintJobAsync(
+                    order,
+                    storeId,
+                    cupLabelPayload,
+                    printerTarget: cupLabelTarget,
+                    jobType: "DrinkLabelReprint",
+                    isCashPayment: false,
+                    isReprint: true);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "[PrintDispatcher] Lỗi gửi drink label reprint cho Order #{OrderId}.",
+                    order.OrderId);
+                return false;
+            }
+        }
+
         private async Task<bool> SendPrintJobAsync(
             Order order,
             int storeId,
             byte[] payload,
             string printerTarget,
             string jobType,
-            bool isCashPayment)
+            bool isCashPayment,
+            bool isReprint)
         {
             if (payload == null || payload.Length == 0)
             {
@@ -119,6 +186,7 @@ namespace CafeChain.Application.Services.POS
                 isCashPayment,
                 printerTarget,
                 jobType,
+                isReprint,
                 printedAt = DateTime.UtcNow
             });
 

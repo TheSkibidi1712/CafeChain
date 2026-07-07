@@ -51,5 +51,10 @@ namespace CafeChain.Application.Interfaces.POS
         /// Issue #68: Lấy lịch sử đơn hàng POS có phân trang
         /// </summary>
         Task<ServiceResult<object>> GetOrderHistoryAsync(int storeId, int page, int pageSize);
+
+        /// <summary>
+        /// Gửi lệnh in lại hóa đơn hoặc tem cho đơn POS đã thanh toán.
+        /// </summary>
+        Task<ServiceResult<object>> ReprintOrderAsync(int orderId, POSOrderReprintRequestDto dto, int storeId);
     }
 }

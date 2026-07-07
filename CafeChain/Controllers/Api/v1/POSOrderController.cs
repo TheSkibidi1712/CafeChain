@@ -214,6 +214,27 @@ namespace CafeChain.Controllers.Api.v1
         }
 
         // ============================================================
+        // POST /api/v1/pos/orders/{orderId}/reprint — Issue #83
+        // ============================================================
+
+        /// <summary>
+        /// Gửi lệnh in lại hóa đơn hoặc tem từ Order Detail drawer.
+        /// Không tạo đơn, không tạo payment, không trừ kho.
+        /// </summary>
+        [HttpPost("{orderId:int}/reprint")]
+        public async Task<IActionResult> ReprintOrder(
+            [FromRoute] int orderId,
+            [FromBody] POSOrderReprintRequestDto dto)
+        {
+            var result = await _orderService.ReprintOrderAsync(orderId, dto, CurrentStoreId);
+
+            if (!result.IsSuccess)
+                return Ok(new { success = false, message = result.Message });
+
+            return Ok(new { success = true, message = result.Message, data = result.Data });
+        }
+
+        // ============================================================
         // PRIVATE HELPERS
         // ============================================================
 

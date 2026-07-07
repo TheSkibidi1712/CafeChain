@@ -871,6 +871,71 @@ namespace CafeChain.Application.Services.POS
                 }
             } as object);
         }
+
+        // ============================================================
+        // REPRINT ORDER — Issue #83: Intentional receipt/label reprint
+        // ============================================================
+        public async Task<ServiceResult<object>> ReprintOrderAsync(
+            int orderId,
+            POSOrderReprintRequestDto dto,
+            int storeId)
+        {
+            var type = dto?.Type?.Trim();
+            var normalizedType = type?.ToLowerInvariant();
+
+            if (normalizedType != "receipt" && normalizedType != "drinklabel")
+                return ServiceResult<object>.Failure("Loại in lại không hợp lệ. Chỉ hỗ trợ receipt hoặc drinkLabel.");
+
+            var order = await _repository.GetOrderForReprintAsync(orderId, storeId);
+            if (order == null)
+                return ServiceResult<object>.Failure("Không tìm thấy đơn hàng để in lại.");
+
+            if (!string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase))
+                return ServiceResult<object>.Failure("Chỉ hỗ trợ in lại đơn POS đã đồng bộ.");
+
+            if (order.OrderStatusId == SystemConstants.OrderStatuses.Cancelled)
+                return ServiceResult<object>.Failure("Đơn đã hủy không thể in lại.");
+
+            if (order.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
+                return ServiceResult<object>.Failure("Chỉ có thể in lại đơn đã thanh toán.");
+
+            var cashierName = order.Staff?.FullName ?? "POS";
+            var cashReceived = order.Payments?
+                .Where(payment => payment.PaymentMethodId == 1 && payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
+                .Sum(payment => payment.Amount) ?? 0m;
+            var hasCashPayment = cashReceived > 0;
+            var receiptCashReceived = hasCashPayment ? cashReceived : order.Total;
+
+            bool dispatched;
+            string message;
+            if (normalizedType == "receipt")
+            {
+                dispatched = await _printDispatcher.DispatchReceiptReprintAsync(
+                    order,
+                    order.StoreId,
+                    cashierName,
+                    receiptCashReceived,
+                    hasCashPayment);
+                message = "Đã gửi lệnh in lại hóa đơn.";
+            }
+            else
+            {
+                dispatched = await _printDispatcher.DispatchDrinkLabelReprintAsync(
+                    order,
+                    order.StoreId,
+                    cashierName);
+                message = "Đã gửi lệnh in lại tem.";
+            }
+
+            if (!dispatched)
+                return ServiceResult<object>.Failure("Không gửi được lệnh in lại. Vui lòng kiểm tra PrintBridge.");
+
+            return ServiceResult<object>.Success(new
+            {
+                orderId = order.OrderId,
+                type = normalizedType
+            } as object, message);
+        }
     }
 }
 
