@@ -101,30 +101,6 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     order.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid);
         }
 
-        // === RECONCILIATION ===
-        /// <summary>
-        /// Ghi bản ghi cảnh báo chênh lệch két tiền vào InvoiceAuditLog.
-        /// ActionName = "SHIFT_CASH_DISCREPANCY" — hiển thị trên trang Admin đối soát.
-        /// </summary>
-        public async Task CreateReconciliationWarningAsync(
-            int shiftId, int storeId, int userId, decimal discrepancy, string? reason)
-        {
-            var auditLog = new CafeChain.Models.Orders.InvoiceAuditLog
-            {
-                OrderId = shiftId,  // Cross-reference: lưu ShiftId vào OrderId để admin tra cứu
-                CashierId = userId,
-                SupervisorId = userId,  // Self-reported: thu ngân tự khai báo tiền thực tế
-                ActionName = "SHIFT_CASH_DISCREPANCY",
-                Reason = $"[HỆ THỐNG] Chênh lệch két tiền: {discrepancy:N0}đ. " +
-                         $"Lý do nhân viên khai: {reason ?? "Không có"}",
-                DiscountValue = discrepancy,
-                CreatedAt = DateTime.Now
-            };
-
-            _context.InvoiceAuditLogs.Add(auditLog);
-            await _context.SaveChangesAsync();
-        }
-
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();

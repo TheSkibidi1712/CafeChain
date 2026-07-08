@@ -184,7 +184,8 @@ namespace CafeChain.Application.Services.POS
 
                 await _shiftRepo.UpdateShiftAsync(activeShift);
 
-                // 6. AUTO WARNING LOG: Nếu chênh lệch != 0 → ghi log cho Web Admin
+                // 6. Nếu chênh lệch != 0, dữ liệu đối soát đã được persist trên WorkShift.
+                // Không ghi vào InvoiceAuditLog vì đó là domain hóa đơn/supervisor bypass.
                 if (discrepancy != 0)
                 {
                     _logger.LogWarning(
@@ -194,10 +195,6 @@ namespace CafeChain.Application.Services.POS
                         activeShift.ShiftId, storeId, userId,
                         expectedEndingCash, request.ActualEndingCash,
                         discrepancy, request.DiscrepancyReason ?? "N/A");
-
-                    // Ghi bản ghi TransactionLog dạng Warning → sẵn sàng hiển thị trên trang Admin đối soát
-                    await _shiftRepo.CreateReconciliationWarningAsync(
-                        activeShift.ShiftId, storeId, userId, discrepancy, request.DiscrepancyReason);
                 }
 
                 return ServiceResult.Success(

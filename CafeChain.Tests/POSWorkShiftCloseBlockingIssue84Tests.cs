@@ -86,6 +86,41 @@ namespace CafeChain.Tests.POS
             repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Once);
         }
 
+        [Fact]
+        public async Task CloseShiftAsync_WithCashDiscrepancy_PersistsWorkShiftFieldsWithoutInvoiceAuditLog()
+        {
+            var shift = CreateOpenShift();
+            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
+            repository
+                .Setup(repo => repo.GetActiveShiftAsync(17, 3))
+                .ReturnsAsync(shift);
+            repository
+                .Setup(repo => repo.HasOpenPosPaymentAsync(84, 3))
+                .ReturnsAsync(false);
+            repository
+                .Setup(repo => repo.GetTotalCashSalesAsync(84))
+                .ReturnsAsync(0m);
+            repository
+                .Setup(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()))
+                .Returns(Task.CompletedTask);
+            var service = CreateService(repository.Object);
+
+            var result = await service.CloseShiftAsync(17, 3, new CloseShiftRequestDto
+            {
+                ActualEndingCash = 490000m,
+                DiscrepancyReason = "Thiếu tiền mặt khi kiểm két."
+            });
+
+            Assert.True(result.IsSuccess, result.Message);
+
+            Assert.Equal("Closed", shift.Status);
+            Assert.Equal(500000m, shift.ExpectedEndingCash);
+            Assert.Equal(490000m, shift.ActualEndingCash);
+            Assert.Equal(-10000m, shift.CashDiscrepancy);
+            Assert.Equal("Thiếu tiền mặt khi kiểm két.", shift.DiscrepancyReason);
+            repository.Verify(repo => repo.UpdateShiftAsync(shift), Times.Once);
+        }
+
         private static WorkShiftService CreateService(AppDbContext context)
         {
             return CreateService(new WorkShiftRepository(context));

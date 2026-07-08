@@ -24,13 +24,6 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         Task<decimal> GetTotalCashSalesAsync(int shiftId);
         Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId);
 
-        // === RECONCILIATION ===
-        /// <summary>
-        /// Ghi bản ghi cảnh báo chênh lệch két tiền vào InvoiceAuditLog.
-        /// ActionName = "SHIFT_CASH_DISCREPANCY" — sẵn sàng cho Web Admin đối soát.
-        /// </summary>
-        Task CreateReconciliationWarningAsync(int shiftId, int storeId, int userId, decimal discrepancy, string? reason);
-
         Task SaveChangesAsync();
     }
 }
