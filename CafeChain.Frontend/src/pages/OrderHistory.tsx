@@ -30,6 +30,15 @@ const formatDateTime = (value: string): string => {
   })
 }
 
+const toDisplayError = (message?: string): string => {
+  const raw = message?.trim()
+  if (!raw) return 'Không tải được lịch sử đơn hàng.'
+  if (raw.includes('<!DOCTYPE') || raw.includes('<html')) {
+    return 'Backend đang lỗi khi tải lịch sử đơn hàng. Vui lòng kiểm tra console backend.'
+  }
+  return raw.length > 260 ? `${raw.slice(0, 260)}...` : raw
+}
+
 interface BackendPayment {
   paymentMethodId: number
   paymentMethod: string
@@ -252,8 +261,11 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
 }
 
 const mapLocalOrder = (order: CartSyncQueueItem): HistoryRow => {
-  const items: HistoryDetailLine[] = order.cartSnapshot.length > 0
-    ? order.cartSnapshot.map((item) => ({
+  const cartSnapshot = order.cartSnapshot ?? []
+  const fallbackItems = order.items ?? []
+  const clientOrderId = order.clientOrderId || 'local-offline-order'
+  const items: HistoryDetailLine[] = cartSnapshot.length > 0
+    ? cartSnapshot.map((item) => ({
       drinkName: item.name,
       sizeName: item.sizeName,
       quantity: item.quantity,
@@ -262,7 +274,7 @@ const mapLocalOrder = (order: CartSyncQueueItem): HistoryRow => {
       note: item.note,
       toppings: item.toppings?.map((topping) => topping.name ?? `Topping #${topping.toppingId}`) ?? [],
     }))
-    : order.items.map((item) => ({
+    : fallbackItems.map((item) => ({
       drinkName: item.name,
       sizeName: null,
       quantity: item.quantity,
@@ -275,10 +287,10 @@ const mapLocalOrder = (order: CartSyncQueueItem): HistoryRow => {
   const syncState = getLocalSyncLabel(order.syncStatus)
 
   return {
-    key: `local-${order.queueId ?? order.clientOrderId}`,
+    key: `local-${order.queueId ?? clientOrderId}`,
     source: 'local',
-    clientOrderId: order.clientOrderId,
-    code: `Tạm ${order.clientOrderId.slice(0, 8)}`,
+    clientOrderId,
+    code: `Tạm ${clientOrderId.slice(0, 8)}`,
     soldAt: order.soldAt,
     total: order.totalAmount,
     paymentSummary: 'Tiền mặt',
@@ -511,6 +523,7 @@ export default function OrderHistory() {
   const [selectedOrder, setSelectedOrder] = useState<HistoryRow | null>(null)
   const [reprintTarget, setReprintTarget] = useState<ReprintTarget | null>(null)
   const [reprintFeedback, setReprintFeedback] = useState<ReprintFeedback | null>(null)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const localOfflineOrders = useLiveQuery(
     () => db.cartSyncQueue
@@ -528,13 +541,17 @@ export default function OrderHistory() {
       if (res.ok && res.data?.success && res.data?.data) {
         setOrders(res.data.data.items ?? [])
         setPagination(res.data.data.pagination ?? { page: 1, pageSize: 20, totalCount: 0, totalPages: 1 })
+        setErrorMessage(null)
       } else {
+        const displayError = toDisplayError(res.data?.message || res.error)
         console.warn('[OrderHistory] API failed:', res.data?.message || res.error)
         setOrders([])
+        setErrorMessage(displayError)
       }
     } catch (err) {
       console.error('[OrderHistory] Fetch error:', err)
       setOrders([])
+      setErrorMessage(toDisplayError(err instanceof Error ? err.message : String(err)))
     } finally {
       setIsLoading(false)
     }
@@ -621,6 +638,21 @@ export default function OrderHistory() {
         </header>
 
         <section className="overflow-hidden rounded-lg border border-border bg-surface-white shadow-[var(--shadow-card)]">
+          {errorMessage && (
+            <div className="border-b border-red-200 bg-red-50 px-4 py-3 text-xs font-semibold text-red-700">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <span>{errorMessage}</span>
+                <button
+                  type="button"
+                  onClick={() => void fetchOrders(pagination.page)}
+                  disabled={isLoading}
+                  className="self-start rounded-lg border border-red-200 bg-white px-3 py-1.5 text-[11px] font-bold text-red-700 hover:bg-red-100 disabled:opacity-50 sm:self-auto"
+                >
+                  Thử lại
+                </button>
+              </div>
+            </div>
+          )}
           <div className="grid min-w-[1100px] grid-cols-[150px_145px_minmax(210px,1.5fr)_150px_130px_170px_150px_120px] gap-3 border-b border-border bg-surface px-4 py-3 text-[10px] font-extrabold uppercase text-text-muted">
             <span>Mã đơn</span>
             <span>Thời gian</span>
@@ -634,6 +666,11 @@ export default function OrderHistory() {
 
           {isLoading ? (
             <div className="p-16 text-center text-xs font-semibold text-text-muted">Đang tải lịch sử đơn hàng...</div>
+          ) : errorMessage && historyRows.length === 0 ? (
+            <div className="p-16 text-center">
+              <p className="text-xs font-semibold text-red-700">Không tải được lịch sử đơn hàng</p>
+              <p className="mt-1 text-[10px] text-text-muted">Kiểm tra backend rồi thử lại.</p>
+            </div>
           ) : historyRows.length === 0 ? (
             <div className="p-16 text-center">
               <p className="text-xs font-semibold text-text-muted">Chưa có đơn hàng nào</p>

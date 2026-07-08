@@ -157,7 +157,8 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
             var totalCount = await query.CountAsync();
 
-            var items = await query
+            var pageOrders = await query
+                .AsNoTracking()
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(o => new Application.DTOs.POS.POSOrderHistoryDto
@@ -171,16 +172,28 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     OrderType = o.OrderType != null ? o.OrderType.Name : "N/A",
                     CreatedAt = o.CreatedAt,
                     Total = o.Total,
-                    PaymentMethod = o.Payments
-                        .Select(p => p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A")
-                        .FirstOrDefault() ?? "N/A",
+                    PaymentMethod = "N/A",
                     OrderStatusId = o.OrderStatusId,
                     OrderStatusName = o.OrderStatus != null ? o.OrderStatus.Name : "N/A",
                     PaymentStatusId = o.PaymentStatusId,
                     PaymentStatusName = o.PaymentStatus != null ? o.PaymentStatus.Name : "N/A",
                     StaffName = o.Staff != null ? o.Staff.FullName : "POS",
-                    Note = o.Note,
-                    Payments = o.Payments.Select(p => new Application.DTOs.POS.POSPaymentHistoryDto
+                    Note = o.Note
+                })
+                .ToListAsync();
+
+            var orderIds = pageOrders.Select(o => o.OrderId).ToList();
+            if (orderIds.Count == 0)
+                return (pageOrders, totalCount);
+
+            var paymentRows = await _context.Payments
+                .AsNoTracking()
+                .Where(p => orderIds.Contains(p.OrderId))
+                .OrderBy(p => p.PaymentId)
+                .Select(p => new
+                {
+                    p.OrderId,
+                    Payment = new Application.DTOs.POS.POSPaymentHistoryDto
                     {
                         PaymentMethodId = p.PaymentMethodId,
                         PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A",
@@ -189,8 +202,18 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                         Amount = p.Amount,
                         PaidAt = p.PaidAt,
                         TransactionCode = p.TransactionCode
-                    }).ToList(),
-                    OrderDetails = o.OrderDetails.Select(od => new Application.DTOs.POS.POSOrderDetailHistoryDto
+                    }
+                })
+                .ToListAsync();
+
+            var detailRows = await _context.OrderDetails
+                .AsNoTracking()
+                .Where(od => orderIds.Contains(od.OrderId))
+                .OrderBy(od => od.OrderDetailId)
+                .Select(od => new
+                {
+                    od.OrderId,
+                    Detail = new Application.DTOs.POS.POSOrderDetailHistoryDto
                     {
                         DrinkName = od.DrinkName,
                         SizeName = od.SizeName,
@@ -201,11 +224,33 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                         Toppings = od.OrderToppings
                             .Select(ot => ot.ToppingName)
                             .ToList()
-                    }).ToList()
+                    }
                 })
                 .ToListAsync();
 
-            return (items, totalCount);
+            var paymentsByOrder = paymentRows
+                .GroupBy(row => row.OrderId)
+                .ToDictionary(group => group.Key, group => group.Select(row => row.Payment).ToList());
+
+            var detailsByOrder = detailRows
+                .GroupBy(row => row.OrderId)
+                .ToDictionary(group => group.Key, group => group.Select(row => row.Detail).ToList());
+
+            foreach (var order in pageOrders)
+            {
+                if (paymentsByOrder.TryGetValue(order.OrderId, out var payments))
+                {
+                    order.Payments = payments;
+                    order.PaymentMethod = payments.FirstOrDefault()?.PaymentMethod ?? "N/A";
+                }
+
+                if (detailsByOrder.TryGetValue(order.OrderId, out var details))
+                {
+                    order.OrderDetails = details;
+                }
+            }
+
+            return (pageOrders, totalCount);
         }
 
         public async Task CreatePaymentAsync(Payment payment)

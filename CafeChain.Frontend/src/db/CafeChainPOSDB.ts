@@ -38,8 +38,12 @@ export interface MenuItem {
   categoryId: number
   /** URL ảnh sản phẩm (optional) */
   image?: string
-  /** Trạng thái: true = đang bán, false = ngừng bán */
+  /** true = co the them vao gio; false = hien thi disabled kem ly do */
   isAvailable: boolean
+  /** Ma trang thai kha dung tu backend */
+  availabilityStatus?: string
+  /** Ly do tieng Viet khi mon tam thoi khong ban duoc */
+  availabilityReason?: string | null
   /** Danh sách size khả dụng từ Backend */
   sizes?: MenuItemSize[]
   /** Danh sách topping khả dụng cho món này từ Backend */

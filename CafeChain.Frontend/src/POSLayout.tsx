@@ -89,6 +89,9 @@ const PAYMENT_TIMEOUT_SECONDS = 5 * 60
 const formatVND = (amount: number): string =>
   new Intl.NumberFormat('vi-VN').format(amount) + 'đ'
 
+const getUnavailableReason = (item: MenuItem): string =>
+  item.availabilityReason?.trim() || 'Tạm hết hàng'
+
 const formatCountdown = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
   const remainingSeconds = seconds % 60
@@ -290,7 +293,7 @@ export default function POSLayout() {
     }
 
     if (item.isAvailable === false) {
-      showMessage('Món này chưa khả dụng do thiếu BOM hoặc tồn kho.')
+      showMessage(`Không thể thêm món: ${getUnavailableReason(item)}.`)
       return
     }
 
@@ -1047,7 +1050,7 @@ export default function POSLayout() {
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
-              Không có sản phẩm khả dụng
+              Không có sản phẩm trong danh mục này
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-3">
@@ -1055,6 +1058,7 @@ export default function POSLayout() {
                 const qtyInCart = getQuantityInCart(item.id)
                 const isUnavailable = item.isAvailable === false
                 const isProductLocked = isCartLocked || isUnavailable
+                const unavailableReason = isUnavailable ? getUnavailableReason(item) : ''
                 return (
                   <div
                     key={item.id}
@@ -1072,8 +1076,11 @@ export default function POSLayout() {
                     )}
 
                     {isUnavailable && (
-                      <span className="absolute top-2.5 left-2.5 px-2 py-1 bg-surface border border-border text-text-secondary text-[9px] font-extrabold rounded-lg z-10">
-                        Chưa khả dụng
+                      <span
+                        className="absolute top-2.5 left-2.5 max-w-[120px] truncate px-2 py-1 bg-surface border border-border text-text-secondary text-[9px] font-extrabold rounded-lg z-10"
+                        title={unavailableReason}
+                      >
+                        {unavailableReason}
                       </span>
                     )}
 
@@ -1081,7 +1088,7 @@ export default function POSLayout() {
                       onClick={(event) => {
                         event.stopPropagation()
                         if (isUnavailable) {
-                          showMessage('Món này chưa khả dụng do thiếu BOM hoặc tồn kho.')
+                          showMessage(`Không thể thêm món: ${unavailableReason}.`)
                           return
                         }
                         if (isCartLocked) {
@@ -1108,8 +1115,13 @@ export default function POSLayout() {
                     <span className="text-[10px] font-bold text-brand-orange mb-3">
                       {formatVND(item.price)}
                     </span>
+                    {isUnavailable && (
+                      <span className="mb-2 line-clamp-2 min-h-[24px] text-center text-[9px] font-semibold leading-3 text-red-600">
+                        {unavailableReason}
+                      </span>
+                    )}
                     <div className="mt-auto text-[9px] text-text-secondary font-bold bg-surface px-2.5 py-1 rounded-md border border-border-light">
-                      Thêm nhanh
+                      {isUnavailable ? 'Không thể bán' : 'Thêm nhanh'}
                     </div>
                   </div>
                 )
