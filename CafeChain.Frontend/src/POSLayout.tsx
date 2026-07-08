@@ -69,6 +69,15 @@ interface PendingPayment {
   expiresAt?: number
 }
 
+interface CashPaymentConfirmation {
+  clientOrderId: string
+  soldAt: string
+  cartSnapshot: CartItem[]
+  orderTypeSnapshot: 'dine-in' | 'take-away'
+  totalAmount: number
+  receivedAmountInput: string
+}
+
 interface CancelPaymentApiResponse {
   success: boolean
   code?: string
@@ -137,6 +146,7 @@ export default function POSLayout() {
   const [shift, setShift] = useState<ShiftSummary | null>(null)
   const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null)
   const [pendingCashInput, setPendingCashInput] = useState('')
+  const [cashConfirmation, setCashConfirmation] = useState<CashPaymentConfirmation | null>(null)
   const [paymentRemainingSeconds, setPaymentRemainingSeconds] = useState(PAYMENT_TIMEOUT_SECONDS)
   const [isCancellingPayment, setIsCancellingPayment] = useState(false)
   const [lastOfflineOrder, setLastOfflineOrder] = useState<CartSyncQueueItem | null>(null)
@@ -184,6 +194,24 @@ export default function POSLayout() {
   const parsedPendingCash = Math.max(0, Number(pendingCashInput) || 0)
   const pendingCashForCart = Math.min(parsedPendingCash, totalAmount)
   const remainingAfterPendingCash = Math.max(0, totalAmount - pendingCashForCart)
+  const cashConfirmationReceivedAmount = Math.max(0, Number(cashConfirmation?.receivedAmountInput) || 0)
+  const cashConfirmationChangeAmount = cashConfirmation
+    ? Math.max(0, cashConfirmationReceivedAmount - cashConfirmation.totalAmount)
+    : 0
+  const canConfirmCashPayment = !!cashConfirmation
+    && cashConfirmationReceivedAmount >= cashConfirmation.totalAmount
+    && !isCheckingOut
+  const cashQuickAmounts = useMemo(() => {
+    if (!cashConfirmation) return []
+    const baseAmount = cashConfirmation.totalAmount
+    const roundedAmount = Math.ceil(baseAmount / 10000) * 10000
+    return Array.from(new Set([
+      baseAmount,
+      roundedAmount,
+      roundedAmount + 50000,
+      roundedAmount + 100000,
+    ].filter((amount) => amount >= baseAmount && amount > 0)))
+  }, [cashConfirmation])
 
   useEffect(() => {
     if (!pendingPayment || !hasOpenShift || !shift?.shiftId || !session.staffId || !session.storeId) {
@@ -692,36 +720,46 @@ export default function POSLayout() {
     }
   }
 
-  const handleCheckout = async (paymentMethod: 'cash' | 'banking') => {
+  const openCashPaymentConfirmation = () => {
     if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
     if (!hasOpenShift) {
       showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
       return
     }
-    const isNetworkUnavailable = !isOnline || !navigator.onLine
-    if (paymentMethod === 'banking' && isNetworkUnavailable) {
-      showMessage('Cần kết nối mạng để tạo mã thanh toán VietQR.')
-      return
-    }
-    if (paymentMethod === 'cash' && parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
-      showMessage('Tiền mặt chưa đủ, hãy ghi nhận tạm hoặc nhập đủ tiền.')
-      return
-    }
-    if (paymentMethod === 'banking' && parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
-      beginSplitCashFlow()
-      return
-    }
-    if (paymentMethod === 'banking' && parsedPendingCash >= totalAmount) {
-      showMessage('Tiền mặt đã đủ cho đơn này.')
+
+    const initialReceivedAmount = parsedPendingCash > 0 ? parsedPendingCash : totalAmount
+    setCashConfirmation({
+      clientOrderId: getClientOrderId(),
+      soldAt: new Date().toISOString(),
+      cartSnapshot: snapshotCart(cart),
+      orderTypeSnapshot: orderType,
+      totalAmount,
+      receivedAmountInput: String(initialReceivedAmount),
+    })
+  }
+
+  const cancelCashPaymentConfirmation = () => {
+    if (isCheckingOut) return
+    setCashConfirmation(null)
+  }
+
+  const confirmCashPayment = async () => {
+    if (!cashConfirmation || checkoutInFlightRef.current) return
+
+    const receivedCashAmount = cashConfirmationReceivedAmount
+    if (receivedCashAmount < cashConfirmation.totalAmount) {
+      showMessage('Tiền khách đưa chưa đủ để thanh toán.')
       return
     }
 
-    const clientOrderId = getClientOrderId()
-    const soldAt = new Date().toISOString()
-    const cartSnapshot = snapshotCart(cart)
-    const orderTypeSnapshot = orderType
-    const orderTotal = totalAmount
-    const receivedCashAmount = Math.max(parsedPendingCash, orderTotal)
+    const {
+      clientOrderId,
+      soldAt,
+      cartSnapshot,
+      orderTypeSnapshot,
+      totalAmount: orderTotal,
+    } = cashConfirmation
+    const isNetworkUnavailable = !isOnline || !navigator.onLine
 
     checkoutInFlightRef.current = true
     setIsCheckingOut(true)
@@ -730,42 +768,19 @@ export default function POSLayout() {
         const response = await postOrderCommit(
           cartSnapshot,
           orderTypeSnapshot,
-          [{ paymentMethodId: paymentMethod === 'cash' ? 1 : 2, amount: orderTotal }],
-          paymentMethod === 'cash' ? receivedCashAmount : orderTotal,
+          [{ paymentMethodId: 1, amount: orderTotal }],
+          receivedCashAmount,
           clientOrderId
         )
 
         if (response.ok && response.data?.success) {
-          const commitData = response.data.data
-          if (
-            paymentMethod === 'banking' &&
-            commitData?.requiresPayment &&
-            commitData.orderId &&
-            commitData.checkoutUrl
-          ) {
-            setPaymentRemainingSeconds(PAYMENT_TIMEOUT_SECONDS)
-            setPendingPayment({
-              status: 'awaiting-vietqr',
-              cartSnapshot,
-              orderTypeSnapshot,
-              totalAmount: orderTotal,
-              pendingCashAmount: 0,
-              vietQrAmount: commitData.pendingVietQrAmount ?? commitData.total ?? orderTotal,
-              orderId: commitData.orderId,
-              checkoutUrl: commitData.checkoutUrl,
-              qrCode: commitData.qrCode,
-              expiresAt: createPaymentExpiryTimestamp(),
-            })
-            showMessage('Đã tạo mã VietQR, đang chờ xác nhận thanh toán.')
-            return
-          }
-
           const warnings = response.data.inventoryWarnings
           const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
+          setCashConfirmation(null)
           setPendingCashInput('')
           clearCart()
           showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
-        } else if (!response.ok && response.status === 0 && paymentMethod === 'cash') {
+        } else if (!response.ok && response.status === 0) {
           console.warn('[POS] Network commit failed, saving offline:', response.error)
           const savedOffline = await enqueueOrderFallback({
             clientOrderId,
@@ -776,6 +791,7 @@ export default function POSLayout() {
             receivedAmount: receivedCashAmount,
           })
           if (savedOffline) {
+            setCashConfirmation(null)
             setPendingCashInput('')
             clearCart()
             showMessage('Đơn đã lưu offline, sẽ tự đồng bộ khi có mạng.')
@@ -793,14 +809,15 @@ export default function POSLayout() {
           receivedAmount: receivedCashAmount,
         })
         if (savedOffline) {
+          setCashConfirmation(null)
           setPendingCashInput('')
           clearCart()
           showMessage('Offline: đơn đã lưu và sẽ tự đồng bộ khi có mạng.')
         }
       }
     } catch (err) {
-      console.error('[POS] Checkout error:', err)
-      if ((!isOnline || !navigator.onLine) && paymentMethod === 'cash') {
+      console.error('[POS] Cash checkout error:', err)
+      if ((!isOnline || !navigator.onLine)) {
         try {
           const savedOffline = await enqueueOrderFallback({
             clientOrderId,
@@ -811,6 +828,7 @@ export default function POSLayout() {
             receivedAmount: receivedCashAmount,
           })
           if (savedOffline) {
+            setCashConfirmation(null)
             setPendingCashInput('')
             clearCart()
             showMessage('Đơn đã lưu offline do lỗi mạng.')
@@ -821,6 +839,88 @@ export default function POSLayout() {
       } else {
         showMessage('Không thể thanh toán. Vui lòng thử lại.')
       }
+    } finally {
+      checkoutInFlightRef.current = false
+      setIsCheckingOut(false)
+    }
+  }
+
+  const handleCheckout = async (paymentMethod: 'cash' | 'banking') => {
+    if (paymentMethod === 'cash') {
+      openCashPaymentConfirmation()
+      return
+    }
+
+    if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
+    if (!hasOpenShift) {
+      showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
+      return
+    }
+    const isNetworkUnavailable = !isOnline || !navigator.onLine
+    if (isNetworkUnavailable) {
+      showMessage('Cần kết nối mạng để tạo mã thanh toán VietQR.')
+      return
+    }
+    if (parsedPendingCash > 0 && parsedPendingCash < totalAmount) {
+      beginSplitCashFlow()
+      return
+    }
+    if (parsedPendingCash >= totalAmount) {
+      showMessage('Tiền mặt đã đủ cho đơn này.')
+      return
+    }
+
+    const clientOrderId = getClientOrderId()
+    const cartSnapshot = snapshotCart(cart)
+    const orderTypeSnapshot = orderType
+    const orderTotal = totalAmount
+
+    checkoutInFlightRef.current = true
+    setIsCheckingOut(true)
+    try {
+      const response = await postOrderCommit(
+        cartSnapshot,
+        orderTypeSnapshot,
+        [{ paymentMethodId: 2, amount: orderTotal }],
+        orderTotal,
+        clientOrderId
+      )
+
+      if (response.ok && response.data?.success) {
+        const commitData = response.data.data
+        if (
+          commitData?.requiresPayment &&
+          commitData.orderId &&
+          commitData.checkoutUrl
+        ) {
+          setPaymentRemainingSeconds(PAYMENT_TIMEOUT_SECONDS)
+          setPendingPayment({
+            status: 'awaiting-vietqr',
+            cartSnapshot,
+            orderTypeSnapshot,
+            totalAmount: orderTotal,
+            pendingCashAmount: 0,
+            vietQrAmount: commitData.pendingVietQrAmount ?? commitData.total ?? orderTotal,
+            orderId: commitData.orderId,
+            checkoutUrl: commitData.checkoutUrl,
+            qrCode: commitData.qrCode,
+            expiresAt: createPaymentExpiryTimestamp(),
+          })
+          showMessage('Đã tạo mã VietQR, đang chờ xác nhận thanh toán.')
+          return
+        }
+
+        const warnings = response.data.inventoryWarnings
+        const warningText = warnings?.length ? ` (${warnings.length} cảnh báo kho)` : ''
+        setPendingCashInput('')
+        clearCart()
+        showMessage(`Thanh toán thành công. Lệnh in đã gửi tới Print Bridge.${warningText}`)
+      } else {
+        showMessage(response.data?.message || response.error || 'Không thể thanh toán. Vui lòng kiểm tra lại ca két tiền.')
+      }
+    } catch (err) {
+      console.error('[POS] Checkout error:', err)
+      showMessage('Không thể thanh toán. Vui lòng thử lại.')
     } finally {
       checkoutInFlightRef.current = false
       setIsCheckingOut(false)
@@ -1268,7 +1368,7 @@ export default function POSLayout() {
           <div className="flex gap-2">
             <button
               onClick={() => handleCheckout('cash')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || cashConfirmation !== null}
               className="flex-1 py-3 rounded-xl bg-brand-orange text-white font-bold text-sm shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (
@@ -1282,7 +1382,7 @@ export default function POSLayout() {
             </button>
             <button
               onClick={() => handleCheckout('banking')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || !isOnline}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || !isOnline || cashConfirmation !== null}
               className="flex-1 py-3 rounded-xl bg-text-primary text-white font-bold text-sm hover:bg-gray-700 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (
@@ -1301,6 +1401,98 @@ export default function POSLayout() {
       {checkoutMessage && (
         <div className="absolute bottom-6 left-1/2 -translate-x-1/2 bg-brand-orange text-white font-bold text-xs py-3.5 px-6 rounded-xl shadow-lg border border-brand-orange-border z-50">
           {checkoutMessage}
+        </div>
+      )}
+
+      {cashConfirmation && (
+        <div className="fixed inset-0 z-[60] bg-black/55 flex items-center justify-center px-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="cash-payment-title"
+            className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-border overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-border">
+              <h3 id="cash-payment-title" className="text-base font-extrabold text-text-primary">
+                Xác nhận thanh toán tiền mặt
+              </h3>
+            </div>
+            <div className="p-5 space-y-4">
+              <div className="rounded-xl border border-border bg-surface px-4 py-3 space-y-2">
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-bold text-text-secondary">Tổng tiền cần thanh toán</span>
+                  <span className="font-extrabold text-brand-orange tabular-nums">
+                    {formatVND(cashConfirmation.totalAmount)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                  <span className="font-bold text-text-secondary">Tiền thừa</span>
+                  <span className="font-extrabold text-text-primary tabular-nums">
+                    {formatVND(cashConfirmationChangeAmount)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="block text-xs font-extrabold text-text-secondary" htmlFor="cash-received-input">
+                  Tiền khách đưa
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    id="cash-received-input"
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={cashConfirmation.receivedAmountInput}
+                    onChange={(event) => setCashConfirmation((current) => current
+                      ? { ...current, receivedAmountInput: event.target.value }
+                      : current)}
+                    className="min-w-0 flex-1 rounded-xl border border-border bg-white px-3 py-3 text-base font-extrabold text-text-primary outline-none focus:border-brand-orange"
+                    autoFocus
+                  />
+                  <span className="text-xs font-extrabold text-text-secondary">VNĐ</span>
+                </div>
+                {cashConfirmationReceivedAmount < cashConfirmation.totalAmount && (
+                  <p className="text-xs font-bold text-danger">
+                    Tiền khách đưa chưa đủ để thanh toán.
+                  </p>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                {cashQuickAmounts.map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => setCashConfirmation((current) => current
+                      ? { ...current, receivedAmountInput: String(amount) }
+                      : current)}
+                    className="rounded-lg border border-border bg-surface px-3 py-2 text-xs font-extrabold text-text-secondary hover:border-brand-orange-border hover:text-brand-orange transition-colors cursor-pointer"
+                  >
+                    {formatVND(amount)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 px-5 py-4 bg-surface border-t border-border">
+              <button
+                type="button"
+                onClick={cancelCashPaymentConfirmation}
+                disabled={isCheckingOut}
+                className="rounded-xl border border-border bg-white px-4 py-3 text-sm font-extrabold text-text-secondary hover:bg-surface-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={() => void confirmCashPayment()}
+                disabled={!canConfirmCashPayment}
+                className="rounded-xl bg-brand-orange px-4 py-3 text-sm font-extrabold text-white hover:bg-brand-orange-hover disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              >
+                {isCheckingOut ? 'Đang xử lý' : 'Xác nhận'}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

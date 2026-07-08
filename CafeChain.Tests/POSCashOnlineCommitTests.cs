@@ -104,12 +104,16 @@ namespace CafeChain.Tests.POS
             var result = await service.CommitOrderAsync(dto, userId: 17, storeId: 3);
 
             Assert.True(result.IsSuccess);
+            Assert.Equal(5000m, (decimal)result.Data!.GetType().GetProperty("changeAmount")!.GetValue(result.Data)!);
             Assert.NotNull(capturedOrder);
             Assert.Equal(SystemConstants.OrderStatuses.Completed, capturedOrder!.OrderStatusId);
             Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedOrder.PaymentStatusId);
             Assert.Equal(42, capturedOrder.WorkShiftId);
             Assert.NotNull(capturedPayment);
             Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedPayment!.PaymentStatusId);
+            Assert.Equal(45000m, capturedPayment.Amount);
+            Assert.Equal(50000m, capturedPayment.ReceivedAmount);
+            Assert.Equal(5000m, capturedPayment.ChangeAmount);
             Assert.Equal(545000m, activeWorkShift.ExpectedEndingCash);
 
             repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Once);
@@ -122,6 +126,132 @@ namespace CafeChain.Tests.POS
                     50000m,
                     true),
                 Times.Once);
+        }
+
+        [Fact]
+        public async Task CommitOrderAsync_CashOnline_ReceivedAmountEqualTotalStoresZeroChange()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
+            var voucherService = new Mock<IAdminVoucherService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var payOsService = new Mock<IPayOSService>(MockBehavior.Strict);
+            var logger = new Mock<ILogger<POSOrderService>>();
+
+            var dto = CreateCashCommitDto(Guid.NewGuid());
+            dto.ReceivedAmount = 45000m;
+            dto.SkipPrint = true;
+
+            Payment? capturedPayment = null;
+            var activeWorkShift = new WorkShift
+            {
+                ShiftId = 42,
+                StoreId = 3,
+                UserId = 17,
+                Status = "Open",
+                StartingCash = 500000m,
+                ExpectedEndingCash = 500000m
+            };
+
+            repository
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .ReturnsAsync((Order?)null);
+
+            workShiftService
+                .Setup(service => service.GetActiveShiftAsync(17, 3))
+                .ReturnsAsync(activeWorkShift);
+
+            repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            repository
+                .Setup(repo => repo.GetDrinkWithSizesAsync(10, 3))
+                .ReturnsAsync(CreateDrink());
+            repository
+                .Setup(repo => repo.CreateOrderAsync(It.IsAny<Order>()))
+                .Callback<Order>(order => order.OrderId = 102)
+                .ReturnsAsync((Order order) => order);
+            repository
+                .Setup(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()))
+                .Callback<Payment>(payment => capturedPayment = payment)
+                .Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.SaveChangesAsync()).Returns(Task.CompletedTask);
+            repository.Setup(repo => repo.CommitTransactionAsync()).Returns(Task.CompletedTask);
+
+            var service = CreateOrderService(
+                repository,
+                workShiftService,
+                voucherService,
+                printDispatcher,
+                payOsService,
+                logger);
+
+            var result = await service.CommitOrderAsync(dto, userId: 17, storeId: 3);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(0m, (decimal)result.Data!.GetType().GetProperty("changeAmount")!.GetValue(result.Data)!);
+            Assert.NotNull(capturedPayment);
+            Assert.Equal(45000m, capturedPayment!.Amount);
+            Assert.Equal(45000m, capturedPayment.ReceivedAmount);
+            Assert.Equal(0m, capturedPayment.ChangeAmount);
+            Assert.Equal(545000m, activeWorkShift.ExpectedEndingCash);
+        }
+
+        [Fact]
+        public async Task CommitOrderAsync_CashOnline_ReceivedAmountLessThanTotalIsRejected()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
+            var voucherService = new Mock<IAdminVoucherService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var payOsService = new Mock<IPayOSService>(MockBehavior.Strict);
+            var logger = new Mock<ILogger<POSOrderService>>();
+
+            var dto = CreateCashCommitDto(Guid.NewGuid());
+            dto.ReceivedAmount = 40000m;
+            var activeWorkShift = new WorkShift
+            {
+                ShiftId = 42,
+                StoreId = 3,
+                UserId = 17,
+                Status = "Open",
+                StartingCash = 500000m,
+                ExpectedEndingCash = 500000m
+            };
+
+            repository
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(dto.ClientOrderId!.Value))
+                .ReturnsAsync((Order?)null);
+            workShiftService
+                .Setup(service => service.GetActiveShiftAsync(17, 3))
+                .ReturnsAsync(activeWorkShift);
+            repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            repository
+                .Setup(repo => repo.GetDrinkWithSizesAsync(10, 3))
+                .ReturnsAsync(CreateDrink());
+            repository.Setup(repo => repo.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+
+            var service = CreateOrderService(
+                repository,
+                workShiftService,
+                voucherService,
+                printDispatcher,
+                payOsService,
+                logger);
+
+            var result = await service.CommitOrderAsync(dto, userId: 17, storeId: 3);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Tiền khách đưa", result.Message);
+            Assert.Equal(500000m, activeWorkShift.ExpectedEndingCash);
+            repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
+            repository.Verify(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()), Times.Never);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string>(),
+                    It.IsAny<decimal>(),
+                    It.IsAny<bool>()),
+                Times.Never);
         }
 
         [Fact]

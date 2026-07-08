@@ -7,6 +7,8 @@ namespace CafeChain.Models.Payments
 
         public int OrderId { get; set; }
         public decimal Amount { get; set; }
+        public decimal? ReceivedAmount { get; set; }
+        public decimal? ChangeAmount { get; set; }
 
         public int PaymentMethodId { get; set; }
         public int PaymentStatusId { get; set; }

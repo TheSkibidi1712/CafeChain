@@ -89,6 +89,9 @@ namespace CafeChain.Tests.POS
             Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedOrder.PaymentStatusId);
             Assert.NotNull(capturedPayment);
             Assert.Equal(SystemConstants.PaymentStatuses.Paid, capturedPayment!.PaymentStatusId);
+            Assert.Equal(45000m, capturedPayment.Amount);
+            Assert.Equal(50000m, capturedPayment.ReceivedAmount);
+            Assert.Equal(5000m, capturedPayment.ChangeAmount);
             Assert.Equal(500000m, closedShift.ExpectedEndingCash);
             Assert.True(closedShift.RequiresReconciliation);
             Assert.True(closedShift.HasLateOfflineSync);
@@ -232,6 +235,56 @@ namespace CafeChain.Tests.POS
             Assert.Contains("tiền mặt", result.Message);
             repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
             repository.Verify(repo => repo.BeginTransactionAsync(), Times.Never);
+        }
+
+        [Fact]
+        public async Task CommitOfflineSyncedOrderAsync_CashReceivedAmountLessThanTotalIsRejected()
+        {
+            var repository = new Mock<IPOSOrderRepository>(MockBehavior.Strict);
+            var workShiftService = new Mock<IWorkShiftService>(MockBehavior.Strict);
+            var voucherService = new Mock<IAdminVoucherService>(MockBehavior.Strict);
+            var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
+            var payOsService = new Mock<IPayOSService>(MockBehavior.Strict);
+            var logger = new Mock<ILogger<POSOrderService>>();
+            var clientOrderId = Guid.NewGuid();
+            var dto = CreateOfflineCashCommitDto(clientOrderId);
+            dto.ReceivedAmount = 40000m;
+            var openShift = CreateShift(status: "Open");
+
+            repository
+                .Setup(repo => repo.FindOrderByClientOrderIdAsync(clientOrderId))
+                .ReturnsAsync((Order?)null);
+            workShiftService
+                .Setup(service => service.GetShiftByIdAsync(42, 17, 3))
+                .ReturnsAsync(openShift);
+            repository.Setup(repo => repo.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            repository
+                .Setup(repo => repo.GetDrinkWithSizesAsync(10, 3))
+                .ReturnsAsync(CreateDrink());
+            repository.Setup(repo => repo.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+
+            var service = CreateOrderService(
+                repository,
+                workShiftService,
+                voucherService,
+                printDispatcher,
+                payOsService,
+                logger);
+
+            var result = await service.CommitOfflineSyncedOrderAsync(dto, 17, 3, 42, DateTime.Now);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Tiền khách đưa", result.Message);
+            repository.Verify(repo => repo.CreateOrderAsync(It.IsAny<Order>()), Times.Never);
+            repository.Verify(repo => repo.CreatePaymentAsync(It.IsAny<Payment>()), Times.Never);
+            printDispatcher.Verify(
+                dispatcher => dispatcher.DispatchPrintJobAsync(
+                    It.IsAny<Order>(),
+                    It.IsAny<int>(),
+                    It.IsAny<string>(),
+                    It.IsAny<decimal>(),
+                    It.IsAny<bool>()),
+                Times.Never);
         }
 
         [Fact]

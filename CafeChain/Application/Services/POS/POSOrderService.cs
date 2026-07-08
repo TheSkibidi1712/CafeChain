@@ -141,7 +141,8 @@ namespace CafeChain.Application.Services.POS
                         "[CommitOrder] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
                         existingOrder.OrderId, dto.ClientOrderId);
 
-                    var idempotentChange = dto.ReceivedAmount - existingOrder.Total;
+                    var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, existingOrder.Total);
+                    var idempotentChange = effectiveReceivedAmount - existingOrder.Total;
                     var isExistingPayOsOrder = existingOrder.Payments?.Any(p => p.PaymentMethodId == 2) == true
                         && existingOrder.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid;
 
@@ -177,7 +178,7 @@ namespace CafeChain.Application.Services.POS
                             voucherDiscount = existingOrder.VoucherDiscount,
                             pointDiscount = existingOrder.PointDiscount,
                             total = existingOrder.Total,
-                            receivedAmount = dto.ReceivedAmount,
+                            receivedAmount = effectiveReceivedAmount,
                             changeAmount = 0m,
                             earnedPoints = 0,
                             isIdempotent = true,
@@ -199,7 +200,7 @@ namespace CafeChain.Application.Services.POS
                         voucherDiscount = existingOrder.VoucherDiscount,
                         pointDiscount = existingOrder.PointDiscount,
                         total = existingOrder.Total,
-                        receivedAmount = dto.ReceivedAmount,
+                        receivedAmount = effectiveReceivedAmount,
                         changeAmount = idempotentChange > 0 ? idempotentChange : 0m,
                         earnedPoints = 0,  // Không tính lại điểm — order cũ đã xử lý
                         isIdempotent = true
@@ -364,6 +365,8 @@ namespace CafeChain.Application.Services.POS
                 var pendingVietQrAmount = paymentLines
                     .Where(p => p.PaymentMethodId == 2)
                     .Sum(p => p.Amount);
+                var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
+                var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
 
                 if (hasPayOsPayment && pendingVietQrAmount <= 0)
                 {
@@ -375,6 +378,12 @@ namespace CafeChain.Application.Services.POS
                 {
                     await _repository.RollbackTransactionAsync();
                     return ServiceResult<object>.Failure("Tách thanh toán hiện chỉ hỗ trợ tiền mặt và VietQR.");
+                }
+
+                if (!hasPayOsPayment && pendingCashAmount > 0 && effectiveReceivedAmount < total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tiền khách đưa phải lớn hơn hoặc bằng tổng tiền đơn hàng.");
                 }
 
                 var orderStatusId = hasPayOsPayment
@@ -402,6 +411,8 @@ namespace CafeChain.Application.Services.POS
                     {
                         OrderId = newOrder.OrderId, PaymentMethodId = payLine.PaymentMethodId,
                         Amount = payLine.Amount,
+                        ReceivedAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? effectiveReceivedAmount : null,
+                        ChangeAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? cashChangeAmount : null,
                         PaymentStatusId = paymentStatusId,
                         PaidAt = hasPayOsPayment ? null : DateTime.Now
                     });
@@ -533,7 +544,7 @@ namespace CafeChain.Application.Services.POS
                         var cashierName = newOrder.Staff?.FullName ?? "POS";
 
                         await _printDispatcher.DispatchPrintJobAsync(
-                            newOrder, storeId, cashierName, dto.ReceivedAmount, hasCashPayment);
+                            newOrder, storeId, cashierName, effectiveReceivedAmount, hasCashPayment);
                     }
                     catch (Exception printEx)
                     {
@@ -545,12 +556,11 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
-                var changeAmount = dto.ReceivedAmount - total;
                 return ServiceResult<object>.Success(new
                 {
                     orderId = newOrder.OrderId, subTotal, voucherDiscount, pointDiscount,
-                    total, receivedAmount = dto.ReceivedAmount,
-                    changeAmount = changeAmount > 0 ? changeAmount : 0, earnedPoints
+                    total, receivedAmount = effectiveReceivedAmount,
+                    changeAmount = cashChangeAmount, earnedPoints
                 } as object, "Thanh toán thành công!");
             }
             catch (Exception ex)
@@ -720,6 +730,14 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult<object>.Failure("Tổng thanh toán offline không khớp tổng tiền đơn hàng.");
                 }
 
+                var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
+                var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
+                if (effectiveReceivedAmount < total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tiền khách đưa phải lớn hơn hoặc bằng tổng tiền đơn hàng.");
+                }
+
                 var createdAt = soldAt == default ? DateTime.Now : soldAt;
                 var newOrder = await _repository.CreateOrderAsync(new Order
                 {
@@ -750,6 +768,8 @@ namespace CafeChain.Application.Services.POS
                         OrderId = newOrder.OrderId,
                         PaymentMethodId = 1,
                         Amount = payLine.Amount,
+                        ReceivedAmount = effectiveReceivedAmount,
+                        ChangeAmount = cashChangeAmount,
                         PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
                         PaidAt = createdAt
                     });
@@ -773,7 +793,6 @@ namespace CafeChain.Application.Services.POS
                 await _repository.CommitTransactionAsync();
                 transactionCommitted = true;
 
-                var changeAmount = dto.ReceivedAmount - total;
                 return ServiceResult<object>.Success(new
                 {
                     orderId = newOrder.OrderId,
@@ -781,8 +800,8 @@ namespace CafeChain.Application.Services.POS
                     workShiftId = newOrder.WorkShiftId,
                     subTotal,
                     total,
-                    receivedAmount = dto.ReceivedAmount,
-                    changeAmount = changeAmount > 0 ? changeAmount : 0,
+                    receivedAmount = effectiveReceivedAmount,
+                    changeAmount = cashChangeAmount,
                     isIdempotent = false
                 } as object, "Đồng bộ đơn offline thành công.");
             }
@@ -811,7 +830,8 @@ namespace CafeChain.Application.Services.POS
 
         private static object BuildIdempotentResponse(Order existingOrder, decimal receivedAmount)
         {
-            var change = receivedAmount - existingOrder.Total;
+            var effectiveReceivedAmount = ResolveCashReceivedAmount(receivedAmount, existingOrder.Total);
+            var change = CalculateCashChangeAmount(effectiveReceivedAmount, existingOrder.Total);
             return new
             {
                 orderId = existingOrder.OrderId,
@@ -819,11 +839,22 @@ namespace CafeChain.Application.Services.POS
                 workShiftId = existingOrder.WorkShiftId,
                 subTotal = existingOrder.SubTotal,
                 total = existingOrder.Total,
-                receivedAmount,
-                changeAmount = change > 0 ? change : 0m,
+                receivedAmount = effectiveReceivedAmount,
+                changeAmount = change,
                 earnedPoints = 0,
                 isIdempotent = true
             } as object;
+        }
+
+        private static decimal ResolveCashReceivedAmount(decimal receivedAmount, decimal total)
+        {
+            return receivedAmount <= 0m ? total : receivedAmount;
+        }
+
+        private static decimal CalculateCashChangeAmount(decimal receivedAmount, decimal total)
+        {
+            var change = receivedAmount - total;
+            return change > 0m ? change : 0m;
         }
 
         // ============================================================

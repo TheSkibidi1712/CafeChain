@@ -18,6 +18,12 @@ namespace CafeChain.Data.Configurations.Payments
             entity.Property(x => x.Amount)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.ReceivedAmount)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.ChangeAmount)
+                .HasColumnType("decimal(18,2)");
+
             entity.Property(x => x.TransactionCode)
                 .HasMaxLength(100);
 
