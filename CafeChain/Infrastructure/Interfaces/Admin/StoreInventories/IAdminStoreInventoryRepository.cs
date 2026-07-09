@@ -1,14 +1,16 @@
 ﻿using CafeChain.Application.DTOs.Admin.StoreInventories;
-using CafeChain.Models.Inventories.Transactions;
-using CafeChain.Models.Staffs;
-using CafeChain.Models.Stores;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories
 {
     public interface IAdminStoreInventoryRepository
     {
+        // Store scope
+        Task<List<InventoryStoreDTO>> GetAccessibleStoresByAccountIdAsync(
+            int accountId);
+
         // Inventory
-        Task<(List<InventoryDTO>, int total)> GetPagedAsync(
+        Task<(List<InventoryDTO> data, int total)> GetPagedAsync(
             List<int> storeIds,
             int storeId,
             string? search,
@@ -16,21 +18,20 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories
             int pageSize);
 
         // Transactions
-        Task<(List<InventoryTransaction>, int total)> GetTransactionsByStoreIdsAsync(
+        Task<(List<InventoryTransactionDTO> data, int total)> GetTransactionsByStoreIdsAsync(
             List<int> storeIds,
             int storeId,
             int page,
             int pageSize);
 
-        Task<(List<InventoryTransaction>, int total)> GetTransactionsByStoreIdAsync(
-            int storeId,
+        Task<(List<InventoryTransactionDTO> data, int total)> GetTransactionsByStoreInventoryIdAsync(
+            List<int> storeIds,
+            int storeInventoryId,
             int page,
             int pageSize);
 
-        // Staff
-        Task<Staff?> GetStaffByAccountIdAsync(
-            int accountId);
-
+        // Unit of work
+        Task<IDbContextTransaction> BeginTransactionAsync();
         Task SaveChangesAsync();
     }
 }

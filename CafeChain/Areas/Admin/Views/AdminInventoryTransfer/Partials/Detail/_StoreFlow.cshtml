@@ -1,0 +1,30 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+<section class="transfer-card">
+    <div class="transfer-card-header compact">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-warehouse"></i>
+                Luồng chuyển kho
+            </span>
+            <h2>Kho đi và kho đến</h2>
+        </div>
+    </div>
+
+    <div class="store-route transfer-readonly-route">
+        <div class="route-field route-source">
+            <label>Kho đi nguồn</label>
+            <strong>@Model.FromStoreName</strong>
+        </div>
+
+        <div class="route-arrow">
+            <i class="fas fa-arrow-right"></i>
+            Chuyển
+        </div>
+
+        <div class="route-field route-destination">
+            <label>Kho đến đích</label>
+            <strong>@Model.ToStoreName</strong>
+        </div>
+    </div>
+</section>

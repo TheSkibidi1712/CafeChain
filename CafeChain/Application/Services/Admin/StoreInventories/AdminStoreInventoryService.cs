@@ -1,12 +1,13 @@
 ﻿using CafeChain.Application.DTOs.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories;
-using CafeChain.Models.Staffs;
 
 namespace CafeChain.Application.Services.Admin.StoreInventories
 {
     public class AdminStoreInventoryService : IAdminStoreInventoryService
     {
+        private const int MaxPageSize = 100;
+
         private readonly IAdminStoreInventoryRepository _repo;
 
         public AdminStoreInventoryService(IAdminStoreInventoryRepository repo)
@@ -18,21 +19,28 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
         // INVENTORY
         // =====================================================
 
-        public async Task<(List<InventoryDTO>, int total)> GetInventoryByStaffAsync(
+        public async Task<(List<InventoryDTO> data, int total)> GetInventoryByStaffAsync(
             int accountId,
             int storeId,
             string? search,
             int page,
             int pageSize)
         {
-            var storeIds = await GetStoreIdsFromStaff(accountId);
+            var stores = await GetAllowedStoresAsync(accountId);
+            var storeIds = GetStoreIds(stores);
+
+            if (!storeIds.Any())
+                return (new List<InventoryDTO>(), 0);
+
+            if (!CanAccessStore(storeIds, storeId))
+                return (new List<InventoryDTO>(), 0);
 
             return await _repo.GetPagedAsync(
                 storeIds,
                 storeId,
-                search,
-                page,
-                pageSize);
+                NormalizeSearch(search),
+                NormalizePage(page),
+                NormalizePageSize(pageSize));
         }
 
         // =====================================================
@@ -42,160 +50,257 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
         public async Task<List<InventoryStoreDTO>> GetStoresByStaffAsync(
             int accountId)
         {
-            var storeIds = await GetStoreIdsFromStaff(accountId);
-
-            var (data, _) = await _repo.GetPagedAsync(
-                storeIds,
-                0,
-                null,
-                1,
-                9999);
-
-            return data
-                .GroupBy(x => new
-                {
-                    x.StoreId,
-                    x.StoreName
-                })
-                .Select(x => new InventoryStoreDTO
-                {
-                    StoreId = x.Key.StoreId,
-                    StoreName = x.Key.StoreName
-                })
-                .OrderBy(x => x.StoreName)
-                .ToList();
+            return await GetAllowedStoresAsync(accountId);
         }
 
         // =====================================================
         // ALL TRANSACTIONS
         // =====================================================
 
-        public async Task<(List<InventoryTransactionDTO>, int total)> GetAllTransactionsByStaffAsync(
+        public async Task<(List<InventoryTransactionDTO> data, int total)> GetAllTransactionsByStaffAsync(
             int accountId,
             int storeId,
             int page,
             int pageSize)
         {
-            var storeIds = await GetStoreIdsFromStaff(accountId);
+            var stores = await GetAllowedStoresAsync(accountId);
+            var storeIds = GetStoreIds(stores);
+
+            if (!storeIds.Any())
+                return (new List<InventoryTransactionDTO>(), 0);
+
+            if (!CanAccessStore(storeIds, storeId))
+                return (new List<InventoryTransactionDTO>(), 0);
 
             var (data, total) = await _repo.GetTransactionsByStoreIdsAsync(
                 storeIds,
                 storeId,
-                page,
-                pageSize);
+                NormalizePage(page),
+                NormalizePageSize(pageSize));
 
-            var result = data
-                .Select(x =>
-                {
-                    var detail = x.InventoryDocument?.Details?
-                        .Where(d =>
-                            d.IngredientId == x.StoreInventory.IngredientId)
-                        .FirstOrDefault();
-
-                    return new InventoryTransactionDTO
-                    {
-                        StoreId = x.StoreInventory.StoreId,
-                        StoreName = x.StoreInventory.Store.Name,
-
-                        IngredientName = x.StoreInventory.Ingredient.Name,
-                        TypeName = x.Type.ToString(),
-
-                        Quantity = x.Quantity,
-                        BeforeQty = x.BeforeQty,
-                        AfterQty = x.AfterQty,
-
-                        CreatedAt = x.CreatedAt,
-                        UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode,
-
-                        UnitPrice = detail?.UnitPrice,
-                        TotalAmount = detail?.TotalAmount
-                    };
-                })
-                .ToList();
-
-            return (result, total);
+            return (NormalizeTransactions(data), total);
         }
 
         // =====================================================
         // TRANSACTION BY INVENTORY
         // =====================================================
 
-        public async Task<(List<InventoryTransactionDTO>, int total)> GetTransactionsByInventoryAsync(
+        public async Task<(List<InventoryTransactionDTO> data, int total)> GetTransactionsByInventoryAsync(
             int accountId,
             int storeInventoryId,
             int page,
             int pageSize)
         {
-            var storeIds = await GetStoreIdsFromStaff(accountId);
+            var stores = await GetAllowedStoresAsync(accountId);
+            var storeIds = GetStoreIds(stores);
 
-            var (data, total) = await _repo.GetTransactionsByStoreIdsAsync(
+            if (!storeIds.Any() || storeInventoryId <= 0)
+                return (new List<InventoryTransactionDTO>(), 0);
+
+            var (data, total) = await _repo.GetTransactionsByStoreInventoryIdAsync(
                 storeIds,
-                0,
-                page,
-                pageSize);
+                storeInventoryId,
+                NormalizePage(page),
+                NormalizePageSize(pageSize));
 
-            var result = data
-                .Where(x => x.StoreInventoryId == storeInventoryId)
-                .Select(x =>
-                {
-                    var detail = x.InventoryDocument?.Details?
-                        .Where(d =>
-                            d.IngredientId == x.StoreInventory.IngredientId)
-                        .OrderByDescending(d =>
-                            x.InventoryDocument.DocumentDate)
-                        .FirstOrDefault();
-
-                    return new InventoryTransactionDTO
-                    {
-                        IngredientName = x.StoreInventory.Ingredient.Name,
-                        TypeName = x.Type.ToString(),
-
-                        Quantity = x.Quantity,
-                        BeforeQty = x.BeforeQty,
-                        AfterQty = x.AfterQty,
-
-                        CreatedAt = x.CreatedAt,
-                        UnitCode = x.StoreInventory.Ingredient.BaseUnit.UnitCode,
-
-                        UnitPrice = detail?.UnitPrice,
-                        TotalAmount = detail?.TotalAmount
-                    };
-                })
-                .ToList();
-
-            return (result, result.Count);
+            return (NormalizeTransactions(data), total);
         }
 
         // =====================================================
-        // PRIVATE
+        // PRIVATE - STORE SCOPE
         // =====================================================
 
-        private async Task<List<int>> GetStoreIdsFromStaff(
+        private async Task<List<InventoryStoreDTO>> GetAllowedStoresAsync(
             int accountId)
         {
-            var staff = await _repo.GetStaffByAccountIdAsync(accountId);
+            if (accountId <= 0)
+                return new List<InventoryStoreDTO>();
 
-            if (staff == null)
-                throw new Exception("Staff not found");
+            return await _repo.GetAccessibleStoresByAccountIdAsync(accountId);
+        }
 
-            var storeIds = staff.StaffScopes
-                .Where(x =>
-                    x.ScopeType != null &&
-                    x.ScopeType.Code == "STORE" &&
-                    x.ScopeRefId > 0)
-                .Select(x => x.ScopeRefId)
+        private static List<int> GetStoreIds(
+            IEnumerable<InventoryStoreDTO> stores)
+        {
+            return stores
+                .Select(x => x.StoreId)
                 .Distinct()
                 .ToList();
+        }
 
-            if (!storeIds.Any() && staff.StoreId > 0)
+        private static bool CanAccessStore(
+            List<int> allowedStoreIds,
+            int selectedStoreId)
+        {
+            return selectedStoreId <= 0 || allowedStoreIds.Contains(selectedStoreId);
+        }
+
+        // =====================================================
+        // PRIVATE - TRANSACTION FORMAT
+        // =====================================================
+
+        private static List<InventoryTransactionDTO> NormalizeTransactions(
+            List<InventoryTransactionDTO> transactions)
+        {
+            foreach (var item in transactions)
             {
-                storeIds.Add(staff.StoreId);
+                var rawTypeName = item.TypeName;
+
+                item.Quantity = NormalizeQuantityForDisplay(
+                    item.Quantity,
+                    rawTypeName);
+
+                item.TypeName = ToVietnameseTransactionType(rawTypeName);
+                item.StockStatusName = ToVietnameseStockStatus(item.StockStatusName);
             }
 
-            if (!storeIds.Any())
-                throw new Exception("No store assigned");
+            return transactions;
+        }
 
-            return storeIds;
+        private static decimal NormalizeQuantityForDisplay(
+            decimal quantity,
+            string typeName)
+        {
+            if (quantity < 0)
+                return quantity;
+
+            return IsOutputTransaction(typeName)
+                ? -quantity
+                : quantity;
+        }
+
+        private static bool IsOutputTransaction(
+            string typeName)
+        {
+            var value = NormalizeEnumText(typeName);
+            var tokens = GetEnumTokens(value);
+
+            if (value.Contains("TRANSFER_IN") ||
+                value.Contains("IMPORT") ||
+                value.Contains("INCREASE") ||
+                tokens.Contains("IN") ||
+                value.Contains("NHAP"))
+            {
+                return false;
+            }
+
+            return value.Contains("TRANSFER_OUT") ||
+                   value.Contains("EXPORT") ||
+                   tokens.Contains("OUT") ||
+                   value.Contains("ISSUE") ||
+                   value.Contains("SALE") ||
+                   value.Contains("SELL") ||
+                   value.Contains("CONSUME") ||
+                   value.Contains("DECREASE") ||
+                   value.Contains("XUAT");
+        }
+
+        private static string ToVietnameseTransactionType(
+            string typeName)
+        {
+            var value = NormalizeEnumText(typeName);
+
+            if (value.Contains("TRANSFER_IN"))
+                return "Nhập chuyển kho";
+
+            if (value.Contains("TRANSFER_OUT"))
+                return "Xuất chuyển kho";
+
+            var tokens = GetEnumTokens(value);
+
+            if (value.Contains("IMPORT") ||
+                value.Contains("INCREASE") ||
+                tokens.Contains("IN") ||
+                value.Contains("NHAP"))
+            {
+                return "Nhập kho";
+            }
+
+            if (value.Contains("EXPORT") ||
+                tokens.Contains("OUT") ||
+                value.Contains("SALE") ||
+                value.Contains("SELL") ||
+                value.Contains("CONSUME") ||
+                value.Contains("XUAT"))
+            {
+                return "Xuất kho";
+            }
+
+            if (value.Contains("ADJUST") || value.Contains("KIEMKE"))
+                return "Điều chỉnh";
+
+            return string.IsNullOrWhiteSpace(typeName)
+                ? "Không xác định"
+                : typeName;
+        }
+
+        private static string ToVietnameseStockStatus(
+            string stockStatus)
+        {
+            var value = NormalizeEnumText(stockStatus);
+
+            if (value.Contains("NEGATIVE") || value.Contains("AM_KHO"))
+                return "Âm kho";
+
+            if (value.Contains("OUT"))
+                return "Hết hàng";
+
+            if (value.Contains("LOW"))
+                return "Sắp hết";
+
+            if (value.Contains("NORMAL") || value.Contains("AVAILABLE") || value.Contains("IN_STOCK"))
+                return "Còn hàng";
+
+            return string.IsNullOrWhiteSpace(stockStatus)
+                ? "Không xác định"
+                : stockStatus;
+        }
+
+        private static string NormalizeEnumText(
+            string? value)
+        {
+            return (value ?? string.Empty)
+                .Trim()
+                .Replace("-", "_")
+                .Replace(" ", "_")
+                .ToUpperInvariant();
+        }
+
+        private static HashSet<string> GetEnumTokens(
+            string normalizedValue)
+        {
+            return normalizedValue
+                .Split('_', StringSplitOptions.RemoveEmptyEntries)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        }
+
+        // =====================================================
+        // PRIVATE - INPUT NORMALIZATION
+        // =====================================================
+
+        private static string? NormalizeSearch(
+            string? search)
+        {
+            return string.IsNullOrWhiteSpace(search)
+                ? null
+                : search.Trim();
+        }
+
+        private static int NormalizePage(
+            int page)
+        {
+            return page < 1 ? 1 : page;
+        }
+
+        private static int NormalizePageSize(
+            int pageSize)
+        {
+            if (pageSize < 1)
+                return 10;
+
+            return pageSize > MaxPageSize
+                ? MaxPageSize
+                : pageSize;
         }
     }
 }

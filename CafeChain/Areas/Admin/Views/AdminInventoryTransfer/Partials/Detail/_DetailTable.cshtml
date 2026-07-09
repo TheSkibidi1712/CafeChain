@@ -1,0 +1,96 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+<section class="transfer-card">
+    <div class="transfer-toolbar">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-boxes-stacked"></i>
+                Chi tiết nguyên liệu
+            </span>
+            <h2>Danh sách nguyên liệu chuyển</h2>
+            <p>Snapshot tồn kho trước và sau khi xác nhận phiếu.</p>
+        </div>
+    </div>
+
+    <div class="transfer-table-wrap">
+        <table class="transfer-table transfer-detail-readonly-table">
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>Nguyên liệu</th>
+                    <th>ĐVT</th>
+                    <th class="text-end">Số chuyển</th>
+                    <th class="text-end">Quy đổi</th>
+                    <th class="text-end">Nguồn trước</th>
+                    <th class="text-end">Nguồn sau</th>
+                    <th class="text-end">Đích trước</th>
+                    <th class="text-end">Đích sau</th>
+                    <th class="text-end">Đơn giá</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                @if (!Model.Details.Any())
+                {
+                    <tr class="transfer-empty-row">
+                        <td colspan="10">Phiếu chưa có nguyên liệu.</td>
+                    </tr>
+                }
+                else
+                {
+                    var index = 1;
+
+                    foreach (var item in Model.Details)
+                    {
+                        <tr>
+                            <td>@index</td>
+
+                            <td>
+                                <strong>@item.IngredientName</strong>
+
+                                @if (!string.IsNullOrWhiteSpace(item.Note))
+                                {
+                                    <span class="transfer-detail-note">@item.Note</span>
+                                }
+                            </td>
+
+                            <td>
+                                <span class="readonly-pill">@item.UnitName (@item.UnitCode)</span>
+                            </td>
+
+                            <td class="text-end">
+                                @item.Quantity.ToString("0.###")
+                            </td>
+
+                            <td class="text-end">
+                                @item.BaseQuantity.ToString("0.###") @item.BaseUnitCode
+                            </td>
+
+                            <td class="text-end">
+                                @(item.SourceBeforeQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                            </td>
+
+                            <td class="text-end transfer-diff-negative">
+                                @(item.SourceAfterQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                            </td>
+
+                            <td class="text-end">
+                                @(item.DestinationBeforeQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                            </td>
+
+                            <td class="text-end transfer-diff-positive">
+                                @(item.DestinationAfterQty?.ToString("0.###") ?? "-") @item.BaseUnitCode
+                            </td>
+
+                            <td class="text-end">
+                                @(item.UnitPrice?.ToString("N0") ?? "0")
+                            </td>
+                        </tr>
+
+                        index++;
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+</section>

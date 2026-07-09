@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
+using CafeChain.ViewModels.Admin.InventoryTransfers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -18,6 +19,14 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Index(AdminInventoryTransferIndexVM filter)
+        {
+            var vm = await _service.GetIndexAsync(filter);
+
+            return View(vm);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Create()
         {
             var vm = await _service.GetCreateDataAsync();
@@ -26,11 +35,37 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> Detail(int id)
+        {
+            var vm = await _service.GetDetailAsync(id);
+
+            if (vm == null)
+            {
+                return NotFound();
+            }
+
+            return View(vm);
+        }
+
+        [HttpGet]
         public async Task<IActionResult> Ingredients(int fromStoreId)
         {
-            var data = await _service.GetTransferIngredientsAsync(fromStoreId);
+            try
+            {
+                var data = await _service.GetTransferIngredientsAsync(fromStoreId);
 
-            return Json(data);
+                return Json(data);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to load transfer ingredients from store {StoreId}.", fromStoreId);
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Không tải được danh sách nguyên liệu chuyển kho."
+                });
+            }
         }
 
         [HttpPost]
@@ -52,6 +87,16 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     success = false,
                     message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to validate inventory transfer stock.");
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Không kiểm tra được tồn kho chuyển."
                 });
             }
         }
@@ -84,7 +129,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Cannot create transfer draft."
+                    message = "Không thể lưu nháp phiếu chuyển kho."
                 });
             }
         }
@@ -119,7 +164,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Cannot update transfer draft."
+                    message = "Không thể cập nhật phiếu chuyển kho."
                 });
             }
         }
@@ -129,6 +174,24 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                if (id <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Mã phiếu chuyển kho không hợp lệ."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(requestKey))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "RequestKey là bắt buộc."
+                    });
+                }
+
                 var result = await _service.ConfirmAsync(id, requestKey);
 
                 return Json(new
@@ -152,7 +215,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Cannot confirm transfer."
+                    message = "Không thể xác nhận phiếu chuyển kho."
                 });
             }
         }
@@ -162,11 +225,33 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                if (id <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Mã phiếu chuyển kho không hợp lệ."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(requestKey))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "RequestKey là bắt buộc."
+                    });
+                }
+
                 var success = await _service.CancelAsync(id, requestKey);
 
                 if (!success)
                 {
-                    return NotFound();
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy phiếu chuyển kho."
+                    });
                 }
 
                 return Json(new
@@ -190,7 +275,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 return BadRequest(new
                 {
                     success = false,
-                    message = "Cannot cancel transfer."
+                    message = "Không thể hủy phiếu chuyển kho."
                 });
             }
         }

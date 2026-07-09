@@ -1,125 +1,24 @@
 @model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
-@using CafeChain.Models.Enums.Inventory
 
 @{
-    ViewData["Title"] = "Phiếu chuyển kho";
+    ViewData["Title"] = "Điều chuyển kho";
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
 
-<div class="transfer-page">
-    <div class="transfer-header">
-        <div>
-            <h3>Phiếu Chuyển Kho</h3>
-            <p>Chuyển nguyên liệu giữa hai chi nhánh bằng nghiệp vụ InventoryTransfer riêng.</p>
-        </div>
+<div class="transfer-page" id="inventoryTransferForm">
+    <input type="hidden" id="transferId" value="" />
 
-        <a class="btn btn-outline-secondary" href="/Admin/AdminInventoryDocument/Index">
-            <i class="fas fa-arrow-left"></i>
-            Phiếu kho
-        </a>
-    </div>
+    @await Html.PartialAsync("Partials/Create/_Header", Model)
 
-    <div class="transfer-shell" id="inventoryTransferForm">
-        <input type="hidden" id="transferId" value="" />
+    <main class="transfer-main">
+        @await Html.PartialAsync("Partials/Create/_DocumentInfo", Model)
+        @await Html.PartialAsync("Partials/Create/_StoreSelector", Model)
+        @await Html.PartialAsync("Partials/Create/_DetailTable", Model)
+        @await Html.PartialAsync("Partials/Create/_Note", Model)
+    </main>
 
-        <div class="transfer-panel">
-            <div class="transfer-grid">
-                <div class="form-group">
-                    <label for="transferFromStore">Kho nguồn</label>
-                    <select class="form-control" id="transferFromStore">
-                        <option value="">Chọn kho nguồn</option>
-                        @foreach (var store in Model.Stores)
-                        {
-                            <option value="@store.StoreId">@store.StoreName</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="transferToStore">Kho đích</label>
-                    <select class="form-control" id="transferToStore">
-                        <option value="">Chọn kho đích</option>
-                        @foreach (var store in Model.Stores)
-                        {
-                            <option value="@store.StoreId">@store.StoreName</option>
-                        }
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="transferPurpose">Mục đích</label>
-                    <select class="form-control" id="transferPurpose">
-                        <option value="@((int)InventoryTransferPurpose.REPLENISHMENT)">Bổ sung hàng</option>
-                        <option value="@((int)InventoryTransferPurpose.BALANCING)">Cân đối tồn kho</option>
-                        <option value="@((int)InventoryTransferPurpose.OTHER)">Khác</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="transferDate">Ngày chứng từ</label>
-                    <input class="form-control"
-                           type="date"
-                           id="transferDate"
-                           value="@Model.DocumentDate.ToString("yyyy-MM-dd")" />
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="transferNote">Ghi chú</label>
-                <textarea class="form-control" id="transferNote" rows="2"></textarea>
-            </div>
-        </div>
-
-        <div class="transfer-panel">
-            <div class="transfer-toolbar">
-                <div>
-                    <h5>Nguyên liệu chuyển</h5>
-                    <span id="transferStockStatus">Chọn kho nguồn để tải nguyên liệu.</span>
-                </div>
-
-                <button class="btn btn-outline-primary" type="button" id="btnAddTransferIngredient" disabled>
-                    <i class="fas fa-plus"></i>
-                    Thêm nguyên liệu
-                </button>
-            </div>
-
-            <div class="table-responsive">
-                <table class="table transfer-table">
-                    <thead>
-                        <tr>
-                            <th>Nguyên liệu</th>
-                            <th>Đơn vị</th>
-                            <th>Số lượng</th>
-                            <th>Tồn nguồn</th>
-                            <th>Quy đổi</th>
-                            <th>Đơn giá</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody id="transferDetailBody">
-                        <tr class="transfer-empty-row">
-                            <td colspan="7">Chưa có nguyên liệu.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <div class="transfer-warning" id="transferWarnings" hidden></div>
-        </div>
-
-        <div class="transfer-actions">
-            <button class="btn btn-outline-secondary" type="button" id="btnSaveTransferDraft">
-                <i class="fas fa-save"></i>
-                Lưu nháp
-            </button>
-
-            <button class="btn btn-primary" type="button" id="btnConfirmTransfer">
-                <i class="fas fa-check"></i>
-                Xác nhận
-            </button>
-        </div>
-    </div>
+    @await Html.PartialAsync("Partials/Create/_ActionBar", Model)
 </div>
 
 <script src="~/js/Admin/InventoryTransfer/inventorytransfercreate.js"></script>

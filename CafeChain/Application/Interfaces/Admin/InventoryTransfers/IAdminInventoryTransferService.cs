@@ -6,7 +6,11 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryTransfers
 {
     public interface IAdminInventoryTransferService
     {
+        Task<AdminInventoryTransferIndexVM> GetIndexAsync(AdminInventoryTransferIndexVM filter);
+
         Task<AdminInventoryTransferCreateVM> GetCreateDataAsync();
+
+        Task<AdminInventoryTransferDetailVM?> GetDetailAsync(int id);
 
         Task<List<SupplierIngredientDTO>> GetTransferIngredientsAsync(int fromStoreId);
 

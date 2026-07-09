@@ -4,9 +4,9 @@
     {
         public int StoreId { get; set; }
 
-        public List<InventoryItemVM> Items { get; set; }
+        public List<InventoryItemVM> Items { get; set; } = new();
 
-        // danh sách tab store
+        // Danh sách kho đã được lọc theo StaffScope.
         public List<InventoryStoreTabVM> Stores { get; set; } = new();
     }
 }

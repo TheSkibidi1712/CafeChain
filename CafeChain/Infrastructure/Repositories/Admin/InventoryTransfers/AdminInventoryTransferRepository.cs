@@ -78,6 +78,69 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .FirstOrDefaultAsync(x => x.InventoryTransferId == id);
         }
 
+        public async Task<List<InventoryTransfer>> GetTransfersAsync(
+            string? keyword,
+            InventoryTransferStatus? status,
+            int? fromStoreId,
+            int? toStoreId,
+            int skip,
+            int take)
+        {
+            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId)
+                .OrderByDescending(x => x.CreatedAt)
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
+        }
+
+        public async Task<int> CountTransfersAsync(
+            string? keyword,
+            InventoryTransferStatus? status,
+            int? fromStoreId,
+            int? toStoreId)
+        {
+            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId)
+                .CountAsync();
+        }
+
+        private IQueryable<InventoryTransfer> BuildTransferIndexQuery(
+            string? keyword,
+            InventoryTransferStatus? status,
+            int? fromStoreId,
+            int? toStoreId)
+        {
+            var query = _context.InventoryTransfers
+                .AsNoTracking()
+                .Include(x => x.FromStore)
+                .Include(x => x.ToStore)
+                .Include(x => x.CreatedByStaff)
+                .Include(x => x.Details)
+                .AsQueryable();
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var normalizedKeyword = keyword.Trim();
+                query = query.Where(x => x.Code.Contains(normalizedKeyword));
+            }
+
+            if (status.HasValue)
+            {
+                query = query.Where(x => x.Status == status.Value);
+            }
+
+            if (fromStoreId.HasValue && fromStoreId.Value > 0)
+            {
+                query = query.Where(x => x.FromStoreId == fromStoreId.Value);
+            }
+
+            if (toStoreId.HasValue && toStoreId.Value > 0)
+            {
+                query = query.Where(x => x.ToStoreId == toStoreId.Value);
+            }
+
+            return query;
+        }
+
         public void UpdateTransfer(InventoryTransfer transfer)
         {
             _context.InventoryTransfers.Update(transfer);
@@ -136,6 +199,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .AsNoTracking()
                 .Include(x => x.Ingredient)
                     .ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Ingredient)
+                    .ThenInclude(x => x.UnitConversions)
+                        .ThenInclude(x => x.FromUnit)
                 .Where(x => x.StoreId == storeId && x.IngredientId.HasValue)
                 .ToListAsync();
         }
@@ -146,6 +212,46 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .FromSqlInterpolated(
                     $"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK) WHERE StoreId = {storeId} AND IngredientId = {ingredientId}")
                 .FirstOrDefaultAsync();
+        }
+
+        public async Task<StoreInventory> GetOrCreateStoreInventoryForUpdateAsync(int storeId, int ingredientId)
+        {
+            var inventory = await GetStoreInventoryForUpdateAsync(storeId, ingredientId);
+
+            if (inventory != null)
+            {
+                return inventory;
+            }
+
+            inventory = new StoreInventory
+            {
+                StoreId = storeId,
+                IngredientId = ingredientId,
+                AvailableQty = 0,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+
+            await _context.StoreInventories.AddAsync(inventory);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                _context.Entry(inventory).State = EntityState.Detached;
+
+                var existing = await GetStoreInventoryForUpdateAsync(storeId, ingredientId);
+
+                if (existing != null)
+                {
+                    return existing;
+                }
+
+                throw;
+            }
+
+            return inventory;
         }
 
         public async Task AddStoreInventoryAsync(StoreInventory inventory)

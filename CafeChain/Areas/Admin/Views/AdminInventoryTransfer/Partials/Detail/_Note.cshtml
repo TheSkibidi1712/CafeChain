@@ -1,0 +1,17 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+<section class="transfer-card">
+    <div class="transfer-card-header compact">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-note-sticky"></i>
+                Ghi chú
+            </span>
+            <h2>Ghi chú phiếu</h2>
+        </div>
+    </div>
+
+    <div class="transfer-note-readonly">
+        @(string.IsNullOrWhiteSpace(Model.Note) ? "Không có ghi chú." : Model.Note)
+    </div>
+</section>

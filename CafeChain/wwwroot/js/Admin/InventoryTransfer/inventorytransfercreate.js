@@ -12,7 +12,9 @@ const InventoryTransferCreate = (() => {
         confirm: "#btnConfirmTransfer",
         tableBody: "#transferDetailBody",
         stockStatus: "#transferStockStatus",
-        warnings: "#transferWarnings"
+        warnings: "#transferWarnings",
+        actionStatus: "#transferActionStatus",
+        codePreview: "#transferCodePreview"
     };
 
     let ingredients = [];
@@ -34,6 +36,13 @@ const InventoryTransferCreate = (() => {
             ?.addEventListener("change", onFromStoreChanged);
 
         document
+            .querySelector(selector.toStore)
+            ?.addEventListener("change", () => {
+                hideWarnings();
+                syncConfirmState();
+            });
+
+        document
             .querySelector(selector.addIngredient)
             ?.addEventListener("click", addRow);
 
@@ -44,12 +53,19 @@ const InventoryTransferCreate = (() => {
         document
             .querySelector(selector.confirm)
             ?.addEventListener("click", confirmTransfer);
+
+        syncConfirmState();
     }
 
     async function onFromStoreChanged() {
         ingredients = [];
         clearRows();
         hideWarnings();
+        setTransferId(null);
+        createDraftRequestKey = createRequestKey();
+        confirmRequestKey = null;
+        updateCodePreview("");
+        syncConfirmState();
 
         const fromStoreId = getNumber(selector.fromStore);
         const addButton = document.querySelector(selector.addIngredient);
@@ -61,14 +77,14 @@ const InventoryTransferCreate = (() => {
 
         if (!fromStoreId) {
             if (status) {
-                status.textContent = "Chon kho nguon de tai nguyen lieu.";
+                status.textContent = "Chọn kho nguồn để tải nguyên liệu.";
             }
 
             return;
         }
 
         if (status) {
-            status.textContent = "Dang tai nguyen lieu...";
+            status.textContent = "Đang tải nguyên liệu...";
         }
 
         try {
@@ -76,13 +92,13 @@ const InventoryTransferCreate = (() => {
                 `/Admin/AdminInventoryTransfer/Ingredients?fromStoreId=${encodeURIComponent(fromStoreId)}`);
 
             if (!response.ok) {
-                throw new Error(await response.text());
+                throw new Error(await readResponseMessage(response));
             }
 
             ingredients = await response.json();
 
             if (status) {
-                status.textContent = `${ingredients.length} nguyen lieu co the chuyen.`;
+                status.textContent = `${ingredients.length} nguyên liệu có thể chuyển.`;
             }
 
             if (addButton) {
@@ -91,7 +107,7 @@ const InventoryTransferCreate = (() => {
         }
         catch (error) {
             if (status) {
-                status.textContent = error.message || "Khong tai duoc nguyen lieu.";
+                status.textContent = error.message || "Không tải được nguyên liệu.";
             }
         }
     }
@@ -108,32 +124,34 @@ const InventoryTransferCreate = (() => {
         const row = document.createElement("tr");
         row.className = "transfer-detail-row";
         row.innerHTML = `
+            <td class="transfer-row-index"></td>
             <td>
-                <select class="form-control transfer-ingredient">
-                    <option value="">Chon nguyen lieu</option>
+                <select class="transfer-input transfer-ingredient">
+                    <option value="">Chọn nguyên liệu</option>
                     ${ingredients.map(toIngredientOption).join("")}
                 </select>
                 <span class="transfer-row-warning" hidden></span>
             </td>
             <td>
-                <select class="form-control transfer-unit"></select>
-            </td>
-            <td>
-                <input class="form-control transfer-quantity" type="number" min="0" step="any" value="1" />
+                <select class="transfer-input transfer-unit"></select>
             </td>
             <td class="transfer-available">0</td>
-            <td class="transfer-base-qty">0</td>
             <td>
-                <input class="form-control transfer-price" type="number" min="0" step="any" value="0" />
+                <input class="transfer-input transfer-quantity" type="number" min="0" step="any" value="1" />
             </td>
+            <td class="transfer-diff">0</td>
+            <td class="transfer-row-status">-</td>
             <td class="text-end">
-                <button class="btn btn-sm btn-outline-danger transfer-remove" type="button">
+                <button class="transfer-remove" type="button" title="Xóa dòng">
                     <i class="fas fa-trash"></i>
                 </button>
+                <input class="transfer-price" type="hidden" value="0" />
             </td>`;
 
         body.appendChild(row);
         bindRow(row);
+        refreshRowIndexes();
+        syncConfirmState();
     }
 
     function bindRow(row) {
@@ -143,6 +161,7 @@ const InventoryTransferCreate = (() => {
                 fillUnits(row);
                 recalculateRow(row);
                 debounceValidateStock();
+                syncConfirmState();
             });
 
         row
@@ -150,6 +169,7 @@ const InventoryTransferCreate = (() => {
             ?.addEventListener("change", () => {
                 recalculateRow(row);
                 debounceValidateStock();
+                syncConfirmState();
             });
 
         row
@@ -157,6 +177,7 @@ const InventoryTransferCreate = (() => {
             ?.addEventListener("input", () => {
                 recalculateRow(row);
                 debounceValidateStock();
+                syncConfirmState();
             });
 
         row
@@ -168,7 +189,9 @@ const InventoryTransferCreate = (() => {
             ?.addEventListener("click", () => {
                 row.remove();
                 ensureEmptyRow();
+                refreshRowIndexes();
                 debounceValidateStock();
+                syncConfirmState();
             });
     }
 
@@ -220,8 +243,6 @@ const InventoryTransferCreate = (() => {
 
         row.querySelector(".transfer-available").textContent =
             `${formatQuantity(available)} ${baseUnitCode}`.trim();
-        row.querySelector(".transfer-base-qty").textContent =
-            `${formatQuantity(baseQuantity)} ${baseUnitCode}`.trim();
 
         const warning = row.querySelector(".transfer-row-warning");
 
@@ -231,12 +252,14 @@ const InventoryTransferCreate = (() => {
 
         if (ingredient && baseQuantity > available) {
             warning.hidden = false;
-            warning.textContent = "Vuot ton hien co, he thong se kiem tra cau hinh am kho khi xac nhan.";
+            warning.textContent = "Vượt tồn hiện có, hệ thống sẽ kiểm tra cấu hình âm kho khi xác nhận.";
         }
         else {
             warning.hidden = true;
             warning.textContent = "";
         }
+
+        renderRowState(row, available, baseQuantity, baseUnitCode);
     }
 
     async function saveDraft() {
@@ -248,6 +271,8 @@ const InventoryTransferCreate = (() => {
         setButtonBusy(selector.saveDraft, true);
 
         try {
+            validateClient();
+
             const transferId = getTransferId();
             const dto = buildDto(
                 transferId > 0
@@ -260,16 +285,19 @@ const InventoryTransferCreate = (() => {
 
             const result = await postJson(url, dto);
             const saved = read(result.transfer, "inventoryTransferId", "InventoryTransferId");
+            const code = read(result.transfer, "code", "Code");
 
             setTransferId(saved);
-            notifySuccess("Da luu nhap phieu chuyen kho.");
+            updateCodePreview(code);
+            notifySuccess("Đã lưu nháp phiếu chuyển kho.");
         }
         catch (error) {
-            notifyError(error.message || "Khong luu duoc phieu chuyen kho.");
+            notifyError(error.message || "Không lưu được phiếu chuyển kho.");
         }
         finally {
             isSaving = false;
             setButtonBusy(selector.saveDraft, false);
+            syncConfirmState();
         }
     }
 
@@ -283,6 +311,8 @@ const InventoryTransferCreate = (() => {
         setButtonBusy(selector.confirm, true);
 
         try {
+            validateClient();
+
             let transferId = getTransferId();
 
             if (transferId <= 0) {
@@ -292,21 +322,25 @@ const InventoryTransferCreate = (() => {
 
                 transferId = read(draft.transfer, "inventoryTransferId", "InventoryTransferId");
                 setTransferId(transferId);
+                updateCodePreview(read(draft.transfer, "code", "Code"));
             }
 
-            await postJson(
+            const result = await postJson(
                 `/Admin/AdminInventoryTransfer/Confirm?id=${encodeURIComponent(transferId)}&requestKey=${encodeURIComponent(confirmRequestKey)}`,
                 {});
+            updateCodePreview(read(result.transfer, "code", "Code"));
 
-            notifySuccess("Da xac nhan phieu chuyen kho.");
+            notifySuccess("Đã xác nhận phiếu chuyển kho.");
             confirmRequestKey = null;
+            redirectToDetail(read(result.transfer, "inventoryTransferId", "InventoryTransferId") || transferId);
         }
         catch (error) {
-            notifyError(error.message || "Khong xac nhan duoc phieu chuyen kho.");
+            notifyError(error.message || "Không xác nhận được phiếu chuyển kho.");
         }
         finally {
             isConfirming = false;
             setButtonBusy(selector.confirm, false);
+            syncConfirmState();
         }
     }
 
@@ -371,6 +405,48 @@ const InventoryTransferCreate = (() => {
         return dto;
     }
 
+    function validateClient() {
+        const dto = buildDto(createRequestKey(), false);
+
+        if (!dto.fromStoreId) {
+            throw new Error("Vui lòng chọn kho đi.");
+        }
+
+        if (!dto.toStoreId) {
+            throw new Error("Vui lòng chọn kho đến.");
+        }
+
+        if (dto.fromStoreId === dto.toStoreId) {
+            throw new Error("Kho đi và kho đến phải khác nhau.");
+        }
+
+        if (!dto.details.length) {
+            throw new Error("Vui lòng thêm ít nhất một nguyên liệu.");
+        }
+
+        const seen = new Set();
+
+        for (const detail of dto.details) {
+            if (!detail.ingredientId) {
+                throw new Error("Vui lòng chọn nguyên liệu.");
+            }
+
+            if (seen.has(detail.ingredientId)) {
+                throw new Error("Mỗi nguyên liệu chỉ được xuất hiện một lần.");
+            }
+
+            seen.add(detail.ingredientId);
+
+            if (!detail.unitId) {
+                throw new Error("Vui lòng chọn đơn vị tính.");
+            }
+
+            if (detail.quantity <= 0) {
+                throw new Error("Số lượng chuyển phải lớn hơn 0.");
+            }
+        }
+    }
+
     async function postJson(url, payload) {
         const response = await fetch(
             url,
@@ -392,10 +468,21 @@ const InventoryTransferCreate = (() => {
         }
 
         if (!response.ok || data?.success === false) {
-            throw new Error(data?.message || "Request failed.");
+            throw new Error(data?.message || "Yêu cầu không thành công.");
         }
 
         return data;
+    }
+
+    async function readResponseMessage(response) {
+        try {
+            const data = await response.json();
+
+            return data?.message || "Yêu cầu không thành công.";
+        }
+        catch {
+            return await response.text() || "Yêu cầu không thành công.";
+        }
     }
 
     function renderWarnings(warnings) {
@@ -412,8 +499,10 @@ const InventoryTransferCreate = (() => {
 
         container.hidden = false;
         container.innerHTML = warnings
-            .map(x => `<div>${escapeHtml(read(x, "message", "Message") || "")}</div>`)
+            .map(x => `<div><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(read(x, "message", "Message") || "")}</div>`)
             .join("");
+
+        updateActionStatus(warnings.length);
     }
 
     function hideWarnings() {
@@ -425,6 +514,8 @@ const InventoryTransferCreate = (() => {
 
         container.hidden = true;
         container.innerHTML = "";
+        updateActionStatus();
+        syncConfirmState();
     }
 
     function clearRows() {
@@ -445,7 +536,89 @@ const InventoryTransferCreate = (() => {
             return;
         }
 
-        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="7">Chua co nguyen lieu.</td></tr>';
+        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="8">Chưa có nguyên liệu.</td></tr>';
+        syncConfirmState();
+    }
+
+    function refreshRowIndexes() {
+        document
+            .querySelectorAll(".transfer-detail-row")
+            .forEach((row, index) => {
+                const cell = row.querySelector(".transfer-row-index");
+
+                if (cell) {
+                    cell.textContent = String(index + 1);
+                }
+            });
+    }
+
+    function renderRowState(row, available, baseQuantity, unitCode) {
+        const diff = available - baseQuantity;
+        const diffCell = row.querySelector(".transfer-diff");
+        const statusCell = row.querySelector(".transfer-row-status");
+
+        if (diffCell) {
+            diffCell.textContent =
+                `${diff >= 0 ? "+" : ""}${formatQuantity(diff)} ${unitCode}`.trim();
+            diffCell.classList.toggle("transfer-diff-positive", diff >= 0);
+            diffCell.classList.toggle("transfer-diff-negative", diff < 0);
+        }
+
+        if (statusCell) {
+            statusCell.textContent = diff >= 0 ? "OK" : "Vượt";
+            statusCell.classList.toggle("transfer-status-ok", diff >= 0);
+            statusCell.classList.toggle("transfer-status-bad", diff < 0);
+        }
+    }
+
+    function updateActionStatus(warningCount = 0) {
+        const status = document.querySelector(selector.actionStatus);
+
+        if (!status) {
+            return;
+        }
+
+        if (warningCount > 0) {
+            status.classList.add("has-error");
+            status.innerHTML =
+                `<i class="fas fa-triangle-exclamation"></i> ${warningCount} dòng cần kiểm tra tồn kho trước khi xác nhận.`;
+            return;
+        }
+
+        status.classList.remove("has-error");
+        status.innerHTML =
+            '<i class="fas fa-circle-info"></i> Kiểm tra tồn kho trước khi xác nhận.';
+    }
+
+    function updateCodePreview(code) {
+        const input = document.querySelector(selector.codePreview);
+
+        if (input) {
+            input.value = code || "Tự động sinh";
+        }
+    }
+
+    function syncConfirmState() {
+        const button = document.querySelector(selector.confirm);
+
+        if (!button || isConfirming) {
+            return;
+        }
+
+        const hasRows = document.querySelectorAll(".transfer-detail-row").length > 0;
+
+        if (!hasRows) {
+            button.disabled = true;
+            return;
+        }
+
+        try {
+            validateClient();
+            button.disabled = false;
+        }
+        catch {
+            button.disabled = true;
+        }
     }
 
     function getRowIngredient(row) {
@@ -465,7 +638,7 @@ const InventoryTransferCreate = (() => {
         const available = read(ingredient, "availableBaseQuantity", "AvailableBaseQuantity") || 0;
         const unitCode = escapeHtml(read(ingredient, "baseUnitCode", "BaseUnitCode") || "");
 
-        return `<option value="${id}">${name} - ton ${formatQuantity(available)} ${unitCode}</option>`;
+        return `<option value="${id}">${name} - tồn ${formatQuantity(available)} ${unitCode}</option>`;
     }
 
     function getTransferId() {
@@ -563,6 +736,17 @@ const InventoryTransferCreate = (() => {
         if (button) {
             button.disabled = isBusy;
         }
+    }
+
+    function redirectToDetail(transferId) {
+        if (!transferId) {
+            return;
+        }
+
+        window.setTimeout(() => {
+            window.location.href =
+                `/Admin/AdminInventoryTransfer/Detail?id=${encodeURIComponent(transferId)}`;
+        }, 650);
     }
 
     return {

@@ -1,0 +1,87 @@
+﻿@model List<CafeChain.ViewModels.Admin.StoreInventories.InventoryItemVM>
+
+<table class="inventory-table">
+    <thead>
+        <tr>
+            <th>Kho</th>
+            <th>Mặt hàng</th>
+            <th title="Tổng số lượng trong kho">Tồn kho</th>
+            <th title="Số lượng đã được giữ cho đơn hàng / phiếu">Đang giữ</th>
+            <th title="Số lượng có thể sử dụng ngay">Khả dụng</th>
+            <th title="Giới hạn âm kho cho mặt hàng tại kho này">Âm tối đa</th>
+            <th>Giá gần nhất</th>
+            <th>NCC</th>
+            <th>Cập nhật</th>
+        </tr>
+    </thead>
+
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var item in Model)
+            {
+                var available = item.AvailableQty - item.ReservedQty;
+
+                <tr>
+                    <td>@item.StoreName</td>
+
+                    <td class="ingredient-name">
+                        @item.IngredientName
+                    </td>
+
+                    <td class="stock">
+                        @($"{item.AvailableQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td class="reserved @(item.ReservedQty > 0 ? "highlight" : "")">
+                        @($"{item.ReservedQty:N0} {item.UnitCode}")
+                    </td>
+
+                    <td class="usable @(available <= 0 ? "danger" : "")">
+                        @($"{available:N0} {item.UnitCode}")
+                    </td>
+
+                    <td>
+                        @if (item.MaxNegativeQty.HasValue)
+                        {
+                            @($"-{item.MaxNegativeQty:N0} {item.UnitCode}")
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @if (item.LastUnitPrice.HasValue)
+                        {
+                            @($"{item.LastUnitPrice:N0} đ")
+                        }
+                        else
+                        {
+                            <span>-</span>
+                        }
+                    </td>
+
+                    <td>
+                        @(!string.IsNullOrWhiteSpace(item.LastSupplierName)
+                            ? item.LastSupplierName
+                            : "-")
+                    </td>
+
+                    <td>
+                        @item.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+                    </td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="9" class="empty-data">
+                    Không có dữ liệu tồn kho
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

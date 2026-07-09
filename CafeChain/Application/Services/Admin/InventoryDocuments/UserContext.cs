@@ -1,5 +1,6 @@
-﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using System.Security.Claims;
+
 namespace CafeChain.Application.Services.Admin.InventoryDocuments
 {
     public class UserContext : IUserContext
@@ -16,7 +17,22 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             get
             {
                 var claim = _http.HttpContext?.User?.FindFirst("StaffId");
+
                 return claim != null ? int.Parse(claim.Value) : 0;
+            }
+        }
+
+        public string StaffName
+        {
+            get
+            {
+                var user = _http.HttpContext?.User;
+                var name = user?.FindFirst(ClaimTypes.Name)?.Value
+                    ?? user?.FindFirst("StaffName")?.Value;
+
+                return string.IsNullOrWhiteSpace(name)
+                    ? "Không xác định"
+                    : name.Trim();
             }
         }
     }

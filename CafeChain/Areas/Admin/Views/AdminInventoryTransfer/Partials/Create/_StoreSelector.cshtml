@@ -1,0 +1,56 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+
+<section class="transfer-card">
+    <div class="transfer-card-header compact">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-shuffle"></i>
+                Lựa chọn kho đi & kho đến
+            </span>
+        </div>
+    </div>
+
+    <div class="store-route">
+        <div class="transfer-field route-field route-source">
+            <label for="transferFromStore">
+                <i class="fas fa-warehouse"></i>
+                Kho đi (nguồn)
+            </label>
+            <select class="transfer-input" id="transferFromStore">
+                <option value="">Chọn kho nguồn</option>
+                @foreach (var store in Model.Stores)
+                {
+                    <option value="@store.StoreId">@store.StoreName</option>
+                }
+            </select>
+        </div>
+
+        <div class="route-arrow" aria-hidden="true">
+            <i class="fas fa-arrow-right"></i>
+            <span>Chuyển</span>
+        </div>
+
+        <div class="transfer-field route-field route-destination">
+            <label for="transferToStore">
+                <i class="fas fa-store"></i>
+                Kho đến (đích)
+            </label>
+            <select class="transfer-input" id="transferToStore">
+                <option value="">Chọn kho đích</option>
+                @foreach (var store in Model.Stores)
+                {
+                    <option value="@store.StoreId">@store.StoreName</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    <div class="transfer-purpose-row">
+        <label for="transferPurpose">Mục đích</label>
+        <select class="transfer-input" id="transferPurpose">
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.REPLENISHMENT)">Bổ sung hàng</option>
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.BALANCING)">Cân đối tồn kho</option>
+            <option value="@((int)CafeChain.Models.Enums.Inventory.InventoryTransferPurpose.OTHER)">Khác</option>
+        </select>
+    </div>
+</section>

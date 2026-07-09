@@ -4,6 +4,8 @@ using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -13,16 +15,19 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminInventoryDocumentService _service;
         private readonly IAdminInventoryDocumentCreateService _serviceCreate;
         private readonly ILogger<AdminInventoryDocumentController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
 
         public AdminInventoryDocumentController(
             IAdminInventoryDocumentService service,
             IAdminInventoryDocumentCreateService serviceCreate,
-            ILogger<AdminInventoryDocumentController> logger)
+            ILogger<AdminInventoryDocumentController> logger,
+            IWebHostEnvironment environment)
         {
             _service = service;
             _serviceCreate = serviceCreate;
             _logger = logger;
+            _environment = environment;
         }
 
         // =====================================================
@@ -101,6 +106,30 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(data);
         }
 
+        [HttpGet]
+        public IActionResult PendingInternalTransfers(int storeId)
+        {
+            return StatusCode(
+                StatusCodes.Status410Gone,
+                new
+                {
+                    success = false,
+                    message = "Chuyển kho liên chi nhánh đã được tách sang Phiếu Chuyển Kho."
+                });
+        }
+
+        [HttpGet]
+        public IActionResult InternalTransferIngredients(int transferId)
+        {
+            return StatusCode(
+                StatusCodes.Status410Gone,
+                new
+                {
+                    success = false,
+                    message = "Nhập nội bộ không còn xử lý bằng InventoryDocument."
+                });
+        }
+
         // =====================================================
         // AJAX
         // CALCULATE
@@ -109,9 +138,36 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> Calculate([FromBody] CreateInventoryDocumentDTO dto)
         {
-            var result = await _serviceCreate.CalculateSummaryAsync(dto);
+            try
+            {
+                var result = await _serviceCreate.CalculateSummaryAsync(dto);
 
-            return Json(result);
+                return Json(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Invalid inventory document calculate request.");
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to calculate inventory document summary.");
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Không thể tính tổng phiếu kho."
+                });
+            }
         }
 
         // =====================================================
@@ -121,13 +177,51 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpPost]
         public async Task<IActionResult> SaveDraft([FromBody] CreateInventoryDocumentDTO dto)
         {
-            var id = await _serviceCreate.SaveDraftAsync(dto);
-
-            return Json(new
+            try
             {
-                success = true,
-                id
-            });
+                var id = await _serviceCreate.SaveDraftAsync(dto);
+
+                return Json(new
+                {
+                    success = true,
+                    id
+                });
+            }
+            catch (InvalidOperationException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Invalid inventory document draft request.");
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Database error while saving inventory document draft.");
+
+                return BadRequest(
+                    ErrorResponse(
+                        "Không thể lưu nháp phiếu kho do dữ liệu chưa phù hợp.",
+                        ex));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Failed to save inventory document draft.");
+
+                return BadRequest(new
+                {
+                    success = false,
+                    message = "Không thể lưu nháp phiếu kho."
+                });
+            }
         }
 
         // =====================================================
@@ -150,11 +244,26 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
+                _logger.LogWarning(
+                    ex,
+                    "Invalid create and confirm inventory document request.");
+
                 return BadRequest(new
                 {
                     success = false,
                     message = ex.Message
                 });
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Database error while creating and confirming inventory document.");
+
+                return BadRequest(
+                    ErrorResponse(
+                        "Không thể tạo và xác nhận phiếu do dữ liệu chưa phù hợp.",
+                        ex));
             }
             catch (Exception ex)
             {
@@ -179,11 +288,37 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                if (documentId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Mã phiếu không hợp lệ."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(requestKey))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "RequestKey là bắt buộc."
+                    });
+                }
+
                 var result = await _serviceCreate.ConfirmDraftAsync(documentId, requestKey);
 
                 if (result == null)
                 {
-                    return NotFound();
+                    _logger.LogWarning(
+                        "Inventory document draft {DocumentId} was not found when confirming.",
+                        documentId);
+
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy phiếu cần xác nhận."
+                    });
                 }
 
                 return Json(new
@@ -200,6 +335,18 @@ namespace CafeChain.Areas.Admin.Controllers
                     success = false,
                     message = ex.Message
                 });
+            }
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "Database error while confirming inventory document draft {DocumentId}.",
+                    documentId);
+
+                return BadRequest(
+                    ErrorResponse(
+                        "Không thể xác nhận phiếu do dữ liệu tồn kho chưa phù hợp.",
+                        ex));
             }
             catch (Exception ex)
             {
@@ -225,11 +372,33 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
+                if (documentId <= 0)
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "Mã phiếu không hợp lệ."
+                    });
+                }
+
+                if (string.IsNullOrWhiteSpace(requestKey))
+                {
+                    return BadRequest(new
+                    {
+                        success = false,
+                        message = "RequestKey là bắt buộc."
+                    });
+                }
+
                 var success = await _serviceCreate.CancelInventoryDocumentAsync(documentId, requestKey);
 
                 if (!success)
                 {
-                    return NotFound();
+                    return NotFound(new
+                    {
+                        success = false,
+                        message = "Không tìm thấy phiếu cần hủy."
+                    });
                 }
 
                 return Json(new
@@ -296,6 +465,31 @@ namespace CafeChain.Areas.Admin.Controllers
             var extension = dto.ExportType == InventoryDocumentExportType.PDF ? "pdf" : "docx";
 
             return File(file, contentType, $"InventoryDocument_{dto.DocumentId}.{extension}");
+        }
+
+        private object ErrorResponse(string message, Exception exception)
+        {
+            var traceId =
+                Activity.Current?.Id ??
+                HttpContext.TraceIdentifier;
+
+            if (_environment.IsDevelopment())
+            {
+                return new
+                {
+                    success = false,
+                    message,
+                    traceId,
+                    debugMessage = exception.GetBaseException().Message
+                };
+            }
+
+            return new
+            {
+                success = false,
+                message,
+                traceId
+            };
         }
 
     }

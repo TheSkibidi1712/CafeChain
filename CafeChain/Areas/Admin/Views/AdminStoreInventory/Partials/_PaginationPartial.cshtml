@@ -1,0 +1,37 @@
+﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
+
+@{
+    var currentPage = ViewBag.Page != null ? (int)ViewBag.Page : 1;
+    var totalPages = ViewBag.TotalPages != null ? (int)ViewBag.TotalPages : 0;
+}
+
+@if (totalPages > 1)
+{
+    <div class="pagination">
+
+        @if (currentPage > 1)
+        {
+            <a class="page-btn"
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = currentPage - 1 })">
+                ←
+            </a>
+        }
+
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <a class="page-btn @(i == currentPage ? "active" : "")"
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = i })">
+                @i
+            </a>
+        }
+
+        @if (currentPage < totalPages)
+        {
+            <a class="page-btn"
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = currentPage + 1 })">
+                →
+            </a>
+        }
+
+    </div>
+}

@@ -1,0 +1,20 @@
+﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
+
+<div class="store-tabs">
+    @if (Model.Stores != null && Model.Stores.Any())
+    {
+        foreach (var store in Model.Stores)
+        {
+            <a class="store-tab @(store.StoreId == Model.StoreId ? "active" : "")"
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = store.StoreId, search = ViewBag.Search, page = 1 })">
+                @store.StoreName
+            </a>
+        }
+    }
+    else
+    {
+        <div class="scope-empty">
+            Tài khoản hiện tại chưa được cấp phạm vi xem kho.
+        </div>
+    }
+</div>

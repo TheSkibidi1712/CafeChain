@@ -41,12 +41,118 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             _userContext = userContext;
         }
 
+        public async Task<AdminInventoryTransferIndexVM> GetIndexAsync(AdminInventoryTransferIndexVM filter)
+        {
+            var page = filter.Page <= 0 ? 1 : filter.Page;
+            var pageSize = filter.PageSize <= 0 ? 20 : Math.Min(filter.PageSize, 100);
+            var skip = (page - 1) * pageSize;
+            var keyword = string.IsNullOrWhiteSpace(filter.Keyword)
+                ? null
+                : filter.Keyword.Trim();
+
+            var totalItems = await _repository.CountTransfersAsync(
+                keyword,
+                filter.Status,
+                filter.FromStoreId,
+                filter.ToStoreId);
+            var transfers = await _repository.GetTransfersAsync(
+                keyword,
+                filter.Status,
+                filter.FromStoreId,
+                filter.ToStoreId,
+                skip,
+                pageSize);
+
+            return new AdminInventoryTransferIndexVM
+            {
+                Keyword = keyword,
+                Status = filter.Status,
+                FromStoreId = filter.FromStoreId,
+                ToStoreId = filter.ToStoreId,
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Stores = await _repository.GetStoreDropdownAsync(),
+                Items = transfers
+                    .Select(x => new AdminInventoryTransferIndexItemVM
+                    {
+                        InventoryTransferId = x.InventoryTransferId,
+                        Code = x.Code,
+                        Status = x.Status,
+                        Purpose = x.Purpose,
+                        FromStoreName = x.FromStore?.Name ?? string.Empty,
+                        ToStoreName = x.ToStore?.Name ?? string.Empty,
+                        CreatedByName = x.CreatedByStaff?.FullName ?? string.Empty,
+                        DocumentDate = x.DocumentDate,
+                        CreatedAt = x.CreatedAt,
+                        ConfirmedAt = x.ConfirmedAt,
+                        DetailCount = x.Details.Count
+                    })
+                    .ToList()
+            };
+        }
+
         public async Task<AdminInventoryTransferCreateVM> GetCreateDataAsync()
         {
             return new AdminInventoryTransferCreateVM
             {
                 DocumentDate = DateTime.Today,
+                CreatedByName = _userContext.StaffName,
                 Stores = await _repository.GetStoreDropdownAsync()
+            };
+        }
+
+        public async Task<AdminInventoryTransferDetailVM?> GetDetailAsync(int id)
+        {
+            if (id <= 0)
+            {
+                return null;
+            }
+
+            var transfer = await _repository.GetTransferByIdAsync(id);
+
+            if (transfer == null)
+            {
+                return null;
+            }
+
+            return new AdminInventoryTransferDetailVM
+            {
+                InventoryTransferId = transfer.InventoryTransferId,
+                Code = transfer.Code,
+                RequestKey = transfer.RequestKey,
+                Type = transfer.Type,
+                Purpose = transfer.Purpose,
+                Status = transfer.Status,
+                DocumentDate = transfer.DocumentDate,
+                CreatedAt = transfer.CreatedAt,
+                ConfirmedAt = transfer.ConfirmedAt,
+                CancelledAt = transfer.CancelledAt,
+                FromStoreName = transfer.FromStore?.Name ?? string.Empty,
+                ToStoreName = transfer.ToStore?.Name ?? string.Empty,
+                CreatedByName = transfer.CreatedByStaff?.FullName ?? string.Empty,
+                ConfirmedByName = transfer.ConfirmedByStaff?.FullName,
+                CancelledByName = transfer.CancelledByStaff?.FullName,
+                Note = transfer.Note,
+                Details = transfer.Details
+                    .OrderBy(x => x.InventoryTransferDetailId)
+                    .Select(x => new AdminInventoryTransferDetailItemVM
+                    {
+                        InventoryTransferDetailId = x.InventoryTransferDetailId,
+                        IngredientName = x.Ingredient?.Name ?? string.Empty,
+                        UnitName = x.Unit?.Name ?? string.Empty,
+                        UnitCode = x.Unit?.UnitCode ?? string.Empty,
+                        BaseUnitCode = x.Ingredient?.BaseUnit?.UnitCode ?? string.Empty,
+                        Quantity = x.Quantity,
+                        BaseQuantity = x.BaseQuantity,
+                        UnitPrice = x.UnitPrice,
+                        SourceBeforeQty = x.SourceBeforeQty,
+                        SourceAfterQty = x.SourceAfterQty,
+                        DestinationBeforeQty = x.DestinationBeforeQty,
+                        DestinationAfterQty = x.DestinationAfterQty,
+                        Note = x.Note
+                    })
+                    .ToList()
             };
         }
 
@@ -57,18 +163,21 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 return [];
             }
 
-            var ingredients = await _repository.GetActiveIngredientsAsync();
             var inventories = await _repository.GetStoreInventoriesAsync(fromStoreId);
-            var inventoryByIngredient = inventories
+            var availableInventories = inventories
                 .Where(x => x.IngredientId.HasValue)
+                .Where(x => x.AvailableQty > 0)
+                .Where(x => x.Ingredient != null && x.Ingredient.Active)
                 .GroupBy(x => x.IngredientId!.Value)
-                .ToDictionary(x => x.Key, x => x.First());
+                .Select(x => x.First())
+                .OrderBy(x => x.Ingredient!.Name)
+                .ToList();
 
             var result = new List<SupplierIngredientDTO>();
 
-            foreach (var ingredient in ingredients)
+            foreach (var inventory in availableInventories)
             {
-                inventoryByIngredient.TryGetValue(ingredient.IngredientId, out var inventory);
+                var ingredient = inventory.Ingredient!;
 
                 var unitOptions = BuildUnitOptions(ingredient);
                 var defaultUnit = unitOptions.FirstOrDefault(x => x.IsBaseUnit)
@@ -90,7 +199,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         BaseUnitCode = ingredient.BaseUnit?.UnitCode ?? string.Empty,
                         ConversionFactorToBase = conversionFactor,
                         CanConvertToBase = conversionFactor > 0,
-                        AvailableBaseQuantity = inventory?.AvailableQty ?? 0,
+                        AvailableBaseQuantity = inventory.AvailableQty,
                         SuggestedBaseUnitCost = baseUnitCost,
                         SuggestedUnitPrice = conversionFactor > 0 ? baseUnitCost * conversionFactor : 0,
                         PriceSource = baseUnitCost > 0 ? "FIFO" : "No cost layer",
@@ -188,11 +297,11 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 }
 
                 var transfer = await _repository.GetTransferByIdAsync(id)
-                    ?? throw new InvalidOperationException("Transfer not found.");
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
 
                 if (transfer.Status != InventoryTransferStatus.DRAFT)
                 {
-                    throw new InvalidOperationException("Only draft transfer can be updated.");
+                    throw new InvalidOperationException("Chỉ được sửa phiếu chuyển kho ở trạng thái nháp.");
                 }
 
                 await ValidateAndNormalizeAsync(dto);
@@ -256,7 +365,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 }
 
                 var transfer = await _repository.GetTransferByIdAsync(id)
-                    ?? throw new InvalidOperationException("Transfer not found.");
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
 
                 if (transfer.Status == InventoryTransferStatus.COMPLETED)
                 {
@@ -271,15 +380,15 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
 
                 if (transfer.Status == InventoryTransferStatus.CANCELLED)
                 {
-                    throw new InvalidOperationException("Cancelled transfer cannot be confirmed.");
+                    throw new InvalidOperationException("Phiếu đã hủy, không thể xác nhận.");
                 }
 
                 if (!transfer.Details.Any())
                 {
-                    throw new InvalidOperationException("Transfer must have at least one detail.");
+                    throw new InvalidOperationException("Phiếu chuyển kho phải có ít nhất một nguyên liệu.");
                 }
 
-                await ProcessConfirmAsync(transfer);
+                var warnings = await ProcessConfirmAsync(transfer);
 
                 transfer.Status = InventoryTransferStatus.COMPLETED;
                 transfer.ConfirmedAt = DateTime.UtcNow;
@@ -288,7 +397,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 _repository.UpdateTransfer(transfer);
                 await _repository.SaveChangesAsync();
 
-                var response = BuildResult(transfer);
+                var response = BuildResult(transfer, warnings);
                 await _deduplicationService.MarkSuccessAsync(
                     dedup.Entry!,
                     transfer.InventoryTransferId,
@@ -343,7 +452,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
 
                 if (transfer.Status == InventoryTransferStatus.COMPLETED)
                 {
-                    throw new InvalidOperationException("Completed transfer cannot be cancelled.");
+                    throw new InvalidOperationException("Phiếu đã hoàn tất, không thể hủy.");
                 }
 
                 if (transfer.Status == InventoryTransferStatus.CANCELLED)
@@ -400,7 +509,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             foreach (var detail in dto.Details)
             {
                 var ingredient = await _repository.GetIngredientAsync(detail.IngredientId)
-                    ?? throw new InvalidOperationException("Ingredient not found.");
+                    ?? throw new InvalidOperationException("Nguyên liệu không tồn tại.");
 
                 inventoryByIngredient.TryGetValue(detail.IngredientId, out var inventory);
                 inventory ??= new StoreInventory
@@ -439,17 +548,19 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             return warnings;
         }
 
-        private async Task ProcessConfirmAsync(InventoryTransfer transfer)
+        private async Task<List<InventoryStockWarningDTO>> ProcessConfirmAsync(InventoryTransfer transfer)
         {
+            var warnings = new List<InventoryStockWarningDTO>();
+
             foreach (var detail in transfer.Details.OrderBy(x => x.IngredientId))
             {
                 var ingredient = detail.Ingredient
                     ?? await _repository.GetIngredientAsync(detail.IngredientId)
-                    ?? throw new InvalidOperationException("Ingredient not found.");
+                    ?? throw new InvalidOperationException("Nguyên liệu không tồn tại.");
 
                 if (detail.BaseQuantity <= 0)
                 {
-                    throw new InvalidOperationException("Base quantity must be greater than 0.");
+                    throw new InvalidOperationException("Số lượng quy đổi base phải lớn hơn 0.");
                 }
 
                 var sourceInventory = await GetOrCreateInventoryForUpdateAsync(
@@ -469,6 +580,23 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 if (!stockValidation.IsAllowed)
                 {
                     throw new InvalidOperationException(stockValidation.Message);
+                }
+
+                if (stockValidation.IsNegative)
+                {
+                    warnings.Add(
+                        new InventoryStockWarningDTO
+                        {
+                            StoreId = transfer.FromStoreId,
+                            IngredientId = detail.IngredientId,
+                            IngredientName = ingredient.Name,
+                            AvailableQuantity = stockValidation.BeforeQty,
+                            ReservedQuantity = sourceInventory.ReservedQty,
+                            UsableQuantity = stockValidation.BeforeQty - sourceInventory.ReservedQty,
+                            ThresholdQuantity = stockValidation.ThresholdQuantity,
+                            UnitCode = ingredient.BaseUnit?.UnitCode ?? string.Empty,
+                            Message = stockValidation.Message
+                        });
                 }
 
                 var sourceBefore = sourceInventory.AvailableQty;
@@ -525,6 +653,8 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         CreatedAt = DateTime.UtcNow
                     });
             }
+
+            return warnings;
         }
 
         private async Task<StoreInventory> GetOrCreateInventoryForUpdateAsync(
@@ -532,26 +662,9 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             int ingredientId,
             Ingredient ingredient)
         {
-            var inventory = await _repository.GetStoreInventoryForUpdateAsync(storeId, ingredientId);
-
-            if (inventory != null)
-            {
-                return inventory;
-            }
-
-            inventory = new StoreInventory
-            {
-                StoreId = storeId,
-                IngredientId = ingredientId,
-                Ingredient = ingredient,
-                AvailableQty = 0,
-                ReservedQty = 0,
-                LastUpdated = DateTime.UtcNow
-            };
-
-            await _repository.AddStoreInventoryAsync(inventory);
-
-            return inventory;
+            return await _repository.GetOrCreateStoreInventoryForUpdateAsync(
+                storeId,
+                ingredientId);
         }
 
         private static InventoryTransaction BuildTransferTransaction(
@@ -567,7 +680,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         {
             return new InventoryTransaction
             {
-                StoreInventory = inventory,
+                StoreInventoryId = inventory.StoreInventoryId,
                 InventoryTransferId = transferId,
                 Type = type,
                 StockStatus = stockStatus,
@@ -625,19 +738,19 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         {
             if (dto.FromStoreId <= 0 || dto.ToStoreId <= 0)
             {
-                throw new InvalidOperationException("Source and destination stores are required.");
+                throw new InvalidOperationException("Vui lòng chọn kho đi và kho đến.");
             }
 
             if (dto.FromStoreId == dto.ToStoreId)
             {
-                throw new InvalidOperationException("Source store and destination store must be different.");
+                throw new InvalidOperationException("Kho đi và kho đến phải khác nhau.");
             }
 
             var stores = await _repository.GetStoresByIdsAsync([dto.FromStoreId, dto.ToStoreId]);
 
             if (stores.Select(x => x.StoreId).Distinct().Count() != 2)
             {
-                throw new InvalidOperationException("Source or destination store does not exist.");
+                throw new InvalidOperationException("Kho đi hoặc kho đến không tồn tại.");
             }
 
             if (!Enum.IsDefined(typeof(InventoryTransferPurpose), dto.Purpose)
@@ -648,7 +761,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
 
             if (dto.Details == null || !dto.Details.Any())
             {
-                throw new InvalidOperationException("Transfer must have at least one ingredient.");
+                throw new InvalidOperationException("Phiếu chuyển kho phải có ít nhất một nguyên liệu.");
             }
 
             var duplicatedIngredient = dto.Details
@@ -658,37 +771,37 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
 
             if (duplicatedIngredient != null)
             {
-                throw new InvalidOperationException("Each ingredient can appear only once in one transfer.");
+                throw new InvalidOperationException("Mỗi nguyên liệu chỉ được xuất hiện một lần trong một phiếu.");
             }
 
             foreach (var detail in dto.Details)
             {
                 if (detail.IngredientId <= 0)
                 {
-                    throw new InvalidOperationException("Ingredient is required.");
+                    throw new InvalidOperationException("Vui lòng chọn nguyên liệu.");
                 }
 
                 if (detail.UnitId <= 0)
                 {
-                    throw new InvalidOperationException("Unit is required.");
+                    throw new InvalidOperationException("Vui lòng chọn đơn vị tính.");
                 }
 
                 if (detail.Quantity <= 0)
                 {
-                    throw new InvalidOperationException("Quantity must be greater than 0.");
+                    throw new InvalidOperationException("Số lượng chuyển phải lớn hơn 0.");
                 }
 
                 if (detail.UnitPrice.HasValue && detail.UnitPrice.Value < 0)
                 {
-                    throw new InvalidOperationException("Unit price cannot be negative.");
+                    throw new InvalidOperationException("Đơn giá không được âm.");
                 }
 
                 var ingredient = await _repository.GetIngredientAsync(detail.IngredientId)
-                    ?? throw new InvalidOperationException("Ingredient does not exist.");
+                    ?? throw new InvalidOperationException("Nguyên liệu không tồn tại.");
 
                 if (!ingredient.Active)
                 {
-                    throw new InvalidOperationException($"Ingredient {ingredient.Name} is inactive.");
+                    throw new InvalidOperationException($"Nguyên liệu {ingredient.Name} đã ngừng hoạt động.");
                 }
 
                 var conversionFactor = CalculateConversionFactorToBase(
@@ -703,7 +816,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
 
                 if (detail.BaseQuantity <= 0)
                 {
-                    throw new InvalidOperationException("Base quantity must be greater than 0.");
+                    throw new InvalidOperationException("Số lượng quy đổi base phải lớn hơn 0.");
                 }
             }
         }
@@ -737,7 +850,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 }
             }
 
-            throw new InvalidOperationException(dedup.ErrorMessage ?? "RequestKey already exists.");
+            throw new InvalidOperationException(dedup.ErrorMessage ?? "RequestKey đã được xử lý.");
         }
 
         private async Task MarkFailedIfPossibleAsync(
@@ -761,13 +874,16 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             }
         }
 
-        private static InventoryTransferMutationResultDTO BuildResult(InventoryTransfer transfer)
+        private static InventoryTransferMutationResultDTO BuildResult(
+            InventoryTransfer transfer,
+            List<InventoryStockWarningDTO>? warnings = null)
         {
             return new InventoryTransferMutationResultDTO
             {
                 InventoryTransferId = transfer.InventoryTransferId,
                 Code = transfer.Code,
-                Status = transfer.Status
+                Status = transfer.Status,
+                Warnings = warnings ?? []
             };
         }
 
@@ -851,7 +967,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 if (throwIfMissing)
                 {
                     throw new InvalidOperationException(
-                        $"Missing unit conversion for ingredient {ingredient.Name}.");
+                        $"Chưa cấu hình quy đổi đơn vị cho nguyên liệu {ingredient.Name}.");
                 }
 
                 return null;
@@ -883,7 +999,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         {
             if (_userContext.StaffId <= 0)
             {
-                throw new InvalidOperationException("Current staff is required.");
+                throw new InvalidOperationException("Không xác định được nhân viên hiện tại.");
             }
 
             return _userContext.StaffId;

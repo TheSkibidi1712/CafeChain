@@ -21,6 +21,20 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
 
         Task<InventoryTransfer?> GetTransferByIdAsync(int id);
 
+        Task<List<InventoryTransfer>> GetTransfersAsync(
+            string? keyword,
+            CafeChain.Models.Enums.Inventory.InventoryTransferStatus? status,
+            int? fromStoreId,
+            int? toStoreId,
+            int skip,
+            int take);
+
+        Task<int> CountTransfersAsync(
+            string? keyword,
+            CafeChain.Models.Enums.Inventory.InventoryTransferStatus? status,
+            int? fromStoreId,
+            int? toStoreId);
+
         void UpdateTransfer(InventoryTransfer transfer);
 
         void RemoveTransferDetails(IEnumerable<InventoryTransferDetail> details);
@@ -36,6 +50,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
 
         Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId);
+
+        Task<StoreInventory> GetOrCreateStoreInventoryForUpdateAsync(int storeId, int ingredientId);
 
         Task AddStoreInventoryAsync(StoreInventory inventory);
 

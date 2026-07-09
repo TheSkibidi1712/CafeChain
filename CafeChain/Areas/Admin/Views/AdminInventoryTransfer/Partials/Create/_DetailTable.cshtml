@@ -1,0 +1,42 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+
+<section class="transfer-card">
+    <div class="transfer-toolbar">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-boxes-stacked"></i>
+                Chi tiết nguyên liệu chuyển
+            </span>
+            <p id="transferStockStatus">Chọn kho nguồn để tải nguyên liệu.</p>
+        </div>
+
+        <button class="transfer-outline-button" type="button" id="btnAddTransferIngredient" disabled>
+            <i class="fas fa-plus"></i>
+            Thêm dòng
+        </button>
+    </div>
+
+    <div class="transfer-table-wrap">
+        <table class="transfer-table">
+            <thead>
+                <tr>
+                    <th class="col-index">#</th>
+                    <th>Nguyên liệu</th>
+                    <th>ĐVT</th>
+                    <th>Tồn kho nguồn</th>
+                    <th>Số chuyển</th>
+                    <th>Chênh lệch</th>
+                    <th>Trạng thái</th>
+                    <th class="col-action"></th>
+                </tr>
+            </thead>
+            <tbody id="transferDetailBody">
+                <tr class="transfer-empty-row">
+                    <td colspan="8">Chưa có nguyên liệu.</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="transfer-warning" id="transferWarnings" hidden></div>
+</section>

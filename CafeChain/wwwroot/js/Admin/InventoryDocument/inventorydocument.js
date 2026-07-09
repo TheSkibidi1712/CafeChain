@@ -176,11 +176,44 @@ const InventoryDocument = (() => {
         `;
     }
 
-    async function postDocumentAction(url, documentId, requestKey) {
+    function buildAdminUrl(action, params = {}) {
+
+        const url =
+            new URL(
+                `/Admin/AdminInventoryDocument/${action}`,
+                window.location.origin);
+
+        Object
+            .entries(params)
+            .forEach(([key, value]) => {
+                if (value !== undefined && value !== null) {
+                    url.searchParams.set(key, String(value));
+                }
+            });
+
+        return url.toString();
+    }
+
+    async function postDocumentAction(action, documentId, requestKey) {
+
+        const id =
+            Number(documentId || 0);
+
+        if (!Number.isInteger(id) || id <= 0) {
+            throw new Error("Mã phiếu không hợp lệ.");
+        }
+
+        const requestUrl =
+            buildAdminUrl(
+                action,
+                {
+                    documentId: id,
+                    requestKey: requestKey || ""
+                });
 
         const response =
             await fetch(
-                `${url}?documentId=${encodeURIComponent(documentId)}&requestKey=${encodeURIComponent(requestKey)}`,
+                requestUrl,
                 {
                     method: "POST",
                     headers: {
@@ -193,40 +226,133 @@ const InventoryDocument = (() => {
             const message =
                 await readActionResponseMessage(response);
 
+            console.warn(
+                "Inventory document action failed",
+                {
+                    action,
+                    url: requestUrl,
+                    documentId: id,
+                    requestKey,
+                    status: response.status,
+                    message,
+                    traceId: response._inventoryTraceId,
+                    debugMessage: response._inventoryDebugMessage
+                });
+
             throw new Error(message || "Không thể xử lý phiếu.");
         }
 
-        return response.json();
+        const result =
+            await readActionResponse(response);
+
+        if (result && result.success === false) {
+            throw new Error(
+                result.message ||
+                result.error ||
+                "Không thể xử lý phiếu.");
+        }
+
+        return result || {};
     }
 
     async function readActionResponseMessage(response) {
+
+        const fallback =
+            response.status === 404
+                ? "Không tìm thấy phiếu cần xử lý."
+                : "Không thể xử lý phiếu.";
+
+        try {
+            const data =
+                await readActionResponse(response);
+
+            if (typeof data === "string") {
+                return data || fallback;
+            }
+
+            response._inventoryTraceId =
+                data?.traceId ||
+                data?.TraceId ||
+                "";
+
+            response._inventoryDebugMessage =
+                data?.debugMessage ||
+                data?.DebugMessage ||
+                "";
+
+            return data?.message ||
+                data?.error ||
+                data?.title ||
+                fallback;
+        }
+        catch {
+            return fallback;
+        }
+    }
+
+    async function readActionResponse(response) {
 
         const contentType =
             response.headers.get("content-type") || "";
 
         if (contentType.includes("application/json")) {
-
-            const json =
-                await response.json();
-
-            return json.message || json.error || "Không thể xử lý phiếu.";
+            return await response.json();
         }
 
-        return await response.text();
+        const text =
+            await response.text();
+
+        return text;
+    }
+
+    function showActionMessage(message, icon = "error") {
+
+        const text =
+            message || "Không thể xử lý phiếu.";
+
+        if (window.Swal) {
+
+            Swal.fire({
+                icon,
+                title: icon === "success" ? "Thành công" : "Không thể xử lý",
+                text,
+                confirmButtonText: "OK"
+            });
+
+            return;
+        }
+
+        if (window.toastr) {
+
+            const method =
+                icon === "success" ? "success" : "error";
+
+            window.toastr[method](text);
+
+            return;
+        }
+
+        alert(text);
     }
 
     async function confirmDraft(documentId, button) {
 
-        setActionBusy(button, true);
-        const requestKey =
-            getButtonRequestKey(button);
-
         try {
+            const id =
+                Number(documentId || 0);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                throw new Error("Mã phiếu không hợp lệ.");
+            }
+
+            setActionBusy(button, true);
+            const requestKey =
+                getButtonRequestKey(button);
 
             const result =
                 await postDocumentAction(
-                "/Admin/AdminInventoryDocument/ConfirmDraft",
-                documentId,
+                "ConfirmDraft",
+                id,
                 requestKey);
 
             await showStockWarnings(
@@ -236,7 +362,9 @@ const InventoryDocument = (() => {
         }
         catch (error) {
 
-            alert(error.message || "Không thể xác nhận phiếu.");
+            showActionMessage(
+                error.message ||
+                "Không thể xác nhận phiếu.");
 
             setActionBusy(button, false);
         }
@@ -249,22 +377,30 @@ const InventoryDocument = (() => {
             return;
         }
 
-        setActionBusy(button, true);
-        const requestKey =
-            getButtonRequestKey(button);
-
         try {
+            const id =
+                Number(documentId || 0);
+
+            if (!Number.isInteger(id) || id <= 0) {
+                throw new Error("Mã phiếu không hợp lệ.");
+            }
+
+            setActionBusy(button, true);
+            const requestKey =
+                getButtonRequestKey(button);
 
             await postDocumentAction(
-                "/Admin/AdminInventoryDocument/CancelInventoryDocument",
-                documentId,
+                "CancelInventoryDocument",
+                id,
                 requestKey);
 
             window.location.reload();
         }
         catch (error) {
 
-            alert(error.message || "Không thể hủy phiếu.");
+            showActionMessage(
+                error.message ||
+                "Không thể hủy phiếu.");
 
             setActionBusy(button, false);
         }

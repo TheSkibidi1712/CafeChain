@@ -1,0 +1,18 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+@{
+    ViewData["Title"] = $"Phiếu chuyển kho {Model.Code}";
+}
+
+<link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
+
+<div class="transfer-page transfer-detail-page">
+    @await Html.PartialAsync("Partials/Detail/_Header", Model)
+
+    <main class="transfer-main">
+        @await Html.PartialAsync("Partials/Detail/_GeneralInfo", Model)
+        @await Html.PartialAsync("Partials/Detail/_StoreFlow", Model)
+        @await Html.PartialAsync("Partials/Detail/_DetailTable", Model)
+        @await Html.PartialAsync("Partials/Detail/_Note", Model)
+    </main>
+</div>

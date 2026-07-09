@@ -1,0 +1,25 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+
+<footer class="transfer-action-bar">
+    <div class="transfer-action-status" id="transferActionStatus">
+        <i class="fas fa-circle-info"></i>
+        Kiểm tra tồn kho trước khi xác nhận.
+    </div>
+
+    <div class="transfer-action-buttons">
+        <a class="transfer-ghost-button" href="/Admin/AdminInventoryDocument/Index">
+            <i class="fas fa-xmark"></i>
+            Hủy
+        </a>
+
+        <button class="transfer-secondary-button" type="button" id="btnSaveTransferDraft">
+            <i class="fas fa-floppy-disk"></i>
+            Lưu nháp
+        </button>
+
+        <button class="transfer-primary-button" type="button" id="btnConfirmTransfer">
+            <i class="fas fa-check"></i>
+            Xác nhận
+        </button>
+    </div>
+</footer>

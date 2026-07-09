@@ -1,0 +1,46 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferCreateVM
+
+<section class="transfer-card">
+    <div class="transfer-card-header">
+        <div>
+            <span class="section-kicker">
+                <i class="fas fa-circle-info"></i>
+                Thông tin chung
+            </span>
+            <h2>Thông tin phiếu</h2>
+        </div>
+
+        <span class="auto-pill">Tự động</span>
+    </div>
+
+    <div class="transfer-info-grid">
+        <div class="transfer-field">
+            <label for="transferCodePreview">Mã phiếu</label>
+            <input id="transferCodePreview"
+                   class="transfer-input transfer-static-input"
+                   value="Tự động sinh"
+                   tabindex="-1"
+                   readonly />
+        </div>
+
+        <div class="transfer-field">
+            <label for="transferDate">Ngày chứng từ <span>*</span></label>
+            <input class="transfer-input"
+                   type="date"
+                   id="transferDate"
+                   value="@Model.DocumentDate.ToString("yyyy-MM-dd")"
+                   tabindex="-1"
+                   onfocus="this.blur()"
+                   readonly />
+        </div>
+
+        <div class="transfer-field transfer-field-wide">
+            <label for="transferCreatedByPreview">Người lập</label>
+            <input id="transferCreatedByPreview"
+                   class="transfer-input transfer-static-input"
+                   value="@Model.CreatedByName"
+                   tabindex="-1"
+                   readonly />
+        </div>
+    </div>
+</section>

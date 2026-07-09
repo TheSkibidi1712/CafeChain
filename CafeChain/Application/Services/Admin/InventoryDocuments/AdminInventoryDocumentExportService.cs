@@ -36,166 +36,223 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public Task<byte[]> ExportPdfAsync(InventoryDocumentSnapshotDTO snapshot)
         {
+            var printedAt =
+                DateTime.Now;
+
             var pdf =
                 QuestPDF.Fluent.Document.Create(container =>
                 {
                     container.Page(page =>
                     {
                         page.Size(PageSizes.A4);
-                        page.Margin(32);
-                        page.DefaultTextStyle(x => x.FontSize(10));
+                        page.Margin(36);
+                        page.DefaultTextStyle(x =>
+                            x.FontSize(9)
+                                .FontColor("#374151"));
 
-                        page.Header().Column(header =>
+                        page.Content().Column(col =>
                         {
-                            header.Item()
-                                .AlignCenter()
-                                .Text("CAFECHAIN")
-                                .FontSize(15)
-                                .Bold()
-                                .FontColor("#111827");
+                            col.Spacing(18);
 
-                            header.Item()
-                                .PaddingTop(4)
-                                .AlignCenter()
-                                .Text("PHIẾU NHẬP KHO")
-                                .FontSize(20)
-                                .Bold()
-                                .FontColor("#F97316");
-
-                            header.Item()
-                                .PaddingTop(2)
-                                .AlignCenter()
-                                .Text($"Số phiếu: {snapshot.Code}")
-                                .FontSize(10)
-                                .FontColor("#6B7280");
-                        });
-
-                        page.Content()
-                            .PaddingTop(18)
-                            .Column(col =>
+                            col.Item().AlignCenter().Column(header =>
                             {
-                                col.Spacing(14);
+                                header.Spacing(4);
 
-                                col.Item().Row(row =>
+                                header.Item()
+                                    .Text("CAFECHAIN")
+                                    .FontSize(15)
+                                    .Bold()
+                                    .FontColor("#111827");
+
+                                header.Item()
+                                    .Text("Hệ thống quản lý kho chuỗi cửa hàng")
+                                    .FontSize(8)
+                                    .FontColor("#9CA3AF");
+
+                                header.Item()
+                                    .PaddingTop(8)
+                                    .Text("PHIẾU NHẬP KHO")
+                                    .FontSize(20)
+                                    .Bold()
+                                    .FontColor("#F97316");
+
+                                header.Item()
+                                    .PaddingTop(4)
+                                    .Text($"Số phiếu: {snapshot.Code}")
+                                    .FontSize(9)
+                                    .FontColor("#6B7280");
+
+                                header.Item()
+                                    .PaddingTop(4)
+                                    .AlignCenter()
+                                    .Background("#F3F4F6")
+                                    .PaddingHorizontal(10)
+                                    .PaddingVertical(4)
+                                    .Text("Bản xem trước")
+                                    .FontSize(7)
+                                    .FontColor("#6B7280");
+                            });
+
+                            col.Item().PaddingTop(6).Row(row =>
+                            {
+                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
                                 {
-                                    row.RelativeItem().Element(PdfInfoBox).Column(info =>
-                                    {
-                                        info.Spacing(5);
-                                        info.Item().Text("Thông tin chứng từ").Bold().FontColor("#F97316");
-                                        info.Item().Text($"Ngày chứng từ: {snapshot.DocumentDate:dd/MM/yyyy}");
-                                        info.Item().Text($"Cửa hàng: {snapshot.StoreName}");
-                                        info.Item().Text($"Người lập: {snapshot.StaffName}");
-                                    });
+                                    info.Item()
+                                        .Element(PdfInfoBoxHeader)
+                                        .Text("Thông tin chứng từ")
+                                        .Bold()
+                                        .FontColor("#EA580C");
 
-                                    row.ConstantItem(16);
-
-                                    row.RelativeItem().Element(PdfInfoBox).Column(info =>
-                                    {
-                                        info.Spacing(5);
-                                        info.Item().Text("Thông tin đối tác").Bold().FontColor("#F97316");
-                                        info.Item().Text($"Đối tác: {snapshot.PartnerName ?? "-"}");
-                                        info.Item().Text($"Ngày in: {DateTime.Now:dd/MM/yyyy HH:mm}");
-                                    });
-                                });
-
-                                col.Item().Table(table =>
-                                {
-                                    table.ColumnsDefinition(columns =>
-                                    {
-                                        columns.ConstantColumn(32);
-                                        columns.RelativeColumn(4);
-                                        columns.RelativeColumn(1);
-                                        columns.RelativeColumn(1.3f);
-                                        columns.RelativeColumn(1.8f);
-                                        columns.RelativeColumn(2);
-                                    });
-
-                                    table.Header(header =>
-                                    {
-                                        header.Cell().Element(PdfHeaderCell).AlignCenter().Text("STT").Bold();
-                                        header.Cell().Element(PdfHeaderCell).Text("Nguyên liệu").Bold();
-                                        header.Cell().Element(PdfHeaderCell).AlignCenter().Text("ĐVT").Bold();
-                                        header.Cell().Element(PdfHeaderCell).AlignRight().Text("SL").Bold();
-                                        header.Cell().Element(PdfHeaderCell).AlignRight().Text("Đơn giá").Bold();
-                                        header.Cell().Element(PdfHeaderCell).AlignRight().Text("Thành tiền").Bold();
-                                    });
-
-                                    var index = 1;
-
-                                    foreach (var item in snapshot.Details)
-                                    {
-                                        table.Cell().Element(PdfBodyCell).AlignCenter().Text(index.ToString());
-                                        table.Cell().Element(PdfBodyCell).Text(item.ItemName ?? "");
-                                        table.Cell().Element(PdfBodyCell).AlignCenter().Text(item.UnitName ?? "");
-                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatQuantity(item.Quantity));
-                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.UnitPrice));
-                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.TotalAmount));
-
-                                        index++;
-                                    }
-                                });
-
-                                col.Item().AlignRight().Width(230).Column(summary =>
-                                {
-                                    summary.Spacing(6);
-                                    summary.Item().Row(row =>
-                                    {
-                                        row.RelativeItem().Text("Tổng tiền");
-                                        row.RelativeItem().AlignRight().Text(FormatMoney(snapshot.TotalAmount)).Bold();
-                                    });
-                                    summary.Item().Row(row =>
-                                    {
-                                        row.RelativeItem().Text("VAT");
-                                        row.RelativeItem().AlignRight().Text(FormatMoney(snapshot.VatAmount)).Bold();
-                                    });
-                                    summary.Item()
-                                        .BorderTop(1)
-                                        .BorderColor("#E5E7EB")
-                                        .PaddingTop(6)
-                                        .Row(row =>
+                                    info.Item()
+                                        .Padding(10)
+                                        .Column(body =>
                                         {
-                                            row.RelativeItem().Text("Thành tiền").Bold();
-                                            row.RelativeItem().AlignRight().Text(FormatMoney(snapshot.FinalAmount)).Bold().FontSize(13).FontColor("#F97316");
+                                            body.Spacing(6);
+
+                                            body.Item().Text(text =>
+                                            {
+                                                text.Span("Ngày chứng từ: ");
+                                                text.Span($"{snapshot.DocumentDate:dd/MM/yyyy}").Bold();
+                                            });
+
+                                            body.Item().Text(text =>
+                                            {
+                                                text.Span("Cửa hàng: ");
+                                                text.Span(snapshot.StoreName ?? "-").Bold();
+                                            });
+
+                                            body.Item().Text(text =>
+                                            {
+                                                text.Span("Người lập: ");
+                                                text.Span(snapshot.StaffName ?? "-").Bold();
+                                            });
                                         });
                                 });
 
-                                col.Item().PaddingTop(22).Row(row =>
+                                row.ConstantItem(16);
+
+                                row.RelativeItem().Element(PdfInfoBox).Column(info =>
                                 {
-                                    row.RelativeItem().AlignCenter().Column(sign =>
-                                    {
-                                        sign.Item().Text("Người lập phiếu").Bold();
-                                        sign.Item().Text("(Ký, họ tên)").FontSize(9).FontColor("#6B7280");
-                                        sign.Item().Height(48);
-                                        sign.Item().Text(snapshot.StaffName ?? "");
-                                    });
+                                    info.Item()
+                                        .Element(PdfInfoBoxHeader)
+                                        .Text("Thông tin đối tác")
+                                        .Bold()
+                                        .FontColor("#EA580C");
 
-                                    row.RelativeItem().AlignCenter().Column(sign =>
-                                    {
-                                        sign.Item().Text("Thủ kho").Bold();
-                                        sign.Item().Text("(Ký, họ tên)").FontSize(9).FontColor("#6B7280");
-                                        sign.Item().Height(48);
-                                        sign.Item().Text("");
-                                    });
+                                    info.Item()
+                                        .Padding(10)
+                                        .Column(body =>
+                                        {
+                                            body.Spacing(6);
 
-                                    row.RelativeItem().AlignCenter().Column(sign =>
-                                    {
-                                        sign.Item().Text("Đối tác").Bold();
-                                        sign.Item().Text("(Ký, họ tên)").FontSize(9).FontColor("#6B7280");
-                                        sign.Item().Height(48);
-                                        sign.Item().Text(snapshot.PartnerName ?? "");
-                                    });
+                                            body.Item().Text(text =>
+                                            {
+                                                text.Span("Nhà cung cấp: ");
+                                                text.Span(snapshot.PartnerName ?? "-").Bold();
+                                            });
+
+                                            body.Item().Text(text =>
+                                            {
+                                                text.Span("Ngày in: ");
+                                                text.Span($"{printedAt:dd/MM/yyyy HH:mm}").Bold();
+                                            });
+                                        });
                                 });
                             });
 
-                        page.Footer()
-                            .AlignCenter()
-                            .Text(text =>
+                            col.Item()
+                                .PaddingTop(2)
+                                .Text("Chi tiết nguyên liệu")
+                                .FontSize(10)
+                                .Bold()
+                                .FontColor("#111827");
+
+                            col.Item().Table(table =>
                             {
-                                text.Span("CafeChain - Trang ");
-                                text.CurrentPageNumber();
-                                text.Span(" / ");
-                                text.TotalPages();
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(34);
+                                    columns.RelativeColumn(3.6f);
+                                    columns.RelativeColumn(1.1f);
+                                    columns.RelativeColumn(1.2f);
+                                    columns.RelativeColumn(2.3f);
+                                    columns.RelativeColumn(2.4f);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    header.Cell().Element(PdfHeaderCell).AlignCenter().Text("STT").Bold();
+                                    header.Cell().Element(PdfHeaderCell).Text("Nguyên liệu").Bold();
+                                    header.Cell().Element(PdfHeaderCell).AlignCenter().Text("ĐVT").Bold();
+                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("SL").Bold();
+                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("Đơn giá").Bold();
+                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("Thành tiền").Bold();
+                                });
+
+                                var index =
+                                    1;
+
+                                foreach (var item in snapshot.Details)
+                                {
+                                    table.Cell().Element(PdfBodyCell).AlignCenter().Text(index.ToString());
+                                    table.Cell().Element(PdfBodyCell).Text(item.ItemName ?? string.Empty);
+                                    table.Cell().Element(PdfBodyCell).AlignCenter().Text(item.UnitName ?? string.Empty);
+                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatQuantity(item.Quantity));
+                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.UnitPrice));
+                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.TotalAmount));
+
+                                    index++;
+                                }
+
+                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Tổng tiền").Bold();
+                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.TotalAmount)).Bold();
+
+                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("VAT").Bold();
+                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.VatAmount)).Bold();
+
+                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Thành tiền").Bold();
+                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.FinalAmount))
+                                    .Bold()
+                                    .FontSize(11)
+                                    .FontColor("#F97316");
                             });
+
+                            col.Item().PaddingTop(24).Row(row =>
+                            {
+                                row.RelativeItem().AlignCenter().Column(sign =>
+                                {
+                                    sign.Spacing(4);
+
+                                    sign.Item().Text("Người lập phiếu").Bold();
+                                    sign.Item().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8).FontColor("#9CA3AF");
+                                    sign.Item().Height(52);
+                                    sign.Item().Text(snapshot.StaffName ?? string.Empty).Bold();
+                                });
+
+                                row.RelativeItem().AlignCenter().Column(sign =>
+                                {
+                                    sign.Spacing(4);
+
+                                    sign.Item().Text("Thủ kho").Bold();
+                                    sign.Item().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8).FontColor("#9CA3AF");
+                                    sign.Item().Height(52);
+                                    sign.Item().Text("----------------").FontColor("#6B7280");
+                                });
+
+                                row.RelativeItem().AlignCenter().Column(sign =>
+                                {
+                                    sign.Spacing(4);
+
+                                    sign.Item().Text("Nhà cung cấp").Bold();
+                                    sign.Item().Text("(Ký, ghi rõ họ tên)").Italic().FontSize(8).FontColor("#9CA3AF");
+                                    sign.Item().Height(52);
+                                    sign.Item().Text("----------------").FontColor("#6B7280");
+                                });
+                            });
+                        });
                     });
                 })
                 .GeneratePdf();
@@ -207,70 +264,93 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // WORD
         // =====================================================
 
-        public Task<byte[]> ExportWordAsync(
-            InventoryDocumentSnapshotDTO snapshot)
+        public Task<byte[]> ExportWordAsync(InventoryDocumentSnapshotDTO snapshot)
         {
-            using var stream =
-                new MemoryStream();
+            var printedAt = DateTime.Now;
 
-            using (
-                var document =
-                WordprocessingDocument.Create(
-                    stream,
-                    WordprocessingDocumentType.Document))
+            using var stream = new MemoryStream();
+
+            using (var document = WordprocessingDocument.Create(stream, WordprocessingDocumentType.Document))
             {
-                var mainPart =
-                    document.AddMainDocumentPart();
+                var mainPart = document.AddMainDocumentPart();
 
-                var body =
-                    new Body();
+                var body = new Body();
 
                 body.Append(
                     CreateParagraph(
                         "CAFECHAIN",
                         true,
                         JustificationValues.Center,
-                        "26"));
+                        "28",
+                        "111827",
+                        0,
+                        20));
+
+                body.Append(
+                    CreateParagraph(
+                        "Hệ thống quản lý kho chuỗi cửa hàng",
+                        false,
+                        JustificationValues.Center,
+                        "16",
+                        "9CA3AF",
+                        0,
+                        120));
 
                 body.Append(
                     CreateParagraph(
                         "PHIẾU NHẬP KHO",
                         true,
                         JustificationValues.Center,
-                        "34"));
+                        "34",
+                        "F97316",
+                        0,
+                        80));
 
                 body.Append(
                     CreateParagraph(
                         $"Số phiếu: {snapshot.Code}",
                         false,
-                        JustificationValues.Center));
-
-                body.Append(CreateSpacerParagraph());
+                        JustificationValues.Center,
+                        "18",
+                        "6B7280",
+                        0,
+                        80));
 
                 body.Append(
-                    CreateInfoTable(snapshot));
+                    CreatePreviewBadgeParagraph());
 
-                body.Append(CreateSpacerParagraph());
+                body.Append(
+                    CreateSpacerParagraph(220));
+
+                body.Append(
+                    CreateInfoTable(
+                        snapshot,
+                        printedAt));
+
+                body.Append(
+                    CreateSpacerParagraph(260));
 
                 body.Append(
                     CreateParagraph(
                         "Chi tiết nguyên liệu",
                         true,
-                        null,
-                        "24"));
+                        JustificationValues.Left,
+                        "21",
+                        "111827",
+                        0,
+                        120));
 
                 body.Append(
                     CreateDetailsTable(snapshot));
 
-                body.Append(CreateSpacerParagraph());
-
                 body.Append(
-                    CreateSummaryTable(snapshot));
-
-                body.Append(CreateSpacerParagraph());
+                    CreateSpacerParagraph(520));
 
                 body.Append(
                     CreateSignatureTable(snapshot));
+
+                body.Append(
+                    CreateSectionProperties());
 
                 mainPart.Document =
                     new WordDocument(body);
@@ -286,8 +366,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // EXCEL
         // =====================================================
 
-        public Task<byte[]> ExportExcelAsync(
-            IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows)
+        public Task<byte[]> ExportExcelAsync(IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows)
         {
             using var stream =
                 new MemoryStream();
@@ -384,10 +463,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 stream.ToArray());
         }
 
-        // =====================================================
-        // HELPERS
-        // =====================================================
 
+
+        // =====================================================
+        // EXCEL HELPERS
+        // =====================================================
         private static X.SheetViews CreateExcelSheetViews()
         {
             var sheetView =
@@ -423,10 +503,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 new X.Column { Min = 10, Max = 10, Width = 18, CustomWidth = true });
         }
 
-        private static X.Row CreateExcelRow(
-            uint rowIndex,
-            uint styleIndex,
-            params string[] values)
+        private static X.Row CreateExcelRow(uint rowIndex, uint styleIndex, params string[] values)
         {
             var row =
                 new X.Row
@@ -445,9 +522,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return row;
         }
 
-        private static X.Row CreateExcelDataRow(
-            uint rowIndex,
-            AdminInventoryDocumentExcelRowDTO document)
+        private static X.Row CreateExcelDataRow(uint rowIndex, AdminInventoryDocumentExcelRowDTO document)
         {
             var row =
                 new X.Row
@@ -470,9 +545,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return row;
         }
 
-        private static X.Cell CreateExcelTextCell(
-            string? value,
-            uint styleIndex)
+        private static X.Cell CreateExcelTextCell(string? value, uint styleIndex)
         {
             return new X.Cell
             {
@@ -487,18 +560,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             };
         }
 
-        private static X.Cell CreateExcelNumberCell(
-            int value,
-            uint styleIndex)
+        private static X.Cell CreateExcelNumberCell(int value, uint styleIndex)
         {
             return CreateExcelNumberCell(
                 (decimal)value,
                 styleIndex);
         }
 
-        private static X.Cell CreateExcelNumberCell(
-            decimal value,
-            uint styleIndex)
+        private static X.Cell CreateExcelNumberCell(decimal value, uint styleIndex)
         {
             return new X.Cell
             {
@@ -510,8 +579,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             };
         }
 
-        private static X.Cell CreateExcelDateCell(
-            DateTime? value)
+        private static X.Cell CreateExcelDateCell(DateTime? value)
         {
             if (!value.HasValue)
             {
@@ -695,13 +763,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 new X.DiagonalBorder());
         }
 
+        // =====================================================
+        // PDF HELPERS
+        // =====================================================
+
         private static IContainer PdfInfoBox(IContainer container)
         {
             return container
                 .Border(1)
-                .BorderColor("#E5E7EB")
-                .Background("#FFFBF7")
-                .Padding(10);
+                .BorderColor("#F3E4D4");
+        }
+
+        private static IContainer PdfInfoBoxHeader(IContainer container)
+        {
+            return container
+                .Background("#FFF7ED")
+                .BorderBottom(1)
+                .BorderColor("#F3E4D4")
+                .PaddingVertical(8)
+                .PaddingHorizontal(10);
         }
 
         private static IContainer PdfHeaderCell(IContainer container)
@@ -709,74 +789,240 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return container
                 .Background("#FFF7ED")
                 .Border(1)
-                .BorderColor("#FDBA74")
-                .PaddingVertical(6)
-                .PaddingHorizontal(5);
+                .BorderColor("#E5E7EB")
+                .PaddingVertical(8)
+                .PaddingHorizontal(6);
         }
 
         private static IContainer PdfBodyCell(IContainer container)
         {
             return container
-                .BorderBottom(1)
+                .Border(1)
                 .BorderColor("#E5E7EB")
-                .PaddingVertical(6)
-                .PaddingHorizontal(5);
+                .PaddingVertical(8)
+                .PaddingHorizontal(6);
         }
 
-        private static Table CreateInfoTable(
-            InventoryDocumentSnapshotDTO snapshot)
+        private static IContainer PdfSummaryBlankCell(IContainer container)
         {
-            var table =
-                CreateBaseWordTable();
+            return container
+                .BorderLeft(1)
+                .BorderRight(1)
+                .BorderBottom(1)
+                .BorderColor("#E5E7EB")
+                .PaddingVertical(8)
+                .PaddingHorizontal(6);
+        }
+
+        private static IContainer PdfSummaryLabelCell(IContainer container)
+        {
+            return container
+                .Border(1)
+                .BorderColor("#E5E7EB")
+                .PaddingVertical(8)
+                .PaddingHorizontal(6);
+        }
+
+        private static IContainer PdfSummaryValueCell(IContainer container)
+        {
+            return container
+                .Border(1)
+                .BorderColor("#E5E7EB")
+                .PaddingVertical(8)
+                .PaddingHorizontal(6);
+        }
+
+        // =====================================================
+        // WORD HELPERS
+        // =====================================================
+
+        private static Table CreateInfoTable(InventoryDocumentSnapshotDTO snapshot, DateTime printedAt)
+        {
+            var table = CreateBaseWordTable(true);
+
+            table.Append(
+                CreateWordTableGrid(
+                    "1100",
+                    "2050",
+                    "1100",
+                    "2050"));
 
             table.Append(
                 CreateWordTableRow(
                     [
-                        ("Mã phiếu", JustificationValues.Left),
-                        (snapshot.Code, JustificationValues.Left),
-                        ("Ngày chứng từ", JustificationValues.Left),
-                        (snapshot.DocumentDate.ToString("dd/MM/yyyy"), JustificationValues.Left)
-                    ],
-                    true));
+                        CreateWordTableCell(
+                    "Mã phiếu",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
 
-            table.Append(
-                CreateWordTableRow(
-                    [
-                        ("Cửa hàng", JustificationValues.Left),
-                        (snapshot.StoreName, JustificationValues.Left),
-                        ("Người lập", JustificationValues.Left),
-                        (snapshot.StaffName, JustificationValues.Left)
+                CreateWordTableCell(
+                    snapshot.Code ?? string.Empty,
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050"),
+
+                CreateWordTableCell(
+                    "Ngày chứng từ",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    snapshot.DocumentDate.ToString("dd/MM/yyyy"),
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050")
                     ]));
 
             table.Append(
                 CreateWordTableRow(
                     [
-                        ("Đối tác", JustificationValues.Left),
-                        (snapshot.PartnerName ?? "-", JustificationValues.Left),
-                        ("Ngày in", JustificationValues.Left),
-                        (DateTime.Now.ToString("dd/MM/yyyy HH:mm"), JustificationValues.Left)
+                        CreateWordTableCell(
+                    "Cửa hàng",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    snapshot.StoreName ?? "-",
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050"),
+
+                CreateWordTableCell(
+                    "Người lập",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    snapshot.StaffName ?? "-",
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050")
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
+                    "Nhà cung cấp",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    snapshot.PartnerName ?? "-",
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050"),
+
+                CreateWordTableCell(
+                    "Ngày in",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    printedAt.ToString("dd/MM/yyyy HH:mm"),
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "2050")
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
+                    "Ghi chú",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1100"),
+
+                CreateWordTableCell(
+                    "-",
+                    JustificationValues.Left,
+                    false,
+                    null,
+                    "5200",
+                    3)
                     ]));
 
             return table;
         }
 
-        private static Table CreateDetailsTable(
-            InventoryDocumentSnapshotDTO snapshot)
+        private static Table CreateDetailsTable(InventoryDocumentSnapshotDTO snapshot)
         {
-            var table =
-                CreateBaseWordTable();
+            var table = CreateBaseWordTable(true);
+
+            table.Append(
+                CreateWordTableGrid(
+                    "420",
+                    "1800",
+                    "720",
+                    "720",
+                    "1250",
+                    "1350"));
 
             table.Append(
                 CreateWordTableRow(
                     [
-                        ("STT", JustificationValues.Center),
-                        ("Nguyên liệu", JustificationValues.Left),
-                        ("ĐVT", JustificationValues.Center),
-                        ("SL", JustificationValues.Right),
-                        ("Đơn giá", JustificationValues.Right),
-                        ("Thành tiền", JustificationValues.Right)
-                    ],
-                    true));
+                        CreateWordTableCell(
+                    "STT",
+                    JustificationValues.Center,
+                    true,
+                    "FFF7ED",
+                    "420"),
+
+                CreateWordTableCell(
+                    "Nguyên liệu",
+                    JustificationValues.Left,
+                    true,
+                    "FFF7ED",
+                    "1800"),
+
+                CreateWordTableCell(
+                    "ĐVT",
+                    JustificationValues.Center,
+                    true,
+                    "FFF7ED",
+                    "720"),
+
+                CreateWordTableCell(
+                    "SL",
+                    JustificationValues.Right,
+                    true,
+                    "FFF7ED",
+                    "720"),
+
+                CreateWordTableCell(
+                    "Đơn giá",
+                    JustificationValues.Right,
+                    true,
+                    "FFF7ED",
+                    "1250"),
+
+                CreateWordTableCell(
+                    "Thành tiền",
+                    JustificationValues.Right,
+                    true,
+                    "FFF7ED",
+                    "1350")
+                    ]));
 
             var index = 1;
 
@@ -785,105 +1031,291 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 table.Append(
                     CreateWordTableRow(
                         [
-                            (index.ToString(), JustificationValues.Center),
-                            (item.ItemName ?? "", JustificationValues.Left),
-                            (item.UnitName ?? "", JustificationValues.Center),
-                            (FormatQuantity(item.Quantity), JustificationValues.Right),
-                            (FormatMoney(item.UnitPrice), JustificationValues.Right),
-                            (FormatMoney(item.TotalAmount), JustificationValues.Right)
+                            CreateWordTableCell(
+                        index.ToString(),
+                        JustificationValues.Center,
+                        false,
+                        null,
+                        "420"),
+
+                    CreateWordTableCell(
+                        item.ItemName ?? string.Empty,
+                        JustificationValues.Left,
+                        false,
+                        null,
+                        "1800"),
+
+                    CreateWordTableCell(
+                        item.UnitName ?? string.Empty,
+                        JustificationValues.Center,
+                        false,
+                        null,
+                        "720"),
+
+                    CreateWordTableCell(
+                        FormatQuantity(item.Quantity),
+                        JustificationValues.Right,
+                        false,
+                        null,
+                        "720"),
+
+                    CreateWordTableCell(
+                        FormatMoney(item.UnitPrice),
+                        JustificationValues.Right,
+                        false,
+                        null,
+                        "1250"),
+
+                    CreateWordTableCell(
+                        FormatMoney(item.TotalAmount),
+                        JustificationValues.Right,
+                        false,
+                        null,
+                        "1350")
                         ]));
 
                 index++;
             }
 
-            return table;
-        }
-
-        private static Table CreateSummaryTable(
-            InventoryDocumentSnapshotDTO snapshot)
-        {
-            var table =
-                CreateBaseWordTable();
+            table.Append(
+                CreateWordSummaryRow(
+                    "Tổng tiền",
+                    FormatMoney(snapshot.TotalAmount),
+                    false));
 
             table.Append(
-                CreateWordTableRow(
-                    [
-                        ("", JustificationValues.Left),
-                        ("Tổng tiền", JustificationValues.Right),
-                        (FormatMoney(snapshot.TotalAmount), JustificationValues.Right)
-                    ]));
+                CreateWordSummaryRow(
+                    "VAT",
+                    FormatMoney(snapshot.VatAmount),
+                    false));
 
             table.Append(
-                CreateWordTableRow(
-                    [
-                        ("", JustificationValues.Left),
-                        ("VAT", JustificationValues.Right),
-                        (FormatMoney(snapshot.VatAmount), JustificationValues.Right)
-                    ]));
-
-            table.Append(
-                CreateWordTableRow(
-                    [
-                        ("", JustificationValues.Left),
-                        ("Thành tiền", JustificationValues.Right),
-                        (FormatMoney(snapshot.FinalAmount), JustificationValues.Right)
-                    ],
+                CreateWordSummaryRow(
+                    "Thành tiền",
+                    FormatMoney(snapshot.FinalAmount),
                     true));
 
             return table;
         }
 
-        private static Table CreateSignatureTable(
-            InventoryDocumentSnapshotDTO snapshot)
+        private static Table CreateSummaryTable(InventoryDocumentSnapshotDTO snapshot)
+        {
+            var table =
+                CreateBaseWordTable(true);
+
+            table.Append(
+                CreateWordTableGrid(
+                    "3660",
+                    "1250",
+                    "1350"));
+
+            table.Append(
+                CreateWordSummaryRow(
+                    "Tổng tiền",
+                    FormatMoney(snapshot.TotalAmount),
+                    false));
+
+            table.Append(
+                CreateWordSummaryRow(
+                    "VAT",
+                    FormatMoney(snapshot.VatAmount),
+                    false));
+
+            table.Append(
+                CreateWordSummaryRow(
+                    "Thành tiền",
+                    FormatMoney(snapshot.FinalAmount),
+                    true));
+
+            return table;
+        }
+
+        private static TableRow CreateWordSummaryRow(string label, string value, bool finalRow)
+        {
+            return CreateWordTableRow(
+                [
+                    CreateWordTableCell(
+                        string.Empty,
+                        JustificationValues.Left,
+                        false,
+                        null,
+                        "3660",
+                        4),
+
+                    CreateWordTableCell(
+                        label,
+                        JustificationValues.Right,
+                        true,
+                        null,
+                        "1250"),
+
+                    CreateWordTableCell(
+                        value,
+                        JustificationValues.Right,
+                        true,
+                        null,
+                        "1350",
+                        1,
+                        true,
+                        false,
+                        finalRow ? "F97316" : "111827",
+                        finalRow ? "22" : "19")
+                ]);
+        }
+
+        private static Table CreateSignatureTable(InventoryDocumentSnapshotDTO snapshot)
         {
             var table =
                 CreateBaseWordTable(false);
 
             table.Append(
-                CreateWordTableRow(
-                    [
-                        ("Người lập phiếu\n(Ký, họ tên)", JustificationValues.Center),
-                        ("Thủ kho\n(Ký, họ tên)", JustificationValues.Center),
-                        ("Đối tác\n(Ký, họ tên)", JustificationValues.Center)
-                    ],
-                    true,
-                    false));
+                CreateWordTableGrid(
+                    "2100",
+                    "2100",
+                    "2100"));
 
             table.Append(
                 CreateWordTableRow(
                     [
-                        ("\n\n" + (snapshot.StaffName ?? ""), JustificationValues.Center),
-                        ("\n\n", JustificationValues.Center),
-                        ("\n\n" + (snapshot.PartnerName ?? ""), JustificationValues.Center)
-                    ],
+                        CreateWordTableCell(
+                    "Người lập phiếu",
+                    JustificationValues.Center,
+                    true,
+                    null,
+                    "2100",
+                    1,
+                    false),
+
+                CreateWordTableCell(
+                    "Thủ kho",
+                    JustificationValues.Center,
+                    true,
+                    null,
+                    "2100",
+                    1,
+                    false),
+
+                CreateWordTableCell(
+                    "Nhà cung cấp",
+                    JustificationValues.Center,
+                    true,
+                    null,
+                    "2100",
+                    1,
+                    false)
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
+                    "(Ký, ghi rõ họ tên)",
+                    JustificationValues.Center,
                     false,
-                    false));
+                    null,
+                    "2100",
+                    1,
+                    false,
+                    true,
+                    "9CA3AF"),
+
+                CreateWordTableCell(
+                    "(Ký, ghi rõ họ tên)",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false,
+                    true,
+                    "9CA3AF"),
+
+                CreateWordTableCell(
+                    "(Ký, ghi rõ họ tên)",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false,
+                    true,
+                    "9CA3AF")
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
+                    "\n\n\n",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false),
+
+                CreateWordTableCell(
+                    "\n\n\n",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false),
+
+                CreateWordTableCell(
+                    "\n\n\n",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false)
+                    ]));
+
+            table.Append(
+                CreateWordTableRow(
+                    [
+                        CreateWordTableCell(
+                    snapshot.StaffName ?? string.Empty,
+                    JustificationValues.Center,
+                    true,
+                    null,
+                    "2100",
+                    1,
+                    false),
+
+                CreateWordTableCell(
+                    "----------------",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false,
+                    false,
+                    "6B7280"),
+
+                CreateWordTableCell(
+                    "----------------",
+                    JustificationValues.Center,
+                    false,
+                    null,
+                    "2100",
+                    1,
+                    false,
+                    false,
+                    "6B7280")
+                    ]));
 
             return table;
         }
 
-        private static Table CreateBaseWordTable(
-            bool bordered = true)
+
+        private static Table CreateBaseWordTable(bool bordered = true)
         {
             var table =
                 new Table();
-
-            var borders =
-                bordered
-                    ? new TableBorders(
-                        new TopBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" },
-                        new BottomBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" },
-                        new LeftBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" },
-                        new RightBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" },
-                        new InsideHorizontalBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" },
-                        new InsideVerticalBorder { Val = BorderValues.Single, Size = 6, Color = "D1D5DB" })
-                    : new TableBorders(
-                        new TopBorder { Val = BorderValues.None },
-                        new BottomBorder { Val = BorderValues.None },
-                        new LeftBorder { Val = BorderValues.None },
-                        new RightBorder { Val = BorderValues.None },
-                        new InsideHorizontalBorder { Val = BorderValues.None },
-                        new InsideVerticalBorder { Val = BorderValues.None });
 
             table.AppendChild(
                 new TableProperties(
@@ -892,27 +1324,58 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         Width = "5000",
                         Type = TableWidthUnitValues.Pct
                     },
-                    borders));
+                    bordered ? CreateThinTableBorders() : CreateNoTableBorders(),
+                    new TableCellMarginDefault(
+                        new TopMargin
+                        {
+                            Width = "90",
+                            Type = TableWidthUnitValues.Dxa
+                        },
+                        new BottomMargin
+                        {
+                            Width = "90",
+                            Type = TableWidthUnitValues.Dxa
+                        },
+                        new LeftMargin
+                        {
+                            Width = "110",
+                            Type = TableWidthUnitValues.Dxa
+                        },
+                        new RightMargin
+                        {
+                            Width = "110",
+                            Type = TableWidthUnitValues.Dxa
+                        })));
 
             return table;
         }
 
-        private static TableRow CreateWordTableRow(
-            IReadOnlyList<(string Text, JustificationValues Align)> cells,
-            bool header = false,
-            bool bordered = true)
+        private static TableGrid CreateWordTableGrid(params string[] widths)
+        {
+            var grid =
+                new TableGrid();
+
+            foreach (var width in widths)
+            {
+                grid.Append(
+                    new GridColumn
+                    {
+                        Width = width
+                    });
+            }
+
+            return grid;
+        }
+
+
+        private static TableRow CreateWordTableRow(IReadOnlyList<TableCell> cells)
         {
             var row =
                 new TableRow();
 
             foreach (var cell in cells)
             {
-                row.Append(
-                    CreateWordTableCell(
-                        cell.Text,
-                        cell.Align,
-                        header,
-                        bordered));
+                row.Append(cell);
             }
 
             return row;
@@ -921,22 +1384,49 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private static TableCell CreateWordTableCell(
             string text,
             JustificationValues align,
-            bool header,
-            bool bordered)
+            bool bold,
+            string? shadingFill,
+            string width,
+            int gridSpan = 1,
+            bool bordered = true,
+            bool italic = false,
+            string color = "374151",
+            string fontSize = "19")
         {
             var properties =
                 new TableCellProperties(
                     new TableCellWidth
                     {
-                        Type = TableWidthUnitValues.Auto
+                        Width = width,
+                        Type = TableWidthUnitValues.Dxa
+                    },
+                    new TableCellVerticalAlignment
+                    {
+                        Val = TableVerticalAlignmentValues.Center
                     });
 
-            if (header && bordered)
+            if (gridSpan > 1)
+            {
+                properties.Append(
+                    new GridSpan
+                    {
+                        Val = gridSpan
+                    });
+            }
+
+            if (!bordered)
+            {
+                properties.Append(
+                    CreateNoCellBorders());
+            }
+
+            if (!string.IsNullOrWhiteSpace(shadingFill))
             {
                 properties.Append(
                     new Shading
                     {
-                        Fill = "FFF7ED"
+                        Val = ShadingPatternValues.Clear,
+                        Fill = shadingFill
                     });
             }
 
@@ -944,21 +1434,62 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 properties,
                 CreateParagraph(
                     text,
-                    header,
-                    align));
+                    bold,
+                    align,
+                    fontSize,
+                    color,
+                    0,
+                    0,
+                    italic));
         }
 
         private static Paragraph CreateParagraph(
-            string text,
-            bool bold = false,
-            JustificationValues? alignment = null,
-            string fontSize = "21")
+    string text,
+    bool bold = false,
+    JustificationValues? alignment = null,
+    string fontSize = "19",
+    string color = "374151",
+    int spacingBefore = 0,
+    int spacingAfter = 0,
+    bool italic = false)
         {
+            var paragraph =
+                new Paragraph();
+
+            var paragraphProperties =
+                new ParagraphProperties(
+                    new SpacingBetweenLines
+                    {
+                        Before = spacingBefore.ToString(),
+                        After = spacingAfter.ToString()
+                    });
+
+            if (alignment.HasValue)
+            {
+                paragraphProperties.Append(
+                    new Justification
+                    {
+                        Val = alignment.Value
+                    });
+            }
+
+            paragraph.Append(
+                paragraphProperties);
+
             var runProperties =
                 new RunProperties(
+                    new RunFonts
+                    {
+                        Ascii = "Arial",
+                        HighAnsi = "Arial"
+                    },
                     new FontSize
                     {
                         Val = fontSize
+                    },
+                    new DocumentFormat.OpenXml.Wordprocessing.Color
+                    {
+                        Val = color
                     });
 
             if (bold)
@@ -967,17 +1498,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     new Bold());
             }
 
-            var paragraph =
-                new Paragraph();
-
-            if (alignment.HasValue)
+            if (italic)
             {
-                paragraph.Append(
-                    new ParagraphProperties(
-                        new Justification
-                        {
-                            Val = alignment.Value
-                        }));
+                runProperties.Append(
+                    new Italic());
             }
 
             var lines =
@@ -1006,9 +1530,174 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return paragraph;
         }
 
-        private static Paragraph CreateSpacerParagraph()
+        private static Paragraph CreatePreviewBadgeParagraph()
         {
-            return CreateParagraph("");
+            var paragraph =
+                new Paragraph(
+                    new ParagraphProperties(
+                        new Justification
+                        {
+                            Val = JustificationValues.Center
+                        },
+                        new SpacingBetweenLines
+                        {
+                            Before = "0",
+                            After = "0"
+                        }));
+
+            var run =
+                new Run(
+                    new RunProperties(
+                        new RunFonts
+                        {
+                            Ascii = "Arial",
+                            HighAnsi = "Arial"
+                        },
+                        new FontSize
+                        {
+                            Val = "14"
+                        },
+                        new DocumentFormat.OpenXml.Wordprocessing.Color
+                        {
+                            Val = "6B7280"
+                        },
+                        new Shading
+                        {
+                            Val = ShadingPatternValues.Clear,
+                            Fill = "F3F4F6"
+                        }),
+                    new Text("  Bản xem trước  ")
+                    {
+                        Space = SpaceProcessingModeValues.Preserve
+                    });
+
+            paragraph.Append(run);
+
+            return paragraph;
+        }
+
+        private static Paragraph CreateSpacerParagraph(int height = 160)
+        {
+            return new Paragraph(
+                new ParagraphProperties(
+                    new SpacingBetweenLines
+                    {
+                        Before = "0",
+                        After = height.ToString()
+                    }),
+                new Run(
+                    new Text(string.Empty)));
+        }
+
+        private static SectionProperties CreateSectionProperties()
+        {
+            return new SectionProperties(
+                new DocumentFormat.OpenXml.Wordprocessing.PageSize
+                {
+                    Width = 11906,
+                    Height = 16838
+                },
+                new DocumentFormat.OpenXml.Wordprocessing.PageMargin
+                {
+                    Top = 900,
+                    Right = 900,
+                    Bottom = 900,
+                    Left = 900,
+                    Header = 450,
+                    Footer = 450,
+                    Gutter = 0
+                });
+        }
+
+        private static TableBorders CreateThinTableBorders()
+        {
+            return new TableBorders(
+                new TopBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                },
+                new BottomBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                },
+                new LeftBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                },
+                new RightBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                },
+                new InsideHorizontalBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                },
+                new InsideVerticalBorder
+                {
+                    Val = BorderValues.Single,
+                    Size = 4,
+                    Color = "E5E7EB"
+                });
+        }
+
+        private static TableBorders CreateNoTableBorders()
+        {
+            return new TableBorders(
+                new TopBorder
+                {
+                    Val = BorderValues.None
+                },
+                new BottomBorder
+                {
+                    Val = BorderValues.None
+                },
+                new LeftBorder
+                {
+                    Val = BorderValues.None
+                },
+                new RightBorder
+                {
+                    Val = BorderValues.None
+                },
+                new InsideHorizontalBorder
+                {
+                    Val = BorderValues.None
+                },
+                new InsideVerticalBorder
+                {
+                    Val = BorderValues.None
+                });
+        }
+
+        private static TableCellBorders CreateNoCellBorders()
+        {
+            return new TableCellBorders(
+                new TopBorder
+                {
+                    Val = BorderValues.None
+                },
+                new BottomBorder
+                {
+                    Val = BorderValues.None
+                },
+                new LeftBorder
+                {
+                    Val = BorderValues.None
+                },
+                new RightBorder
+                {
+                    Val = BorderValues.None
+                });
         }
 
         private static string FormatMoney(decimal value)

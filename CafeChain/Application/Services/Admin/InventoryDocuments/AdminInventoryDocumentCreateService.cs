@@ -1,4 +1,5 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
+using CafeChain.Application.DTOs.Systems;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Models.Enums.Inventory;
@@ -197,6 +198,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             NormalizeImportDocumentType(dto);
 
+            EnsureRequestKey(dto.RequestKey);
+
             await ApplySupplierPartnerSnapshotAsync(dto);
 
             await NormalizeCreateDetailsAsync(dto);
@@ -273,6 +276,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             NormalizeImportDocumentType(dto);
 
+            EnsureRequestKey(dto.RequestKey);
+
             await ApplySupplierPartnerSnapshotAsync(dto);
 
             await _repository.BeginTransactionAsync();
@@ -338,6 +343,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey)
         {
+            EnsureRequestKey(requestKey);
+
+            RequestDeduplicationBeginResult? dedup = null;
+
             await _repository.BeginTransactionAsync();
 
             try
@@ -351,7 +360,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return null;
                 }
 
-                var dedup = await _deduplicationService.BeginAsync(
+                dedup = await _deduplicationService.BeginAsync(
                     requestKey,
                     GetConfirmActionName(document),
                     GetCurrentStaffId(),
@@ -419,8 +428,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 return response;
             }
-            catch
+            catch (Exception ex)
             {
+                await MarkFailedIfPossibleAsync(dedup, ex.Message);
+
                 await _repository.RollbackTransactionAsync();
 
                 throw;
@@ -429,6 +440,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task<bool> CancelInventoryDocumentAsync(int documentId, string? requestKey)
         {
+            EnsureRequestKey(requestKey);
+
+            RequestDeduplicationBeginResult? dedup = null;
+
             await _repository.BeginTransactionAsync();
 
             try
@@ -442,7 +457,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return false;
                 }
 
-                var dedup = await _deduplicationService.BeginAsync(
+                dedup = await _deduplicationService.BeginAsync(
                     requestKey,
                     "InventoryDocument.Cancel",
                     GetCurrentStaffId(),
@@ -494,8 +509,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 return true;
             }
-            catch
+            catch (Exception ex)
             {
+                await MarkFailedIfPossibleAsync(dedup, ex.Message);
+
                 await _repository.RollbackTransactionAsync();
 
                 throw;
@@ -1058,6 +1075,35 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         private int GetCurrentStaffId()
         {
             return int.Parse(_httpContextAccessor.HttpContext!.User.FindFirst("StaffId")!.Value);
+        }
+
+        private static void EnsureRequestKey(string? requestKey)
+        {
+            if (string.IsNullOrWhiteSpace(requestKey))
+            {
+                throw new InvalidOperationException("RequestKey là bắt buộc.");
+            }
+        }
+
+        private async Task MarkFailedIfPossibleAsync(
+            RequestDeduplicationBeginResult? dedup,
+            string message)
+        {
+            if (dedup?.Entry == null)
+            {
+                return;
+            }
+
+            try
+            {
+                await _deduplicationService.MarkFailedAsync(
+                    dedup.Entry,
+                    new { success = false, message });
+            }
+            catch
+            {
+                // Best effort only; the business transaction rollback remains the source of truth.
+            }
         }
 
         private static string NormalizeDetailNote(string? note)

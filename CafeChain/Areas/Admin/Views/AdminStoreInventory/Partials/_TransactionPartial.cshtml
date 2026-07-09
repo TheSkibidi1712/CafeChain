@@ -7,48 +7,39 @@
         ? (int)ViewBag.StoreId
         : 0;
 
-    List<InventoryStoreTabVM> storeTabs = Model?
-        .GroupBy(x => new
-        {
-            x.StoreId,
-            x.StoreName
-        })
-        .Select(x => new InventoryStoreTabVM
-        {
-            StoreId = x.Key.StoreId,
-            StoreName = x.Key.StoreName
-        })
-        .OrderBy(x => x.StoreName)
-        .ToList()
+    var storeTabs = ViewBag.StoreTabs as List<InventoryStoreTabVM>
         ?? new List<InventoryStoreTabVM>();
 }
 
-<!-- STORE TABS IN MODAL -->
-<div class="store-tabs">
+<div class="store-tabs modal-store-tabs">
 
-    @if (storeTabs.Any())
+    <button type="button"
+            class="store-tab @(currentStoreId == 0 ? "active" : "")"
+            onclick="loadTransactionPage(1, 0)">
+        Tất cả kho
+    </button>
+
+    @foreach (var store in storeTabs)
     {
-        foreach (var store in storeTabs)
-        {
-            <button type="button"
-                    class="store-tab @(store.StoreId == currentStoreId ? "active" : "")"
-                    onclick="loadTransactionPage(1, @store.StoreId)">
-                @store.StoreName
-            </button>
-        }
+        <button type="button"
+                class="store-tab @(store.StoreId == currentStoreId ? "active" : "")"
+                onclick="loadTransactionPage(1, @store.StoreId)">
+            @store.StoreName
+        </button>
     }
 
 </div>
 
-<!-- TRANSACTION TABLE -->
 <table class="transaction-table">
     <thead>
         <tr>
-            <th>Nguyên liệu</th>
+            <th>Kho</th>
+            <th>Mặt hàng</th>
             <th>Loại</th>
+            <th>Nguồn</th>
             <th>Số lượng</th>
-            <th>Giá</th>
-            <th>Thành tiền</th>
+            <th>Đơn giá</th>
+            <th>Tổng tiền</th>
             <th>Trước</th>
             <th>Sau</th>
             <th>Ngày</th>
@@ -61,13 +52,17 @@
             foreach (var item in Model)
             {
                 <tr>
-                    <td>
-                        @item.IngredientName
-                    </td>
+                    <td>@item.StoreName</td>
+
+                    <td>@item.IngredientName</td>
 
                     <td>
-                        @item.TypeName
+                        <span title="@item.StockStatusName">
+                            @item.TypeName
+                        </span>
                     </td>
+
+                    <td>@item.ReferenceType</td>
 
                     <td>
                         @if (item.Quantity > 0)
@@ -76,16 +71,20 @@
                                 +@($"{item.Quantity:N0} {item.UnitCode}")
                             </span>
                         }
-                        else
+                        else if (item.Quantity < 0)
                         {
                             <span class="minus">
                                 @($"{item.Quantity:N0} {item.UnitCode}")
                             </span>
                         }
+                        else
+                        {
+                            <span>@($"{item.Quantity:N0} {item.UnitCode}")</span>
+                        }
                     </td>
 
                     <td>
-                        @if (item.UnitPrice != null)
+                        @if (item.UnitPrice.HasValue)
                         {
                             @($"{item.UnitPrice:N0} đ")
                         }
@@ -96,7 +95,7 @@
                     </td>
 
                     <td>
-                        @if (item.TotalAmount != null)
+                        @if (item.TotalAmount.HasValue)
                         {
                             @($"{item.TotalAmount:N0} đ")
                         }
@@ -123,7 +122,7 @@
         else
         {
             <tr>
-                <td colspan="8" class="empty-data">
+                <td colspan="10" class="empty-data">
                     Không có lịch sử giao dịch
                 </td>
             </tr>
@@ -131,34 +130,41 @@
     </tbody>
 </table>
 
-<!-- PAGINATION -->
-<div class="pagination">
+@{
+    var currentPage = ViewBag.Page != null ? (int)ViewBag.Page : 1;
+    var totalPages = ViewBag.TotalPages != null ? (int)ViewBag.TotalPages : 0;
+}
 
-    @if (ViewBag.Page > 1)
-    {
-        <button type="button"
-                class="page-btn"
-                onclick="loadTransactionPage(@(ViewBag.Page - 1), @currentStoreId)">
-            ←
-        </button>
-    }
+@if (totalPages > 1)
+{
+    <div class="pagination">
 
-    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-    {
-        <button type="button"
-                class="page-btn @(i == ViewBag.Page ? "active" : "")"
-                onclick="loadTransactionPage(@i, @currentStoreId)">
-            @i
-        </button>
-    }
+        @if (currentPage > 1)
+        {
+            <button type="button"
+                    class="page-btn"
+                    onclick="loadTransactionPage(@(currentPage - 1), @currentStoreId)">
+                ←
+            </button>
+        }
 
-    @if (ViewBag.Page < ViewBag.TotalPages)
-    {
-        <button type="button"
-                class="page-btn"
-                onclick="loadTransactionPage(@(ViewBag.Page + 1), @currentStoreId)">
-            →
-        </button>
-    }
+        @for (int i = 1; i <= totalPages; i++)
+        {
+            <button type="button"
+                    class="page-btn @(i == currentPage ? "active" : "")"
+                    onclick="loadTransactionPage(@i, @currentStoreId)">
+                @i
+            </button>
+        }
 
-</div>
+        @if (currentPage < totalPages)
+        {
+            <button type="button"
+                    class="page-btn"
+                    onclick="loadTransactionPage(@(currentPage + 1), @currentStoreId)">
+                →
+            </button>
+        }
+
+    </div>
+}

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260704135007_InitialCreate")]
+    [Migration("20260708130444_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2629,7 +2629,16 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("InventoryDocumentId", "IngredientId");
 
-                    b.ToTable("InventoryDocumentDetails", (string)null);
+                    b.ToTable("InventoryDocumentDetails", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_BaseQuantity", "[BaseQuantity] > 0");
+
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_Quantity", "[Quantity] > 0");
+
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_TotalAmount", "[TotalAmount] IS NULL OR [TotalAmount] >= 0");
+
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_UnitPrice", "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshot", b =>
@@ -4221,6 +4230,11 @@ namespace CafeChain.Migrations
                     b.Property<int?>("ReferenceOrderId")
                         .HasColumnType("int");
 
+                    b.Property<int>("StockStatus")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<int>("StoreInventoryId")
                         .HasColumnType("int");
 
@@ -4243,6 +4257,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("ReferenceOrderId");
 
+                    b.HasIndex("StockStatus");
+
                     b.HasIndex("StoreInventoryId");
 
                     b.HasIndex("Type");
@@ -4253,9 +4269,7 @@ namespace CafeChain.Migrations
 
                     b.ToTable("InventoryTransactions", null, t =>
                         {
-                            t.HasCheckConstraint("CK_InventoryTransaction_QtyBalance", "[BeforeQty] + [Quantity] = [AfterQty]");
-
-                            t.HasCheckConstraint("CK_InventoryTransaction_Quantity_NotZero", "[Quantity] <> 0");
+                            t.HasCheckConstraint("CK_InventoryTransaction_Quantity_Positive", "[Quantity] > 0");
 
                             t.HasCheckConstraint("CK_InventoryTransaction_TotalCost", "[TotalCost] IS NULL OR [TotalCost] >= 0");
 
@@ -7058,6 +7072,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("GETDATE()");
 
+                    b.Property<decimal?>("MaxNegativeQty")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int?>("RecipeId")
                         .HasColumnType("int");
 
@@ -7362,6 +7379,27 @@ namespace CafeChain.Migrations
                             Description = "Toạ độ trung tâm mặc định (VD: TPHCM - 10.8231, 106.6297)",
                             SettingKey = "Map_Default_Center",
                             SettingValue = "10.8231, 106.6297"
+                        },
+                        new
+                        {
+                            SettingId = 2001,
+                            Description = "Cho phép tồn kho âm có kiểm soát.",
+                            SettingKey = "inventory_allow_negative_stock",
+                            SettingValue = "false"
+                        },
+                        new
+                        {
+                            SettingId = 2002,
+                            Description = "Yêu cầu quản lý/admin xác nhận khi giao dịch làm âm kho.",
+                            SettingKey = "inventory_require_manager_approval_for_negative_stock",
+                            SettingValue = "false"
+                        },
+                        new
+                        {
+                            SettingId = 2003,
+                            Description = "Ngưỡng âm kho mặc định nếu tồn kho nguyên liệu không cấu hình riêng.",
+                            SettingKey = "inventory_default_max_negative_quantity",
+                            SettingValue = "0"
                         });
                 });
 
@@ -7511,11 +7549,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "CAFECHAIN50",
                             DiscountPercent = 50,
-                            EndDate = new DateTime(2026, 8, 3, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(705),
+                            EndDate = new DateTime(2026, 8, 7, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4994),
                             MaxDiscount = 20000m,
                             MaxUsage = 100,
                             MinOrderValue = 40000m,
-                            StartDate = new DateTime(2026, 6, 27, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(680)
+                            StartDate = new DateTime(2026, 7, 1, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4980)
                         },
                         new
                         {
@@ -7523,10 +7561,10 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "GIAM10K",
                             DiscountAmount = 10000m,
-                            EndDate = new DateTime(2026, 7, 19, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(708),
+                            EndDate = new DateTime(2026, 7, 23, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4997),
                             MaxUsage = 500,
                             MinOrderValue = 50000m,
-                            StartDate = new DateTime(2026, 7, 3, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(707)
+                            StartDate = new DateTime(2026, 7, 7, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4997)
                         },
                         new
                         {
@@ -7534,11 +7572,11 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "NEWUSER",
                             DiscountPercent = 20,
-                            EndDate = new DateTime(2026, 9, 2, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(710),
+                            EndDate = new DateTime(2026, 9, 6, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4999),
                             MaxDiscount = 100000m,
                             MaxUsage = 1000,
                             MinOrderValue = 0m,
-                            StartDate = new DateTime(2026, 6, 4, 20, 50, 6, 570, DateTimeKind.Local).AddTicks(709)
+                            StartDate = new DateTime(2026, 6, 8, 20, 4, 43, 839, DateTimeKind.Local).AddTicks(4999)
                         });
                 });
 

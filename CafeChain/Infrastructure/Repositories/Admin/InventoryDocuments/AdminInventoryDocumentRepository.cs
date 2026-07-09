@@ -216,6 +216,32 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     && x.IngredientId == ingredientId);
         }
 
+        public async Task<StoreInventory> GetOrCreateStoreInventoryForIngredientAsync(int storeId, int ingredientId)
+        {
+            var inventory =
+                await GetStoreInventoryAsync(storeId, ingredientId);
+
+            if (inventory != null)
+            {
+                return inventory;
+            }
+
+            inventory =
+                new StoreInventory
+                {
+                    StoreId = storeId,
+                    IngredientId = ingredientId,
+                    AvailableQty = 0,
+                    ReservedQty = 0,
+                    LastUpdated = DateTime.UtcNow
+                };
+
+            await _context.StoreInventories.AddAsync(inventory);
+            await _context.SaveChangesAsync();
+
+            return inventory;
+        }
+
         public async Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId)
         {
             return await _context.StoreInventories

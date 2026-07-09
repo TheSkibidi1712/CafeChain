@@ -74,6 +74,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var lineTotal = detail.TotalAmount ?? detail.Quantity * (detail.UnitPrice ?? 0);
 
                 var baseUnitCost = detail.BaseQuantity > 0 ? lineTotal / detail.BaseQuantity : 0;
@@ -83,40 +85,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 detail.TotalAmount = lineTotal;
                 _repository.UpdateDocumentDetail(detail);
 
-                var existingInventory = await _repository.GetStoreInventoryAsync(document.StoreId, detail.IngredientId);
+                var inventory =
+                    await _repository.GetOrCreateStoreInventoryForIngredientAsync(
+                        document.StoreId,
+                        detail.IngredientId);
 
-                StoreInventory inventory;
+                var beforeQty = inventory.AvailableQty;
 
-                var isNewInventory = false;
+                inventory.AvailableQty += detail.BaseQuantity;
 
-                if (existingInventory == null)
-                {
-                    isNewInventory = true;
-
-                    inventory =
-                        new StoreInventory
-                        {
-                            StoreId = document.StoreId,
-
-                            IngredientId = detail.IngredientId,
-
-                            AvailableQty = detail.BaseQuantity,
-
-                            ReservedQty = 0,
-
-                            LastUpdated = DateTime.UtcNow
-                        };
-
-                    await _repository.AddStoreInventoryAsync(inventory);
-                }
-                else
-                {
-                    inventory = existingInventory;
-
-                    inventory.AvailableQty += detail.BaseQuantity;
-
-                    _repository.UpdateStoreInventory(inventory);
-                }
+                _repository.UpdateStoreInventory(inventory);
 
                 await UpsertStoreInventorySnapshotAsync(document.StoreId, detail.IngredientId, inventory.AvailableQty, baseUnitCost);
 
@@ -150,7 +128,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         Quantity = detail.BaseQuantity,
 
-                        BeforeQty = inventory.AvailableQty - detail.BaseQuantity,
+                        BeforeQty = beforeQty,
 
                         AfterQty = inventory.AvailableQty,
 
@@ -161,14 +139,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         CreatedAt = DateTime.UtcNow
                     };
 
-                if (isNewInventory)
-                {
-                    transaction.StoreInventory = inventory;
-                }
-                else
-                {
-                    transaction.StoreInventoryId = inventory.StoreInventoryId;
-                }
+                transaction.StoreInventoryId = inventory.StoreInventoryId;
 
                 await _repository.AddInventoryTransactionAsync(transaction);
 
@@ -237,6 +208,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
                 var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
@@ -318,6 +291,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
                 var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
@@ -375,6 +350,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
                 
                 var stockValidation = await _negativeInventoryService.ValidateIssueAsync( inventory, detail.BaseQuantity, detail.Ingredient.Name);
@@ -432,6 +409,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
                 
                 var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
@@ -489,6 +468,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
                 var beforeQty = inventory.AvailableQty;
@@ -549,6 +530,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
+                ValidateProcessDetail(detail);
+
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
                 var systemQty = inventory.AvailableQty;
@@ -596,30 +579,32 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         private async Task<StoreInventory> GetOrCreateInventoryAsync(int storeId, int ingredientId)
         {
-            var inventory = await _repository.GetStoreInventoryAsync(storeId, ingredientId);
+            return await _repository.GetOrCreateStoreInventoryForIngredientAsync(
+                storeId,
+                ingredientId);
+        }
 
-            if (inventory != null)
+        private static void ValidateProcessDetail(InventoryDocumentDetail detail)
+        {
+            if (detail.IngredientId <= 0)
             {
-                return inventory;
+                throw new InvalidOperationException("Nguyên liệu không hợp lệ.");
             }
 
-            inventory =
-                new StoreInventory
-                {
-                    StoreId = storeId,
+            if (detail.UnitId <= 0)
+            {
+                throw new InvalidOperationException("Đơn vị tính không hợp lệ.");
+            }
 
-                    IngredientId = ingredientId,
+            if (detail.Quantity <= 0)
+            {
+                throw new InvalidOperationException("Số lượng phải lớn hơn 0.");
+            }
 
-                    AvailableQty = 0,
-
-                    ReservedQty = 0,
-
-                    LastUpdated = DateTime.UtcNow
-                };
-
-            await _repository.AddStoreInventoryAsync(inventory);
-
-            return inventory;
+            if (detail.BaseQuantity <= 0)
+            {
+                throw new InvalidOperationException("Số lượng quy đổi base phải lớn hơn 0.");
+            }
         }
 
         private static void AddLowStockWarning(InventoryProcessResultDTO result, InventoryDocument document, InventoryDocumentDetail detail, StoreInventory inventory)

@@ -1,0 +1,38 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferDetailVM
+
+<header class="transfer-header">
+    <div>
+        <div class="transfer-breadcrumb">
+            <span>Phiếu kho</span>
+            <i class="fas fa-chevron-right"></i>
+            <span>Chi tiết điều chuyển kho</span>
+        </div>
+
+        <div class="transfer-title-row">
+            <div class="transfer-icon">
+                <i class="fas fa-right-left"></i>
+            </div>
+
+            <div>
+                <h1>@Model.Code</h1>
+                <p>Phiếu chuyển kho liên chi nhánh trong hệ thống.</p>
+            </div>
+
+            <span class="transfer-status-pill transfer-status-@Model.Status.ToString().ToLower()">
+                @Model.Status
+            </span>
+        </div>
+    </div>
+
+    <div class="transfer-header-actions">
+        <a class="transfer-back-link" href="/Admin/AdminInventoryTransfer/Index">
+            <i class="fas fa-arrow-left"></i>
+            Danh sách phiếu
+        </a>
+
+        <a class="transfer-back-link" href="/Admin/AdminInventoryTransfer/Create">
+            <i class="fas fa-plus"></i>
+            Tạo phiếu mới
+        </a>
+    </div>
+</header>

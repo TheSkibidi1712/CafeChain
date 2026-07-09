@@ -1,0 +1,198 @@
+@model CafeChain.ViewModels.Admin.InventoryTransfers.AdminInventoryTransferIndexVM
+@using CafeChain.Models.Enums.Inventory
+
+@{
+    ViewData["Title"] = "Phiếu chuyển kho";
+    var previousPage = Model.Page <= 1 ? 1 : Model.Page - 1;
+    var nextPage = Model.Page >= Model.TotalPages ? Model.TotalPages : Model.Page + 1;
+}
+
+<link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
+
+<div class="transfer-page transfer-index-page">
+    <header class="transfer-header">
+        <div>
+            <div class="transfer-breadcrumb">
+                <span>Phiếu kho</span>
+                <i class="fas fa-chevron-right"></i>
+                <span>Phiếu chuyển kho</span>
+            </div>
+
+            <div class="transfer-title-row">
+                <div class="transfer-icon">
+                    <i class="fas fa-right-left"></i>
+                </div>
+
+                <div>
+                    <h1>Phiếu chuyển kho</h1>
+                    <p>Theo dõi toàn bộ phiếu chuyển nguyên liệu giữa các chi nhánh.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="transfer-header-actions">
+            <a class="transfer-primary-button" href="/Admin/AdminInventoryTransfer/Create">
+                <i class="fas fa-plus"></i>
+                Tạo phiếu chuyển kho
+            </a>
+        </div>
+    </header>
+
+    <main class="transfer-main">
+        <section class="transfer-card">
+            <form method="get" class="transfer-filter-grid">
+                <div class="transfer-field">
+                    <label for="Keyword">Mã phiếu</label>
+                    <input id="Keyword"
+                           name="Keyword"
+                           class="transfer-input"
+                           value="@Model.Keyword"
+                           placeholder="Nhập mã phiếu" />
+                </div>
+
+                <div class="transfer-field">
+                    <label for="Status">Trạng thái</label>
+                    <select id="Status" name="Status" class="transfer-input">
+                        <option value="">Tất cả</option>
+                        @foreach (InventoryTransferStatus status in Enum.GetValues(typeof(InventoryTransferStatus)))
+                        {
+                            <option value="@status" selected="@(Model.Status == status)">
+                                @status
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="transfer-field">
+                    <label for="FromStoreId">Kho đi</label>
+                    <select id="FromStoreId" name="FromStoreId" class="transfer-input">
+                        <option value="">Tất cả</option>
+                        @foreach (var store in Model.Stores)
+                        {
+                            <option value="@store.StoreId" selected="@(Model.FromStoreId == store.StoreId)">
+                                @store.StoreName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <div class="transfer-field">
+                    <label for="ToStoreId">Kho đến</label>
+                    <select id="ToStoreId" name="ToStoreId" class="transfer-input">
+                        <option value="">Tất cả</option>
+                        @foreach (var store in Model.Stores)
+                        {
+                            <option value="@store.StoreId" selected="@(Model.ToStoreId == store.StoreId)">
+                                @store.StoreName
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <input type="hidden" name="PageSize" value="@Model.PageSize" />
+
+                <div class="transfer-filter-actions">
+                    <button class="transfer-secondary-button" type="submit">
+                        <i class="fas fa-filter"></i>
+                        Lọc
+                    </button>
+
+                    <a class="transfer-ghost-button" href="/Admin/AdminInventoryTransfer/Index">
+                        <i class="fas fa-rotate-left"></i>
+                        Xóa lọc
+                    </a>
+                </div>
+            </form>
+        </section>
+
+        <section class="transfer-card">
+            <div class="transfer-toolbar">
+                <div>
+                    <span class="section-kicker">
+                        <i class="fas fa-list"></i>
+                        Danh sách phiếu
+                    </span>
+                    <h2>@Model.TotalItems phiếu chuyển kho</h2>
+                    <p>Hiển thị trang @Model.Page / @Model.TotalPages.</p>
+                </div>
+            </div>
+
+            <div class="transfer-table-wrap">
+                <table class="transfer-table transfer-index-table">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Trạng thái</th>
+                            <th>Mục đích</th>
+                            <th>Kho đi</th>
+                            <th>Kho đến</th>
+                            <th>Người lập</th>
+                            <th>Ngày chứng từ</th>
+                            <th class="text-end">Dòng</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @if (!Model.Items.Any())
+                        {
+                            <tr class="transfer-empty-row">
+                                <td colspan="9">Chưa có phiếu chuyển kho.</td>
+                            </tr>
+                        }
+                        else
+                        {
+                            foreach (var item in Model.Items)
+                            {
+                                <tr>
+                                    <td>
+                                        <strong>@item.Code</strong>
+                                        <span class="transfer-index-date">
+                                            Tạo @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="transfer-status-pill transfer-status-@item.Status.ToString().ToLower()">
+                                            @item.Status
+                                        </span>
+                                    </td>
+
+                                    <td>@item.Purpose</td>
+                                    <td>@item.FromStoreName</td>
+                                    <td>@item.ToStoreName</td>
+                                    <td>@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "-" : item.CreatedByName)</td>
+                                    <td>@item.DocumentDate.ToString("dd/MM/yyyy")</td>
+                                    <td class="text-end">@item.DetailCount</td>
+                                    <td class="text-end">
+                                        <a class="transfer-outline-button transfer-table-action"
+                                           href="/Admin/AdminInventoryTransfer/Detail?id=@item.InventoryTransferId">
+                                            <i class="fas fa-eye"></i>
+                                            Xem
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="transfer-pagination">
+                <a class="transfer-ghost-button @(Model.Page <= 1 ? "disabled" : "")"
+                   href="/Admin/AdminInventoryTransfer/Index?Page=@previousPage&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&FromStoreId=@Model.FromStoreId&ToStoreId=@Model.ToStoreId">
+                    <i class="fas fa-chevron-left"></i>
+                    Trước
+                </a>
+
+                <span>Trang @Model.Page / @Model.TotalPages</span>
+
+                <a class="transfer-ghost-button @(Model.Page >= Model.TotalPages ? "disabled" : "")"
+                   href="/Admin/AdminInventoryTransfer/Index?Page=@nextPage&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&FromStoreId=@Model.FromStoreId&ToStoreId=@Model.ToStoreId">
+                    Sau
+                    <i class="fas fa-chevron-right"></i>
+                </a>
+            </div>
+        </section>
+    </main>
+</div>

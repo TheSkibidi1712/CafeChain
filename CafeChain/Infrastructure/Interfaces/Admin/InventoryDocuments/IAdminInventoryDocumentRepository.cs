@@ -76,6 +76,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<StoreInventory?> GetStoreInventoryAsync(int storeId, int ingredientId);
 
+        Task<StoreInventory> GetOrCreateStoreInventoryForIngredientAsync(int storeId, int ingredientId);
+
         Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
 
         Task AddStoreInventoryAsync(StoreInventory inventory);
