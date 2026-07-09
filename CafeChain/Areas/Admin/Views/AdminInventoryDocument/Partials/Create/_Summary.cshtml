@@ -1,4 +1,11 @@
 @model CafeChain.ViewModels.Admin.InventoryDocuments.Create.AdminInventoryDocumentCreateVM
+@using CafeChain.Models.Enums.Inventory
+
+@{
+    var hideMoneySummary =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+        || Model.Type == InventoryDocumentType.WASTE;
+}
 
 <section class="create-summary-strip" aria-label="Tổng hợp phiếu kho">
 
@@ -15,12 +22,12 @@
     <div class="create-summary-list">
 
         <div class="create-summary-row">
-            <span>Items</span>
+            <span>Dòng</span>
             <strong id="summaryItems">@Model.Summary.TotalItems</strong>
         </div>
 
         <div class="create-summary-row">
-            <span>Quantity</span>
+            <span>Số lượng</span>
             <strong id="summaryQty">@Model.Summary.TotalQuantity.ToString("N0")</strong>
         </div>
 
@@ -29,18 +36,18 @@
             <strong id="summaryBaseQty">@Model.Summary.BaseQuantityText</strong>
         </div>
 
-        <div class="create-summary-row">
-            <span>Total</span>
+        <div class="create-summary-row @(hideMoneySummary ? "d-none" : "")">
+            <span>Tổng tiền</span>
             <strong id="summaryTotal">@Model.Summary.TotalAmount.ToString("N0")</strong>
         </div>
 
-        <div class="create-summary-row">
+        <div class="create-summary-row @(hideMoneySummary ? "d-none" : "")">
             <span>VAT</span>
             <strong id="summaryVat">@Model.Summary.VatAmount.ToString("N0")</strong>
         </div>
 
-        <div class="create-summary-row create-summary-final">
-            <span>Final</span>
+        <div class="create-summary-row create-summary-final @(hideMoneySummary ? "d-none" : "")">
+            <span>Thành tiền</span>
             <strong id="summaryFinal">@Model.Summary.FinalAmount.ToString("N0")</strong>
         </div>
 

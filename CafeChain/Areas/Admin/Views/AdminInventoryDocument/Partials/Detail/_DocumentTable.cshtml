@@ -39,9 +39,9 @@
                             @item.Code
                         </td>
 
-                        <td>@item.Type</td>
+                        <td>@item.Type.ToVietnamese()</td>
 
-                        <td>@item.Purpose</td>
+                        <td>@item.Purpose.ToVietnamese()</td>
 
                         <td>@item.StoreName</td>
 
@@ -58,7 +58,7 @@
                         <td>
 
                             <span class="status-badge @item.Status.ToString().ToLower()">
-                                @item.Status
+                                @item.Status.ToVietnamese()
                             </span>
 
                         </td>

@@ -573,6 +573,11 @@
     text-align: right;
 }
 
+.create-col-variance {
+    width: 130px;
+    text-align: right;
+}
+
 .create-col-total {
     width: 150px;
     text-align: right;
@@ -637,6 +642,31 @@
 
 .line-total-display {
     color: #ea580c;
+}
+
+.stocktake-variance-display {
+    display: block;
+    padding-top: 9px;
+    font-weight: 900;
+}
+
+.stocktake-status-display {
+    display: block;
+    color: #64748b;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.stocktake-variance-display.positive {
+    color: #16a34a;
+}
+
+.stocktake-variance-display.negative {
+    color: #dc2626;
+}
+
+.stocktake-variance-display.neutral {
+    color: #64748b;
 }
 
 .create-col-total small {

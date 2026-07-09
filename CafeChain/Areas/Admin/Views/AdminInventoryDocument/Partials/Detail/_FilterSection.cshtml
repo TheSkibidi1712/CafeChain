@@ -31,7 +31,7 @@
                     InventoryDocumentType.SALES_DEDUCTION
                 })
                 {
-                    <option value="@item">@item</option>
+                    <option value="@item">@item.ToVietnamese()</option>
                 }
 
             </select>
@@ -43,7 +43,7 @@
 
                 @foreach (var item in Enum.GetValues<InventoryDocumentStatus>())
                 {
-                    <option value="@item">@item</option>
+                    <option value="@item">@item.ToVietnamese()</option>
                 }
 
             </select>
@@ -62,11 +62,13 @@
                     InventoryDocumentPurpose.STOCK_TAKE,
                     InventoryDocumentPurpose.DAMAGED,
                     InventoryDocumentPurpose.EXPIRED,
+                    InventoryDocumentPurpose.BROKEN,
+                    InventoryDocumentPurpose.CONTAMINATED,
                     InventoryDocumentPurpose.LOST,
                     InventoryDocumentPurpose.DEBT
                 })
                 {
-                    <option value="@item">@item</option>
+                    <option value="@item">@item.ToVietnamese()</option>
                 }
 
             </select>

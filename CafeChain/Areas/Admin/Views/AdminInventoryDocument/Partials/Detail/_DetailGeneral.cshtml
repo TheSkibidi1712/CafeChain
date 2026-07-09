@@ -6,6 +6,15 @@
         && Model.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
     var showSupplier = !string.IsNullOrWhiteSpace(Model.SupplierName);
     var showPartner = !isSupplierPurchase && !string.IsNullOrWhiteSpace(Model.PartnerName);
+    var hideMoneyColumns =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+        || Model.Type == InventoryDocumentType.WASTE;
+    var quantityLabel =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+            ? "Số Lượng Thực Tế"
+            : Model.Type == InventoryDocumentType.WASTE
+                ? "Số Lượng Hủy"
+                : "Số Lượng";
 }
 
 <div class="detail-card">
@@ -24,20 +33,20 @@
 
         <div>
             <span class="detail-label">Loại Phiếu</span>
-            <strong>@Model.Type</strong>
+            <strong>@Model.Type.ToVietnamese()</strong>
         </div>  
 
         <div>
             <span class="detail-label">Trạng Thái</span>
 
             <span class="status-badge @Model.Status.ToString().ToLower()">
-                @Model.Status
+                @Model.Status.ToVietnamese()
             </span>
         </div>
 
         <div>
             <span class="detail-label">Mục Đích</span>
-            <strong>@Model.Purpose</strong>
+            <strong>@Model.Purpose.ToVietnamese()</strong>
         </div>
 
         <div>
@@ -151,10 +160,13 @@
 
                     <th>Tên Nguyên Liệu</th>
                     <th>ĐVT</th>
-                    <th class="text-end">Số Lượng</th>
+                    <th class="text-end">@quantityLabel</th>
                     <th class="text-end">Quy Đổi</th>
-                    <th class="text-end">Đơn Giá</th>
-                    <th class="text-end">Thành Tiền</th>
+                    @if (!hideMoneyColumns)
+                    {
+                        <th class="text-end">Đơn Giá</th>
+                        <th class="text-end">Thành Tiền</th>
+                    }
 
                 </tr>
             </thead>
@@ -181,24 +193,27 @@
                             @item.BaseQuantity.ToString("0.##")
                         </td>
 
-                        <td class="text-end">
+                        @if (!hideMoneyColumns)
+                        {
+                            <td class="text-end">
 
-                            @(
-                                item.UnitPrice?.ToString("N0")
-                                ?? "0"
-                            )
+                                @(
+                                    item.UnitPrice?.ToString("N0")
+                                    ?? "0"
+                                )
 
-                        </td>
+                            </td>
 
-                        <td class="text-end item-total"
-                            data-value="@(item.TotalAmount ?? 0)">
+                            <td class="text-end item-total"
+                                data-value="@(item.TotalAmount ?? 0)">
 
-                            @(
-                                item.TotalAmount?.ToString("N0")
-                                ?? "0"
-                            )
+                                @(
+                                    item.TotalAmount?.ToString("N0")
+                                    ?? "0"
+                                )
 
-                        </td>
+                            </td>
+                        }
 
                     </tr>
                 }
@@ -211,10 +226,12 @@
 
 </div>
 
-<div class="summary-box"
-     data-total="@(Model.TotalAmount ?? 0)"
-     data-vat="@(Model.VatAmount ?? 0)"
-     data-final="@(Model.FinalAmount ?? 0)">
+@if (!hideMoneyColumns)
+{
+    <div class="summary-box"
+         data-total="@(Model.TotalAmount ?? 0)"
+         data-vat="@(Model.VatAmount ?? 0)"
+         data-final="@(Model.FinalAmount ?? 0)">
 
     <div class="summary-item">
 
@@ -246,4 +263,5 @@
 
     </div>
 
-</div>
+    </div>
+}

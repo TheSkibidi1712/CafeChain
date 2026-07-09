@@ -4,7 +4,37 @@
 @{
     var hint = Model.Type == InventoryDocumentType.IMPORT
         ? "Chọn mục đích nhập để hệ thống tải đúng nguồn nguyên liệu."
-        : "Thêm nguyên liệu và nhập số lượng cần xử lý.";
+        : Model.Type == InventoryDocumentType.STOCK_TAKE
+            ? "Chọn nguyên liệu cần kiểm kê và nhập số lượng thực tế sau khi đếm."
+            : Model.Type == InventoryDocumentType.WASTE
+                ? "Chọn nguyên liệu còn tồn, nhập số lượng hủy và ghi rõ lý do hủy."
+                : "Thêm nguyên liệu và nhập số lượng cần xử lý.";
+
+    var quantityHeader = Model.Type switch
+    {
+        InventoryDocumentType.STOCK_TAKE => "Số lượng thực tế",
+        InventoryDocumentType.WASTE => "Số lượng hủy",
+        _ => "Số lượng"
+    };
+
+    var referenceHeader = Model.Type switch
+    {
+        InventoryDocumentType.STOCK_TAKE => "Tồn hệ thống",
+        InventoryDocumentType.WASTE => "Tồn khả dụng",
+        InventoryDocumentType.EXPORT => "Tồn khả dụng",
+        InventoryDocumentType.IMPORT => "MOQ/Còn nhận",
+        _ => "Tham chiếu"
+    };
+
+    var hideMoneyColumns =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+        || Model.Type == InventoryDocumentType.WASTE;
+
+    var showVarianceColumn =
+        Model.Type == InventoryDocumentType.STOCK_TAKE;
+
+    ViewData["HideMoneyColumns"] = hideMoneyColumns;
+    ViewData["ShowVarianceColumn"] = showVarianceColumn;
 }
 
 <section class="create-section create-detail-section">
@@ -39,10 +69,11 @@
                     <th class="create-col-index">#</th>
                     <th>Nguyên liệu</th>
                     <th class="create-col-unit">ĐVT</th>
-                    <th class="create-col-qty">Số lượng</th>
-                    <th class="create-col-price">Đơn giá</th>
-                    <th class="create-col-moq" id="quantityReferenceHeader">MOQ/Còn nhận</th>
-                    <th class="create-col-total">Thành tiền</th>
+                    <th class="create-col-qty">@quantityHeader</th>
+                    <th class="create-col-price @(hideMoneyColumns ? "d-none" : "")">Đơn giá</th>
+                    <th class="create-col-moq" id="quantityReferenceHeader">@referenceHeader</th>
+                    <th class="create-col-variance @(showVarianceColumn ? "" : "d-none")">Chênh lệch</th>
+                    <th class="create-col-total @(hideMoneyColumns ? "d-none" : "")">Thành tiền</th>
                     <th class="create-col-action"></th>
                 </tr>
             </thead>

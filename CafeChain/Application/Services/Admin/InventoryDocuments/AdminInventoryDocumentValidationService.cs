@@ -5,7 +5,6 @@ using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Documents;
 
-
 namespace CafeChain.Application.Services.Admin.InventoryDocuments
 {
     public class AdminInventoryDocumentValidationService : IAdminInventoryDocumentValidationService
@@ -17,36 +16,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             _repository = repository;
         }
 
-        // =====================================================
-        // BUSINESS VALIDATION
-        // =====================================================
-
         public async Task ValidateCreateAsync(CreateInventoryDocumentDTO dto)
         {
             ValidateBasic(dto);
-
             ValidateImportPurpose(dto);
-
             ValidateExportPurpose(dto);
-
+            ValidateWastePurpose(dto);
+            ValidateStockTakePurpose(dto);
             ValidateAdjustmentNote(dto);
-
+            ValidateWasteNote(dto);
             ValidateAdjustmentPrice(dto);
 
             await ValidateStoreAsync(dto.StoreId);
-
             await ValidateSupplierAsync(dto);
-
             await ValidateDetailsAsync(dto);
-
             await ValidateIngredientExistsAsync(dto);
-
             await ValidateUnitsAsync(dto);
-
-            await Task.CompletedTask;
         }
 
-        public async Task ValidateConfirmAsync(InventoryDocument document)
+        public Task ValidateConfirmAsync(InventoryDocument document)
         {
             if (document.Status == InventoryDocumentStatus.CONFIRMED)
             {
@@ -57,11 +45,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 throw new InvalidOperationException("Phiếu không có chi tiết.");
             }
-        }
 
-        // ======================================
-        // PRIVATE METHODS
-        // ======================================
+            return Task.CompletedTask;
+        }
 
         private static void ValidateBasic(CreateInventoryDocumentDTO dto)
         {
@@ -121,14 +107,24 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var item in dto.Details)
             {
-                if (item.Quantity <= 0)
+                if (dto.Type == InventoryDocumentType.STOCK_TAKE)
                 {
-                    throw new InvalidOperationException("Số lượng phải lớn hơn 0.");
+                    if (item.Quantity < 0 || item.BaseQuantity < 0)
+                    {
+                        throw new InvalidOperationException("Số lượng kiểm kê thực tế không được âm.");
+                    }
                 }
-
-                if (item.BaseQuantity <= 0)
+                else
                 {
-                    throw new InvalidOperationException("Base Quantity không hợp lệ.");
+                    if (item.Quantity <= 0)
+                    {
+                        throw new InvalidOperationException("Số lượng phải lớn hơn 0.");
+                    }
+
+                    if (item.BaseQuantity <= 0)
+                    {
+                        throw new InvalidOperationException("Số lượng quy đổi base không hợp lệ.");
+                    }
                 }
 
                 if (item.UnitId <= 0)
@@ -144,8 +140,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var item in dto.Details)
             {
-                var ingredient =
-                    await _repository.GetIngredientAsync(item.IngredientId);
+                var ingredient = await _repository.GetIngredientAsync(item.IngredientId);
 
                 if (ingredient == null)
                 {
@@ -158,40 +153,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var item in dto.Details)
             {
-                var unit =
-                    await _repository.GetUnitAsync(item.UnitId);
+                var unit = await _repository.GetUnitAsync(item.UnitId);
 
                 if (unit == null)
                 {
                     throw new InvalidOperationException("Đơn vị tính không hợp lệ.");
-                }
-            }
-        }
-
-        private async Task ValidateInventoryAsync(CreateInventoryDocumentDTO dto)
-        {
-            if (IsIncreaseDocument(dto.Type))
-            {
-                return;
-            }
-
-            foreach (var item in dto.Details)
-            {
-                var inventory =
-                    await _repository.GetStoreInventoryAsync(
-                        dto.StoreId,
-                        item.IngredientId);
-
-                if (inventory == null)
-                {
-                    throw new InvalidOperationException(
-                        $"Không tồn tại tồn kho cho nguyên liệu {item.IngredientId}");
-                }
-
-                if (inventory.AvailableQty < item.BaseQuantity)
-                {
-                    throw new InvalidOperationException(
-                        $"Không đủ tồn kho.");
                 }
             }
         }
@@ -207,39 +173,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 && dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
             {
                 throw new InvalidOperationException("Mục đích phiếu nhập không hợp lệ.");
-            }
-        }
-
-        private static void ValidateAdjustmentNote(CreateInventoryDocumentDTO dto)
-        {
-            var isAdjustment =
-                dto.Type == InventoryDocumentType.IMPORT
-                    && dto.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT
-                || dto.Type == InventoryDocumentType.EXPORT
-                    && dto.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT;
-
-            if (!isAdjustment)
-            {
-                return;
-            }
-
-            if (string.IsNullOrWhiteSpace(dto.Note))
-            {
-                throw new InvalidOperationException("Phiếu điều chỉnh phải có ghi chú lý do điều chỉnh.");
-            }
-        }
-
-        private static void ValidateAdjustmentPrice(CreateInventoryDocumentDTO dto)
-        {
-            if (dto.Type != InventoryDocumentType.IMPORT
-                || dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
-            {
-                return;
-            }
-
-            if (dto.Details.Any(x => x.UnitPrice <= 0))
-            {
-                throw new InvalidOperationException("Phiếu nhập điều chỉnh phải có đơn giá lớn hơn 0.");
             }
         }
 
@@ -260,19 +193,77 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        private static bool IsIncreaseDocument(InventoryDocumentType type)
+        private static void ValidateWastePurpose(CreateInventoryDocumentDTO dto)
         {
-            return type == InventoryDocumentType.IMPORT
-                || type == InventoryDocumentType.ADJUSTMENT_IN
-                || type == InventoryDocumentType.PRODUCTION_IN;
+            if (dto.Type != InventoryDocumentType.WASTE)
+            {
+                return;
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.DAMAGED
+                && dto.Purpose != InventoryDocumentPurpose.EXPIRED
+                && dto.Purpose != InventoryDocumentPurpose.BROKEN
+                && dto.Purpose != InventoryDocumentPurpose.CONTAMINATED
+                && dto.Purpose != InventoryDocumentPurpose.LOST)
+            {
+                throw new InvalidOperationException("Mục đích phiếu hủy kho không hợp lệ.");
+            }
+        }
+
+        private static void ValidateStockTakePurpose(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.STOCK_TAKE)
+            {
+                return;
+            }
+
+            if (dto.Purpose != InventoryDocumentPurpose.STOCK_TAKE)
+            {
+                throw new InvalidOperationException("Mục đích phiếu kiểm kê không hợp lệ.");
+            }
+        }
+
+        private static void ValidateAdjustmentNote(CreateInventoryDocumentDTO dto)
+        {
+            var isAdjustment =
+                dto.Type == InventoryDocumentType.IMPORT
+                    && dto.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT
+                || dto.Type == InventoryDocumentType.EXPORT
+                    && dto.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT;
+
+            if (isAdjustment && string.IsNullOrWhiteSpace(dto.Note))
+            {
+                throw new InvalidOperationException("Phiếu điều chỉnh phải có ghi chú lý do điều chỉnh.");
+            }
+        }
+
+        private static void ValidateWasteNote(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type == InventoryDocumentType.WASTE && string.IsNullOrWhiteSpace(dto.Note))
+            {
+                throw new InvalidOperationException("Phiếu hủy kho phải có ghi chú lý do hủy.");
+            }
+        }
+
+        private static void ValidateAdjustmentPrice(CreateInventoryDocumentDTO dto)
+        {
+            if (dto.Type != InventoryDocumentType.IMPORT
+                || dto.Purpose != InventoryDocumentPurpose.IMPORT_ADJUSTMENT)
+            {
+                return;
+            }
+
+            if (dto.Details.Any(x => x.UnitPrice <= 0))
+            {
+                throw new InvalidOperationException("Phiếu nhập điều chỉnh phải có đơn giá lớn hơn 0.");
+            }
         }
 
         private static void ValidateExportSnapshot(InventoryDocumentSnapshotDTO? snapshot)
         {
             if (snapshot == null)
             {
-                throw new InvalidOperationException(
-                    "Phiếu chưa được snapshot.");
+                throw new InvalidOperationException("Phiếu chưa được snapshot.");
             }
         }
 

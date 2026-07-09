@@ -27,6 +27,8 @@
         {
             new { Value = (int)InventoryDocumentPurpose.DAMAGED, Label = "Hàng hỏng", Description = "Hủy do hư hỏng" },
             new { Value = (int)InventoryDocumentPurpose.EXPIRED, Label = "Hết hạn", Description = "Hủy do quá hạn sử dụng" },
+            new { Value = (int)InventoryDocumentPurpose.BROKEN, Label = "Bị vỡ", Description = "Hủy do bị vỡ trong bảo quản hoặc vận hành" },
+            new { Value = (int)InventoryDocumentPurpose.CONTAMINATED, Label = "Nhiễm bẩn", Description = "Hủy do không còn đảm bảo vệ sinh" },
             new { Value = (int)InventoryDocumentPurpose.LOST, Label = "Thất thoát", Description = "Ghi nhận mất mát" }
         },
         _ => new[]

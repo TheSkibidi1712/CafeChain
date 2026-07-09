@@ -148,10 +148,12 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
 
                 item.Quantity = NormalizeQuantityForDisplay(
                     item.Quantity,
+                    item.BeforeQty,
+                    item.AfterQty,
                     rawTypeName);
 
-                item.TypeName = ToVietnameseTransactionType(rawTypeName);
-                item.StockStatusName = ToVietnameseStockStatus(item.StockStatusName);
+                item.TypeName = CafeChain.Helpers.InventoryVietnameseMapper.ToVietnameseTransactionType(rawTypeName);
+                item.StockStatusName = CafeChain.Helpers.InventoryVietnameseMapper.ToVietnameseStockStatus(item.StockStatusName);
             }
 
             return transactions;
@@ -159,10 +161,14 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
 
         private static decimal NormalizeQuantityForDisplay(
             decimal quantity,
+            decimal beforeQty,
+            decimal afterQty,
             string typeName)
         {
-            if (quantity < 0)
-                return quantity;
+            var delta = afterQty - beforeQty;
+
+            if (delta != 0 || quantity == 0)
+                return delta;
 
             return IsOutputTransaction(typeName)
                 ? -quantity
@@ -186,6 +192,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
 
             return value.Contains("TRANSFER_OUT") ||
                    value.Contains("EXPORT") ||
+                   value.Contains("WASTE") ||
                    tokens.Contains("OUT") ||
                    value.Contains("ISSUE") ||
                    value.Contains("SALE") ||

@@ -57,7 +57,7 @@
                         @foreach (InventoryTransferStatus status in Enum.GetValues(typeof(InventoryTransferStatus)))
                         {
                             <option value="@status" selected="@(Model.Status == status)">
-                                @status
+                                @status.ToVietnamese()
                             </option>
                         }
                     </select>
@@ -154,11 +154,11 @@
 
                                     <td>
                                         <span class="transfer-status-pill transfer-status-@item.Status.ToString().ToLower()">
-                                            @item.Status
+                                            @item.Status.ToVietnamese()
                                         </span>
                                     </td>
 
-                                    <td>@item.Purpose</td>
+                                    <td>@item.Purpose.ToVietnamese()</td>
                                     <td>@item.FromStoreName</td>
                                     <td>@item.ToStoreName</td>
                                     <td>@(string.IsNullOrWhiteSpace(item.CreatedByName) ? "-" : item.CreatedByName)</td>

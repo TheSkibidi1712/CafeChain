@@ -46,7 +46,13 @@ const InventoryCreate = (() => {
         importPurchase: 1,
         importAdjustment: 3,
         sale: 5,
-        adjustmentOut: 10
+        adjustmentOut: 10,
+        stockTake: 11,
+        damaged: 12,
+        expired: 13,
+        broken: 14,
+        contaminated: 15,
+        lost: 16
     };
 
     let supplierIngredients = [];
@@ -149,13 +155,22 @@ const InventoryCreate = (() => {
                     });
 
                 popup
-                    .querySelector(
+                    .querySelectorAll(
                         "[data-inventory-type-cancel]"
                     )
-                    ?.addEventListener(
-                        "click",
-                        () => Swal.close()
-                    );
+                    .forEach(button => {
+
+                        button.addEventListener(
+                            "click",
+                            event => {
+
+                                event.preventDefault();
+                                event.stopPropagation();
+                                Swal.close();
+
+                            });
+
+                    });
 
             }
 
@@ -455,13 +470,24 @@ const InventoryCreate = (() => {
         }
 
         if (noteInput) {
-            noteInput.required = isImportAdjustment() || isAdjustmentOut();
-            noteInput.placeholder = isImportAdjustment() || isAdjustmentOut()
-                ? "Nhập lý do điều chỉnh tồn kho"
-                : "Nhập ghi chú cho phiếu kho";
+            noteInput.required = isImportAdjustment() || isAdjustmentOut() || isWaste();
+            noteInput.placeholder = isWaste()
+                ? "Nhập lý do hủy kho"
+                : isImportAdjustment() || isAdjustmentOut()
+                    ? "Nhập lý do điều chỉnh tồn kho"
+                    : "Nhập ghi chú cho phiếu kho";
         }
 
-        noteHint?.classList.toggle("d-none", !(isImportAdjustment() || isAdjustmentOut()));
+        if (noteHint) {
+            noteHint.textContent = isWaste()
+                ? "Bắt buộc khi lập phiếu hủy kho."
+                : "Bắt buộc khi lập phiếu điều chỉnh.";
+
+            noteHint.classList.toggle(
+                "d-none",
+                !(isImportAdjustment() || isAdjustmentOut() || isWaste())
+            );
+        }
 
         syncPurposePartner();
     }
@@ -537,6 +563,24 @@ const InventoryCreate = (() => {
             return;
         }
 
+        const quantityHeader = document.querySelector(".create-col-qty");
+
+        if (quantityHeader) {
+            if (isStockTake()) {
+                quantityHeader.textContent = "Số lượng thực tế";
+            }
+            else if (isWaste()) {
+                quantityHeader.textContent = "Số lượng hủy";
+            }
+            else {
+                quantityHeader.textContent = "Số lượng";
+            }
+        }
+
+        if (isStockTake()) {
+            header.textContent = "Tồn hệ thống";
+            return;
+        }
         if (usesStoreInventorySource()) {
             header.textContent = "Tồn khả dụng";
             return;
@@ -596,6 +640,24 @@ const InventoryCreate = (() => {
                 subtitle: "Điều chỉnh giảm tồn kho theo biên bản kiểm tra",
                 icon: "fa-sliders-h",
                 hint: "Chọn nguyên liệu cần điều chỉnh giảm, nhập số lượng và ghi rõ lý do điều chỉnh."
+            };
+        }
+
+        if (isStockTake()) {
+            return {
+                title: "Tạo Phiếu Kiểm Kê",
+                subtitle: "Ghi nhận số lượng tồn kho thực tế tại cửa hàng",
+                icon: "fa-clipboard-check",
+                hint: "Chọn nguyên liệu cần kiểm kê và nhập số lượng thực tế sau khi đếm."
+            };
+        }
+
+        if (isWaste()) {
+            return {
+                title: "Tạo Phiếu Hủy Kho",
+                subtitle: "Ghi nhận nguyên liệu hỏng, hết hạn, vỡ, nhiễm bẩn hoặc thất thoát",
+                icon: "fa-trash-alt",
+                hint: "Chọn nguyên liệu còn tồn, nhập số lượng hủy và ghi rõ lý do hủy."
             };
         }
 
@@ -1201,6 +1263,7 @@ const InventoryCreate = (() => {
         setText(row, ".minimum-order-quantity", "-");
         setText(row, ".unit-conversion-display", "Quy đổi: -");
         setText(row, ".line-total-display", "0");
+        updateStockTakeVariance(row, null, 0);
 
         const ingredientSelect =
             row.querySelector(
@@ -1305,6 +1368,12 @@ const InventoryCreate = (() => {
             return;
         }
 
+        if (isQuantityOnlyDocument()) {
+            priceInput.value = 0;
+            priceInput.readOnly = true;
+            return;
+        }
+
         const unitPrice =
             getSuggestedUnitPrice(item, row);
 
@@ -1316,6 +1385,14 @@ const InventoryCreate = (() => {
     }
 
     function buildIngredientSourceText(item, row) {
+
+        if (isStockTake()) {
+            return "Nguồn: danh mục nguyên liệu";
+        }
+
+        if (isWaste()) {
+            return "Nguồn: tồn kho cửa hàng";
+        }
 
         const unitLabel =
             row
@@ -1335,7 +1412,7 @@ const InventoryCreate = (() => {
         const available =
             getAvailableBaseQuantity(item);
 
-        if (!usesStoreInventorySource() && !isImportAdjustment()) {
+        if (!usesStoreInventorySource() && !isImportAdjustment() && !isStockTake()) {
             return "Tồn: -";
         }
 
@@ -1343,6 +1420,10 @@ const InventoryCreate = (() => {
     }
 
     function buildPriceSourceText(item) {
+
+        if (isQuantityOnlyDocument()) {
+            return "";
+        }
 
         const source =
             item.priceSource ?? item.PriceSource ?? "";
@@ -1353,6 +1434,10 @@ const InventoryCreate = (() => {
     }
 
     function buildQuantityReferenceText(item) {
+
+        if (isStockTake()) {
+            return formatQuantity(getAvailableBaseQuantity(item));
+        }
 
         if (usesStoreInventorySource()) {
             return formatQuantity(getAvailableBaseQuantity(item));
@@ -1459,15 +1544,67 @@ const InventoryCreate = (() => {
             safeQuantity.baseQuantity;
 
         const total =
-            finalQuantity * unitPrice;
+            isQuantityOnlyDocument()
+                ? 0
+                : finalQuantity * unitPrice;
 
         setValue(row, ".base-quantity", finalBaseQuantity);
+        setValue(row, ".unit-price", isQuantityOnlyDocument() ? 0 : unitPrice);
         setValue(row, ".total", total);
         setText(row, ".line-total-display", formatCurrency(total));
+        updateStockTakeVariance(row, ingredient, finalBaseQuantity);
 
         if (ingredient) {
             setText(row, ".unit-conversion-display", buildConversionPreview(ingredient, finalQuantity, row));
         }
+    }
+
+    function updateStockTakeVariance(row, ingredient, actualBaseQuantity) {
+
+        const value =
+            row?.querySelector(".stocktake-variance-display");
+
+        const status =
+            row?.querySelector(".stocktake-status-display");
+
+        if (!value || !status) {
+            return;
+        }
+
+        value.classList.remove("positive", "negative", "neutral");
+
+        if (!isStockTake() || !ingredient) {
+            value.textContent = "-";
+            status.textContent = "";
+            return;
+        }
+
+        const systemQuantity =
+            getAvailableBaseQuantity(ingredient);
+
+        const variance =
+            roundQuantity(actualBaseQuantity - systemQuantity);
+
+        const unitLabel =
+            getBaseUnitLabel(ingredient);
+
+        if (variance > 0) {
+            value.textContent = `+${formatQuantity(variance)} ${unitLabel}`;
+            value.classList.add("positive");
+            status.textContent = "Tăng tồn";
+            return;
+        }
+
+        if (variance < 0) {
+            value.textContent = `-${formatQuantity(Math.abs(variance))} ${unitLabel}`;
+            value.classList.add("negative");
+            status.textContent = "Giảm tồn";
+            return;
+        }
+
+        value.textContent = `0 ${unitLabel}`;
+        value.classList.add("neutral");
+        status.textContent = "Khớp tồn";
     }
 
     function renumberRows() {
@@ -1545,6 +1682,12 @@ const InventoryCreate = (() => {
         if (isAdjustmentOut()
             && !document.querySelector(selector.note)?.value?.trim()) {
             showError("Phiếu xuất điều chỉnh phải có ghi chú lý do điều chỉnh.");
+            return;
+        }
+
+        if (isWaste()
+            && !document.querySelector(selector.note)?.value?.trim()) {
+            showError("Phiếu hủy kho phải có ghi chú lý do hủy.");
             return;
         }
 
@@ -1744,8 +1887,9 @@ const InventoryCreate = (() => {
             dto.details.find(item =>
                 !item.ingredientId
                 || !item.unitId
-                || item.quantity <= 0
-                || item.baseQuantity <= 0);
+                || (isStockTake()
+                    ? item.quantity < 0 || item.baseQuantity < 0
+                    : item.quantity <= 0 || item.baseQuantity <= 0));
 
         if (invalidDetail) {
             return "Chi tiết phiếu có nguyên liệu, đơn vị hoặc số lượng không hợp lệ.";
@@ -1786,19 +1930,23 @@ const InventoryCreate = (() => {
                     ),
 
                 unitPrice:
-                    readNumber(
-                        row.querySelector(".unit-price")?.value
-                    ),
+                    isQuantityOnlyDocument()
+                        ? 0
+                        : readNumber(
+                            row.querySelector(".unit-price")?.value
+                        ),
 
                 totalAmount:
-                    readNumber(
-                        row.querySelector(".total")?.value
-                    )
+                    isQuantityOnlyDocument()
+                        ? 0
+                        : readNumber(
+                            row.querySelector(".total")?.value
+                        )
             }))
             .filter(item =>
                 item.ingredientId > 0
                 && item.unitId > 0
-                && item.quantity > 0
+                && (isStockTake() ? item.quantity >= 0 : item.quantity > 0)
             );
     }
 
@@ -1815,11 +1963,13 @@ const InventoryCreate = (() => {
     function calculateLocalSummary(dto) {
 
         const totalAmount =
-            dto.details
-                .reduce(
-                    (sum, item) => sum + item.totalAmount,
-                    0
-                );
+            isQuantityOnlyDocument()
+                ? 0
+                : dto.details
+                    .reduce(
+                        (sum, item) => sum + item.totalAmount,
+                        0
+                    );
 
         return {
             totalItems:
@@ -2407,6 +2557,21 @@ const InventoryCreate = (() => {
             && getCurrentPurpose() === documentPurpose.adjustmentOut;
     }
 
+    function isStockTake() {
+
+        return getCurrentDocumentType() === documentType.stockTake;
+    }
+
+    function isWaste() {
+
+        return getCurrentDocumentType() === documentType.waste;
+    }
+
+    function isQuantityOnlyDocument() {
+
+        return isStockTake() || isWaste();
+    }
+
     function shouldShowPartnerField() {
 
         return isExportSale();
@@ -2565,3 +2730,4 @@ const InventoryCreate = (() => {
     };
 
 })();
+

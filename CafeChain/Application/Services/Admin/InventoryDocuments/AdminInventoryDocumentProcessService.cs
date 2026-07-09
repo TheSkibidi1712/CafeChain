@@ -304,6 +304,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
 
+                detail.UnitPrice = 0;
+                detail.TotalAmount = 0;
                 detail.CostPrice = fifo.CostPrice;
                 detail.CostAmount = fifo.CostAmount;
 
@@ -530,7 +532,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             foreach (var detail in document.Details)
             {
-                ValidateProcessDetail(detail);
+                ValidateStockTakeDetail(detail);
 
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
 
@@ -540,10 +542,59 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 var variance = actualQty - systemQty;
 
+                detail.UnitPrice = 0;
+                detail.TotalAmount = 0;
+
                 if (variance == 0)
                 {
+                    _repository.UpdateDocumentDetail(detail);
                     continue;
                 }
+
+                var transactionQuantity =
+                    Math.Abs(variance);
+
+                var transactionType =
+                    variance > 0
+                        ? InventoryTransactionTypeEnum.ADJUSTMENT_IN
+                        : InventoryTransactionTypeEnum.ADJUSTMENT_OUT;
+
+                decimal unitCost;
+                decimal totalCost;
+
+                if (variance > 0)
+                {
+                    unitCost = await ResolveLatestStockTakeUnitCostAsync(document.StoreId, detail.IngredientId);
+                    totalCost = transactionQuantity * unitCost;
+
+                    await _repository.AddCostLayerAsync(
+                        new InventoryCostLayer
+                        {
+                            StoreId = document.StoreId,
+                            IngredientId = detail.IngredientId,
+                            Quantity = transactionQuantity,
+                            RemainingQuantity = transactionQuantity,
+                            UnitCost = unitCost,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                }
+                else
+                {
+                    var fifo =
+                        await AllocateFifoQuantityAsync(
+                            detail,
+                            document.StoreId,
+                            transactionQuantity);
+
+                    unitCost = fifo.CostPrice;
+                    totalCost = fifo.CostAmount;
+                }
+
+                detail.CostPrice = unitCost;
+                detail.CostAmount = totalCost;
+                detail.TotalAmount = 0;
+
+                _repository.UpdateDocumentDetail(detail);
 
                 inventory.AvailableQty += variance;
 
@@ -559,15 +610,19 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                             InventoryDocumentId = document.InventoryDocumentId,
 
-                            Type = InventoryTransactionTypeEnum.STOCK_TAKE,
+                            Type = transactionType,
 
-                            StockStatus = InventoryStockStatus.NORMAL,
+                            StockStatus = InventoryStockStatus.ADJUSTED,
 
-                            Quantity = Math.Abs(variance),
+                            Quantity = transactionQuantity,
 
                             BeforeQty = systemQty,
 
                             AfterQty = inventory.AvailableQty,
+
+                            UnitCost = unitCost,
+
+                            TotalCost = totalCost,
 
                             CreatedAt = DateTime.UtcNow
                         });
@@ -604,6 +659,24 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             if (detail.BaseQuantity <= 0)
             {
                 throw new InvalidOperationException("Số lượng quy đổi base phải lớn hơn 0.");
+            }
+        }
+
+        private static void ValidateStockTakeDetail(InventoryDocumentDetail detail)
+        {
+            if (detail.IngredientId <= 0)
+            {
+                throw new InvalidOperationException("Nguyên liệu không hợp lệ.");
+            }
+
+            if (detail.UnitId <= 0)
+            {
+                throw new InvalidOperationException("Đơn vị tính không hợp lệ.");
+            }
+
+            if (detail.Quantity < 0 || detail.BaseQuantity < 0)
+            {
+                throw new InvalidOperationException("Số lượng kiểm kê thực tế không được âm.");
             }
         }
 
@@ -669,14 +742,29 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // FIFO
         // =====================================================
 
+        private async Task<decimal> ResolveLatestStockTakeUnitCostAsync(int storeId, int ingredientId)
+        {
+            var latestLayer =
+                await _repository.GetLatestCostLayerAsync(storeId, ingredientId);
+
+            return latestLayer?.UnitCost > 0
+                ? latestLayer.UnitCost
+                : 0;
+        }
+
         private async Task<(decimal CostPrice, decimal CostAmount)> AllocateFifoAsync(InventoryDocumentDetail detail, int storeId)
         {
-            if (detail.BaseQuantity <= 0)
+            return await AllocateFifoQuantityAsync(detail, storeId, detail.BaseQuantity);
+        }
+
+        private async Task<(decimal CostPrice, decimal CostAmount)> AllocateFifoQuantityAsync(InventoryDocumentDetail detail, int storeId, decimal issueQuantity)
+        {
+            if (issueQuantity <= 0)
             {
                 return (0, 0);
             }
 
-            decimal requiredQty = detail.BaseQuantity;
+            decimal requiredQty = issueQuantity;
 
             decimal totalCost = 0;
 
@@ -731,7 +819,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 await _repository.AddCostAllocationsAsync(allocations);
             }
 
-            var avgCost = totalCost / detail.BaseQuantity;
+            var avgCost = totalCost / issueQuantity;
 
             return (avgCost, totalCost);
         }

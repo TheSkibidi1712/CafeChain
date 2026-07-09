@@ -1,6 +1,7 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Snapshot;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Export;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Helpers;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -167,6 +168,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                 .Bold()
                                 .FontColor("#111827");
 
+                            var hideMoneyColumns =
+                                IsMoneylessSnapshot(snapshot);
+
                             col.Item().Table(table =>
                             {
                                 table.ColumnsDefinition(columns =>
@@ -175,8 +179,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                     columns.RelativeColumn(3.6f);
                                     columns.RelativeColumn(1.1f);
                                     columns.RelativeColumn(1.2f);
-                                    columns.RelativeColumn(2.3f);
-                                    columns.RelativeColumn(2.4f);
+                                    if (!hideMoneyColumns)
+                                    {
+                                        columns.RelativeColumn(2.3f);
+                                        columns.RelativeColumn(2.4f);
+                                    }
                                 });
 
                                 table.Header(header =>
@@ -185,8 +192,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                     header.Cell().Element(PdfHeaderCell).Text("Nguyên liệu").Bold();
                                     header.Cell().Element(PdfHeaderCell).AlignCenter().Text("ĐVT").Bold();
                                     header.Cell().Element(PdfHeaderCell).AlignRight().Text("SL").Bold();
-                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("Đơn giá").Bold();
-                                    header.Cell().Element(PdfHeaderCell).AlignRight().Text("Thành tiền").Bold();
+                                    if (!hideMoneyColumns)
+                                    {
+                                        header.Cell().Element(PdfHeaderCell).AlignRight().Text("Đơn giá").Bold();
+                                        header.Cell().Element(PdfHeaderCell).AlignRight().Text("Thành tiền").Bold();
+                                    }
                                 });
 
                                 var index =
@@ -198,26 +208,32 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                                     table.Cell().Element(PdfBodyCell).Text(item.ItemName ?? string.Empty);
                                     table.Cell().Element(PdfBodyCell).AlignCenter().Text(item.UnitName ?? string.Empty);
                                     table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatQuantity(item.Quantity));
-                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.UnitPrice));
-                                    table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.TotalAmount));
+                                    if (!hideMoneyColumns)
+                                    {
+                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.UnitPrice));
+                                        table.Cell().Element(PdfBodyCell).AlignRight().Text(FormatMoney(item.TotalAmount));
+                                    }
 
                                     index++;
                                 }
 
-                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
-                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Tổng tiền").Bold();
-                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.TotalAmount)).Bold();
+                                if (!hideMoneyColumns)
+                                {
+                                    table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                    table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Tổng tiền").Bold();
+                                    table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.TotalAmount)).Bold();
 
-                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
-                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("VAT").Bold();
-                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.VatAmount)).Bold();
+                                    table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                    table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("VAT").Bold();
+                                    table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.VatAmount)).Bold();
 
-                                table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
-                                table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Thành tiền").Bold();
-                                table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.FinalAmount))
-                                    .Bold()
-                                    .FontSize(11)
-                                    .FontColor("#F97316");
+                                    table.Cell().ColumnSpan(4).Element(PdfSummaryBlankCell).Text(string.Empty);
+                                    table.Cell().Element(PdfSummaryLabelCell).AlignRight().Text("Thành tiền").Bold();
+                                    table.Cell().Element(PdfSummaryValueCell).AlignRight().Text(FormatMoney(snapshot.FinalAmount))
+                                        .Bold()
+                                        .FontSize(11)
+                                        .FontColor("#F97316");
+                                }
                             });
 
                             col.Item().PaddingTop(24).Row(row =>
@@ -366,7 +382,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // EXCEL
         // =====================================================
 
-        public Task<byte[]> ExportExcelAsync(IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows)
+        public Task<byte[]> ExportExcelAsync(AdminInventoryDocumentExcelExportDTO data)
         {
             using var stream =
                 new MemoryStream();
@@ -391,70 +407,19 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 stylesPart.Stylesheet.Save();
 
-                var worksheetPart =
-                    workbookPart.AddNewPart<WorksheetPart>();
-
-                var sheetData =
-                    new X.SheetData();
-
-                worksheetPart.Worksheet =
-                    new X.Worksheet(
-                        CreateExcelSheetViews(),
-                        CreateExcelColumns(),
-                        sheetData);
-
-                sheetData.Append(
-                    CreateExcelRow(
-                        1,
-                        ExcelHeaderStyleIndex,
-                        "STT",
-                        "Mã phiếu",
-                        "Loại",
-                        "Mục đích",
-                        "Cửa hàng",
-                        "Đối tác",
-                        "Ngày chứng từ",
-                        "Giá trị",
-                        "Trạng thái",
-                        "Ngày xác nhận"));
-
-                var rowIndex =
-                    2U;
-
-                foreach (var row in rows)
-                {
-                    sheetData.Append(
-                        CreateExcelDataRow(
-                            rowIndex,
-                            row));
-
-                    rowIndex++;
-                }
-
-                var lastRowIndex =
-                    rowIndex > 1
-                        ? rowIndex - 1
-                        : 1;
-
-                worksheetPart.Worksheet.Append(
-                    new X.AutoFilter
-                    {
-                        Reference = $"A1:J{lastRowIndex}"
-                    });
-
-                worksheetPart.Worksheet.Save();
-
                 var sheets =
                     workbookPart.Workbook.AppendChild(
                         new X.Sheets());
 
-                sheets.Append(
-                    new X.Sheet
-                    {
-                        Id = workbookPart.GetIdOfPart(worksheetPart),
-                        SheetId = 1,
-                        Name = "PhieuKho"
-                    });
+                AppendDocumentsExcelSheet(
+                    workbookPart,
+                    sheets,
+                    data.Documents);
+
+                AppendDetailsExcelSheet(
+                    workbookPart,
+                    sheets,
+                    data.Details);
 
                 workbookPart.Workbook.Save();
             }
@@ -468,6 +433,137 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         // EXCEL HELPERS
         // =====================================================
+        private static void AppendDocumentsExcelSheet(
+            WorkbookPart workbookPart,
+            X.Sheets sheets,
+            IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows)
+        {
+            var sheetData =
+                new X.SheetData();
+
+            sheetData.Append(
+                CreateExcelRow(
+                    1,
+                    ExcelHeaderStyleIndex,
+                    "STT",
+                    "Mã phiếu",
+                    "Loại",
+                    "Mục đích",
+                    "Cửa hàng",
+                    "Đối tác",
+                    "Ngày chứng từ",
+                    "Giá trị",
+                    "Trạng thái",
+                    "Ngày xác nhận"));
+
+            var rowIndex =
+                2U;
+
+            foreach (var row in rows)
+            {
+                sheetData.Append(
+                    CreateExcelDataRow(
+                        rowIndex,
+                        row));
+
+                rowIndex++;
+            }
+
+            AppendExcelSheet(
+                workbookPart,
+                sheets,
+                sheetId: 1,
+                sheetName: "PhieuKho",
+                sheetData,
+                autoFilterReference: $"A1:J{Math.Max(rowIndex - 1, 1U)}",
+                CreateExcelColumns(8, 18, 16, 22, 24, 24, 16, 18, 16, 18));
+        }
+
+        private static void AppendDetailsExcelSheet(
+            WorkbookPart workbookPart,
+            X.Sheets sheets,
+            IReadOnlyList<AdminInventoryDocumentExcelDetailRowDTO> rows)
+        {
+            var sheetData =
+                new X.SheetData();
+
+            sheetData.Append(
+                CreateExcelRow(
+                    1,
+                    ExcelHeaderStyleIndex,
+                    "STT",
+                    "Mã phiếu",
+                    "Loại",
+                    "Mục đích",
+                    "Cửa hàng",
+                    "Ngày chứng từ",
+                    "Trạng thái",
+                    "Nguyên liệu",
+                    "ĐVT",
+                    "Số lượng",
+                    "Quy đổi base",
+                    "Đơn giá chứng từ",
+                    "Thành tiền chứng từ",
+                    "Giá vốn",
+                    "Chi phí vốn",
+                    "Ghi chú"));
+
+            var rowIndex =
+                2U;
+
+            foreach (var row in rows)
+            {
+                sheetData.Append(
+                    CreateExcelDetailDataRow(
+                        rowIndex,
+                        row));
+
+                rowIndex++;
+            }
+
+            AppendExcelSheet(
+                workbookPart,
+                sheets,
+                sheetId: 2,
+                sheetName: "ChiTiet",
+                sheetData,
+                autoFilterReference: $"A1:P{Math.Max(rowIndex - 1, 1U)}",
+                CreateExcelColumns(8, 18, 16, 22, 24, 16, 16, 30, 12, 14, 16, 18, 20, 16, 18, 32));
+        }
+
+        private static void AppendExcelSheet(
+            WorkbookPart workbookPart,
+            X.Sheets sheets,
+            uint sheetId,
+            string sheetName,
+            X.SheetData sheetData,
+            string autoFilterReference,
+            X.Columns columns)
+        {
+            var worksheetPart =
+                workbookPart.AddNewPart<WorksheetPart>();
+
+            worksheetPart.Worksheet =
+                new X.Worksheet(
+                    CreateExcelSheetViews(),
+                    columns,
+                    sheetData,
+                    new X.AutoFilter
+                    {
+                        Reference = autoFilterReference
+                    });
+
+            worksheetPart.Worksheet.Save();
+
+            sheets.Append(
+                new X.Sheet
+                {
+                    Id = workbookPart.GetIdOfPart(worksheetPart),
+                    SheetId = sheetId,
+                    Name = sheetName
+                });
+        }
+
         private static X.SheetViews CreateExcelSheetViews()
         {
             var sheetView =
@@ -488,19 +584,27 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return new X.SheetViews(sheetView);
         }
 
-        private static X.Columns CreateExcelColumns()
+        private static X.Columns CreateExcelColumns(params double[] widths)
         {
-            return new X.Columns(
-                new X.Column { Min = 1, Max = 1, Width = 8, CustomWidth = true },
-                new X.Column { Min = 2, Max = 2, Width = 18, CustomWidth = true },
-                new X.Column { Min = 3, Max = 3, Width = 16, CustomWidth = true },
-                new X.Column { Min = 4, Max = 4, Width = 22, CustomWidth = true },
-                new X.Column { Min = 5, Max = 5, Width = 24, CustomWidth = true },
-                new X.Column { Min = 6, Max = 6, Width = 24, CustomWidth = true },
-                new X.Column { Min = 7, Max = 7, Width = 16, CustomWidth = true },
-                new X.Column { Min = 8, Max = 8, Width = 18, CustomWidth = true },
-                new X.Column { Min = 9, Max = 9, Width = 16, CustomWidth = true },
-                new X.Column { Min = 10, Max = 10, Width = 18, CustomWidth = true });
+            var columns =
+                new X.Columns();
+
+            for (var i = 0; i < widths.Length; i++)
+            {
+                var index =
+                    (uint)i + 1;
+
+                columns.Append(
+                    new X.Column
+                    {
+                        Min = index,
+                        Max = index,
+                        Width = widths[i],
+                        CustomWidth = true
+                    });
+            }
+
+            return columns;
         }
 
         private static X.Row CreateExcelRow(uint rowIndex, uint styleIndex, params string[] values)
@@ -533,14 +637,43 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             row.Append(
                 CreateExcelNumberCell(document.No, ExcelCenterStyleIndex),
                 CreateExcelTextCell(document.Code, ExcelBodyStyleIndex),
-                CreateExcelTextCell(document.Type.ToString(), ExcelBodyStyleIndex),
-                CreateExcelTextCell(document.Purpose.ToString(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.Type.ToVietnamese(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.Purpose.ToVietnamese(), ExcelBodyStyleIndex),
                 CreateExcelTextCell(document.StoreName, ExcelBodyStyleIndex),
                 CreateExcelTextCell(document.PartnerName ?? "-", ExcelBodyStyleIndex),
                 CreateExcelDateCell(document.DocumentDate),
                 CreateExcelNumberCell(document.FinalAmount, ExcelMoneyStyleIndex),
-                CreateExcelTextCell(document.Status.ToString(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(document.Status.ToVietnamese(), ExcelBodyStyleIndex),
                 CreateExcelDateCell(document.ConfirmedAt));
+
+            return row;
+        }
+
+        private static X.Row CreateExcelDetailDataRow(uint rowIndex, AdminInventoryDocumentExcelDetailRowDTO detail)
+        {
+            var row =
+                new X.Row
+                {
+                    RowIndex = rowIndex
+                };
+
+            row.Append(
+                CreateExcelNumberCell(detail.No, ExcelCenterStyleIndex),
+                CreateExcelTextCell(detail.DocumentCode, ExcelBodyStyleIndex),
+                CreateExcelTextCell(detail.Type.ToVietnamese(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(detail.Purpose.ToVietnamese(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(detail.StoreName, ExcelBodyStyleIndex),
+                CreateExcelDateCell(detail.DocumentDate),
+                CreateExcelTextCell(detail.Status.ToVietnamese(), ExcelBodyStyleIndex),
+                CreateExcelTextCell(detail.IngredientName, ExcelBodyStyleIndex),
+                CreateExcelTextCell(detail.UnitName, ExcelBodyStyleIndex),
+                CreateExcelNumberCell(detail.Quantity, ExcelBodyStyleIndex),
+                CreateExcelNumberCell(detail.BaseQuantity, ExcelBodyStyleIndex),
+                CreateExcelNumberCell(detail.UnitPrice, ExcelMoneyStyleIndex),
+                CreateExcelNumberCell(detail.TotalAmount, ExcelMoneyStyleIndex),
+                CreateExcelNumberCell(detail.CostPrice, ExcelMoneyStyleIndex),
+                CreateExcelNumberCell(detail.CostAmount, ExcelMoneyStyleIndex),
+                CreateExcelTextCell(detail.Note ?? string.Empty, ExcelBodyStyleIndex));
 
             return row;
         }
@@ -967,133 +1100,94 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private static Table CreateDetailsTable(InventoryDocumentSnapshotDTO snapshot)
         {
+            var hideMoneyColumns =
+                IsMoneylessSnapshot(snapshot);
+
             var table = CreateBaseWordTable(true);
 
-            table.Append(
-                CreateWordTableGrid(
-                    "420",
-                    "1800",
-                    "720",
-                    "720",
-                    "1250",
-                    "1350"));
+            if (hideMoneyColumns)
+            {
+                table.Append(
+                    CreateWordTableGrid(
+                        "420",
+                        "3000",
+                        "900",
+                        "900"));
+            }
+            else
+            {
+                table.Append(
+                    CreateWordTableGrid(
+                        "420",
+                        "1800",
+                        "720",
+                        "720",
+                        "1250",
+                        "1350"));
+            }
 
-            table.Append(
-                CreateWordTableRow(
-                    [
-                        CreateWordTableCell(
-                    "STT",
-                    JustificationValues.Center,
-                    true,
-                    "FFF7ED",
-                    "420"),
+            var headerCells =
+                new List<TableCell>
+                {
+                    CreateWordTableCell("STT", JustificationValues.Center, true, "FFF7ED", "420"),
+                    CreateWordTableCell("Nguyên liệu", JustificationValues.Left, true, "FFF7ED", hideMoneyColumns ? "3000" : "1800"),
+                    CreateWordTableCell("ĐVT", JustificationValues.Center, true, "FFF7ED", hideMoneyColumns ? "900" : "720"),
+                    CreateWordTableCell("SL", JustificationValues.Right, true, "FFF7ED", hideMoneyColumns ? "900" : "720")
+                };
 
-                CreateWordTableCell(
-                    "Nguyên liệu",
-                    JustificationValues.Left,
-                    true,
-                    "FFF7ED",
-                    "1800"),
+            if (!hideMoneyColumns)
+            {
+                headerCells.Add(CreateWordTableCell("Đơn giá", JustificationValues.Right, true, "FFF7ED", "1250"));
+                headerCells.Add(CreateWordTableCell("Thành tiền", JustificationValues.Right, true, "FFF7ED", "1350"));
+            }
 
-                CreateWordTableCell(
-                    "ĐVT",
-                    JustificationValues.Center,
-                    true,
-                    "FFF7ED",
-                    "720"),
-
-                CreateWordTableCell(
-                    "SL",
-                    JustificationValues.Right,
-                    true,
-                    "FFF7ED",
-                    "720"),
-
-                CreateWordTableCell(
-                    "Đơn giá",
-                    JustificationValues.Right,
-                    true,
-                    "FFF7ED",
-                    "1250"),
-
-                CreateWordTableCell(
-                    "Thành tiền",
-                    JustificationValues.Right,
-                    true,
-                    "FFF7ED",
-                    "1350")
-                    ]));
+            table.Append(CreateWordTableRow(headerCells));
 
             var index = 1;
 
             foreach (var item in snapshot.Details)
             {
+                var rowCells =
+                    new List<TableCell>
+                    {
+                        CreateWordTableCell(index.ToString(), JustificationValues.Center, false, null, "420"),
+                        CreateWordTableCell(item.ItemName ?? string.Empty, JustificationValues.Left, false, null, hideMoneyColumns ? "3000" : "1800"),
+                        CreateWordTableCell(item.UnitName ?? string.Empty, JustificationValues.Center, false, null, hideMoneyColumns ? "900" : "720"),
+                        CreateWordTableCell(FormatQuantity(item.Quantity), JustificationValues.Right, false, null, hideMoneyColumns ? "900" : "720")
+                    };
+
+                if (!hideMoneyColumns)
+                {
+                    rowCells.Add(CreateWordTableCell(FormatMoney(item.UnitPrice), JustificationValues.Right, false, null, "1250"));
+                    rowCells.Add(CreateWordTableCell(FormatMoney(item.TotalAmount), JustificationValues.Right, false, null, "1350"));
+                }
+
                 table.Append(
-                    CreateWordTableRow(
-                        [
-                            CreateWordTableCell(
-                        index.ToString(),
-                        JustificationValues.Center,
-                        false,
-                        null,
-                        "420"),
-
-                    CreateWordTableCell(
-                        item.ItemName ?? string.Empty,
-                        JustificationValues.Left,
-                        false,
-                        null,
-                        "1800"),
-
-                    CreateWordTableCell(
-                        item.UnitName ?? string.Empty,
-                        JustificationValues.Center,
-                        false,
-                        null,
-                        "720"),
-
-                    CreateWordTableCell(
-                        FormatQuantity(item.Quantity),
-                        JustificationValues.Right,
-                        false,
-                        null,
-                        "720"),
-
-                    CreateWordTableCell(
-                        FormatMoney(item.UnitPrice),
-                        JustificationValues.Right,
-                        false,
-                        null,
-                        "1250"),
-
-                    CreateWordTableCell(
-                        FormatMoney(item.TotalAmount),
-                        JustificationValues.Right,
-                        false,
-                        null,
-                        "1350")
-                        ]));
+                    CreateWordTableRow(rowCells));
 
                 index++;
             }
 
-            table.Append(
-                CreateWordSummaryRow(
-                    "Tổng tiền",
-                    FormatMoney(snapshot.TotalAmount),
-                    false));
+            if (!hideMoneyColumns)
+            {
+                table.Append(
+                    CreateWordSummaryRow(
+                        "Tổng tiền",
+                        FormatMoney(snapshot.TotalAmount),
+                        false));
 
-            table.Append(
-                CreateWordSummaryRow(
-                    "VAT",
-                    FormatMoney(snapshot.VatAmount),
-                    false));
+                table.Append(
+                    CreateWordSummaryRow(
+                        "VAT",
+                        FormatMoney(snapshot.VatAmount),
+                        false));
 
-            table.Append(
-                CreateWordSummaryRow(
-                    "Thành tiền",
-                    FormatMoney(snapshot.FinalAmount),
-                    true));
+                table.Append(
+                    CreateWordSummaryRow(
+                        "Thành tiền",
+                        FormatMoney(snapshot.FinalAmount),
+                        true));
+            }
 
             return table;
         }
@@ -1712,6 +1806,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return value.ToString(
                 "0.##",
                 CultureInfo.GetCultureInfo("vi-VN"));
+        }
+
+        private static bool IsMoneylessSnapshot(InventoryDocumentSnapshotDTO snapshot)
+        {
+            return snapshot.TotalAmount == 0
+                && snapshot.VatAmount == 0
+                && snapshot.FinalAmount == 0;
         }
     }
 }

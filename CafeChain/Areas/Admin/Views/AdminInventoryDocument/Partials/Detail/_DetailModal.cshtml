@@ -17,13 +17,13 @@
             <h4>@Model.Code</h4>
 
             <small>
-                @Model.Type
+                @Model.Type.ToVietnamese()
             </small>
 
         </div>
 
         <span class="status-badge @Model.Status.ToString().ToLower()">
-            @Model.Status
+            @Model.Status.ToVietnamese()
         </span>
 
     </div>

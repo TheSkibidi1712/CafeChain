@@ -359,31 +359,84 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<byte[]> ExportExcelAsync(
             AdminInventoryDocumentFilterDTO filter)
         {
-            var rows =
+            var documents =
                 await BuildFilteredDocumentsQuery(filter)
                     .OrderByDescending(x => x.DocumentDate)
+                    .ThenByDescending(x => x.InventoryDocumentId)
                     .Select(x =>
-                        new AdminInventoryDocumentExcelRowDTO
+                        new
                         {
-                            Code = x.Code,
+                            Document =
+                                new AdminInventoryDocumentExcelRowDTO
+                                {
+                                    Code = x.Code,
 
-                            Type = x.Type,
+                                    Type = x.Type,
 
-                            Purpose = x.Purpose,
+                                    Purpose = x.Purpose,
 
-                            StoreName = x.Store.Name,
+                                    StoreName = x.Store.Name,
 
-                            PartnerName = x.PartnerName,
+                                    PartnerName = x.PartnerName,
 
-                            DocumentDate = x.DocumentDate,
+                                    DocumentDate = x.DocumentDate,
 
-                            FinalAmount = x.FinalAmount ?? 0,
+                                    FinalAmount = x.FinalAmount ?? 0,
 
-                            Status = x.Status,
+                                    Status = x.Status,
 
-                            ConfirmedAt = x.ConfirmedAt
+                                    ConfirmedAt = x.ConfirmedAt
+                                },
+
+                            Details =
+                                x.Details
+                                    .OrderBy(detail => detail.InventoryDocumentDetailId)
+                                    .Select(detail =>
+                                        new AdminInventoryDocumentExcelDetailRowDTO
+                                        {
+                                            DocumentCode = x.Code,
+
+                                            Type = x.Type,
+
+                                            Purpose = x.Purpose,
+
+                                            StoreName = x.Store.Name,
+
+                                            DocumentDate = x.DocumentDate,
+
+                                            Status = x.Status,
+
+                                            IngredientName = detail.Ingredient.Name,
+
+                                            UnitName = detail.Unit.Name,
+
+                                            Quantity = detail.Quantity,
+
+                                            BaseQuantity = detail.BaseQuantity,
+
+                                            UnitPrice = detail.UnitPrice ?? 0,
+
+                                            TotalAmount = detail.TotalAmount ?? 0,
+
+                                            CostPrice = detail.CostPrice ?? 0,
+
+                                            CostAmount = detail.CostAmount ?? 0,
+
+                                            Note = detail.Note ?? x.Note
+                                        })
+                                    .ToList()
                         })
                     .ToListAsync();
+
+            var rows =
+                documents
+                    .Select(x => x.Document)
+                    .ToList();
+
+            var detailRows =
+                documents
+                    .SelectMany(x => x.Details)
+                    .ToList();
 
             for (var i = 0; i < rows.Count; i++)
             {
@@ -391,7 +444,18 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     i + 1;
             }
 
-            return await _exportService.ExportExcelAsync(rows);
+            for (var i = 0; i < detailRows.Count; i++)
+            {
+                detailRows[i].No =
+                    i + 1;
+            }
+
+            return await _exportService.ExportExcelAsync(
+                new AdminInventoryDocumentExcelExportDTO
+                {
+                    Documents = rows,
+                    Details = detailRows
+                });
         }
 
     }

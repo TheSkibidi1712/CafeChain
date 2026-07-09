@@ -1,3 +1,8 @@
+@{
+    var hideMoneyColumns = ViewData["HideMoneyColumns"] as bool? == true;
+    var showVarianceColumn = ViewData["ShowVarianceColumn"] as bool? == true;
+}
+
 <tr class="ingredient-row">
 
     <td class="create-col-index text-center">
@@ -13,7 +18,7 @@
             <span class="base-unit-name">Base unit</span>
             <span class="ingredient-source">Chưa chọn</span>
             <span class="available-stock-display">Tồn: -</span>
-            <span class="price-source-display">Nguồn giá: -</span>
+            <span class="price-source-display @(hideMoneyColumns ? "d-none" : "")">Nguồn giá: -</span>
             <span class="unit-conversion-display">Quy đổi: -</span>
         </div>
 
@@ -39,13 +44,13 @@
     <td class="create-col-qty">
         <input type="number"
                class="form-control create-control quantity"
-               min="0.001"
+               min="0"
                step="any"
                inputmode="decimal"
                placeholder="1" />
     </td>
 
-    <td class="create-col-price">
+    <td class="create-col-price @(hideMoneyColumns ? "d-none" : "")">
         <input type="number"
                class="form-control create-control unit-price"
                min="0"
@@ -58,7 +63,12 @@
         <span class="minimum-order-quantity">-</span>
     </td>
 
-    <td class="create-col-total">
+    <td class="create-col-variance @(showVarianceColumn ? "" : "d-none")">
+        <span class="stocktake-variance-display">-</span>
+        <small class="stocktake-status-display"></small>
+    </td>
+
+    <td class="create-col-total @(hideMoneyColumns ? "d-none" : "")">
         <span class="line-total-display">0</span>
         <small>VNĐ</small>
 

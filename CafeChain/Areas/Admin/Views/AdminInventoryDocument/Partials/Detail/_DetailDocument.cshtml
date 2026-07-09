@@ -15,6 +15,15 @@
     };
 
     var isSupplierPurchase = Model.Type == InventoryDocumentType.IMPORT && Model.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
+    var hideMoneyColumns =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+        || Model.Type == InventoryDocumentType.WASTE;
+    var quantityLabel =
+        Model.Type == InventoryDocumentType.STOCK_TAKE
+            ? "SL thực tế"
+            : Model.Type == InventoryDocumentType.WASTE
+                ? "SL hủy"
+                : "SL";
 }
 
 <link rel="stylesheet"
@@ -84,11 +93,14 @@
                     <th class="text-center">
                         DVT
                     </th>
-                    <th class="text-end">SL</th>
-                    <th class="text-end">
-                        Đơn giá
-                    </th>
-                    <th class="text-end">Thành tiền</th>
+                    <th class="text-end">@quantityLabel</th>
+                    @if (!hideMoneyColumns)
+                    {
+                        <th class="text-end">
+                            Đơn giá
+                        </th>
+                        <th class="text-end">Thành tiền</th>
+                    }
 
                 </tr>
 
@@ -120,16 +132,19 @@
                             @item.Quantity.ToString("0.##")
                         </td>
 
-                        <td class="text-end">
-                            <span class="readonly-pill">
-                                @(item.UnitPrice?.ToString("N0") ?? "0")
-                            </span>
-                        </td>
+                        @if (!hideMoneyColumns)
+                        {
+                            <td class="text-end">
+                                <span class="readonly-pill">
+                                    @(item.UnitPrice?.ToString("N0") ?? "0")
+                                </span>
+                            </td>
 
-                        <td class="text-end item-total"
-                            data-value="@(item.TotalAmount ?? 0)">
-                            @(item.TotalAmount?.ToString("N0") ?? "0")
-                        </td>
+                            <td class="text-end item-total"
+                                data-value="@(item.TotalAmount ?? 0)">
+                                @(item.TotalAmount?.ToString("N0") ?? "0")
+                            </td>
+                        }
 
                     </tr>
 
@@ -142,23 +157,26 @@
 
     </div>
 
-    <div class="voucher-summary">
+    @if (!hideMoneyColumns)
+    {
+        <div class="voucher-summary">
 
-        <div>
-            <span>Tổng tiền</span>
-            <strong>@(Model.TotalAmount?.ToString("N0") ?? "0")</strong>
+            <div>
+                <span>Tổng tiền</span>
+                <strong>@(Model.TotalAmount?.ToString("N0") ?? "0")</strong>
+            </div>
+
+            <div>
+                <span>VAT</span>
+                <strong>@(Model.VatAmount?.ToString("N0") ?? "0")</strong>
+            </div>
+
+            <div class="final">
+                <span>Thành tiền</span>
+                <strong>@(Model.FinalAmount?.ToString("N0") ?? "0")</strong>
+            </div>
+
         </div>
-
-        <div>
-            <span>VAT</span>
-            <strong>@(Model.VatAmount?.ToString("N0") ?? "0")</strong>
-        </div>
-
-        <div class="final">
-            <span>Thành tiền</span>
-            <strong>@(Model.FinalAmount?.ToString("N0") ?? "0")</strong>
-        </div>
-
-    </div>
+    }
 
 </div>

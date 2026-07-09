@@ -9,6 +9,6 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<byte[]> ExportWordAsync(InventoryDocumentSnapshotDTO snapshot);
 
-        Task<byte[]> ExportExcelAsync(IReadOnlyList<AdminInventoryDocumentExcelRowDTO> rows);
+        Task<byte[]> ExportExcelAsync(AdminInventoryDocumentExcelExportDTO data);
     }
 }

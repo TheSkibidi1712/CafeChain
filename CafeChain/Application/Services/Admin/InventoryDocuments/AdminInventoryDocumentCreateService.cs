@@ -913,9 +913,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return;
             }
 
+            var isStockTake =
+                dto.Type == InventoryDocumentType.STOCK_TAKE;
+
+            var isQuantityOnlyDocument =
+                IsQuantityOnlyDocumentType(dto.Type);
+
             foreach (var item in dto.Details)
             {
-                if (item.Quantity <= 0)
+                if (item.Quantity <= 0 && !isStockTake)
                 {
                     continue;
                 }
@@ -934,6 +940,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 item.BaseQuantity =
                     item.Quantity * conversionFactor;
 
+                if (isQuantityOnlyDocument)
+                {
+                    item.UnitPrice = 0;
+                    item.TotalAmount = 0;
+                    continue;
+                }
+
                 item.TotalAmount =
                     item.Quantity * item.UnitPrice;
 
@@ -946,11 +959,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private async Task<InventoryCreateSummaryDTO> BuildSummaryAsync(CreateInventoryDocumentDTO dto)
         {
+            var isQuantityOnlyDocument =
+                IsQuantityOnlyDocumentType(dto.Type);
+
             InventoryCreateSummaryDTO summary = new()
             {
                 TotalItems = dto.Details.Count,
                 TotalQuantity = dto.Details.Sum(x => x.Quantity),
-                TotalAmount = dto.Details.Sum(x => x.TotalAmount),
+                TotalAmount = isQuantityOnlyDocument
+                    ? 0
+                    : dto.Details.Sum(x => x.TotalAmount),
                 VatRate = 0,
                 VatAmount = 0
             };
@@ -960,6 +978,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             summary.BaseQuantityText = FormatBaseQuantityText(summary.BaseQuantities);
 
             return summary;
+        }
+
+        private static bool IsQuantityOnlyDocumentType(InventoryDocumentType type)
+        {
+            return type == InventoryDocumentType.STOCK_TAKE
+                || type == InventoryDocumentType.WASTE;
         }
 
         private async Task<List<InventoryBaseQuantitySummaryDTO>> BuildBaseQuantitySummaryAsync(CreateInventoryDocumentDTO dto)
