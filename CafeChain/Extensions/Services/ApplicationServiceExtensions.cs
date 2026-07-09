@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // Application - Interfaces
 // ==========================================
 using CafeChain.Application.Interfaces;
@@ -174,6 +174,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
+            services.AddScoped<IOtpApprovalService, OtpApprovalService>();
 
             // Permissions
             services.AddScoped<IAdminPermissionService, AdminPermissionService>();

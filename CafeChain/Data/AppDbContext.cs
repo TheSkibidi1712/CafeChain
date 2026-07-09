@@ -15,6 +15,7 @@ using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Locations;
 using CafeChain.Models.Loyalties;
 using CafeChain.Models.Orders;
+using CafeChain.Models.Operations;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -69,6 +70,7 @@ namespace CafeChain.Data
         public DbSet<OrderType> OrderTypes { get; set; }
         public DbSet<OrderTopping> OrderToppings { get; set; }
         public DbSet<InvoiceAuditLog> InvoiceAuditLogs { get; set; }
+        public DbSet<OtpChallenge> OtpChallenges { get; set; }
 
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }
