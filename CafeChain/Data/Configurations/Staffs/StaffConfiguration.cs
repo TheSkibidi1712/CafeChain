@@ -187,9 +187,9 @@ namespace CafeChain.Data.Configurations.Staffs
                 .HasFilter("[AccountNumber] IS NOT NULL AND [BankName] IS NOT NULL");
 
             entity.HasData(
-                new StaffBank { StaffBankId = 1, StaffId = 101, BankName = "Vietcombank", AccountNumber = "123456789" },
-                new StaffBank { StaffBankId = 2, StaffId = 102, BankName = "ACB", AccountNumber = "987654321" },
-                new StaffBank { StaffBankId = 3, StaffId = 103, BankName = "Techcombank", AccountNumber = "456123789" }
+                new StaffBank { StaffBankId = 1, StaffId = 1, BankName = "Vietcombank", AccountNumber = "123456789" },
+                new StaffBank { StaffBankId = 2, StaffId = 2, BankName = "ACB", AccountNumber = "987654321" },
+                new StaffBank { StaffBankId = 3, StaffId = 3, BankName = "Techcombank", AccountNumber = "456123789" }
             );
         }
     }
@@ -223,28 +223,63 @@ namespace CafeChain.Data.Configurations.Staffs
                 .IsUnique();
 
             entity.HasData(
-                // ===== SYSTEM LEVEL =====
-                new StaffScope { StaffScopeId = 101, StaffId = 101, ScopeTypeId = 1, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 102, StaffId = 102, ScopeTypeId = 1, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 103, StaffId = 103, ScopeTypeId = 1, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 104, StaffId = 104, ScopeTypeId = 1, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 105, StaffId = 105, ScopeTypeId = 1, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 106, StaffId = 106, ScopeTypeId = 1, ScopeRefId = 1 },
+                // ===== COUNTRY / SYSTEM LEVEL =====
+                // Chủ doanh nghiệp: xem toàn bộ hệ thống
+                new StaffScope
+                {
+                    StaffScopeId = 1,
+                    StaffId = 1,
+                    ScopeTypeId = 1, // SCOPE_COUNTRY
+                    ScopeRefId = 1
+                },
 
-                // ===== PROVINCE LEVEL ===== (Đồng Nai = 75)
-                new StaffScope { StaffScopeId = 107, StaffId = 107, ScopeTypeId = 2, ScopeRefId = 75 },
+                // Quản trị hệ thống: cấu hình toàn hệ thống
+                new StaffScope
+                {
+                    StaffScopeId = 2,
+                    StaffId = 6,
+                    ScopeTypeId = 1, // SCOPE_COUNTRY
+                    ScopeRefId = 1
+                },
 
-                // ===== DISTRICT LEVEL ===== (Biên Hòa = 731)
-                new StaffScope { StaffScopeId = 108, StaffId = 111, ScopeTypeId = 3, ScopeRefId = 731 },
+                // ===== PROVINCE / AREA LEVEL =====
+                // Quản lý vùng TP.HCM
+                // Nếu ProvinceId TP.HCM trong seed của bạn không phải 79 thì đổi lại ScopeRefId cho đúng
+                new StaffScope
+                {
+                    StaffScopeId = 3,
+                    StaffId = 2,
+                    ScopeTypeId = 2, // SCOPE_PROVINCE
+                    ScopeRefId = 79
+                },
 
-                // ===== STORE LEVEL ===== (⚠️ FIX: phải là 5)
-                new StaffScope { StaffScopeId = 109, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 110, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 2 },
-                new StaffScope { StaffScopeId = 111, StaffId = 108, ScopeTypeId = 5, ScopeRefId = 3 },
+                // ===== STORE LEVEL =====
+                // Quản lý chi nhánh Quận 1
+                new StaffScope
+                {
+                    StaffScopeId = 4,
+                    StaffId = 3,
+                    ScopeTypeId = 5, // SCOPE_STORE
+                    ScopeRefId = 1
+                },
 
-                new StaffScope { StaffScopeId = 112, StaffId = 109, ScopeTypeId = 5, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 113, StaffId = 110, ScopeTypeId = 5, ScopeRefId = 1 },
-                new StaffScope { StaffScopeId = 114, StaffId = 112, ScopeTypeId = 5, ScopeRefId = 1 }
+                // Nhân viên bán hàng
+                new StaffScope
+                {
+                    StaffScopeId = 5,
+                    StaffId = 4,
+                    ScopeTypeId = 5, // SCOPE_STORE
+                    ScopeRefId = 1
+                },
+
+                // Nhân viên kế toán kho
+                new StaffScope
+                {
+                    StaffScopeId = 6,
+                    StaffId = 5,
+                    ScopeTypeId = 5, // SCOPE_STORE
+                    ScopeRefId = 1
+                }
             );
         }
     }
@@ -366,9 +401,9 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.HasIndex(x => x.WorkDate);
 
             entity.HasData(
-                new StaffShift { StaffShiftId = 1, StaffId = 108, ShiftId = 1, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
-                new StaffShift { StaffShiftId = 2, StaffId = 109, ShiftId = 2, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
-                new StaffShift { StaffShiftId = 3, StaffId = 110, ShiftId = 4, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 }
+                new StaffShift { StaffShiftId = 1, StaffId = 4, ShiftId = 1, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 2, StaffId = 5, ShiftId = 2, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 },
+                new StaffShift { StaffShiftId = 3, StaffId = 6, ShiftId = 4, WorkDate = new DateTime(2026, 1, 1), StatusId = 1 }
             );
         }
     }
@@ -429,18 +464,12 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.HasIndex(x => x.StaffId);
 
             entity.HasData(
-                new StaffPhone { StaffPhoneId = 1, StaffId = 101, Phone = "0901000101", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 2, StaffId = 102, Phone = "0901000102", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 3, StaffId = 103, Phone = "0901000103", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 4, StaffId = 104, Phone = "0901000104", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 5, StaffId = 105, Phone = "0901000105", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 6, StaffId = 106, Phone = "0901000106", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 7, StaffId = 107, Phone = "0901000107", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 8, StaffId = 108, Phone = "0901000108", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 9, StaffId = 109, Phone = "0901000109", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 10, StaffId = 110, Phone = "0901000110", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 11, StaffId = 111, Phone = "0901000111", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 12, StaffId = 112, Phone = "0901000112", IsDefault = true }
+                new StaffPhone { StaffPhoneId = 1, StaffId = 1, Phone = "0901000101", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 2, StaffId = 2, Phone = "0901000102", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 3, StaffId = 3, Phone = "0901000103", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 4, StaffId = 4, Phone = "0901000104", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 5, StaffId = 5, Phone = "0901000105", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000106", IsDefault = true }
             );
         }
     }
@@ -469,9 +498,9 @@ namespace CafeChain.Data.Configurations.Staffs
             entity.HasIndex(x => x.StaffId);
 
             entity.HasData(
-                new StaffAddress { StaffAddressId = 1, StaffId = 101, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },
-                new StaffAddress { StaffAddressId = 2, StaffId = 102, Address = "456 Đường Lê Lợi, Q3, TP.HCM", IsDefault = true },
-                new StaffAddress { StaffAddressId = 3, StaffId = 103, Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM", IsDefault = true }
+                new StaffAddress { StaffAddressId = 1, StaffId = 1, Address = "123 Đường Nguyễn Huệ, Q1, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 2, StaffId = 2, Address = "456 Đường Lê Lợi, Q3, TP.HCM", IsDefault = true },
+                new StaffAddress { StaffAddressId = 3, StaffId = 3, Address = "789 Đường Trần Hưng Đạo, Q5, TP.HCM", IsDefault = true }
             );
         }
     }

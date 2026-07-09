@@ -152,7 +152,7 @@ namespace CafeChain.Data.Configurations.Payments
                 new CashSession
                 {
                     CashSessionId = 1,
-                    StaffId = 108,
+                    StaffId = 5,
                     StoreId = 1,
                     StartCash = 1000000,
                     EndCash = null,
@@ -162,7 +162,7 @@ namespace CafeChain.Data.Configurations.Payments
                 new CashSession
                 {
                     CashSessionId = 2,
-                    StaffId = 109,
+                    StaffId = 6,
                     StoreId = 1,
                     StartCash = 500000,
                     EndCash = 800000,

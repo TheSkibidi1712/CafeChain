@@ -21,7 +21,7 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
 
             // ===== CLEAN SLATE: Chỉ 1 Phone cho Customer 111 =====
             entity.HasData(
-                new CustomerPhone { CustomerPhoneId = 1, CustomerId = 111, Phone = "0900111222" }
+                new CustomerPhone { CustomerPhoneId = 1, CustomerId = 1, Phone = "0900111222" }
             );
         }
     }
