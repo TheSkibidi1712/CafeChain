@@ -155,24 +155,25 @@
 
                         </td>
 
-                        <td class="text-end px-4 py-3">
+                        <td class="text-end px-4 py-3 category-actions-cell">
 
                             <button type="button"
-                                    class="btn btn-sm text-@(item.Active ? "warning" : "success") px-1"
-                                    onclick="toggleCategory(@item.CategoryId)"
-                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
+                                    class="btn btn-sm category-action-btn category-action-edit btn-edit-category"
+                                    data-id="@item.CategoryId"
+                                    data-bs-toggle="modal"
+                                    data-bs-target="#editCategoryModal"
+                                    title="Sửa">
 
-                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+                                <i class="fas fa-pen"></i>
 
                             </button>
 
                             <button type="button"
-                                    class="btn btn-sm text-primary px-1 btn-edit-category"
-                                    data-id="@item.CategoryId"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCategoryModal">
+                                    class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
+                                    onclick="toggleCategory(@item.CategoryId)"
+                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
 
-                                <i class="fas fa-pen"></i>
+                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
 
                             </button>
 
