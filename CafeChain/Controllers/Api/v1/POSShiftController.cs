@@ -84,7 +84,8 @@ namespace CafeChain.Controllers.Api.v1
 
             if (!result.IsSuccess)
             {
-                return BadRequest(new { success = false, message = result.Message });
+                // Include errorCode so POS UI can open OTP panel on OTP_REQUIRED (#90/#91).
+                return BadRequest(new { success = false, message = result.Message, errorCode = result.ErrorCode });
             }
 
             // Refresh shift data after close
