@@ -86,6 +86,12 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>Lý do chênh lệch (bắt buộc nếu lệch != 0)</summary>
         public string? DiscrepancyReason { get; set; }
+
+        /// <summary>
+        /// PublicId của OTP challenge đã được Ca trưởng duyệt.
+        /// Bắt buộc khi chênh lệch két tiền vượt ngưỡng cho phép.
+        /// </summary>
+        public Guid? OtpChallengePublicId { get; set; }
     }
 
     /// <summary>

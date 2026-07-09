@@ -204,6 +204,7 @@ namespace CafeChain.Tests.POS
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
                 supervisorAuth.Object,
+                Mock.Of<IOtpChallengeRepository>(),
                 Mock.Of<ILogger<WorkShiftService>>());
         }
 

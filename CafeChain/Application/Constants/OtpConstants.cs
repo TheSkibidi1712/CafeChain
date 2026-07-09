@@ -27,5 +27,13 @@ namespace CafeChain.Application.Constants
         {
             public const string Shifts = "shifts";
         }
+
+        public static class Thresholds
+        {
+            /// <summary>Absolute VND amount above which OTP is required.</summary>
+            public const decimal AbsoluteAmountVnd = 50_000m;
+            /// <summary>Percentage of expected cash above which OTP is required (2%).</summary>
+            public const decimal PercentageOfExpected = 0.02m;
+        }
     }
 }
