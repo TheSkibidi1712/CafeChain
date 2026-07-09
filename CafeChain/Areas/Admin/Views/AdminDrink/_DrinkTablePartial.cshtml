@@ -1,31 +1,69 @@
-﻿@model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
+@model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
 
 <tbody>
     @foreach (var item in Model)
     {
         <tr>
-            <td class="text-center">
-                <img src="@item.ImageUrl" style="height:50px;width:50px;object-fit:cover;border-radius:5px;" />
+            <td class="drink-check-cell">
+                <input type="checkbox" aria-label="Chọn @item.Name" />
             </td>
-            <td class="fw-bold">@item.Name</td>
-            <td><span class="badge bg-info text-dark">@item.CategoryName</span></td>
-            <td><span class="badge bg-secondary">@item.ProductTypeName</span></td>
+
+            <td>
+                <div class="drink-image-box">
+                    <img src="@item.ImageUrl" alt="@item.Name" />
+                </div>
+            </td>
+
+            <td>
+                <div class="drink-name">@item.Name</div>
+            </td>
+
+            <td>
+                <span class="drink-badge drink-badge-category">
+                    @item.CategoryName
+                </span>
+            </td>
+
+            <td>
+                <span class="drink-badge drink-badge-type">
+                    @item.ProductTypeName
+                </span>
+            </td>
+
             <td>
                 @if (item.Active)
                 {
-                    <span class="badge bg-success">Đang bán</span>
+                    <span class="drink-status-badge active">
+                        <span></span>
+                        Đang bán
+                    </span>
                 }
                 else
                 {
-                    <span class="badge bg-danger">Ngừng bán</span>
+                    <span class="drink-status-badge inactive">
+                        <span></span>
+                        Ngừng bán
+                    </span>
                 }
             </td>
+
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-info btn-manage-images"
-                        data-id="@item.DrinkId"
-                        data-name="@item.Name">
-                    <i class="fas fa-images"></i>
-                </button>
+                <div class="drink-action-group">
+                    <button type="button"
+                            class="btn drink-action-btn btn-manage-images"
+                            data-id="@item.DrinkId"
+                            data-name="@item.Name"
+                            title="Quản lý ảnh">
+                        <i class="fas fa-images"></i>
+                    </button>
+
+                    <a asp-action="Edit"
+                       asp-route-id="@item.DrinkId"
+                       class="btn drink-action-btn"
+                       title="Sửa đồ uống">
+                        <i class="fas fa-pen"></i>
+                    </a>
+                </div>
             </td>
         </tr>
     }

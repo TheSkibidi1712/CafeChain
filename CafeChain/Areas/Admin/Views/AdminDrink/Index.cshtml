@@ -3,29 +3,79 @@
 @{
     ViewData["Title"] = "Quản lý Nước uống";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var drinks = Model?.ToList() ?? new List<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>();
+    var totalDrinks = drinks.Count;
+    var activeDrinks = drinks.Count(item => item.Active);
+    var inactiveDrinks = totalDrinks - activeDrinks;
 }
 
-<div class="container-fluid px-4">
-    <h1 class="mt-4">Quản lý Nước uống</h1>
-    <ol class="breadcrumb mb-4">
-        <li class="breadcrumb-item active">Danh sách Nước uống</li>
-    </ol>
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Drink/drink.css" asp-append-version="true" />
+}
 
+<div class="drink-page">
+    <div class="drink-page-header">
+        <div>
+            <p class="drink-breadcrumb">Quản lý / danh mục</p>
+            <h1>Danh sách Nước uống</h1>
+            <p>Quản lý tất cả sản phẩm đồ uống trong hệ thống.</p>
+        </div>
 
-    <div class="card mb-4 shadow-sm">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <i class="fas fa-table me-1"></i>
-                Danh sách Nước uống
-            </div>
-            <a asp-action="Create" class="btn btn-primary btn-sm">
-                <i class="fas fa-plus"></i> Thêm mới
+        <div class="drink-header-actions">
+            <button type="button" class="btn drink-filter-btn">
+                <i class="fas fa-filter"></i>
+                Lọc
+            </button>
+
+            <a asp-action="Create" class="btn drink-primary-btn">
+                <i class="fas fa-plus"></i>
+                Thêm mới
             </a>
         </div>
-        <div class="card-body">
-            <table class="table table-bordered table-hover align-middle" id="datatablesSimple">
-                <thead class="table-light">
+    </div>
+
+    <div class="drink-toolbar">
+        <div class="drink-status-tabs" aria-label="Bộ lọc trạng thái đồ uống">
+            <button type="button" class="drink-tab active">
+                Tất cả (@totalDrinks)
+            </button>
+            <button type="button" class="drink-tab">
+                Đang bán (@activeDrinks)
+            </button>
+            <button type="button" class="drink-tab">
+                Ngừng bán (@inactiveDrinks)
+            </button>
+            <button type="button" class="drink-tab">
+                Hết nguyên liệu (0)
+            </button>
+        </div>
+
+        <div class="drink-list-tools">
+            <label class="drink-search-box" aria-label="Tìm đồ uống">
+                <i class="fas fa-search"></i>
+                <input type="search" placeholder="Tìm đồ uống..." />
+            </label>
+
+            <label class="drink-page-size">
+                <span>Hiển thị:</span>
+                <select aria-label="Số dòng hiển thị">
+                    <option selected>10</option>
+                    <option>25</option>
+                    <option>50</option>
+                </select>
+            </label>
+        </div>
+    </div>
+
+    <div class="drink-table-card">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 drink-table" id="datatablesSimple">
+                <thead>
                     <tr>
+                        <th class="drink-check-cell">
+                            <input type="checkbox" aria-label="Chọn tất cả đồ uống" />
+                        </th>
                         <th>Hình ảnh</th>
                         <th>Tên nước uống</th>
                         <th>Danh mục</th>
@@ -35,33 +85,102 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var item in Model)
+                    @if (!drinks.Any())
                     {
                         <tr>
-                            <td class="text-center">
-                                <img src="@item.ImageUrl" alt="@item.Name" style="height: 50px; width: 50px; object-fit: cover; border-radius: 5px;" />
+                            <td colspan="7" class="drink-empty-state">
+                                Chưa có đồ uống nào.
                             </td>
-                            <td class="fw-bold">@item.Name</td>
-                            <td><span class="badge bg-info text-dark">@item.CategoryName</span></td>
-                            <td><span class="badge bg-secondary">@item.ProductTypeName</span></td>
+                        </tr>
+                    }
+
+                    @foreach (var item in drinks)
+                    {
+                        <tr>
+                            <td class="drink-check-cell">
+                                <input type="checkbox" aria-label="Chọn @item.Name" />
+                            </td>
+
+                            <td>
+                                <div class="drink-image-box">
+                                    <img src="@item.ImageUrl" alt="@item.Name" />
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="drink-name">@item.Name</div>
+                            </td>
+
+                            <td>
+                                <span class="drink-badge drink-badge-category">
+                                    @item.CategoryName
+                                </span>
+                            </td>
+
+                            <td>
+                                <span class="drink-badge drink-badge-type">
+                                    @item.ProductTypeName
+                                </span>
+                            </td>
+
                             <td>
                                 @if (item.Active)
                                 {
-                                    <span class="badge bg-success">Đang bán</span>
+                                    <span class="drink-status-badge active">
+                                        <span></span>
+                                        Đang bán
+                                    </span>
                                 }
                                 else
                                 {
-                                    <span class="badge bg-danger">Ngừng bán</span>
+                                    <span class="drink-status-badge inactive">
+                                        <span></span>
+                                        Ngừng bán
+                                    </span>
                                 }
                             </td>
+
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-outline-info btn-manage-images" data-id="@item.DrinkId" data-name="@item.Name" title="Quản lý Ảnh"><i class="fas fa-images"></i></button>
-                                <a asp-action="Edit" asp-route-id="@item.DrinkId" class="btn btn-sm btn-outline-primary" title="Sửa"><i class="fas fa-edit"></i></a>
+                                <div class="drink-action-group">
+                                    <button type="button"
+                                            class="btn drink-action-btn btn-manage-images"
+                                            data-id="@item.DrinkId"
+                                            data-name="@item.Name"
+                                            title="Quản lý ảnh">
+                                        <i class="fas fa-images"></i>
+                                    </button>
+
+                                    <a asp-action="Edit"
+                                       asp-route-id="@item.DrinkId"
+                                       class="btn drink-action-btn"
+                                       title="Sửa đồ uống">
+                                        <i class="fas fa-pen"></i>
+                                    </a>
+                                </div>
                             </td>
                         </tr>
                     }
                 </tbody>
             </table>
+        </div>
+
+        <div class="drink-table-footer">
+            <span>
+                Hiển thị 1-@totalDrinks trong số @totalDrinks
+            </span>
+
+            <div class="drink-pagination" aria-label="Phân trang đồ uống">
+                <button type="button" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button type="button" class="active">1</button>
+                <button type="button">2</button>
+                <button type="button">3</button>
+                <button type="button">...</button>
+                <button type="button">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
         </div>
     </div>
 </div>
@@ -69,14 +188,13 @@
 <!-- Modal Image Management -->
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+        <div class="modal-content drink-modal-content">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold text-primary">Quản lý Ảnh - <span id="modalDrinkName"></span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <input type="hidden" id="currentDrinkId" value="" />
-                
 
                 <!-- Image List -->
                 <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-layer-group"></i> Danh Sách Ảnh Đã Tải Lên</h6>
@@ -91,7 +209,7 @@
 <!-- Modal Edit Image -->
 <div class="modal fade" id="editImageModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-sm">
-        <div class="modal-content">
+        <div class="modal-content drink-modal-content">
             <div class="modal-header">
                 <h5 class="modal-title fw-bold text-warning"><i class="fas fa-pencil-alt"></i> Chỉnh sửa ảnh</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -125,7 +243,5 @@
 </div>
 
 @section Scripts {
-    <script src="~/js/Admin/Drink/drink.js">
-        
-    </script>
+    <script src="~/js/Admin/Drink/drink.js"></script>
 }
