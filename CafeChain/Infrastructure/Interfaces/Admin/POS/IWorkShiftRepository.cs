@@ -12,6 +12,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
     {
         // === SHIFT CRUD ===
         Task<WorkShift?> GetActiveShiftAsync(int userId, int storeId);
+        Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId);
         Task<WorkShift> CreateShiftAsync(WorkShift shift);
         Task UpdateShiftAsync(WorkShift shift);
         Task EnsurePosTerminalAsync(string terminalId, int storeId, string name);
@@ -21,13 +22,7 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
 
         // === CLOSE SHIFT DATA ===
         Task<decimal> GetTotalCashSalesAsync(int shiftId);
-
-        // === RECONCILIATION ===
-        /// <summary>
-        /// Ghi bản ghi cảnh báo chênh lệch két tiền vào InvoiceAuditLog.
-        /// ActionName = "SHIFT_CASH_DISCREPANCY" — sẵn sàng cho Web Admin đối soát.
-        /// </summary>
-        Task CreateReconciliationWarningAsync(int shiftId, int storeId, int userId, decimal discrepancy, string? reason);
+        Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId);
 
         Task SaveChangesAsync();
     }

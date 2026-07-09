@@ -104,7 +104,11 @@
                                     </div>
                                     <div class="col-lg-6 mb-3">
                                         <label class="form-label">Email đăng nhập <span class="text-danger">*</span></label>
-                                        <input asp-for="Email" class="form-control" readonly />
+                                        <input asp-for="Email" type="email" class="form-control" autocomplete="email" />
+                                        <div class="form-text">
+                                            Email dùng để đăng nhập và nhận OTP ca trưởng nếu nhân viên có quyền phù hợp.
+                                        </div>
+                                        <span asp-validation-for="Email" class="text-danger small"></span>
                                     </div>
                                     <div class="col-lg-6 mb-3">
                                         <label class="form-label text-warning">Đổi mật khẩu (Tuỳ chọn)</label>
@@ -361,15 +365,6 @@
         @if(stores != null) { foreach(var s in stores) { <text>{ id: @s.StoreId, name: '@s.Name', parentId: '@s.WardId' },</text> } }
     ];
 
-    // ===================================
-    // On Load Initialization
-    // ===================================
-    window.addEventListener('DOMContentLoaded', () => {
-        if (roleSelect.value) {
-            initEditState();
-        }
-    });
-
     async function initEditState() {
         const selected = roleSelect.options[roleSelect.selectedIndex];
         if (!selected) return;
@@ -391,7 +386,9 @@
             typeSelect.disabled = false;
             // Restore from Model
             if (existingScopeTypeId) {
-                typeSelect.value = existingScopeTypeId;
+                // Backend store scope is 5; UI store option is 4.
+                const uiType = existingScopeTypeId === "5" ? "4" : existingScopeTypeId;
+                typeSelect.value = uiType;
                 if (existingScopeTypeId === "1") {
                     lblScopeRef.textContent = "Mã tham chiếu *";
                     provSelect.style.display = 'none';
@@ -402,17 +399,18 @@
                     provSelect.style.display = 'block';
                     refSelect.disabled = false;
                     await loadCascadingProvinces();
-                    // Optional: Try to guess the Province from existingWardId in backend or manually let user select.
-                    // For now, Ward will just load if we had a proper nested API, but we'll fetch its content correctly later.
                     await fetchRefData(3, null, existingScopeRefId); 
                 } else {
+                    const fetchType = existingScopeTypeId === "5" ? 4 : parseInt(existingScopeTypeId, 10);
                     lblScopeRef.textContent = existingScopeTypeId === "2" ? "Chọn Tỉnh/Thành phố *" : "Chọn Cửa hàng *";
                     provSelect.style.display = 'none';
                     refSelect.disabled = false;
-                    await fetchRefData(parseInt(existingScopeTypeId), null, existingScopeRefId);
+                    await fetchRefData(fetchType, null, existingScopeRefId);
                 }
             }
         }
+        // Always re-sync hiddens from model fallbacks if UI left blanks.
+        syncScopeData();
     }
 
     // ===================================
@@ -569,8 +567,22 @@
     syncStore.addEventListener('change', syncScopeData);
 
     function syncScopeData() {
-        hiddenScopeTypeId.value = typeSelect.value || "";
-        hiddenScopeRefId.value = refSelect.value || "";
+        // Do NOT wipe existing hidden values with "" — empty string posts break non-nullable int binding
+        // ("The value '' is invalid.") for ScopeTypeId / ScopeRefId.
+        const typeVal = typeSelect.value;
+        if (typeVal) {
+            // UI uses "4" for store picker; backend ScopeType STORE = 5.
+            hiddenScopeTypeId.value = typeVal === "4" ? "5" : typeVal;
+        } else if (existingScopeTypeId) {
+            hiddenScopeTypeId.value = existingScopeTypeId;
+        }
+
+        const refVal = refSelect.value;
+        if (refVal) {
+            hiddenScopeRefId.value = refVal;
+        } else if (existingScopeRefId) {
+            hiddenScopeRefId.value = existingScopeRefId;
+        }
     }
 
     function resetScopeUI() {
@@ -693,9 +705,23 @@
         const roleEl = form.querySelector('[name="SelectedRoleId"]');
         if (!roleEl.value) return Swal.fire('Cảnh báo', 'Vui lòng chọn Vai trò!', 'warning');
         if (!form.querySelector('[name="FullName"]').value) return Swal.fire('Cảnh báo', 'Vui lòng nhập Họ và Tên!', 'warning');
-        const scope = roleEl.options[roleEl.selectedIndex].getAttribute('data-scope');
-        if (scope === 'PROVINCE' && !document.getElementById('scopeProvinceSelect').value) return Swal.fire('Cảnh báo', 'Vui lòng chọn Khu vực!', 'warning');
-        if (scope === 'STORE' && !document.getElementById('scopeStoreSelect').value) return Swal.fire('Cảnh báo', 'Vui lòng chọn Cửa hàng!', 'warning');
+        const emailEl = form.querySelector('[name="Email"]');
+        if (emailEl && !emailEl.value.trim()) return Swal.fire('Cảnh báo', 'Vui lòng nhập Email!', 'warning');
+
+        // Keep scope hiddens valid before submit (avoid "" on non-nullable ints).
+        syncScopeData();
+        if (!hiddenScopeTypeId.value) {
+            return Swal.fire('Cảnh báo', 'Vui lòng chọn phạm vi quản lý!', 'warning');
+        }
+        if (!hiddenScopeRefId.value) {
+            return Swal.fire('Cảnh báo', 'Vui lòng chọn phạm vi / cửa hàng tham chiếu!', 'warning');
+        }
+
+        // Optional StoreId: if placeholder "-- Tự động --" selected, keep current store from model.
+        if (syncStore && !syncStore.value && '@(Model.StoreId?.ToString() ?? "")') {
+            syncStore.value = '@(Model.StoreId?.ToString() ?? "")';
+        }
+
         btn.disabled = true;
         btn.innerHTML = 'Đang xử lý...';
         form.submit();
@@ -705,7 +731,18 @@
     // INIT: Apply scope for existing role on page load
     // ═══════════════════════════════════════════════════════
     document.addEventListener('DOMContentLoaded', function () {
-        flatpickr(".flatpickr-date", { dateFormat: "Y-m-d", altInput: true, altFormat: "d/m/Y", locale: "vn" });
-        applyScopeForRole(); // Trigger initial scope display based on existing role
+        flatpickr(".flatpickr-date", {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y",
+            locale: "vn",
+            allowInput: true
+        });
+        // Ensure hidden scope values are coherent after async initEditState.
+        if (roleSelect.value) {
+            initEditState().then(() => syncScopeData());
+        } else {
+            syncScopeData();
+        }
     });
 </script>

@@ -23,8 +23,14 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>DrinkImage.ImageUrl (first, nullable)</summary>
         public string? Image { get; set; }
 
-        /// <summary>Drink.Active && StoreDrink.Active</summary>
+        /// <summary>Co the ban ngay tai POS hay khong.</summary>
         public bool IsAvailable { get; set; }
+
+        /// <summary>Ma trang thai kha dung: Available | MissingRecipe | MissingInventory | InsufficientStock | TemporarilyUnavailable.</summary>
+        public string AvailabilityStatus { get; set; } = "Available";
+
+        /// <summary>Ly do tieng Viet khi IsAvailable = false.</summary>
+        public string? AvailabilityReason { get; set; }
 
         /// <summary>Danh sách size khả dụng + giá</summary>
         public List<POSMenuItemSizeDto> Sizes { get; set; } = new();

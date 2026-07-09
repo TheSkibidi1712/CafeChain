@@ -141,7 +141,8 @@ namespace CafeChain.Application.Services.POS
                         "[CommitOrder] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
                         existingOrder.OrderId, dto.ClientOrderId);
 
-                    var idempotentChange = dto.ReceivedAmount - existingOrder.Total;
+                    var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, existingOrder.Total);
+                    var idempotentChange = effectiveReceivedAmount - existingOrder.Total;
                     var isExistingPayOsOrder = existingOrder.Payments?.Any(p => p.PaymentMethodId == 2) == true
                         && existingOrder.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid;
 
@@ -177,7 +178,7 @@ namespace CafeChain.Application.Services.POS
                             voucherDiscount = existingOrder.VoucherDiscount,
                             pointDiscount = existingOrder.PointDiscount,
                             total = existingOrder.Total,
-                            receivedAmount = dto.ReceivedAmount,
+                            receivedAmount = effectiveReceivedAmount,
                             changeAmount = 0m,
                             earnedPoints = 0,
                             isIdempotent = true,
@@ -199,7 +200,7 @@ namespace CafeChain.Application.Services.POS
                         voucherDiscount = existingOrder.VoucherDiscount,
                         pointDiscount = existingOrder.PointDiscount,
                         total = existingOrder.Total,
-                        receivedAmount = dto.ReceivedAmount,
+                        receivedAmount = effectiveReceivedAmount,
                         changeAmount = idempotentChange > 0 ? idempotentChange : 0m,
                         earnedPoints = 0,  // Không tính lại điểm — order cũ đã xử lý
                         isIdempotent = true
@@ -364,6 +365,8 @@ namespace CafeChain.Application.Services.POS
                 var pendingVietQrAmount = paymentLines
                     .Where(p => p.PaymentMethodId == 2)
                     .Sum(p => p.Amount);
+                var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
+                var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
 
                 if (hasPayOsPayment && pendingVietQrAmount <= 0)
                 {
@@ -375,6 +378,12 @@ namespace CafeChain.Application.Services.POS
                 {
                     await _repository.RollbackTransactionAsync();
                     return ServiceResult<object>.Failure("Tách thanh toán hiện chỉ hỗ trợ tiền mặt và VietQR.");
+                }
+
+                if (!hasPayOsPayment && pendingCashAmount > 0 && effectiveReceivedAmount < total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tiền khách đưa phải lớn hơn hoặc bằng tổng tiền đơn hàng.");
                 }
 
                 var orderStatusId = hasPayOsPayment
@@ -402,6 +411,8 @@ namespace CafeChain.Application.Services.POS
                     {
                         OrderId = newOrder.OrderId, PaymentMethodId = payLine.PaymentMethodId,
                         Amount = payLine.Amount,
+                        ReceivedAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? effectiveReceivedAmount : null,
+                        ChangeAmount = !hasPayOsPayment && payLine.PaymentMethodId == 1 ? cashChangeAmount : null,
                         PaymentStatusId = paymentStatusId,
                         PaidAt = hasPayOsPayment ? null : DateTime.Now
                     });
@@ -533,7 +544,7 @@ namespace CafeChain.Application.Services.POS
                         var cashierName = newOrder.Staff?.FullName ?? "POS";
 
                         await _printDispatcher.DispatchPrintJobAsync(
-                            newOrder, storeId, cashierName, dto.ReceivedAmount, hasCashPayment);
+                            newOrder, storeId, cashierName, effectiveReceivedAmount, hasCashPayment);
                     }
                     catch (Exception printEx)
                     {
@@ -545,12 +556,11 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
-                var changeAmount = dto.ReceivedAmount - total;
                 return ServiceResult<object>.Success(new
                 {
                     orderId = newOrder.OrderId, subTotal, voucherDiscount, pointDiscount,
-                    total, receivedAmount = dto.ReceivedAmount,
-                    changeAmount = changeAmount > 0 ? changeAmount : 0, earnedPoints
+                    total, receivedAmount = effectiveReceivedAmount,
+                    changeAmount = cashChangeAmount, earnedPoints
                 } as object, "Thanh toán thành công!");
             }
             catch (Exception ex)
@@ -562,6 +572,289 @@ namespace CafeChain.Application.Services.POS
 
                 return ServiceResult<object>.Failure("Lỗi hệ thống khi thanh toán: " + ex.Message);
             }
+        }
+
+        // ============================================================
+        // COMMIT OFFLINE SYNCED ORDER — Issue #81
+        // ============================================================
+        public async Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
+            POSOrderCommitDto dto,
+            int userId,
+            int storeId,
+            int workShiftId,
+            DateTime soldAt)
+        {
+            if (dto == null || dto.Items == null || !dto.Items.Any())
+                return ServiceResult<object>.Failure("Giỏ hàng offline trống.");
+
+            if (!dto.ClientOrderId.HasValue)
+                return ServiceResult<object>.Failure("Thiếu ClientOrderId cho đơn offline.");
+
+            if ((dto.Payments != null && dto.Payments.Any(p => p.PaymentMethodId != 1)) ||
+                ((dto.Payments == null || !dto.Payments.Any()) && dto.PaymentMethodId != 1))
+            {
+                return ServiceResult<object>.Failure("Offline Sync chỉ hỗ trợ thanh toán tiền mặt.");
+            }
+
+            var existingOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+            if (existingOrder != null)
+            {
+                _logger.LogInformation(
+                    "[OfflineSync] Idempotent — Order #{OrderId} đã tồn tại cho ClientOrderId={ClientOrderId}",
+                    existingOrder.OrderId, dto.ClientOrderId);
+
+                return ServiceResult<object>.Success(BuildIdempotentResponse(existingOrder, dto.ReceivedAmount),
+                    "Đơn offline đã được đồng bộ trước đó.");
+            }
+
+            var originalShift = await _workShiftService.GetShiftByIdAsync(workShiftId, userId, storeId);
+            if (originalShift == null)
+                return ServiceResult<object>.Failure("Không tìm thấy WorkShift gốc cho đơn offline hoặc WorkShift không khớp nhân viên/cửa hàng.");
+
+            await _repository.BeginTransactionAsync();
+            var transactionCommitted = false;
+
+            try
+            {
+                decimal subTotal = 0;
+                var orderDetails = new List<OrderDetail>();
+
+                foreach (var item in dto.Items)
+                {
+                    if (item.Quantity <= 0)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure("Số lượng món trong đơn offline phải lớn hơn 0.");
+                    }
+
+                    var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId, storeId);
+                    if (drink == null)
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return ServiceResult<object>.Failure($"Sản phẩm #{item.DrinkId} không tồn tại hoặc không bán tại cửa hàng này.");
+                    }
+
+                    decimal itemBasePrice;
+                    string? sizeName;
+
+                    if (item.SizeId.HasValue)
+                    {
+                        var drinkSize = drink.DrinkSizes.FirstOrDefault(ds => ds.SizeId == item.SizeId.Value && ds.Active);
+                        if (drinkSize == null)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Size #{item.SizeId.Value} không hợp lệ cho sản phẩm {drink.Name}.");
+                        }
+
+                        itemBasePrice = drinkSize.Price;
+                        sizeName = drinkSize.Size?.Name;
+                    }
+                    else
+                    {
+                        var defaultSize = drink.DrinkSizes
+                            .Where(ds => ds.Active)
+                            .OrderBy(ds => ds.Price)
+                            .ThenBy(ds => ds.SizeId)
+                            .FirstOrDefault();
+
+                        if (defaultSize == null)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Sản phẩm {drink.Name} chưa có size đang hoạt động.");
+                        }
+
+                        itemBasePrice = defaultSize.Price;
+                        sizeName = defaultSize.Size?.Name;
+                        item.SizeId = defaultSize.SizeId;
+                    }
+
+                    decimal toppingTotal = 0;
+                    var orderToppings = new List<OrderTopping>();
+                    if (item.Toppings != null && item.Toppings.Any())
+                    {
+                        var toppingIds = item.Toppings.Select(t => t.ToppingId).Distinct().ToList();
+                        var toppings = await _repository.GetValidToppingsForOrderItemAsync(storeId, item.DrinkId, toppingIds);
+                        if (toppings.Count != toppingIds.Count)
+                        {
+                            await _repository.RollbackTransactionAsync();
+                            return ServiceResult<object>.Failure($"Có topping không hợp lệ cho sản phẩm {drink.Name} hoặc cửa hàng hiện tại.");
+                        }
+
+                        foreach (var topping in toppings)
+                        {
+                            toppingTotal += topping.Price;
+                            orderToppings.Add(new OrderTopping
+                            {
+                                ToppingId = topping.ToppingId,
+                                ToppingName = topping.Name,
+                                Price = topping.Price
+                            });
+                        }
+                    }
+
+                    subTotal += (itemBasePrice + toppingTotal) * item.Quantity;
+                    orderDetails.Add(new OrderDetail
+                    {
+                        DrinkId = item.DrinkId,
+                        SizeId = item.SizeId,
+                        DrinkName = drink.Name,
+                        SizeName = sizeName,
+                        Price = itemBasePrice + toppingTotal,
+                        Quantity = item.Quantity,
+                        Note = item.Note ?? "",
+                        OrderToppings = orderToppings
+                    });
+                }
+
+                var total = subTotal;
+                var paymentLines = dto.Payments != null && dto.Payments.Any()
+                    ? dto.Payments
+                    : new List<PaymentLineDto> { new PaymentLineDto { PaymentMethodId = 1, Amount = total } };
+
+                if (paymentLines.Any(p => p.PaymentMethodId != 1))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Offline Sync chỉ hỗ trợ thanh toán tiền mặt.");
+                }
+
+                if (paymentLines.Any(p => p.Amount < 0))
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Số tiền thanh toán không được âm.");
+                }
+
+                var paymentTotal = paymentLines.Sum(p => p.Amount);
+                if (paymentTotal != total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tổng thanh toán offline không khớp tổng tiền đơn hàng.");
+                }
+
+                var effectiveReceivedAmount = ResolveCashReceivedAmount(dto.ReceivedAmount, total);
+                var cashChangeAmount = CalculateCashChangeAmount(effectiveReceivedAmount, total);
+                if (effectiveReceivedAmount < total)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure("Tiền khách đưa phải lớn hơn hoặc bằng tổng tiền đơn hàng.");
+                }
+
+                var createdAt = soldAt == default ? DateTime.Now : soldAt;
+                var newOrder = await _repository.CreateOrderAsync(new Order
+                {
+                    StoreId = storeId,
+                    StaffId = userId,
+                    WorkShiftId = originalShift.ShiftId,
+                    CustomerId = dto.CustomerId,
+                    OrderTypeId = dto.OrderTypeId > 0 ? dto.OrderTypeId : 1,
+                    OrderStatusId = SystemConstants.OrderStatuses.Completed,
+                    PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                    SubTotal = subTotal,
+                    VoucherDiscount = 0,
+                    PointDiscount = 0,
+                    PointsUsed = 0,
+                    Total = total,
+                    ShippingFee = 0,
+                    Source = "POS",
+                    Note = dto.Note,
+                    ClientOrderId = dto.ClientOrderId,
+                    CreatedAt = createdAt,
+                    OrderDetails = orderDetails
+                });
+
+                foreach (var payLine in paymentLines)
+                {
+                    await _repository.CreatePaymentAsync(new Payment
+                    {
+                        OrderId = newOrder.OrderId,
+                        PaymentMethodId = 1,
+                        Amount = payLine.Amount,
+                        ReceivedAmount = effectiveReceivedAmount,
+                        ChangeAmount = cashChangeAmount,
+                        PaymentStatusId = SystemConstants.PaymentStatuses.Paid,
+                        PaidAt = createdAt
+                    });
+                }
+
+                var cashAmount = paymentLines.Sum(p => p.Amount);
+                if (string.Equals(originalShift.Status, "Open", StringComparison.OrdinalIgnoreCase) && cashAmount > 0)
+                {
+                    originalShift.ExpectedEndingCash += cashAmount;
+                    await _repository.SaveChangesAsync();
+                }
+                else if (!string.Equals(originalShift.Status, "Open", StringComparison.OrdinalIgnoreCase))
+                {
+                    originalShift.RequiresReconciliation = true;
+                    originalShift.HasLateOfflineSync = true;
+                    originalShift.LateOfflineSyncCount += 1;
+                    originalShift.LastLateOfflineSyncedAt = DateTime.Now;
+                    await _repository.SaveChangesAsync();
+                }
+
+                await _repository.CommitTransactionAsync();
+                transactionCommitted = true;
+
+                return ServiceResult<object>.Success(new
+                {
+                    orderId = newOrder.OrderId,
+                    clientOrderId = newOrder.ClientOrderId?.ToString(),
+                    workShiftId = newOrder.WorkShiftId,
+                    subTotal,
+                    total,
+                    receivedAmount = effectiveReceivedAmount,
+                    changeAmount = cashChangeAmount,
+                    isIdempotent = false
+                } as object, "Đồng bộ đơn offline thành công.");
+            }
+            catch (Exception ex)
+            {
+                if (!transactionCommitted)
+                {
+                    await _repository.RollbackTransactionAsync();
+                }
+
+                var racedOrder = await _repository.FindOrderByClientOrderIdAsync(dto.ClientOrderId.Value);
+                if (racedOrder != null)
+                {
+                    _logger.LogWarning(
+                        ex,
+                        "[OfflineSync] Unique race handled as duplicate for ClientOrderId={ClientOrderId}",
+                        dto.ClientOrderId);
+
+                    return ServiceResult<object>.Success(BuildIdempotentResponse(racedOrder, dto.ReceivedAmount),
+                        "Đơn offline đã được đồng bộ trước đó.");
+                }
+
+                return ServiceResult<object>.Failure("Lỗi hệ thống khi đồng bộ đơn offline: " + ex.Message);
+            }
+        }
+
+        private static object BuildIdempotentResponse(Order existingOrder, decimal receivedAmount)
+        {
+            var effectiveReceivedAmount = ResolveCashReceivedAmount(receivedAmount, existingOrder.Total);
+            var change = CalculateCashChangeAmount(effectiveReceivedAmount, existingOrder.Total);
+            return new
+            {
+                orderId = existingOrder.OrderId,
+                clientOrderId = existingOrder.ClientOrderId?.ToString(),
+                workShiftId = existingOrder.WorkShiftId,
+                subTotal = existingOrder.SubTotal,
+                total = existingOrder.Total,
+                receivedAmount = effectiveReceivedAmount,
+                changeAmount = change,
+                earnedPoints = 0,
+                isIdempotent = true
+            } as object;
+        }
+
+        private static decimal ResolveCashReceivedAmount(decimal receivedAmount, decimal total)
+        {
+            return receivedAmount <= 0m ? total : receivedAmount;
+        }
+
+        private static decimal CalculateCashChangeAmount(decimal receivedAmount, decimal total)
+        {
+            var change = receivedAmount - total;
+            return change > 0m ? change : 0m;
         }
 
         // ============================================================
@@ -616,6 +909,71 @@ namespace CafeChain.Application.Services.POS
                     totalPages = (int)Math.Ceiling((double)totalCount / pageSize)
                 }
             } as object);
+        }
+
+        // ============================================================
+        // REPRINT ORDER — Issue #83: Intentional receipt/label reprint
+        // ============================================================
+        public async Task<ServiceResult<object>> ReprintOrderAsync(
+            int orderId,
+            POSOrderReprintRequestDto dto,
+            int storeId)
+        {
+            var type = dto?.Type?.Trim();
+            var normalizedType = type?.ToLowerInvariant();
+
+            if (normalizedType != "receipt" && normalizedType != "drinklabel")
+                return ServiceResult<object>.Failure("Loại in lại không hợp lệ. Chỉ hỗ trợ receipt hoặc drinkLabel.");
+
+            var order = await _repository.GetOrderForReprintAsync(orderId, storeId);
+            if (order == null)
+                return ServiceResult<object>.Failure("Không tìm thấy đơn hàng để in lại.");
+
+            if (!string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase))
+                return ServiceResult<object>.Failure("Chỉ hỗ trợ in lại đơn POS đã đồng bộ.");
+
+            if (order.OrderStatusId == SystemConstants.OrderStatuses.Cancelled)
+                return ServiceResult<object>.Failure("Đơn đã hủy không thể in lại.");
+
+            if (order.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
+                return ServiceResult<object>.Failure("Chỉ có thể in lại đơn đã thanh toán.");
+
+            var cashierName = order.Staff?.FullName ?? "POS";
+            var cashReceived = order.Payments?
+                .Where(payment => payment.PaymentMethodId == 1 && payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid)
+                .Sum(payment => payment.Amount) ?? 0m;
+            var hasCashPayment = cashReceived > 0;
+            var receiptCashReceived = hasCashPayment ? cashReceived : order.Total;
+
+            bool dispatched;
+            string message;
+            if (normalizedType == "receipt")
+            {
+                dispatched = await _printDispatcher.DispatchReceiptReprintAsync(
+                    order,
+                    order.StoreId,
+                    cashierName,
+                    receiptCashReceived,
+                    hasCashPayment);
+                message = "Đã gửi lệnh in lại hóa đơn.";
+            }
+            else
+            {
+                dispatched = await _printDispatcher.DispatchDrinkLabelReprintAsync(
+                    order,
+                    order.StoreId,
+                    cashierName);
+                message = "Đã gửi lệnh in lại tem.";
+            }
+
+            if (!dispatched)
+                return ServiceResult<object>.Failure("Không gửi được lệnh in lại. Vui lòng kiểm tra PrintBridge.");
+
+            return ServiceResult<object>.Success(new
+            {
+                orderId = order.OrderId,
+                type = normalizedType
+            } as object, message);
         }
     }
 }

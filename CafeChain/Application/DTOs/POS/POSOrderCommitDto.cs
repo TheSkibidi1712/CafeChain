@@ -86,6 +86,37 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>Lý do chênh lệch (bắt buộc nếu lệch != 0)</summary>
         public string? DiscrepancyReason { get; set; }
+
+        /// <summary>
+        /// PublicId của OTP challenge đã được Ca trưởng duyệt.
+        /// Bắt buộc khi chênh lệch két tiền vượt ngưỡng cho phép.
+        /// </summary>
+        public Guid? OtpChallengePublicId { get; set; }
+    }
+
+    /// <summary>
+    /// DTO request đóng WorkShift ngoại lệ khi còn Offline Order local chưa sync.
+    /// </summary>
+    public class CloseShiftExceptionRequestDto : CloseShiftRequestDto
+    {
+        /// <summary>Lý do đóng ngoại lệ, bắt buộc.</summary>
+        public string? ExceptionReason { get; set; }
+
+        /// <summary>PIN supervisor/manager duyệt thao tác.</summary>
+        public string? SupervisorPin { get; set; }
+
+        /// <summary>Tóm tắt Offline Order local tại POS, không làm nguồn sự thật backend.</summary>
+        public OfflineQueueSummaryDto OfflineQueueSummary { get; set; } = new();
+    }
+
+    /// <summary>
+    /// Tóm tắt hàng đợi Offline Order local gửi kèm khi đóng ca ngoại lệ.
+    /// </summary>
+    public class OfflineQueueSummaryDto
+    {
+        public int OfflineOrderCount { get; set; }
+        public decimal EstimatedTotal { get; set; }
+        public decimal LocalCashTotal { get; set; }
     }
 
     /// <summary>

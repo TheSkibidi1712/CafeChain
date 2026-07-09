@@ -9,5 +9,9 @@ namespace CafeChain.Application.Interfaces.Inventories
     {
         Task<decimal> CalculateRecipeCogsAsync(int recipeId);
         Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId);
+        Task<ServiceResult> DeductStockForCommittedOrderAsync(
+            List<POSSoldItemDto> soldItems,
+            int storeId,
+            int referenceOrderId);
     }
 }

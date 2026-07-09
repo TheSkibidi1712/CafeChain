@@ -25,5 +25,20 @@ namespace CafeChain.Application.Interfaces.POS
         /// <param name="isCashPayment">true = tiền mặt → kick cash drawer</param>
         /// <returns>true nếu gửi thành công, false nếu lỗi (log nhưng không throw)</returns>
         Task<bool> DispatchPrintJobAsync(Order order, int storeId, string cashierName, decimal cashReceived, bool isCashPayment);
+
+        /// <summary>
+        /// Gửi lệnh in lại hóa đơn có chủ đích, không mở két tiền.
+        /// </summary>
+        Task<bool> DispatchReceiptReprintAsync(
+            Order order,
+            int storeId,
+            string cashierName,
+            decimal cashReceived,
+            bool isCashPayment);
+
+        /// <summary>
+        /// Gửi lệnh in lại tem pha chế có chủ đích.
+        /// </summary>
+        Task<bool> DispatchDrinkLabelReprintAsync(Order order, int storeId, string cashierName);
     }
 }

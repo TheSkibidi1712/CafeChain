@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Results;
+using System;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Interfaces.POS
@@ -26,6 +27,17 @@ namespace CafeChain.Application.Interfaces.POS
         Task<ServiceResult<object>> CommitOrderAsync(POSOrderCommitDto dto, int userId, int storeId);
 
         /// <summary>
+        /// Commit Offline Order được Sync từ IndexedDB vào đúng WorkShift gốc.
+        /// Không yêu cầu WorkShift đang mở và không trigger automatic print.
+        /// </summary>
+        Task<ServiceResult<object>> CommitOfflineSyncedOrderAsync(
+            POSOrderCommitDto dto,
+            int userId,
+            int storeId,
+            int workShiftId,
+            DateTime soldAt);
+
+        /// <summary>
         /// Lấy dữ liệu tóm tắt ca cho modal đóng ca
         /// </summary>
         Task<ServiceResult<object>> GetCloseShiftDataAsync(int userId, int storeId);
@@ -39,5 +51,10 @@ namespace CafeChain.Application.Interfaces.POS
         /// Issue #68: Lấy lịch sử đơn hàng POS có phân trang
         /// </summary>
         Task<ServiceResult<object>> GetOrderHistoryAsync(int storeId, int page, int pageSize);
+
+        /// <summary>
+        /// Gửi lệnh in lại hóa đơn hoặc tem cho đơn POS đã thanh toán.
+        /// </summary>
+        Task<ServiceResult<object>> ReprintOrderAsync(int orderId, POSOrderReprintRequestDto dto, int storeId);
     }
 }

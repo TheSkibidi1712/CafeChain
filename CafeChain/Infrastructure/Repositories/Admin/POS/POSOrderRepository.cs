@@ -133,6 +133,17 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefaultAsync(o => o.ClientOrderId == clientOrderId);
         }
 
+        public async Task<Order?> GetOrderForReprintAsync(int orderId, int storeId)
+        {
+            return await _context.Orders
+                .Include(o => o.Store)
+                .Include(o => o.Staff)
+                .Include(o => o.Payments)
+                .Include(o => o.OrderDetails)
+                    .ThenInclude(od => od.OrderToppings)
+                .FirstOrDefaultAsync(o => o.OrderId == orderId && o.StoreId == storeId);
+        }
+
         /// <summary>
         /// Issue #68: Phân trang lịch sử đơn hàng POS.
         /// Dùng .Select() projection — EF Core dịch thành 1 SQL duy nhất, không N+1.
@@ -146,34 +157,100 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
             var totalCount = await query.CountAsync();
 
-            var items = await query
+            var pageOrders = await query
+                .AsNoTracking()
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(o => new Application.DTOs.POS.POSOrderHistoryDto
                 {
                     OrderId = o.OrderId,
                     ClientOrderId = o.ClientOrderId.HasValue ? o.ClientOrderId.Value.ToString() : null,
+                    StoreId = o.StoreId,
+                    StoreName = o.Store != null ? o.Store.Name : $"Cửa hàng #{o.StoreId}",
+                    WorkShiftId = o.WorkShiftId,
+                    Source = o.Source,
                     OrderType = o.OrderType != null ? o.OrderType.Name : "N/A",
                     CreatedAt = o.CreatedAt,
                     Total = o.Total,
-                    PaymentMethod = o.Payments
-                        .Select(p => p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A")
-                        .FirstOrDefault() ?? "N/A",
+                    PaymentMethod = "N/A",
+                    OrderStatusId = o.OrderStatusId,
+                    OrderStatusName = o.OrderStatus != null ? o.OrderStatus.Name : "N/A",
+                    PaymentStatusId = o.PaymentStatusId,
+                    PaymentStatusName = o.PaymentStatus != null ? o.PaymentStatus.Name : "N/A",
                     StaffName = o.Staff != null ? o.Staff.FullName : "POS",
-                    OrderDetails = o.OrderDetails.Select(od => new Application.DTOs.POS.POSOrderDetailHistoryDto
+                    Note = o.Note
+                })
+                .ToListAsync();
+
+            var orderIds = pageOrders.Select(o => o.OrderId).ToList();
+            if (orderIds.Count == 0)
+                return (pageOrders, totalCount);
+
+            var paymentRows = await _context.Payments
+                .AsNoTracking()
+                .Where(p => orderIds.Contains(p.OrderId))
+                .OrderBy(p => p.PaymentId)
+                .Select(p => new
+                {
+                    p.OrderId,
+                    Payment = new Application.DTOs.POS.POSPaymentHistoryDto
+                    {
+                        PaymentMethodId = p.PaymentMethodId,
+                        PaymentMethod = p.PaymentMethod != null ? p.PaymentMethod.Name : "N/A",
+                        PaymentStatusId = p.PaymentStatusId,
+                        PaymentStatus = p.PaymentStatus != null ? p.PaymentStatus.Name : "N/A",
+                        Amount = p.Amount,
+                        PaidAt = p.PaidAt,
+                        TransactionCode = p.TransactionCode
+                    }
+                })
+                .ToListAsync();
+
+            var detailRows = await _context.OrderDetails
+                .AsNoTracking()
+                .Where(od => orderIds.Contains(od.OrderId))
+                .OrderBy(od => od.OrderDetailId)
+                .Select(od => new
+                {
+                    od.OrderId,
+                    Detail = new Application.DTOs.POS.POSOrderDetailHistoryDto
                     {
                         DrinkName = od.DrinkName,
                         SizeName = od.SizeName,
                         Quantity = od.Quantity,
                         Price = od.Price,
+                        LineTotal = od.Price * od.Quantity,
+                        Note = od.Note,
                         Toppings = od.OrderToppings
                             .Select(ot => ot.ToppingName)
                             .ToList()
-                    }).ToList()
+                    }
                 })
                 .ToListAsync();
 
-            return (items, totalCount);
+            var paymentsByOrder = paymentRows
+                .GroupBy(row => row.OrderId)
+                .ToDictionary(group => group.Key, group => group.Select(row => row.Payment).ToList());
+
+            var detailsByOrder = detailRows
+                .GroupBy(row => row.OrderId)
+                .ToDictionary(group => group.Key, group => group.Select(row => row.Detail).ToList());
+
+            foreach (var order in pageOrders)
+            {
+                if (paymentsByOrder.TryGetValue(order.OrderId, out var payments))
+                {
+                    order.Payments = payments;
+                    order.PaymentMethod = payments.FirstOrDefault()?.PaymentMethod ?? "N/A";
+                }
+
+                if (detailsByOrder.TryGetValue(order.OrderId, out var details))
+                {
+                    order.OrderDetails = details;
+                }
+            }
+
+            return (pageOrders, totalCount);
         }
 
         public async Task CreatePaymentAsync(Payment payment)

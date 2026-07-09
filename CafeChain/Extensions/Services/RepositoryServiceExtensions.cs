@@ -1,4 +1,4 @@
-﻿// ==========================================
+// ==========================================
 // Infrastructure - Interfaces
 // ==========================================
 using CafeChain.Infrastructure.Interfaces.Customers;
@@ -109,6 +109,7 @@ namespace CafeChain.Extensions.Services
             // POS
             services.AddScoped<IPOSOrderRepository, POSOrderRepository>();
             services.AddScoped<ISupervisorRepository, SupervisorRepository>();
+            services.AddScoped<IOtpChallengeRepository, OtpChallengeRepository>();
 
             // Permissions
             services.AddScoped<IAdminPermissionRepository, AdminPermissionRepository>();

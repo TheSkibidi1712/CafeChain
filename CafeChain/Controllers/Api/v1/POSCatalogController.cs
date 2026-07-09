@@ -86,16 +86,15 @@ namespace CafeChain.Controllers.Api.v1
                             .Select(di => di.ImageUrl)
                             .FirstOrDefault(),
                     IsAvailable = false,
+                    AvailabilityStatus = "TemporarilyUnavailable",
+                    AvailabilityReason = "Tạm hết hàng",
                     Price = d.DrinkSizes
                         .Where(ds => ds.Active)
-                        .OrderBy(ds => ds.Price)
-                        .ThenBy(ds => ds.SizeId)
                         .Select(ds => ds.Price)
                         .FirstOrDefault(),
                     Sizes = d.DrinkSizes
                         .Where(ds => ds.Active)
-                        .OrderBy(ds => ds.Price)
-                        .ThenBy(ds => ds.SizeId)
+                        .OrderBy(ds => ds.SizeId)
                         .Select(ds => new POSMenuItemSizeDto
                         {
                             SizeId = ds.SizeId,
@@ -116,18 +115,28 @@ namespace CafeChain.Controllers.Api.v1
 
             foreach (var item in menuItems)
             {
+                item.Sizes = item.Sizes
+                    .OrderBy(size => size.Price)
+                    .ThenBy(size => size.SizeId)
+                    .ToList();
+                item.Price = item.Sizes.FirstOrDefault()?.Price ?? item.Price;
+
                 var availableToppings = new List<POSToppingDto>();
                 foreach (var topping in item.AvailableToppings)
                 {
-                    if (await HasSufficientRecipeInventoryAsync(storeId, null, null, topping.Id))
+                    var toppingAvailability = await HasSufficientRecipeInventoryAsync(storeId, null, null, topping.Id);
+                    if (toppingAvailability.IsAvailable)
                     {
                         availableToppings.Add(topping);
                     }
                 }
 
                 item.AvailableToppings = availableToppings;
-                item.IsAvailable = item.Sizes.Any()
-                    && await AnySizeHasSufficientRecipeInventoryAsync(storeId, item.Id, item.Sizes);
+
+                var availability = await EvaluateAnySizeAvailabilityAsync(storeId, item.Id, item.Sizes);
+                item.IsAvailable = availability.IsAvailable;
+                item.AvailabilityStatus = availability.Status;
+                item.AvailabilityReason = availability.Reason;
             }
 
             return Ok(menuItems);
@@ -156,21 +165,30 @@ namespace CafeChain.Controllers.Api.v1
             return Ok(toppings);
         }
 
-        private async Task<bool> AnySizeHasSufficientRecipeInventoryAsync(
+        private async Task<RecipeAvailabilityResult> EvaluateAnySizeAvailabilityAsync(
             int storeId,
             int drinkId,
             List<POSMenuItemSizeDto> sizes)
         {
+            if (sizes.Count == 0)
+                return RecipeAvailabilityResult.Unavailable("TemporarilyUnavailable", "Tạm hết hàng", 0);
+
+            RecipeAvailabilityResult? strongestUnavailable = null;
             foreach (var size in sizes)
             {
-                if (await HasSufficientRecipeInventoryAsync(storeId, drinkId, size.SizeId, null))
-                    return true;
+                var availability = await HasSufficientRecipeInventoryAsync(storeId, drinkId, size.SizeId, null);
+                if (availability.IsAvailable)
+                    return RecipeAvailabilityResult.Available();
+
+                if (strongestUnavailable == null || availability.Priority > strongestUnavailable.Priority)
+                    strongestUnavailable = availability;
             }
 
-            return false;
+            return strongestUnavailable
+                ?? RecipeAvailabilityResult.Unavailable("TemporarilyUnavailable", "Tạm hết hàng", 0);
         }
 
-        private async Task<bool> HasSufficientRecipeInventoryAsync(
+        private async Task<RecipeAvailabilityResult> HasSufficientRecipeInventoryAsync(
             int storeId,
             int? drinkId,
             int? sizeId,
@@ -185,8 +203,8 @@ namespace CafeChain.Controllers.Api.v1
                     r.SizeId == sizeId &&
                     r.ToppingId == toppingId);
 
-            if (recipe == null)
-                return false;
+            if (recipe == null || recipe.RecipeDetails.Count == 0)
+                return RecipeAvailabilityResult.Unavailable("MissingRecipe", "Chưa cấu hình công thức", 10);
 
             foreach (var detail in recipe.RecipeDetails)
             {
@@ -200,11 +218,14 @@ namespace CafeChain.Controllers.Api.v1
                         i.IngredientId == detail.IngredientId &&
                         i.RecipeId == detail.ChildRecipeId);
 
-                if (inventory == null || inventory.AvailableQty < requiredQty)
-                    return false;
+                if (inventory == null)
+                    return RecipeAvailabilityResult.Unavailable("MissingInventory", "Chưa có tồn kho tại cửa hàng", 20);
+
+                if (inventory.AvailableQty < requiredQty)
+                    return RecipeAvailabilityResult.Unavailable("InsufficientStock", "Hết nguyên liệu", 30);
             }
 
-            return true;
+            return RecipeAvailabilityResult.Available();
         }
 
         private async Task<decimal> ConvertQuantityToBaseUnitAsync(
@@ -239,6 +260,19 @@ namespace CafeChain.Controllers.Api.v1
                 ingredientId,
                 fromUnitId);
             return quantity;
+        }
+
+        private sealed record RecipeAvailabilityResult(
+            bool IsAvailable,
+            string Status,
+            string? Reason,
+            int Priority)
+        {
+            public static RecipeAvailabilityResult Available() =>
+                new(true, "Available", null, int.MaxValue);
+
+            public static RecipeAvailabilityResult Unavailable(string status, string reason, int priority) =>
+                new(false, status, reason, priority);
         }
     }
 }

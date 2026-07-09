@@ -1,3 +1,4 @@
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Results;
 using System.Threading.Tasks;
 
@@ -16,6 +17,12 @@ namespace CafeChain.Application.Interfaces.POS
         /// <param name="targetId">ID đối tượng bị tác động (OrderId, DrinkId...)</param>
         /// <param name="reason">Lý do giải trình</param>
         Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason, decimal? discountValue = null);
+
+        /// <summary>
+        /// Xác thực PIN supervisor/manager mà không ghi InvoiceAuditLog.
+        /// Dùng cho nghiệp vụ không thuộc domain hóa đơn, ví dụ đóng WorkShift ngoại lệ.
+        /// </summary>
+        Task<ServiceResult<SupervisorPinAuthorizationDto>> VerifySupervisorPinAsync(string pin, int storeId);
 
         /// <summary>
         /// Lấy số lần thử còn lại trước khi bị khóa

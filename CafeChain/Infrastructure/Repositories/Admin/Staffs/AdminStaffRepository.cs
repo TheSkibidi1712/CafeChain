@@ -323,10 +323,23 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 
         public async Task<bool> EmailExistsAsync(string email, int? excludeAccountId = null)
         {
-            if (excludeAccountId.HasValue)
-                return await _context.Accounts.AnyAsync(a => a.Email == email && a.AccountId != excludeAccountId.Value);
+            if (string.IsNullOrWhiteSpace(email))
+                return false;
 
-            return await _context.Accounts.AnyAsync(a => a.Email == email);
+            // Case-insensitive duplicate check (SQL LOWER) — admin may retype email with different casing.
+            var normalized = email.Trim().ToLower();
+
+            if (excludeAccountId.HasValue)
+            {
+                return await _context.Accounts.AnyAsync(a =>
+                    a.Email != null &&
+                    a.Email.ToLower() == normalized &&
+                    a.AccountId != excludeAccountId.Value);
+            }
+
+            return await _context.Accounts.AnyAsync(a =>
+                a.Email != null &&
+                a.Email.ToLower() == normalized);
         }
 
         public async Task<bool> DefaultPhoneExistsAsync(string phone, int? excludeStaffId = null)

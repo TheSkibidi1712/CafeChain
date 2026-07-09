@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -173,6 +174,28 @@ namespace CafeChain.Application.Services.Inventories
         // ============================================================
         public async Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId)
         {
+            return await DeductStockForOrderInternalAsync(soldItems, storeId, null);
+        }
+
+        /// <summary>
+        /// Trừ kho cho một Order đã commit/paid. Idempotent theo ReferenceOrderId.
+        /// </summary>
+        public async Task<ServiceResult> DeductStockForCommittedOrderAsync(
+            List<POSSoldItemDto> soldItems,
+            int storeId,
+            int referenceOrderId)
+        {
+            if (referenceOrderId <= 0)
+                return ServiceResult.Failure("Thiếu mã đơn hàng đã commit để trừ kho.");
+
+            return await DeductStockForOrderInternalAsync(soldItems, storeId, referenceOrderId);
+        }
+
+        private async Task<ServiceResult> DeductStockForOrderInternalAsync(
+            List<POSSoldItemDto> soldItems,
+            int storeId,
+            int? referenceOrderId)
+        {
             if (soldItems == null || !soldItems.Any())
                 return ServiceResult.Failure("Không có sản phẩm nào để xuất kho.");
 
@@ -182,6 +205,35 @@ namespace CafeChain.Application.Services.Inventories
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                if (referenceOrderId.HasValue)
+                {
+                    var orderCanDeduct = await _context.Orders
+                        .AsNoTracking()
+                        .AnyAsync(order =>
+                            order.OrderId == referenceOrderId.Value &&
+                            order.StoreId == storeId &&
+                            order.OrderStatusId == SystemConstants.OrderStatuses.Completed &&
+                            order.PaymentStatusId == SystemConstants.PaymentStatuses.Paid);
+
+                    if (!orderCanDeduct)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure("Chỉ trừ kho cho đơn POS đã thanh toán và đã commit.");
+                    }
+
+                    var alreadyDeducted = await _context.InventoryTransactions
+                        .AsNoTracking()
+                        .AnyAsync(inventoryTransaction =>
+                            inventoryTransaction.ReferenceOrderId == referenceOrderId.Value &&
+                            inventoryTransaction.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
+
+                    if (alreadyDeducted)
+                    {
+                        await transaction.CommitAsync();
+                        return ServiceResult.Success("Đơn hàng đã được trừ kho trước đó.");
+                    }
+                }
+
                 foreach (var item in soldItems)
                 {
                     var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
@@ -198,7 +250,8 @@ namespace CafeChain.Application.Services.Inventories
                             drinkRecipe,
                             item.Quantity,
                             storeId,
-                            inventoryWarnings);
+                            inventoryWarnings,
+                            referenceOrderId);
                     }
 
                     foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
@@ -216,7 +269,8 @@ namespace CafeChain.Application.Services.Inventories
                             toppingRecipe,
                             item.Quantity,
                             storeId,
-                            inventoryWarnings);
+                            inventoryWarnings,
+                            referenceOrderId);
                     }
                 }
 
@@ -283,7 +337,8 @@ namespace CafeChain.Application.Services.Inventories
             Recipe recipe,
             int soldQuantity,
             int storeId,
-            List<string> inventoryWarnings)
+            List<string> inventoryWarnings,
+            int? referenceOrderId)
         {
             // STRICT OPTION B: Xuất thẳng Bán Thành Phẩm / Nguyên Liệu, KHÔNG bóc tách đệ quy
             foreach (var detail in recipe.RecipeDetails)
@@ -327,6 +382,7 @@ namespace CafeChain.Application.Services.Inventories
                     Quantity = convertedQty,
                     BeforeQty = beforeQty,
                     AfterQty = inventoryItem.AvailableQty,
+                    ReferenceOrderId = referenceOrderId,
                     CreatedAt = DateTime.UtcNow
                 });
             }

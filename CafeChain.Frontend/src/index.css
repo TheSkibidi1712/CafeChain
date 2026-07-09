@@ -57,6 +57,23 @@
   font-family: Consolas, "Courier New", monospace;
 }
 
+.temporary-print-host {
+  position: fixed;
+  top: 0;
+  left: -10000px;
+  width: 80mm;
+  background: #ffffff;
+  color: #000000;
+  pointer-events: none;
+}
+
+.temporary-receipt-template,
+.temporary-drink-label-template {
+  color: #000000;
+  background: #ffffff;
+  font-family: Consolas, "Courier New", monospace;
+}
+
 @media print {
   @page {
     size: 80mm 200mm;
@@ -77,11 +94,14 @@
   }
 
   .receipt-print-host,
-  .receipt-print-host * {
+  .receipt-print-host *,
+  .temporary-print-host,
+  .temporary-print-host * {
     visibility: visible !important;
   }
 
-  .receipt-print-host {
+  .receipt-print-host,
+  .temporary-print-host {
     position: absolute !important;
     inset: 0 auto auto 0 !important;
     width: 80mm !important;
@@ -99,5 +119,37 @@
     max-width: 74mm !important;
     box-shadow: none !important;
     box-sizing: border-box !important;
+  }
+
+  .temporary-receipt-template {
+    width: 74mm !important;
+    max-width: 74mm !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .temporary-drink-label-print-host {
+    width: 58mm !important;
+    padding: 2mm !important;
+  }
+
+  .temporary-drink-label-template {
+    width: 54mm !important;
+    max-width: 54mm !important;
+    box-shadow: none !important;
+    box-sizing: border-box !important;
+  }
+
+  .temporary-drink-label {
+    width: 54mm !important;
+    min-height: 32mm !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    box-sizing: border-box !important;
+  }
+
+  .temporary-drink-label:not(:last-child) {
+    break-after: page !important;
+    page-break-after: always !important;
   }
 }

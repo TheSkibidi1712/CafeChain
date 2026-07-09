@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Data;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Stores;
@@ -25,6 +26,15 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
         {
             return await _context.WorkShifts
                 .FirstOrDefaultAsync(ws => ws.UserId == userId && ws.StoreId == storeId && ws.Status == "Open");
+        }
+
+        public async Task<WorkShift?> GetShiftByIdAsync(int shiftId, int userId, int storeId)
+        {
+            return await _context.WorkShifts
+                .FirstOrDefaultAsync(ws =>
+                    ws.ShiftId == shiftId &&
+                    ws.UserId == userId &&
+                    ws.StoreId == storeId);
         }
 
         public async Task<WorkShift> CreateShiftAsync(WorkShift shift)
@@ -80,28 +90,15 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .SumAsync(op => (decimal?)op.Payment.Amount) ?? 0m;
         }
 
-        // === RECONCILIATION ===
-        /// <summary>
-        /// Ghi bản ghi cảnh báo chênh lệch két tiền vào InvoiceAuditLog.
-        /// ActionName = "SHIFT_CASH_DISCREPANCY" — hiển thị trên trang Admin đối soát.
-        /// </summary>
-        public async Task CreateReconciliationWarningAsync(
-            int shiftId, int storeId, int userId, decimal discrepancy, string? reason)
+        public async Task<bool> HasOpenPosPaymentAsync(int shiftId, int storeId)
         {
-            var auditLog = new CafeChain.Models.Orders.InvoiceAuditLog
-            {
-                OrderId = shiftId,  // Cross-reference: lưu ShiftId vào OrderId để admin tra cứu
-                CashierId = userId,
-                SupervisorId = userId,  // Self-reported: thu ngân tự khai báo tiền thực tế
-                ActionName = "SHIFT_CASH_DISCREPANCY",
-                Reason = $"[HỆ THỐNG] Chênh lệch két tiền: {discrepancy:N0}đ. " +
-                         $"Lý do nhân viên khai: {reason ?? "Không có"}",
-                DiscountValue = discrepancy,
-                CreatedAt = DateTime.Now
-            };
-
-            _context.InvoiceAuditLogs.Add(auditLog);
-            await _context.SaveChangesAsync();
+            return await _context.Orders
+                .AnyAsync(order =>
+                    order.WorkShiftId == shiftId &&
+                    order.StoreId == storeId &&
+                    order.Source == "POS" &&
+                    order.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment &&
+                    order.PaymentStatusId == SystemConstants.PaymentStatuses.Unpaid);
         }
 
         public async Task SaveChangesAsync()

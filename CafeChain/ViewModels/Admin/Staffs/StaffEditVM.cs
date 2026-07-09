@@ -34,7 +34,12 @@ namespace CafeChain.ViewModels.Admin.Staffs
         public decimal OvertimeRate { get; set; }
 
         public string? SocialInsuranceNumber { get; set; }
-        [StringLength(15, MinimumLength = 10, ErrorMessage = "Mã số BHYT phải từ 10 đến 15 ký tự")]
+
+        /// <summary>
+        /// Optional. Empty is allowed; when provided must be 10–15 characters.
+        /// (Avoid [StringLength MinimumLength] which rejects empty string as invalid length.)
+        /// </summary>
+        [RegularExpression(@"^(|.{10,15})$", ErrorMessage = "Mã số BHYT phải từ 10 đến 15 ký tự")]
         public string? HealthInsuranceNumber { get; set; }
 
         public List<StaffDependentVM> Dependents { get; set; } = new();

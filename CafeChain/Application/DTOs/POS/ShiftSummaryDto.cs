@@ -18,6 +18,17 @@ namespace CafeChain.Application.DTOs.POS
         public decimal ExpectedEndingCash { get; set; }
         public decimal? ActualEndingCash { get; set; }
         public decimal? CashDiscrepancy { get; set; }
+        public bool IsExceptionClosed { get; set; }
+        public string? ExceptionCloseReason { get; set; }
+        public int? ExceptionClosedByStaffId { get; set; }
+        public DateTime? ExceptionClosedAt { get; set; }
+        public int? OfflineOrderCountAtClose { get; set; }
+        public decimal? OfflineEstimatedTotalAtClose { get; set; }
+        public decimal? OfflineCashTotalAtClose { get; set; }
+        public bool RequiresReconciliation { get; set; }
+        public bool HasLateOfflineSync { get; set; }
+        public int LateOfflineSyncCount { get; set; }
+        public DateTime? LastLateOfflineSyncedAt { get; set; }
 
         /// <summary>Tổng doanh thu tiền mặt trong ca</summary>
         public decimal TotalCashSales { get; set; }

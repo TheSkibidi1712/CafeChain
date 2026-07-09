@@ -53,6 +53,7 @@ namespace CafeChain.Application.Services.POS
                 order.Payments.Any(payment => payment.PaymentStatusId == SystemConstants.PaymentStatuses.Paid))
             {
                 _logger.LogInformation("[PayOS Webhook] Order #{OrderId} already PAID. Skipping.", orderId);
+                await RepairInventoryForAlreadyPaidPosOrderSafeAsync(orderId);
                 return PayOSWebhookProcessResult.From("ALREADY_PAID", "Đơn đã thanh toán.", orderId);
             }
 
@@ -93,7 +94,12 @@ namespace CafeChain.Application.Services.POS
 
             var transitionResult = await ConfirmPaymentTransactionAsync(orderId, payload);
             if (!transitionResult.ConfirmedPayment)
+            {
+                if (transitionResult.Code == "ALREADY_PAID")
+                    await RepairInventoryForAlreadyPaidPosOrderSafeAsync(orderId);
+
                 return transitionResult;
+            }
 
             var confirmedOrder = await LoadOrderForSideEffectsAsync(orderId);
             if (confirmedOrder == null)
@@ -377,7 +383,10 @@ namespace CafeChain.Application.Services.POS
                     })
                     .ToList();
 
-                var result = await _inventoryService.DeductStockForOrderAsync(soldItems, order.StoreId);
+                var result = await _inventoryService.DeductStockForCommittedOrderAsync(
+                    soldItems,
+                    order.StoreId,
+                    order.OrderId);
                 if (!result.IsSuccess)
                 {
                     _logger.LogError(
@@ -396,6 +405,30 @@ namespace CafeChain.Application.Services.POS
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[PayOS Webhook] Unexpected inventory error for POS Order #{OrderId}.", order.OrderId);
+            }
+        }
+
+        private async Task RepairInventoryForAlreadyPaidPosOrderSafeAsync(int orderId)
+        {
+            try
+            {
+                var order = await LoadOrderForSideEffectsAsync(orderId);
+                if (order == null ||
+                    !string.Equals(order.Source, "POS", StringComparison.OrdinalIgnoreCase) ||
+                    order.OrderStatusId != SystemConstants.OrderStatuses.Completed ||
+                    order.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
+                {
+                    return;
+                }
+
+                await DeductInventoryForPaidPosOrderSafeAsync(order);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    ex,
+                    "[PayOS Webhook] Inventory repair failed for already paid POS Order #{OrderId}.",
+                    orderId);
             }
         }
 

@@ -38,8 +38,12 @@ export interface MenuItem {
   categoryId: number
   /** URL ảnh sản phẩm (optional) */
   image?: string
-  /** Trạng thái: true = đang bán, false = ngừng bán */
+  /** true = co the them vao gio; false = hien thi disabled kem ly do */
   isAvailable: boolean
+  /** Ma trang thai kha dung tu backend */
+  availabilityStatus?: string
+  /** Ly do tieng Viet khi mon tam thoi khong ban duoc */
+  availabilityReason?: string | null
   /** Danh sách size khả dụng từ Backend */
   sizes?: MenuItemSize[]
   /** Danh sách topping khả dụng cho món này từ Backend */
@@ -70,6 +74,35 @@ export interface ToppingOption {
  */
 export type SyncStatus = 'Pending' | 'Syncing' | 'Synced' | 'Failed'
 
+export interface CartQueueToppingSnapshot {
+  toppingId: number
+  name?: string
+  price?: number
+}
+
+export interface CartQueueItemSnapshot {
+  cartId?: string
+  menuItemId: number
+  name: string
+  categoryId?: number
+  sizeId?: number | null
+  sizeName?: string
+  quantity: number
+  unitPrice: number
+  note?: string
+  detailText?: string
+  toppings?: CartQueueToppingSnapshot[]
+}
+
+export interface CartQueuePaymentSnapshot {
+  method: 'cash'
+  paymentMethodId: 1
+  amount: number
+  receivedAmount: number
+  changeAmount: number
+  capturedAt: string
+}
+
 /**
  * Đơn hàng trong hàng đợi đồng bộ — tạo khi thanh toán offline
  * Lưu toàn bộ payload cần thiết để replay lên Backend khi có mạng lại.
@@ -88,6 +121,8 @@ export interface CartSyncQueueItem {
   staffId: number
   /** Mã ca làm việc POS */
   workShiftId: number
+  /** Thời điểm bán thực tế tại POS (ISO string) */
+  soldAt: string
   /** Loại order: 'dine-in' | 'take-away' */
   orderType: string
   /** Danh sách sản phẩm trong đơn */
@@ -97,8 +132,13 @@ export interface CartSyncQueueItem {
     sizeId?: number | null
     quantity: number
     unitPrice: number
+    note?: string
     toppings?: Array<{ toppingId: number }>
   }>
+  /** Snapshot đầy đủ của giỏ hàng lúc thu ngân bấm thanh toán */
+  cartSnapshot: CartQueueItemSnapshot[]
+  /** Snapshot thanh toán tiền mặt lúc thu ngân bấm thanh toán */
+  paymentSnapshot: CartQueuePaymentSnapshot
   /** Tổng tiền */
   totalAmount: number
   /** Phương thức thanh toán: 'cash' | 'banking' */

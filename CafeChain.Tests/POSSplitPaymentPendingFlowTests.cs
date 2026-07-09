@@ -138,7 +138,10 @@ namespace CafeChain.Tests.POS
 
             Assert.IsType<OkObjectResult>(response);
             inventoryService.Verify(
-                service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>()),
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    It.IsAny<int>(),
+                    It.IsAny<int>()),
                 Times.Never);
         }
 
@@ -152,13 +155,14 @@ namespace CafeChain.Tests.POS
             var processor = CreateProcessor(context, inventoryService, printDispatcher);
 
             inventoryService
-                .Setup(service => service.DeductStockForOrderAsync(
+                .Setup(service => service.DeductStockForCommittedOrderAsync(
                     It.Is<List<POSSoldItemDto>>(items =>
                         items.Count == 1 &&
                         items[0].DrinkId == 10 &&
                         items[0].SizeId == 2 &&
                         items[0].Quantity == 1),
-                    3))
+                    3,
+                    orderId))
                 .ReturnsAsync(ServiceResult.Success());
 
             printDispatcher
@@ -188,7 +192,12 @@ namespace CafeChain.Tests.POS
                 payment.PaymentMethodId == 1 &&
                 payment.PaidAt.HasValue);
             Assert.Equal(520000m, shift.ExpectedEndingCash);
-            inventoryService.Verify(service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), 3), Times.Once);
+            inventoryService.Verify(
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    orderId),
+                Times.Once);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),
@@ -213,13 +222,25 @@ namespace CafeChain.Tests.POS
             var printDispatcher = new Mock<IPrintDispatcher>(MockBehavior.Strict);
             var processor = CreateProcessor(context, inventoryService, printDispatcher);
 
+            inventoryService
+                .Setup(service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    It.IsAny<int>()))
+                .ReturnsAsync(ServiceResult.Success("Đơn hàng đã được trừ kho trước đó."));
+
             var result = await processor.ProcessAsync(CreatePayload(amount: 25000m));
 
             var shift = await context.WorkShifts.SingleAsync(s => s.ShiftId == 42);
             Assert.Equal("ALREADY_PAID", result.Code);
             Assert.False(result.ConfirmedPayment);
             Assert.Equal(520000m, shift.ExpectedEndingCash);
-            inventoryService.Verify(service => service.DeductStockForOrderAsync(It.IsAny<List<POSSoldItemDto>>(), It.IsAny<int>()), Times.Never);
+            inventoryService.Verify(
+                service => service.DeductStockForCommittedOrderAsync(
+                    It.IsAny<List<POSSoldItemDto>>(),
+                    3,
+                    It.IsAny<int>()),
+                Times.Once);
             printDispatcher.Verify(
                 dispatcher => dispatcher.DispatchPrintJobAsync(
                     It.IsAny<Order>(),
