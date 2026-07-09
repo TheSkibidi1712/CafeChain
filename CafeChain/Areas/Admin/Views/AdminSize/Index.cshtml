@@ -52,6 +52,7 @@
                 <tr>
                     <th>TÊN SIZE</th>
                     <th>MÔ TẢ</th>
+                    <th>LOẠI SIZE</th>
                     <th>TRẠNG THÁI</th>
                     <th class="text-end">HÀNH ĐỘNG</th>
                 </tr>
@@ -70,6 +71,12 @@
                         </td>
 
                         <td>@item.Description</td>
+
+                        <td>
+                            <span class="size-type-badge @(item.SizeType == CafeChain.Models.Enums.Drink.SizeTypeEnum.Volume ? "size-type-volume" : "size-type-cup")">
+                                @(item.SizeType == CafeChain.Models.Enums.Drink.SizeTypeEnum.Volume ? "Dung tích" : "Ly")
+                            </span>
+                        </td>
 
                         <td>
                             @if (item.Active)
@@ -96,7 +103,8 @@
                                     onclick="openEditModal(
                                 @item.SizeId,
                                 '@Html.Raw(item.Name?.Replace("'", "\\'"))',
-                                '@Html.Raw(item.Description?.Replace("'", "\\'"))'
+                                '@Html.Raw(item.Description?.Replace("'", "\\'"))',
+                                @((int)item.SizeType)
                                 )">
                                 <i class="fas fa-pen text-primary"></i>
                             </button>
@@ -155,7 +163,7 @@
                                    required />
                         </div>
                         <!-- Mô Tả Size -->
-                        <div class="col-8">
+                        <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Mô Tả Size <span class="text-danger">*</span>
                             </label>
@@ -164,6 +172,19 @@
                                    class="form-control bg-light"
                                    placeholder="Ví dụ: Size Vừa"
                                    required />
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Loại Size <span class="text-danger">*</span>
+                            </label>
+                            <select id="create-size-type"
+                                    name="SizeType"
+                                    class="form-select bg-light"
+                                    required>
+                                <option value="1">Ly</option>
+                                <option value="2">Dung tích</option>
+                            </select>
                         </div>
 
                     </div>
@@ -231,7 +252,7 @@
                         </div>
 
                         <!-- Mô tả -->
-                        <div class="col-8">
+                        <div class="col-4">
                             <label class="form-label fw-semibold">
                                 Mô Tả Size <span class="text-danger">*</span>
                             </label>
@@ -239,6 +260,19 @@
                                    name="Description"
                                    class="form-control bg-light"
                                    required />
+                        </div>
+
+                        <div class="col-4">
+                            <label class="form-label fw-semibold">
+                                Loại Size <span class="text-danger">*</span>
+                            </label>
+                            <select id="edit-size-type"
+                                    name="SizeType"
+                                    class="form-select bg-light"
+                                    required>
+                                <option value="1">Ly</option>
+                                <option value="2">Dung tích</option>
+                            </select>
                         </div>
 
                     </div>

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260709165025_InitialCreate")]
+    [Migration("20260709181052_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2021,6 +2021,11 @@ namespace CafeChain.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
+                    b.Property<int>("SizeType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.HasKey("SizeId");
 
                     b.HasIndex("Name")
@@ -2038,7 +2043,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước nhỏ",
                             Name = "S",
-                            SizeCode = "S"
+                            SizeCode = "S",
+                            SizeType = 1
                         },
                         new
                         {
@@ -2046,7 +2052,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước trung bình",
                             Name = "M",
-                            SizeCode = "M"
+                            SizeCode = "M",
+                            SizeType = 1
                         },
                         new
                         {
@@ -2054,7 +2061,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước lớn",
                             Name = "L",
-                            SizeCode = "L"
+                            SizeCode = "L",
+                            SizeType = 1
                         },
                         new
                         {
@@ -2062,7 +2070,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước rất lớn",
                             Name = "XL",
-                            SizeCode = "XL"
+                            SizeCode = "XL",
+                            SizeType = 1
                         },
                         new
                         {
@@ -2070,7 +2079,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước 150ml",
                             Name = "150ml",
-                            SizeCode = "150ML"
+                            SizeCode = "150ML",
+                            SizeType = 2
                         },
                         new
                         {
@@ -2078,7 +2088,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước 200ml",
                             Name = "200ml",
-                            SizeCode = "200ML"
+                            SizeCode = "200ML",
+                            SizeType = 2
                         },
                         new
                         {
@@ -2086,7 +2097,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước 250ml",
                             Name = "250ml",
-                            SizeCode = "250ML"
+                            SizeCode = "250ML",
+                            SizeType = 2
                         },
                         new
                         {
@@ -2094,7 +2106,8 @@ namespace CafeChain.Migrations
                             Active = true,
                             Description = "Kích thước 300ml",
                             Name = "300ml",
-                            SizeCode = "300ML"
+                            SizeCode = "300ML",
+                            SizeType = 2
                         });
                 });
 

@@ -50,8 +50,8 @@ namespace CafeChain.Data.Configurations.Vouchers
                     DiscountPercent = 50, 
                     MaxDiscount = 20000, 
                     MinOrderValue = 40000, 
-                    StartDate = DateTime.Now.AddDays(-7), 
-                    EndDate = DateTime.Now.AddDays(30), 
+                    StartDate = new DateTime(2026, 7, 2, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(347), 
+                    EndDate = new DateTime(2026, 8, 8, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(356), 
                     Active = true, 
                     MaxUsage = 100 
                 },
@@ -61,8 +61,8 @@ namespace CafeChain.Data.Configurations.Vouchers
                     Code = "GIAM10K", 
                     DiscountAmount = 10000, 
                     MinOrderValue = 50000, 
-                    StartDate = DateTime.Now.AddDays(-1), 
-                    EndDate = DateTime.Now.AddDays(15), 
+                    StartDate = new DateTime(2026, 7, 8, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(363), 
+                    EndDate = new DateTime(2026, 7, 24, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(363), 
                     Active = true, 
                     MaxUsage = 500 
                 },
@@ -73,8 +73,8 @@ namespace CafeChain.Data.Configurations.Vouchers
                     DiscountPercent = 20, 
                     MaxDiscount = 100000, 
                     MinOrderValue = 0, 
-                    StartDate = DateTime.Now.AddDays(-30), 
-                    EndDate = DateTime.Now.AddDays(60), 
+                    StartDate = new DateTime(2026, 6, 9, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(365), 
+                    EndDate = new DateTime(2026, 9, 7, 23, 50, 24, 153, DateTimeKind.Local).AddTicks(365), 
                     Active = true, 
                     MaxUsage = 1000 
                 }

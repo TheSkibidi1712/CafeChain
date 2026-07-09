@@ -15,6 +15,8 @@ function renderDrinkUI(data) {
     data.forEach(d => {
 
         let image = d.imageUrl ?? "/Images/DrinkImages/no-image.jpg";
+        let canAssign = d.canAssign !== false;
+        let assignmentBlockReason = d.assignmentBlockReason ?? "Size không phù hợp với loại sản phẩm";
 
         let card = `
             <div class="col-6">
@@ -54,10 +56,20 @@ function renderDrinkUI(data) {
         // ===== CHƯA GÁN =====
         else {
             unassignedHtml += card + `
-                    <button class="btn btn-sm btn-orange w-100 mt-2"
-                            onclick="openPriceModal(${d.drinkId})">
-                        Gán
-                    </button>
+                    ${
+                        canAssign
+                            ? `<button class="btn btn-sm btn-orange w-100 mt-2"
+                                       onclick="openPriceModal(${d.drinkId})">
+                                   Gán
+                               </button>`
+                            : `<button class="btn btn-sm btn-secondary w-100 mt-2"
+                                       disabled>
+                                   Không phù hợp
+                               </button>
+                               <small class="text-danger d-block mt-1">
+                                   ${assignmentBlockReason}
+                               </small>`
+                    }
                 </div>
             </div>`;
         }
@@ -234,16 +246,18 @@ function toggleSize(id) {
 // =========================
 // EDIT SIZE
 // =========================
-function openEditModal(id, name, description) {
+function openEditModal(id, name, description, sizeType) {
     // reset trước để tránh giữ dữ liệu cũ
     document.getElementById('edit-id').value = "";
     document.getElementById('edit-name').value = "";
     document.getElementById('edit-description').value = "";
+    document.getElementById('edit-size-type').value = "1";
 
     // set dữ liệu mới
     document.getElementById('edit-id').value = id || 0;
     document.getElementById('edit-name').value = name || "";
     document.getElementById('edit-description').value = description || "";
+    document.getElementById('edit-size-type').value = String(sizeType || 1);
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -256,6 +270,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const sizeId = document.getElementById("edit-id").value;
         const name = document.getElementById("edit-name").value;
         const description = document.getElementById("edit-description").value;
+        const sizeType = Number(document.getElementById("edit-size-type").value);
 
         if (!sizeId || sizeId <= 0) {
             toast("Không tìm thấy size", "error");
@@ -270,7 +285,8 @@ document.addEventListener("DOMContentLoaded", function () {
             body: JSON.stringify({
                 sizeId: sizeId,
                 name: name,
-                description: description
+                description: description,
+                sizeType: sizeType
             })
         })
             .then(res => {
@@ -315,6 +331,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         const name = document.getElementById("create-name").value.trim();
         const description = document.getElementById("create-description").value.trim();
+        const sizeType = Number(document.getElementById("create-size-type").value);
 
         if (!name) {
             toast("Tên size không được để trống", "error");
@@ -328,7 +345,8 @@ document.addEventListener("DOMContentLoaded", function () {
             },
             body: JSON.stringify({
                 name: name,
-                description: description
+                description: description,
+                sizeType: sizeType
             })
         })
             .then(res => {
@@ -345,6 +363,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 document.getElementById("create-name").value = "";
                 document.getElementById("create-description").value = "";
+                document.getElementById("create-size-type").value = "1";
 
                 const modal = bootstrap.Modal.getInstance(
                     document.getElementById("createModal")

@@ -152,7 +152,7 @@ namespace CafeChain.Application.Services.Admin.Categories
             {
                 CategoryCode = Normalize(dto.CategoryCode),
                 Name = Normalize(dto.Name),
-                Icon = dto.Icon,
+                Icon = NormalizeOptional(dto.Icon),
                 Active = dto.Active
             };
         }
@@ -163,7 +163,7 @@ namespace CafeChain.Application.Services.Admin.Categories
 
             category.Name = Normalize(dto.Name);
 
-            category.Icon = dto.Icon;
+            category.Icon = NormalizeOptional(dto.Icon);
 
             category.Active = dto.Active;
         }
@@ -172,6 +172,13 @@ namespace CafeChain.Application.Services.Admin.Categories
         {
             return string.IsNullOrWhiteSpace(value)
                 ? string.Empty
+                : value.Trim();
+        }
+
+        private static string? NormalizeOptional(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? null
                 : value.Trim();
         }
 

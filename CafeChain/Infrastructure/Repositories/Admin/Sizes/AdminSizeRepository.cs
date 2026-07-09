@@ -14,9 +14,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Sizes
         }
 
         public async Task<IEnumerable<Size>> GetAllAsync() =>
-        await _context.Sizes.ToListAsync();
+        await _context.Sizes
+            .OrderBy(x => x.SizeId)
+            .ToListAsync();
 
-        public async Task<Size> GetByIdAsync(int id) =>
+        public async Task<Size?> GetByIdAsync(int id) =>
             await _context.Sizes.FindAsync(id);
 
         public async Task AddAsync(Size size) => await _context.Sizes.AddAsync(size);
@@ -36,15 +38,36 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Sizes
                 .AnyAsync(x => x.Name == name && x.SizeId != excludeId);
         }
 
+        public async Task<bool> ExistsBySizeCodeAsync(string sizeCode)
+        {
+            return await _context.Sizes
+                .AnyAsync(x => x.SizeCode == sizeCode);
+        }
+
+        public async Task<bool> ExistsBySizeCodeAsync(string sizeCode, int excludeId)
+        {
+            return await _context.Sizes
+                .AnyAsync(x => x.SizeCode == sizeCode && x.SizeId != excludeId);
+        }
+
         // ===== DRINK =====
         public async Task<IEnumerable<Drink>> GetActiveDrinksAsync()
         {
             return await _context.Drinks
+                .AsNoTracking()
                 .Where(d => d.Active)
                 .Include(d => d.Category)
                 .Include(d => d.ProductType)
                 .Include(d => d.DrinkImages)
                 .ToListAsync();
+        }
+
+        public async Task<Drink?> GetActiveDrinkByIdAsync(int drinkId)
+        {
+            return await _context.Drinks
+                .AsNoTracking()
+                .Include(d => d.ProductType)
+                .FirstOrDefaultAsync(d => d.DrinkId == drinkId && d.Active);
         }
     }
 }

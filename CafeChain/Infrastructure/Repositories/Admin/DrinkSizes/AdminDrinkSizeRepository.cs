@@ -20,10 +20,18 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.DrinkSizes
                 .ToListAsync();
         }
 
-        public async Task<DrinkSize> GetByIdAsync(int id)
+        public async Task<DrinkSize?> GetByIdAsync(int id)
         {
             return await _context.DrinkSizes
                 .FirstOrDefaultAsync(x => x.DrinkSizeId == id);
+        }
+
+        public async Task<DrinkSize?> GetByDrinkAndSizeAsync(int drinkId, int sizeId)
+        {
+            return await _context.DrinkSizes
+                .FirstOrDefaultAsync(x =>
+                    x.DrinkId == drinkId &&
+                    x.SizeId == sizeId);
         }
 
         public async Task AddAsync(DrinkSize entity)

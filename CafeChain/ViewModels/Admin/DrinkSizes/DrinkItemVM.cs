@@ -12,7 +12,13 @@
 
         public string CategoryName { get; set; }
 
+        public int ProductTypeId { get; set; }
+
         public string ProductTypeName { get; set; }
+
+        public bool CanAssign { get; set; } = true;
+
+        public string? AssignmentBlockReason { get; set; }
 
         public bool IsAssigned { get; set; }
 

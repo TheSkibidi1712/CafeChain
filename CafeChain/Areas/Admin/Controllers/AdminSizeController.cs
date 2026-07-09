@@ -29,8 +29,10 @@ namespace CafeChain.Areas.Admin.Controllers
             var vm = sizes.Select(s => new AdminSizeVM
             {
                 SizeId = s.SizeId,
+                SizeCode = s.SizeCode,
                 Name = s.Name,
                 Description = s.Description,
+                SizeType = s.SizeType,
                 Active = s.Active
             });
 
@@ -49,7 +51,8 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _adminsizeService.CreateSizeAsync(new SizeDto
             {
                 Name = vm.Name,
-                Description = vm.Description
+                Description = vm.Description,
+                SizeType = vm.SizeType
             });
 
             if (!result.Success)
@@ -71,7 +74,8 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 SizeId = vm.SizeId,
                 Name = vm.Name,
-                Description = vm.Description
+                Description = vm.Description,
+                SizeType = vm.SizeType
             });
 
             if (!result.Success)

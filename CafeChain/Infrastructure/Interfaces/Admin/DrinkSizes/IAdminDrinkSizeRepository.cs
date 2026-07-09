@@ -6,7 +6,9 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.DrinkSizes
     {
         Task<IEnumerable<DrinkSize>> GetBySizeIdAsync(int sizeId);
 
-        Task<DrinkSize> GetByIdAsync(int id);
+        Task<DrinkSize?> GetByIdAsync(int id);
+
+        Task<DrinkSize?> GetByDrinkAndSizeAsync(int drinkId, int sizeId);
 
         Task AddAsync(DrinkSize entity);
 

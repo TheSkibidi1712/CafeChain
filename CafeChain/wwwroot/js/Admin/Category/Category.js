@@ -323,8 +323,16 @@ async function openEditModal(categoryId) {
         ).value = category.categoryId;
 
         document.getElementById(
+            "editCategoryCode"
+        ).value = category.categoryCode ?? "";
+
+        document.getElementById(
             "editCategoryName"
         ).value = category.name;
+
+        document.getElementById(
+            "editCategoryIcon"
+        ).value = category.icon ?? "";
 
         document.getElementById(
             "editCategoryActive"

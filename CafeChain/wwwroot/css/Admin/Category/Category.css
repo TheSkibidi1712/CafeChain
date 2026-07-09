@@ -61,6 +61,32 @@
     color: #111827;
 }
 
+.category-icon-cell {
+    width: 90px;
+}
+
+.category-icon-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: 1px solid #fed7aa;
+    border-radius: 8px;
+    background: #fff7ed;
+    color: #111827;
+    font-size: 20px;
+    line-height: 1;
+}
+
+.category-icon-empty {
+    border-color: #e5e7eb;
+    background: #f9fafb;
+    color: #9ca3af;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 .badge-active {
     background-color: #dcfce7;
     color: #16a34a;

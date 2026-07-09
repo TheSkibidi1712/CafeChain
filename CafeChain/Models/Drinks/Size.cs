@@ -7,6 +7,7 @@ namespace CafeChain.Models.Drinks
         public string SizeCode { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public CafeChain.Models.Enums.Drink.SizeTypeEnum SizeType { get; set; }
         public bool Active { get; set; }
 
         public virtual ICollection<DrinkSize> DrinkSizes { get; set; }

@@ -5,7 +5,7 @@
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<link rel="stylesheet" href="~/css/Admin/Category/category.css" />
+<link rel="stylesheet" href="~/css/Admin/Category/Category.css" />
 
 @Html.AntiForgeryToken()
 
@@ -90,6 +90,10 @@
                         Mã danh mục
                     </th>
 
+                    <th class="border-0 py-3 text-center">
+                        Icon
+                    </th>
+
                     <th class="border-0 py-3">
                         Tên danh mục
                     </th>
@@ -112,7 +116,7 @@
                 {
                     <tr>
 
-                        <td colspan="4"
+                        <td colspan="5"
                             class="text-center py-4 text-muted">
 
                             Chưa có danh mục nào.
@@ -129,6 +133,24 @@
                         <td class="py-3">
 
                             @item.CategoryCode
+
+                        </td>
+
+                        <td class="py-3 text-center category-icon-cell">
+
+                            @if (!string.IsNullOrWhiteSpace(item.Icon))
+                            {
+                                <span class="category-icon-badge">
+                                    @item.Icon
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="category-icon-badge category-icon-empty"
+                                      title="No icon configured">
+                                    -
+                                </span>
+                            }
 
                         </td>
 
@@ -510,5 +532,5 @@
 @section Scripts
 {
     <script src="~/js/Toast/toast.js"></script>
-    <script src="~/js/Admin/Category/category.js"></script>
+    <script src="~/js/Admin/Category/Category.js"></script>
 }

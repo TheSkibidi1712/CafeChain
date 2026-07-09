@@ -382,6 +382,7 @@ namespace CafeChain.Migrations
                     SizeCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: false),
+                    SizeType = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
                 },
                 constraints: table =>
@@ -2993,17 +2994,17 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Sizes",
-                columns: new[] { "SizeId", "Active", "Description", "Name", "SizeCode" },
+                columns: new[] { "SizeId", "Active", "Description", "Name", "SizeCode", "SizeType" },
                 values: new object[,]
                 {
-                    { 1, true, "Kích thước nhỏ", "S", "S" },
-                    { 2, true, "Kích thước trung bình", "M", "M" },
-                    { 3, true, "Kích thước lớn", "L", "L" },
-                    { 4, true, "Kích thước rất lớn", "XL", "XL" },
-                    { 5, true, "Kích thước 150ml", "150ml", "150ML" },
-                    { 6, true, "Kích thước 200ml", "200ml", "200ML" },
-                    { 7, true, "Kích thước 250ml", "250ml", "250ML" },
-                    { 8, true, "Kích thước 300ml", "300ml", "300ML" }
+                    { 1, true, "Kích thước nhỏ", "S", "S", 1 },
+                    { 2, true, "Kích thước trung bình", "M", "M", 1 },
+                    { 3, true, "Kích thước lớn", "L", "L", 1 },
+                    { 4, true, "Kích thước rất lớn", "XL", "XL", 1 },
+                    { 5, true, "Kích thước 150ml", "150ml", "150ML", 2 },
+                    { 6, true, "Kích thước 200ml", "200ml", "200ML", 2 },
+                    { 7, true, "Kích thước 250ml", "250ml", "250ML", 2 },
+                    { 8, true, "Kích thước 300ml", "300ml", "300ML", 2 }
                 });
 
             migrationBuilder.InsertData(
