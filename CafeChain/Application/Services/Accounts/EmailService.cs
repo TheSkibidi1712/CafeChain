@@ -17,10 +17,22 @@ namespace CafeChain.Application.Services.Accounts
         {
             try
             {
-                var smtpHost = _config["Email:SmtpHost"];
-                var smtpPort = int.Parse(_config["Email:SmtpPort"]);
-                var email = _config["Email:Address"];
+                var smtpHost = _config["Email:SmtpHost"]?.Trim();
+                var smtpPortRaw = _config["Email:SmtpPort"]?.Trim();
+                var email = _config["Email:Address"]?.Trim();
                 var password = _config["Email:Password"];
+
+                // Fail fast with actionable messages — never include secrets/OTP in exceptions.
+                if (string.IsNullOrWhiteSpace(smtpHost))
+                    throw new InvalidOperationException("Thiếu cấu hình Email:SmtpHost.");
+                if (string.IsNullOrWhiteSpace(smtpPortRaw) || !int.TryParse(smtpPortRaw, out var smtpPort))
+                    throw new InvalidOperationException("Cấu hình Email:SmtpPort không hợp lệ.");
+                if (string.IsNullOrWhiteSpace(email))
+                    throw new InvalidOperationException("Thiếu cấu hình Email:Address (tài khoản SMTP gửi đi).");
+                if (string.IsNullOrWhiteSpace(password))
+                    throw new InvalidOperationException("Thiếu cấu hình Email:Password (Gmail cần App Password).");
+                if (string.IsNullOrWhiteSpace(to))
+                    throw new InvalidOperationException("Thiếu địa chỉ email người nhận.");
 
                 using var client = new SmtpClient(smtpHost, smtpPort)
                 {
@@ -43,10 +55,38 @@ namespace CafeChain.Application.Services.Accounts
 
                 await client.SendMailAsync(mail);
             }
+            catch (SmtpException ex)
+            {
+                // Gmail 5.7.0 / auth failures — config issue, not OTP domain bug.
+                var detail = ex.Message ?? string.Empty;
+                if (detail.Contains("5.7.0", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("Authentication Required", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("not authenticated", StringComparison.OrdinalIgnoreCase))
+                {
+                    throw new InvalidOperationException(
+                        "Xác thực SMTP thất bại (Authentication Required). " +
+                        "Kiểm tra Email:Address và Email:Password — với Gmail cần bật 2FA và dùng App Password 16 ký tự.",
+                        ex);
+                }
+
+                throw new InvalidOperationException("Lỗi SMTP khi gửi email: " + SummarizeSmtp(ex), ex);
+            }
+            catch (InvalidOperationException)
+            {
+                throw;
+            }
             catch (Exception ex)
             {
-                throw new Exception("Lỗi gửi email", ex);
+                throw new InvalidOperationException("Lỗi gửi email: " + (ex.Message ?? "không xác định"), ex);
             }
+        }
+
+        private static string SummarizeSmtp(SmtpException ex)
+        {
+            var msg = ex.Message ?? string.Empty;
+            // Keep short, no credentials.
+            if (msg.Length > 160) msg = msg.Substring(0, 160) + "...";
+            return msg.Replace('\r', ' ').Replace('\n', ' ');
         }
 
         // =========================

@@ -124,17 +124,76 @@ export const isOtpRequiredError = (response: { data: unknown; error?: string }):
   )
 }
 
+const OTP_SYSTEM_DB_MESSAGE =
+  'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình hệ thống hoặc cơ sở dữ liệu.'
+const OTP_EMAIL_CONFIG_MESSAGE =
+  'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.'
+
+/** Detect developer exception pages, SQL stack traces, HTML dumps, etc. */
+export const isRawDeveloperErrorText = (text: string | null | undefined): boolean => {
+  if (!text) return false
+  const value = text.trim()
+  if (value.length === 0) return false
+
+  const lower = value.toLowerCase()
+  return (
+    value.length > 280 ||
+    lower.includes('sqlexception') ||
+    lower.includes('invalid object name') ||
+    lower.includes('microsoft.data.sqlclient') ||
+    lower.includes('system.data.sqlclient') ||
+    lower.includes('stack trace') ||
+    lower.includes('at cafechain.') ||
+    lower.includes('at microsoft.') ||
+    lower.includes('at system.') ||
+    lower.includes('developer exception') ||
+    lower.includes('<!doctype html') ||
+    lower.includes('<html') ||
+    lower.includes('internal server error') ||
+    lower.includes('http error 500') ||
+    lower.includes('an unhandled exception') ||
+    /\r?\n\s*at\s+\w+/.test(value)
+  )
+}
+
 export const mapOtpUserMessage = (
   rawMessage: string | null | undefined,
-  fallback = 'Không thể xác nhận OTP. Vui lòng thử lại.'
+  fallback = 'Không thể xác nhận OTP. Vui lòng thử lại.',
+  options?: { status?: number; operation?: 'request' | 'verify' | 'resend' }
 ): string => {
   const message = rawMessage?.trim()
-  if (!message) return fallback
+  if (!message) {
+    if (options?.status != null && options.status >= 500) {
+      return options.operation === 'verify'
+        ? fallback
+        : OTP_SYSTEM_DB_MESSAGE
+    }
+    return fallback
+  }
+
+  if (isRawDeveloperErrorText(message) || (options?.status != null && options.status >= 500)) {
+    if (options?.operation === 'verify') {
+      return fallback
+    }
+    return OTP_SYSTEM_DB_MESSAGE
+  }
 
   const lower = message.toLowerCase()
 
+  if (
+    lower.includes('otpchallenges') ||
+    lower.includes('invalid object name') ||
+    lower.includes('sqlexception')
+  ) {
+    return OTP_SYSTEM_DB_MESSAGE
+  }
+
   if (lower.includes('không gửi được otp') || lower.includes('không gửi lại được otp')) {
-    return 'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.'
+    // Prefer explicit email wording from backend when present.
+    if (lower.includes('email') || lower.includes('cấu hình email')) {
+      return OTP_EMAIL_CONFIG_MESSAGE
+    }
+    return OTP_SYSTEM_DB_MESSAGE
   }
 
   if (lower.includes('hết hạn')) {
@@ -154,11 +213,18 @@ export const mapOtpUserMessage = (
     return 'Vui lòng chờ trước khi gửi lại OTP.'
   }
 
-  if (lower.includes('otp không đúng') || lower.includes('sai')) {
-    return message
+  // Safe short Vietnamese business messages only.
+  if (message.length <= 200 && !isRawDeveloperErrorText(message)) {
+    if (lower.includes('otp không đúng') || /còn\s+\d+\s+lần/.test(lower)) {
+      return message
+    }
+    // Allow other concise backend Vietnamese messages through.
+    if (/[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i.test(message)) {
+      return message
+    }
   }
 
-  return message
+  return fallback
 }
 
 export async function requestOtp(

@@ -95,20 +95,34 @@ namespace CafeChain.Application.Services.POS
             }
             catch (Exception ex)
             {
+                // Log exception type/message only — never OTP code or SMTP password.
                 _logger.LogWarning(
                     ex,
-                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId}",
+                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | ErrorType={ErrorType} | Error={Error}",
                     storeId,
                     requestedByStaffId,
-                    approver.StaffId);
+                    approver.StaffId,
+                    ex.GetType().Name,
+                    ex.Message);
 
                 // Email fail → mark challenge Cancelled (giữ audit, không xóa)
                 challenge.Status = OtpConstants.Statuses.Cancelled;
                 challenge.CancelledAt = DateTime.UtcNow;
                 await _repository.SaveChangesAsync();
 
-                return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.");
+                // Prefer actionable auth/config message when EmailService already localized it.
+                var userMessage = "Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.";
+                if (ex is InvalidOperationException &&
+                    !string.IsNullOrWhiteSpace(ex.Message) &&
+                    (ex.Message.Contains("SMTP", StringComparison.OrdinalIgnoreCase)
+                     || ex.Message.Contains("cấu hình Email", StringComparison.OrdinalIgnoreCase)
+                     || ex.Message.Contains("Xác thực SMTP", StringComparison.OrdinalIgnoreCase)
+                     || ex.Message.Contains("Thiếu cấu hình", StringComparison.OrdinalIgnoreCase)))
+                {
+                    userMessage = "Không gửi được OTP ca trưởng. " + ex.Message;
+                }
+
+                return ServiceResult<OtpChallengeResponseDto>.Failure(userMessage);
             }
 
             return ServiceResult<OtpChallengeResponseDto>.Success(

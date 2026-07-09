@@ -255,6 +255,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         {
             model.TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim();
             model.CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim();
+            model.Email = model.Email?.Trim() ?? string.Empty;
 
             // === BƯỚC 1: Đọc Claims ===
             var (isAdmin, isStoreManager, currentStoreId) = ExtractUserClaims(user);
@@ -464,6 +465,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         {
             model.TaxCode = string.IsNullOrWhiteSpace(model.TaxCode) ? null : model.TaxCode.Trim();
             model.CCCD = string.IsNullOrWhiteSpace(model.CCCD) ? null : model.CCCD.Trim();
+            model.Email = model.Email?.Trim() ?? string.Empty;
 
             var (isAdmin, isStoreManager, currentStoreId) = ExtractUserClaims(user);
 

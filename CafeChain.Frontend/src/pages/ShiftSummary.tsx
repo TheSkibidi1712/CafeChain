@@ -494,15 +494,26 @@ export default function ShiftSummary() {
         setMessage({ type: 'success', text: 'Đã gửi OTP cho ca trưởng.' })
       } else {
         applyOtpChallengeData(envelope.data)
+        if (response.error || envelope.message) {
+          console.warn('[ShiftSummary] OTP request failed', {
+            status: response.status,
+            error: response.error,
+            message: envelope.message,
+          })
+        }
         setOtpMessage(
           mapOtpUserMessage(
-            envelope.message,
-            'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.'
+            envelope.message ?? response.error,
+            'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình hệ thống hoặc cơ sở dữ liệu.',
+            { status: response.status, operation: 'request' }
           )
         )
       }
     } catch (error) {
-      setOtpMessage(getUnexpectedErrorMessage(error, 'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.'))
+      console.warn('[ShiftSummary] OTP request unexpected error', error)
+      setOtpMessage(
+        'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình hệ thống hoặc cơ sở dữ liệu.'
+      )
     } finally {
       setOtpBusy(false)
     }
@@ -529,10 +540,26 @@ export default function ShiftSummary() {
         setMessage({ type: 'success', text: 'Đã gửi lại OTP cho ca trưởng.' })
       } else {
         applyOtpChallengeData(envelope.data)
-        setOtpMessage(mapOtpUserMessage(envelope.message, 'Không thể gửi lại OTP. Vui lòng thử lại.'))
+        if (response.error || envelope.message) {
+          console.warn('[ShiftSummary] OTP resend failed', {
+            status: response.status,
+            error: response.error,
+            message: envelope.message,
+          })
+        }
+        setOtpMessage(
+          mapOtpUserMessage(
+            envelope.message ?? response.error,
+            'Không thể gửi lại OTP. Vui lòng thử lại.',
+            { status: response.status, operation: 'resend' }
+          )
+        )
       }
     } catch (error) {
-      setOtpMessage(getUnexpectedErrorMessage(error, 'Không thể gửi lại OTP. Vui lòng thử lại.'))
+      console.warn('[ShiftSummary] OTP resend unexpected error', error)
+      setOtpMessage(
+        'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình hệ thống hoặc cơ sở dữ liệu.'
+      )
     } finally {
       setOtpBusy(false)
     }
@@ -569,9 +596,17 @@ export default function ShiftSummary() {
         await submitCloseShift(publicId)
       } else {
         applyOtpChallengeData(envelope.data)
+        if (response.error || envelope.message) {
+          console.warn('[ShiftSummary] OTP verify failed', {
+            status: response.status,
+            error: response.error,
+            message: envelope.message,
+          })
+        }
         const mapped = mapOtpUserMessage(
-          envelope.message,
-          'Không thể xác nhận OTP. Vui lòng thử lại.'
+          envelope.message ?? response.error,
+          'Không thể xác nhận OTP. Vui lòng thử lại.',
+          { status: response.status, operation: 'verify' }
         )
         setOtpMessage(mapped)
         if (envelope.data?.status?.toLowerCase() === 'locked') {
@@ -582,7 +617,8 @@ export default function ShiftSummary() {
         }
       }
     } catch (error) {
-      setOtpMessage(getUnexpectedErrorMessage(error, 'Không thể xác nhận OTP. Vui lòng thử lại.'))
+      console.warn('[ShiftSummary] OTP verify unexpected error', error)
+      setOtpMessage('Không thể xác nhận OTP. Vui lòng thử lại.')
     } finally {
       setOtpBusy(false)
     }
