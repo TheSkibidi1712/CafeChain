@@ -223,32 +223,23 @@ namespace CafeChain.Controllers
 
         private IActionResult RedirectByRole(string role, string? returnUrl)
         {
-            if (
-                !string.IsNullOrWhiteSpace(returnUrl)
-                &&
-                Url.IsLocalUrl(returnUrl))
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
 
             var adminRoles = new[]
             {
-                RoleConstants.SuperAdmin,
-                RoleConstants.CEO,
-                RoleConstants.CFO,
-                RoleConstants.MarketingManager,
-                RoleConstants.OperationsManager,
-                RoleConstants.HRManager,
+                RoleConstants.BusinessOwner,
                 RoleConstants.AreaManager,
-                RoleConstants.StoreManager
+                RoleConstants.StoreManager,
+                RoleConstants.AccountantWarehouse,
+                RoleConstants.SystemAdmin
             };
 
             var staffHubRoles = new[]
             {
-                RoleConstants.ShiftSupervisor,
-                RoleConstants.Cashier,
-                RoleConstants.WarehouseKeeper,
-                RoleConstants.GeneralStaff
+                RoleConstants.SalesStaff
             };
 
             if (adminRoles.Contains(role))
@@ -264,6 +255,13 @@ namespace CafeChain.Controllers
                 return RedirectToAction(
                     "Index",
                     "StaffHub");
+            }
+
+            if (role == RoleConstants.Customer)
+            {
+                return RedirectToAction(
+                    "Index",
+                    "Home");
             }
 
             return RedirectToAction(

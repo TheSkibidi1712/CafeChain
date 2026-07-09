@@ -48,16 +48,24 @@ namespace CafeChain.Areas.Admin.Controllers
         // ============================================================
         public async Task<IActionResult> Index()
         {
-            var (staffId, storeId, staffName, storeName, role) = await ResolveFullUserContextAsync();
+            var (staffId, storeId, staffName, storeName, role) =
+                await ResolveFullUserContextAsync();
+
             if (staffId == 0)
+            {
                 return RedirectToAction("Login", "Account", new { area = "" });
+            }
 
-            var isCashier = role == CafeChain.Application.Constants.RoleConstants.Cashier;
-            var isShiftSupervisor = role == CafeChain.Application.Constants.RoleConstants.ShiftSupervisor;
-            var isStoreManager = role == CafeChain.Application.Constants.RoleConstants.StoreManager;
+            var isSalesStaff =
+                role == CafeChain.Application.Constants.RoleConstants.SalesStaff;
 
-            if (!(isCashier || isShiftSupervisor || isStoreManager))
+            var isStoreManager =
+                role == CafeChain.Application.Constants.RoleConstants.StoreManager;
+
+            if (!(isSalesStaff || isStoreManager))
+            {
                 return RedirectToAction("AccessDenied", "Account", new { area = "" });
+            }
 
             ViewBag.StaffName = staffName;
             ViewBag.StoreName = storeName;

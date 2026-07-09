@@ -159,12 +159,16 @@ namespace CafeChain.Application.Services.Inventories
                 return false;
             }
 
-            return user.IsInRole(RoleConstants.SuperAdmin)
-                || user.IsInRole(RoleConstants.CEO)
-                || user.IsInRole(RoleConstants.OperationsManager)
-                || user.IsInRole(RoleConstants.AreaManager)
-                || user.IsInRole(RoleConstants.StoreManager)
-                || user.IsInRole(RoleConstants.WarehouseKeeper);
+            var allowedRoles = new[]
+            {
+                RoleConstants.BusinessOwner,
+                RoleConstants.SystemAdmin,
+                RoleConstants.AreaManager,
+                RoleConstants.StoreManager,
+                RoleConstants.AccountantWarehouse
+            };
+
+            return allowedRoles.Any(user.IsInRole);
         }
 
         private static bool ReadBool(

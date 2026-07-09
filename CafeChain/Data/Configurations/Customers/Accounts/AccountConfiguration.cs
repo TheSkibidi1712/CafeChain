@@ -36,19 +36,62 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
 
             // ===== CLEAN SLATE: Chỉ 11 Accounts (101-111) =====
             entity.HasData(
-                new Account { AccountId = 101, Email = "superadmin@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 102, Email = "ceo@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 103, Email = "cfo@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 104, Email = "marketing@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 105, Email = "operations@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 106, Email = "hr@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 107, Email = "areamanager@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 108, Email = "storemanager@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 109, Email = "shiftsupervisor@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 110, Email = "nvcasang@cafechain.vn", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 111, Email = "khachhang@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 122, Email = "districtmanager@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) },
-                new Account { AccountId = 123, Email = "nvcachieu@gmail.com", PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", Active = true, CreatedAt = new DateTime(2025, 1, 1) }
+                new Account
+                {
+                    AccountId = 1,
+                    Email = "owner@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 2,
+                    Email = "areamanager@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 3,
+                    Email = "storemanager@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 4,
+                    Email = "salesstaff@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 5,
+                    Email = "accountantwarehouse@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 6,
+                    Email = "systemadmin@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                },
+                new Account
+                {
+                    AccountId = 7,
+                    Email = "khachhang@gmail.com",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
+                }
             );
         }
     }

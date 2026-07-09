@@ -80,19 +80,84 @@ namespace CafeChain.Data.Configurations.Staffs
                 .HasFilter("[CCCD] IS NOT NULL AND [CCCD] <> ''");
 
             entity.HasData(
-                new Staff { StaffId = 101, AccountId = 101, FullName = "Super Admin System", TaxCode = "TAX101", BaseSalary = 50000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 102, AccountId = 102, FullName = "CEO Director", TaxCode = "TAX102", BaseSalary = 100000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 103, AccountId = 103, FullName = "CFO Finance", TaxCode = "TAX103", BaseSalary = 80000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 104, AccountId = 104, FullName = "Marketing Manager", TaxCode = "TAX104", BaseSalary = 40000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 105, AccountId = 105, FullName = "Operations Manager", TaxCode = "TAX105", BaseSalary = 45000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 106, AccountId = 106, FullName = "HR Manager", TaxCode = "TAX106", BaseSalary = 35000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 107, AccountId = 107, FullName = "Area Manager HCM", TaxCode = "TAX107", BaseSalary = 30000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 108, AccountId = 108, FullName = "Store Manager D1", TaxCode = "TAX108", BaseSalary = 20000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 109, AccountId = 109, FullName = "Shift Supervisor", TaxCode = "TAX109", BaseSalary = 12000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 110, AccountId = 110, FullName = "nv ca sáng", TaxCode = "TAX110", BaseSalary = 8000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 111, AccountId = 122, FullName = "District Manager Bien Hoa", TaxCode = "TAX111", BaseSalary = 25000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) },
-                new Staff { StaffId = 112, AccountId = 123, FullName = "nv ca chiều", TaxCode = "TAX112", BaseSalary = 28000000, StoreId = 1, Active = true, AvatarUrl = "/Images/Upload/avtdf.jpg", AvatarPublicId = "staffs/default-avatar", CreatedAt = new DateTime(2026, 1, 1) }
-
+                new Staff
+                {
+                    StaffId = 1,
+                    AccountId = 1,
+                    FullName = "Chủ doanh nghiệp",
+                    TaxCode = "TAX101",
+                    BaseSalary = 100000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 2,
+                    AccountId = 2,
+                    FullName = "Quản lý vùng TP.HCM",
+                    TaxCode = "TAX102",
+                    BaseSalary = 45000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 3,
+                    AccountId = 3,
+                    FullName = "Quản lý chi nhánh Quận 1",
+                    TaxCode = "TAX103",
+                    BaseSalary = 25000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 4,
+                    AccountId = 4,
+                    FullName = "Nhân viên bán hàng",
+                    TaxCode = "TAX104",
+                    BaseSalary = 9000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 5,
+                    AccountId = 5,
+                    FullName = "Nhân viên kế toán kho",
+                    TaxCode = "TAX105",
+                    BaseSalary = 15000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                },
+                new Staff
+                {
+                    StaffId = 6,
+                    AccountId = 6,
+                    FullName = "Quản trị hệ thống",
+                    TaxCode = "TAX106",
+                    BaseSalary = 35000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
+                }
             );
         }
     }

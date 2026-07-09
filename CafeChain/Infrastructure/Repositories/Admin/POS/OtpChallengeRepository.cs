@@ -35,6 +35,12 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var dayStart = utcNow.Date;
             var dayEnd = dayStart.AddDays(1);
 
+            var approverRoles = new[]
+            {
+        RoleConstants.StoreManager,
+        RoleConstants.AccountantWarehouse
+    };
+
             var candidates = await _context.Staffs
                 .Include(staff => staff.Account)
                     .ThenInclude(account => account.AccountRoles)
@@ -45,24 +51,38 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     staff.Active &&
                     staff.Account != null &&
                     staff.Account.Active &&
-                    staff.Account.Email != null &&
-                    staff.Account.Email != "" &&
-                    staff.Account.AccountRoles.Any(ar =>
-                        ar.Role.Active &&
-                        (ar.Role.Name == RoleConstants.ShiftSupervisor ||
-                         ar.Role.Name == RoleConstants.StoreManager)))
+                    !string.IsNullOrWhiteSpace(staff.Account.Email) &&
+                    staff.Account.AccountRoles.Any(accountRole =>
+                        accountRole.Role != null &&
+                        accountRole.Role.Active &&
+                        approverRoles.Contains(accountRole.Role.Name)))
                 .AsNoTracking()
                 .ToListAsync();
 
             return candidates
+                // Ưu tiên người đang có ca làm trong ngày
                 .OrderByDescending(staff => staff.StaffShifts.Any(shift =>
                     shift.WorkDate >= dayStart &&
                     shift.WorkDate < dayEnd &&
                     shift.ActualCheckIn != null &&
                     shift.ActualCheckOut == null))
-                .ThenBy(staff => staff.Account.AccountRoles.Any(ar =>
-                    ar.Role.Active &&
-                    ar.Role.Name == RoleConstants.ShiftSupervisor) ? 0 : 1)
+
+                // Ưu tiên Quản lý chi nhánh trước
+                .ThenBy(staff => staff.Account!.AccountRoles.Any(accountRole =>
+                    accountRole.Role != null &&
+                    accountRole.Role.Active &&
+                    accountRole.Role.Name == RoleConstants.StoreManager)
+                        ? 0
+                        : 1)
+
+                // Sau đó tới Kế toán/kho
+                .ThenBy(staff => staff.Account!.AccountRoles.Any(accountRole =>
+                    accountRole.Role != null &&
+                    accountRole.Role.Active &&
+                    accountRole.Role.Name == RoleConstants.AccountantWarehouse)
+                        ? 0
+                        : 1)
+
                 .ThenBy(staff => staff.StaffId)
                 .FirstOrDefault();
         }

@@ -23,20 +23,41 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                 .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasData(
-                // ===== NEW ORG CHART ROLES MAPPING =====
-                new AccountRole { AccountId = 101, RoleId = 1 },
-                new AccountRole { AccountId = 102, RoleId = 2 },
-                new AccountRole { AccountId = 103, RoleId = 3 },
-                new AccountRole { AccountId = 104, RoleId = 4 },
-                new AccountRole { AccountId = 105, RoleId = 5 },
-                new AccountRole { AccountId = 106, RoleId = 6 },
-                new AccountRole { AccountId = 107, RoleId = 7 },
-                new AccountRole { AccountId = 108, RoleId = 8 },
-                new AccountRole { AccountId = 109, RoleId = 9 },
-                new AccountRole { AccountId = 110, RoleId = 10 },
-                new AccountRole { AccountId = 111, RoleId = 11 },
-                new AccountRole { AccountId = 122, RoleId = 7 },
-                new AccountRole { AccountId = 123, RoleId = 10 }
+                new AccountRole
+                {
+                    AccountId = 1,
+                    RoleId = 1 // Chủ doanh nghiệp
+                },
+                new AccountRole
+                {
+                    AccountId = 2,
+                    RoleId = 2 // Quản lý vùng
+                },
+                new AccountRole
+                {
+                    AccountId = 3,
+                    RoleId = 3 // Quản lý chi nhánh
+                },
+                new AccountRole
+                {
+                    AccountId = 4,
+                    RoleId = 4 // Nhân viên bán hàng
+                },
+                new AccountRole
+                {
+                    AccountId = 5,
+                    RoleId = 5 // Kế toán/kho
+                },
+                new AccountRole
+                {
+                    AccountId = 6,
+                    RoleId = 6 // Quản trị hệ thống
+                },
+                new AccountRole
+                {
+                    AccountId = 7,
+                    RoleId = 7 // Khách hàng
+                }
             );
         }
     }

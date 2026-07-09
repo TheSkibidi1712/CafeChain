@@ -129,8 +129,8 @@ namespace CafeChain.Data.Configurations.Customers.CustomerInfos
                 (
                     new Customer
                     {
-                        CustomerId = 111,
-                        AccountId = 111,
+                        CustomerId = 1,
+                        AccountId = 7,
                         CustomerCode = "CUS000111",
                         Gender = Gender.Male,
                         FullName = "Khách Hàng Mới",

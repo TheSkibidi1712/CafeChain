@@ -42,8 +42,7 @@ namespace CafeChain.Controllers
 
             // Get user role for POS access check
             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            bool canAccessPos = role == RoleConstants.Cashier
-                             || role == RoleConstants.ShiftSupervisor;
+            bool canAccessPos = role == RoleConstants.SalesStaff;
 
             // Load dashboard data via service layer (N-Tier compliant)
             var result = await _actionService.GetKioskDataAsync(accountId);
@@ -66,8 +65,7 @@ namespace CafeChain.Controllers
         public IActionResult IssuePosToken()
         {
             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            var canAccessPos = role == RoleConstants.Cashier
-                            || role == RoleConstants.ShiftSupervisor;
+            var canAccessPos = role == RoleConstants.SalesStaff;
 
             if (!canAccessPos)
             {

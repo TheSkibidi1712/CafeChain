@@ -34,7 +34,7 @@ namespace CafeChain.Tests
         {
             var identity = new ClaimsIdentity(new[]
             {
-                new Claim(ClaimTypes.Role, RoleConstants.SuperAdmin),
+                new Claim(ClaimTypes.Role, RoleConstants.BusinessOwner),
                 new Claim("StaffId", "1"),
                 new Claim("StoreId", StoreId.ToString()),
             }, authenticationType: "Test");

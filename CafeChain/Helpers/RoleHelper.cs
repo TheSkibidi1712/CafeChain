@@ -7,16 +7,11 @@ namespace CafeChain.Helpers
     {
         public static bool IsAdminGroup(ClaimsPrincipal user)
         {
-            return user.IsInRole(RoleConstants.SuperAdmin)
-                || user.IsInRole(RoleConstants.CEO)
-                || user.IsInRole(RoleConstants.CFO)
-                || user.IsInRole(RoleConstants.MarketingManager)
-                || user.IsInRole(RoleConstants.OperationsManager)
-                || user.IsInRole(RoleConstants.HRManager)
+            return user.IsInRole(RoleConstants.BusinessOwner)
                 || user.IsInRole(RoleConstants.AreaManager)
                 || user.IsInRole(RoleConstants.StoreManager)
-                || user.IsInRole(RoleConstants.ShiftSupervisor)
-                || user.IsInRole(RoleConstants.WarehouseKeeper);
+                || user.IsInRole(RoleConstants.AccountantWarehouse)
+                || user.IsInRole(RoleConstants.SystemAdmin);
         }
     }
 }

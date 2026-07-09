@@ -21,19 +21,27 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task<List<Staff>> GetSupervisorsWithPinAsync(int storeId)
         {
+            var supervisorRoles = new[]
+            {
+                RoleConstants.StoreManager,
+                RoleConstants.AccountantWarehouse
+            };
+
             return await _context.Staffs
-                .Where(s => s.StoreId == storeId
-                    && s.Active
-                    && s.PinHash != null
-                    && s.PinHash != ""
-                    && s.Account != null
-                    && s.Account.AccountRoles.Any(ar =>
-                        ar.Role.Active &&
-                        (ar.Role.Name == RoleConstants.ShiftSupervisor ||
-                         ar.Role.Name == RoleConstants.StoreManager)))
-                .Include(s => s.Account)
-                    .ThenInclude(a => a.AccountRoles)
-                        .ThenInclude(ar => ar.Role)
+                .Where(staff =>
+                    staff.StoreId == storeId &&
+                    staff.Active &&
+                    staff.PinHash != null &&
+                    staff.PinHash != "" &&
+                    staff.Account != null &&
+                    staff.Account.Active &&
+                    staff.Account.AccountRoles.Any(accountRole =>
+                        accountRole.Role != null &&
+                        accountRole.Role.Active &&
+                        supervisorRoles.Contains(accountRole.Role.Name)))
+                .Include(staff => staff.Account)
+                    .ThenInclude(account => account.AccountRoles)
+                        .ThenInclude(accountRole => accountRole.Role)
                 .ToListAsync();
         }
 

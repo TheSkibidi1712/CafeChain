@@ -20,26 +20,28 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private readonly IScopeAuthorizationService _scopeAuthorizationService;
 
         // 🔥 Role ID Constants (CHÍNH XÁC theo Seed Data)
-        private const int ROLE_SUPER_ADMIN = 1;
-        private const int ROLE_CEO = 2;
-        private const int ROLE_CFO = 3;
-        private const int ROLE_MARKETING = 4;
-        private const int ROLE_OPERATIONS = 5;
-        private const int ROLE_HR = 6;
-        private const int ROLE_AREA_MANAGER = 7;
-        private const int ROLE_STORE_MANAGER = 8;
-        private const int ROLE_SHIFT_SUPERVISOR = 9;
-        private const int ROLE_CASHIER = 10;
-        private const int ROLE_CUSTOMER = 11;
-        private const int ROLE_WAREHOUSE_KEEPER = 12;
-        private const int ROLE_GENERAL_STAFF = 13;
+        private const int ROLE_BUSINESS_OWNER = 1;          // Chủ doanh nghiệp
+        private const int ROLE_AREA_MANAGER = 2;            // Quản lý vùng
+        private const int ROLE_STORE_MANAGER = 3;           // Quản lý chi nhánh
+        private const int ROLE_SALES_STAFF = 4;             // Nhân viên bán hàng
+        private const int ROLE_ACCOUNTANT_WAREHOUSE = 5;    // Kế toán/kho
+        private const int ROLE_SYSTEM_ADMIN = 6;            // Quản trị hệ thống
+        private const int ROLE_CUSTOMER = 7;                // Khách hàng
+
         private const int SCOPE_COUNTRY = 1;
         private const int SCOPE_PROVINCE = 2;
         private const int SCOPE_DISTRICT = 3;
         private const int SCOPE_STORE = 5;
 
         // 🔥 Forbidden roles cho Store Manager (cấp HQ + Area + chính mình)
-        private static readonly int[] FORBIDDEN_ROLES_FOR_STORE_MANAGER = { 1, 2, 3, 4, 5, 6, 7, 8 };
+        private static readonly int[] FORBIDDEN_ROLES_FOR_STORE_MANAGER =
+        {
+            ROLE_BUSINESS_OWNER,
+            ROLE_AREA_MANAGER,
+            ROLE_STORE_MANAGER,
+            ROLE_SYSTEM_ADMIN,
+            ROLE_CUSTOMER
+        };
 
         /// <summary>
         /// SOLID Helper: Ánh xạ cứng Role → ScopeType bắt buộc.
@@ -63,26 +65,49 @@ namespace CafeChain.Application.Services.Admin.Staffs
         public async Task<StaffFormMasterDataVM> GetMasterDataForFormAsync(ClaimsPrincipal user)
         {
             var (isAdmin, isStoreManager, currentStoreId) = ExtractUserClaims(user);
-            int currentStaffId = 0;
-            var staffIdClaim = user.FindFirst("StaffId")?.Value;
-            if (staffIdClaim != null) int.TryParse(staffIdClaim, out currentStaffId);
 
-            // Filter Roles dựa theo quyền hạn thực tế (UX Filter như Tech Lead yêu cầu)
+            var currentStaffId = 0;
+            var staffIdClaim = user.FindFirst("StaffId")?.Value;
+
+            if (!string.IsNullOrWhiteSpace(staffIdClaim))
+            {
+                int.TryParse(staffIdClaim, out currentStaffId);
+            }
+
+            // Lấy toàn bộ role
             var roles = await _repository.GetRolesForDropdownAsync(null);
 
-            // Bỏ trường Khách hàng ra khỏi form Quản lý Nhân sự (nhân sự không bao giờ là Khách hàng)
-            roles = roles.Where(r => r.RoleId != ROLE_CUSTOMER).ToList();
+            // Form Quản lý Nhân sự không hiển thị Khách hàng
+            roles = roles
+                .Where(r => r.RoleId != ROLE_CUSTOMER)
+                .ToList();
 
-
-            if (isStoreManager && !isAdmin)
+            if (isAdmin)
             {
-                // Store Manager chỉ được tạo: Shift Supervisor (9), Cashier (10), Thủ kho (12), NV chung (13)
-                roles = roles.Where(r => r.RoleId == ROLE_SHIFT_SUPERVISOR || r.RoleId == ROLE_CASHIER || r.RoleId == ROLE_WAREHOUSE_KEEPER || r.RoleId == ROLE_GENERAL_STAFF).ToList();
+                // Admin được thấy toàn bộ role nội bộ, trừ Khách hàng đã filter ở trên
+                // Bao gồm:
+                // Chủ doanh nghiệp, Quản lý vùng, Quản lý chi nhánh,
+                // Nhân viên bán hàng, Kế toán/kho, Quản trị hệ thống
             }
-            else if (!isAdmin)
+            else if (isStoreManager)
             {
-                // Các role trung gian (Area Manager...) chỉ tạo được Store Manager trở xuống
-                roles = roles.Where(r => r.RoleId >= ROLE_STORE_MANAGER && r.RoleId != ROLE_CUSTOMER).ToList();
+                // Quản lý chi nhánh chỉ được tạo nhân sự thuộc chi nhánh
+                roles = roles
+                    .Where(r =>
+                        r.RoleId == ROLE_SALES_STAFF ||
+                        r.RoleId == ROLE_ACCOUNTANT_WAREHOUSE)
+                    .ToList();
+            }
+            else
+            {
+                // Các role trung gian như Quản lý vùng
+                // Không được tạo role cấp hệ thống, không được tạo khách hàng
+                roles = roles
+                    .Where(r =>
+                        r.RoleId == ROLE_STORE_MANAGER ||
+                        r.RoleId == ROLE_SALES_STAFF ||
+                        r.RoleId == ROLE_ACCOUNTANT_WAREHOUSE)
+                    .ToList();
             }
 
             var result = new StaffFormMasterDataVM
@@ -232,7 +257,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 BaseSalary = staff.BaseSalary,
                 DateOfBirth = staff.DateOfBirth,
                 StoreId = staff.StoreId,
-                SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? ROLE_CASHIER,
+                SelectedRoleId = staff.Account?.AccountRoles?.FirstOrDefault()?.RoleId ?? ROLE_SALES_STAFF,
                 ScopeTypeId = staff.StaffScopes?.FirstOrDefault()?.ScopeTypeId ?? SCOPE_STORE,
                 ScopeRefId = staff.StaffScopes?.FirstOrDefault()?.ScopeRefId ?? staff.StoreId,
                 Phones = staff.StaffPhones?.OrderByDescending(p => p.IsDefault).Select(p => p.Phone).ToList() ?? new List<string>(),
@@ -727,12 +752,18 @@ namespace CafeChain.Application.Services.Admin.Staffs
                 .Select(c => c.Value)
                 .ToList();
 
-            // 🔥 FIX: Dùng ĐÚNG tên role tiếng Việt từ RoleConstants (khớp với Claims lúc Login)
-            var isAdmin = roles.Contains(RoleConstants.SuperAdmin);       // "Super Admin"
-            var isStoreManager = roles.Contains(RoleConstants.StoreManager); // "Cửa hàng trưởng"
+            // Admin hệ thống hiện tại gồm:
+            // - Chủ doanh nghiệp
+            // - Quản trị hệ thống
+            var isAdmin =
+                roles.Contains(RoleConstants.BusinessOwner) ||
+                roles.Contains(RoleConstants.SystemAdmin);
+
+            var isStoreManager =
+                roles.Contains(RoleConstants.StoreManager);
 
             var storeIdClaim = user.FindFirst("StoreId")?.Value;
-            int.TryParse(storeIdClaim, out int storeId);
+            int.TryParse(storeIdClaim, out var storeId);
 
             return (isAdmin, isStoreManager, storeId);
         }

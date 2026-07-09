@@ -11,14 +11,11 @@ namespace CafeChain.Extensions.Services
                 options.AddPolicy("RequireAdminPanelAccess", policy =>
                 {
                     policy.RequireRole(
-                        RoleConstants.SuperAdmin,
-                        RoleConstants.CEO,
-                        RoleConstants.CFO,
-                        RoleConstants.MarketingManager,
-                        RoleConstants.OperationsManager,
-                        RoleConstants.HRManager,
+                        RoleConstants.BusinessOwner,
                         RoleConstants.AreaManager,
-                        RoleConstants.StoreManager
+                        RoleConstants.StoreManager,
+                        RoleConstants.AccountantWarehouse,
+                        RoleConstants.SystemAdmin
                     );
                 });
             });

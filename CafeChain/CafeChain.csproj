@@ -31,7 +31,6 @@
     <Folder Include="Areas\Cashier\Controllers\" />
     <Folder Include="Infrastructure\Interfaces\Cashiers\" />
     <Folder Include="Infrastructure\Repositories\Cashiers\" />
-    <Folder Include="Migrations\" />
     <Folder Include="wwwroot\css\Admin\Recipe-Builder\" />
     <Folder Include="wwwroot\css\Admin\Production-Order\" />
     <Folder Include="wwwroot\css\Admin\Pos-Premium\" />
