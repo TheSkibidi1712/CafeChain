@@ -76,27 +76,42 @@
                                     }
                                 </select>
                             </div>
-                            <!-- SUBRECIPE fields -->
+                            <!-- SUBRECIPE / BTP fields (#112) -->
                             <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="display:none;">
-                                <label class="form-label fw-bold small">Tên Bán thành phẩm <span class="text-danger">*</span></label>
-                                <input name="SubRecipeName" id="subRecipeInput" class="form-control" placeholder="VD: Cốt trà Oolong">
+                                <label class="form-label fw-bold small">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
+                                <select name="PreparedItemId" id="preparedItemSelect" class="form-select">
+                                    <option value="">-- Chọn BTP (mã + tên) --</option>
+                                    @if (ViewBag.PreparedItems != null)
+                                    {
+                                        foreach (dynamic pi in ViewBag.PreparedItems)
+                                        {
+                                            <option value="@pi.PreparedItemId"
+                                                    data-baseunitcode="@pi.BaseUnitCode"
+                                                    data-baseunitname="@pi.BaseUnitName">
+                                                @pi.Code — @pi.Name
+                                            </option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Danh tính ổn định từ master BTP (không dùng tên tự do).</small>
                             </div>
                             <div class="col-md-3 conditional-section" id="sectionSub_Yield" style="display:none;">
-                                <label class="form-label fw-bold small">Sản lượng đầu ra</label>
-                                <input asp-for="ExpectedYield" class="form-control text-end" type="number" step="0.01" placeholder="VD: 5"/>
+                                <label class="form-label fw-bold small">Sản lượng dự kiến sau hao hụt chuẩn <span class="text-danger">*</span></label>
+                                <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001" placeholder="VD: 4.5"/>
                             </div>
                             <div class="col-md-3 conditional-section" id="sectionSub_Unit" style="display:none;">
-                                <label class="form-label fw-bold small">ĐVT đầu ra</label>
+                                <label class="form-label fw-bold small">Đơn vị đầu ra <span class="text-danger">*</span></label>
                                 <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
                                     <option value="">-- ĐVT --</option>
                                     @if (ViewBag.Units != null)
                                     {
                                         foreach (dynamic unit in ViewBag.Units)
                                         {
-                                            <option value="@unit.UnitId">@unit.Name</option>
+                                            <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
                                         }
                                     }
                                 </select>
+                                <div class="small text-primary mt-1" id="normalizedOutputPreview"></div>
                             </div>
                             <!-- Common fields -->
                             <div class="col-md-3">
@@ -232,6 +247,44 @@
                 }
             });
 
+            function antiforgeryHeaders() {
+                const token = $('input[name="__RequestVerificationToken"]').val() || '';
+                return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
+            }
+
+            function clearBtpFields() {
+                $('#preparedItemSelect').val('');
+                $('input[name="ExpectedYield"]').val('');
+                $('select[name="OutputUnitId"]').val('');
+                $('#normalizedOutputPreview').text('');
+            }
+
+            function refreshNormalizedPreview() {
+                const pi = parseInt($('#preparedItemSelect').val(), 10) || 0;
+                const qty = parseFloat($('#expectedYieldInput').val()) || 0;
+                const unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
+                if (!pi || !qty || qty <= 0 || !unit) {
+                    $('#normalizedOutputPreview').text('');
+                    return;
+                }
+                $.ajax({
+                    url: '@Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" })',
+                    type: 'POST',
+                    headers: antiforgeryHeaders(),
+                    data: JSON.stringify({ preparedItemId: pi, outputQuantity: qty, outputUnitId: unit }),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#normalizedOutputPreview').text(res.preview || '');
+                        } else {
+                            $('#normalizedOutputPreview').text(res.message || 'Không quy đổi được');
+                        }
+                    },
+                    error: function () {
+                        $('#normalizedOutputPreview').text('Lỗi preview (antiforgery/kết nối)');
+                    }
+                });
+            }
+
             // === 1. TOGGLE: POS vs SUBRECIPE ===
             $('input[name="RecipeType"]').on('change', function () {
                 const type = $(this).val();
@@ -242,17 +295,13 @@
                     }
                     $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
                     $('#toppingSelect').val('').trigger('change');
-                    $('#subRecipeInput').val('');
-                    $('input[name="ExpectedYield"]').val('');
-                    $('select[name="OutputUnitId"]').val('');
+                    clearBtpFields();
                 } else if (type === 'TOPPING') {
                     $('#sectionTopping').fadeIn(200);
                     $('#sectionPOS_Drink, #sectionPOS_Size, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
                     $('#drinkSelect').val('').trigger('change');
                     $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
-                    $('#subRecipeInput').val('');
-                    $('input[name="ExpectedYield"]').val('');
-                    $('select[name="OutputUnitId"]').val('');
+                    clearBtpFields();
                 } else {
                     $('#sectionPOS_Drink, #sectionPOS_Size, #sectionTopping').hide();
                     $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
@@ -262,6 +311,8 @@
                     $('#sectionPOS_Size').hide();
                 }
             });
+
+            $('#preparedItemSelect, #expectedYieldInput, #outputUnitSelect').on('change input', refreshNormalizedPreview);
 
             $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
             $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
@@ -428,6 +479,7 @@
                 const drinkVal = $('#drinkSelect').val();
                 const sizeVal = $('#sizeSelect').val();
                 const toppingVal = $('#toppingSelect').val();
+                const preparedItemVal = $('#preparedItemSelect').val();
                 const outputUnitVal = $('#outputUnitSelect').val();
                 const expectedYieldVal = $('input[name="ExpectedYield"]').val();
 
@@ -436,7 +488,7 @@
                     DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
                     SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
                     ToppingId: (recipeType === 'TOPPING' && toppingVal) ? parseInt(toppingVal) : null,
-                    SubRecipeName: recipeType === 'SUBRECIPE' ? $('#subRecipeInput').val() : null,
+                    PreparedItemId: (recipeType === 'SUBRECIPE' && preparedItemVal) ? parseInt(preparedItemVal) : null,
                     ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
                     OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,
                     Description: $('textarea[name="Description"]').val(),
@@ -469,7 +521,7 @@
                 $.ajax({
                     url: '@Url.Action("Create", "AdminRecipe", new { area = "Admin" })',
                     type: 'POST',
-                    contentType: 'application/json',
+                    headers: antiforgeryHeaders(),
                     data: JSON.stringify(payload),
                     success: function (res) {
                         if (res.success) {

@@ -126,25 +126,65 @@
                         </select>
                     </div>
                     <div class="col-md-4 conditional-section" id="sectionSub_Recipe" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
-                        <label class="form-label fw-bold">Tên Bán thành phẩm <span class="text-danger">*</span></label>
-                        <input name="SubRecipeName" id="subRecipeInput" class="form-control" type="text" value="@Model.SubRecipeName">
+                        <label class="form-label fw-bold">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
+                        @if (Model.IsLegacyUnmappedSubRecipe)
+                        {
+                            <div class="alert alert-warning py-2 small mb-2">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                Chưa liên kết BTP (legacy). Phải chọn Bán thành phẩm + sản lượng + ĐVT trước khi tạo phiên bản Active mới.
+                                <div class="text-muted mt-1">Tên hiện tại: <strong>@(Model.SubRecipeName ?? ViewBag.RecipeName)</strong></div>
+                            </div>
+                        }
+                        <select name="PreparedItemId" id="preparedItemSelect" class="form-select"
+                                @(Model.PreparedItemLocked ? "disabled" : "")>
+                            <option value="">-- Chọn BTP (mã + tên) --</option>
+                            @if (ViewBag.PreparedItems != null)
+                            {
+                                foreach (dynamic pi in ViewBag.PreparedItems)
+                                {
+                                    var sel = Model.PreparedItemId.HasValue && Model.PreparedItemId.Value == (int)pi.PreparedItemId;
+                                    if (sel)
+                                    {
+                                        <option value="@pi.PreparedItemId" selected>@pi.Code — @pi.Name</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@pi.PreparedItemId">@pi.Code — @pi.Name</option>
+                                    }
+                                }
+                            }
+                        </select>
+                        @if (Model.PreparedItemLocked && Model.PreparedItemId.HasValue)
+                        {
+                            <input type="hidden" name="PreparedItemId" value="@Model.PreparedItemId" />
+                            <small class="text-muted">BTP cố định trong chuỗi phiên bản (không đổi).</small>
+                        }
                     </div>
-                    <div class="col-md-2 conditional-section" id="sectionSub_Yield" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
-                        <label class="form-label fw-bold">Sản lượng đầu ra</label>
-                        <input asp-for="ExpectedYield" class="form-control text-end" type="number" step="0.01"/>
+                    <div class="col-md-3 conditional-section" id="sectionSub_Yield" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
+                        <label class="form-label fw-bold">Sản lượng dự kiến sau hao hụt chuẩn <span class="text-danger">*</span></label>
+                        <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"/>
                     </div>
-                    <div class="col-md-2 conditional-section" id="sectionSub_Unit" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
-                        <label class="form-label fw-bold">ĐVT đầu ra</label>
+                    <div class="col-md-3 conditional-section" id="sectionSub_Unit" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
+                        <label class="form-label fw-bold">Đơn vị đầu ra <span class="text-danger">*</span></label>
                         <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
                             <option value="">-- ĐVT --</option>
                             @if (ViewBag.Units != null)
                             {
                                 foreach (dynamic unit in ViewBag.Units)
                                 {
-                                    <option value="@unit.UnitId">@unit.Name</option>
+                                    var sel = Model.OutputUnitId.HasValue && Model.OutputUnitId.Value == (int)unit.UnitId;
+                                    if (sel)
+                                    {
+                                        <option value="@unit.UnitId" selected>@unit.Name (@unit.UnitCode)</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
+                                    }
                                 }
                             }
                         </select>
+                        <div class="small text-primary mt-1" id="normalizedOutputPreview"></div>
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-bold">Ngày hiệu lực <span class="text-danger">*</span></label>
@@ -254,6 +294,30 @@
                 }
             });
 
+            function antiforgeryHeaders() {
+                const token = $('input[name="__RequestVerificationToken"]').val() || '';
+                return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
+            }
+
+            function refreshNormalizedPreview() {
+                const pi = parseInt($('#preparedItemSelect').val() || $('input[name="PreparedItemId"]').val(), 10) || 0;
+                const qty = parseFloat($('#expectedYieldInput').val()) || 0;
+                const unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
+                if (!pi || !qty || qty <= 0 || !unit) {
+                    $('#normalizedOutputPreview').text('');
+                    return;
+                }
+                $.ajax({
+                    url: '@Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" })',
+                    type: 'POST',
+                    headers: antiforgeryHeaders(),
+                    data: JSON.stringify({ preparedItemId: pi, outputQuantity: qty, outputUnitId: unit }),
+                    success: function (res) {
+                        $('#normalizedOutputPreview').text(res.success ? (res.preview || '') : (res.message || ''));
+                    }
+                });
+            }
+
             $('input[name="RecipeType"]').on('change', function () {
                 const type = $(this).val();
                 if (type === 'POS') {
@@ -263,21 +327,34 @@
                     }
                     $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
                     $('#toppingSelect').val('').trigger('change');
+                    if (!$('#preparedItemSelect').prop('disabled')) {
+                        $('#preparedItemSelect').val('');
+                    }
+                    $('input[name="ExpectedYield"]').val('');
+                    $('select[name="OutputUnitId"]').val('');
+                    $('#normalizedOutputPreview').text('');
                 } else {
                     $('#sectionPOS_Drink, #sectionPOS_Size').hide();
                     if (type === 'TOPPING') {
                         $('#sectionTopping').fadeIn(200);
                         $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
-                        $('#subRecipeInput').val('');
+                        if (!$('#preparedItemSelect').prop('disabled')) {
+                            $('#preparedItemSelect').val('');
+                        }
                         $('input[name="ExpectedYield"]').val('');
                         $('select[name="OutputUnitId"]').val('');
+                        $('#normalizedOutputPreview').text('');
                     } else {
                         $('#sectionTopping').hide();
                         $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
                         $('#toppingSelect').val('').trigger('change');
+                        refreshNormalizedPreview();
                     }
                 }
             });
+
+            $('#preparedItemSelect, #expectedYieldInput, #outputUnitSelect').on('change input', refreshNormalizedPreview);
+            refreshNormalizedPreview();
 
             $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
             $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });

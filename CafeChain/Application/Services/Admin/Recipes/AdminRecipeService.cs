@@ -14,17 +14,21 @@ namespace CafeChain.Application.Services.Admin.Recipes
     public class AdminRecipeService : IAdminRecipeService
     {
         private readonly AppDbContext _context;
+        private readonly IRecipeOutputNormalizer _outputNormalizer;
 
         // Giới hạn tối đa 5 tầng BOM để tránh StackOverflow
         private const int MAX_BOM_DEPTH = 5;
 
-        public AdminRecipeService(AppDbContext context)
+        public AdminRecipeService(
+            AppDbContext context,
+            IRecipeOutputNormalizer outputNormalizer)
         {
             _context = context;
+            _outputNormalizer = outputNormalizer;
         }
 
         // ============================================================
-        // CREATE: Hardened V4 — Zero-Trust Validation
+        // CREATE: Hardened V4 — Zero-Trust Validation + #112 BTP output
         // ============================================================
         public async Task<ServiceResult> CreateRecipeAsync(RecipeCreateVM model)
         {
@@ -33,7 +37,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần (Details trống).");
             }
 
-            var targetValidation = await ValidateRecipeTargetAsync(model);
+            var targetValidation = await ValidateRecipeTargetAsync(model, existing: null);
             if (!targetValidation.IsSuccess)
                 return targetValidation;
 
@@ -61,7 +65,32 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     return unitValidation;
                 }
 
-                string recipeName = await ResolveRecipeNameAsync(model);
+                RecipeOutputNormalizationResult? output = null;
+                if (IsBtpType(model.RecipeType))
+                {
+                    var uniqueness = await EnsureNoOtherActiveForPreparedItemAsync(
+                        model.PreparedItemId!.Value,
+                        excludeRecipeId: null);
+                    if (!uniqueness.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return uniqueness;
+                    }
+
+                    var norm = await _outputNormalizer.NormalizeAsync(
+                        model.PreparedItemId.Value,
+                        model.ExpectedYield!.Value,
+                        model.OutputUnitId!.Value);
+                    if (!norm.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(norm.Message, norm.Errors, norm.ErrorCode);
+                    }
+
+                    output = norm.Data;
+                }
+
+                string recipeName = await ResolveRecipeNameAsync(model, output);
 
                 var recipe = new Recipe
                 {
@@ -70,32 +99,37 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     DrinkId = model.RecipeType == "POS" ? model.DrinkId : null,
                     SizeId = model.RecipeType == "POS" ? model.SizeId : null,
                     ToppingId = model.RecipeType == "TOPPING" ? model.ToppingId : null,
+                    PreparedItemId = output?.PreparedItemId,
+                    OutputQuantity = output?.OutputQuantity,
+                    OutputUnitId = output?.OutputUnitId,
                     YieldPercentage = 100,
                     Active = model.Active,
-                    Status = "Active",
+                    Status = model.Active ? "Active" : "Archived",
                     EffectiveDate = model.EffectiveDate,
                     RecipeDetails = new List<RecipeDetail>()
                 };
 
-                // Phân rã ItemCode (MAPPING)
+                // Keep Status/Active synchronized for inactive create edge cases
+                if (!recipe.Active)
+                    recipe.Status = "Archived";
+                else
+                    recipe.Status = "Active";
+
                 foreach (var detailVM in model.Details)
                 {
                     var detail = ParseRecipeDetail(detailVM);
                     recipe.RecipeDetails.Add(detail);
                 }
 
-                // Kiểm tra Depth Limit cho các ChildRecipe
                 var childRecipeIds = recipe.RecipeDetails
                     .Where(rd => rd.ChildRecipeId.HasValue)
-                    .Select(rd => rd.ChildRecipeId.Value)
+                    .Select(rd => rd.ChildRecipeId!.Value)
                     .ToList();
 
                 if (childRecipeIds.Any())
                 {
                     foreach (var childId in childRecipeIds)
                     {
-                        // Với bản CREATE mới (chưa có RecipeId), chỉ cần kiểm tra
-                        // depth limit của cây con — recipe mới không thể bị tham chiếu ngược
                         var depthResult = await CheckDepthLimitAsync(childId, 1);
                         if (!depthResult.IsSuccess)
                         {
@@ -106,9 +140,18 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
 
                 await _context.Recipes.AddAsync(recipe);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (IsActivePreparedItemUniqueViolation(ex))
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult.Failure(
+                        "Đã có công thức đang hoạt động cho bán thành phẩm này. Mỗi BTP chỉ được một phiên bản Active.");
+                }
 
+                await transaction.CommitAsync();
                 return ServiceResult.Success("Tạo mới công thức (BOM) thành công!");
             }
             catch (ArgumentException ex)
@@ -134,19 +177,73 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 return ServiceResult.Failure("Công thức phải chứa ít nhất một thành phần.");
             }
 
-            var targetValidation = await ValidateRecipeTargetAsync(model);
-            if (!targetValidation.IsSuccess)
-                return targetValidation;
-
-            // === VALIDATION LAYER (Zero-Trust) ===
-            var validationResult = ValidateDetails(model.Details);
-            if (!validationResult.IsSuccess)
-                return validationResult;
-
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
-                // Validate tồn tại trong DB
+                // 1. Load current Active Recipe
+                var oldRecipe = await _context.Recipes
+                    .Include(r => r.RecipeDetails)
+                    .FirstOrDefaultAsync(r => r.RecipeId == recipeId && r.Status == "Active");
+
+                if (oldRecipe == null)
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult.Failure("Không tìm thấy công thức hoặc công thức đã bị lưu trữ (Archived).");
+                }
+
+                // Legacy SUBRECIPE without PreparedItem: block new Active version until explicit mapping
+                bool isLegacyUnmapped =
+                    !oldRecipe.DrinkId.HasValue
+                    && !oldRecipe.ToppingId.HasValue
+                    && !oldRecipe.PreparedItemId.HasValue;
+
+                if (isLegacyUnmapped)
+                {
+                    // Force BTP mapping path for next Active version
+                    model.RecipeType = "SUBRECIPE";
+                    if (!model.PreparedItemId.HasValue
+                        || !model.ExpectedYield.HasValue
+                        || model.ExpectedYield <= 0
+                        || !model.OutputUnitId.HasValue)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            "Công thức BTP chưa liên kết (legacy). Cần chọn Bán thành phẩm, " +
+                            "Sản lượng dự kiến sau hao hụt chuẩn và Đơn vị đầu ra trước khi tạo phiên bản Active mới.");
+                    }
+                }
+
+                // PreparedItem identity immutability within a version chain
+                if (oldRecipe.PreparedItemId.HasValue)
+                {
+                    model.RecipeType = "SUBRECIPE";
+                    if (model.PreparedItemId.HasValue
+                        && model.PreparedItemId.Value != oldRecipe.PreparedItemId.Value)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            "Không được đổi Bán thành phẩm đầu ra trong cùng chuỗi phiên bản. " +
+                            "Hãy tạo công thức mới cho BTP khác.");
+                    }
+
+                    model.PreparedItemId = oldRecipe.PreparedItemId;
+                }
+
+                // 2. Validate category and output
+                var targetValidation = await ValidateRecipeTargetAsync(model, existing: oldRecipe);
+                if (!targetValidation.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return targetValidation;
+                }
+
+                var validationResult = ValidateDetails(model.Details);
+                if (!validationResult.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return validationResult;
+                }
+
                 var dbValidation = await ValidateDetailsExistInDbAsync(model.Details);
                 if (!dbValidation.IsSuccess)
                 {
@@ -154,7 +251,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     return dbValidation;
                 }
 
-                // Validate UnitId hợp lệ cho từng Ingredient
                 var unitValidation = await ValidateUnitMappingsAsync(model.Details);
                 if (!unitValidation.IsSuccess)
                 {
@@ -162,38 +258,57 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     return unitValidation;
                 }
 
-                // 1. Tìm bản gốc đang Active
-                var oldRecipe = await _context.Recipes
-                    .Include(r => r.RecipeDetails)
-                    .FirstOrDefaultAsync(r => r.RecipeId == recipeId && r.Status == "Active");
-
-                if (oldRecipe == null)
+                RecipeOutputNormalizationResult? output = null;
+                if (IsBtpType(model.RecipeType) || oldRecipe.PreparedItemId.HasValue)
                 {
-                    return ServiceResult.Failure("Không tìm thấy công thức hoặc công thức đã bị lưu trữ (Archived).");
+                    int preparedItemId = oldRecipe.PreparedItemId ?? model.PreparedItemId!.Value;
+                    decimal qty = model.ExpectedYield
+                        ?? oldRecipe.OutputQuantity
+                        ?? 0m;
+                    int unitId = model.OutputUnitId
+                        ?? oldRecipe.OutputUnitId
+                        ?? 0;
+
+                    var uniqueness = await EnsureNoOtherActiveForPreparedItemAsync(
+                        preparedItemId,
+                        excludeRecipeId: oldRecipe.RecipeId);
+                    if (!uniqueness.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return uniqueness;
+                    }
+
+                    var norm = await _outputNormalizer.NormalizeAsync(preparedItemId, qty, unitId);
+                    if (!norm.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(norm.Message, norm.Errors, norm.ErrorCode);
+                    }
+
+                    output = norm.Data;
                 }
 
-                // 2. Build danh sách ChildRecipeIds mới để kiểm tra vòng lặp
+                // Build child list for cycle/depth
                 var newChildRecipeIds = model.Details
                     .Where(d => !string.IsNullOrEmpty(d.ItemCode) && d.ItemCode.StartsWith("REC_"))
                     .Select(d => int.Parse(d.ItemCode.Substring(4)))
                     .ToList();
 
-                // 3. DFS Anti-Loop + Depth Limit
                 foreach (var childId in newChildRecipeIds)
                 {
-                    // Self-reference check
                     if (childId == recipeId)
                     {
+                        await transaction.RollbackAsync();
                         return ServiceResult.Failure("Không thể thêm chính mình làm bán thành phẩm (Self-reference)!");
                     }
 
-                    // DFS: Kiểm tra childRecipe có đường đi ngược về recipeId không
                     if (await HasCircularDependencyAsync(childId, recipeId, new HashSet<int>(), 0))
                     {
-                        return ServiceResult.Failure($"Phát hiện vòng lặp công thức! Bán thành phẩm #{childId} đã sử dụng công thức này làm thành phần.");
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            $"Phát hiện vòng lặp công thức! Bán thành phẩm #{childId} đã sử dụng công thức này làm thành phần.");
                     }
 
-                    // Depth Limit: tầng hiện tại là 1 (recipe gốc = tầng 0)
                     var depthResult = await CheckDepthLimitAsync(childId, 1);
                     if (!depthResult.IsSuccess)
                     {
@@ -202,29 +317,38 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     }
                 }
 
-                // 4. Soft-Delete bản cũ (NEVER OVERWRITE)
+                // 4–5. Archive old + insert new (atomic)
                 oldRecipe.Status = "Archived";
                 oldRecipe.Active = false;
 
-                // 5. Tạo phiên bản MỚI với ParentVersionId trỏ về bản cũ
-                string recipeName = await ResolveRecipeNameAsync(model);
+                string recipeName = await ResolveRecipeNameAsync(model, output, oldRecipe);
 
                 var newRecipe = new Recipe
                 {
                     RecipeCode = GenerateRecipeCode(model),
                     Name = recipeName,
                     YieldPercentage = 100,
-                    Active = model.Active,
+                    Active = true,
                     Status = "Active",
                     EffectiveDate = model.EffectiveDate,
-                    ParentVersionId = oldRecipe.RecipeId, // Audit Trail
+                    ParentVersionId = oldRecipe.RecipeId,
                     DrinkId = model.RecipeType == "POS" ? model.DrinkId : null,
                     SizeId = model.RecipeType == "POS" ? model.SizeId : null,
                     ToppingId = model.RecipeType == "TOPPING" ? model.ToppingId : null,
+                    PreparedItemId = output?.PreparedItemId,
+                    OutputQuantity = output?.OutputQuantity,
+                    OutputUnitId = output?.OutputUnitId,
                     RecipeDetails = new List<RecipeDetail>()
                 };
 
-                // 6. Map Details mới
+                // POS/Topping version: preserve identity fields from model already set; clear BTP fields
+                if (model.RecipeType == "POS" || model.RecipeType == "TOPPING")
+                {
+                    newRecipe.PreparedItemId = null;
+                    newRecipe.OutputQuantity = null;
+                    newRecipe.OutputUnitId = null;
+                }
+
                 foreach (var detailVM in model.Details)
                 {
                     var detail = ParseRecipeDetail(detailVM);
@@ -232,10 +356,21 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
 
                 await _context.Recipes.AddAsync(newRecipe);
-                await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
 
-                return ServiceResult.Success($"Cập nhật công thức thành công! (Phiên bản mới #{newRecipe.RecipeId}, bản cũ #{oldRecipe.RecipeId} đã lưu trữ)");
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (DbUpdateException ex) when (IsActivePreparedItemUniqueViolation(ex))
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult.Failure(
+                        "Đã có công thức đang hoạt động cho bán thành phẩm này. Mỗi BTP chỉ được một phiên bản Active.");
+                }
+
+                await transaction.CommitAsync();
+                return ServiceResult.Success(
+                    $"Cập nhật công thức thành công! (Phiên bản mới #{newRecipe.RecipeId}, bản cũ #{oldRecipe.RecipeId} đã lưu trữ)");
             }
             catch (ArgumentException ex)
             {
@@ -266,7 +401,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     return ServiceResult.Failure("Không tìm thấy công thức cần xóa.");
                 }
 
-                // === RÀNG BUỘC 1: Kiểm tra xem Recipe có đang được dùng làm ChildRecipe ===
                 bool isUsedAsSubRecipe = await _context.RecipeDetails
                     .AnyAsync(rd => rd.ChildRecipeId == recipeId
                                  && rd.Recipe.Status == "Active");
@@ -277,7 +411,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         "Không thể xóa! Bán thành phẩm này đang được sử dụng bởi công thức khác đang hoạt động.");
                 }
 
-                // === RÀNG BUỘC 2: Kiểm tra lịch sử OrderDetails (qua DrinkId/ToppingId) ===
                 bool hasOrderHistory = false;
 
                 if (recipe.DrinkId.HasValue)
@@ -292,16 +425,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
                         .AnyAsync(ot => ot.ToppingId == recipe.ToppingId.Value);
                 }
 
-                // === RÀNG BUỘC 3: Kiểm tra ProductionOrders (nếu tồn tại) ===
-                // ProductionOrder entity chưa có DbSet formal → kiểm tra an toàn qua try/catch
-                // Khi entity được migration chính thức, bỏ comment dòng dưới
-                // bool hasProductionOrders = await _context.Set<ProductionOrder>()
-                //     .AnyAsync(po => po.TargetRecipeId == recipeId);
-                // hasOrderHistory = hasOrderHistory || hasProductionOrders;
-
                 if (hasOrderHistory)
                 {
-                    // SOFT DELETE — giữ lại dữ liệu lịch sử
                     recipe.Status = "Archived";
                     recipe.Active = false;
                     await _context.SaveChangesAsync();
@@ -312,7 +437,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
                 else
                 {
-                    // HARD DELETE — không có ràng buộc nào
                     _context.RecipeDetails.RemoveRange(recipe.RecipeDetails);
                     _context.Recipes.Remove(recipe);
                     await _context.SaveChangesAsync();
@@ -329,10 +453,27 @@ namespace CafeChain.Application.Services.Admin.Recipes
         }
 
         // ============================================================
-        // PRIVATE: Validate target Recipe — POS drink/size, topping, or subrecipe
+        // PRIVATE: Category + output rules (#112)
         // ============================================================
-        private async Task<ServiceResult> ValidateRecipeTargetAsync(RecipeCreateVM model)
+        private static bool IsBtpType(string? recipeType)
+            => string.Equals(recipeType, "SUBRECIPE", StringComparison.OrdinalIgnoreCase);
+
+        private async Task<ServiceResult> ValidateRecipeTargetAsync(
+            RecipeCreateVM model,
+            Recipe? existing)
         {
+            // Reject forged BTP fields on POS / Topping
+            if (model.RecipeType == "POS" || model.RecipeType == "TOPPING")
+            {
+                if (model.PreparedItemId.HasValue
+                    || model.ExpectedYield.HasValue
+                    || model.OutputUnitId.HasValue)
+                {
+                    return ServiceResult.Failure(
+                        "Công thức món bán/topping không được gán Bán thành phẩm hoặc sản lượng đầu ra BTP.");
+                }
+            }
+
             if (model.RecipeType == "POS")
             {
                 if (!model.DrinkId.HasValue)
@@ -340,6 +481,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
 
                 if (!model.SizeId.HasValue)
                     return ServiceResult.Failure("Công thức món bán phải chọn size.");
+
+                if (model.ToppingId.HasValue)
+                    return ServiceResult.Failure("Công thức món bán không được gán ToppingId.");
 
                 var hasDrinkSize = await _context.DrinkSizes
                     .AnyAsync(ds => ds.DrinkId == model.DrinkId.Value
@@ -354,16 +498,34 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 if (!model.ToppingId.HasValue)
                     return ServiceResult.Failure("Công thức topping phải chọn topping.");
 
+                if (model.DrinkId.HasValue || model.SizeId.HasValue)
+                    return ServiceResult.Failure("Công thức topping không được gán DrinkId/SizeId.");
+
                 var hasTopping = await _context.Toppings
                     .AnyAsync(t => t.ToppingId == model.ToppingId.Value && t.Active);
 
                 if (!hasTopping)
                     return ServiceResult.Failure("Topping không tồn tại hoặc đã ngưng hoạt động.");
             }
-            else if (model.RecipeType == "SUBRECIPE")
+            else if (IsBtpType(model.RecipeType))
             {
-                if (string.IsNullOrWhiteSpace(model.SubRecipeName))
-                    return ServiceResult.Failure("Công thức bán thành phẩm phải có tên.");
+                if (model.DrinkId.HasValue || model.SizeId.HasValue || model.ToppingId.HasValue)
+                {
+                    return ServiceResult.Failure(
+                        "Công thức BTP không được gán DrinkId, SizeId hoặc ToppingId.");
+                }
+
+                if (!model.PreparedItemId.HasValue)
+                    return ServiceResult.Failure("Công thức BTP phải chọn Bán thành phẩm đầu ra.");
+
+                if (!model.ExpectedYield.HasValue || model.ExpectedYield.Value <= 0)
+                {
+                    return ServiceResult.Failure(
+                        "Sản lượng dự kiến sau hao hụt chuẩn phải lớn hơn 0.");
+                }
+
+                if (!model.OutputUnitId.HasValue)
+                    return ServiceResult.Failure("Công thức BTP phải chọn đơn vị đầu ra.");
             }
             else
             {
@@ -373,13 +535,37 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return ServiceResult.Success();
         }
 
-        private async Task<string> ResolveRecipeNameAsync(RecipeCreateVM model)
+        private async Task<ServiceResult> EnsureNoOtherActiveForPreparedItemAsync(
+            int preparedItemId,
+            int? excludeRecipeId)
+        {
+            var query = _context.Recipes.AsNoTracking()
+                .Where(r => r.PreparedItemId == preparedItemId && r.Active);
+
+            if (excludeRecipeId.HasValue)
+                query = query.Where(r => r.RecipeId != excludeRecipeId.Value);
+
+            if (await query.AnyAsync())
+            {
+                return ServiceResult.Failure(
+                    "Đã có công thức đang hoạt động cho bán thành phẩm này. Mỗi BTP chỉ được một phiên bản Active.");
+            }
+
+            return ServiceResult.Success();
+        }
+
+        private async Task<string> ResolveRecipeNameAsync(
+            RecipeCreateVM model,
+            RecipeOutputNormalizationResult? output,
+            Recipe? oldRecipe = null)
         {
             if (model.RecipeType == "POS" && model.DrinkId.HasValue)
             {
                 var drink = await _context.Drinks.FindAsync(model.DrinkId.Value);
                 var size = model.SizeId.HasValue ? await _context.Sizes.FindAsync(model.SizeId.Value) : null;
-                return size == null ? drink?.Name ?? $"POS_Recipe_{model.DrinkId}" : $"{drink?.Name ?? "POS"} - Size {size.Name}";
+                return size == null
+                    ? drink?.Name ?? $"POS_Recipe_{model.DrinkId}"
+                    : $"{drink?.Name ?? "POS"} - Size {size.Name}";
             }
 
             if (model.RecipeType == "TOPPING" && model.ToppingId.HasValue)
@@ -388,7 +574,18 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 return topping?.Name ?? $"Topping_Recipe_{model.ToppingId}";
             }
 
-            if (model.RecipeType == "SUBRECIPE" && !string.IsNullOrWhiteSpace(model.SubRecipeName))
+            if (IsBtpType(model.RecipeType) && output != null)
+            {
+                // Stable display name from PreparedItem (not free-text identity)
+                return string.IsNullOrWhiteSpace(output.PreparedItemName)
+                    ? output.PreparedItemCode
+                    : output.PreparedItemName;
+            }
+
+            if (oldRecipe != null && !string.IsNullOrWhiteSpace(oldRecipe.Name))
+                return oldRecipe.Name;
+
+            if (!string.IsNullOrWhiteSpace(model.SubRecipeName))
                 return model.SubRecipeName.Trim();
 
             return $"Recipe_{DateTime.Now:yyyyMMdd_HHmmss}";
@@ -401,9 +598,19 @@ namespace CafeChain.Application.Services.Admin.Recipes
             {
                 "POS" => $"RCP_D{model.DrinkId}_S{model.SizeId}_{stamp}",
                 "TOPPING" => $"RCP_T{model.ToppingId}_{stamp}",
-                "SUBRECIPE" => $"RCP_SUB_{stamp}",
+                "SUBRECIPE" => model.PreparedItemId.HasValue
+                    ? $"RCP_PI{model.PreparedItemId}_{stamp}"
+                    : $"RCP_SUB_{stamp}",
                 _ => $"RCP_{stamp}"
             };
+        }
+
+        private static bool IsActivePreparedItemUniqueViolation(DbUpdateException ex)
+        {
+            var msg = ex.InnerException?.Message ?? ex.Message;
+            return msg.Contains("IX_Recipes_OneActive_PreparedItem", StringComparison.OrdinalIgnoreCase)
+                || (msg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                    && msg.Contains("PreparedItem", StringComparison.OrdinalIgnoreCase));
         }
 
         // ============================================================
@@ -413,14 +620,12 @@ namespace CafeChain.Application.Services.Admin.Recipes
         {
             foreach (var d in details)
             {
-                // Quantity phải > 0
                 if (d.Quantity <= 0)
                 {
                     return ServiceResult.Failure(
                         $"Định lượng phải lớn hơn 0 (ItemCode: {d.ItemCode}, Quantity: {d.Quantity}).");
                 }
 
-                // YieldPercentage không được = 0 (Division by Zero)
                 if (d.YieldPercentage == 0)
                 {
                     return ServiceResult.Failure(
@@ -428,7 +633,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 }
             }
 
-            // Kiểm tra trùng lặp ItemCode cùng cấp
             var duplicateItems = details
                 .GroupBy(d => d.ItemCode)
                 .Where(g => g.Count() > 1)
@@ -444,9 +648,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return ServiceResult.Success();
         }
 
-        // ============================================================
-        // PRIVATE: Validate tồn tại trong DB (Ingredient/Recipe Active)
-        // ============================================================
         private async Task<ServiceResult> ValidateDetailsExistInDbAsync(List<RecipeDetailVM> details)
         {
             foreach (var d in details)
@@ -484,15 +685,12 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return ServiceResult.Success();
         }
 
-        // ============================================================
-        // PRIVATE: Validate UnitId hợp lệ cho Ingredient
-        // ============================================================
         private async Task<ServiceResult> ValidateUnitMappingsAsync(List<RecipeDetailVM> details)
         {
             foreach (var d in details)
             {
                 if (string.IsNullOrWhiteSpace(d.ItemCode) || !d.ItemCode.StartsWith("ING_"))
-                    continue; // Chỉ validate Unit cho Ingredient, SubRecipe dùng unit "Phần"
+                    continue;
 
                 if (!int.TryParse(d.ItemCode.Substring(4), out int ingId))
                     continue;
@@ -501,9 +699,8 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     .Include(i => i.UnitConversions)
                     .FirstOrDefaultAsync(i => i.IngredientId == ingId);
 
-                if (ingredient == null) continue; // Đã validate ở bước trước
+                if (ingredient == null) continue;
 
-                // Tập hợp tất cả UnitId hợp lệ: BaseUnit + tất cả Unit trong UnitConversion
                 var allowedUnitIds = ingredient.UnitConversions
                     .SelectMany(uc => new[] { uc.FromUnitId, uc.ToUnitId })
                     .Append(ingredient.BaseUnitId)
@@ -521,37 +718,25 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return ServiceResult.Success();
         }
 
-        // ============================================================
-        // PRIVATE: DFS Anti-Loop Detection + Depth Limit
-        // ============================================================
-        /// <summary>
-        /// Kiểm tra xem từ currentRecipeId, có đường đi nào dẫn tới targetRecipeId không (DFS).
-        /// Nếu có → Circular Dependency! Giới hạn tối đa MAX_BOM_DEPTH tầng.
-        /// </summary>
         private async Task<bool> HasCircularDependencyAsync(
             int currentRecipeId, int targetRecipeId, HashSet<int> visited, int currentDepth)
         {
-            // Depth Limit — ngừng duyệt nếu vượt quá giới hạn
             if (currentDepth > MAX_BOM_DEPTH)
-                return false; // Không phải vòng lặp, nhưng depth đã vượt (sẽ bị chặn bởi CheckDepthLimit)
+                return false;
 
-            // Tránh duyệt lặp (đã thăm node này)
             if (!visited.Add(currentRecipeId))
                 return false;
 
-            // Lấy tất cả ChildRecipeId của currentRecipeId
             var childRecipeIds = await _context.RecipeDetails
                 .Where(rd => rd.RecipeId == currentRecipeId && rd.ChildRecipeId.HasValue)
-                .Select(rd => rd.ChildRecipeId.Value)
+                .Select(rd => rd.ChildRecipeId!.Value)
                 .ToListAsync();
 
             foreach (var childId in childRecipeIds)
             {
-                // Nếu con trực tiếp chính là target → vòng lặp!
                 if (childId == targetRecipeId)
                     return true;
 
-                // Đệ quy sâu hơn với depth + 1
                 if (await HasCircularDependencyAsync(childId, targetRecipeId, visited, currentDepth + 1))
                     return true;
             }
@@ -559,12 +744,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return false;
         }
 
-        // ============================================================
-        // PRIVATE: Kiểm tra Depth Limit cho cây BOM
-        // ============================================================
-        /// <summary>
-        /// Kiểm tra xem từ recipeId, cây BOM có vượt quá MAX_BOM_DEPTH tầng không.
-        /// </summary>
         private async Task<ServiceResult> CheckDepthLimitAsync(int recipeId, int currentDepth)
         {
             if (currentDepth > MAX_BOM_DEPTH)
@@ -576,7 +755,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
 
             var childRecipeIds = await _context.RecipeDetails
                 .Where(rd => rd.RecipeId == recipeId && rd.ChildRecipeId.HasValue)
-                .Select(rd => rd.ChildRecipeId.Value)
+                .Select(rd => rd.ChildRecipeId!.Value)
                 .ToListAsync();
 
             foreach (var childId in childRecipeIds)
@@ -589,9 +768,6 @@ namespace CafeChain.Application.Services.Admin.Recipes
             return ServiceResult.Success();
         }
 
-        // ============================================================
-        // PRIVATE: Parse ItemCode → RecipeDetail (DRY cho Create + Update)
-        // ============================================================
         private RecipeDetail ParseRecipeDetail(RecipeDetailVM detailVM)
         {
             var detail = new RecipeDetail
@@ -605,36 +781,34 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 throw new ArgumentException("Mã cấu trúc thành phần (ItemCode) bị rỗng.");
             }
 
-            // 1. Nguyên Liệu Thô (Ingredient)
             if (detailVM.ItemCode.StartsWith("ING_"))
             {
                 if (int.TryParse(detailVM.ItemCode.Substring(4), out int ingredientId))
                 {
                     detail.IngredientId = ingredientId;
-                    detail.ChildRecipeId = null; // Đảm bảo XOR
+                    detail.ChildRecipeId = null;
                 }
                 else
                 {
                     throw new ArgumentException($"Mã tham chiếu nguyên liệu không hợp lệ: {detailVM.ItemCode}");
                 }
             }
-            // 2. Bán Thành Phẩm (Child Recipe)
             else if (detailVM.ItemCode.StartsWith("REC_"))
             {
                 if (int.TryParse(detailVM.ItemCode.Substring(4), out int childRecipeId))
                 {
                     detail.ChildRecipeId = childRecipeId;
-                    detail.IngredientId = null; // Đảm bảo XOR
+                    detail.IngredientId = null;
                 }
                 else
                 {
                     throw new ArgumentException($"Mã tham chiếu công thức con không hợp lệ: {detailVM.ItemCode}");
                 }
             }
-            // 3. Fallback
             else
             {
-                throw new ArgumentException($"Định dạng ItemCode không hợp lệ: {detailVM.ItemCode}. Bắt buộc tiền tố ING_ hoặc REC_.");
+                throw new ArgumentException(
+                    $"Định dạng ItemCode không hợp lệ: {detailVM.ItemCode}. Bắt buộc tiền tố ING_ hoặc REC_.");
             }
 
             return detail;

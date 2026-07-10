@@ -133,7 +133,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<CafeChain.Application.Interfaces.Admin.PreparedItems.IAdminPreparedItemService,
                 CafeChain.Application.Services.Admin.PreparedItems.AdminPreparedItemService>();
 
-            // Admin - Recipes
+            // Admin - Recipes (+ #112 BTP output normalizer)
+            services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 
             // Admin - Inventory Documents
