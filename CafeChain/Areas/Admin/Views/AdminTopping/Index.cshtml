@@ -77,6 +77,7 @@
 
                     <tr>
                         <th>TOPPING</th>
+                        <th>MÃ</th>
                         <th>GIÁ</th>
                         <th>TRẠNG THÁI</th>
                         <th class="text-end">HÀNH ĐỘNG</th>
@@ -105,6 +106,15 @@
                                     </div>
 
                                 </div>
+
+                            </td>
+
+                            <!-- CODE -->
+                            <td>
+
+                                <span class="topping-code-badge">
+                                    @item.ToppingCode
+                                </span>
 
                             </td>
 
@@ -153,6 +163,7 @@
                                         data-bs-toggle="modal"
                                         data-bs-target="#editModal"
                                         data-id="@item.ToppingId"
+                                        data-code="@item.ToppingCode"
                                         data-name="@item.Name"
                                         data-price="@item.Price"
                                         data-image="@item.ImageUrl">
@@ -163,8 +174,9 @@
 
                                 <!-- TOGGLE -->
                                 <button type="button"
-                                        class="btn btn-sm"
-                                        onclick="toggleTopping(@item.ToppingId)">
+                                        class="btn btn-sm js-toggle-topping"
+                                        data-id="@item.ToppingId"
+                                        data-url="@Url.Action("ToggleStatus", "AdminTopping", new { area = "Admin", id = item.ToppingId })">
 
                                     <i class="fas @(item.Active
                                                                                    ? "fa-lock text-danger"
@@ -221,6 +233,26 @@
                 @Html.AntiForgeryToken()
 
                 <div class="modal-body">
+
+                    <!-- CODE -->
+
+                    <div class="mb-3">
+
+                        <label class="form-label">
+                            Mã topping
+                        </label>
+
+                        <input name="ToppingCode"
+                               class="form-control bg-light"
+                               maxlength="50"
+                               placeholder="Ví dụ: TC_DEN"
+                               required />
+
+                        <span class="text-danger"
+                              data-valmsg-for="ToppingCode">
+                        </span>
+
+                    </div>
 
                     <!-- NAME -->
 
@@ -386,7 +418,21 @@
 
                         <div class="col-md-7">
 
-                            <!-- NAME -->
+                            <!-- CODE -->
+
+                            <div class="mb-3">
+
+                                <label class="form-label">
+                                    Mã topping
+                                </label>
+
+                                <input id="edit-code"
+                                       name="ToppingCode"
+                                       class="form-control"
+                                       maxlength="50"
+                                       required />
+
+                            </div>
 
                             <div class="mb-3">
 
@@ -652,7 +698,5 @@
 {
     <partial name="_ValidationScriptsPartial" />
 
-    <script src="~/js/Toast/toast.js"></script>
-
-    <script src="~/js/Admin/Topping/topping.js"></script>
+    <script src="~/js/Admin/Topping/topping.js" asp-append-version="true"></script>
 }

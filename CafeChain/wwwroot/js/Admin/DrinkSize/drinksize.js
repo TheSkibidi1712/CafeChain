@@ -225,14 +225,18 @@ function toggleDrinkSize(id) {
 // =========================
 function toggleSize(id) {
     fetch(`/Admin/AdminSize/ToggleStatus?id=${id}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json'
+        }
     })
-        .then(res => {
-            if (!res.ok) {
-                return res.text().then(err => { throw new Error(err); });
+        .then(readJsonResult)
+        .then(result => {
+            if (!result.success) {
+                throw new Error(result.message);
             }
 
-            toast("Đã cập nhật trạng thái", "success");
+            toast(result.message || "Đã cập nhật trạng thái", "success");
 
             // ⏳ delay để toast kịp hiển thị
             setTimeout(() => {
@@ -246,28 +250,93 @@ function toggleSize(id) {
 // =========================
 // EDIT SIZE
 // =========================
-function openEditModal(id, name, description, sizeType) {
+function openEditModal(id, sizeCode, name, description, sizeType) {
     // reset trước để tránh giữ dữ liệu cũ
     document.getElementById('edit-id').value = "";
+    document.getElementById('edit-code').value = "";
     document.getElementById('edit-name').value = "";
     document.getElementById('edit-description').value = "";
     document.getElementById('edit-size-type').value = "1";
 
     // set dữ liệu mới
     document.getElementById('edit-id').value = id || 0;
+    document.getElementById('edit-code').value = sizeCode || "";
     document.getElementById('edit-name').value = name || "";
     document.getElementById('edit-description').value = description || "";
     document.getElementById('edit-size-type').value = String(sizeType || 1);
 }
 
+function validateSizeForm(sizeCode, name) {
+    if (!sizeCode) {
+        toast("Mã size không được để trống", "error");
+        return false;
+    }
+
+    if (sizeCode.length > 20) {
+        toast("Mã size tối đa 20 ký tự", "error");
+        return false;
+    }
+
+    if (!name) {
+        toast("Tên size không được để trống", "error");
+        return false;
+    }
+
+    if (name.length > 50) {
+        toast("Tên size tối đa 50 ký tự", "error");
+        return false;
+    }
+
+    return true;
+}
+
+async function readJsonResult(response) {
+    const contentType = response.headers.get("content-type") || "";
+
+    if (!contentType.toLowerCase().includes("application/json")) {
+        const text = await response.text();
+
+        return {
+            success: false,
+            message: text || "Phản hồi từ máy chủ không hợp lệ"
+        };
+    }
+
+    const result = await response.json();
+
+    if (!response.ok && result.success !== false) {
+        return {
+            success: false,
+            message: result.message || "Có lỗi xảy ra"
+        };
+    }
+
+    return result;
+}
+
+function postJson(url, payload) {
+    return fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+        },
+        body: JSON.stringify(payload)
+    }).then(readJsonResult);
+}
+
 document.addEventListener("DOMContentLoaded", function () {
 
     const form = document.getElementById("editSizeForm");
+    if (!form) {
+        return;
+    }
 
-    form.addEventListener("submit", function (e) {
+    form.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const sizeId = document.getElementById("edit-id").value;
+        const sizeCode = document.getElementById("edit-code").value.trim().toUpperCase();
         const name = document.getElementById("edit-name").value;
         const description = document.getElementById("edit-description").value;
         const sizeType = Number(document.getElementById("edit-size-type").value);
@@ -277,43 +346,37 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        fetch('/Admin/AdminSize/Edit', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        if (!validateSizeForm(sizeCode, name.trim())) {
+            return;
+        }
+
+        try {
+            const result = await postJson('/Admin/AdminSize/Edit', {
                 sizeId: sizeId,
+                sizeCode: sizeCode,
                 name: name,
                 description: description,
                 sizeType: sizeType
-            })
-        })
-            .then(res => {
-                if (!res.ok) {
-                    return res.text().then(err => {
-                        throw new Error(err);
-                    });
-                }
-
-                return res.text();
-            })
-            .then(() => {
-                toast("Cập nhật size thành công", "success");
-
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("editModal")
-                );
-
-                modal.hide();
-
-                setTimeout(() => {
-                    location.reload();
-                }, 700);
-            })
-            .catch(err => {
-                toast(err.message || "Lỗi cập nhật", "error");
             });
+
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+
+            toast(result.message || "Cập nhật size thành công", "success");
+
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById("editModal")
+            );
+
+            modal?.hide();
+
+            setTimeout(() => {
+                location.reload();
+            }, 700);
+        } catch (err) {
+            toast(err.message || "Lỗi cập nhật", "error");
+        }
     });
 
 });
@@ -325,59 +388,53 @@ document.addEventListener("DOMContentLoaded", function () {
 document.addEventListener("DOMContentLoaded", function () {
 
     const createForm = document.getElementById("createSizeForm");
+    if (!createForm) {
+        return;
+    }
 
-    createForm.addEventListener("submit", function (e) {
+    createForm.addEventListener("submit", async function (e) {
         e.preventDefault();
 
         const name = document.getElementById("create-name").value.trim();
+        const sizeCode = document.getElementById("create-code").value.trim().toUpperCase();
         const description = document.getElementById("create-description").value.trim();
         const sizeType = Number(document.getElementById("create-size-type").value);
 
-        if (!name) {
-            toast("Tên size không được để trống", "error");
+        if (!validateSizeForm(sizeCode, name)) {
             return;
         }
 
-        fetch('/Admin/AdminSize/Create', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
+        try {
+            const result = await postJson('/Admin/AdminSize/Create', {
+                sizeCode: sizeCode,
                 name: name,
                 description: description,
                 sizeType: sizeType
-            })
-        })
-            .then(res => {
-                if (!res.ok) {
-                    return res.text().then(err => {
-                        throw new Error(err);
-                    });
-                }
-
-                return res.text();
-            })
-            .then(() => {
-                toast("Tạo size thành công", "success");
-
-                document.getElementById("create-name").value = "";
-                document.getElementById("create-description").value = "";
-                document.getElementById("create-size-type").value = "1";
-
-                const modal = bootstrap.Modal.getInstance(
-                    document.getElementById("createModal")
-                );
-
-                modal.hide();
-
-                setTimeout(() => {
-                    location.reload();
-                }, 700);
-            })
-            .catch(err => {
-                toast(err.message || "Lỗi tạo size", "error");
             });
+
+            if (!result.success) {
+                throw new Error(result.message);
+            }
+
+            toast(result.message || "Tạo size thành công", "success");
+
+            document.getElementById("create-code").value = "";
+            document.getElementById("create-name").value = "";
+            document.getElementById("create-description").value = "";
+            document.getElementById("create-size-type").value = "1";
+
+            const modal = bootstrap.Modal.getInstance(
+                document.getElementById("createModal")
+            );
+
+            modal?.hide();
+
+            setTimeout(() => {
+                location.reload();
+            }, 700);
+        } catch (err) {
+            toast(err.message || "Lỗi tạo size", "error");
+        }
     });
 
 });

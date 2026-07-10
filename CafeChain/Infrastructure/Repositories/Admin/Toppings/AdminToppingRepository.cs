@@ -50,6 +50,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Toppings
             name = name.Trim().ToLower();
 
             return await _context.Toppings
+                .AsNoTracking()
                 .AnyAsync(x => x.Name.ToLower() == name);
         }
 
@@ -58,7 +59,24 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Toppings
             name = name.Trim().ToLower();
 
             return await _context.Toppings
+                .AsNoTracking()
                 .AnyAsync(x => x.Name.ToLower() == name && x.ToppingId != excludeId);
+        }
+
+        public async Task<bool> ExistsByToppingCodeAsync(string toppingCode, int? excludeId = null)
+        {
+            toppingCode = toppingCode.Trim().ToLower();
+
+            var query = _context.Toppings
+                .AsNoTracking()
+                .Where(x => x.ToppingCode.ToLower() == toppingCode);
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(x => x.ToppingId != excludeId.Value);
+            }
+
+            return await query.AnyAsync();
         }
 
         public async Task SaveChangesAsync()

@@ -33,13 +33,14 @@ namespace CafeChain.Application.Services.Admin.Sizes
 
         public async Task<(bool Success, string Error)> CreateSizeAsync(SizeDto dto)
         {
+            var sizeCode = NormalizeCode(dto.SizeCode);
             var name = Normalize(dto.Name);
             var description = Normalize(dto.Description);
-            var sizeCode = BuildSizeCode(name);
 
             var validationError = await ValidateSizeAsync(
                 name,
                 sizeCode,
+                description,
                 dto.SizeType);
 
             if (!string.IsNullOrEmpty(validationError))
@@ -73,11 +74,12 @@ namespace CafeChain.Application.Services.Admin.Sizes
 
             var name = Normalize(dto.Name);
             var description = Normalize(dto.Description);
-            var sizeCode = BuildSizeCode(name);
+            var sizeCode = NormalizeCode(dto.SizeCode);
 
             var validationError = await ValidateSizeAsync(
                 name,
                 sizeCode,
+                description,
                 dto.SizeType,
                 dto.SizeId);
 
@@ -103,7 +105,7 @@ namespace CafeChain.Application.Services.Admin.Sizes
 
             if (size == null)
             {
-                return;
+                throw new KeyNotFoundException("Không tìm thấy size.");
             }
 
             size.Active = !size.Active;
@@ -115,12 +117,33 @@ namespace CafeChain.Application.Services.Admin.Sizes
         private async Task<string?> ValidateSizeAsync(
             string name,
             string sizeCode,
+            string description,
             SizeTypeEnum sizeType,
             int? excludeId = null)
         {
             if (string.IsNullOrWhiteSpace(name))
             {
                 return "Tên size không được để trống";
+            }
+
+            if (string.IsNullOrWhiteSpace(sizeCode))
+            {
+                return "Mã size không được để trống";
+            }
+
+            if (sizeCode.Length > 20)
+            {
+                return "Mã size tối đa 20 ký tự";
+            }
+
+            if (name.Length > 50)
+            {
+                return "Tên size tối đa 50 ký tự";
+            }
+
+            if (description.Length > 300)
+            {
+                return "Mô tả tối đa 300 ký tự";
             }
 
             if (!Enum.IsDefined(typeof(SizeTypeEnum), sizeType))
@@ -159,9 +182,9 @@ namespace CafeChain.Application.Services.Admin.Sizes
             };
         }
 
-        private static string BuildSizeCode(string name)
+        private static string NormalizeCode(string? value)
         {
-            return Normalize(name).ToUpperInvariant();
+            return Normalize(value).ToUpperInvariant();
         }
 
         private static string Normalize(string? value)

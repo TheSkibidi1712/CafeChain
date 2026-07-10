@@ -27,6 +27,7 @@ namespace CafeChain.Application.Services.Admin.Toppings
             return data.Select(x => new ToppingDto
             {
                 ToppingId = x.ToppingId,
+                ToppingCode = x.ToppingCode,
                 Name = x.Name,
                 Price = x.Price,
                 ImageUrl = x.ImageUrl,
@@ -43,6 +44,7 @@ namespace CafeChain.Application.Services.Admin.Toppings
             return data.Select(x => new ToppingDto
             {
                 ToppingId = x.ToppingId,
+                ToppingCode = x.ToppingCode,
                 Name = x.Name,
                 Price = x.Price,
                 ImageUrl = x.ImageUrl,
@@ -62,6 +64,7 @@ namespace CafeChain.Application.Services.Admin.Toppings
             return new ToppingDto
             {
                 ToppingId = entity.ToppingId,
+                ToppingCode = entity.ToppingCode,
                 Name = entity.Name,
                 Price = entity.Price,
                 ImageUrl = entity.ImageUrl,
@@ -74,6 +77,9 @@ namespace CafeChain.Application.Services.Admin.Toppings
         public async Task CreateAsync(ToppingDto dto)
         {
             Validate(dto);
+
+            if (await _repo.ExistsByToppingCodeAsync(dto.ToppingCode))
+                throw new Exception("Mã topping đã tồn tại");
 
             if (await _repo.ExistsByNameAsync(dto.Name))
                 throw new Exception("Tên topping đã tồn tại");
@@ -91,7 +97,8 @@ namespace CafeChain.Application.Services.Admin.Toppings
 
             var entity = new Topping
             {
-                Name = dto.Name.Trim(),
+                ToppingCode = dto.ToppingCode,
+                Name = dto.Name,
                 Price = dto.Price,
 
                 ImageUrl = imageUrl,
@@ -117,7 +124,11 @@ namespace CafeChain.Application.Services.Admin.Toppings
             if (await _repo.ExistsByNameAsync(dto.Name, dto.ToppingId))
                 throw new Exception("Tên topping đã tồn tại");
 
-            entity.Name = dto.Name.Trim();
+            if (await _repo.ExistsByToppingCodeAsync(dto.ToppingCode, dto.ToppingId))
+                throw new Exception("Mã topping đã tồn tại");
+
+            entity.ToppingCode = dto.ToppingCode;
+            entity.Name = dto.Name;
             entity.Price = dto.Price;
 
             if (dto.ImageFile != null)
@@ -162,6 +173,14 @@ namespace CafeChain.Application.Services.Admin.Toppings
         {
             if (dto == null)
                 throw new Exception("Dữ liệu không hợp lệ");
+
+            if (string.IsNullOrWhiteSpace(dto.ToppingCode))
+                throw new Exception("Mã topping không được để trống");
+
+            dto.ToppingCode = dto.ToppingCode.Trim().ToUpperInvariant();
+
+            if (dto.ToppingCode.Length > 50)
+                throw new Exception("Mã topping tối đa 50 ký tự");
 
             if (string.IsNullOrWhiteSpace(dto.Name))
                 throw new Exception("Tên topping không được để trống");

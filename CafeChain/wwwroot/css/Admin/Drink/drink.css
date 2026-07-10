@@ -91,6 +91,9 @@
 }
 
 .drink-tab {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
     min-height: 36px;
     border: 1px solid #e5e7eb;
     border-radius: 999px;
@@ -99,12 +102,16 @@
     padding: 8px 16px;
     font-size: 13px;
     font-weight: 800;
+    text-decoration: none;
 }
 
+    .drink-tab:hover,
+    .drink-tab:focus,
     .drink-tab.active {
         border-color: #f97316;
         background: #f97316;
         color: #fff;
+        text-decoration: none;
     }
 
 .drink-list-tools {
@@ -348,7 +355,8 @@
     gap: 6px;
 }
 
-    .drink-pagination button {
+    .drink-pagination a,
+    .drink-pagination span {
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -360,15 +368,26 @@
         color: #64748b;
         font-size: 13px;
         font-weight: 800;
+        text-decoration: none;
     }
 
-    .drink-pagination button.active {
+    .drink-pagination span {
+        border-color: transparent;
+        background: transparent;
+        color: #94a3b8;
+    }
+
+    .drink-pagination a:hover,
+    .drink-pagination a:focus,
+    .drink-pagination a.active {
         border-color: #f97316;
         background: #f97316;
         color: #fff;
+        text-decoration: none;
     }
 
-    .drink-pagination button:disabled {
+    .drink-pagination a.disabled {
+        pointer-events: none;
         opacity: .55;
         cursor: not-allowed;
     }

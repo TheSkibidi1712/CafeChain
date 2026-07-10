@@ -12,14 +12,6 @@
     <ol class="breadcrumb mb-4">
         <li class="breadcrumb-item">
             <a asp-area="Admin"
-               asp-controller="Home"
-               asp-action="Index">
-                Dashboard
-            </a>
-        </li>
-
-        <li class="breadcrumb-item">
-            <a asp-area="Admin"
                asp-controller="AdminDrink"
                asp-action="Index">
                 Danh sách Nước uống
@@ -31,144 +23,151 @@
         </li>
     </ol>
 
-    <div class="card mb-4 shadow-sm border-0">
+    <div class="row g-4">
 
-        <div class="card-header bg-white">
+        <div class="col-lg-8">
 
-            <h5 class="mb-0 text-primary">
-                <i class="fas fa-edit"></i>
-                Thông tin Nước uống
-            </h5>
-
-        </div>
-
-        <div class="card-body">
-
-            <form asp-action="Edit"
+            <form id="drinkEditForm"
+                  asp-action="Edit"
                   method="post">
 
                 <input type="hidden"
                        asp-for="DrinkUpdateDTO.DrinkId" />
 
                 <div asp-validation-summary="ModelOnly"
-                     class="text-danger mb-3">
+                     class="alert alert-danger mb-3"
+                     style="display:none">
                 </div>
 
-                <div class="row">
+                <div class="card shadow-sm border-0 h-100">
 
-                    <div class="col-md-8 mx-auto">
+                    <div class="card-header bg-white border-bottom">
+                        <h5 class="mb-0 text-primary">
+                            <i class="fas fa-edit me-2"></i>
+                            Thông tin Nước uống
+                        </h5>
+                    </div>
 
-                        <div class="mb-3">
+                    <div class="card-body">
 
-                            <label asp-for="DrinkUpdateDTO.Name"
-                                   class="form-label fw-bold">
+                        <div class="row g-3 mb-4">
 
-                                Tên Nước Uống
-                                <span class="text-danger">*</span>
+                            <div class="col-md-5">
 
-                            </label>
+                                <label asp-for="DrinkUpdateDTO.DrinkCode"
+                                       class="form-label fw-semibold">
+                                    Mã Nước Uống
+                                    <span class="text-danger">*</span>
+                                </label>
 
-                            <input asp-for="DrinkUpdateDTO.Name"
-                                   class="form-control"
-                                   placeholder="Nhập tên nước uống..." />
+                                <input asp-for="DrinkUpdateDTO.DrinkCode"
+                                       class="form-control form-control-lg"
+                                       placeholder="VD: CF_Sua" />
 
-                            <span asp-validation-for="DrinkUpdateDTO.Name"
-                                  class="text-danger">
-                            </span>
+                                <span asp-validation-for="DrinkUpdateDTO.DrinkCode"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                            <div class="col-md-7">
+
+                                <label asp-for="DrinkUpdateDTO.Name"
+                                       class="form-label fw-semibold">
+                                    Tên Nước Uống
+                                    <span class="text-danger">*</span>
+                                </label>
+
+                                <input asp-for="DrinkUpdateDTO.Name"
+                                       class="form-control form-control-lg"
+                                       placeholder="Nhập tên nước uống..." />
+
+                                <span asp-validation-for="DrinkUpdateDTO.Name"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
 
                         </div>
 
-                        <div class="row">
+                        <div class="row g-3 mb-4">
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
 
                                 <label asp-for="DrinkUpdateDTO.CategoryId"
-                                       class="form-label fw-bold">
-
+                                       class="form-label fw-semibold">
                                     Danh Mục
                                     <span class="text-danger">*</span>
-
                                 </label>
 
                                 <select asp-for="DrinkUpdateDTO.CategoryId"
                                         class="form-select"
                                         asp-items="Model.Categories">
-
                                     <option value="">
                                         -- Chọn Danh Mục --
                                     </option>
-
                                 </select>
 
                                 <span asp-validation-for="DrinkUpdateDTO.CategoryId"
-                                      class="text-danger">
+                                      class="text-danger small">
                                 </span>
 
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                            <div class="col-md-6">
 
                                 <label asp-for="DrinkUpdateDTO.ProductTypeId"
-                                       class="form-label fw-bold">
-
+                                       class="form-label fw-semibold">
                                     Loại Sản Phẩm
                                     <span class="text-danger">*</span>
-
                                 </label>
 
                                 <select asp-for="DrinkUpdateDTO.ProductTypeId"
                                         class="form-select"
                                         asp-items="Model.ProductTypes">
-
                                     <option value="">
                                         -- Chọn Loại Sản Phẩm --
                                     </option>
-
                                 </select>
 
                                 <span asp-validation-for="DrinkUpdateDTO.ProductTypeId"
-                                      class="text-danger">
+                                      class="text-danger small">
                                 </span>
 
                             </div>
 
                         </div>
 
-                        <div class="mb-3">
+                        <div class="mb-4">
 
                             <label asp-for="DrinkUpdateDTO.Description"
-                                   class="form-label fw-bold">
-
+                                   class="form-label fw-semibold">
                                 Mô tả chi tiết
-
                             </label>
 
                             <textarea asp-for="DrinkUpdateDTO.Description"
                                       class="form-control"
-                                      rows="5"
+                                      rows="6"
                                       placeholder="Mô tả thành phần, hương vị..."></textarea>
 
                             <span asp-validation-for="DrinkUpdateDTO.Description"
-                                  class="text-danger">
+                                  class="text-danger small">
                             </span>
 
                         </div>
 
-                        <div class="mb-3 form-check form-switch bg-light p-3 rounded">
+                        <div class="form-check form-switch bg-light p-3 rounded">
 
                             <input class="form-check-input ms-0 me-2"
                                    type="checkbox"
                                    role="switch"
                                    id="activeStatusSwitch"
-                                   asp-for="DrinkUpdateDTO.Active">
+                                   asp-for="DrinkUpdateDTO.Active" />
 
-                            <label class="form-check-label fw-bold text-success"
+                            <label class="form-check-label fw-semibold text-success"
                                    for="activeStatusSwitch"
                                    id="activeStatusLabel">
-
                                 Trạng thái: Đang bán
-                                (Kéo để Đang bán/Ngừng bán)
-
                             </label>
 
                         </div>
@@ -177,22 +176,18 @@
 
                 </div>
 
-                <div class="d-flex justify-content-center mt-4 border-top pt-3">
+                <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
 
                     <a asp-action="Index"
-                       class="btn btn-secondary me-2">
-
-                        <i class="fas fa-arrow-left"></i>
+                       class="btn btn-outline-secondary px-4">
+                        <i class="fas fa-arrow-left me-1"></i>
                         Quay lại
-
                     </a>
 
                     <button type="submit"
-                            class="btn btn-primary">
-
-                        <i class="fas fa-save"></i>
-                        Cập nhật ngay
-
+                            class="btn btn-primary px-4">
+                        <i class="fas fa-save me-1"></i>
+                        Cập nhật Nước Uống
                     </button>
 
                 </div>
@@ -201,96 +196,73 @@
 
         </div>
 
-    </div>
-</div>
+        <div class="col-lg-4">
 
-<!-- Crop Modal For Update Image -->
+            <div class="card shadow-sm border-0">
 
-<div class="modal fade"
-     id="cropEditImageModal"
-     tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-centered">
+                <div class="card-header bg-white border-bottom">
+                    <h5 class="mb-0 text-primary">
+                        <i class="fas fa-images me-2"></i>
+                        Hình Ảnh Sản Phẩm
+                    </h5>
+                </div>
 
-        <div class="modal-content">
+                <div class="card-body">
 
-            <div class="modal-header">
+                    <input type="hidden"
+                           id="currentDrinkId"
+                           value="@Model.DrinkUpdateDTO.DrinkId" />
 
-                <h5 class="modal-title">
+                    <p class="text-muted small mb-3">
+                        <i class="fas fa-info-circle me-1"></i>
+                        JPG, PNG • Tối đa 5MB • Ảnh sẽ được crop chuẩn vuông trước khi upload
+                    </p>
 
-                    <i class="fas fa-crop-alt me-2"></i>
-                    Cắt ảnh thay thế
+                    <div class="border rounded-3 p-3 mb-4 bg-light">
+                        <label class="form-label fw-semibold">
+                            Thêm ảnh mới
+                        </label>
 
-                </h5>
+                        <input type="file"
+                               class="form-control mb-2"
+                               id="uploadImageInput"
+                               accept=".jpg,.jpeg,.png" />
 
-                <button type="button"
-                        class="btn-close"
-                        data-bs-dismiss="modal">
-                </button>
+                        <div class="d-flex align-items-center justify-content-between gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="uploadDefaultSwitch" />
 
-            </div>
+                                <label class="form-check-label small"
+                                       for="uploadDefaultSwitch">
+                                    Đặt làm mặc định
+                                </label>
+                            </div>
 
-            <div class="modal-body">
-
-                <div class="row">
-
-                    <div class="col-md-8">
-
-                        <div style="max-height:600px;">
-
-                            <img id="cropEditImage"
-                                 style="max-width:100%;" />
-
+                            <button type="button"
+                                    class="btn btn-primary btn-sm"
+                                    id="btnUploadDrinkImage">
+                                <i class="fas fa-upload me-1"></i>
+                                Tải ảnh
+                            </button>
                         </div>
-
                     </div>
 
-                    <div class="col-md-4">
+                    <h6 class="fw-bold mb-3 border-bottom pb-2">
+                        <i class="fas fa-layer-group me-1"></i>
+                        Danh Sách Ảnh Đã Tải Lên
+                    </h6>
 
-                        <h6>Xem trước</h6>
-
-                        <div class="border rounded overflow-hidden"
-                             style="width:250px;height:250px;">
-
-                            <div class="preview-edit"></div>
-
+                    <div class="row g-3"
+                         id="imageListContainer">
+                        <div class="col-12 text-center text-muted">
+                            Đang tải...
                         </div>
-
-                        <div class="alert alert-info mt-3 mb-0">
-
-                            Tỷ lệ chuẩn:
-                            <strong>1 : 1</strong>
-
-                            <br />
-
-                            Kích thước lưu:
-                            <strong>1000 x 1000</strong>
-
-                        </div>
-
                     </div>
 
                 </div>
-
-            </div>
-
-            <div class="modal-footer">
-
-                <button type="button"
-                        class="btn btn-secondary"
-                        data-bs-dismiss="modal">
-
-                    Hủy
-
-                </button>
-
-                <button type="button"
-                        id="btnCropEditImage"
-                        class="btn btn-primary">
-
-                    <i class="fas fa-check"></i>
-                    Xác nhận cắt
-
-                </button>
 
             </div>
 
@@ -300,16 +272,78 @@
 
 </div>
 
+<!-- Modal Edit Image -->
+<div class="modal fade"
+     id="editImageModal"
+     tabindex="-1"
+     aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content drink-modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-warning">
+                    <i class="fas fa-pencil-alt"></i>
+                    Chỉnh sửa ảnh
+                </h5>
+                <button type="button"
+                        class="btn-close"
+                        data-bs-dismiss="modal"
+                        aria-label="Close">
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden"
+                       id="editImageId"
+                       value="" />
+                <div class="mb-3 text-center">
+                    <p class="text-muted small mb-2">Ảnh hiện tại:</p>
+                    <img id="editCurrentPreview"
+                         src=""
+                         alt="Current Image"
+                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px solid #dee2e6;" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">
+                        Chọn ảnh mới
+                        <span class="text-danger">*</span>
+                    </label>
+                    <input type="file"
+                           class="form-control"
+                           id="newImageFileInput"
+                           accept=".jpg,.jpeg,.png" />
+                    <div class="form-text">Chỉ chấp nhận JPG, JPEG, PNG.</div>
+                </div>
+                <div id="newImagePreviewWrapper"
+                     class="text-center mb-2"
+                     style="display:none;">
+                    <p class="text-muted small mb-1">Xem trước ảnh mới:</p>
+                    <img id="newImagePreview"
+                         src=""
+                         alt="New Image Preview"
+                         style="max-height: 150px; max-width: 100%; object-fit: contain; border-radius: 6px; border: 1px dashed #0d6efd;" />
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button"
+                        class="btn btn-secondary btn-sm"
+                        data-bs-dismiss="modal">
+                    Hủy
+                </button>
+                <button type="button"
+                        class="btn btn-warning btn-sm"
+                        id="btnConfirmEditImage">
+                    <i class="fas fa-save"></i>
+                    Lưu ảnh mới
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
 
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
-
-    <link rel="stylesheet"
-          href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css" />
-
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 
     <script src="~/js/Admin/Drink/drink.js"></script>
 }

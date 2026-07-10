@@ -28,6 +28,46 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Drinks
                 .ToListAsync();
         }
 
+        public async Task<(IEnumerable<Drink> Items, int TotalCount)> GetPaginatedDrinksAsync(
+            string? keyword,
+            bool? active,
+            int pageIndex,
+            int pageSize)
+        {
+            IQueryable<Drink> query = _context.Drinks
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.ProductType)
+                .Include(x => x.DrinkImages);
+
+            query = ApplyFilters(query, keyword, active);
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .OrderByDescending(x => x.DrinkId)
+                .Skip((pageIndex - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, totalCount);
+        }
+
+        public async Task<(int TotalCount, int ActiveCount, int InactiveCount)> GetDrinkCountsAsync(string? keyword)
+        {
+            IQueryable<Drink> query = _context.Drinks
+                .AsNoTracking()
+                .Include(x => x.Category)
+                .Include(x => x.ProductType);
+
+            query = ApplyKeywordFilter(query, keyword);
+
+            var totalCount = await query.CountAsync();
+            var activeCount = await query.CountAsync(x => x.Active);
+
+            return (totalCount, activeCount, totalCount - activeCount);
+        }
+
         public async Task<Drink?> GetDrinkByIdAsync(int id)
         {
             return await _context.Drinks
@@ -68,8 +108,29 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Drinks
             string name,
             int? excludeId = null)
         {
+            name = name.Trim();
+
             var query = _context.Drinks
+                .AsNoTracking()
                 .Where(x => x.Name.ToLower() == name.ToLower());
+
+            if (excludeId.HasValue)
+            {
+                query = query.Where(x => x.DrinkId != excludeId.Value);
+            }
+
+            return await query.AnyAsync();
+        }
+
+        public async Task<bool> IsDrinkCodeExistsAsync(
+            string drinkCode,
+            int? excludeId = null)
+        {
+            drinkCode = drinkCode.Trim();
+
+            var query = _context.Drinks
+                .AsNoTracking()
+                .Where(x => x.DrinkCode.ToLower() == drinkCode.ToLower());
 
             if (excludeId.HasValue)
             {
@@ -178,6 +239,39 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Drinks
         public async Task SaveChangesAsync()
         {
             await _context.SaveChangesAsync();
+        }
+
+        private static IQueryable<Drink> ApplyFilters(
+            IQueryable<Drink> query,
+            string? keyword,
+            bool? active)
+        {
+            query = ApplyKeywordFilter(query, keyword);
+
+            if (active.HasValue)
+            {
+                query = query.Where(x => x.Active == active.Value);
+            }
+
+            return query;
+        }
+
+        private static IQueryable<Drink> ApplyKeywordFilter(
+            IQueryable<Drink> query,
+            string? keyword)
+        {
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                return query;
+            }
+
+            keyword = keyword.Trim();
+
+            return query.Where(x =>
+                x.DrinkCode.Contains(keyword) ||
+                x.Name.Contains(keyword) ||
+                (x.Category != null && x.Category.Name.Contains(keyword)) ||
+                (x.ProductType != null && x.ProductType.Name.Contains(keyword)));
         }
     }
 }

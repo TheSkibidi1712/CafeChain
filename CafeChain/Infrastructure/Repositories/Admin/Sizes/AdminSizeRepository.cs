@@ -28,26 +28,38 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Sizes
         public async Task SaveChangesAsync() => await _context.SaveChangesAsync();
         public async Task<bool> ExistsByNameAsync(string name)
         {
+            name = name.Trim().ToLower();
+
             return await _context.Sizes
-                .AnyAsync(x => x.Name == name);
+                .AsNoTracking()
+                .AnyAsync(x => x.Name.ToLower() == name);
         }
 
         public async Task<bool> ExistsByNameAsync(string name, int excludeId)
         {
+            name = name.Trim().ToLower();
+
             return await _context.Sizes
-                .AnyAsync(x => x.Name == name && x.SizeId != excludeId);
+                .AsNoTracking()
+                .AnyAsync(x => x.Name.ToLower() == name && x.SizeId != excludeId);
         }
 
         public async Task<bool> ExistsBySizeCodeAsync(string sizeCode)
         {
+            sizeCode = sizeCode.Trim().ToLower();
+
             return await _context.Sizes
-                .AnyAsync(x => x.SizeCode == sizeCode);
+                .AsNoTracking()
+                .AnyAsync(x => x.SizeCode.ToLower() == sizeCode);
         }
 
         public async Task<bool> ExistsBySizeCodeAsync(string sizeCode, int excludeId)
         {
+            sizeCode = sizeCode.Trim().ToLower();
+
             return await _context.Sizes
-                .AnyAsync(x => x.SizeCode == sizeCode && x.SizeId != excludeId);
+                .AsNoTracking()
+                .AnyAsync(x => x.SizeCode.ToLower() == sizeCode && x.SizeId != excludeId);
         }
 
         // ===== DRINK =====

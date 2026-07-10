@@ -6,6 +6,14 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Drinks
     {
         Task<IEnumerable<Drink>> GetAllDrinksAsync();
 
+        Task<(IEnumerable<Drink> Items, int TotalCount)> GetPaginatedDrinksAsync(
+            string? keyword,
+            bool? active,
+            int pageIndex,
+            int pageSize);
+
+        Task<(int TotalCount, int ActiveCount, int InactiveCount)> GetDrinkCountsAsync(string? keyword);
+
         Task<Drink?> GetDrinkByIdAsync(int id);
 
         Task<int> CreateDrinkAsync(Drink drink);
@@ -15,6 +23,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Drinks
         Task ToggleDrinkStatusAsync(int id);
 
         Task<bool> IsDrinkNameExistsAsync(string name, int? excludeId = null);
+
+        Task<bool> IsDrinkCodeExistsAsync(string drinkCode, int? excludeId = null);
 
         Task<IEnumerable<DrinkCategory>> GetDrinkCategoriesAsync();
 

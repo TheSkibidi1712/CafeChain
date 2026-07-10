@@ -1,13 +1,25 @@
-@model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
+@model CafeChain.ViewModels.Admin.Drinks.AdminDrinkIndexViewModel
 
 @{
     ViewData["Title"] = "Quản lý Nước uống";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 
-    var drinks = Model?.ToList() ?? new List<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>();
-    var totalDrinks = drinks.Count;
-    var activeDrinks = drinks.Count(item => item.Active);
-    var inactiveDrinks = totalDrinks - activeDrinks;
+    var filter = Model.Filter;
+    var drinks = Model.Drinks.Items;
+    var totalFilteredDrinks = Model.Drinks.TotalCount;
+    var totalPages = Math.Max(1, Model.Drinks.TotalPages);
+    var currentPage = Math.Min(Math.Max(1, Model.Drinks.PageIndex), totalPages);
+    var startItem = totalFilteredDrinks == 0
+        ? 0
+        : ((currentPage - 1) * filter.PageSize) + 1;
+    var endItem = totalFilteredDrinks == 0
+        ? 0
+        : Math.Min(startItem + drinks.Count - 1, totalFilteredDrinks);
+    var fromPage = Math.Max(1, currentPage - 2);
+    var toPage = Math.Min(totalPages, currentPage + 2);
+
+    string TabClass(bool? active) =>
+        filter.Active == active ? "drink-tab active" : "drink-tab";
 }
 
 @section Styles {
@@ -17,16 +29,15 @@
 <div class="drink-page">
     <div class="drink-page-header">
         <div>
-            <p class="drink-breadcrumb">Quản lý / danh mục</p>
             <h1>Danh sách Nước uống</h1>
             <p>Quản lý tất cả sản phẩm đồ uống trong hệ thống.</p>
         </div>
 
         <div class="drink-header-actions">
-            <button type="button" class="btn drink-filter-btn">
-                <i class="fas fa-filter"></i>
-                Lọc
-            </button>
+            <a asp-action="Index" class="btn drink-filter-btn">
+                <i class="fas fa-rotate-left"></i>
+                Xóa lọc
+            </a>
 
             <a asp-action="Create" class="btn drink-primary-btn">
                 <i class="fas fa-plus"></i>
@@ -37,35 +48,59 @@
 
     <div class="drink-toolbar">
         <div class="drink-status-tabs" aria-label="Bộ lọc trạng thái đồ uống">
-            <button type="button" class="drink-tab active">
-                Tất cả (@totalDrinks)
-            </button>
-            <button type="button" class="drink-tab">
-                Đang bán (@activeDrinks)
-            </button>
-            <button type="button" class="drink-tab">
-                Ngừng bán (@inactiveDrinks)
-            </button>
-            <button type="button" class="drink-tab">
-                Hết nguyên liệu (0)
-            </button>
+            <a class="@TabClass(null)"
+               asp-action="Index"
+               asp-route-keyword="@filter.Keyword"
+               asp-route-page="1"
+               asp-route-pageSize="@filter.PageSize">
+                Tất cả (@Model.TotalCount)
+            </a>
+
+            <a class="@TabClass(true)"
+               asp-action="Index"
+               asp-route-keyword="@filter.Keyword"
+               asp-route-active="true"
+               asp-route-page="1"
+               asp-route-pageSize="@filter.PageSize">
+                Đang bán (@Model.ActiveCount)
+            </a>
+
+            <a class="@TabClass(false)"
+               asp-action="Index"
+               asp-route-keyword="@filter.Keyword"
+               asp-route-active="false"
+               asp-route-page="1"
+               asp-route-pageSize="@filter.PageSize">
+                Ngừng bán (@Model.InactiveCount)
+            </a>
         </div>
 
-        <div class="drink-list-tools">
+        <form asp-action="Index"
+              method="get"
+              class="drink-list-tools"
+              id="drinkFilterForm">
+            <input type="hidden" name="Active" value="@filter.Active" />
+            <input type="hidden" name="Page" value="1" />
+
             <label class="drink-search-box" aria-label="Tìm đồ uống">
                 <i class="fas fa-search"></i>
-                <input type="search" placeholder="Tìm đồ uống..." />
+                <input type="search"
+                       name="Keyword"
+                       value="@filter.Keyword"
+                       placeholder="Tìm đồ uống..." />
             </label>
 
             <label class="drink-page-size">
                 <span>Hiển thị:</span>
-                <select aria-label="Số dòng hiển thị">
-                    <option selected>10</option>
-                    <option>25</option>
-                    <option>50</option>
+                <select name="PageSize"
+                        aria-label="Số dòng hiển thị"
+                        onchange="this.form.submit()">
+                    <option value="10" selected="@(filter.PageSize == 10)">10</option>
+                    <option value="25" selected="@(filter.PageSize == 25)">25</option>
+                    <option value="50" selected="@(filter.PageSize == 50)">50</option>
                 </select>
             </label>
-        </div>
+        </form>
     </div>
 
     <div class="drink-table-card">
@@ -77,6 +112,7 @@
                             <input type="checkbox" aria-label="Chọn tất cả đồ uống" />
                         </th>
                         <th>Hình ảnh</th>
+                        <th>Mã</th>
                         <th>Tên nước uống</th>
                         <th>Danh mục</th>
                         <th>Loại sản phẩm</th>
@@ -88,8 +124,8 @@
                     @if (!drinks.Any())
                     {
                         <tr>
-                            <td colspan="7" class="drink-empty-state">
-                                Chưa có đồ uống nào.
+                            <td colspan="8" class="drink-empty-state">
+                                Không tìm thấy đồ uống phù hợp.
                             </td>
                         </tr>
                     }
@@ -105,6 +141,12 @@
                                 <div class="drink-image-box">
                                     <img src="@item.ImageUrl" alt="@item.Name" />
                                 </div>
+                            </td>
+
+                            <td>
+                                <span class="drink-badge drink-badge-type">
+                                    @item.DrinkCode
+                                </span>
                             </td>
 
                             <td>
@@ -166,20 +208,73 @@
 
         <div class="drink-table-footer">
             <span>
-                Hiển thị 1-@totalDrinks trong số @totalDrinks
+                Hiển thị @startItem-@endItem trong số @totalFilteredDrinks
             </span>
 
             <div class="drink-pagination" aria-label="Phân trang đồ uống">
-                <button type="button" disabled>
+                <a asp-action="Index"
+                   asp-route-keyword="@filter.Keyword"
+                   asp-route-active="@filter.Active"
+                   asp-route-page="@(currentPage - 1)"
+                   asp-route-pageSize="@filter.PageSize"
+                   class="@(currentPage > 1 ? "" : "disabled")"
+                   aria-disabled="@(currentPage > 1 ? "false" : "true")">
                     <i class="fas fa-chevron-left"></i>
-                </button>
-                <button type="button" class="active">1</button>
-                <button type="button">2</button>
-                <button type="button">3</button>
-                <button type="button">...</button>
-                <button type="button">
+                </a>
+
+                @if (fromPage > 1)
+                {
+                    <a asp-action="Index"
+                       asp-route-keyword="@filter.Keyword"
+                       asp-route-active="@filter.Active"
+                       asp-route-page="1"
+                       asp-route-pageSize="@filter.PageSize">
+                        1
+                    </a>
+
+                    @if (fromPage > 2)
+                    {
+                        <span>...</span>
+                    }
+                }
+
+                @for (var pageNumber = fromPage; pageNumber <= toPage; pageNumber++)
+                {
+                    <a asp-action="Index"
+                       asp-route-keyword="@filter.Keyword"
+                       asp-route-active="@filter.Active"
+                       asp-route-page="@pageNumber"
+                       asp-route-pageSize="@filter.PageSize"
+                       class="@(pageNumber == currentPage ? "active" : "")">
+                        @pageNumber
+                    </a>
+                }
+
+                @if (toPage < totalPages)
+                {
+                    @if (toPage < totalPages - 1)
+                    {
+                        <span>...</span>
+                    }
+
+                    <a asp-action="Index"
+                       asp-route-keyword="@filter.Keyword"
+                       asp-route-active="@filter.Active"
+                       asp-route-page="@totalPages"
+                       asp-route-pageSize="@filter.PageSize">
+                        @totalPages
+                    </a>
+                }
+
+                <a asp-action="Index"
+                   asp-route-keyword="@filter.Keyword"
+                   asp-route-active="@filter.Active"
+                   asp-route-page="@(currentPage + 1)"
+                   asp-route-pageSize="@filter.PageSize"
+                   class="@(currentPage < totalPages ? "" : "disabled")"
+                   aria-disabled="@(currentPage < totalPages ? "false" : "true")">
                     <i class="fas fa-chevron-right"></i>
-                </button>
+                </a>
             </div>
         </div>
     </div>
@@ -195,6 +290,38 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="currentDrinkId" value="" />
+
+                <div class="border rounded-3 p-3 mb-4 bg-light">
+                    <label class="form-label fw-semibold">
+                        Thêm ảnh mới
+                    </label>
+
+                    <input type="file"
+                           class="form-control mb-2"
+                           id="uploadImageInput"
+                           accept=".jpg,.jpeg,.png" />
+
+                    <div class="d-flex align-items-center justify-content-between gap-3">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input"
+                                   type="checkbox"
+                                   role="switch"
+                                   id="uploadDefaultSwitch" />
+
+                            <label class="form-check-label small"
+                                   for="uploadDefaultSwitch">
+                                Đặt làm mặc định
+                            </label>
+                        </div>
+
+                        <button type="button"
+                                class="btn btn-primary btn-sm"
+                                id="btnUploadDrinkImage">
+                            <i class="fas fa-upload me-1"></i>
+                            Tải ảnh
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Image List -->
                 <h6 class="fw-bold mb-3 border-bottom pb-2"><i class="fas fa-layer-group"></i> Danh Sách Ảnh Đã Tải Lên</h6>

@@ -1,7 +1,20 @@
 @model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
 
+@{
+    var drinks = Model?.ToList() ?? new List<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>();
+}
+
 <tbody>
-    @foreach (var item in Model)
+    @if (!drinks.Any())
+    {
+        <tr>
+            <td colspan="8" class="drink-empty-state">
+                Không tìm thấy đồ uống phù hợp.
+            </td>
+        </tr>
+    }
+
+    @foreach (var item in drinks)
     {
         <tr>
             <td class="drink-check-cell">
@@ -12,6 +25,12 @@
                 <div class="drink-image-box">
                     <img src="@item.ImageUrl" alt="@item.Name" />
                 </div>
+            </td>
+
+            <td>
+                <span class="drink-badge drink-badge-type">
+                    @item.DrinkCode
+                </span>
             </td>
 
             <td>

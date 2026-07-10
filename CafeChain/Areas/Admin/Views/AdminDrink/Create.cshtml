@@ -20,7 +20,8 @@
         </li>
     </ol>
 
-    <form asp-action="Create"
+    <form id="drinkCreateForm"
+          asp-action="Create"
           method="post"
           enctype="multipart/form-data">
 
@@ -49,23 +50,47 @@
 
                     <div class="card-body">
 
-                        <div class="mb-4">
+                        <div class="row g-3 mb-4">
 
-                            <label asp-for="DrinkCreateDTO.Name"
-                                   class="form-label fw-semibold">
+                            <div class="col-md-5">
 
-                                Tên Nước Uống
-                                <span class="text-danger">*</span>
+                                <label asp-for="DrinkCreateDTO.DrinkCode"
+                                       class="form-label fw-semibold">
 
-                            </label>
+                                    Mã Nước Uống
+                                    <span class="text-danger">*</span>
 
-                            <input asp-for="DrinkCreateDTO.Name"
-                                   class="form-control form-control-lg"
-                                   placeholder="Nhập tên nước uống..." />
+                                </label>
 
-                            <span asp-validation-for="DrinkCreateDTO.Name"
-                                  class="text-danger small">
-                            </span>
+                                <input asp-for="DrinkCreateDTO.DrinkCode"
+                                       class="form-control form-control-lg"
+                                       placeholder="VD: CF_Sua" />
+
+                                <span asp-validation-for="DrinkCreateDTO.DrinkCode"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
+
+                            <div class="col-md-7">
+
+                                <label asp-for="DrinkCreateDTO.Name"
+                                       class="form-label fw-semibold">
+
+                                    Tên Nước Uống
+                                    <span class="text-danger">*</span>
+
+                                </label>
+
+                                <input asp-for="DrinkCreateDTO.Name"
+                                       class="form-control form-control-lg"
+                                       placeholder="Nhập tên nước uống..." />
+
+                                <span asp-validation-for="DrinkCreateDTO.Name"
+                                      class="text-danger small">
+                                </span>
+
+                            </div>
 
                         </div>
 
@@ -208,6 +233,11 @@
                         <div id="previewContainer"
                              class="row g-2 mt-2">
                         </div>
+
+                        <p class="text-muted small mt-3 mb-0">
+                            <i class="fas fa-star me-1 text-warning"></i>
+                            Chọn một ảnh làm ảnh mặc định. Nếu không chọn, ảnh đầu tiên sẽ được dùng.
+                        </p>
 
                     </div>
 

@@ -1,11 +1,13 @@
 using CafeChain.Application.DTOs.Admin.Drinks;
 using CafeChain.Models.Drinks;
+using CafeChain.ViewModels.Admin.Drinks;
 
 namespace CafeChain.Application.Interfaces.Admin.Drinks
 {
     public interface IAdminDrinkService
     {
         Task<IEnumerable<AdminDrinkDTO>> GetAllDrinksAsync();
+        Task<AdminDrinkIndexViewModel> GetIndexDataAsync(AdminDrinkFilterDTO filter);
         Task<AdminDrinkDTO> GetDrinkByIdAsync(int id);
         Task<int> CreateDrinkAsync(AdminDrinkCreateDTO drinkCreateDTO);
         Task<AdminDrinkUpdateDTO> GetDrinkForUpdateAsync(int id);

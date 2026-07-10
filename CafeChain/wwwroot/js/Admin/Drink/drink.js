@@ -1,26 +1,28 @@
-﻿$(document).ready(function () {
-
-    // ================= CONFIG =================
-
+$(document).ready(function () {
     const MAX_FILE_SIZE = 5 * 1024 * 1024;
-
-    const ALLOWED_EXT = [
-        '.jpg',
-        '.jpeg',
-        '.png'
-    ];
-
+    const ALLOWED_EXT = ['.jpg', '.jpeg', '.png'];
     const CROP_SIZE = 1000;
 
-    let selectedFiles = [];
+    let selectedCreateFiles = [];
+    let editedImageFile = null;
+    let isCreateSubmitting = false;
+    let isEditSubmitting = false;
 
-    window.editedImageFile = null;
+    initCreateForm();
+    initEditForm();
+    initStatusSwitch();
+    initImageManager();
 
-    let isSubmitting = false;
-    // ================= VALIDATE FILE =================
+    function notify(message, type) {
+        if (typeof toast === 'function') {
+            toast(message, type || 'success');
+            return;
+        }
+
+        alert(message);
+    }
 
     function validateFile(file) {
-
         if (!file) {
             return false;
         }
@@ -30,62 +32,34 @@
             .toLowerCase();
 
         if (!ALLOWED_EXT.includes(ext)) {
-
-            toast(
-                "Chỉ chấp nhận JPG, JPEG, PNG",
-                "error"
-            );
-
+            notify('Chỉ chấp nhận JPG, JPEG, PNG', 'error');
             return false;
         }
 
         if (file.size > MAX_FILE_SIZE) {
-
-            toast(
-                "Ảnh vượt quá 5MB",
-                "error"
-            );
-
+            notify('Ảnh vượt quá 5MB', 'error');
             return false;
         }
 
         return true;
     }
 
-    // ================= AUTO CROP 1:1 =================
-
     async function cropImageToSquare(file) {
-
         return new Promise((resolve, reject) => {
-
             const reader = new FileReader();
 
             reader.onload = function (event) {
-
                 const img = new Image();
 
                 img.onload = function () {
-
-                    const canvas =
-                        document.createElement('canvas');
-
+                    const canvas = document.createElement('canvas');
                     canvas.width = CROP_SIZE;
                     canvas.height = CROP_SIZE;
 
-                    const ctx =
-                        canvas.getContext('2d');
-
-                    const minSide =
-                        Math.min(
-                            img.width,
-                            img.height
-                        );
-
-                    const sx =
-                        (img.width - minSide) / 2;
-
-                    const sy =
-                        (img.height - minSide) / 2;
+                    const ctx = canvas.getContext('2d');
+                    const minSide = Math.min(img.width, img.height);
+                    const sx = (img.width - minSide) / 2;
+                    const sy = (img.height - minSide) / 2;
 
                     ctx.drawImage(
                         img,
@@ -101,16 +75,7 @@
 
                     canvas.toBlob(
                         function (blob) {
-
-                            const croppedFile =
-                                new File(
-                                    [blob],
-                                    file.name,
-                                    {
-                                        type: 'image/jpeg'
-                                    });
-
-                            resolve(croppedFile);
+                            resolve(new File([blob], file.name, { type: 'image/jpeg' }));
                         },
                         'image/jpeg',
                         0.9
@@ -118,854 +83,666 @@
                 };
 
                 img.onerror = reject;
-
                 img.src = event.target.result;
             };
 
+            reader.onerror = reject;
             reader.readAsDataURL(file);
         });
     }
 
-    // ================= IMAGE MANAGER =================
-
-    $('.btn-manage-images').click(function () {
-
-        var drinkId =
-            $(this).data('id');
-
-        var drinkName =
-            $(this).data('name');
-
-        $('#currentDrinkId')
-            .val(drinkId);
-
-        $('#modalDrinkName')
-            .text(drinkName);
-
-        loadImages(drinkId);
-
-        var myModal =
-            new bootstrap.Modal(
-                document.getElementById(
-                    'imageModal'
-                )
-            );
-
-        myModal.show();
-    });
-
-    function loadImages(drinkId) {
-
-        $('#imageListContainer').html(
-            '<div class="col-12 text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Đang tải ảnh...</div>'
-        );
-
-        $.get(
-            '/Admin/AdminDrink/GetImages?drinkId=' + drinkId,
-            function (res) {
-
-                if (res.success) {
-
-                    renderImages(res.data);
-                }
-                else {
-
-                    $('#imageListContainer').html(
-                        '<div class="col-12 text-danger text-center">Lỗi tải danh sách ảnh.</div>'
-                    );
-
-                    toast(
-                        "Lỗi tải ảnh",
-                        "error"
-                    );
-                }
-            });
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
     }
 
-    function renderImages(images) {
+    function initCreateForm() {
+        const $form = $('#drinkCreateForm');
 
-        var container =
-            $('#imageListContainer');
-
-        container.empty();
-
-        if (!images || images.length === 0) {
-
-            container.html(
-                '<div class="col-12 text-center text-muted py-3">Chưa có ảnh nào.</div>'
-            );
-
+        if (!$form.length) {
             return;
         }
 
-        images.forEach(function (img) {
+        $('#imageFilesInput').on('change', async function (e) {
+            await handleCreateFiles(e.target.files);
+            this.value = '';
+        });
 
-            var defaultBadge =
-                img.isDefault
-                    ? '<span class="badge bg-success position-absolute top-0 start-0 m-1">Mặc định</span>'
-                    : '';
+        $('#dropZone').on('dragover', function (e) {
+            e.preventDefault();
+            $(this).addClass('border-primary bg-light');
+        });
 
-            var actionBtns =
-                img.isDefault
-                    ? `
-                        <div class="d-flex gap-1">
+        $('#dropZone').on('dragleave drop', function (e) {
+            e.preventDefault();
+            $(this).removeClass('border-primary bg-light');
+        });
 
-                            <button
-                                class="btn btn-sm btn-outline-warning flex-grow-1 btn-edit-img"
-                                data-imgid="${img.drinkImageId}"
-                                data-imgurl="${img.imageUrl}">
+        $('#dropZone').on('drop', async function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('border-primary bg-light');
 
-                                <i class="fas fa-pencil-alt"></i>
-                                Sửa
+            await handleCreateFiles(e.originalEvent.dataTransfer.files);
+        });
 
-                            </button>
+        $(document).on('click', '.btn-remove-img', function () {
+            const removedIndex = Number($(this).data('index'));
+            const currentDefaultIndex = getCreateDefaultIndex();
 
-                            <button
-                                class="btn btn-sm btn-outline-danger btn-delete-img"
-                                data-imgid="${img.drinkImageId}">
+            selectedCreateFiles.splice(removedIndex, 1);
 
-                                <i class="fas fa-trash"></i>
+            if (!selectedCreateFiles.length) {
+                setCreateDefaultIndex(null);
+            }
+            else if (currentDefaultIndex === removedIndex) {
+                setCreateDefaultIndex(0);
+            }
+            else if (currentDefaultIndex > removedIndex) {
+                setCreateDefaultIndex(currentDefaultIndex - 1);
+            }
 
-                            </button>
+            renderCreatePreview();
+        });
 
-                        </div>
-                    `
-                    : `
-                        <div class="d-flex gap-1">
+        $(document).on('change', 'input[name="createDefaultImage"]', function () {
+            setCreateDefaultIndex(Number(this.value));
+        });
 
-                            <button
-                                class="btn btn-sm btn-outline-success flex-grow-1 btn-set-default"
-                                data-imgid="${img.drinkImageId}">
+        $form.on('submit', function (e) {
+            e.preventDefault();
 
-                                <i class="fas fa-check-circle"></i>
-                                Mặc định
+            if (isCreateSubmitting) {
+                return;
+            }
 
-                            </button>
+            if ($form.data('validator') && !$form.valid()) {
+                return;
+            }
 
-                            <button
-                                class="btn btn-sm btn-outline-warning btn-edit-img"
-                                data-imgid="${img.drinkImageId}"
-                                data-imgurl="${img.imageUrl}">
+            const imageInput = document.getElementById('imageFilesInput');
 
-                                <i class="fas fa-pencil-alt"></i>
+            if (imageInput) {
+                const dataTransfer = new DataTransfer();
 
-                            </button>
+                selectedCreateFiles.forEach(file => {
+                    dataTransfer.items.add(file);
+                });
 
-                            <button
-                                class="btn btn-sm btn-outline-danger btn-delete-img"
-                                data-imgid="${img.drinkImageId}">
+                imageInput.files = dataTransfer.files;
+            }
 
-                                <i class="fas fa-trash"></i>
+            isCreateSubmitting = true;
 
-                            </button>
-
-                        </div>
-                    `;
-
-            var html = `
-                <div class="col-md-4 col-sm-6">
-
-                    <div class="card h-100 shadow-sm ${img.isDefault ? 'border-success' : ''}">
-
-                        <div
-                            class="position-relative"
-                            style="height:150px;">
-
-                            ${defaultBadge}
-
-                            <img
-                                src="${img.imageUrl}"
-                                class="w-100 h-100"
-                                style="object-fit:cover;">
-
-                        </div>
-
-                        <div class="card-body p-2 text-center">
-
-                            ${actionBtns}
-
-                        </div>
-
-                    </div>
-
-                </div>
-            `;
-
-            container.append(html);
+            submitAjaxForm($form, {
+                loadingHtml: '<i class="fas fa-spinner fa-spin me-1"></i> Đang tạo...',
+                doneHtml: '<i class="fas fa-save me-1"></i> Tạo Nước Uống',
+                onComplete: function () {
+                    isCreateSubmitting = false;
+                }
+            });
         });
     }
 
-    // ================= SET DEFAULT =================
+    async function handleCreateFiles(files) {
+        for (const file of files) {
+            if (!validateFile(file)) {
+                continue;
+            }
 
-    $(document).on(
-        'click',
-        '.btn-set-default',
-        function () {
+            try {
+                const croppedFile = await cropImageToSquare(file);
+                selectedCreateFiles.push(croppedFile);
+            }
+            catch {
+                notify('Không thể xử lý ảnh', 'error');
+            }
+        }
 
-            var drinkImgId =
-                $(this).data('imgid');
+        if (selectedCreateFiles.length && getCreateDefaultIndex() < 0) {
+            setCreateDefaultIndex(0);
+        }
 
-            var drinkId =
-                $('#currentDrinkId').val();
+        renderCreatePreview();
+    }
+
+    function renderCreatePreview() {
+        const $container = $('#previewContainer');
+
+        if (!$container.length) {
+            return;
+        }
+
+        $container.empty();
+
+        if (!selectedCreateFiles.length) {
+            setCreateDefaultIndex(null);
+            return;
+        }
+
+        let defaultIndex = getCreateDefaultIndex();
+
+        if (defaultIndex < 0 || defaultIndex >= selectedCreateFiles.length) {
+            defaultIndex = 0;
+            setCreateDefaultIndex(defaultIndex);
+        }
+
+        selectedCreateFiles.forEach((file, index) => {
+            const previewUrl = URL.createObjectURL(file);
+            const checked = index === defaultIndex ? 'checked' : '';
+
+            $container.append(`
+                <div class="col-6 col-md-4 position-relative">
+                    <div class="border rounded overflow-hidden bg-white">
+                        <img
+                            src="${previewUrl}"
+                            class="w-100"
+                            style="aspect-ratio:1/1; object-fit:cover;"
+                            alt="Ảnh nước uống ${index + 1}">
+
+                        <div class="d-flex align-items-center justify-content-between gap-2 px-2 py-2">
+                            <label class="form-check-label small d-flex align-items-center gap-1 mb-0">
+                                <input
+                                    type="radio"
+                                    name="createDefaultImage"
+                                    value="${index}"
+                                    class="form-check-input mt-0"
+                                    ${checked}>
+                                Mặc định
+                            </label>
+
+                            <button
+                                type="button"
+                                class="btn btn-sm btn-outline-danger btn-remove-img"
+                                data-index="${index}"
+                                title="Xóa ảnh">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function getCreateDefaultIndex() {
+        const value = $('#defaultImageIndex').val();
+
+        if (value === '') {
+            return -1;
+        }
+
+        const parsed = Number(value);
+        return Number.isInteger(parsed) ? parsed : -1;
+    }
+
+    function setCreateDefaultIndex(index) {
+        $('#defaultImageIndex').val(index === null ? '' : index);
+    }
+
+    function initEditForm() {
+        const $form = $('#drinkEditForm');
+
+        if (!$form.length) {
+            return;
+        }
+
+        $form.on('submit', function (e) {
+            e.preventDefault();
+
+            if (isEditSubmitting) {
+                return;
+            }
+
+            if ($form.data('validator') && !$form.valid()) {
+                return;
+            }
+
+            isEditSubmitting = true;
+
+            submitAjaxForm($form, {
+                loadingHtml: '<i class="fas fa-spinner fa-spin me-1"></i> Đang cập nhật...',
+                doneHtml: '<i class="fas fa-save me-1"></i> Cập nhật Nước Uống',
+                onComplete: function () {
+                    isEditSubmitting = false;
+                }
+            });
+        });
+    }
+
+    function submitAjaxForm($form, options) {
+        const $submitBtn = $form.find('button[type="submit"]');
+
+        $submitBtn
+            .prop('disabled', true)
+            .html(options.loadingHtml);
+
+        $.ajax({
+            url: $form.attr('action'),
+            type: $form.attr('method') || 'POST',
+            data: new FormData($form[0]),
+            processData: false,
+            contentType: false,
+            success: function (res) {
+                if (res.success) {
+                    notify(res.message, 'success');
+
+                    setTimeout(function () {
+                        window.location.href = res.redirectUrl;
+                    }, 700);
+
+                    return;
+                }
+
+                $submitBtn
+                    .prop('disabled', false)
+                    .html(options.doneHtml);
+
+                options.onComplete();
+                notify(res.message || 'Dữ liệu không hợp lệ', 'error');
+            },
+            error: function () {
+                $submitBtn
+                    .prop('disabled', false)
+                    .html(options.doneHtml);
+
+                options.onComplete();
+                notify('Có lỗi xảy ra', 'error');
+            }
+        });
+    }
+
+    function initStatusSwitch() {
+        const $switch = $('#activeStatusSwitch');
+        const $label = $('#activeStatusLabel');
+
+        if (!$switch.length || !$label.length) {
+            return;
+        }
+
+        updateStatusLabel();
+        $switch.on('change', updateStatusLabel);
+
+        function updateStatusLabel() {
+            if ($switch.is(':checked')) {
+                $label
+                    .text('Trạng thái: Đang bán')
+                    .removeClass('text-danger')
+                    .addClass('text-success');
+                return;
+            }
+
+            $label
+                .text('Trạng thái: Ngừng bán')
+                .removeClass('text-success')
+                .addClass('text-danger');
+        }
+    }
+
+    function initImageManager() {
+        $(document).on('click', '.btn-manage-images', function () {
+            const drinkId = $(this).data('id');
+            const drinkName = $(this).data('name');
+
+            $('#currentDrinkId').val(drinkId);
+            $('#modalDrinkName').text(drinkName);
+            resetUploadControls();
+            loadImages(drinkId);
+
+            const modalElement = document.getElementById('imageModal');
+
+            if (modalElement) {
+                new bootstrap.Modal(modalElement).show();
+            }
+        });
+
+        const editPageDrinkId = $('#currentDrinkId').val();
+
+        if ($('#imageListContainer').length && editPageDrinkId) {
+            loadImages(editPageDrinkId);
+        }
+
+        $(document).on('click', '.btn-set-default', function () {
+            const drinkId = $('#currentDrinkId').val();
+            const drinkImageId = $(this).data('imgid');
 
             $.post(
                 '/Admin/AdminDrink/SetDefaultImage',
                 {
                     drinkId: drinkId,
-                    drinkImageId: drinkImgId
+                    drinkImageId: drinkImageId
                 },
                 function (res) {
-
                     if (res.success) {
-
-                        toast(
-                            res.message ??
-                            "Đã cập nhật ảnh mặc định"
-                        );
-
+                        notify(res.message || 'Đã cập nhật ảnh mặc định', 'success');
                         loadImages(drinkId);
-
                         reloadDrinkTable();
+                        return;
                     }
-                    else {
 
-                        toast(
-                            res.message,
-                            "error"
-                        );
-                    }
+                    notify(res.message || 'Cập nhật ảnh mặc định thất bại', 'error');
                 });
         });
 
-    // ================= DELETE IMAGE =================
+        $(document).on('click', '.btn-delete-img', function () {
+            const drinkId = $('#currentDrinkId').val();
+            const drinkImageId = $(this).data('imgid');
 
-    $(document).on(
-        'click',
-        '.btn-delete-img',
-        function () {
-
-            const drinkImgId =
-                $(this).data('imgid');
-
-            const drinkId =
-                $('#currentDrinkId').val();
-
-            if (
-                !confirm(
-                    "Bạn có chắc muốn xóa ảnh này?"
-                )
-            ) {
+            if (!confirm('Bạn có chắc muốn xóa ảnh này?')) {
                 return;
             }
 
             $.post(
                 '/Admin/AdminDrink/DeleteImage',
                 {
-                    drinkImageId: drinkImgId
+                    drinkImageId: drinkImageId
                 },
                 function (res) {
-
                     if (res.success) {
-
-                        toast(
-                            res.message ||
-                            "Đã xóa ảnh thành công",
-                            "success"
-                        );
-
+                        notify(res.message || 'Đã xóa ảnh thành công', 'success');
                         loadImages(drinkId);
-
                         reloadDrinkTable();
+                        return;
                     }
-                    else {
 
-                        toast(
-                            res.message ||
-                            "Xóa ảnh thất bại",
-                            "error"
-                        );
-                    }
+                    notify(res.message || 'Xóa ảnh thất bại', 'error');
                 })
                 .fail(function () {
-
-                    toast(
-                        "Có lỗi hệ thống khi xóa ảnh",
-                        "error"
-                    );
+                    notify('Có lỗi hệ thống khi xóa ảnh', 'error');
                 });
         });
 
-    // ================= EDIT IMAGE =================
+        $(document).on('click', '.btn-edit-img', function () {
+            $('#editImageId').val($(this).data('imgid'));
+            $('#editCurrentPreview').attr('src', $(this).data('imgurl'));
+            $('#newImageFileInput').val('');
+            $('#newImagePreviewWrapper').hide();
+            editedImageFile = null;
 
-    $(document).on(
-        'click',
-        '.btn-edit-img',
-        function () {
+            const modalElement = document.getElementById('editImageModal');
 
-            $('#editImageId')
-                .val(
-                    $(this).data('imgid')
-                );
-
-            $('#editCurrentPreview')
-                .attr(
-                    'src',
-                    $(this).data('imgurl')
-                );
-
-            $('#newImageFileInput')
-                .val('');
-
-            $('#newImagePreviewWrapper')
-                .hide();
-
-            window.editedImageFile = null;
-
-            new bootstrap.Modal(
-                document.getElementById(
-                    'editImageModal'
-                )
-            ).show();
+            if (modalElement) {
+                new bootstrap.Modal(modalElement).show();
+            }
         });
 
-    $('#newImageFileInput')
-        .change(async function () {
-
-            const file =
-                this.files[0];
+        $('#newImageFileInput').on('change', async function () {
+            const file = this.files[0];
 
             if (!validateFile(file)) {
-
-                this.value = "";
-
+                this.value = '';
                 return;
             }
 
             try {
-
-                const croppedFile =
-                    await cropImageToSquare(file);
-
-                window.editedImageFile =
-                    croppedFile;
-
-                const reader =
-                    new FileReader();
-
-                reader.onload =
-                    function (e) {
-
-                        $('#newImagePreview')
-                            .attr(
-                                'src',
-                                e.target.result
-                            );
-
-                        $('#newImagePreviewWrapper')
-                            .show();
-                    };
-
-                reader.readAsDataURL(
-                    croppedFile
-                );
+                editedImageFile = await cropImageToSquare(file);
+                renderSingleImagePreview(editedImageFile, '#newImagePreview', '#newImagePreviewWrapper');
             }
             catch {
-
-                toast(
-                    "Không thể xử lý ảnh",
-                    "error"
-                );
+                editedImageFile = null;
+                this.value = '';
+                notify('Không thể xử lý ảnh', 'error');
             }
         });
-    $('#btnConfirmEditImage').click(function () {
 
-        if (!window.editedImageFile) {
-
-            toast(
-                "Vui lòng chọn ảnh",
-                "error"
-            );
-
-            return;
-        }
-
-        var formData =
-            new FormData();
-
-        formData.append(
-            'drinkImageId',
-            $('#editImageId').val()
-        );
-
-        formData.append(
-            'newImageFile',
-            window.editedImageFile
-        );
-
-        var btn =
-            $(this);
-
-        btn
-            .prop('disabled', true)
-            .html(
-                '<i class="fas fa-spinner fa-spin"></i> Đang lưu...'
-            );
-
-        $.ajax({
-
-            url:
-                '/Admin/AdminDrink/UpdateImage',
-
-            type:
-                'POST',
-
-            data:
-                formData,
-
-            processData:
-                false,
-
-            contentType:
-                false,
-
-            success:
-                function (res) {
-
-                    btn
-                        .prop('disabled', false)
-                        .html(
-                            '<i class="fas fa-save"></i> Lưu ảnh mới'
-                        );
-
-                    if (res.success) {
-
-                        toast(
-                            "Cập nhật thành công",
-                            "success"
-                        );
-
-                        bootstrap
-                            .Modal
-                            .getInstance(
-                                document.getElementById(
-                                    'editImageModal'
-                                )
-                            )
-                            .hide();
-
-                        loadImages(
-                            $('#currentDrinkId').val()
-                        );
-
-                        reloadDrinkTable();
-                    }
-                    else {
-
-                        toast(
-                            res.message,
-                            "error"
-                        );
-                    }
-                },
-
-            error:
-                function () {
-
-                    btn
-                        .prop('disabled', false)
-                        .html(
-                            '<i class="fas fa-save"></i> Lưu ảnh mới'
-                        );
-
-                    toast(
-                        "Có lỗi xảy ra",
-                        "error"
-                    );
-                }
-        });
-    });
-
-    // ================= CREATE - MULTI IMAGE =================
-
-    $('#imageFilesInput').on(
-        'change',
-        async function (e) {
-
-            await handleFiles(
-                e.target.files
-            );
-
-            this.value = "";
-        });
-
-    async function handleFiles(files) {
-
-        for (const file of files) {
-
-            if (!validateFile(file)) {
-                continue;
-            }
-
-            try {
-
-                const croppedFile =
-                    await cropImageToSquare(file);
-
-                selectedFiles.push(
-                    croppedFile
-                );
-            }
-            catch {
-
-                toast(
-                    "Không thể xử lý ảnh",
-                    "error"
-                );
-            }
-        }
-
-        renderPreview();
-    }
-
-    function renderPreview() {
-
-        const container =
-            $('#previewContainer');
-
-        container.empty();
-
-        selectedFiles.forEach(
-            (file, index) => {
-
-                const reader =
-                    new FileReader();
-
-                reader.onload =
-                    function (e) {
-
-                        container.append(`
-                            <div class="col-4 position-relative">
-
-                                <img
-                                    src="${e.target.result}"
-                                    class="w-100 rounded border"
-                                    style="
-                                        aspect-ratio:1/1;
-                                        object-fit:cover;
-                                    ">
-
-                                <button
-                                    class="btn btn-sm btn-danger position-absolute top-0 end-0 btn-remove-img"
-                                    data-index="${index}">
-
-                                    <i class="fas fa-times"></i>
-
-                                </button>
-
-                            </div>
-                        `);
-                    };
-
-                reader.readAsDataURL(
-                    file
-                );
-            });
-    }
-
-    $(document).on(
-        'click',
-        '.btn-remove-img',
-        function () {
-
-            const index =
-                $(this).data('index');
-
-            selectedFiles.splice(
-                index,
-                1
-            );
-
-            renderPreview();
-        });
-
-    // ================= DRAG DROP =================
-
-    $('#dropZone').on(
-        'dragover',
-        function (e) {
-
-            e.preventDefault();
-
-            $(this)
-                .addClass(
-                    'border-primary bg-light'
-                );
-        });
-
-    $('#dropZone').on(
-        'dragleave drop',
-        function (e) {
-
-            e.preventDefault();
-
-            $(this)
-                .removeClass(
-                    'border-primary bg-light'
-                );
-        });
-
-    $('#dropZone').on(
-        'drop',
-        async function (e) {
-
-            e.preventDefault();
-
-            e.stopPropagation();
-
-            $(this)
-                .removeClass(
-                    'border-primary'
-                );
-
-            const files =
-                e.originalEvent
-                    .dataTransfer
-                    .files;
-
-            await handleFiles(
-                files
-            );
-        });
-
-    // ================= FORM SUBMIT =================
-
-    $('form').on(
-        'submit',
-        function (e) {
-
-            e.preventDefault();
-
-            if (isSubmitting) {
+        $('#btnConfirmEditImage').on('click', function () {
+            if (!editedImageFile) {
+                notify('Vui lòng chọn ảnh', 'error');
                 return;
             }
 
-            isSubmitting = true;
+            const drinkId = $('#currentDrinkId').val();
+            const formData = new FormData();
 
-            const submitBtn =
-                $(this).find(
-                    'button[type="submit"]'
-                );
+            formData.append('drinkImageId', $('#editImageId').val());
+            formData.append('newImageFile', editedImageFile);
 
-            submitBtn
+            const $btn = $(this);
+
+            $btn
                 .prop('disabled', true)
-                .html(`
-                <i class="fas fa-spinner fa-spin me-1"></i>
-                Đang tạo...
-            `);
-
-            setTimeout(() => {
-
-                if (isSubmitting) {
-
-                    isSubmitting = false;
-
-                    submitBtn
-                        .prop('disabled', false)
-                        .html(`
-                        <i class="fas fa-save me-1"></i>
-                        Tạo Nước Uống
-                    `);
-                }
-
-            }, 5000);
-
-            const imageInput =
-                document.getElementById(
-                    'imageFilesInput'
-                );
-
-            if (imageInput) {
-
-                const dataTransfer =
-                    new DataTransfer();
-
-                selectedFiles.forEach(
-                    file => {
-
-                        dataTransfer
-                            .items
-                            .add(file);
-                    });
-
-                imageInput.files =
-                    dataTransfer.files;
-            }
-
-            const formData =
-                new FormData(this);
+                .html('<i class="fas fa-spinner fa-spin"></i> Đang lưu...');
 
             $.ajax({
+                url: '/Admin/AdminDrink/UpdateImage',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function (res) {
+                    $btn
+                        .prop('disabled', false)
+                        .html('<i class="fas fa-save"></i> Lưu ảnh mới');
 
-                url:
-                    this.action,
-
-                type:
-                    this.method,
-
-                data:
-                    formData,
-
-                processData:
-                    false,
-
-                contentType:
-                    false,
-
-                success:
-                    function (res) {
-
-                        if (res.success) {
-
-                            toast(
-                                res.message,
-                                "success"
-                            );
-
-                            setTimeout(
-                                () => {
-
-                                    window.location.href =
-                                        res.redirectUrl;
-
-                                },
-                                1000
-                            );
-                        }
-                        else {
-
-                            isSubmitting = false;
-
-                            submitBtn
-                                .prop('disabled', false)
-                                .html(`
-                                <i class="fas fa-save me-1"></i>
-                                Tạo Nước Uống
-                            `);
-
-                            toast(
-                                res.message,
-                                "error"
-                            );
-                        }
-                    },
-
-                error:
-                    function () {
-
-                        isSubmitting = false;
-
-                        submitBtn
-                            .prop('disabled', false)
-                            .html(`
-                            <i class="fas fa-save me-1"></i>
-                            Tạo Nước Uống
-                        `);
-
-                        toast(
-                            "Có lỗi xảy ra",
-                            "error"
-                        );
+                    if (res.success) {
+                        notify(res.message || 'Cập nhật ảnh thành công', 'success');
+                        hideModal('editImageModal');
+                        loadImages(drinkId);
+                        reloadDrinkTable();
+                        return;
                     }
+
+                    notify(res.message || 'Cập nhật ảnh thất bại', 'error');
+                },
+                error: function () {
+                    $btn
+                        .prop('disabled', false)
+                        .html('<i class="fas fa-save"></i> Lưu ảnh mới');
+
+                    notify('Có lỗi xảy ra', 'error');
+                }
             });
         });
 
-    // ================= STATUS =================
+        $('#btnUploadDrinkImage').on('click', async function () {
+            const drinkId = $('#currentDrinkId').val();
+            const input = document.getElementById('uploadImageInput');
+            const file = input?.files[0];
 
-    function updateStatusLabel() {
+            if (!drinkId) {
+                notify('Không tìm thấy nước uống cần thêm ảnh', 'error');
+                return;
+            }
 
-        if (
-            $('#activeStatusSwitch')
-                .is(':checked')
-        ) {
+            if (!validateFile(file)) {
+                return;
+            }
 
-            $('#activeStatusLabel')
-                .text(
-                    'Trạng thái: Đang bán'
-                )
-                .removeClass(
-                    'text-danger'
-                )
-                .addClass(
-                    'text-success'
-                );
-        }
-        else {
+            const $btn = $(this);
 
-            $('#activeStatusLabel')
-                .text(
-                    'Trạng thái: Ngừng bán'
-                )
-                .removeClass(
-                    'text-success'
-                )
-                .addClass(
-                    'text-danger'
-                );
-        }
-    }
+            try {
+                const croppedFile = await cropImageToSquare(file);
+                const formData = new FormData();
 
-    if (
-        $('#activeStatusSwitch')
-            .length
-    ) {
+                formData.append('drinkId', drinkId);
+                formData.append('imageFile', croppedFile);
+                formData.append('isDefault', $('#uploadDefaultSwitch').is(':checked'));
 
-        updateStatusLabel();
+                $btn
+                    .prop('disabled', true)
+                    .html('<i class="fas fa-spinner fa-spin me-1"></i> Đang tải...');
 
-        $('#activeStatusSwitch')
-            .change(
-                function () {
+                $.ajax({
+                    url: '/Admin/AdminDrink/UploadImage',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function (res) {
+                        $btn
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-upload me-1"></i> Tải ảnh');
 
-                    updateStatusLabel();
+                        if (res.success) {
+                            notify(res.message || 'Thêm ảnh thành công', 'success');
+                            resetUploadControls();
+                            loadImages(drinkId);
+                            reloadDrinkTable();
+                            return;
+                        }
+
+                        notify(res.message || 'Thêm ảnh thất bại', 'error');
+                    },
+                    error: function () {
+                        $btn
+                            .prop('disabled', false)
+                            .html('<i class="fas fa-upload me-1"></i> Tải ảnh');
+
+                        notify('Có lỗi xảy ra khi tải ảnh', 'error');
+                    }
                 });
+            }
+            catch {
+                notify('Không thể xử lý ảnh', 'error');
+            }
+        });
     }
 
-    // ================= RELOAD TABLE =================
+    function loadImages(drinkId) {
+        const $container = $('#imageListContainer');
 
-    function reloadDrinkTable() {
-
-        if (
-            !$('#datatablesSimple')
-                .length
-        ) {
+        if (!$container.length || !drinkId) {
             return;
         }
 
+        $container.html(
+            '<div class="col-12 text-center text-muted"><i class="fas fa-spinner fa-spin"></i> Đang tải ảnh...</div>'
+        );
+
         $.get(
-            '/Admin/AdminDrink/IndexPartial',
-            function (html) {
+            '/Admin/AdminDrink/GetImages',
+            { drinkId: drinkId },
+            function (res) {
+                if (res.success) {
+                    renderImages(res.data);
+                    return;
+                }
 
-                const table =
-                    $('#datatablesSimple')
-                        .DataTable();
+                $container.html(
+                    '<div class="col-12 text-danger text-center">Lỗi tải danh sách ảnh.</div>'
+                );
 
-                table.clear();
-
-                const newRows =
-                    $(html)
-                        .find(
-                            'tbody tr'
-                        );
-
-                newRows.each(
-                    function () {
-
-                        table.row.add(
-                            $(this)
-                        );
-                    });
-
-                table.draw();
+                notify('Lỗi tải ảnh', 'error');
             });
     }
 
+    function renderImages(images) {
+        const $container = $('#imageListContainer');
+
+        $container.empty();
+
+        if (!images || images.length === 0) {
+            $container.html(
+                '<div class="col-12 text-center text-muted py-3">Chưa có ảnh nào.</div>'
+            );
+            return;
+        }
+
+        images.forEach(function (img) {
+            const defaultBadge = img.isDefault
+                ? '<span class="badge bg-success position-absolute top-0 start-0 m-1">Mặc định</span>'
+                : '';
+
+            const defaultButton = img.isDefault
+                ? ''
+                : `
+                    <button
+                        type="button"
+                        class="btn btn-sm btn-outline-success flex-grow-1 btn-set-default"
+                        data-imgid="${img.drinkImageId}">
+                        <i class="fas fa-check-circle"></i>
+                        Mặc định
+                    </button>`;
+
+            $container.append(`
+                <div class="col-md-4 col-sm-6">
+                    <div class="card h-100 shadow-sm ${img.isDefault ? 'border-success' : ''}">
+                        <div class="position-relative" style="height:150px;">
+                            ${defaultBadge}
+                            <img
+                                src="${escapeHtml(img.imageUrl)}"
+                                alt="Ảnh nước uống"
+                                class="w-100 h-100"
+                                style="object-fit:cover;">
+                        </div>
+
+                        <div class="card-body p-2 text-center">
+                            <div class="d-flex gap-1">
+                                ${defaultButton}
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-warning ${img.isDefault ? 'flex-grow-1' : ''} btn-edit-img"
+                                    data-imgid="${img.drinkImageId}"
+                                    data-imgurl="${escapeHtml(img.imageUrl)}">
+                                    <i class="fas fa-pencil-alt"></i>
+                                    ${img.isDefault ? 'Sửa' : ''}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-danger btn-delete-img"
+                                    data-imgid="${img.drinkImageId}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+        });
+    }
+
+    function renderSingleImagePreview(file, imageSelector, wrapperSelector) {
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+            $(imageSelector).attr('src', e.target.result);
+            $(wrapperSelector).show();
+        };
+
+        reader.readAsDataURL(file);
+    }
+
+    function resetUploadControls() {
+        $('#uploadImageInput').val('');
+        $('#uploadDefaultSwitch').prop('checked', false);
+    }
+
+    function hideModal(id) {
+        const modalElement = document.getElementById(id);
+
+        if (!modalElement) {
+            return;
+        }
+
+        const modal = bootstrap.Modal.getInstance(modalElement);
+
+        if (modal) {
+            modal.hide();
+        }
+    }
+
+    function reloadDrinkTable() {
+        const $table = $('#datatablesSimple');
+
+        if (!$table.length) {
+            return;
+        }
+
+        $.get('/Admin/AdminDrink/IndexPartial' + window.location.search, function (html) {
+            const $html = $(html);
+            const $tbody = $html.is('tbody')
+                ? $html
+                : $html.find('tbody');
+
+            if ($tbody.length) {
+                $table.find('tbody').replaceWith($tbody);
+            }
+        });
+    }
 });

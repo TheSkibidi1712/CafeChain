@@ -15,6 +15,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Toppings
         Task<bool> ExistsByNameAsync(string name);
         Task<bool> ExistsByNameAsync(string name, int excludeId);
 
+        Task<bool> ExistsByToppingCodeAsync(string toppingCode, int? excludeId = null);
+
         Task SaveChangesAsync();
     }
 }

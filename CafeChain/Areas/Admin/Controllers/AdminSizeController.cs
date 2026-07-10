@@ -13,15 +13,14 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminSizeService _adminsizeService;
         private readonly IAdminDrinkSizeService _drinkSizeService;
 
-        public AdminSizeController(IAdminSizeService adminsizeService, IAdminDrinkSizeService adminDrinkSizeService)
+        public AdminSizeController(
+            IAdminSizeService adminsizeService,
+            IAdminDrinkSizeService adminDrinkSizeService)
         {
             _adminsizeService = adminsizeService;
             _drinkSizeService = adminDrinkSizeService;
         }
 
-        // =============================
-        // List Sizes
-        // =============================
         public async Task<IActionResult> Index()
         {
             var sizes = await _adminsizeService.GetActiveSizesAsync();
@@ -39,64 +38,131 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(vm);
         }
 
-        // =============================
-        // Create Size
-        // =============================
         [HttpPost]
         public async Task<IActionResult> Create([FromBody] AdminSizeVM vm)
         {
-            if (vm == null || string.IsNullOrWhiteSpace(vm.Name))
-                return BadRequest("Dữ liệu không hợp lệ");
-
-            var result = await _adminsizeService.CreateSizeAsync(new SizeDto
+            if (vm == null)
             {
-                Name = vm.Name,
-                Description = vm.Description,
-                SizeType = vm.SizeType
-            });
+                return Json(new
+                {
+                    success = false,
+                    message = "Dữ liệu không hợp lệ"
+                });
+            }
 
-            if (!result.Success)
-                return BadRequest(result.Error);
+            if (!ModelState.IsValid)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = GetModelStateError()
+                });
+            }
 
-            return Ok();
+            try
+            {
+                var result = await _adminsizeService.CreateSizeAsync(new SizeDto
+                {
+                    SizeCode = vm.SizeCode,
+                    Name = vm.Name,
+                    Description = vm.Description,
+                    SizeType = vm.SizeType
+                });
+
+                if (!result.Success)
+                {
+                    return Json(new
+                    {
+                        success = false,
+                        message = result.Error
+                    });
+                }
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Tạo size thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
-        // =============================
-        // Edit Size
-        // =============================
         [HttpPost]
         public async Task<IActionResult> Edit([FromBody] AdminSizeVM vm)
         {
             if (vm == null || vm.SizeId <= 0)
-                return BadRequest("Không tìm thấy size");
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "Không tìm thấy size"
+                });
+            }
+
+            if (!ModelState.IsValid)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = GetModelStateError()
+                });
+            }
 
             var result = await _adminsizeService.UpdateSizeAsync(new SizeDto
             {
                 SizeId = vm.SizeId,
+                SizeCode = vm.SizeCode,
                 Name = vm.Name,
                 Description = vm.Description,
                 SizeType = vm.SizeType
             });
 
             if (!result.Success)
-                return BadRequest(result.Error);
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = result.Error
+                });
+            }
 
-            return Ok();
+            return Json(new
+            {
+                success = true,
+                message = "Cập nhật size thành công"
+            });
         }
 
-        // =============================
-        // Toggle Size Status
-        // =============================
         [HttpPost]
         public async Task<IActionResult> ToggleStatus(int id)
         {
-            await _adminsizeService.ToggleStatusAsync(id);
-            return RedirectToAction(nameof(Index));
+            try
+            {
+                await _adminsizeService.ToggleStatusAsync(id);
+
+                return Json(new
+                {
+                    success = true,
+                    message = "Cập nhật trạng thái thành công"
+                });
+            }
+            catch (Exception ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message
+                });
+            }
         }
 
-        // =============================
-        // List Drinks
-        // =============================
         [HttpGet]
         public async Task<IActionResult> GetDrinks(int sizeId)
         {
@@ -104,9 +170,6 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(data);
         }
 
-        // =============================
-        // Assign Drink to Size
-        // =============================
         [HttpPost]
         public async Task<IActionResult> AssignDrink([FromBody] AssignDrinkSizeVM vm)
         {
@@ -130,9 +193,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-        // =============================
-        // Toggle Drink-Size Assignment
-        // =============================
         [HttpPost]
         public async Task<IActionResult> ToggleDrinkSize(int id)
         {
@@ -147,9 +207,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-        // =============================
-        // Update Drink-Size Price
-        // =============================
         [HttpPost]
         public async Task<IActionResult> UpdatePrice(int drinkSizeId, decimal price)
         {
@@ -164,6 +221,14 @@ namespace CafeChain.Areas.Admin.Controllers
 
             return Ok();
         }
+
+        private string GetModelStateError()
+        {
+            return ModelState.Values
+                .SelectMany(x => x.Errors)
+                .Select(x => x.ErrorMessage)
+                .FirstOrDefault()
+                ?? "Dữ liệu không hợp lệ";
+        }
     }
 }
-

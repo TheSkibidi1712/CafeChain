@@ -6,9 +6,13 @@ namespace CafeChain.ViewModels.Admin.Toppings
     {
         public int ToppingId { get; set; }
 
+        [Required(ErrorMessage = "Mã topping là bắt buộc")]
+        [MaxLength(50, ErrorMessage = "Mã topping tối đa 50 ký tự")]
+        public string ToppingCode { get; set; } = string.Empty;
+
         [Required(ErrorMessage = "Tên topping là bắt buộc")]
         [MaxLength(100)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Giá là bắt buộc")]
         [Range(1, double.MaxValue, ErrorMessage = "Giá phải lớn hơn 0")]

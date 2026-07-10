@@ -1,93 +1,157 @@
-Bạn hãy đóng vai là một Senior Developer có 20 năm kinh nghiệm, chuyên về ASP.NET Core MVC theo mô hình Layered Architecture. Hãy phân tích và refactor lại source code theo đúng nghiệp vụ, đúng kiến trúc MVC, hạn chế làm phình Controller và đảm bảo code dễ bảo trì.
+Bạn hãy đóng vai là một Senior Developer có 20 năm kinh nghiệm, chuyên về ASP.NET Core MVC theo mô hình Layered Architecture. Hãy kiểm tra và refactor kỹ chức năng `AdminSize` và `AdminTopping` theo đúng nghiệp vụ, đúng kiến trúc MVC, đồng thời giữ nguyên style giao diện và cơ chế toast hiện tại.
 
-## Bối cảnh nghiệp vụ
+## Bối cảnh lỗi hiện tại
 
-Hiện tại hệ thống CafeChain đang có các chức năng quản lý Category, Drink, Size và AssignDrink trong khu vực Admin. Tôi muốn bạn refactor và bổ sung nghiệp vụ theo các yêu cầu bên dưới.
+Hiện tại hệ thống đang có 2 lỗi chính:
 
-## Yêu cầu bắt buộc
+### 1. Lỗi AdminSize
 
-### 1. Sửa Index của AdminCategory
+Ở chức năng `Size`, khi tạo mới Size thì dữ liệu vẫn chưa được lưu vào database.
 
-Hiện tại chức năng tạo Category đã có phần icon, nhưng ở màn hình Index của AdminCategory vẫn chưa hiển thị icon lên View.
+Lưu ý:
 
-Hãy kiểm tra và refactor lại đầy đủ các phần liên quan như:
+* Chỉ lỗi phần tạo mới chưa lưu vào database.
+* Toast của Size hiện đang hoạt động bình thường.
+* Các phần giao diện và thông báo của Size không cần thay đổi nếu không cần thiết.
 
-* Model nếu cần.
-* ViewModel hoặc DTO nếu đang thiếu field icon.
-* Service nếu dữ liệu icon chưa được mapping.
-* Repository nếu query chưa lấy icon.
-* View Index nếu chưa render icon.
-* CSS nếu cần hiển thị icon đẹp và đồng bộ giao diện.
-
-Mục tiêu: Khi vào trang Index của AdminCategory, mỗi Category phải hiển thị được icon đã tạo trước đó.
+Cần kiểm tra kỹ luồng tạo mới Size từ View đến database.
 
 ---
 
-### 2. Bổ sung nghiệp vụ AssignDrink trong AdminSize
+### 2. Lỗi AdminTopping
 
-Tôi muốn bạn xử lý lại nghiệp vụ khi gắn Size cho Drink như sau:
+Ở chức năng `Topping`, phần thêm mới và chỉnh sửa hiện đã hoạt động ổn.
 
-Khi AssignDrink ở AdminSize:
+Tuy nhiên, khi bấm toggle trạng thái Topping, hệ thống vẫn bị chuyển sang trang JSON thay vì hiển thị toast thông báo.
 
-* Những Size có đơn vị dạng `ml` hoặc `l` chỉ được phép gắn cho Drink có `ProductType` là `Retail`.
-* Các Drink có `ProductType` là `Handcrafted` chỉ nên được gắn các size kiểu ly như `S`, `M`, `L`, `XL`.
-* Tránh trường hợp các sản phẩm bán sẵn như nước ngọt, Sting, Coca, v.v. bị gắn size kiểu `S`, `M`, `L`, `XL`.
-* Tránh trường hợp các món pha chế bị gắn size kiểu `150ml`, `200ml`, `250ml`, `300ml`.
+Lưu ý:
 
-Bạn có thể cải thiện nghiệp vụ này sao cho hợp lý hơn trong thực tế. Nếu cần, bạn có thể đề xuất cập nhật database để việc kiểm tra và mở rộng sau này dễ hơn.
+* Topping Create hoạt động ổn.
+* Topping Edit hoạt động ổn.
+* Chỉ lỗi phần Toggle.
+* Khi toggle, không được chuyển người dùng sang trang JSON.
+* Toggle phải hiển thị toast thành công hoặc thất bại giống các chức năng khác.
 
 ---
 
-## Dữ liệu Model hiện tại
+## Yêu cầu kiểm tra AdminSize
 
-```csharp
-using CafeChain.Models.Customers;
-using CafeChain.Models.Stores;
+Hãy kiểm tra kỹ các file liên quan đến chức năng tạo mới Size:
+
+* `AdminSizeController`
+* `SizeService`
+* `SizeRepository`
+* DTO hoặc ViewModel liên quan
+* `Create.cshtml`
+* JavaScript liên quan đến form Size
+* Mapping dữ liệu từ ViewModel/DTO sang Model `Size`
+* `SaveChangesAsync`
+* Transaction nếu có
+* Validation phía client và server
+
+Cần xác định chính xác vì sao tạo mới Size không lưu vào database.
+
+Các khả năng cần kiểm tra:
+
+1. Form chưa submit đúng action.
+2. Form thiếu `method="post"`.
+3. Field trong View không bind đúng với DTO/ViewModel.
+4. DTO/ViewModel thiếu `SizeCode`, `Name`, `Description`, `Active`.
+5. Controller nhận model nhưng `ModelState` không hợp lệ.
+6. Service không gọi Repository create.
+7. Repository có add entity nhưng chưa `SaveChangesAsync`.
+8. Service hoặc Controller quên gọi `SaveChangesAsync`.
+9. JavaScript chặn submit nhưng không gửi request.
+10. AJAX gửi sai URL, sai method hoặc sai payload.
+11. Controller trả JSON nhưng JS không xử lý đúng.
+12. Có lỗi validate nhưng không hiển thị ra View/toast.
+13. Có transaction nhưng chưa commit.
+
+Mục tiêu: Khi tạo mới Size, dữ liệu phải được lưu đúng vào database và toast vẫn hoạt động như hiện tại.
+
+---
+
+## Yêu cầu kiểm tra AdminTopping Toggle
+
+Hãy kiểm tra kỹ phần toggle trạng thái trong `AdminTopping`.
+
+Các file cần kiểm tra:
+
+* `AdminToppingController`
+* Action toggle trạng thái Topping
+* JavaScript xử lý nút toggle
+* View Index hoặc Partial chứa nút toggle
+* Toast notification hiện tại
+* Route hoặc URL đang gọi khi toggle
+* Cách response từ Controller được xử lý ở client
+
+Cần xác định chính xác vì sao khi bấm toggle lại bị điều hướng sang trang JSON.
+
+Các khả năng cần kiểm tra:
+
+1. Nút toggle đang là thẻ `<a href="...">` trỏ trực tiếp tới action trả JSON.
+2. Form toggle submit bình thường thay vì gọi AJAX/fetch.
+3. JavaScript chưa `preventDefault()`.
+4. Selector JS không bắt đúng nút toggle.
+5. JS chưa gắn event listener cho toggle button.
+6. Controller luôn trả `Json(...)` nhưng request lại không phải AJAX.
+7. Response JSON không được JS xử lý để hiện toast.
+8. Button thiếu `data-url`, `data-id` hoặc attribute cần thiết.
+9. Route trong View đang sai với route trong Controller.
+10. JS dùng selector cũ không khớp với View mới.
+
+Mục tiêu: Khi bấm toggle Topping:
+
+* Không chuyển sang trang JSON.
+* Gửi request bằng AJAX/fetch nếu Controller trả JSON.
+* JS bắt response JSON và hiển thị toast.
+* Nếu thành công thì cập nhật trạng thái trên UI hoặc reload lại trang hợp lý.
+* Nếu thất bại thì hiển thị toast lỗi.
+* Không phá vỡ chức năng Create/Edit hiện đang hoạt động ổn.
+
+---
+
+## Nguyên tắc refactor bắt buộc
+
+1. Controller chỉ nhận request, gọi Service và trả kết quả phù hợp.
+2. Service xử lý nghiệp vụ, validate và gọi Repository.
+3. Repository chỉ truy vấn, thêm, sửa dữ liệu và cung cấp `SaveChangesAsync` nếu kiến trúc hiện tại đang dùng kiểu đó.
+4. Không đưa nghiệp vụ phức tạp vào Controller.
+5. Không sửa lan man các phần đang hoạt động ổn.
+6. Không làm thay đổi style giao diện hiện tại.
+7. Không tự ý bịa thêm file hoặc class nếu tôi chưa cung cấp.
+8. Nếu thiếu file để kiểm tra chính xác, hãy yêu cầu tôi gửi thêm file cần thiết.
+9. Khi refactor, hãy ghi rõ từng file cần sửa và chỉ sửa đúng phần liên quan.
+
+---
+
+## Kết quả tôi mong muốn
+
+Hãy trả lời theo thứ tự sau:
+
+1. Phân tích nguyên nhân có thể gây lỗi `Size Create` không lưu vào database.
+2. Phân tích nguyên nhân có thể gây lỗi `Topping Toggle` bị trả về trang JSON.
+3. Liệt kê các file cần kiểm tra.
+4. Kiểm tra kỹ Controller và JavaScript của `AdminSize`.
+5. Kiểm tra kỹ Controller và JavaScript của `AdminTopping`.
+6. Đề xuất hướng sửa đúng kiến trúc.
+7. Viết code refactor chi tiết cho từng file.
+8. Với `AdminSize`, đảm bảo tạo mới lưu được vào database.
+9. Với `AdminTopping`, đảm bảo toggle không chuyển sang trang JSON mà hiển thị toast.
+10. Giải thích lại luồng hoạt động sau khi sửa.
+11. Liệt kê các case cần test lại.
+
+## Lưu ý quan trọng
+
+Hiện tại:
+
+* `Size` chỉ bị lỗi tạo mới không lưu vào database. Toast của Size vẫn ổn, không cần sửa nếu không cần thiết.
+* `Topping` thêm mới và chỉnh sửa đã ổn. Chỉ cần tập trung sửa toggle trả JSON thay vì toast.
+* Hãy kiểm tra kỹ Controller và JavaScript, vì khả năng cao lỗi nằm ở cách submit/call action và cách xử lý JSON response.
+
+
+## Lưu ý dưới đây là các model để bạn biết rõ các field
 using CafeChain.Models.Orders;
-
-namespace CafeChain.Models.Drinks
-{
-    public class Drink
-    {
-        public int DrinkId { get; set; }
-        public string DrinkCode { get; set; }
-        public int? CategoryId { get; set; }
-        public string Name { get; set; }
-        public string Description { get; set; }
-        public int ProductTypeId { get; set; }
-        public bool Active { get; set; }
-        public DateTime CreatedAt { get; set; }
-
-        public decimal? CalculatedCogs { get; set; }
-
-        public virtual DrinkCategory Category { get; set; }
-        public virtual ProductType ProductType { get; set; }
-        public virtual ICollection<DrinkImage> DrinkImages { get; set; }
-        public virtual ICollection<DrinkSize> DrinkSizes { get; set; }
-        public virtual ICollection<DrinkTopping> DrinkToppings { get; set; }
-        public virtual ICollection<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
-        public virtual ICollection<StoreDrink> StoreDrinks { get; set; }
-        public virtual ICollection<Recipe> Recipes { get; set; }
-        public virtual ICollection<Rating> Ratings { get; set; }
-        public virtual ICollection<OrderDetail> OrderDetails { get; set; }
-    }
-}
-```
-
-```csharp
-namespace CafeChain.Models.Enums.Drink
-{
-    public enum ProductTypeEnum
-    {
-        Handcrafted = 1, // pha chế
-        Retail = 2       // đóng chai / bán sẵn
-    }
-}
-```
-
-```csharp
-using CafeChain.Models.Orders;
-
 namespace CafeChain.Models.Drinks
 {
     public class Size
@@ -96,64 +160,35 @@ namespace CafeChain.Models.Drinks
         public string SizeCode { get; set; }
         public string Name { get; set; }
         public string Description { get; set; }
+        public CafeChain.Models.Enums.Drink.SizeTypeEnum SizeType { get; set; }
         public bool Active { get; set; }
 
         public virtual ICollection<DrinkSize> DrinkSizes { get; set; }
         public virtual ICollection<OrderDetail> OrderDetails { get; set; }
     }
 }
-```
 
-```csharp
+
+using CafeChain.Models.Orders;
+using CafeChain.Models.Stores;
+
 namespace CafeChain.Models.Drinks
 {
-    public class DrinkSize
+    public class Topping
     {
-        public int DrinkSizeId { get; set; }
-        public int DrinkId { get; set; }
-        public int SizeId { get; set; }
+        public int ToppingId { get; set; }
+        public string ToppingCode { get; set; }
+        public string Name { get; set; }
         public decimal Price { get; set; }
-        public bool Active { get; set; }
+        // Cloudinary
+        public string? ImageUrl { get; set; }
 
-        public virtual Drink Drink { get; set; }
-        public virtual Size Size { get; set; }
+        public string? ImagePublicId { get; set; }
+
+        // Status
+        public bool Active { get; set; } = true;
+        public virtual ICollection<DrinkTopping> DrinkToppings { get; set; }
+        public virtual ICollection<StoreTopping> StoreToppings { get; set; }
+        public virtual ICollection<OrderTopping> OrderToppings { get; set; }
     }
 }
-```
-
-## Seed data Size hiện tại
-
-```csharp
-entity.HasData(
-    new Size { SizeId = 1, Name = "S", SizeCode = "S", Description = "Kích thước nhỏ", Active = true },
-    new Size { SizeId = 2, Name = "M", SizeCode = "M", Description = "Kích thước trung bình", Active = true },
-    new Size { SizeId = 3, Name = "L", SizeCode = "L", Description = "Kích thước lớn", Active = true },
-    new Size { SizeId = 4, Name = "XL", SizeCode = "XL", Description = "Kích thước rất lớn", Active = true },
-    new Size { SizeId = 5, Name = "150ml", SizeCode = "150ML", Description = "Kích thước 150ml", Active = true },
-    new Size { SizeId = 6, Name = "200ml", SizeCode = "200ML", Description = "Kích thước 200ml", Active = true },
-    new Size { SizeId = 7, Name = "250ml", SizeCode = "250ML", Description = "Kích thước 250ml", Active = true },
-    new Size { SizeId = 8, Name = "300ml", SizeCode = "300ML", Description = "Kích thước 300ml", Active = true }
-);
-```
-
-## Yêu cầu về kiến trúc khi refactor
-
-1. Controller chỉ dùng để điều hướng request, gọi Service và trả View hoặc Redirect. Không xử lý nghiệp vụ trực tiếp trong Controller.
-2. Service chịu trách nhiệm xử lý nghiệp vụ AssignDrink, validate ProductType và Size.
-3. Repository chỉ chịu trách nhiệm truy vấn dữ liệu, không chứa nghiệp vụ.
-4. Nếu cần cập nhật Database, hãy đề xuất rõ cần thêm field gì, ví dụ như `SizeType`, `AllowedProductType`, hoặc enum tương ứng.
-5. Nếu chưa đủ file để refactor chính xác, hãy yêu cầu tôi gửi thêm file còn thiếu, không tự ý bịa code hoặc bịa cấu trúc dự án.
-6. Khi đưa code refactor, hãy chia theo từng file rõ ràng.
-7. Nếu có thay đổi database, hãy hướng dẫn cách cập nhật migration và seed data.
-
-## Kết quả tôi mong muốn
-
-Hãy trả lời theo thứ tự:
-
-1. Phân tích vấn đề hiện tại.
-2. Đề xuất hướng refactor đúng kiến trúc.
-3. Đề xuất cập nhật database nếu cần.
-4. Liệt kê các file cần sửa.
-5. Viết code refactor chi tiết cho từng file.
-6. Giải thích luồng hoạt động sau khi refactor.
-7. Nêu các case validate cần test lại.

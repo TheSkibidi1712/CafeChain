@@ -34,6 +34,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var vm = toppings.Select(x => new AdminToppingVM
             {
                 ToppingId = x.ToppingId,
+                ToppingCode = x.ToppingCode,
                 Name = x.Name,
                 Price = x.Price,
                 ImageUrl = x.ImageUrl,
@@ -269,6 +270,7 @@ namespace CafeChain.Areas.Admin.Controllers
             return new ToppingDto
             {
                 ToppingId = vm.ToppingId,
+                ToppingCode = vm.ToppingCode,
                 Name = vm.Name,
                 Price = vm.Price,
                 ImageFile = vm.ImageFile

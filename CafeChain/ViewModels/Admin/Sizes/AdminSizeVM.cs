@@ -6,15 +6,19 @@ namespace CafeChain.ViewModels.Admin.Sizes
     {
         public int SizeId { get; set; }
 
-        public string? SizeCode { get; set; }
-
-        [Required(ErrorMessage = "Mã size (ví dụ: S, M, L) là bắt buộc")]
+        [Required(ErrorMessage = "Mã size là bắt buộc")]
+        [StringLength(20, ErrorMessage = "Mã size tối đa 20 ký tự")]
         [Display(Name = "Mã Size")]
-        public string Name { get; set; } // Tương ứng field Mã Size trong ảnh
+        public string? SizeCode { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Tên kích thước là bắt buộc")]
-        [Display(Name = "Tên kích thước")]
-        public string Description { get; set; } // Tương ứng Tên Size trong ảnh
+        [Required(ErrorMessage = "Tên size là bắt buộc")]
+        [StringLength(50, ErrorMessage = "Tên size tối đa 50 ký tự")]
+        [Display(Name = "Tên Size")]
+        public string Name { get; set; } = string.Empty;
+
+        [StringLength(300, ErrorMessage = "Mô tả tối đa 300 ký tự")]
+        [Display(Name = "Mô tả")]
+        public string Description { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Loại size là bắt buộc")]
         public CafeChain.Models.Enums.Drink.SizeTypeEnum SizeType { get; set; } =

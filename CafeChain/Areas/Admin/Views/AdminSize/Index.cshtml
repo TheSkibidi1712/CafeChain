@@ -50,6 +50,7 @@
         <table class="table table-borderless">
             <thead class="text-muted">
                 <tr>
+                    <th>MÃ SIZE</th>
                     <th>TÊN SIZE</th>
                     <th>MÔ TẢ</th>
                     <th>LOẠI SIZE</th>
@@ -62,6 +63,12 @@
                 @foreach (var item in Model)
                 {
                     <tr class="border-top">
+                        <td>
+                            <span class="size-code-badge">
+                                @item.SizeCode
+                            </span>
+                        </td>
+
                         <td>
                             <div class="d-flex align-items-center">
                                 <div class="size-badge me-3">
@@ -102,6 +109,7 @@
                                     data-bs-target="#editModal"
                                     onclick="openEditModal(
                                 @item.SizeId,
+                                '@Html.Raw(item.SizeCode?.Replace("'", "\\'"))',
                                 '@Html.Raw(item.Name?.Replace("'", "\\'"))',
                                 '@Html.Raw(item.Description?.Replace("'", "\\'"))',
                                 @((int)item.SizeType)
@@ -151,30 +159,33 @@
                 <div class="modal-body">
 
                     <div class="row g-3">
+                        <!-- Mã Size -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Mã Size <span class="text-danger">*</span>
+                            </label>
+                            <input id="create-code"
+                                   name="SizeCode"
+                                   class="form-control bg-light text-center"
+                                   placeholder="M"
+                                   maxlength="20"
+                                   required />
+                        </div>
+
                         <!-- Tên Size -->
-                        <div class="col-4">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 Tên Size <span class="text-danger">*</span>
                             </label>
                             <input id="create-name"
                                    name="Name"
                                    class="form-control bg-light text-center"
-                                   placeholder="M"
-                                   required />
-                        </div>
-                        <!-- Mô Tả Size -->
-                        <div class="col-4">
-                            <label class="form-label fw-semibold">
-                                Mô Tả Size <span class="text-danger">*</span>
-                            </label>
-                            <input id="create-description"
-                                   name="Description"
-                                   class="form-control bg-light"
-                                   placeholder="Ví dụ: Size Vừa"
+                                   placeholder="Size vừa"
+                                   maxlength="50"
                                    required />
                         </div>
 
-                        <div class="col-4">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>
@@ -185,6 +196,18 @@
                                 <option value="1">Ly</option>
                                 <option value="2">Dung tích</option>
                             </select>
+                        </div>
+
+                        <!-- Mô Tả Size -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Mô Tả Size
+                            </label>
+                            <input id="create-description"
+                                   name="Description"
+                                   class="form-control bg-light"
+                                   placeholder="Ví dụ: Size vừa"
+                                   maxlength="300" />
                         </div>
 
                     </div>
@@ -240,29 +263,31 @@
 
                     <div class="row g-3">
 
+                        <!-- Mã -->
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">
+                                Mã Size <span class="text-danger">*</span>
+                            </label>
+                            <input id="edit-code"
+                                   name="SizeCode"
+                                   class="form-control bg-light text-center"
+                                   maxlength="20"
+                                   required />
+                        </div>
+
                         <!-- Tên -->
-                        <div class="col-4">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 Tên Size <span class="text-danger">*</span>
                             </label>
                             <input id="edit-name"
                                    name="Name"
                                    class="form-control bg-light text-center"
+                                   maxlength="50"
                                    required />
                         </div>
 
-                        <!-- Mô tả -->
-                        <div class="col-4">
-                            <label class="form-label fw-semibold">
-                                Mô Tả Size <span class="text-danger">*</span>
-                            </label>
-                            <input id="edit-description"
-                                   name="Description"
-                                   class="form-control bg-light"
-                                   required />
-                        </div>
-
-                        <div class="col-4">
+                        <div class="col-md-4">
                             <label class="form-label fw-semibold">
                                 Loại Size <span class="text-danger">*</span>
                             </label>
@@ -273,6 +298,17 @@
                                 <option value="1">Ly</option>
                                 <option value="2">Dung tích</option>
                             </select>
+                        </div>
+
+                        <!-- Mô tả -->
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">
+                                Mô Tả Size
+                            </label>
+                            <input id="edit-description"
+                                   name="Description"
+                                   class="form-control bg-light"
+                                   maxlength="300" />
                         </div>
 
                     </div>
@@ -355,9 +391,10 @@
     </div>
 </div>
 
-<script src="/js/Admin/DrinkSize/drinksize.js"></script>
 @section Scripts {
     @{
         await Html.RenderPartialAsync("_ValidationScriptsPartial");
     }
+
+    <script src="~/js/Admin/DrinkSize/drinksize.js" asp-append-version="true"></script>
 }

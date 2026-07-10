@@ -5,7 +5,8 @@ using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Infrastrusture.Interfaces.Admin.Drinks;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Cloudinaries;
-using Microsoft.AspNetCore.Hosting;
+using CafeChain.ViewModels.Admin.Drinks;
+using CafeChain.ViewModels.Shared;
 
 namespace CafeChain.Application.Services.Admin.Drinks
 {
@@ -23,18 +24,50 @@ namespace CafeChain.Application.Services.Admin.Drinks
         public async Task<IEnumerable<AdminDrinkDTO>> GetAllDrinksAsync()
         {
             var drinks = await _drinkRepository.GetAllDrinksAsync();
-            return drinks.Select(d => new AdminDrinkDTO
+            return drinks.Select(MapToDto);
+        }
+
+        public async Task<AdminDrinkIndexViewModel> GetIndexDataAsync(AdminDrinkFilterDTO filter)
+        {
+            NormalizeFilter(filter);
+
+            var counts = await _drinkRepository.GetDrinkCountsAsync(filter.Keyword);
+
+            var result = await _drinkRepository.GetPaginatedDrinksAsync(
+                filter.Keyword,
+                filter.Active,
+                filter.Page,
+                filter.PageSize);
+
+            var totalPages = CalculateTotalPages(result.TotalCount, filter.PageSize);
+
+            if (filter.Page > totalPages)
             {
-                DrinkId = d.DrinkId,
-                Name = d.Name,
-                CategoryName = d.Category?.Name ?? "Không có",
-                ProductTypeName = d.ProductType?.Name ?? "Không có",
-                Description = d.Description,
-                Active = d.Active,
-                ImageUrl = d.DrinkImages?.FirstOrDefault(i => i.IsDefault)?.ImageUrl 
-                           ?? d.DrinkImages?.FirstOrDefault()?.ImageUrl
-                           ?? "/Images/NoImage.png"
-            });
+                filter.Page = totalPages;
+
+                result = await _drinkRepository.GetPaginatedDrinksAsync(
+                    filter.Keyword,
+                    filter.Active,
+                    filter.Page,
+                    filter.PageSize);
+            }
+
+            var items = result.Items
+                .Select(MapToDto)
+                .ToList();
+
+            return new AdminDrinkIndexViewModel
+            {
+                Filter = filter,
+                Drinks = new PaginatedListViewModel<AdminDrinkDTO>(
+                    items,
+                    result.TotalCount,
+                    filter.Page,
+                    filter.PageSize),
+                TotalCount = counts.TotalCount,
+                ActiveCount = counts.ActiveCount,
+                InactiveCount = counts.InactiveCount
+            };
         }
 
         public async Task<AdminDrinkDTO> GetDrinkByIdAsync(int id)
@@ -42,33 +75,34 @@ namespace CafeChain.Application.Services.Admin.Drinks
             var drink = await _drinkRepository.GetDrinkByIdAsync(id);
             if (drink == null) return null;
 
-            return new AdminDrinkDTO
-            {
-                DrinkId = drink.DrinkId,
-                Name = drink.Name,
-                CategoryName = drink.Category?.Name ?? "Không có",
-                ProductTypeName = drink.ProductType?.Name ?? "Không có",
-                Description = drink.Description,
-                Active = drink.Active,
-                ImageUrl = drink.DrinkImages?.FirstOrDefault(i => i.IsDefault)?.ImageUrl 
-                           ?? drink.DrinkImages?.FirstOrDefault()?.ImageUrl
-                           ?? "/Images/NoImage.png"
-            };
+            return MapToDto(drink);
         }
 
         public async Task<int> CreateDrinkAsync(AdminDrinkCreateDTO dto)
         {
-            if (await _drinkRepository.IsDrinkNameExistsAsync(dto.Name))
+            var drinkCode = Normalize(dto.DrinkCode);
+            var name = Normalize(dto.Name);
+            var description = Normalize(dto.Description);
+
+            ValidateDrinkCore(drinkCode, name, dto.CategoryId, dto.ProductTypeId);
+
+            if (await _drinkRepository.IsDrinkCodeExistsAsync(drinkCode))
+            {
+                throw new ArgumentException("Mã nước uống đã tồn tại.");
+            }
+
+            if (await _drinkRepository.IsDrinkNameExistsAsync(name))
             {
                 throw new ArgumentException("Tên nước uống đã tồn tại.");
             }
 
             var drink = new Drink
             {
-                Name = dto.Name,
+                DrinkCode = drinkCode,
+                Name = name,
                 CategoryId = dto.CategoryId,
                 ProductTypeId = dto.ProductTypeId,
-                Description = dto.Description,
+                Description = description,
                 Active = true,
                 CreatedAt = DateTime.Now
             };
@@ -79,19 +113,24 @@ namespace CafeChain.Application.Services.Admin.Drinks
 
             int drinkId = drink.DrinkId;
 
-            if (dto.ImageFiles != null && dto.ImageFiles.Any())
-            {
-                for (int i = 0; i < dto.ImageFiles.Count; i++)
-                {
-                    var file = dto.ImageFiles[i];
+            var imageFiles = dto.ImageFiles?
+                .Where(file => file != null && file.Length > 0)
+                .ToList() ?? new List<IFormFile>();
 
-                    if (file == null || file.Length == 0)
-                    {
-                        continue;
-                    }
+            if (imageFiles.Any())
+            {
+                var defaultImageIndex = dto.DefaultImageIndex.HasValue &&
+                                        dto.DefaultImageIndex.Value >= 0 &&
+                                        dto.DefaultImageIndex.Value < imageFiles.Count
+                    ? dto.DefaultImageIndex.Value
+                    : 0;
+
+                for (int i = 0; i < imageFiles.Count; i++)
+                {
+                    var file = imageFiles[i];
 
                     var uploadResult =
-                        await _cloudinaryService.UploadAsync(file,ImageFolder.DrinkImages, ImageCategory.Drink);
+                        await _cloudinaryService.UploadAsync(file, ImageFolder.DrinkImages, ImageCategory.Drink);
 
                     var image = new DrinkImage
                     {
@@ -99,9 +138,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
                         ImageUrl = uploadResult.Url,
                         PublicId = uploadResult.PublicId,
                         CreatedAt = DateTime.Now,
-                        IsDefault = dto.DefaultImageIndex.HasValue
-                            ? dto.DefaultImageIndex.Value == i
-                            : i == 0
+                        IsDefault = i == defaultImageIndex
                     };
 
                     await _drinkRepository.AddDrinkImageAsync(image);
@@ -121,6 +158,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
             return new AdminDrinkUpdateDTO
             {
                 DrinkId = drink.DrinkId,
+                DrinkCode = drink.DrinkCode,
                 Name = drink.Name,
                 CategoryId = drink.CategoryId ?? 0,
                 ProductTypeId = drink.ProductTypeId,
@@ -131,7 +169,18 @@ namespace CafeChain.Application.Services.Admin.Drinks
 
         public async Task UpdateDrinkAsync(AdminDrinkUpdateDTO updateDTO)
         {
-            if (await _drinkRepository.IsDrinkNameExistsAsync(updateDTO.Name, updateDTO.DrinkId))
+            var drinkCode = Normalize(updateDTO.DrinkCode);
+            var name = Normalize(updateDTO.Name);
+            var description = Normalize(updateDTO.Description);
+
+            ValidateDrinkCore(drinkCode, name, updateDTO.CategoryId, updateDTO.ProductTypeId);
+
+            if (await _drinkRepository.IsDrinkCodeExistsAsync(drinkCode, updateDTO.DrinkId))
+            {
+                throw new ArgumentException("Mã nước uống đã tồn tại.");
+            }
+
+            if (await _drinkRepository.IsDrinkNameExistsAsync(name, updateDTO.DrinkId))
             {
                 throw new ArgumentException("Tên nước uống đã tồn tại.");
             }
@@ -139,10 +188,11 @@ namespace CafeChain.Application.Services.Admin.Drinks
             var drink = await _drinkRepository.GetDrinkByIdAsync(updateDTO.DrinkId);
             if (drink == null) throw new KeyNotFoundException("Không tìm thấy nước uống.");
 
-            drink.Name = updateDTO.Name;
+            drink.DrinkCode = drinkCode;
+            drink.Name = name;
             drink.CategoryId = updateDTO.CategoryId == 0 ? null : updateDTO.CategoryId;
             drink.ProductTypeId = updateDTO.ProductTypeId;
-            drink.Description = updateDTO.Description;
+            drink.Description = description;
             drink.Active = updateDTO.Active;
 
             await _drinkRepository.UpdateDrinkAsync(drink);
@@ -187,7 +237,17 @@ namespace CafeChain.Application.Services.Admin.Drinks
                 throw new Exception("File không hợp lệ");
             }
 
+            var drink = await _drinkRepository.GetDrinkByIdAsync(drinkId);
+
+            if (drink == null)
+            {
+                throw new KeyNotFoundException("Không tìm thấy nước uống.");
+            }
+
             var uploadResult = await _cloudinaryService.UploadAsync(imageFile, ImageFolder.DrinkImages, ImageCategory.Drink);
+
+            var hasDefaultImage = await _drinkRepository.HasDefaultImageAsync(drinkId);
+            var shouldSetDefault = isDefault || !hasDefaultImage;
 
             var entity = new DrinkImage
             {
@@ -202,7 +262,7 @@ namespace CafeChain.Application.Services.Admin.Drinks
 
             await _drinkRepository.SaveChangesAsync();
 
-            if (isDefault)
+            if (shouldSetDefault)
             {
                 await _drinkRepository.SetDefaultDrinkImageAsync(
                     drinkId,
@@ -214,6 +274,18 @@ namespace CafeChain.Application.Services.Admin.Drinks
 
         public async Task SetDefaultDrinkImageAsync(int drinkId, int drinkImageId)
         {
+            var image = await _drinkRepository.GetDrinkImageByIdAsync(drinkImageId);
+
+            if (image == null)
+            {
+                throw new KeyNotFoundException("Không tìm thấy ảnh.");
+            }
+
+            if (image.DrinkId != drinkId)
+            {
+                throw new ArgumentException("Ảnh không thuộc nước uống này.");
+            }
+
             await _drinkRepository.SetDefaultDrinkImageAsync(drinkId, drinkImageId);
 
             await _drinkRepository.SaveChangesAsync();
@@ -277,12 +349,8 @@ namespace CafeChain.Application.Services.Admin.Drinks
                 throw new KeyNotFoundException("Không tìm thấy ảnh.");
             }
 
-            if (!string.IsNullOrWhiteSpace(image.PublicId))
-            {
-                await _cloudinaryService.DeleteAsync(image.PublicId);
-            }
-
             var uploadResult = await _cloudinaryService.UploadAsync(newImageFile, ImageFolder.DrinkImages, ImageCategory.Drink);
+            var oldPublicId = image.PublicId;
 
             image.ImageUrl = uploadResult.Url;
             image.PublicId = uploadResult.PublicId;
@@ -290,6 +358,90 @@ namespace CafeChain.Application.Services.Admin.Drinks
             await _drinkRepository.UpdateDrinkImageAsync(image);
 
             await _drinkRepository.SaveChangesAsync();
+
+            if (!string.IsNullOrWhiteSpace(oldPublicId))
+            {
+                await _cloudinaryService.DeleteAsync(oldPublicId);
+            }
+        }
+
+        private static string Normalize(string? value)
+        {
+            return string.IsNullOrWhiteSpace(value)
+                ? string.Empty
+                : value.Trim();
+        }
+
+        private static void NormalizeFilter(AdminDrinkFilterDTO filter)
+        {
+            filter.Keyword = string.IsNullOrWhiteSpace(filter.Keyword)
+                ? null
+                : filter.Keyword.Trim();
+
+            filter.Page = filter.Page <= 0
+                ? 1
+                : filter.Page;
+
+            filter.PageSize = filter.PageSize switch
+            {
+                25 => 25,
+                50 => 50,
+                _ => 10
+            };
+        }
+
+        private static int CalculateTotalPages(int totalCount, int pageSize)
+        {
+            if (totalCount <= 0)
+            {
+                return 1;
+            }
+
+            return (int)Math.Ceiling(totalCount / (double)pageSize);
+        }
+
+        private static AdminDrinkDTO MapToDto(Drink drink)
+        {
+            return new AdminDrinkDTO
+            {
+                DrinkId = drink.DrinkId,
+                DrinkCode = drink.DrinkCode,
+                Name = drink.Name,
+                CategoryName = drink.Category?.Name ?? "Không có",
+                ProductTypeName = drink.ProductType?.Name ?? "Không có",
+                Description = drink.Description,
+                Active = drink.Active,
+                ImageUrl = drink.DrinkImages?.FirstOrDefault(i => i.IsDefault)?.ImageUrl
+                           ?? drink.DrinkImages?.FirstOrDefault()?.ImageUrl
+                           ?? "/Images/NoImage.png"
+            };
+        }
+
+        private static void ValidateDrinkCore(
+            string drinkCode,
+            string name,
+            int categoryId,
+            int productTypeId)
+        {
+            if (string.IsNullOrWhiteSpace(drinkCode))
+            {
+                throw new ArgumentException("Vui lòng nhập mã nước uống.");
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException("Vui lòng nhập tên nước uống.");
+            }
+
+            if (categoryId <= 0)
+            {
+                throw new ArgumentException("Vui lòng chọn danh mục.");
+            }
+
+            if (productTypeId <= 0)
+            {
+                throw new ArgumentException("Vui lòng chọn loại sản phẩm.");
+            }
         }
     }
 }

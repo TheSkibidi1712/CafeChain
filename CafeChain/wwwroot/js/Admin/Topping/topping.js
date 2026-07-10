@@ -36,6 +36,43 @@ function getAntiForgeryToken() {
     )?.value;
 }
 
+async function readJsonResult(response) {
+
+    const contentType =
+        response.headers.get("content-type") || "";
+
+    if (!contentType.toLowerCase().includes("application/json")) {
+
+        return {
+            success: false,
+            message: response.ok
+                ? "Phản hồi từ máy chủ không hợp lệ"
+                : "Có lỗi xảy ra khi xử lý yêu cầu"
+        };
+    }
+
+    const result =
+        await response.json();
+
+    if (!response.ok && result.success !== false) {
+
+        return {
+            success: false,
+            message: result.message || "Có lỗi xảy ra"
+        };
+    }
+
+    return result;
+}
+
+function showToast(message, type = "success") {
+
+    if (typeof toast === "function") {
+
+        toast(message, type);
+    }
+}
+
 function lockButton(btn, text) {
 
     if (!btn) return;
@@ -75,6 +112,31 @@ function validateName(name) {
 
         toast(
             "Tên topping tối đa 100 ký tự",
+            "error"
+        );
+
+        return false;
+    }
+
+    return true;
+}
+
+function validateCode(code) {
+
+    if (!code || !code.trim()) {
+
+        toast(
+            "Mã topping không được để trống",
+            "error"
+        );
+
+        return false;
+    }
+
+    if (code.trim().length > 50) {
+
+        toast(
+            "Mã topping tối đa 50 ký tự",
             "error"
         );
 
@@ -313,9 +375,11 @@ function removeEditImage() {
 // OPEN EDIT MODAL
 // =====================================================
 
-function openEditModal(id, name, price, imageUrl)
+function openEditModal(id, code, name, price, imageUrl)
 {
     document.getElementById("edit-id").value = id;
+
+    document.getElementById("edit-code").value = code || "";
 
     document.getElementById("edit-name").value = name || "";
 
@@ -352,11 +416,33 @@ document.addEventListener(
 
                         openEditModal(
                             btn.dataset.id,
+                            btn.dataset.code,
                             btn.dataset.name,
                             btn.dataset.price,
                             btn.dataset.image
                         );
                     });
+            });
+
+        document.addEventListener(
+            "click",
+            function (e) {
+
+                const btn =
+                    e.target.closest(
+                        ".js-toggle-topping"
+                    );
+
+                if (!btn) {
+                    return;
+                }
+
+                e.preventDefault();
+
+                toggleTopping(
+                    btn.dataset.id,
+                    btn.dataset.url
+                );
             });
 
         // CREATE FORM
@@ -379,6 +465,11 @@ document.addEventListener(
                             '[name="Name"]'
                         ).value;
 
+                    const code =
+                        this.querySelector(
+                            '[name="ToppingCode"]'
+                        ).value;
+
                     const price =
                         this.querySelector(
                             '[name="Price"]'
@@ -392,6 +483,7 @@ document.addEventListener(
                             .files[0];
 
                     if (
+                        !validateCode(code) ||
                         !validateName(name) ||
                         !validatePrice(price) ||
                         !validateImageFile(
@@ -489,6 +581,29 @@ document.addEventListener(
                 async function (e) {
 
                     e.preventDefault();
+
+                    const code =
+                        this.querySelector(
+                            '[name="ToppingCode"]'
+                        ).value;
+
+                    const name =
+                        this.querySelector(
+                            '[name="Name"]'
+                        ).value;
+
+                    const price =
+                        this.querySelector(
+                            '[name="Price"]'
+                        ).value;
+
+                    if (
+                        !validateCode(code) ||
+                        !validateName(name) ||
+                        !validatePrice(price)
+                    ) {
+                        return;
+                    }
 
                     const btn =
                         document.getElementById(
@@ -798,8 +913,9 @@ async function reloadDrinkData() {
 // TOGGLE TOPPING STATUS
 // =====================================================
 
-function toggleTopping(
-    toppingId
+async function toggleTopping(
+    toppingId,
+    url
 ) {
 
     if (
@@ -810,47 +926,64 @@ function toggleTopping(
         return;
     }
 
-    const form =
-        document.createElement(
-            "form"
-        );
-
-    form.method = "POST";
-
-    form.action =
-        `/Admin/AdminTopping/ToggleStatus?id=${toppingId}`;
-
     const token =
-        document.querySelector(
-            'input[name="__RequestVerificationToken"]'
+        getAntiForgeryToken();
+
+    if (!token) {
+
+        showToast(
+            "Không tìm thấy token bảo mật",
+            "error"
         );
 
-    if (token) {
-
-        const hiddenToken =
-            document.createElement(
-                "input"
-            );
-
-        hiddenToken.type =
-            "hidden";
-
-        hiddenToken.name =
-            "__RequestVerificationToken";
-
-        hiddenToken.value =
-            token.value;
-
-        form.appendChild(
-            hiddenToken
-        );
+        return;
     }
 
-    document.body.appendChild(
-        form
-    );
+    try {
 
-    form.submit();
+        const response =
+            await fetch(
+                url ||
+                `/Admin/AdminTopping/ToggleStatus?id=${toppingId}`,
+                {
+                    method: "POST",
+
+                    headers: {
+                        "Accept": "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
+                        RequestVerificationToken: token
+                    }
+                });
+
+        const result =
+            await readJsonResult(response);
+
+        if (!result.success) {
+
+            showToast(
+                result.message || "Cập nhật trạng thái thất bại",
+                "error"
+            );
+
+            return;
+        }
+
+        showToast(
+            result.message || "Cập nhật trạng thái thành công",
+            "success"
+        );
+
+        setTimeout(() => {
+            location.reload();
+        }, 700);
+    }
+    catch {
+
+        showToast(
+            "Có lỗi xảy ra",
+            "error"
+        );
+    }
 }
 
 // =====================================================

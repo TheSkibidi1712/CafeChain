@@ -16,19 +16,19 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> IndexPartial()
+        public async Task<IActionResult> IndexPartial(AdminDrinkFilterDTO filter)
         {
-            var drinks = await _drinkService.GetAllDrinksAsync();
+            var viewModel = await _drinkService.GetIndexDataAsync(filter);
 
-            return PartialView("_DrinkTablePartial", drinks);
+            return PartialView("_DrinkTablePartial", viewModel.Drinks.Items);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(AdminDrinkFilterDTO filter)
         {
-            var drinks = await _drinkService.GetAllDrinksAsync();
+            var viewModel = await _drinkService.GetIndexDataAsync(filter);
 
-            return View(drinks);
+            return View(viewModel);
         }
 
         [HttpGet]
