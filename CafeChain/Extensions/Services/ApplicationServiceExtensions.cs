@@ -129,6 +129,10 @@ namespace CafeChain.Extensions.Services
             // Admin - Ingredients
             services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
+            // Admin - PreparedItem master (BTP stock identity) — Issue #116
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.PreparedItems.IAdminPreparedItemService,
+                CafeChain.Application.Services.Admin.PreparedItems.AdminPreparedItemService>();
+
             // Admin - Recipes
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 

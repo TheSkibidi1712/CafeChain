@@ -7,6 +7,7 @@ using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.StockTake;
 using CafeChain.Models.Inventories.Suppliers;
@@ -117,6 +118,9 @@ namespace CafeChain.Data
         public DbSet<Ingredient> Ingredients { get; set; }
         public DbSet<Unit> Units { get; set; }
         public DbSet<UnitConversion> UnitConversions { get; set; }
+
+        // Prepared items (BTP master — ADR-0006 / #116)
+        public DbSet<PreparedItem> PreparedItems { get; set; }
 
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }

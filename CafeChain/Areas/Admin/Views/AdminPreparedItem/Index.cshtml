@@ -1,0 +1,284 @@
+@model List<CafeChain.Application.DTOs.Admin.PreparedItems.AdminPreparedItemDTO>
+@using CafeChain.Application.Constants
+@{
+    var canWrite = ViewBag.CanWrite as bool? ?? false;
+}
+
+@Html.AntiForgeryToken()
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between mb-3 align-items-center">
+        <div>
+            <h3 class="mb-0">Bán thành phẩm (kho)</h3>
+            <small class="text-muted">Danh mục BTP ổn định — không phải phiên bản công thức (Recipe)</small>
+        </div>
+        @if (canWrite)
+        {
+            <button type="button" class="btn btn-primary" id="btnCreate">+ Thêm BTP</button>
+        }
+    </div>
+
+    <form method="get" class="row mb-3 g-2" id="filterForm">
+        <div class="col-md-4">
+            <input name="search" id="searchBox" class="form-control" placeholder="Tìm mã / tên..."
+                   value="@ViewBag.Search" />
+        </div>
+        <div class="col-md-3">
+            <select name="status" id="statusFilter" class="form-select">
+                <option value="">-- Trạng thái --</option>
+                <option value="true" selected="@(ViewBag.Status?.ToString() == "True")">Hoạt động</option>
+                <option value="false" selected="@(ViewBag.Status?.ToString() == "False")">Ngưng</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-dark w-100">Lọc</button>
+        </div>
+    </form>
+
+    <table class="table table-bordered table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Mã BTP</th>
+                <th>Tên bán thành phẩm</th>
+                <th>Đơn vị tồn kho</th>
+                <th>Mô tả</th>
+                <th>Trạng thái</th>
+                @if (canWrite)
+                {
+                    <th width="120"></th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+        @if (Model == null || !Model.Any())
+        {
+            <tr>
+                <td colspan="@(canWrite ? 6 : 5)" class="text-center text-muted">Chưa có bán thành phẩm</td>
+            </tr>
+        }
+        else
+        {
+            foreach (var item in Model)
+            {
+                <tr data-id="@item.PreparedItemId">
+                    <td><code>@item.Code</code></td>
+                    <td>@item.Name</td>
+                    <td>@item.BaseUnitCode <small class="text-muted">(@item.BaseUnitName)</small></td>
+                    <td class="text-muted">@(string.IsNullOrWhiteSpace(item.Description) ? "—" : item.Description)</td>
+                    <td>
+                        <span class="badge @(item.Active ? "bg-success" : "bg-secondary")">
+                            @(item.Active ? "Hoạt động" : "Ngưng")
+                        </span>
+                    </td>
+                    @if (canWrite)
+                    {
+                        <td class="text-center">
+                            <button type="button" class="btn btn-sm btn-outline-primary edit-btn" data-id="@item.PreparedItemId">Sửa</button>
+                            <button type="button" class="btn btn-sm btn-outline-warning toggle-btn"
+                                    data-id="@item.PreparedItemId"
+                                    data-active="@(!item.Active)">
+                                @(item.Active ? "Ngưng" : "Bật")
+                            </button>
+                        </td>
+                    }
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+
+    @{
+        int page = ViewBag.Page ?? 1;
+        int totalPages = ViewBag.TotalPages ?? 1;
+    }
+    @if (totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link"
+                           asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-search="@ViewBag.Search"
+                           asp-route-status="@ViewBag.Status">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+</div>
+
+@if (canWrite)
+{
+    <div class="modal fade" id="preparedItemModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="preparedItemModalTitle">Thêm bán thành phẩm</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="pi-id" />
+                    <div class="mb-2">
+                        <label class="form-label">Mã BTP <span class="text-danger">*</span></label>
+                        <input id="pi-code" class="form-control" maxlength="50" placeholder="VD: BTP-COLDBREW" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Tên bán thành phẩm <span class="text-danger">*</span></label>
+                        <input id="pi-name" class="form-control" maxlength="200" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Đơn vị tồn kho chuẩn <span class="text-danger">*</span></label>
+                        <select id="pi-unit" class="form-select"></select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Mô tả</label>
+                        <textarea id="pi-desc" class="form-control" maxlength="500" rows="2"></textarea>
+                    </div>
+                    <div class="form-check mb-2" id="pi-active-wrap" style="display:none">
+                        <input class="form-check-input" type="checkbox" id="pi-active" />
+                        <label class="form-check-label" for="pi-active">Hoạt động</label>
+                    </div>
+                    <div id="pi-error" class="text-danger small"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-primary" id="btnSavePreparedItem">Lưu</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+<script>
+(function () {
+    const canWrite = @(canWrite ? "true" : "false");
+    if (!canWrite) return;
+
+    const base = '/Admin/AdminPreparedItem';
+    let unitsLoaded = false;
+    let modal;
+
+    function token() {
+        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    }
+
+    function ajaxHeaders() {
+        return { 'RequestVerificationToken': token(), 'Content-Type': 'application/json' };
+    }
+
+    function ensureUnits(done) {
+        if (unitsLoaded) { done(); return; }
+        fetch(base + '/GetUnits')
+            .then(r => r.json())
+            .then(res => {
+                const sel = document.getElementById('pi-unit');
+                sel.innerHTML = '<option value="">-- Chọn đơn vị --</option>';
+                (res.data || []).forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u.unitId;
+                    opt.textContent = (u.unitCode || '') + ' — ' + (u.name || '');
+                    sel.appendChild(opt);
+                });
+                unitsLoaded = true;
+                done();
+            });
+    }
+
+    function resetForm() {
+        document.getElementById('pi-id').value = '';
+        document.getElementById('pi-code').value = '';
+        document.getElementById('pi-name').value = '';
+        document.getElementById('pi-unit').value = '';
+        document.getElementById('pi-desc').value = '';
+        document.getElementById('pi-active').checked = true;
+        document.getElementById('pi-active-wrap').style.display = 'none';
+        document.getElementById('pi-error').textContent = '';
+        document.getElementById('preparedItemModalTitle').textContent = 'Thêm bán thành phẩm';
+    }
+
+    document.getElementById('btnCreate')?.addEventListener('click', function () {
+        ensureUnits(function () {
+            resetForm();
+            modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('preparedItemModal'));
+            modal.show();
+        });
+    });
+
+    document.querySelectorAll('.edit-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const id = this.getAttribute('data-id');
+            ensureUnits(function () {
+                fetch(base + '/GetById?id=' + id)
+                    .then(r => r.json())
+                    .then(res => {
+                        if (!res.success) { alert(res.message); return; }
+                        const d = res.data;
+                        document.getElementById('pi-id').value = d.preparedItemId;
+                        document.getElementById('pi-code').value = d.code || '';
+                        document.getElementById('pi-name').value = d.name || '';
+                        document.getElementById('pi-unit').value = d.baseUnitId;
+                        document.getElementById('pi-desc').value = d.description || '';
+                        document.getElementById('pi-active').checked = !!d.active;
+                        document.getElementById('pi-active-wrap').style.display = '';
+                        document.getElementById('pi-error').textContent = '';
+                        document.getElementById('preparedItemModalTitle').textContent = 'Sửa bán thành phẩm';
+                        modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('preparedItemModal'));
+                        modal.show();
+                    });
+            });
+        });
+    });
+
+    document.getElementById('btnSavePreparedItem')?.addEventListener('click', function () {
+        const idVal = document.getElementById('pi-id').value;
+        const dto = {
+            preparedItemId: idVal ? parseInt(idVal, 10) : null,
+            code: document.getElementById('pi-code').value,
+            name: document.getElementById('pi-name').value,
+            baseUnitId: parseInt(document.getElementById('pi-unit').value, 10) || 0,
+            description: document.getElementById('pi-desc').value,
+            active: document.getElementById('pi-active').checked
+        };
+        const url = idVal ? (base + '/Update') : (base + '/Create');
+        fetch(url, {
+            method: 'POST',
+            headers: ajaxHeaders(),
+            body: JSON.stringify(dto)
+        })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                location.reload();
+            } else {
+                document.getElementById('pi-error').textContent = res.message || 'Lỗi lưu';
+            }
+        })
+        .catch(() => {
+            document.getElementById('pi-error').textContent = 'Lỗi kết nối hoặc antiforgery.';
+        });
+    });
+
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const id = parseInt(this.getAttribute('data-id'), 10);
+            const active = this.getAttribute('data-active') === 'True' || this.getAttribute('data-active') === 'true';
+            if (!confirm(active ? 'Kích hoạt bán thành phẩm này?' : 'Ngưng bán thành phẩm này?')) return;
+            fetch(base + '/SetActive', {
+                method: 'POST',
+                headers: ajaxHeaders(),
+                body: JSON.stringify({ preparedItemId: id, active: active })
+            })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) location.reload();
+                else alert(res.message || 'Lỗi');
+            });
+        });
+    });
+})();
+</script>
+}
