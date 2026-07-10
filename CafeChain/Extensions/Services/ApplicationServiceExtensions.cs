@@ -181,6 +181,10 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockAlertService, StockAlertService>();
             services.AddScoped<IStockShortageReportService, StockShortageReportService>();
 
+            // Staff notifications read/mark (Issue #101)
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,
+                CafeChain.Application.Services.Operations.StaffNotificationQueryService>();
+
             // Permissions
             services.AddScoped<IAdminPermissionService, AdminPermissionService>();
 
