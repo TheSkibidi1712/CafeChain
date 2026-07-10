@@ -5,6 +5,8 @@
     if (!root) return;
 
     const baseUrl = (root.dataset.baseUrl || "/Admin/AdminPermission").replace(/\/$/, "");
+    const loginUrl = root.dataset.loginUrl || "/Account/Login";
+    const accessDeniedUrl = root.dataset.accessDeniedUrl || "/Account/AccessDenied";
 
     const state = {
         activeTab: "roles",
@@ -91,6 +93,47 @@
             .replace(/'/g, "&#039;");
     }
 
+    function createRequestError(status, message, payload) {
+        const error = new Error(message || "Không thể xử lý yêu cầu.");
+        error.status = status;
+        error.payload = payload;
+        return error;
+    }
+
+    function isRedirectUrl(responseUrl, targetUrl) {
+        if (!responseUrl || !targetUrl) return false;
+
+        const responsePath = new URL(responseUrl, window.location.origin).pathname.toLowerCase();
+        const targetPath = new URL(targetUrl, window.location.origin).pathname.toLowerCase();
+
+        return responsePath === targetPath;
+    }
+
+    function buildLoginReturnUrl() {
+        const url = new URL(loginUrl, window.location.origin);
+        url.searchParams.set(
+            "returnUrl",
+            `${window.location.pathname}${window.location.search}${window.location.hash}`);
+
+        return `${url.pathname}${url.search}${url.hash}`;
+    }
+
+    function setButtonBusy(button, isBusy, loadingText) {
+        if (!button) return;
+
+        if (!button.dataset.originalHtml) {
+            button.dataset.originalHtml = button.innerHTML;
+        }
+
+        button.disabled = isBusy;
+        button.classList.toggle("is-loading", isBusy);
+        button.setAttribute("aria-busy", isBusy ? "true" : "false");
+
+        button.innerHTML = isBusy
+            ? `<i class="fas fa-spinner fa-spin"></i>${escapeHtml(loadingText || "Đang lưu...")}`
+            : button.dataset.originalHtml;
+    }
+
     function debounce(fn, delay) {
         let timer;
         return function (...args) {
@@ -100,17 +143,36 @@
     }
 
     async function fetchJson(url, options) {
+        const headers = {
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest",
+            ...(options && options.body ? { "Content-Type": "application/json" } : {}),
+            ...(options && options.headers ? options.headers : {})
+        };
+
         const response = await fetch(url, {
-            headers: {
-                "Accept": "application/json",
-                ...(options && options.body ? { "Content-Type": "application/json" } : {})
-            },
-            ...options
+            ...options,
+            headers
         });
+
+        if (response.redirected && isRedirectUrl(response.url, loginUrl)) {
+            throw createRequestError(
+                401,
+                "Bạn cần đăng nhập để truy cập chức năng này.");
+        }
+
+        if (response.redirected && isRedirectUrl(response.url, accessDeniedUrl)) {
+            throw createRequestError(
+                403,
+                "Bạn không có quyền truy cập chức năng này.");
+        }
 
         const payload = await response.json().catch(() => null);
         if (!response.ok || (payload && payload.success === false)) {
-            throw new Error((payload && payload.message) || "Không thể xử lý yêu cầu.");
+            throw createRequestError(
+                response.status,
+                (payload && payload.message) || "Không thể xử lý yêu cầu.",
+                payload);
         }
 
         return payload ? get(payload, "data", payload) : null;
@@ -123,6 +185,45 @@
     }
 
     function notifyError(error) {
+        if (error.status === 401) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: "warning",
+                    title: "Bạn cần đăng nhập",
+                    text: error.message || "Vui lòng đăng nhập để tiếp tục.",
+                    confirmButtonText: "Đăng nhập",
+                    showCancelButton: true,
+                    cancelButtonText: "Đóng",
+                    confirmButtonColor: "#f97316"
+                }).then(result => {
+                    if (result.isConfirmed) {
+                        window.location.href = buildLoginReturnUrl();
+                    }
+                });
+                return;
+            }
+
+            window.location.href = buildLoginReturnUrl();
+            return;
+        }
+
+        if (error.status === 403) {
+            if (window.Swal) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Bạn không có quyền truy cập",
+                    text: error.message ||
+                        "Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền.",
+                    confirmButtonText: "Đóng",
+                    confirmButtonColor: "#f97316"
+                });
+                return;
+            }
+
+            alert(error.message || "Bạn không có quyền truy cập chức năng này.");
+            return;
+        }
+
         if (window.Swal) {
             Swal.fire({ icon: "error", title: "Không thành công", text: error.message || String(error) });
             return;
@@ -308,7 +409,9 @@
         const permissionIds = [...document.querySelectorAll(".role-permission-check:checked")]
             .map(input => Number(input.value))
             .filter(Boolean);
+        const button = el.saveRolePermissions;
 
+        setButtonBusy(button, true, "Đang lưu...");
         try {
             await fetchJson(endpoint(`SaveRolePermissions?roleId=${state.selectedRoleId}`),
             {
@@ -320,6 +423,8 @@
             loadRoles();
         } catch (error) {
             notifyError(error);
+        } finally {
+            setButtonBusy(button, false);
         }
     }
 
@@ -348,7 +453,9 @@
         const roleIds = [...document.querySelectorAll(".staff-role-check:checked")]
             .map(input => Number(input.value))
             .filter(Boolean);
+        const button = el.saveStaffRoles;
 
+        setButtonBusy(button, true, "Đang lưu...");
         try {
             await fetchJson(endpoint(`SaveStaffRoles?staffId=${state.selectedStaffRoleId}`), {
                 method: "POST",
@@ -359,6 +466,8 @@
             loadStaff("assign");
         } catch (error) {
             notifyError(error);
+        } finally {
+            setButtonBusy(button, false);
         }
     }
 
@@ -435,16 +544,20 @@
                 effect: value === "Inherit" ? null : value
             };
         });
+        const button = el.saveOverrideBtn;
 
+        setButtonBusy(button, true, "Đang lưu...");
         try {
             await fetchJson(endpoint(`SaveStaffOverrides?staffId=${state.selectedOverrideStaffId}`), {
                 method: "POST",
                 body: JSON.stringify({ overrides })
             });
             notifySuccess("Đã lưu override");
-            selectOverrideStaff(state.selectedOverrideStaffId);
+            await selectOverrideStaff(state.selectedOverrideStaffId);
         } catch (error) {
             notifyError(error);
+        } finally {
+            setButtonBusy(button, false);
         }
     }
 
@@ -583,16 +696,20 @@
             scopeTypeId: scope.scopeTypeId,
             scopeRefId: scope.scopeRefId
         }));
+        const button = el.saveScopeBtn;
 
+        setButtonBusy(button, true, "Đang lưu...");
         try {
             await fetchJson(endpoint(`SaveStaffScopes?staffId=${state.selectedScopeStaffId}`), {
                 method: "POST",
                 body: JSON.stringify({ scopes })
             });
             notifySuccess("Đã lưu store scope");
-            selectScopeStaff(state.selectedScopeStaffId);
+            await selectScopeStaff(state.selectedScopeStaffId);
         } catch (error) {
             notifyError(error);
+        } finally {
+            setButtonBusy(button, false);
         }
     }
 

@@ -1,24 +1,58 @@
 @{
-    ViewData["Title"] = "Từ chối truy cập";
+    var isAuthenticated = ViewBag.IsAuthenticated as bool? == true;
+
+    ViewData["Title"] = isAuthenticated
+        ? "Không có quyền truy cập"
+        : "Cần đăng nhập";
+
+    var heading = isAuthenticated
+        ? "Bạn không có quyền truy cập chức năng này!"
+        : "Bạn cần đăng nhập để truy cập chức năng này!";
+
+    var message = isAuthenticated
+        ? "Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền."
+        : "Vui lòng đăng nhập để tiếp tục.";
 }
 
-<div class="container py-5 text-center" style="min-height: 80vh; display: flex; align-items: center; justify-content: center;">
+<div class="container py-5 text-center access-denied-page">
     <div class="row justify-content-center w-100">
         <div class="col-md-6">
             <div class="card border-0 shadow-lg rounded-4 p-5">
                 <div class="mb-4">
-                    <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle" style="width: 100px; height: 100px;">
-                        <i class="fas fa-shield-lock text-danger fa-3x"></i>
+                    <div class="d-inline-flex align-items-center justify-content-center bg-danger bg-opacity-10 rounded-circle access-denied-icon">
+                        <i class="fas fa-shield-halved text-danger fa-3x"></i>
                     </div>
                 </div>
-                <h2 class="fw-bold mb-3" style="color: #212529;">Bạn không có quyền truy cập!</h2>
+
+                <h2 class="fw-bold mb-3 text-dark">
+                    @heading
+                </h2>
+
                 <p class="text-muted mb-4 fs-6">
-                    Khu vực này chỉ dành cho tài khoản quản trị hệ thống. <br>
-                    Vui lòng sử dụng tài khoản <strong>Admin</strong> để tiếp tục.
+                    @message
                 </p>
-                <div class="d-flex gap-3 justify-content-center">
-                    <a href="/" class="btn btn-light rounded-3 px-4 py-2 border fw-bold text-muted">QUAY LẠI</a>
-                    <a href="/Account/Login" class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm" style="background-color: #d93d20;">ĐĂNG NHẬP ADMIN</a>
+
+                <div class="d-flex gap-3 justify-content-center flex-wrap">
+                    <button type="button"
+                            class="btn btn-light rounded-3 px-4 py-2 border fw-bold text-muted"
+                            onclick="history.back()">
+                        QUAY LẠI
+                    </button>
+
+                    @if (isAuthenticated)
+                    {
+                        <a href="/"
+                           class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm access-denied-primary">
+                            VỀ TRANG CHỦ
+                        </a>
+                    }
+                    else
+                    {
+                        <a href="/Account/Login"
+                           class="btn text-white rounded-3 px-4 py-2 fw-bold shadow-sm access-denied-primary">
+                            ĐĂNG NHẬP
+                        </a>
+                    }
                 </div>
             </div>
         </div>
@@ -27,7 +61,28 @@
 
 @section Styles {
     <style>
-        body { background-color: #f8f9fa; }
-        .fa-shield-lock:before { content: "\f3ed"; } /* FontAwesome shield-lock */
+        body {
+            background-color: #f8f9fa;
+        }
+
+        .access-denied-page {
+            min-height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .access-denied-icon {
+            width: 100px;
+            height: 100px;
+        }
+
+        .access-denied-primary {
+            background-color: #d93d20;
+        }
+
+        .access-denied-primary:hover {
+            background-color: #b52f16;
+        }
     </style>
 }

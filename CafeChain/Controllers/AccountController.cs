@@ -203,6 +203,14 @@ namespace CafeChain.Controllers
         // ========================= ACCESS DENIED =========================
         public IActionResult AccessDenied()
         {
+            var isAuthenticated = User.Identity?.IsAuthenticated == true;
+
+            Response.StatusCode = isAuthenticated
+                ? StatusCodes.Status403Forbidden
+                : StatusCodes.Status401Unauthorized;
+
+            ViewBag.IsAuthenticated = isAuthenticated;
+
             return View();
         }
 

@@ -226,6 +226,8 @@
     font-weight: 800;
     border: 1px solid transparent;
     white-space: nowrap;
+    line-height: 1;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
 }
 
 .perm-icon-button {
@@ -255,14 +257,41 @@
     background: var(--perm-accent);
     border-color: var(--perm-accent);
     padding: 0 16px;
+    min-width: 96px;
     box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
 }
 
-.perm-primary-button:disabled,
-.perm-outline-button:disabled {
-    opacity: .45;
+.perm-primary-button:hover:not(:disabled),
+.perm-primary-button:focus-visible:not(:disabled) {
+    color: #fff;
+    background: var(--perm-accent-dark);
+    border-color: var(--perm-accent-dark);
+    box-shadow: 0 12px 24px rgba(217, 61, 32, .24);
+}
+
+.perm-primary-button:disabled {
+    color: #fff;
+    background: #fb923c;
+    border-color: #fb923c;
     cursor: not-allowed;
     box-shadow: none;
+    opacity: 1;
+}
+
+.perm-primary-button.is-loading:disabled {
+    color: #fff;
+    background: var(--perm-accent-dark);
+    border-color: var(--perm-accent-dark);
+    cursor: wait;
+}
+
+.perm-outline-button:disabled {
+    color: #9a3412;
+    background: #fff7ed;
+    border-color: #fed7aa;
+    cursor: not-allowed;
+    box-shadow: none;
+    opacity: 1;
 }
 
 .perm-ghost-button {

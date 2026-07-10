@@ -19,7 +19,9 @@
      data-save-staff-scopes-url="@Url.Action(nameof(AdminPermissionController.SaveStaffScopes), "AdminPermission", new { area = "Admin" })"
      data-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.StaffOverrides), "AdminPermission", new { area = "Admin" })"
      data-save-staff-overrides-url="@Url.Action(nameof(AdminPermissionController.SaveStaffOverrides), "AdminPermission", new { area = "Admin" })"
-     data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })">
+     data-scope-references-url="@Url.Action(nameof(AdminPermissionController.ScopeReferences), "AdminPermission", new { area = "Admin" })"
+     data-login-url="@Url.Action("Login", "Account", new { area = "" })"
+     data-access-denied-url="@Url.Action("AccessDenied", "Account", new { area = "" })">
     <div class="perm-heading">
         <div>
             <div class="perm-breadcrumb">Hệ thống / Bảng phân quyền</div>

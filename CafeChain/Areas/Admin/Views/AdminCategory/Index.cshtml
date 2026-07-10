@@ -1,8 +1,50 @@
 @model CafeChain.ViewModels.Admin.Categories.AdminCategoryIndexViewModel
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 
 @{
     ViewData["Title"] = "Quản lý danh mục";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+
+    var canCreateCategory = false;
+    var canUpdateCategory = false;
+    var canToggleCategoryStatus = false;
+
+    var currentAccountIdValue =
+        User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    if (User.Identity?.IsAuthenticated == true &&
+        int.TryParse(currentAccountIdValue, out var currentAccountId))
+    {
+        var createDecision =
+            await PermissionService.HasPermissionAsync(
+                currentAccountId,
+                PermissionConstants.CategoryCreate);
+
+        var updateDecision =
+            await PermissionService.HasPermissionAsync(
+                currentAccountId,
+                PermissionConstants.CategoryUpdate);
+
+        var toggleStatusDecision =
+            await PermissionService.HasPermissionAsync(
+                currentAccountId,
+                PermissionConstants.CategoryToggleStatus);
+
+        canCreateCategory =
+            createDecision.IsSuccess &&
+            createDecision.Data?.Allowed == true;
+
+        canUpdateCategory =
+            updateDecision.IsSuccess &&
+            updateDecision.Data?.Allowed == true;
+
+        canToggleCategoryStatus =
+            toggleStatusDecision.IsSuccess &&
+            toggleStatusDecision.Data?.Allowed == true;
+    }
 }
 
 <link rel="stylesheet" href="~/css/Admin/Category/Category.css" />
@@ -25,8 +67,10 @@
 
     <button type="button"
             class="btn category-primary-btn"
-            data-bs-toggle="modal"
-            data-bs-target="#createCategoryModal">
+            data-bs-toggle="@(canCreateCategory ? "modal" : null)"
+            data-bs-target="@(canCreateCategory ? "#createCategoryModal" : null)"
+            disabled="@(!canCreateCategory)"
+            title="@(canCreateCategory ? "Thêm danh mục mới" : "Bạn không có quyền thêm danh mục")">
 
         <i class="fas fa-plus me-2"></i>
         Thêm danh mục mới
@@ -182,9 +226,10 @@
                             <button type="button"
                                     class="btn btn-sm category-action-btn category-action-edit btn-edit-category"
                                     data-id="@item.CategoryId"
-                                    data-bs-toggle="modal"
-                                    data-bs-target="#editCategoryModal"
-                                    title="Sửa">
+                                    data-bs-toggle="@(canUpdateCategory ? "modal" : null)"
+                                    data-bs-target="@(canUpdateCategory ? "#editCategoryModal" : null)"
+                                    disabled="@(!canUpdateCategory)"
+                                    title="@(canUpdateCategory ? "Sửa" : "Bạn không có quyền cập nhật danh mục")">
 
                                 <i class="fas fa-pen"></i>
 
@@ -192,8 +237,9 @@
 
                             <button type="button"
                                     class="btn btn-sm category-action-btn @(item.Active ? "category-action-lock" : "category-action-unlock")"
-                                    onclick="toggleCategory(@item.CategoryId)"
-                                    title="@(item.Active ? "Ẩn" : "Hiển thị")">
+                                    onclick="@(canToggleCategoryStatus ? $"toggleCategory({item.CategoryId})" : null)"
+                                    disabled="@(!canToggleCategoryStatus)"
+                                    title="@(canToggleCategoryStatus ? (item.Active ? "Ẩn" : "Hiển thị") : "Bạn không có quyền ẩn / hiện danh mục")">
 
                                 <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
 
@@ -371,7 +417,9 @@
 
                         <button type="submit"
                                 id="btnCreateCategory"
-                                class="btn category-primary-btn">
+                                class="btn category-primary-btn"
+                                disabled="@(!canCreateCategory)"
+                                title="@(canCreateCategory ? "Lưu danh mục" : "Bạn không có quyền thêm danh mục")">
 
                             <i class="fas fa-save me-2"></i>
 
@@ -509,7 +557,9 @@
 
                         <button type="submit"
                                 id="btnEditCategory"
-                                class="btn category-primary-btn">
+                                class="btn category-primary-btn"
+                                disabled="@(!canUpdateCategory)"
+                                title="@(canUpdateCategory ? "Cập nhật" : "Bạn không có quyền cập nhật danh mục")">
 
                             <i class="fas fa-save me-2"></i>
 

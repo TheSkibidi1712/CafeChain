@@ -19,7 +19,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var guard = await EnsureCanManagePermissionsAsync();
+            var guard = await EnsureCanManagePermissionsAsync(jsonResponse: false);
             if (guard != null) return guard;
 
             return View();
@@ -161,12 +161,29 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================================================
         // PRIVATE METHODS
         // ===================================================
-        private async Task<IActionResult?> EnsureCanManagePermissionsAsync()
+        private async Task<IActionResult?> EnsureCanManagePermissionsAsync(bool jsonResponse = true)
         {
+            if (User.Identity?.IsAuthenticated != true)
+            {
+                return jsonResponse
+                    ? StatusCode(StatusCodes.Status401Unauthorized, new
+                    {
+                        success = false,
+                        message = "Bạn cần đăng nhập để truy cập chức năng này."
+                    })
+                    : Challenge();
+            }
+
             var accountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (!int.TryParse(accountIdValue, out var accountId))
             {
-                return Unauthorized(new { success = false, message = "Unauthorized." });
+                return jsonResponse
+                    ? StatusCode(StatusCodes.Status401Unauthorized, new
+                    {
+                        success = false,
+                        message = "Bạn cần đăng nhập để truy cập chức năng này."
+                    })
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
             }
 
             var decision = await _permissionService.HasPermissionAsync(
@@ -175,11 +192,13 @@ namespace CafeChain.Areas.Admin.Controllers
 
             if (!decision.IsSuccess || decision.Data == null || !decision.Data.Allowed)
             {
-                return StatusCode(StatusCodes.Status403Forbidden, new
-                {
-                    success = false,
-                    message = decision.Data?.DenyReason ?? "Permission denied."
-                });
+                return jsonResponse
+                    ? StatusCode(StatusCodes.Status403Forbidden, new
+                    {
+                        success = false,
+                        message = "Bạn không có quyền truy cập chức năng này. Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền."
+                    })
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
             }
 
             return null;

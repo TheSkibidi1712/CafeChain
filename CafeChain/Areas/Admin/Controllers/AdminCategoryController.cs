@@ -1,5 +1,8 @@
+using System.Security.Claims;
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
+using CafeChain.Application.Interfaces.Admin.Permissions;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -8,10 +11,14 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminCategoryController : AdminBaseController
     {
         private readonly IAdminCategoryService _categoryService;
+        private readonly IAdminPermissionService _permissionService;
 
-        public AdminCategoryController(IAdminCategoryService categoryService)
+        public AdminCategoryController(
+            IAdminCategoryService categoryService,
+            IAdminPermissionService permissionService)
         {
             _categoryService = categoryService;
+            _permissionService = permissionService;
         }
 
         // =====================================================
@@ -21,6 +28,15 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(CategoryFilterDto filter)
         {
+            var guard = await EnsureCategoryPermissionAsync(
+                PermissionConstants.CategoryView,
+                jsonResponse: false);
+
+            if (guard != null)
+            {
+                return guard;
+            }
+
             filter.Page = filter.Page <= 0 ? 1 : filter.Page;
 
             filter.PageSize = filter.PageSize <= 0 ? 10 : filter.PageSize;
@@ -37,6 +53,14 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetById(int id)
         {
+            var guard = await EnsureCategoryPermissionAsync(
+                PermissionConstants.CategoryUpdate);
+
+            if (guard != null)
+            {
+                return guard;
+            }
+
             var category = await _categoryService.GetCategoryForEditAsync(id);
 
             if (category == null)
@@ -61,6 +85,14 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AdminCreateCategoryDto dto)
         {
+            var guard = await EnsureCategoryPermissionAsync(
+                PermissionConstants.CategoryCreate);
+
+            if (guard != null)
+            {
+                return guard;
+            }
+
             if (!ModelState.IsValid)
             {
                 return ValidationError();
@@ -86,6 +118,14 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AdminUpdateCategoryDto dto)
         {
+            var guard = await EnsureCategoryPermissionAsync(
+                PermissionConstants.CategoryUpdate);
+
+            if (guard != null)
+            {
+                return guard;
+            }
+
             if (!ModelState.IsValid)
             {
                 return ValidationError();
@@ -120,6 +160,14 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)
         {
+            var guard = await EnsureCategoryPermissionAsync(
+                PermissionConstants.CategoryToggleStatus);
+
+            if (guard != null)
+            {
+                return guard;
+            }
+
             var success = await _categoryService.ToggleCategoryStatusAsync(id);
 
             if (!success)
@@ -135,6 +183,42 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
         // PRIVATE METHODS
         // =====================================================
+
+        private async Task<IActionResult?> EnsureCategoryPermissionAsync(
+            string permissionCode,
+            bool jsonResponse = true)
+        {
+            var accountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            if (!int.TryParse(accountIdValue, out var accountId))
+            {
+                return jsonResponse
+                    ? Error("Unauthorized.", StatusCodes.Status401Unauthorized)
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            }
+
+            var decision = await _permissionService.HasPermissionAsync(
+                accountId,
+                permissionCode);
+
+            if (!decision.IsSuccess ||
+                decision.Data == null ||
+                !decision.Data.Allowed)
+            {
+                return jsonResponse
+                    ? PermissionDenied()
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            }
+
+            return null;
+        }
+
+        private JsonResult PermissionDenied()
+        {
+            return Error(
+                "Bạn không có quyền thực hiện chức năng này.",
+                StatusCodes.Status403Forbidden);
+        }
 
         private JsonResult Success(string message)
         {

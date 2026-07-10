@@ -3,16 +3,30 @@
 @using CafeChain.Application.Constants
 @using CafeChain.Application.Interfaces.Admin.Permissions
 @inject IAdminPermissionService PermissionService
+
 @{
-    var isAdminArea = ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+    var isAdminArea =
+        ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
+
     var canManagePermissions = false;
-    var currentAccountIdValue = User.FindFirstValue(ClaimTypes.NameIdentifier);
-    if (int.TryParse(currentAccountIdValue, out var currentAccountId))
+
+    var currentAccountIdValue =
+        User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+    if (User.Identity?.IsAuthenticated == true &&
+        int.TryParse(currentAccountIdValue, out var currentAccountId))
     {
-        var permissionDecision = await PermissionService.HasPermissionAsync(currentAccountId, PermissionConstants.SystemPermissionManage);
-        canManagePermissions = permissionDecision.IsSuccess && permissionDecision.Data?.Allowed == true;
+        var permissionDecision =
+            await PermissionService.HasPermissionAsync(
+                currentAccountId,
+                PermissionConstants.SystemPermissionManage);
+
+        canManagePermissions =
+            permissionDecision.IsSuccess &&
+            permissionDecision.Data?.Allowed == true;
     }
 }
+
 <!DOCTYPE html>
 <html lang="vi">
 
@@ -341,44 +355,108 @@
             <div class="sidebar-divider"></div>
 
             <!-- ━━━ 👥 NHÂN SỰ & VẬN HÀNH ━━━ -->
-            @{
+           @{
                 var hrControllers = "AdminPermission,AdminStaff,AdminStaffShift,AdminStoreIP,AdminStore";
                 var isHrGroupActive = Html.IsActive(hrControllers) != "";
+
+                var isBusinessOwner = User.IsInRole(RoleConstants.BusinessOwner);
+                var isAreaManager = User.IsInRole(RoleConstants.AreaManager);
+                var isStoreManager = User.IsInRole(RoleConstants.StoreManager);
+                var isSystemAdmin = User.IsInRole(RoleConstants.SystemAdmin);
+
+                var canManageStaff =
+                    isBusinessOwner ||
+                    isAreaManager ||
+                    isStoreManager ||
+                    isSystemAdmin;
+
+                var canManageStaffShift =
+                    isBusinessOwner ||
+                    isAreaManager ||
+                    isStoreManager ||
+                    isSystemAdmin;
+
+                var canManageStoreIP =
+                    isBusinessOwner ||
+                    isStoreManager ||
+                    isSystemAdmin;
+
+                var canManageStore =
+                    isBusinessOwner ||
+                    isAreaManager ||
+                    isSystemAdmin;
+
+                var canViewHrGroup =
+                    canManagePermissions ||
+                    canManageStaff ||
+                    canManageStaffShift ||
+                    canManageStoreIP ||
+                    canManageStore;
             }
 
-            @if (canManagePermissions || User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự") || User.IsInRole("Giám đốc Vận hành"))
+            @if (canViewHrGroup)
             {
-                <a href="#collapseHR" data-bs-toggle="collapse"
-                   aria-expanded="@(isHrGroupActive ? "true" : "false")"
-                   class="sidebar-section-header @(isHrGroupActive ? "active" : "")">
+                <a href="#collapseHR"
+                data-bs-toggle="collapse"
+                aria-expanded="@(isHrGroupActive ? "true" : "false")"
+                class="sidebar-section-header @(isHrGroupActive ? "active" : "")">
                     <i class="fas fa-users-cog section-icon"></i> Nhân sự & Vận hành
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
+
                 <div class="collapse @(isHrGroupActive ? "show" : "")" id="collapseHR">
                     <div class="sidebar-sub">
-                        @if(canManagePermissions)
+
+                        @if (canManagePermissions)
                         {
-                            <a asp-area="Admin" asp-controller="AdminPermission" asp-action="Index" class="@Html.IsActive("AdminPermission")"><i class="fas fa-circle"></i> Bảng phân quyền</a>
-                        }   
-                        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Quản lý Khu vực") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Nhân sự"))
-                        {
-                            <a asp-area="Admin" asp-controller="AdminStaff" asp-action="Index" class="@Html.IsActive("AdminStaff")"><i class="fas fa-circle"></i> Quản lý nhân viên</a>
+                            <a asp-area="Admin"
+                            asp-controller="AdminPermission"
+                            asp-action="Index"
+                            class="@Html.IsActive("AdminPermission")">
+                                <i class="fas fa-circle"></i> Bảng phân quyền
+                            </a>
                         }
 
-                        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng") || User.IsInRole("Quản lý Khu vực"))
+                        @if (canManageStaff)
                         {
-                            <a asp-area="Admin" asp-controller="AdminStaffShift" asp-action="Index" class="@Html.IsActive("AdminStaffShift")"><i class="fas fa-circle"></i> Lịch làm việc</a>
+                            <a asp-area="Admin"
+                            asp-controller="AdminStaff"
+                            asp-action="Index"
+                            class="@Html.IsActive("AdminStaff")">
+                                <i class="fas fa-circle"></i> Quản lý nhân viên
+                            </a>
                         }
 
-                        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Cửa hàng trưởng"))
+                        @if (canManageStaffShift)
                         {
-                            <a asp-area="Admin" asp-controller="AdminStoreIP" asp-action="Index" class="@Html.IsActive("AdminStoreIP")"><i class="fas fa-circle"></i> IP chấm công</a>
+                            <a asp-area="Admin"
+                            asp-controller="AdminStaffShift"
+                            asp-action="Index"
+                            class="@Html.IsActive("AdminStaffShift")">
+                                <i class="fas fa-circle"></i> Lịch làm việc
+                            </a>
                         }
 
-                        @if (User.IsInRole("Super Admin") || User.IsInRole("CEO / Ban Giám đốc") || User.IsInRole("Giám đốc Vận hành"))
+                        @if (canManageStoreIP)
                         {
-                            <a asp-area="Admin" asp-controller="AdminStore" asp-action="Index" class="@Html.IsActive("AdminStore")"><i class="fas fa-circle"></i> Quản lý cửa hàng</a>
+                            <a asp-area="Admin"
+                            asp-controller="AdminStoreIP"
+                            asp-action="Index"
+                            class="@Html.IsActive("AdminStoreIP")">
+                                <i class="fas fa-circle"></i> IP chấm công
+                            </a>
                         }
+
+                        @if (canManageStore)
+                        {
+                            <a asp-area="Admin"
+                            asp-controller="AdminStore"
+                            asp-action="Index"
+                            class="@Html.IsActive("AdminStore")">
+                                <i class="fas fa-circle"></i> Quản lý cửa hàng
+                            </a>
+                        }
+
                     </div>
                 </div>
             }
@@ -386,7 +464,7 @@
         </div><!-- end scrollable nav -->
 
         <!-- ===== SYSTEM SECTION (pinned to bottom) ===== -->
-        <div class="sidebar-system">
+            <div class="sidebar-system">
             <a asp-area="Admin" asp-controller="AdminProfile" asp-action="MyProfile" class="@Html.IsActive("Profile")">
                 <i class="fas fa-user-circle"></i> Hồ sơ của tôi
             </a>

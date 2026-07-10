@@ -1,6 +1,8 @@
-﻿using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using System.Text.Json;
 
 namespace CafeChain.Extensions.Services
 {
@@ -37,6 +39,21 @@ namespace CafeChain.Extensions.Services
                     options.Cookie.HttpOnly = true;
                     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
                     options.Cookie.SameSite = SameSiteMode.Lax;
+
+                    options.Events = new CookieAuthenticationEvents
+                    {
+                        OnRedirectToLogin = context =>
+                            HandleAuthRedirectAsync(
+                                context,
+                                StatusCodes.Status401Unauthorized,
+                                "Bạn cần đăng nhập để truy cập chức năng này."),
+
+                        OnRedirectToAccessDenied = context =>
+                            HandleAuthRedirectAsync(
+                                context,
+                                StatusCodes.Status403Forbidden,
+                                "Bạn không có quyền truy cập chức năng này. Vui lòng liên hệ cấp trên hoặc quản trị viên để được cấp quyền.")
+                    };
                 })
                 .AddJwtBearer(options =>
                 {
@@ -56,6 +73,35 @@ namespace CafeChain.Extensions.Services
                 });
 
             return services;
+        }
+
+        private static Task HandleAuthRedirectAsync(
+            RedirectContext<CookieAuthenticationOptions> context,
+            int statusCode,
+            string message)
+        {
+            if (!IsJsonRequest(context.Request))
+            {
+                context.Response.Redirect(context.RedirectUri);
+                return Task.CompletedTask;
+            }
+
+            context.Response.StatusCode = statusCode;
+            context.Response.ContentType = "application/json";
+
+            return context.Response.WriteAsync(JsonSerializer.Serialize(new
+            {
+                success = false,
+                message
+            }));
+        }
+
+        private static bool IsJsonRequest(HttpRequest request)
+        {
+            return request.Headers["X-Requested-With"].ToString()
+                    .Equals("XMLHttpRequest", StringComparison.OrdinalIgnoreCase) ||
+                request.Headers["Accept"].ToString()
+                    .Contains("application/json", StringComparison.OrdinalIgnoreCase);
         }
     }
 }
