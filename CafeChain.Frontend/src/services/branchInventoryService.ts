@@ -87,3 +87,69 @@ export async function fetchBranchInventory(
     status: res.status,
   }
 }
+
+export interface ShortageReportResult {
+  stockAlertId: number
+  createdOrUpdated: string
+  notificationCount: number
+  emailAttempted: boolean
+  emailSentCount: number
+  emailFailedCount: number
+  warnings?: string[]
+}
+
+interface ShortageReportApiResponse {
+  success?: boolean
+  message?: string
+  data?: ShortageReportResult
+}
+
+/**
+ * Issue #98 — POST /api/v1/pos/stock-alerts/report-shortage
+ */
+export async function reportShortage(params: {
+  storeInventoryId: number
+  note: string
+}): Promise<{
+  ok: boolean
+  message?: string
+  data: ShortageReportResult | null
+  error?: string
+  status: number
+}> {
+  const res = await apiClient.post<ShortageReportApiResponse>(
+    '/api/v1/pos/stock-alerts/report-shortage',
+    {
+      storeInventoryId: params.storeInventoryId,
+      note: params.note,
+    }
+  )
+
+  if (!res.ok || res.data == null) {
+    let error = res.error || 'Không gửi được báo thiếu hàng.'
+    try {
+      const parsed = JSON.parse(res.error || '') as { message?: string }
+      if (parsed.message) error = parsed.message
+    } catch {
+      // keep raw error
+    }
+    return { ok: false, data: null, error, status: res.status }
+  }
+
+  const body = res.data
+  if (!body.success && body.message) {
+    return {
+      ok: false,
+      data: null,
+      error: body.message,
+      status: res.status,
+    }
+  }
+
+  return {
+    ok: true,
+    message: body.message,
+    data: body.data ?? null,
+    status: res.status,
+  }
+}

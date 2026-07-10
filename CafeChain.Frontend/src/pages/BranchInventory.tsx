@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import {
   fetchBranchInventory,
+  reportShortage,
   type BranchInventoryItem,
   type BranchInventoryItemType,
 } from '../services/branchInventoryService'
@@ -15,6 +16,13 @@ const FILTERS: { key: FilterChip; label: string }[] = [
 ]
 
 const PAGE_SIZE = 50
+
+/** Roles that may report shortage (must match backend allow-list). */
+const REPORT_ROLES = new Set([
+  'Nhân viên bán hàng',
+  'Ca trưởng',
+  'Quản lý chi nhánh',
+])
 
 const formatQty = (value: number): string =>
   new Intl.NumberFormat('vi-VN', { maximumFractionDigits: 3 }).format(value)
@@ -57,6 +65,8 @@ const toDisplayError = (message?: string): string => {
 
 export default function BranchInventory() {
   const session = getPosSession()
+  const canReport = useMemo(() => REPORT_ROLES.has(session.role), [session.role])
+
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [itemType, setItemType] = useState<FilterChip>('')
@@ -66,8 +76,14 @@ export default function BranchInventory() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
+  const [banner, setBanner] = useState<{ kind: 'ok' | 'warn'; text: string } | null>(null)
 
-  // Debounce search (async timer callback — not sync setState in effect body)
+  // Report modal
+  const [reportItem, setReportItem] = useState<BranchInventoryItem | null>(null)
+  const [reportNote, setReportNote] = useState('')
+  const [reportSubmitting, setReportSubmitting] = useState(false)
+  const [reportError, setReportError] = useState<string | null>(null)
+
   useEffect(() => {
     const timer = window.setTimeout(() => {
       setDebouncedSearch(searchInput.trim())
@@ -110,6 +126,56 @@ export default function BranchInventory() {
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
 
+  const openReport = (item: BranchInventoryItem) => {
+    setReportItem(item)
+    setReportNote('')
+    setReportError(null)
+  }
+
+  const closeReport = () => {
+    if (reportSubmitting) return
+    setReportItem(null)
+    setReportNote('')
+    setReportError(null)
+  }
+
+  const submitReport = async () => {
+    if (!reportItem) return
+    const note = reportNote.trim()
+    if (note.length < 5) {
+      setReportError('Ghi chú phải có ít nhất 5 ký tự.')
+      return
+    }
+    if (note.length > 500) {
+      setReportError('Ghi chú không được vượt quá 500 ký tự.')
+      return
+    }
+
+    setReportSubmitting(true)
+    setReportError(null)
+    const result = await reportShortage({
+      storeInventoryId: reportItem.storeInventoryId,
+      note,
+    })
+    setReportSubmitting(false)
+
+    if (!result.ok) {
+      setReportError(result.error || 'Không gửi được báo thiếu hàng.')
+      return
+    }
+
+    const emailFailed = (result.data?.emailFailedCount ?? 0) > 0
+    setBanner({
+      kind: emailFailed ? 'warn' : 'ok',
+      text: emailFailed
+        ? 'Đã ghi nhận yêu cầu. Email có thể chưa gửi được.'
+        : result.message ||
+          'Đã gửi yêu cầu kiểm tra tồn kho cho Quản lý chi nhánh và Kế toán/kho.',
+    })
+    setReportItem(null)
+    setReportNote('')
+  }
+
   return (
     <div className="h-full w-full overflow-auto bg-surface p-4 md:p-6">
       <div className="max-w-7xl mx-auto flex flex-col gap-4">
@@ -122,10 +188,29 @@ export default function BranchInventory() {
               {session.role ? ` · ${session.role}` : ''}
             </p>
             <p className="text-[11px] text-text-muted mt-1">
-              Chỉ xem — không chỉnh sửa tồn kho. Ngưỡng tối thiểu sẽ cấu hình ở bước sau.
+              Có thể báo thiếu hàng để Quản lý chi nhánh / Kế toán-kho kiểm tra. Không chỉnh sửa tồn kho tại đây.
             </p>
           </div>
         </header>
+
+        {banner && (
+          <div
+            className={`rounded-xl border px-4 py-3 text-sm ${
+              banner.kind === 'ok'
+                ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
+                : 'bg-amber-50 border-amber-200 text-amber-900'
+            }`}
+          >
+            {banner.text}
+            <button
+              type="button"
+              className="ml-3 text-xs underline"
+              onClick={() => setBanner(null)}
+            >
+              Đóng
+            </button>
+          </div>
+        )}
 
         <div className="bg-surface-white border border-border rounded-xl p-4 shadow-[var(--shadow-card)] flex flex-col gap-3">
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
@@ -190,7 +275,7 @@ export default function BranchInventory() {
         {!loading && !error && items.length > 0 && (
           <div className="bg-surface-white border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden">
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-sm min-w-[880px]">
+              <table className="w-full text-left text-sm min-w-[960px]">
                 <thead className="bg-surface border-b border-border text-xs text-text-muted uppercase tracking-wide">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Tên mặt hàng</th>
@@ -201,6 +286,9 @@ export default function BranchInventory() {
                     <th className="px-4 py-3 font-semibold">Ngưỡng</th>
                     <th className="px-4 py-3 font-semibold">Trạng thái SL</th>
                     <th className="px-4 py-3 font-semibold">Cập nhật</th>
+                    {canReport ? (
+                      <th className="px-4 py-3 font-semibold text-right">Thao tác</th>
+                    ) : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -240,6 +328,17 @@ export default function BranchInventory() {
                       <td className="px-4 py-3 text-xs text-text-muted whitespace-nowrap">
                         {formatDateTime(item.lastUpdated)}
                       </td>
+                      {canReport ? (
+                        <td className="px-4 py-3 text-right">
+                          <button
+                            type="button"
+                            onClick={() => openReport(item)}
+                            className="px-2.5 py-1.5 text-[11px] font-bold rounded-lg border border-brand-orange text-brand-orange hover:bg-brand-orange-light"
+                          >
+                            Báo thiếu hàng
+                          </button>
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
@@ -272,6 +371,54 @@ export default function BranchInventory() {
           </div>
         )}
       </div>
+
+      {reportItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-surface-white border border-border shadow-xl p-5">
+            <h2 className="text-base font-bold text-text-primary">Báo thiếu hàng</h2>
+            <p className="text-xs text-text-muted mt-1">
+              {reportItem.itemName} · {itemTypeLabel(reportItem.itemType)} · Tồn{' '}
+              {formatQty(reportItem.availableQty)} {reportItem.unitName || ''}
+            </p>
+
+            <label className="block mt-4 text-xs font-semibold text-text-secondary">
+              Ghi chú (bắt buộc)
+              <textarea
+                value={reportNote}
+                onChange={(e) => setReportNote(e.target.value)}
+                rows={4}
+                maxLength={500}
+                placeholder="Mô tả tình trạng thiếu hàng / yêu cầu kiểm tra tồn kho..."
+                className="mt-1.5 w-full rounded-lg border border-border px-3 py-2 text-sm outline-none focus:border-brand-orange focus:ring-1 focus:ring-brand-orange resize-y"
+              />
+            </label>
+            <p className="text-[10px] text-text-muted mt-1">{reportNote.trim().length}/500</p>
+
+            {reportError && (
+              <p className="mt-2 text-xs text-red-600">{reportError}</p>
+            )}
+
+            <div className="mt-4 flex justify-end gap-2">
+              <button
+                type="button"
+                disabled={reportSubmitting}
+                onClick={closeReport}
+                className="px-4 py-2 text-xs font-semibold rounded-lg border border-border text-text-secondary"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                disabled={reportSubmitting}
+                onClick={() => void submitReport()}
+                className="px-4 py-2 text-xs font-bold rounded-lg bg-brand-orange text-white hover:bg-brand-orange-hover disabled:opacity-50"
+              >
+                {reportSubmitting ? 'Đang gửi...' : 'Gửi báo cáo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

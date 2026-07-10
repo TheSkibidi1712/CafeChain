@@ -66,6 +66,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.RecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Issue #98 — optional reporter for SALES_REPORT
+            entity.HasOne(x => x.ReportedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ReportedByStaffId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => new { x.StoreId, x.IngredientId });
             entity.HasIndex(x => new { x.StoreId, x.RecipeId });

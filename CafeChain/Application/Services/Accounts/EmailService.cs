@@ -205,5 +205,41 @@ namespace CafeChain.Application.Services.Accounts
 
 </div>";
         }
+
+        // =====================================================
+        // BUILD STOCK SHORTAGE REPORT EMAIL (Issue #98)
+        // =====================================================
+        public string BuildStockShortageReportEmail(
+            string storeName,
+            string itemName,
+            string itemTypeLabel,
+            decimal availableQty,
+            string note,
+            string reporterName,
+            DateTime reportedAtUtc)
+        {
+            var timeStr = reportedAtUtc.ToString("dd/MM/yyyy HH:mm:ss") + " (UTC)";
+            var qtyStr = availableQty.ToString("N3");
+
+            return $@"
+<div style='font-family:Segoe UI,Arial,sans-serif;background:#f5f5f5;padding:30px'>
+  <div style='max-width:600px;margin:auto;background:#ffffff;border-radius:12px;padding:30px;box-shadow:0 5px 15px rgba(0,0,0,0.1)'>
+    <h2 style='color:#ff4d00;margin-bottom:5px;text-align:center'>CafeChain</h2>
+    <p style='text-align:center;color:#888;font-size:13px;margin-top:0'>Báo thiếu hàng — Kho chi nhánh</p>
+    <hr style='border:none;border-top:1px solid #eee;margin:20px 0' />
+    <p style='color:#333;font-size:14px'>Nhân viên POS vừa gửi yêu cầu kiểm tra tồn kho:</p>
+    <table style='width:100%;border-collapse:collapse;font-size:14px;color:#444'>
+      <tr><td style='padding:6px 0;font-weight:600;width:40%'>Chi nhánh:</td><td>{WebUtility.HtmlEncode(storeName)}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Mặt hàng:</td><td>{WebUtility.HtmlEncode(itemName)}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Loại:</td><td>{WebUtility.HtmlEncode(itemTypeLabel)}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Tồn hiện tại:</td><td>{qtyStr}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Người báo:</td><td>{WebUtility.HtmlEncode(reporterName)}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Thời gian:</td><td>{timeStr}</td></tr>
+      <tr><td style='padding:6px 0;font-weight:600'>Ghi chú:</td><td>{WebUtility.HtmlEncode(note)}</td></tr>
+    </table>
+    <p style='font-size:13px;color:#888;margin-top:20px'>Vui lòng kiểm tra kho chi nhánh và xử lý theo quy trình.</p>
+  </div>
+</div>";
+        }
     }
 }

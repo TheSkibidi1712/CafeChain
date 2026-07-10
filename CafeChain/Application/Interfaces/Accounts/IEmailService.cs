@@ -18,5 +18,17 @@ namespace CafeChain.Application.Interfaces.Accounts
             string reason,
             DateTime requestedAt,
             int ttlMinutes);
+
+        /// <summary>
+        /// Issue #98 — HTML email for POS shortage report (non-blocking send).
+        /// </summary>
+        string BuildStockShortageReportEmail(
+            string storeName,
+            string itemName,
+            string itemTypeLabel,
+            decimal availableQty,
+            string note,
+            string reporterName,
+            DateTime reportedAtUtc);
     }
 }
