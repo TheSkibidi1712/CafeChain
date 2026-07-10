@@ -80,6 +80,16 @@ namespace CafeChain.Data.Configurations.Staffs
                     Active = true,
                     IsStoreLevel = false,
                     CreatedAt = new DateTime(2026, 1, 1)
+                },
+                // RoleId 8 — store-level operational approver (PIN / OTP / future stock-alert routing).
+                // Seed only in configuration; apply via approved EF migration before production use.
+                new Role
+                {
+                    RoleId = 8,
+                    Name = CafeChain.Application.Constants.RoleConstants.ShiftSupervisor,
+                    Active = true,
+                    IsStoreLevel = true,
+                    CreatedAt = new DateTime(2026, 1, 1)
                 }
             );
         }

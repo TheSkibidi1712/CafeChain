@@ -59,10 +59,13 @@ namespace CafeChain.Areas.Admin.Controllers
             var isSalesStaff =
                 role == CafeChain.Application.Constants.RoleConstants.SalesStaff;
 
+            var isShiftSupervisor =
+                role == CafeChain.Application.Constants.RoleConstants.ShiftSupervisor;
+
             var isStoreManager =
                 role == CafeChain.Application.Constants.RoleConstants.StoreManager;
 
-            if (!(isSalesStaff || isStoreManager))
+            if (!(isSalesStaff || isShiftSupervisor || isStoreManager))
             {
                 return RedirectToAction("AccessDenied", "Account", new { area = "" });
             }

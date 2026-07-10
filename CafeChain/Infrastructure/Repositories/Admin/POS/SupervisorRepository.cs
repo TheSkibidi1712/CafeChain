@@ -21,9 +21,11 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
 
         public async Task<List<Staff>> GetSupervisorsWithPinAsync(int storeId)
         {
+            // Issue #94: PIN eligible — StoreManager, Ca trưởng, Kế toán/kho
             var supervisorRoles = new[]
             {
                 RoleConstants.StoreManager,
+                RoleConstants.ShiftSupervisor,
                 RoleConstants.AccountantWarehouse
             };
 

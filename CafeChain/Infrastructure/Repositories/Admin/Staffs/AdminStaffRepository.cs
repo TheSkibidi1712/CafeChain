@@ -382,16 +382,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Staffs
 
         public async Task<List<Role>> GetRolesForDropdownAsync(int? storeManagerStoreId)
         {
-            if (storeManagerStoreId.HasValue)
-            {
-                // Store Manager: CHỈ được chọn Cashier (RoleId = 1)
-                return await _context.Roles
-                    .Where(r => r.RoleId == 1 && r.Active)
-                    .ToListAsync();
-            }
-            // Admin System: Loại bỏ Customer (RoleId = 6)
+            // Caller (AdminStaffService) applies actor-specific allow-lists.
+            // Repository only excludes Customer and inactive roles.
+            // storeManagerStoreId is retained for interface compatibility; filtering is service-side.
+            _ = storeManagerStoreId;
             return await _context.Roles
-                .Where(r => r.RoleId != 6 && r.Active)
+                .Where(r => r.Active && r.Name != CafeChain.Application.Constants.RoleConstants.Customer)
+                .OrderBy(r => r.RoleId)
                 .ToListAsync();
         }
 
