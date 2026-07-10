@@ -45,11 +45,15 @@ namespace CafeChain.Application.Constants
         public const string StockAlertConfirmed = "STOCK_ALERT_CONFIRMED";
         /// <summary>Issue #99 — notify reporter that manager rejected.</summary>
         public const string StockAlertRejected = "STOCK_ALERT_REJECTED";
+        /// <summary>Issue #100 — notify AccountantWarehouse of new restock request.</summary>
+        public const string RestockRequestSubmitted = "RESTOCK_REQUEST_SUBMITTED";
     }
 
     /// <summary>Issue #98 — StaffNotification entity type codes.</summary>
     public static class StaffNotificationEntityTypes
     {
         public const string StockAlert = "StockAlert";
+        /// <summary>Issue #100 — RestockRequest entity deep-link.</summary>
+        public const string RestockRequest = "RestockRequest";
     }
 }

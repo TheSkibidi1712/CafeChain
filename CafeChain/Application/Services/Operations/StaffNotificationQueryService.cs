@@ -165,16 +165,26 @@ namespace CafeChain.Application.Services.Operations
             return "/inventory";
         }
 
-        /// <summary>Admin deep-link with entity id (Issue #99).</summary>
+        /// <summary>Admin deep-link with entity id (Issue #99 / #100).</summary>
         public static string? MapAdminTargetUrl(string entityType, string type, int entityId)
         {
+            if (entityId <= 0)
+                return null;
+
+            var isRestock =
+                string.Equals(entityType, StaffNotificationEntityTypes.RestockRequest, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(type, StaffNotificationTypes.RestockRequestSubmitted, StringComparison.OrdinalIgnoreCase);
+
+            if (isRestock)
+                return $"/Admin/AdminRestockRequests/Details/{entityId}";
+
             var isStockAlert =
                 string.Equals(entityType, StaffNotificationEntityTypes.StockAlert, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(type, StaffNotificationTypes.StockShortageReport, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(type, StaffNotificationTypes.StockAlertConfirmed, StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(type, StaffNotificationTypes.StockAlertRejected, StringComparison.OrdinalIgnoreCase);
 
-            if (!isStockAlert || entityId <= 0)
+            if (!isStockAlert)
                 return null;
 
             return $"/Admin/AdminStockAlerts/Details/{entityId}";

@@ -1,20 +1,24 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     /// <summary>
     /// Issue #99 — StoreManager confirm/reject StockAlert (Admin MVC).
+    /// Issue #100 — create RestockRequest from CONFIRMED alert.
     /// </summary>
     public class AdminStockAlertsController : AdminBaseController
     {
         private readonly IStockAlertManagerService _service;
+        private readonly IRestockRequestService _restockService;
 
-        public AdminStockAlertsController(IStockAlertManagerService service)
+        public AdminStockAlertsController(
+            IStockAlertManagerService service,
+            IRestockRequestService restockService)
         {
             _service = service;
+            _restockService = restockService;
         }
 
         [HttpGet]
@@ -63,6 +67,8 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var openRestock = await _restockService.GetOpenByAlertAsync(id, storeId);
+            ViewBag.OpenRestockRequest = openRestock.IsSuccess ? openRestock.Data : null;
             ViewBag.IsStoreManager = true;
             return View(result.Data);
         }
@@ -111,6 +117,36 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = result.Message;
             else
                 TempData["SuccessMessage"] = result.Message ?? "Đã báo sai cảnh báo kho.";
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateRestockRequest(
+            int id,
+            decimal requestedQuantity,
+            string? priority,
+            string? note)
+        {
+            if (!IsStoreManager())
+            {
+                TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được tạo yêu cầu nhập hàng.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var staffId = ResolveStaffId();
+            var storeId = ResolveStoreId();
+            if (staffId <= 0 || storeId <= 0)
+                return Unauthorized();
+
+            var result = await _restockService.CreateFromConfirmedAlertAsync(
+                id, staffId, storeId, requestedQuantity, note, priority);
+
+            if (!result.IsSuccess)
+                TempData["ErrorMessage"] = result.Message;
+            else
+                TempData["SuccessMessage"] = result.Message ?? "Đã gửi yêu cầu nhập hàng cho Kế toán/kho.";
 
             return RedirectToAction(nameof(Details), new { id });
         }

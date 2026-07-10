@@ -121,6 +121,7 @@ namespace CafeChain.Data
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
         public DbSet<StockAlert> StockAlerts { get; set; }
+        public DbSet<RestockRequest> RestockRequests { get; set; }
 
         // Stock Take
         public DbSet<StockTakeSession> StockTakeSessions { get; set; }

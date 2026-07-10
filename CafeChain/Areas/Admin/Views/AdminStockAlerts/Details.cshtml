@@ -1,8 +1,15 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
+@using CafeChain.Application.DTOs.Admin.RestockRequests
 @{
     ViewData["Title"] = "Chi tiết cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var isOpen = Model.Status == "OPEN";
+    var isConfirmed = Model.Status == "CONFIRMED";
+    var openRestock = ViewBag.OpenRestockRequest as RestockRequestListItemDto;
+    decimal? suggested = null;
+    if (Model.ThresholdSnapshot.HasValue)
+        suggested = Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot);
+    var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : Model.AlertType == "LOW_STOCK" ? "HIGH" : "NORMAL";
 }
 
 <div class="container-fluid py-3">
@@ -106,5 +113,61 @@
                 </div>
             </div>
         </div>
+    }
+
+    @if (isConfirmed)
+    {
+        if (openRestock != null)
+        {
+            <div class="card border-info shadow-sm mt-3">
+                <div class="card-header bg-info text-white">Yêu cầu nhập hàng đang mở</div>
+                <div class="card-body">
+                    <div><strong>Mã yêu cầu:</strong> #@openRestock.RestockRequestId</div>
+                    <div><strong>Số lượng:</strong> @openRestock.RequestedQuantity.ToString("N3")</div>
+                    <div><strong>Ưu tiên:</strong> @openRestock.Priority</div>
+                    <div><strong>Trạng thái:</strong> @openRestock.Status</div>
+                    <div><strong>Tạo lúc:</strong> @openRestock.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    <a class="btn btn-sm btn-outline-primary mt-2"
+                       asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
+                       asp-route-id="@openRestock.RestockRequestId">Xem chi tiết yêu cầu</a>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="card border-primary shadow-sm mt-3">
+                <div class="card-header bg-primary text-white">Tạo yêu cầu nhập hàng</div>
+                <div class="card-body">
+                    <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="CreateRestockRequest" method="post">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@Model.StockAlertId" />
+                        <div class="mb-2">
+                            <label class="form-label">Số lượng yêu cầu <span class="text-danger">*</span></label>
+                            <input type="number" name="requestedQuantity" class="form-control" step="0.001" min="0.001" required
+                                   value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
+                                   placeholder="Nhập số lượng > 0" />
+                            @if (suggested.HasValue)
+                            {
+                                <div class="form-text">Gợi ý: @suggested.Value.ToString("N3") (ngưỡng − tồn snapshot)</div>
+                            }
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Mức độ ưu tiên</label>
+                            <select name="priority" class="form-select">
+                                <option value="NORMAL" selected="@(defaultPriority == "NORMAL")">NORMAL</option>
+                                <option value="HIGH" selected="@(defaultPriority == "HIGH")">HIGH</option>
+                                <option value="URGENT" selected="@(defaultPriority == "URGENT")">URGENT</option>
+                            </select>
+                        </div>
+                        <div class="mb-2">
+                            <label class="form-label">Ghi chú</label>
+                            <textarea name="note" class="form-control" rows="2" maxlength="500"
+                                      placeholder="Ghi chú tùy chọn..."></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Tạo yêu cầu nhập hàng</button>
+                    </form>
+                </div>
+            </div>
+        }
     }
 </div>

@@ -177,10 +177,11 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
 
-            // Inventory stock alerts (Issue #97) + shortage report (Issue #98) + manager confirm (Issue #99)
+            // Inventory stock alerts (Issue #97) + shortage report (Issue #98) + manager confirm (Issue #99) + restock (Issue #100)
             services.AddScoped<IStockAlertService, StockAlertService>();
             services.AddScoped<IStockShortageReportService, StockShortageReportService>();
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
+            services.AddScoped<IRestockRequestService, RestockRequestService>();
 
             // Staff notifications read/mark (Issue #101)
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,

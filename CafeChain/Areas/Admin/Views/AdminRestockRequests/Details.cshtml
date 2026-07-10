@@ -1,0 +1,52 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestDetailDto
+@{
+    ViewData["Title"] = "Chi tiết yêu cầu nhập hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">Yêu cầu nhập hàng #@Model.RestockRequestId</h4>
+            <small class="text-muted">@Model.ItemName · @Model.ItemTypeLabel</small>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">← Danh sách</a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div><strong>Trạng thái:</strong> <span class="badge bg-primary">@Model.Status</span></div>
+                    <div><strong>Ưu tiên:</strong> @Model.Priority</div>
+                    <div><strong>Số lượng yêu cầu:</strong> @Model.RequestedQuantity.ToString("N3")</div>
+                    <div><strong>Số lượng gợi ý:</strong> @(Model.SuggestedQuantity?.ToString("N3") ?? "—")</div>
+                    <div><strong>Cửa hàng:</strong> @(Model.StoreName ?? $"#{Model.StoreId}")</div>
+                    <div><strong>Tạo lúc:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                    <div><strong>Người tạo:</strong> @(Model.CreatedByName ?? $"#{Model.CreatedByStaffId}")</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Cảnh báo kho:</strong>
+                        <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details"
+                           asp-route-id="@Model.StockAlertId">#@Model.StockAlertId</a>
+                        (@(Model.AlertStatus ?? "—") / @(Model.AlertType ?? "—"))
+                    </div>
+                    <div><strong>Tồn snapshot:</strong> @(Model.AlertCurrentQtySnapshot?.ToString("N3") ?? "—")</div>
+                    <div><strong>Ngưỡng snapshot:</strong> @(Model.AlertThresholdSnapshot?.ToString("N3") ?? "—")</div>
+                    <div class="mt-2"><strong>Ghi chú:</strong></div>
+                    <div class="border rounded p-2 bg-light small" style="white-space: pre-wrap;">@(Model.Note ?? "—")</div>
+                </div>
+            </div>
+            <hr />
+            <p class="text-muted small mb-0">
+                Phiên bản này chỉ ghi nhận yêu cầu. Xử lý kho / phiếu nhập / cập nhật tồn sẽ được làm ở issue sau.
+            </p>
+        </div>
+    </div>
+</div>
