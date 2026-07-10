@@ -20,6 +20,7 @@ namespace CafeChain.Application.Services.Inventories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryDeductionService> _logger;
+        private readonly IUnitConversionService _unitConversion;
         private readonly IStockAlertService? _stockAlertService;
 
         // Giới hạn tối đa 5 tầng BOM — đồng bộ với AdminRecipeService
@@ -28,44 +29,48 @@ namespace CafeChain.Application.Services.Inventories
         public InventoryDeductionService(
             AppDbContext context,
             ILogger<InventoryDeductionService> logger,
+            IUnitConversionService unitConversion,
             IStockAlertService? stockAlertService = null)
         {
             _context = context;
             _logger = logger;
+            _unitConversion = unitConversion;
             _stockAlertService = stockAlertService;
         }
 
         // ============================================================
         // COGS: Tính giá vốn an toàn — Có Depth Limit + Cycle Guard
         // ============================================================
-        public async Task<decimal> CalculateRecipeCogsAsync(int recipeId)
+        public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
         {
-            // Khởi tạo visited set để phát hiện vòng lặp
             return await CalculateRecipeCogsInternalAsync(recipeId, new HashSet<int>(), 0);
         }
 
         /// <summary>
         /// Internal recursive COGS calculation với Cycle Guard và Depth Limit.
+        /// Missing/invalid unit conversion → Failure (never understated success total).
         /// </summary>
-        private async Task<decimal> CalculateRecipeCogsInternalAsync(
+        private async Task<ServiceResult<decimal>> CalculateRecipeCogsInternalAsync(
             int recipeId, HashSet<int> visited, int depth)
         {
             // GUARD 1: Depth Limit — tránh StackOverflow
             if (depth > MAX_BOM_DEPTH)
             {
                 _logger.LogWarning(
-                    "Tính COGS vượt quá {MaxDepth} tầng cho Recipe #{RecipeId}. Trả về 0.",
+                    "Tính COGS vượt quá {MaxDepth} tầng cho Recipe #{RecipeId}.",
                     MAX_BOM_DEPTH, recipeId);
-                return 0;
+                return ServiceResult<decimal>.Failure(
+                    $"Tính COGS vượt quá {MAX_BOM_DEPTH} tầng cho Recipe #{recipeId}.");
             }
 
             // GUARD 2: Cycle Detection — tránh đệ quy vô hạn
             if (!visited.Add(recipeId))
             {
                 _logger.LogWarning(
-                    "Phát hiện vòng lặp khi tính COGS tại Recipe #{RecipeId}. Trả về 0.",
+                    "Phát hiện vòng lặp khi tính COGS tại Recipe #{RecipeId}.",
                     recipeId);
-                return 0;
+                return ServiceResult<decimal>.Failure(
+                    $"Phát hiện vòng lặp khi tính COGS tại Recipe #{recipeId}.");
             }
 
             // KHÔNG lọc theo Status/Active — phải tính được COGS cho cả Recipe đã Archived
@@ -74,7 +79,8 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(r => r.RecipeDetails)
                 .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
 
-            if (recipe == null) return 0;
+            if (recipe == null)
+                return ServiceResult<decimal>.Success(0m);
 
             decimal totalCost = 0;
 
@@ -84,7 +90,6 @@ namespace CafeChain.Application.Services.Inventories
 
                 if (detail.IngredientId.HasValue)
                 {
-                    // Lấy giá vốn từ Supplier (Supplier chính hoặc đầu tiên)
                     var supplier = await _context.IngredientSuppliers
                         .Where(s => s.IngredientId == detail.IngredientId.Value)
                         .OrderByDescending(s => s.IsPrimary)
@@ -92,18 +97,28 @@ namespace CafeChain.Application.Services.Inventories
 
                     decimal unitPrice = supplier?.CurrentPrice ?? 0;
 
-                    // FIX #4: Apply Unit Conversion — quy đổi về BaseUnit trước khi nhân giá
-                    decimal convertedQty = await ConvertQuantityToBaseUnitAsync(
+                    var converted = await ConvertQuantityToBaseUnitAsync(
                         detail.IngredientId.Value, detail.Quantity, detail.UnitId);
+                    if (!converted.ok)
+                    {
+                        _logger.LogError(
+                            "COGS conversion failure IngredientId={IngredientId}: {Error}",
+                            detail.IngredientId, converted.error);
+                        return ServiceResult<decimal>.Failure(
+                            converted.error
+                            ?? $"Thiếu quy đổi đơn vị khi tính COGS cho nguyên liệu #{detail.IngredientId}.");
+                    }
 
-                    detailCost = unitPrice * convertedQty;
+                    detailCost = unitPrice * converted.qty;
                 }
                 else if (detail.ChildRecipeId.HasValue)
                 {
-                    // Đệ quy tính giá vốn của Bán Thành Phẩm với depth + 1
-                    decimal childCost = await CalculateRecipeCogsInternalAsync(
+                    var childResult = await CalculateRecipeCogsInternalAsync(
                         detail.ChildRecipeId.Value, visited, depth + 1);
-                    detailCost = childCost * detail.Quantity;
+                    if (!childResult.IsSuccess)
+                        return childResult;
+
+                    detailCost = childResult.Data * detail.Quantity;
                 }
 
                 totalCost += detailCost;
@@ -124,54 +139,20 @@ namespace CafeChain.Application.Services.Inventories
                     "YieldPercentage = {Yield}% cho Recipe #{RecipeId} — không hợp lệ, bỏ qua điều chỉnh hao hụt.",
                     recipe.YieldPercentage, recipeId);
             }
-            // YieldPercentage == 100 → không điều chỉnh (default)
 
-            return totalCost;
+            return ServiceResult<decimal>.Success(totalCost);
         }
 
         // ============================================================
-        // FIX #4: Unit Conversion — Quy đổi Quantity về BaseUnit
+        // Unit Conversion via shared service (fail-closed)
         // ============================================================
-        /// <summary>
-        /// Chuyển đổi quantity từ fromUnitId về BaseUnit của Ingredient.
-        /// Nếu đã ở BaseUnit hoặc không tìm thấy conversion → trả về nguyên bản.
-        /// </summary>
-        private async Task<decimal> ConvertQuantityToBaseUnitAsync(
+        private async Task<(bool ok, decimal qty, string? error)> ConvertQuantityToBaseUnitAsync(
             int ingredientId, decimal quantity, int fromUnitId)
         {
-            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
-            if (ingredient == null || fromUnitId == ingredient.BaseUnitId)
-                return quantity; // Đã ở BaseUnit, không cần convert
-
-            // Tìm conversion trực tiếp: fromUnitId → BaseUnit
-            var conversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == fromUnitId &&
-                    uc.ToUnitId == ingredient.BaseUnitId);
-
-            if (conversion != null && conversion.FromQuantity > 0)
-            {
-                return quantity * (conversion.ToQuantity / conversion.FromQuantity);
-            }
-
-            // Thử chiều ngược: BaseUnit → fromUnitId (đảo công thức)
-            var reverseConversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == ingredient.BaseUnitId &&
-                    uc.ToUnitId == fromUnitId);
-
-            if (reverseConversion != null && reverseConversion.ToQuantity > 0)
-            {
-                return quantity * (reverseConversion.FromQuantity / reverseConversion.ToQuantity);
-            }
-
-            // Không tìm thấy conversion → log warning, trả về nguyên bản
-            _logger.LogWarning(
-                "Không tìm thấy tỷ lệ chuyển đổi UnitId {FromUnit} → BaseUnit cho Ingredient #{IngId}. Dùng quantity nguyên bản.",
-                fromUnitId, ingredientId);
-            return quantity;
+            var result = await _unitConversion.ConvertAsync(ingredientId, quantity, fromUnitId);
+            if (!result.IsSuccess)
+                return (false, 0m, result.Message);
+            return (true, result.Data, null);
         }
 
         // ============================================================
@@ -387,11 +368,26 @@ namespace CafeChain.Application.Services.Inventories
             {
                 decimal requiredQty = detail.Quantity * soldQuantity;
 
-                // FIX #4: Apply Unit Conversion cho xuất kho
-                decimal convertedQty = detail.IngredientId.HasValue
-                    ? await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, requiredQty, detail.UnitId)
-                    : requiredQty;
+                decimal convertedQty;
+                if (detail.IngredientId.HasValue)
+                {
+                    var converted = await ConvertQuantityToBaseUnitAsync(
+                        detail.IngredientId.Value, requiredQty, detail.UnitId);
+                    if (!converted.ok)
+                    {
+                        // Do not silently deduct raw quantity — surface as failure via exception
+                        // so outer transaction rolls back and order path can retry after data fix.
+                        throw new InvalidOperationException(
+                            converted.error ??
+                            $"Thiếu quy đổi đơn vị cho nguyên liệu #{detail.IngredientId}.");
+                    }
+
+                    convertedQty = converted.qty;
+                }
+                else
+                {
+                    convertedQty = requiredQty;
+                }
 
                 var inventoryItem = await GetOrCreateInventoryItem(storeId, detail.IngredientId, detail.ChildRecipeId);
 

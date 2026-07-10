@@ -7,7 +7,11 @@ namespace CafeChain.Application.Interfaces.Inventories
 {
     public interface IInventoryDeductionService
     {
-        Task<decimal> CalculateRecipeCogsAsync(int recipeId);
+        /// <summary>
+        /// Recipe COGS in base units. Failure when conversion is missing/invalid —
+        /// never returns a partial understated cost as success.
+        /// </summary>
+        Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId);
         Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId);
         Task<ServiceResult> DeductStockForCommittedOrderAsync(
             List<POSSoldItemDto> soldItems,
