@@ -88,6 +88,8 @@ namespace CafeChain.Extensions.Services
 
             // Inventory Core
             services.AddScoped<IInventoryService, InventoryService>();
+            // EstimatedBomCost (package-normalized COMPLETE/INCOMPLETE) — Issue #117
+            services.AddScoped<IEstimatedBomCostService, EstimatedBomCostService>();
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
             services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
 

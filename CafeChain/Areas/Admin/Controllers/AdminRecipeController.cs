@@ -1,5 +1,7 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Costing;
 using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.ViewModels.Admin.Recipes;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -16,15 +18,18 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IAdminRecipeService _recipeService;
         private readonly IRecipeOutputNormalizer _outputNormalizer;
+        private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly AppDbContext _context;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
             IRecipeOutputNormalizer outputNormalizer,
+            IEstimatedBomCostService estimatedBomCost,
             AppDbContext context)
         {
             _recipeService = recipeService;
             _outputNormalizer = outputNormalizer;
+            _estimatedBomCost = estimatedBomCost;
             _context = context;
         }
 
@@ -152,9 +157,9 @@ namespace CafeChain.Areas.Admin.Controllers
         // CREATE
         // ============================================================
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             return View(new RecipeCreateVM());
         }
 
@@ -212,6 +217,49 @@ namespace CafeChain.Areas.Admin.Controllers
                 baseUnitCode = d.BaseUnitCode,
                 preparedItemCode = d.PreparedItemCode,
                 preparedItemName = d.PreparedItemName
+            });
+        }
+
+        /// <summary>
+        /// EstimatedBomCost for a saved Recipe (#117). Authoritative COMPLETE/INCOMPLETE.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> EstimateBomCost(int recipeId)
+        {
+            if (recipeId <= 0)
+                return Json(new { success = false, message = "RecipeId không hợp lệ." });
+
+            var result = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
+            return Json(new
+            {
+                success = true,
+                status = result.Status.ToString(),
+                isComplete = result.IsComplete,
+                totalCost = result.TotalCost,
+                label = result.IsComplete
+                    ? "Giá vốn ước tính"
+                    : "Giá vốn ước tính — chưa đủ dữ liệu",
+                issues = result.Issues.Select(i => new { i.Code, i.Message, i.IngredientId, i.RecipeId, i.RecipeDetailId }),
+                lines = result.Lines.Select(l => new
+                {
+                    l.RecipeDetailId,
+                    componentKind = l.ComponentKind.ToString(),
+                    l.IngredientId,
+                    l.ChildRecipeId,
+                    l.PreparedItemId,
+                    l.Quantity,
+                    l.UnitId,
+                    l.UnitCode,
+                    l.QuantityInBase,
+                    l.BaseUnitCode,
+                    l.BaseUnitCost,
+                    l.LineCost,
+                    status = l.Status.ToString(),
+                    l.PackagePrice,
+                    l.PackageQuantity,
+                    l.PackageUnitCode,
+                    l.DisplaySummary
+                })
             });
         }
 
@@ -278,7 +326,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             ViewBag.RecipeId = id;
             ViewBag.RecipeName = recipe.Name;
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             return View(vm);
         }
 
@@ -289,7 +337,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.RecipeId = id;
-                PopulateViewBagData();
+                await PopulateViewBagDataAsync();
                 return View(model);
             }
 
@@ -301,7 +349,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.RecipeId = id;
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             ModelState.AddModelError("", result.Message);
             return View(model);
         }
@@ -337,25 +385,42 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(sizes);
         }
 
-        private void PopulateViewBagData()
+        private async Task PopulateViewBagDataAsync()
         {
-            ViewBag.Ingredients = _context.Ingredients
+            // Package-normalized base-unit costs (#117) — never map CurrentPrice as ₫/Gram.
+            var ingredients = await _context.Ingredients
+                .AsNoTracking()
                 .Include(i => i.BaseUnit)
-                .Include(i => i.IngredientSuppliers)
                 .Where(x => x.Active)
-                .Select(x => new
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            var ingredientDtos = new List<object>();
+            foreach (var x in ingredients)
+            {
+                var cost = await _estimatedBomCost.ResolveIngredientBaseUnitCostAsync(x.IngredientId);
+                ingredientDtos.Add(new
                 {
                     Id = x.IngredientId,
                     Name = x.Name,
-                    BaseCost = x.IngredientSuppliers.Any(s => s.IsPrimary)
-                        ? x.IngredientSuppliers.First(s => s.IsPrimary).CurrentPrice
-                        : x.IngredientSuppliers.Any()
-                            ? x.IngredientSuppliers.First().CurrentPrice
-                            : 0m,
+                    // BaseCost only when COMPLETE package-normalized unit cost exists
+                    BaseCost = cost.IsComplete ? cost.BaseUnitCost!.Value : 0m,
+                    CostComplete = cost.IsComplete,
+                    PackagePrice = cost.PackagePrice,
+                    PackageQuantity = cost.PackageQuantity,
+                    PackageUnitCode = cost.PackageUnitCode,
+                    BaseUnitCode = cost.BaseUnitCode ?? x.BaseUnit?.UnitCode,
+                    CostMessage = cost.IsComplete
+                        ? null
+                        : (cost.Issues.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn"),
                     UnitId = x.BaseUnitId,
-                    UnitName = x.BaseUnit.Name
-                }).ToList<object>();
+                    UnitName = x.BaseUnit?.Name ?? ""
+                });
+            }
 
+            ViewBag.Ingredients = ingredientDtos;
+
+            // Child recipes: no silent package base cost; estimate when output contract exists later via server
             ViewBag.SubRecipes = _context.Recipes
                 .Where(x => x.Active && x.Status == "Active")
                 .Select(x => new
@@ -363,8 +428,10 @@ namespace CafeChain.Areas.Admin.Controllers
                     Id = x.RecipeId,
                     Name = x.Name,
                     BaseCost = 0m,
+                    CostComplete = false,
                     UnitId = 0,
-                    UnitName = "Phần"
+                    UnitName = "Phần",
+                    CostMessage = "BTP: dùng EstimateBomCost / sản lượng đầu ra"
                 }).ToList<object>();
 
             ViewBag.Drinks = _context.Drinks

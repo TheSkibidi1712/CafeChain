@@ -260,7 +260,16 @@
         {
             foreach (dynamic item in ViewBag.Ingredients)
             {
-                <option value="ING_@(item.Id)" data-basecost="@item.BaseCost" data-unitid="@item.UnitId" data-unitname="@item.UnitName">@item.Name</option>
+                <option value="ING_@(item.Id)"
+                        data-basecost="@item.BaseCost"
+                        data-costcomplete="@(item.CostComplete == true ? "1" : "0")"
+                        data-packageprice="@(item.PackagePrice ?? 0)"
+                        data-packageqty="@(item.PackageQuantity ?? 0)"
+                        data-packageunit="@(item.PackageUnitCode ?? "")"
+                        data-baseunitcode="@(item.BaseUnitCode ?? "")"
+                        data-costmessage="@(item.CostMessage ?? "")"
+                        data-unitid="@item.UnitId"
+                        data-unitname="@item.UnitName">@item.Name</option>
             }
         }
     </optgroup>
@@ -269,7 +278,12 @@
         {
             foreach (dynamic item in ViewBag.SubRecipes)
             {
-                <option value="REC_@(item.Id)" data-basecost="@item.BaseCost" data-unitid="@item.UnitId" data-unitname="@item.UnitName">@item.Name</option>
+                <option value="REC_@(item.Id)"
+                        data-basecost="0"
+                        data-costcomplete="0"
+                        data-costmessage="@(item.CostMessage ?? "")"
+                        data-unitid="@item.UnitId"
+                        data-unitname="@item.UnitName">@item.Name</option>
             }
         }
     </optgroup>
@@ -288,6 +302,12 @@
                 if (val) {
                     itemDataMap[val] = {
                         basecost: parseFloat($(this).attr('data-basecost')) || 0,
+                        costcomplete: $(this).attr('data-costcomplete') === '1',
+                        packageprice: parseFloat($(this).attr('data-packageprice')) || 0,
+                        packageqty: parseFloat($(this).attr('data-packageqty')) || 0,
+                        packageunit: $(this).attr('data-packageunit') || '',
+                        baseunitcode: $(this).attr('data-baseunitcode') || '',
+                        costmessage: $(this).attr('data-costmessage') || '',
                         unitid: parseInt($(this).attr('data-unitid')) || 0,
                         unitname: $(this).attr('data-unitname') || ''
                     };
@@ -397,25 +417,40 @@
             }
 
             function calculateTotal() {
-                let grandTotal = 0;
+                // #117: package-normalized base unit cost; no YieldPercentage; incomplete ⇒ not fake complete total
+                let completeTotal = 0;
+                let anyIncomplete = false;
                 $('#bomTableBody tr').each(function () {
                     const itemCode = $(this).find('.item-select').val();
                     const quantity = parseFloat($(this).find('.item-qty').val()) || 0;
-                    const yieldPct = parseFloat($(this).find('.item-yield').val()) || 100;
                     const itemInfo = itemDataMap[itemCode];
                     const baseCost = itemInfo ? itemInfo.basecost : 0;
-                    const yieldFactor = yieldPct > 0 ? (yieldPct / 100) : 1;
-                    const actualCost = (quantity * baseCost) / yieldFactor;
+                    const costComplete = itemInfo && itemInfo.costcomplete && baseCost > 0;
 
-                    if (baseCost > 0) {
-                        $(this).find('.row-total-display').text(new Intl.NumberFormat('vi-VN').format(Math.round(actualCost)) + ' đ').removeClass('text-muted').addClass('text-success');
+                    if (costComplete) {
+                        const actualCost = quantity * baseCost;
+                        completeTotal += actualCost;
+                        const unitCode = itemInfo.baseunitcode || itemInfo.unitname || 'ĐVT';
+                        $(this).find('.row-total-display')
+                            .text(new Intl.NumberFormat('vi-VN').format(Math.round(actualCost)) + ' đ (' + Math.round(baseCost) + '₫/' + unitCode + ')')
+                            .removeClass('text-muted text-warning').addClass('text-success');
                     } else {
-                        $(this).find('.row-total-display').text('Chưa có giá').removeClass('text-success').addClass('text-muted');
+                        anyIncomplete = !!itemCode;
+                        $(this).find('.row-total-display')
+                            .text(itemCode ? 'Giá vốn ước tính — chưa đủ dữ liệu' : 'Chưa chọn')
+                            .removeClass('text-success').addClass('text-warning');
                     }
-                    grandTotal += actualCost;
                 });
-                $('#displayTotalCost').text(grandTotal > 0 ? new Intl.NumberFormat('vi-VN').format(Math.round(grandTotal)) + ' đ' : 'Chờ cập nhật');
-                $('#hiddenTotalCost').val(Math.round(grandTotal));
+                if (anyIncomplete) {
+                    $('#displayTotalCost').text('INCOMPLETE — chưa đủ dữ liệu');
+                    $('#hiddenTotalCost').val(0);
+                } else if (completeTotal > 0) {
+                    $('#displayTotalCost').text(new Intl.NumberFormat('vi-VN').format(Math.round(completeTotal)) + ' đ');
+                    $('#hiddenTotalCost').val(Math.round(completeTotal));
+                } else {
+                    $('#displayTotalCost').text('Chờ cập nhật');
+                    $('#hiddenTotalCost').val(0);
+                }
             }
 
             function addRow(preItemCode, preQty, preUnitId, preUnitName, preYield) {

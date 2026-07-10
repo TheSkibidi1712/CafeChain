@@ -21,126 +21,47 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryDeductionService> _logger;
         private readonly IUnitConversionService _unitConversion;
+        private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IStockAlertService? _stockAlertService;
-
-        // Giới hạn tối đa 5 tầng BOM — đồng bộ với AdminRecipeService
-        private const int MAX_BOM_DEPTH = 5;
 
         public InventoryDeductionService(
             AppDbContext context,
             ILogger<InventoryDeductionService> logger,
             IUnitConversionService unitConversion,
+            IEstimatedBomCostService estimatedBomCost,
             IStockAlertService? stockAlertService = null)
         {
             _context = context;
             _logger = logger;
             _unitConversion = unitConversion;
+            _estimatedBomCost = estimatedBomCost;
             _stockAlertService = stockAlertService;
         }
 
         // ============================================================
-        // COGS: Tính giá vốn an toàn — Có Depth Limit + Cycle Guard
+        // COGS READ adapter over EstimatedBomCost (Issue #117)
+        // Complete → Success(total). Incomplete → Failure (never Success(0) fake complete).
+        // Does not apply YieldPercentage. Does not mutate stock.
+        //
+        // CRITICAL: DeductStockForOrder* MUST NOT call this method.
+        // Cost incompleteness (missing package price / PackageQuantity / primary) is NOT a
+        // quantity conversion failure and must never block valid inventory deduction.
         // ============================================================
         public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
         {
-            return await CalculateRecipeCogsInternalAsync(recipeId, new HashSet<int>(), 0);
-        }
+            var estimate = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
+            if (estimate.IsComplete && estimate.TotalCost.HasValue)
+                return ServiceResult<decimal>.Success(estimate.TotalCost.Value);
 
-        /// <summary>
-        /// Internal recursive COGS calculation với Cycle Guard và Depth Limit.
-        /// Missing/invalid unit conversion → Failure (never understated success total).
-        /// </summary>
-        private async Task<ServiceResult<decimal>> CalculateRecipeCogsInternalAsync(
-            int recipeId, HashSet<int> visited, int depth)
-        {
-            // GUARD 1: Depth Limit — tránh StackOverflow
-            if (depth > MAX_BOM_DEPTH)
-            {
-                _logger.LogWarning(
-                    "Tính COGS vượt quá {MaxDepth} tầng cho Recipe #{RecipeId}.",
-                    MAX_BOM_DEPTH, recipeId);
-                return ServiceResult<decimal>.Failure(
-                    $"Tính COGS vượt quá {MAX_BOM_DEPTH} tầng cho Recipe #{recipeId}.");
-            }
+            var message = estimate.Issues.Count > 0
+                ? estimate.Issues[0].Message
+                : $"Giá vốn ước tính chưa đủ dữ liệu cho Recipe #{recipeId}.";
 
-            // GUARD 2: Cycle Detection — tránh đệ quy vô hạn
-            if (!visited.Add(recipeId))
-            {
-                _logger.LogWarning(
-                    "Phát hiện vòng lặp khi tính COGS tại Recipe #{RecipeId}.",
-                    recipeId);
-                return ServiceResult<decimal>.Failure(
-                    $"Phát hiện vòng lặp khi tính COGS tại Recipe #{recipeId}.");
-            }
+            _logger.LogWarning(
+                "EstimatedBomCost incomplete for Recipe #{RecipeId}: {Message} (issues={Count})",
+                recipeId, message, estimate.Issues.Count);
 
-            // KHÔNG lọc theo Status/Active — phải tính được COGS cho cả Recipe đã Archived
-            // để bảo vệ dữ liệu lịch sử (VD: đơn hàng cũ cần tra cứu giá vốn)
-            var recipe = await _context.Recipes
-                .Include(r => r.RecipeDetails)
-                .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
-
-            if (recipe == null)
-                return ServiceResult<decimal>.Success(0m);
-
-            decimal totalCost = 0;
-
-            foreach (var detail in recipe.RecipeDetails)
-            {
-                decimal detailCost = 0;
-
-                if (detail.IngredientId.HasValue)
-                {
-                    var supplier = await _context.IngredientSuppliers
-                        .Where(s => s.IngredientId == detail.IngredientId.Value)
-                        .OrderByDescending(s => s.IsPrimary)
-                        .FirstOrDefaultAsync();
-
-                    decimal unitPrice = supplier?.CurrentPrice ?? 0;
-
-                    var converted = await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, detail.Quantity, detail.UnitId);
-                    if (!converted.ok)
-                    {
-                        _logger.LogError(
-                            "COGS conversion failure IngredientId={IngredientId}: {Error}",
-                            detail.IngredientId, converted.error);
-                        return ServiceResult<decimal>.Failure(
-                            converted.error
-                            ?? $"Thiếu quy đổi đơn vị khi tính COGS cho nguyên liệu #{detail.IngredientId}.");
-                    }
-
-                    detailCost = unitPrice * converted.qty;
-                }
-                else if (detail.ChildRecipeId.HasValue)
-                {
-                    var childResult = await CalculateRecipeCogsInternalAsync(
-                        detail.ChildRecipeId.Value, visited, depth + 1);
-                    if (!childResult.IsSuccess)
-                        return childResult;
-
-                    detailCost = childResult.Data * detail.Quantity;
-                }
-
-                totalCost += detailCost;
-            }
-
-            // YieldPercentage logic:
-            //   100% = không hao hụt (mặc định, không điều chỉnh)
-            //   < 100% (VD: 95%) = hao hụt 5% → chi phí tăng: totalCost / 0.95
-            //   > 100% (VD: 110%) = nở ra 10% → chi phí giảm: totalCost / 1.10
-            //   <= 0% = KHÔNG HỢP LỆ → bỏ qua để tránh Division by Zero
-            if (recipe.YieldPercentage > 0 && recipe.YieldPercentage != 100)
-            {
-                totalCost = totalCost / (recipe.YieldPercentage / 100m);
-            }
-            else if (recipe.YieldPercentage <= 0)
-            {
-                _logger.LogError(
-                    "YieldPercentage = {Yield}% cho Recipe #{RecipeId} — không hợp lệ, bỏ qua điều chỉnh hao hụt.",
-                    recipe.YieldPercentage, recipeId);
-            }
-
-            return ServiceResult<decimal>.Success(totalCost);
+            return ServiceResult<decimal>.Failure(message);
         }
 
         // ============================================================

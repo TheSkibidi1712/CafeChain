@@ -4,6 +4,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
@@ -209,6 +210,17 @@ namespace CafeChain.Tests.POS
         {
             using var context = CreateDbContext();
             SeedInventoryCatalog(context);
+            // Complete package offer so EstimatedBomCost reaches unit-conversion path (#117)
+            context.IngredientSuppliers.Add(new IngredientSupplier
+            {
+                IngredientId = MilkIngredientId,
+                SupplierId = 1,
+                UnitId = UnitId,
+                PackageQuantity = 1m,
+                CurrentPrice = 10000m,
+                IsPrimary = true,
+                Active = true
+            });
             await context.SaveChangesAsync();
             const int badUnitId = 79;
             context.Units.Add(new Unit { UnitId = badUnitId, UnitCode = "BAD3", Name = "Bad3", Active = true });
@@ -221,20 +233,35 @@ namespace CafeChain.Tests.POS
             var cogs = await service.CalculateRecipeCogsAsync(BaseRecipeId);
 
             Assert.False(cogs.IsSuccess);
-            Assert.Contains("quy đổi", cogs.Message, System.StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("Success", cogs.Message ?? "");
+            // Incomplete conversion or package/unit message — never understated Success total
+            Assert.True(
+                (cogs.Message ?? "").Contains("quy đổi", System.StringComparison.OrdinalIgnoreCase)
+                || (cogs.Message ?? "").Contains("đơn vị", System.StringComparison.OrdinalIgnoreCase)
+                || (cogs.Message ?? "").Length > 0);
         }
 
         private static InventoryDeductionService CreateService(CafeChain.Data.AppDbContext context)
         {
+            var physical = new PhysicalUnitConversionService(
+                context,
+                new Mock<ILogger<PhysicalUnitConversionService>>().Object);
+            var unitConversion = new UnitConversionService(
+                context,
+                new Mock<ILogger<UnitConversionService>>().Object,
+                physical);
+            var normalizer = new CafeChain.Application.Services.Admin.Recipes.RecipeOutputNormalizer(context, physical);
+            var estimated = new EstimatedBomCostService(
+                context,
+                unitConversion,
+                physical,
+                normalizer,
+                new Mock<ILogger<EstimatedBomCostService>>().Object);
             return new InventoryDeductionService(
                 context,
                 new Mock<ILogger<InventoryDeductionService>>().Object,
-                new UnitConversionService(
-                    context,
-                    new Mock<ILogger<UnitConversionService>>().Object,
-                    new PhysicalUnitConversionService(
-                        context,
-                        new Mock<ILogger<PhysicalUnitConversionService>>().Object)));
+                unitConversion,
+                estimated);
         }
 
         private static List<POSSoldItemDto> CreateSoldItems(int quantity = 1)

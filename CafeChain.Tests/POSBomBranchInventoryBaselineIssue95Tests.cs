@@ -175,15 +175,25 @@ namespace CafeChain.Tests.POS
 
         private static InventoryDeductionService CreateService(CafeChain.Data.AppDbContext context)
         {
+            var physical = new PhysicalUnitConversionService(
+                context,
+                new Mock<ILogger<PhysicalUnitConversionService>>().Object);
+            var unitConversion = new UnitConversionService(
+                context,
+                new Mock<ILogger<UnitConversionService>>().Object,
+                physical);
+            var normalizer = new CafeChain.Application.Services.Admin.Recipes.RecipeOutputNormalizer(context, physical);
+            var estimated = new EstimatedBomCostService(
+                context,
+                unitConversion,
+                physical,
+                normalizer,
+                new Mock<ILogger<EstimatedBomCostService>>().Object);
             return new InventoryDeductionService(
                 context,
                 new Mock<ILogger<InventoryDeductionService>>().Object,
-                new UnitConversionService(
-                    context,
-                    new Mock<ILogger<UnitConversionService>>().Object,
-                    new PhysicalUnitConversionService(
-                        context,
-                        new Mock<ILogger<PhysicalUnitConversionService>>().Object)));
+                unitConversion,
+                estimated);
         }
 
         private static List<POSSoldItemDto> SoldItems(int quantity)
