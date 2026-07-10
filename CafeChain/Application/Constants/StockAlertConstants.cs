@@ -12,7 +12,10 @@ namespace CafeChain.Application.Constants
     {
         public const string Open = "OPEN";
         public const string Resolved = "RESOLVED";
-        // Future: CONFIRMED, MANAGER_REJECTED
+        /// <summary>Issue #99 — StoreManager confirmed alert.</summary>
+        public const string Confirmed = "CONFIRMED";
+        /// <summary>Issue #99 — StoreManager rejected (false positive).</summary>
+        public const string ManagerRejected = "MANAGER_REJECTED";
     }
 
     /// <summary>Issue #97 — StockAlert severity codes.</summary>
@@ -38,6 +41,10 @@ namespace CafeChain.Application.Constants
     public static class StaffNotificationTypes
     {
         public const string StockShortageReport = "STOCK_SHORTAGE_REPORT";
+        /// <summary>Issue #99 — notify reporter that manager confirmed.</summary>
+        public const string StockAlertConfirmed = "STOCK_ALERT_CONFIRMED";
+        /// <summary>Issue #99 — notify reporter that manager rejected.</summary>
+        public const string StockAlertRejected = "STOCK_ALERT_REJECTED";
     }
 
     /// <summary>Issue #98 — StaffNotification entity type codes.</summary>

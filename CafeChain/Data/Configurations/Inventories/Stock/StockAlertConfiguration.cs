@@ -42,6 +42,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.ManagerNote)
+                .HasMaxLength(500);
+
+            entity.Property(x => x.RejectReason)
+                .HasMaxLength(500);
+
             entity.Property(x => x.ResolvedReason)
                 .HasMaxLength(500);
 
@@ -71,6 +77,19 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .WithMany()
                 .HasForeignKey(x => x.ReportedByStaffId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Issue #99 — manager confirm/reject actors.
+            // Restrict (not SetNull): SQL Server rejects multiple cascade/set-null paths
+            // from StockAlerts → Staffs (ReportedBy already uses SetNull).
+            entity.HasOne(x => x.ConfirmedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.ConfirmedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.RejectedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.RejectedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => new { x.StoreId, x.IngredientId });

@@ -26,7 +26,7 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>WARNING | URGENT</summary>
         public string Severity { get; set; } = string.Empty;
 
-        /// <summary>OPEN | RESOLVED</summary>
+        /// <summary>OPEN | RESOLVED | CONFIRMED | MANAGER_REJECTED</summary>
         public string Status { get; set; } = string.Empty;
 
         public decimal CurrentQtySnapshot { get; set; }
@@ -36,7 +36,7 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>AUTO | MANUAL_CHECK | POS_SALE | OFFLINE_SYNC | INVENTORY_TRANSACTION | SALES_REPORT</summary>
         public string Source { get; set; } = string.Empty;
 
-        /// <summary>Latest report note (Issue #98 — overwrite, no history).</summary>
+        /// <summary>Latest report note (Issue #98 — overwrite, no history). Do not use for manager decision.</summary>
         public string? Note { get; set; }
 
         /// <summary>Issue #98 — latest staff who reported shortage (null for auto detection).</summary>
@@ -44,6 +44,22 @@ namespace CafeChain.Models.Inventories.Stock
 
         /// <summary>Issue #98 — latest shortage report time (UTC).</summary>
         public DateTime? ReportedAt { get; set; }
+
+        /// <summary>Issue #99 — StoreManager who confirmed.</summary>
+        public int? ConfirmedByStaffId { get; set; }
+
+        public DateTime? ConfirmedAt { get; set; }
+
+        /// <summary>Issue #99 — mandatory manager note on confirm.</summary>
+        public string? ManagerNote { get; set; }
+
+        /// <summary>Issue #99 — StoreManager who rejected.</summary>
+        public int? RejectedByStaffId { get; set; }
+
+        public DateTime? RejectedAt { get; set; }
+
+        /// <summary>Issue #99 — mandatory reject reason.</summary>
+        public string? RejectReason { get; set; }
 
         public DateTime CreatedAt { get; set; }
 
@@ -57,5 +73,7 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }
         public virtual Staff? ReportedByStaff { get; set; }
+        public virtual Staff? ConfirmedByStaff { get; set; }
+        public virtual Staff? RejectedByStaff { get; set; }
     }
 }

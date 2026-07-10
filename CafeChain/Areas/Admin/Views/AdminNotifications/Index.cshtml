@@ -70,6 +70,10 @@
                                         · Email chưa gửi được, nhưng thông báo đã được ghi nhận trong hệ thống.
                                     </span>
                                 }
+                                @if (!string.IsNullOrEmpty(item.TargetUrl))
+                                {
+                                    <a class="ms-2" href="@item.TargetUrl">Xem cảnh báo →</a>
+                                }
                             </div>
                         </div>
                         @if (!item.IsRead)

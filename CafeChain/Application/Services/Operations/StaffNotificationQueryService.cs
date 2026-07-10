@@ -158,15 +158,36 @@ namespace CafeChain.Application.Services.Operations
             if (!isStockAlert)
                 return null;
 
-            // POS SPA: open branch inventory. Admin: no alert detail screen yet (#99/#100).
+            // POS SPA: branch inventory. Admin: stock alert details (#99).
             if (string.Equals(channel, ChannelAdmin, StringComparison.OrdinalIgnoreCase))
-                return null;
+                return null; // set with entityId in MapItem for Admin
 
             return "/inventory";
         }
 
+        /// <summary>Admin deep-link with entity id (Issue #99).</summary>
+        public static string? MapAdminTargetUrl(string entityType, string type, int entityId)
+        {
+            var isStockAlert =
+                string.Equals(entityType, StaffNotificationEntityTypes.StockAlert, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(type, StaffNotificationTypes.StockShortageReport, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(type, StaffNotificationTypes.StockAlertConfirmed, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(type, StaffNotificationTypes.StockAlertRejected, StringComparison.OrdinalIgnoreCase);
+
+            if (!isStockAlert || entityId <= 0)
+                return null;
+
+            return $"/Admin/AdminStockAlerts/Details/{entityId}";
+        }
+
         private static StaffNotificationItemDto MapItem(StaffNotification n, string channel)
         {
+            string? targetUrl;
+            if (string.Equals(channel, ChannelAdmin, StringComparison.OrdinalIgnoreCase))
+                targetUrl = MapAdminTargetUrl(n.EntityType, n.Type, n.EntityId);
+            else
+                targetUrl = MapTargetUrl(n.EntityType, n.Type, channel);
+
             return new StaffNotificationItemDto
             {
                 NotificationId = n.StaffNotificationId,
@@ -181,7 +202,7 @@ namespace CafeChain.Application.Services.Operations
                 EmailAttempted = n.EmailAttempted,
                 EmailSent = n.EmailSent,
                 EmailDeliveryHint = MapEmailDeliveryHint(n.EmailAttempted, n.EmailSent),
-                TargetUrl = MapTargetUrl(n.EntityType, n.Type, channel)
+                TargetUrl = targetUrl
             };
         }
     }

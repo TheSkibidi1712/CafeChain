@@ -1,0 +1,110 @@
+@model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
+@{
+    ViewData["Title"] = "Chi tiết cảnh báo kho";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var isOpen = Model.Status == "OPEN";
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h4 class="mb-0">Cảnh báo #@Model.StockAlertId</h4>
+            <small class="text-muted">@Model.ItemName · @Model.ItemTypeLabel</small>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index">← Danh sách</a>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div><strong>Trạng thái:</strong> <span class="badge bg-dark">@Model.Status</span></div>
+                    <div><strong>Loại cảnh báo:</strong> @Model.AlertType / @Model.Severity</div>
+                    <div><strong>Nguồn:</strong> @Model.Source</div>
+                    <div><strong>Tồn snapshot:</strong> @Model.CurrentQtySnapshot.ToString("N3")</div>
+                    <div><strong>Ngưỡng snapshot:</strong> @(Model.ThresholdSnapshot?.ToString("N3") ?? "—")</div>
+                    <div><strong>Tạo lúc:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                </div>
+                <div class="col-md-6">
+                    <div><strong>Người báo:</strong> @(Model.ReporterName ?? "—")</div>
+                    <div><strong>Thời gian báo:</strong> @(Model.ReportedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                    <div><strong>Ghi chú báo cáo:</strong></div>
+                    <div class="border rounded p-2 bg-light small" style="white-space: pre-wrap;">@(Model.ReporterNote ?? "—")</div>
+                </div>
+            </div>
+
+            @if (Model.Status == "CONFIRMED")
+            {
+                <hr />
+                <div class="small">
+                    <div><strong>Xác nhận bởi:</strong> @(Model.ConfirmedByName ?? $"#{Model.ConfirmedByStaffId}")</div>
+                    <div><strong>Lúc:</strong> @(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                    <div><strong>Ghi chú quản lý:</strong> @(Model.ManagerNote ?? "—")</div>
+                </div>
+            }
+            @if (Model.Status == "MANAGER_REJECTED")
+            {
+                <hr />
+                <div class="small">
+                    <div><strong>Báo sai bởi:</strong> @(Model.RejectedByName ?? $"#{Model.RejectedByStaffId}")</div>
+                    <div><strong>Lúc:</strong> @(Model.RejectedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                    <div><strong>Lý do:</strong> @(Model.RejectReason ?? "—")</div>
+                </div>
+            }
+            @if (Model.Status == "RESOLVED")
+            {
+                <hr />
+                <div class="small">
+                    <div><strong>Tự động RESOLVED:</strong> @(Model.ResolvedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
+                    <div>@(Model.ResolvedReason ?? "")</div>
+                </div>
+            }
+        </div>
+    </div>
+
+    @if (isOpen)
+    {
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="card border-success shadow-sm">
+                    <div class="card-header bg-success text-white">Xác nhận cảnh báo</div>
+                    <div class="card-body">
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Confirm" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.StockAlertId" />
+                            <label class="form-label">Ghi chú xác nhận <span class="text-danger">*</span></label>
+                            <textarea name="managerNote" class="form-control mb-2" rows="3" maxlength="500" required
+                                      placeholder="Nhập ghi chú xác nhận..."></textarea>
+                            <button type="submit" class="btn btn-success">Xác nhận</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card border-secondary shadow-sm">
+                    <div class="card-header bg-secondary text-white">Báo sai cảnh báo</div>
+                    <div class="card-body">
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.StockAlertId" />
+                            <label class="form-label">Lý do báo sai <span class="text-danger">*</span></label>
+                            <textarea name="rejectReason" class="form-control mb-2" rows="3" maxlength="500" required
+                                      placeholder="Nhập lý do báo sai..."></textarea>
+                            <button type="submit" class="btn btn-outline-secondary">Báo sai</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
