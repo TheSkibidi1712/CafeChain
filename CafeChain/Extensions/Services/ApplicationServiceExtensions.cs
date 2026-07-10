@@ -177,6 +177,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
 
+            // Inventory stock alerts (Issue #97)
+            services.AddScoped<IStockAlertService, StockAlertService>();
+
             // Permissions
             services.AddScoped<IAdminPermissionService, AdminPermissionService>();
 

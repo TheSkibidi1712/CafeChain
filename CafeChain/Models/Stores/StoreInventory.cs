@@ -13,6 +13,13 @@ namespace CafeChain.Models.Stores
         public decimal AvailableQty { get; set; }
         public decimal ReservedQty { get; set; }
         public decimal? MaxNegativeQty { get; set; }
+
+        /// <summary>
+        /// Issue #97 — optional min stock threshold for LOW_STOCK detection.
+        /// Null = “Chưa cấu hình ngưỡng tối thiểu” (no auto LOW_STOCK).
+        /// </summary>
+        public decimal? MinStockLevel { get; set; }
+
         public DateTime LastUpdated { get; set; }
 
         [Timestamp]

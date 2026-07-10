@@ -20,14 +20,19 @@ namespace CafeChain.Application.Services.Inventories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryDeductionService> _logger;
+        private readonly IStockAlertService? _stockAlertService;
 
         // Giới hạn tối đa 5 tầng BOM — đồng bộ với AdminRecipeService
         private const int MAX_BOM_DEPTH = 5;
 
-        public InventoryDeductionService(AppDbContext context, ILogger<InventoryDeductionService> logger)
+        public InventoryDeductionService(
+            AppDbContext context,
+            ILogger<InventoryDeductionService> logger,
+            IStockAlertService? stockAlertService = null)
         {
             _context = context;
             _logger = logger;
+            _stockAlertService = stockAlertService;
         }
 
         // ============================================================
@@ -277,12 +282,15 @@ namespace CafeChain.Application.Services.Inventories
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Issue #97: evaluate stock alerts after qty is committed (never fail deduction).
+                await EvaluateStockAlertsSafeAsync(storeId, referenceOrderId);
+
                 // Trả success kèm warnings (nếu có) — đơn hàng KHÔNG bị reject
                 if (inventoryWarnings.Any())
                 {
                     var result = ServiceResult.Success(
                         $"Trừ kho thành công. Cảnh báo: {inventoryWarnings.Count} nguyên liệu tồn kho âm.");
-                    result.Errors = inventoryWarnings;  // Dùng Errors để chứa warnings — controller check IsSuccess
+                    result.Errors = inventoryWarnings;  // Dùng Errors để chở warnings — controller check IsSuccess
                     return result;
                 }
                 return ServiceResult.Success("Trừ kho bán hàng thành công.");
@@ -298,6 +306,40 @@ namespace CafeChain.Application.Services.Inventories
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi xuất kho bán hàng.");
                 return ServiceResult.Failure($"Lỗi xuất kho: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Issue #97 — post-commit stock alert evaluation. Failures are logged only.
+        /// Idempotent deduction is unchanged: alerts run only after successful commit.
+        /// Offline sync and online POS share this path (same DeductStock* entrypoints).
+        /// </summary>
+        private async Task EvaluateStockAlertsSafeAsync(int storeId, int? referenceOrderId)
+        {
+            if (_stockAlertService == null)
+                return;
+
+            try
+            {
+                var source = referenceOrderId.HasValue
+                    ? StockAlertSources.PosSale
+                    : StockAlertSources.PosSale;
+
+                var alertResult = await _stockAlertService.EvaluateStoreAsync(storeId, source);
+                if (!alertResult.IsSuccess)
+                {
+                    _logger.LogWarning(
+                        "[InventoryDeduction] Stock alert evaluation failed for StoreId={StoreId}: {Message}",
+                        storeId,
+                        alertResult.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[InventoryDeduction] Stock alert evaluation threw for StoreId={StoreId}",
+                    storeId);
             }
         }
 

@@ -12,6 +12,8 @@ using CafeChain.Models.Stores;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
+using Moq;
 using Xunit;
 
 namespace CafeChain.Tests.POS
@@ -187,7 +189,10 @@ namespace CafeChain.Tests.POS
             int storeId)
         {
             IPosBranchInventoryService service = new PosBranchInventoryService(ctx);
-            var controller = new POSBranchInventoryController(service);
+            var stockAlerts = new CafeChain.Application.Services.Inventories.StockAlertService(
+                ctx,
+                new Mock<ILogger<CafeChain.Application.Services.Inventories.StockAlertService>>().Object);
+            var controller = new POSBranchInventoryController(service, stockAlerts);
             var claims = new List<Claim>
             {
                 new(ClaimTypes.Role, role),

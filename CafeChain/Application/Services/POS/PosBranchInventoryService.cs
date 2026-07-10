@@ -12,6 +12,9 @@ namespace CafeChain.Application.Services.POS
     public class PosBranchInventoryService : IPosBranchInventoryService
     {
         public const string ThresholdStatusUnconfigured = "Chưa cấu hình ngưỡng tối thiểu";
+        public const string ThresholdStatusOut = "Hết hàng";
+        public const string ThresholdStatusLow = "Gần hết";
+        public const string ThresholdStatusNormal = "Bình thường";
         public const string QuantityStatusNegative = "Tồn âm";
         public const string QuantityStatusOut = "Hết hàng";
         public const string QuantityStatusInStock = "Còn hàng";
@@ -98,6 +101,7 @@ namespace CafeChain.Application.Services.POS
                     RecipeCode = i.Recipe != null ? i.Recipe.RecipeCode : null,
                     i.AvailableQty,
                     i.ReservedQty,
+                    i.MinStockLevel,
                     i.LastUpdated
                 })
                 .ToListAsync();
@@ -140,9 +144,9 @@ namespace CafeChain.Application.Services.POS
                     AvailableQty = r.AvailableQty,
                     ReservedQty = r.ReservedQty,
                     UnitName = unitName,
-                    MinStockLevel = null,
-                    ThresholdConfigured = false,
-                    ThresholdStatus = ThresholdStatusUnconfigured,
+                    MinStockLevel = r.MinStockLevel,
+                    ThresholdConfigured = r.MinStockLevel.HasValue,
+                    ThresholdStatus = MapThresholdStatus(r.AvailableQty, r.MinStockLevel),
                     QuantityStatus = MapQuantityStatus(r.AvailableQty),
                     LastUpdated = r.LastUpdated
                 };
@@ -163,6 +167,20 @@ namespace CafeChain.Application.Services.POS
             if (availableQty < 0) return QuantityStatusNegative;
             if (availableQty == 0) return QuantityStatusOut;
             return QuantityStatusInStock;
+        }
+
+        /// <summary>
+        /// Issue #97 — threshold display using MinStockLevel when configured.
+        /// </summary>
+        public static string MapThresholdStatus(decimal availableQty, decimal? minStockLevel)
+        {
+            if (!minStockLevel.HasValue)
+                return ThresholdStatusUnconfigured;
+            if (availableQty <= 0)
+                return ThresholdStatusOut;
+            if (availableQty <= minStockLevel.Value)
+                return ThresholdStatusLow;
+            return ThresholdStatusNormal;
         }
 
         private static string? NormalizeItemType(string? itemType)

@@ -202,6 +202,10 @@ namespace CafeChain.Data.Configurations.Stores
             entity.Property(x => x.MaxNegativeQty)
                 .HasColumnType("decimal(18,3)");
 
+            // Issue #97 — nullable min threshold for stock alerts
+            entity.Property(x => x.MinStockLevel)
+                .HasColumnType("decimal(18,3)");
+
             entity.Property(x => x.LastUpdated)
                 .HasDefaultValueSql("GETDATE()");
 
