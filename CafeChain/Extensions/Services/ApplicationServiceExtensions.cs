@@ -183,6 +183,8 @@ namespace CafeChain.Extensions.Services
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
             services.AddScoped<IPhysicalUnitConversionService, PhysicalUnitConversionService>();
             services.AddScoped<IUnitConversionService, UnitConversionService>();
+            // Ingredient supplier package definition validation — Issue #111
+            services.AddScoped<IIngredientSupplierPackageValidator, IngredientSupplierPackageValidator>();
 
             // Inventory stock alerts (Issue #97) + shortage report (Issue #98) + manager confirm (Issue #99) + restock (Issue #100)
             services.AddScoped<IStockAlertService, StockAlertService>();

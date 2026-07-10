@@ -1037,8 +1037,22 @@ const InventoryCreate = (() => {
                         option.dataset.unitName =
                             item.unitName ?? item.UnitName ?? "";
 
+                        // Only seed selectable option price when server allows unit-price auto-fill.
+                        // Never stash package price here for non-one packages (#111).
+                        const canAutoFillOption =
+                            item.canAutoFillUnitPrice ?? item.CanAutoFillUnitPrice;
                         option.dataset.price =
-                            item.currentPrice ?? item.CurrentPrice ?? 0;
+                            (canAutoFillOption === true || canAutoFillOption === "true")
+                                ? (item.suggestedUnitPrice ?? item.SuggestedUnitPrice ?? "")
+                                : "";
+                        option.dataset.packagePrice =
+                            item.packagePrice ?? item.PackagePrice ?? item.currentPrice ?? item.CurrentPrice ?? "";
+                        option.dataset.packageQuantity =
+                            item.packageQuantity ?? item.PackageQuantity ?? "";
+                        option.dataset.canAutoFillUnitPrice =
+                            canAutoFillOption === true || canAutoFillOption === "true"
+                                ? "true"
+                                : "false";
 
                         option.dataset.unitCode =
                             item.unitCode || item.UnitCode || item.unitName;
@@ -1377,11 +1391,18 @@ const InventoryCreate = (() => {
         const unitPrice =
             getSuggestedUnitPrice(item, row);
 
-        priceInput.value =
-            unitPrice || "";
+        const hasSuggestion =
+            unitPrice !== null
+            && unitPrice !== undefined
+            && unitPrice !== ""
+            && !Number.isNaN(Number(unitPrice));
 
+        priceInput.value = hasSuggestion ? unitPrice : "";
+
+        // Unlock when no valid per-unit suggestion (package price alone must not lock the field).
         priceInput.readOnly =
-            isPriceLocked(item) || !isManualPricePurpose();
+            hasSuggestion
+            && (isPriceLocked(item) || !isManualPricePurpose());
     }
 
     function buildIngredientSourceText(item, row) {
@@ -1399,12 +1420,34 @@ const InventoryCreate = (() => {
                 ? getSelectedUnitLabel(row, item)
                 : getUnitLabel(item);
 
-        const price =
+        const unitPrice =
             row
                 ? getSuggestedUnitPrice(item, row)
-                : item.currentPrice ?? item.CurrentPrice ?? 0;
+                : (item?.suggestedUnitPrice ?? item?.SuggestedUnitPrice);
 
-        return `${item.ingredientName ?? item.IngredientName} - ${formatCurrency(price)}đ/${unitLabel}`;
+        const packagePrice =
+            item?.packagePrice ?? item?.PackagePrice ?? item?.currentPrice ?? item?.CurrentPrice;
+
+        const packageQty =
+            item?.packageQuantity ?? item?.PackageQuantity;
+
+        const packageUnit =
+            item?.packageUnitCode ?? item?.PackageUnitCode ?? "";
+
+        if (unitPrice !== null && unitPrice !== undefined && unitPrice !== "") {
+            return `${item.ingredientName ?? item.IngredientName} - ${formatCurrency(unitPrice)}đ/${unitLabel}`;
+        }
+
+        // Package price is reference only — never claim VND per content unit.
+        if (packagePrice !== null && packagePrice !== undefined && packagePrice !== "") {
+            const pkgLabel =
+                packageQty
+                    ? `${formatCurrency(packagePrice)}đ / gói mua (${packageQty} ${packageUnit})`
+                    : `${formatCurrency(packagePrice)}đ / gói mua (tham khảo)`;
+            return `${item.ingredientName ?? item.IngredientName} - ${pkgLabel}`;
+        }
+
+        return `${item.ingredientName ?? item.IngredientName} - chưa có giá đơn vị`;
     }
 
     function buildAvailableStockText(item) {
@@ -2350,18 +2393,48 @@ const InventoryCreate = (() => {
     }
 
     function getSuggestedUnitPrice(item, row) {
+        // Issue #111: never treat package price as per g/ml unless server allows auto-fill
+        // and the selected document unit still matches the package content unit.
+        const canAutoFill =
+            item?.canAutoFillUnitPrice ?? item?.CanAutoFillUnitPrice;
 
-        const baseUnitCost =
-            readNumber(item?.suggestedBaseUnitCost ?? item?.SuggestedBaseUnitCost);
-
-        const conversionFactor =
-            readRowConversionFactor(row, item);
-
-        if (baseUnitCost > 0 && conversionFactor > 0) {
-            return baseUnitCost * conversionFactor;
+        if (canAutoFill === false || canAutoFill === "false") {
+            return null;
         }
 
-        return readNumber(item?.suggestedUnitPrice ?? item?.SuggestedUnitPrice ?? item?.currentPrice ?? item?.CurrentPrice);
+        const packageUnitId = Number(
+            item?.packageUnitId ?? item?.PackageUnitId ?? item?.unitId ?? item?.UnitId ?? 0
+        );
+        const selectedUnitId = Number(
+            row?.querySelector(".unit-select")?.value
+            || row?.querySelector(".unit-id")?.value
+            || item?.unitId
+            || item?.UnitId
+            || 0
+        );
+        if (packageUnitId > 0 && selectedUnitId > 0 && packageUnitId !== selectedUnitId) {
+            return null;
+        }
+
+        const suggested =
+            item?.suggestedUnitPrice ?? item?.SuggestedUnitPrice;
+
+        if (suggested === null || suggested === undefined || suggested === "") {
+            // Do not fall back to CurrentPrice/PackagePrice (package money).
+            const baseUnitCost =
+                readNumber(item?.suggestedBaseUnitCost ?? item?.SuggestedBaseUnitCost);
+
+            const conversionFactor =
+                readRowConversionFactor(row, item);
+
+            if (baseUnitCost > 0 && conversionFactor > 0) {
+                return baseUnitCost * conversionFactor;
+            }
+
+            return null;
+        }
+
+        return readNumber(suggested);
     }
 
     function getAvailableBaseQuantity(item) {

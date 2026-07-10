@@ -32,5 +32,14 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<List<Province>> GetProvincesAsync();
         Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
         Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
+
+        // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
+        Task<List<AdminIngredientSupplierDTO>> GetIngredientOffersAsync(int supplierId);
+        Task<AdminIngredientSupplierDTO?> GetIngredientOfferByIdAsync(int ingredientSupplierId);
+        Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
+        Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
+        Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active);
+        Task<List<object>> GetIngredientDropdownAsync();
+        Task<List<object>> GetContentUnitDropdownAsync();
     }
 }

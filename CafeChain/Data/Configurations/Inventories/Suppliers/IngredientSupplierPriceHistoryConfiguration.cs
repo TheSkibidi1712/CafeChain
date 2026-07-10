@@ -14,6 +14,11 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     "CK_IngredientSupplierPriceHistory_Price",
                     "[Price] >= 0"
                 );
+
+                table.HasCheckConstraint(
+                    "CK_IngredientSupplierPriceHistory_PackageQuantity",
+                    "[PackageQuantity] IS NULL OR [PackageQuantity] > 0"
+                );
             });
 
             entity.HasKey(x => x.IngredientSupplierPriceHistoryId);
@@ -23,6 +28,9 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.Property(x => x.Price)
                 .HasColumnType("decimal(18,2)")
                 .IsRequired();
+
+            entity.Property(x => x.PackageQuantity)
+                .HasColumnType("decimal(18,5)");
 
             entity.Property(x => x.EffectiveDate)
                 .HasDefaultValueSql("GETDATE()");
@@ -43,6 +51,8 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                 x.EffectiveDate
             });
 
+            entity.HasIndex(x => x.PackageUnitId);
+
             // ================= RELATION =================
 
             entity.HasOne(x => x.IngredientSupplier)
@@ -50,7 +60,14 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                 .HasForeignKey(x => x.IngredientSupplierId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(x => x.PackageUnit)
+                .WithMany()
+                .HasForeignKey(x => x.PackageUnitId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= SEED =================
+            // Snapshot package qty/unit only for approved parent offers (sugar #1, coffee #3).
+            // Condensed milk #2 remains null package snapshot (ambiguous).
 
             entity.HasData(
                 new IngredientSupplierPriceHistory
@@ -58,6 +75,8 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     IngredientSupplierPriceHistoryId = 1,
                     IngredientSupplierId = 1,
                     Price = 22000,
+                    PackageQuantity = 1m,
+                    PackageUnitId = 2, // kg
                     EffectiveDate = new DateTime(2025, 1, 1),
                     IsCurrent = true,
                     Note = "Giá ban đầu"
@@ -67,6 +86,8 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     IngredientSupplierPriceHistoryId = 2,
                     IngredientSupplierId = 2,
                     Price = 27000,
+                    PackageQuantity = null,
+                    PackageUnitId = null,
                     EffectiveDate = new DateTime(2025, 1, 1),
                     IsCurrent = true,
                     Note = "Giá ban đầu"
@@ -76,6 +97,8 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     IngredientSupplierPriceHistoryId = 3,
                     IngredientSupplierId = 3,
                     Price = 140000,
+                    PackageQuantity = 1m,
+                    PackageUnitId = 2, // kg
                     EffectiveDate = new DateTime(2025, 1, 1),
                     IsCurrent = true,
                     Note = "Giá ban đầu"

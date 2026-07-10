@@ -78,33 +78,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             var ingredients = await _repository.GetSupplierIngredientsAsync(supplierId);
 
             return ingredients
-                .Select(x =>
-                {
-                    var conversionFactor = CalculateConversionFactorToBase(x.Ingredient, x.UnitId, throwIfMissing: false);
-
-                    return new SupplierIngredientDTO
-                    {
-                        IngredientSupplierId = x.IngredientSupplierId,
-                        IngredientId = x.IngredientId,
-                        IngredientName = x.Ingredient.Name,
-                        UnitId = x.UnitId,
-                        UnitName = x.Unit.Name,
-                        UnitCode = x.Unit.UnitCode,
-                        CurrentPrice = GetCurrentSupplierPrice(x),
-                        MinimumOrderQuantity = x.MinimumOrderQuantity,
-                        BaseUnitId = x.Ingredient.BaseUnitId,
-                        BaseUnitName = x.Ingredient.BaseUnit.Name,
-                        BaseUnitCode = x.Ingredient.BaseUnit.UnitCode,
-                        ConversionFactorToBase = conversionFactor ?? 0,
-                        CanConvertToBase = conversionFactor.HasValue,
-                        SuggestedBaseUnitCost = CalculateSupplierBaseUnitCost(x),
-                        SuggestedUnitPrice = GetCurrentSupplierPrice(x),
-                        PriceSource = "Bảng giá nhà cung cấp",
-                        IsQuantityLocked = false,
-                        IsPriceLocked = true,
-                        UnitOptions = BuildSupplierUnitOptions(x, conversionFactor)
-                    };
-                })
+                .Select(MapSupplierIngredientDto)
                 .ToList();
         }
 
@@ -718,11 +692,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             var hasPrice = priceLookup.TryGetValue(ingredient.IngredientId, out var price);
 
-            var baseUnitCost = hasPrice ? price.BaseUnitCost : 0;
+            var baseUnitCost = hasPrice ? price.BaseUnitCost : (decimal?)null;
 
             var conversionFactor = defaultUnit?.ConversionFactorToBase ?? 0;
 
-            var unitPrice = conversionFactor > 0 ? baseUnitCost * conversionFactor : 0;
+            var unitPrice = baseUnitCost.HasValue && conversionFactor > 0
+                ? baseUnitCost.Value * conversionFactor
+                : (decimal?)null;
 
             return new SupplierIngredientDTO
             {
@@ -731,7 +707,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 UnitId = defaultUnit?.UnitId ?? ingredient.BaseUnitId,
                 UnitName = defaultUnit?.UnitName ?? ingredient.BaseUnit?.Name ?? string.Empty,
                 UnitCode = defaultUnit?.UnitCode ?? ingredient.BaseUnit?.UnitCode ?? string.Empty,
-                CurrentPrice = unitPrice,
+                CurrentPrice = unitPrice ?? 0,
+                PackagePrice = unitPrice ?? 0,
+                PackageQuantity = 1,
+                PackageUnitId = defaultUnit?.UnitId ?? ingredient.BaseUnitId,
+                PackageUnitCode = defaultUnit?.UnitCode ?? ingredient.BaseUnit?.UnitCode ?? string.Empty,
+                PackageUnitName = defaultUnit?.UnitName ?? ingredient.BaseUnit?.Name ?? string.Empty,
+                HasCompletePackageDefinition = unitPrice.HasValue,
                 BaseUnitId = ingredient.BaseUnitId,
                 BaseUnitName = ingredient.BaseUnit?.Name ?? string.Empty,
                 BaseUnitCode = ingredient.BaseUnit?.UnitCode ?? string.Empty,
@@ -740,10 +722,73 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 AvailableBaseQuantity = availableBaseQuantity,
                 SuggestedBaseUnitCost = baseUnitCost,
                 SuggestedUnitPrice = unitPrice,
+                CanAutoFillUnitPrice = unitPrice.HasValue,
                 PriceSource = hasPrice ? price.PriceSource : "Chưa có giá gợi ý",
                 IsQuantityLocked = isQuantityLocked,
-                IsPriceLocked = isPriceLocked,
+                IsPriceLocked = isPriceLocked && unitPrice.HasValue,
                 UnitOptions = unitOptions
+            };
+        }
+
+        /// <summary>
+        /// Supplier-sourced ingredient for IMPORT create (#111 package-safe suggestions).
+        /// </summary>
+        private static SupplierIngredientDTO MapSupplierIngredientDto(IngredientSupplier x)
+        {
+            var packagePrice = GetCurrentSupplierPrice(x);
+            var conversionFactor = CalculateConversionFactorToBase(x.Ingredient, x.UnitId, throwIfMissing: false);
+            var hasCompletePackage =
+                x.PackageQuantity.HasValue
+                && x.PackageQuantity.Value > 0
+                && x.Unit != null
+                && x.Unit.Active;
+
+            // Auto-fill unit price only when package content is exactly 1 of the package content unit
+            // and document entry unit will match PackageUnitId (default UnitId = package unit).
+            // JS re-checks selected document UnitId vs PackageUnitId on unit change.
+            var canAutoFill =
+                hasCompletePackage
+                && x.PackageQuantity == 1m
+                && packagePrice > 0m;
+
+            decimal? suggestedUnitPrice = canAutoFill ? packagePrice : null;
+
+            // Temporary: only when PackageQuantity == 1, old per-import-unit / convert factor is usable.
+            // Full package-normalized base cost is #117.
+            decimal? suggestedBaseUnitCost = null;
+            if (canAutoFill && conversionFactor.HasValue && conversionFactor.Value > 0)
+            {
+                suggestedBaseUnitCost = packagePrice / conversionFactor.Value;
+            }
+
+            return new SupplierIngredientDTO
+            {
+                IngredientSupplierId = x.IngredientSupplierId,
+                IngredientId = x.IngredientId,
+                IngredientName = x.Ingredient.Name,
+                UnitId = x.UnitId,
+                UnitName = x.Unit.Name,
+                UnitCode = x.Unit.UnitCode,
+                CurrentPrice = packagePrice,
+                PackagePrice = packagePrice,
+                PackageQuantity = x.PackageQuantity,
+                PackageUnitId = x.UnitId,
+                PackageUnitCode = x.Unit.UnitCode,
+                PackageUnitName = x.Unit.Name,
+                HasCompletePackageDefinition = hasCompletePackage,
+                MinimumOrderQuantity = x.MinimumOrderQuantity,
+                BaseUnitId = x.Ingredient.BaseUnitId,
+                BaseUnitName = x.Ingredient.BaseUnit.Name,
+                BaseUnitCode = x.Ingredient.BaseUnit.UnitCode,
+                ConversionFactorToBase = conversionFactor ?? 0,
+                CanConvertToBase = conversionFactor.HasValue,
+                SuggestedBaseUnitCost = suggestedBaseUnitCost,
+                SuggestedUnitPrice = suggestedUnitPrice,
+                CanAutoFillUnitPrice = canAutoFill,
+                PriceSource = "Bảng giá nhà cung cấp",
+                IsQuantityLocked = false,
+                IsPriceLocked = canAutoFill,
+                UnitOptions = BuildSupplierUnitOptions(x, conversionFactor)
             };
         }
 
@@ -779,6 +824,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         .FirstOrDefault();
 
                 if (supplier == null)
+                {
+                    continue;
+                }
+
+                // Only use supplier package as base-cost hint when PackageQuantity == 1
+                // (full package-normalized cost is #117).
+                if (!supplier.PackageQuantity.HasValue || supplier.PackageQuantity.Value != 1m)
                 {
                     continue;
                 }

@@ -197,6 +197,80 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
+        // ===================== INGREDIENT SUPPLIER OFFERS (#111) =====================
+
+        [HttpGet]
+        public async Task<IActionResult> GetIngredientOffers(int supplierId)
+        {
+            var data = await _service.GetIngredientOffersAsync(supplierId);
+            return Json(new { success = true, data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetIngredientOffer(int id)
+        {
+            var data = await _service.GetIngredientOfferByIdAsync(id);
+            if (data == null)
+                return Json(new { success = false, message = "Không tìm thấy bảng giá gói mua" });
+            return Json(new { success = true, data });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> CreateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
+        {
+            try
+            {
+                var id = await _service.CreateIngredientOfferAsync(dto);
+                return Json(new { success = true, message = "Thêm gói mua nguyên liệu thành công", data = id });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> UpdateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
+        {
+            try
+            {
+                await _service.UpdateIngredientOfferAsync(dto);
+                return Json(new { success = true, message = "Cập nhật gói mua nguyên liệu thành công" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleIngredientOffer([FromBody] AdminIngredientSupplierToggleDTO dto)
+        {
+            try
+            {
+                await _service.ToggleIngredientOfferActiveAsync(dto.IngredientSupplierId, dto.Active);
+                return Json(new { success = true, message = "Đã cập nhật trạng thái gói mua" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetIngredientOptions()
+        {
+            var data = await _service.GetIngredientDropdownAsync();
+            return Json(new { success = true, data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetContentUnitOptions()
+        {
+            var data = await _service.GetContentUnitDropdownAsync();
+            return Json(new { success = true, data });
+        }
+
         // ===================== LOCATION ENDPOINTS =====================
 
         [HttpGet]
