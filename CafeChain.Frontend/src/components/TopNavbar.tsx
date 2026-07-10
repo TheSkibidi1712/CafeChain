@@ -55,6 +55,9 @@ export default function TopNavbar() {
         <Link to="/history" className={tabClass('/history')}>
           📜 Lịch sử đơn
         </Link>
+        <Link to="/inventory" className={tabClass('/inventory')}>
+          📦 Kho chi nhánh
+        </Link>
         <Link to="/shift" className={tabClass('/shift')}>
           ⏰ Ca làm việc
         </Link>

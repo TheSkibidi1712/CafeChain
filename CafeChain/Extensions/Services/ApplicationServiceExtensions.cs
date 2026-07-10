@@ -171,6 +171,7 @@ namespace CafeChain.Extensions.Services
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();
+            services.AddScoped<IPosBranchInventoryService, PosBranchInventoryService>();
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
