@@ -229,7 +229,12 @@ namespace CafeChain.Tests.POS
             return new InventoryDeductionService(
                 context,
                 new Mock<ILogger<InventoryDeductionService>>().Object,
-                new UnitConversionService(context, new Mock<ILogger<UnitConversionService>>().Object));
+                new UnitConversionService(
+                    context,
+                    new Mock<ILogger<UnitConversionService>>().Object,
+                    new PhysicalUnitConversionService(
+                        context,
+                        new Mock<ILogger<PhysicalUnitConversionService>>().Object)));
         }
 
         private static List<POSSoldItemDto> CreateSoldItems(int quantity = 1)

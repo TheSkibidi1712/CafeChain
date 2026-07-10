@@ -1,6 +1,8 @@
 using System.Linq;
 using System.Threading.Tasks;
+using CafeChain.Application.Constants;
 using CafeChain.Application.Services.Inventories;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -8,12 +10,15 @@ using Xunit;
 
 namespace CafeChain.Tests.POS
 {
-    /// <summary>Shared unit conversion — no silent raw quantity; invalid factors rejected.</summary>
+    /// <summary>Shared unit conversion — physical first, ACTIVE ingredient rows, no raw quantity.</summary>
     public class UnitConversionServiceTests : IntegrationTestBase
     {
         private const int UnitG = 1;
         private const int UnitKg = 2;
         private const int UnitMl = 3;
+        private const int UnitL = 4;
+        private const int UnitOz = 5;
+        private const int UnitBottle = 10;
         private const int IngredientId = 501;
 
         [Fact]
@@ -76,13 +81,18 @@ namespace CafeChain.Tests.POS
         {
             using var ctx = CreateDbContext();
             SeedIngredient(ctx, IngredientId, UnitG);
-            SeedConversion(ctx, IngredientId, UnitKg, 0m, UnitG, 1000m);
+            // Physical would be 1000; zero ingredient row conflicts
+            SeedConversion(ctx, IngredientId, UnitKg, 0m, UnitG, 1000m, active: true);
             var svc = CreateService(ctx);
 
             var result = await svc.ConvertAsync(IngredientId, 1m, UnitKg);
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("không hợp lệ", result.Message);
+            Assert.True(
+                result.ErrorCode == UnitConversionErrorCodes.ConflictingConversion
+                || result.Message.Contains("không hợp lệ")
+                || result.Message.Contains("xung đột"),
+                result.Message);
         }
 
         [Fact]
@@ -96,7 +106,11 @@ namespace CafeChain.Tests.POS
             var result = await svc.ConvertAsync(IngredientId, 1m, UnitKg);
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("không hợp lệ", result.Message);
+            Assert.True(
+                result.ErrorCode == UnitConversionErrorCodes.ConflictingConversion
+                || result.Message.Contains("không hợp lệ")
+                || result.Message.Contains("xung đột"),
+                result.Message);
         }
 
         [Fact]
@@ -110,7 +124,11 @@ namespace CafeChain.Tests.POS
             var result = await svc.ConvertAsync(IngredientId, 1m, UnitKg);
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("không hợp lệ", result.Message);
+            Assert.True(
+                result.ErrorCode == UnitConversionErrorCodes.ConflictingConversion
+                || result.Message.Contains("không hợp lệ")
+                || result.Message.Contains("xung đột"),
+                result.Message);
         }
 
         [Fact]
@@ -124,7 +142,11 @@ namespace CafeChain.Tests.POS
             var result = await svc.ConvertAsync(IngredientId, 1m, UnitKg);
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("không hợp lệ", result.Message);
+            Assert.True(
+                result.ErrorCode == UnitConversionErrorCodes.ConflictingConversion
+                || result.Message.Contains("không hợp lệ")
+                || result.Message.Contains("xung đột"),
+                result.Message);
         }
 
         [Fact]
@@ -139,6 +161,164 @@ namespace CafeChain.Tests.POS
 
             Assert.False(result.IsSuccess);
             Assert.False(string.IsNullOrWhiteSpace(result.Message));
+        }
+
+        [Fact]
+        public async Task Physical_KgToG_WithoutIngredientRow_Succeeds()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitKg);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(2000m, result.Data);
+        }
+
+        [Fact]
+        public async Task Inactive_Unit_IsNotHidden_ByIngredientFallback()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            // Even with a matching ingredient row, inactive unit must fail closed (no fallback).
+            SeedConversion(ctx, IngredientId, UnitKg, 1m, UnitG, 1000m, active: true);
+            var kg = ctx.Units.First(u => u.UnitId == UnitKg);
+            kg.Active = false;
+            ctx.SaveChanges();
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 1m, UnitKg);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(UnitConversionErrorCodes.InactiveUnit, result.ErrorCode);
+            Assert.NotEqual(1000m, result.Data);
+        }
+
+        [Fact]
+        public async Task Matching_ActiveIngredient_KgToG_Compatible()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            SeedConversion(ctx, IngredientId, UnitKg, 1m, UnitG, 1000m, active: true);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitKg);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(2000m, result.Data);
+        }
+
+        [Fact]
+        public async Task Conflicting_ActiveIngredient_KgToG_FailsClosed()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            SeedConversion(ctx, IngredientId, UnitKg, 1m, UnitG, 999m, active: true);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitKg);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(UnitConversionErrorCodes.ConflictingConversion, result.ErrorCode);
+            Assert.NotEqual(1998m, result.Data);
+            Assert.NotEqual(2000m, result.Data);
+        }
+
+        [Fact]
+        public async Task Conflicting_ReverseRow_FailsClosed()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            // Reverse maps g→kg with wrong ratio (should be 1000 g = 1 kg)
+            SeedConversion(ctx, IngredientId, UnitG, 500m, UnitKg, 1m, active: true);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitKg);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(UnitConversionErrorCodes.ConflictingConversion, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task Inactive_ConflictingRow_IsIgnored()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            SeedConversion(ctx, IngredientId, UnitKg, 1m, UnitG, 999m, active: false);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitKg);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(2000m, result.Data);
+        }
+
+        [Fact]
+        public async Task BottleToMl_PhysicalFails_ActiveIngredientSucceeds()
+        {
+            using var ctx = CreateDbContext();
+            EnsureMassVolumeUnits(ctx);
+            EnsureUnit(ctx, UnitBottle, "bottle", UnitType.Dem);
+            SeedIngredient(ctx, IngredientId, UnitMl);
+            SeedConversion(ctx, IngredientId, UnitBottle, 1m, UnitMl, 750m, active: true);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitBottle);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(1500m, result.Data);
+        }
+
+        [Fact]
+        public async Task Inactive_BottleToMl_DoesNotSucceed()
+        {
+            using var ctx = CreateDbContext();
+            EnsureMassVolumeUnits(ctx);
+            EnsureUnit(ctx, UnitBottle, "bottle", UnitType.Dem);
+            SeedIngredient(ctx, IngredientId, UnitMl);
+            SeedConversion(ctx, IngredientId, UnitBottle, 1m, UnitMl, 750m, active: false);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 2m, UnitBottle);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Thiếu quy đổi", result.Message);
+        }
+
+        [Fact]
+        public async Task Oz_IsNotAutomaticallyGlobal()
+        {
+            using var ctx = CreateDbContext();
+            EnsureMassVolumeUnits(ctx);
+            EnsureUnit(ctx, UnitOz, "oz", UnitType.TheTich);
+            SeedIngredient(ctx, IngredientId, UnitMl);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 1m, UnitOz);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("Thiếu quy đổi", result.Message);
+        }
+
+        [Fact]
+        public async Task NoRawQuantityFallback_WhenUnitsDiffer()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            var svc = CreateService(ctx);
+
+            var result = await svc.ConvertAsync(IngredientId, 77m, UnitMl);
+
+            Assert.False(result.IsSuccess);
+            Assert.NotEqual(77m, result.Data);
         }
 
         [Fact]
@@ -205,17 +385,20 @@ namespace CafeChain.Tests.POS
             }
         }
 
-        private static UnitConversionService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, NullLogger<UnitConversionService>.Instance);
+        private static UnitConversionService CreateService(CafeChain.Data.AppDbContext ctx)
+        {
+            var physical = new PhysicalUnitConversionService(
+                ctx,
+                NullLogger<PhysicalUnitConversionService>.Instance);
+            return new UnitConversionService(
+                ctx,
+                NullLogger<UnitConversionService>.Instance,
+                physical);
+        }
 
         private static void SeedIngredient(CafeChain.Data.AppDbContext ctx, int id, int baseUnitId)
         {
-            if (!ctx.Units.Any(u => u.UnitId == UnitG))
-            {
-                ctx.Units.Add(new Unit { UnitId = UnitG, UnitCode = "g", Name = "Gram", Active = true });
-                ctx.Units.Add(new Unit { UnitId = UnitKg, UnitCode = "kg", Name = "Kilogram", Active = true });
-                ctx.Units.Add(new Unit { UnitId = UnitMl, UnitCode = "ml", Name = "Milliliter", Active = true });
-            }
+            EnsureMassVolumeUnits(ctx);
 
             if (!ctx.Ingredients.Any(i => i.IngredientId == id))
             {
@@ -232,13 +415,49 @@ namespace CafeChain.Tests.POS
             ctx.SaveChanges();
         }
 
+        private static void EnsureMassVolumeUnits(CafeChain.Data.AppDbContext ctx)
+        {
+            EnsureUnit(ctx, UnitG, "g", UnitType.KhoiLuong);
+            EnsureUnit(ctx, UnitKg, "kg", UnitType.KhoiLuong);
+            EnsureUnit(ctx, UnitMl, "ml", UnitType.TheTich);
+            EnsureUnit(ctx, UnitL, "l", UnitType.TheTich);
+        }
+
+        private static void EnsureUnit(CafeChain.Data.AppDbContext ctx, int unitId, string code, UnitType type)
+        {
+            var existing = ctx.Units.FirstOrDefault(u => u.UnitId == unitId);
+            if (existing != null)
+            {
+                if (string.IsNullOrWhiteSpace(existing.UnitCode))
+                    existing.UnitCode = code;
+                existing.Type = type;
+                existing.Active = true;
+                ctx.SaveChanges();
+                return;
+            }
+
+            if (ctx.Units.Any(u => u.UnitCode.ToLower() == code.ToLower()))
+                return;
+
+            ctx.Units.Add(new Unit
+            {
+                UnitId = unitId,
+                UnitCode = code,
+                Name = code,
+                Type = type,
+                Active = true
+            });
+            ctx.SaveChanges();
+        }
+
         private static void SeedConversion(
             CafeChain.Data.AppDbContext ctx,
             int ingredientId,
             int fromUnitId,
             decimal fromQty,
             int toUnitId,
-            decimal toQty)
+            decimal toQty,
+            bool active = true)
         {
             ctx.UnitConversions.Add(new UnitConversion
             {
@@ -246,7 +465,8 @@ namespace CafeChain.Tests.POS
                 FromUnitId = fromUnitId,
                 FromQuantity = fromQty,
                 ToUnitId = toUnitId,
-                ToQuantity = toQty
+                ToQuantity = toQty,
+                Active = active
             });
             ctx.SaveChanges();
         }

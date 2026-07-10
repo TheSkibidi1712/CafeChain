@@ -180,6 +180,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
 
             // Shared unit conversion (POS catalog + inventory deduction + COGS)
+            // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
+            services.AddScoped<IPhysicalUnitConversionService, PhysicalUnitConversionService>();
             services.AddScoped<IUnitConversionService, UnitConversionService>();
 
             // Inventory stock alerts (Issue #97) + shortage report (Issue #98) + manager confirm (Issue #99) + restock (Issue #100)

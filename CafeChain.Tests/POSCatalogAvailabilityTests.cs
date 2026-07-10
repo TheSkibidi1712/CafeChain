@@ -341,7 +341,12 @@ namespace CafeChain.Tests.POS
         {
             var controller = new POSCatalogController(
                 context,
-                new UnitConversionService(context, NullLogger<UnitConversionService>.Instance),
+                new UnitConversionService(
+                    context,
+                    NullLogger<UnitConversionService>.Instance,
+                    new PhysicalUnitConversionService(
+                        context,
+                        NullLogger<PhysicalUnitConversionService>.Instance)),
                 NullLogger<POSCatalogController>.Instance)
             {
                 ControllerContext = new ControllerContext
