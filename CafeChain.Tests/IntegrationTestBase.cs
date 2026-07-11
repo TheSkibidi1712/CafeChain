@@ -53,6 +53,21 @@ namespace CafeChain.Tests
                 {
                     entityType.RemoveCheckConstraint(constraint.ModelName);
                 }
+
+                // #120 aggregation tests: allow multiple RecipeDetail lines that resolve to the
+                // same StoreInventoryId (production still enforces unique Ingredient/Child pairs).
+                if (entityType.ClrType.Name == "RecipeDetail")
+                {
+                    foreach (var index in entityType.GetIndexes().ToList())
+                    {
+                        var props = index.Properties.Select(p => p.Name).ToArray();
+                        if (props.SequenceEqual(new[] { "RecipeId", "IngredientId" })
+                            || props.SequenceEqual(new[] { "RecipeId", "ChildRecipeId" }))
+                        {
+                            index.IsUnique = false;
+                        }
+                    }
+                }
             }
         }
     }

@@ -16,13 +16,16 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly AppDbContext _context;
         private readonly IProductionRunService _productionRunService;
+        private readonly IProductionRunExecutionService _executionService;
 
         public AdminProductionOrderController(
             AppDbContext context,
-            IProductionRunService productionRunService)
+            IProductionRunService productionRunService,
+            IProductionRunExecutionService executionService)
         {
             _context = context;
             _productionRunService = productionRunService;
+            _executionService = executionService;
         }
 
         [HttpGet]
@@ -171,6 +174,78 @@ namespace CafeChain.Areas.Admin.Controllers
             });
         }
 
+        /// <summary>
+        /// Issue #120 — apply stock for one CONFIRMED ProductionRun (PreparedItem writer).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ExecuteStock([FromBody] ProductionExecuteStockRequest request)
+        {
+            if (request == null || request.ProductionRunId <= 0)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = "ProductionRunId không hợp lệ.",
+                    errorCode = "INVALID_REQUEST"
+                });
+            }
+
+            int staffId;
+            int staffHomeStoreId;
+            try
+            {
+                staffId = User.GetStaffId();
+                staffHomeStoreId = User.GetStoreId();
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = ex.Message,
+                    errorCode = "STAFF_UNAUTHORIZED"
+                });
+            }
+
+            var result = await _executionService.ExecuteAsync(
+                request.ProductionRunId,
+                staffId,
+                staffHomeStoreId);
+
+            if (!result.IsSuccess || result.Data == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    stockApplied = false
+                });
+            }
+
+            var data = result.Data;
+            return Json(new
+            {
+                success = true,
+                wasReplay = data.WasReplay,
+                productionRunId = data.ProductionRunId,
+                storeId = data.StoreId,
+                recipeId = data.RecipeId,
+                requestedRunCount = data.RequestedRunCount,
+                status = data.Status,
+                stockApplied = data.StockApplied,
+                completedAt = data.CompletedAt,
+                normalizedOutputQuantity = data.NormalizedOutputQuantity,
+                outputBaseUnitId = data.OutputBaseUnitId,
+                outputStoreInventoryId = data.OutputStoreInventoryId,
+                outputPreparedItemId = data.OutputPreparedItemId,
+                movements = data.Movements,
+                messageKey = data.MessageKey,
+                message = result.Message
+            });
+        }
+
         private void PopulateDropdowns()
         {
             ViewBag.SubRecipes = _context.Recipes
@@ -179,6 +254,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Select(r => new { r.RecipeId, r.Name })
                 .ToList<object>();
         }
+    }
+
+    public class ProductionExecuteStockRequest
+    {
+        public int ProductionRunId { get; set; }
     }
 
     /// <summary>POST body for production intent confirm (Issue #119).</summary>

@@ -1,4 +1,3 @@
-using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Production;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -17,7 +16,7 @@ namespace CafeChain.Data.Configurations.Inventories.Production
 
                 table.HasCheckConstraint(
                     "CK_ProductionRuns_Status",
-                    "[Status] = 1");
+                    "[Status] IN (1, 2)");
             });
 
             entity.HasKey(x => x.ProductionRunId);
@@ -49,6 +48,9 @@ namespace CafeChain.Data.Configurations.Inventories.Production
                 .HasColumnType("datetime2")
                 .IsRequired();
 
+            entity.Property(x => x.CompletedAt)
+                .HasColumnType("datetime2");
+
             entity.Property(x => x.RowVersion)
                 .IsRowVersion();
 
@@ -61,6 +63,8 @@ namespace CafeChain.Data.Configurations.Inventories.Production
 
             entity.HasIndex(x => x.RecipeId)
                 .HasDatabaseName("IX_ProductionRuns_RecipeId");
+
+            entity.HasIndex(x => x.CompletedByStaffId);
 
             entity.HasOne(x => x.Store)
                 .WithMany()
@@ -75,6 +79,11 @@ namespace CafeChain.Data.Configurations.Inventories.Production
             entity.HasOne(x => x.CreatedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.CreatedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.CompletedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.CompletedByStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
         }
     }

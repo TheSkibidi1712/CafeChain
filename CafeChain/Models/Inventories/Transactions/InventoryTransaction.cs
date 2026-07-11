@@ -1,5 +1,6 @@
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
@@ -26,11 +27,15 @@ namespace CafeChain.Models.Inventories.Transactions
         public int? InventoryTransferId { get; set; }
         public int? ReferenceOrderId { get; set; }
 
+        /// <summary>Issue #120 — production run stock application linkage.</summary>
+        public int? ProductionRunId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
         public virtual InventoryDocument? InventoryDocument { get; set; }
         public virtual InventoryTransfer? InventoryTransfer { get; set; }
         public virtual Order? ReferenceOrder { get; set; }
+        public virtual ProductionRun? ProductionRun { get; set; }
     }
 }

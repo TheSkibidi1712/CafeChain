@@ -250,11 +250,13 @@ namespace CafeChain.Application.Services.Admin.Production
                     RecipeId = run.RecipeId,
                     RecipeName = recipe != null ? recipe.Name : null,
                     RequestedRunCount = run.RequestedRunCount,
-                    Status = "CONFIRMED",
+                    Status = run.Status == ProductionRunStatus.Completed ? "COMPLETED" : "CONFIRMED",
                     ConfirmedAt = run.ConfirmedAt,
+                    CompletedAt = run.CompletedAt,
                     CreatedByStaffId = run.CreatedByStaffId,
                     ActorName = staff != null ? staff.FullName : null,
-                    StockApplied = false
+                    StockApplied = run.Status == ProductionRunStatus.Completed,
+                    CanApplyStock = run.Status == ProductionRunStatus.Confirmed
                 })
                 .Take(take)
                 .ToListAsync();

@@ -41,8 +41,10 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public decimal RequestedRunCount { get; set; }
         public string Status { get; set; } = string.Empty;
         public DateTime ConfirmedAt { get; set; }
+        public DateTime? CompletedAt { get; set; }
         public int CreatedByStaffId { get; set; }
         public string? ActorName { get; set; }
         public bool StockApplied { get; set; }
+        public bool CanApplyStock { get; set; }
     }
 }

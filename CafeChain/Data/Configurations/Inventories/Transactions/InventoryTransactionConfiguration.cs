@@ -86,6 +86,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.ReferenceOrderId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.ProductionRun)
+                .WithMany()
+                .HasForeignKey(x => x.ProductionRunId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -99,6 +104,15 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
             entity.HasIndex(x => x.InventoryTransferId);
 
             entity.HasIndex(x => x.ReferenceOrderId);
+
+            entity.HasIndex(x => x.ProductionRunId)
+                .HasDatabaseName("IX_InventoryTransactions_ProductionRunId");
+
+            // Exactly one movement per run + inventory row + type when linked to a production run.
+            entity.HasIndex(x => new { x.ProductionRunId, x.StoreInventoryId, x.Type })
+                .IsUnique()
+                .HasFilter("[ProductionRunId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_ProductionRun_Inventory_Type");
 
             entity.HasIndex(x => x.CreatedAt);
 

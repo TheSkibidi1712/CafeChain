@@ -7,7 +7,8 @@ using CafeChain.Models.Stores;
 namespace CafeChain.Models.Inventories.Production
 {
     /// <summary>
-    /// Issue #119 / 114B — durable production intent only (no stock mutation until 114C/#120).
+    /// Production intent (#119) and stock completion (#120).
+    /// StockApplied is derived: Status == Completed.
     /// </summary>
     public class ProductionRun
     {
@@ -15,15 +16,13 @@ namespace CafeChain.Models.Inventories.Production
 
         public int StoreId { get; set; }
 
-        /// <summary>Exact Recipe version PK selected at confirm time.</summary>
+        /// <summary>Exact Recipe version PK (never re-resolved on execute).</summary>
         public int RecipeId { get; set; }
 
         public decimal RequestedRunCount { get; set; }
 
-        /// <summary>Client-generated UUID; unique with StoreId.</summary>
         public Guid RequestKey { get; set; }
 
-        /// <summary>SHA-256 hex of versioned immutable inputs.</summary>
         public string RequestFingerprint { get; set; } = string.Empty;
 
         public ProductionRunStatus Status { get; set; }
@@ -36,11 +35,16 @@ namespace CafeChain.Models.Inventories.Production
 
         public DateTime ConfirmedAt { get; set; }
 
+        public DateTime? CompletedAt { get; set; }
+
+        public int? CompletedByStaffId { get; set; }
+
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         public virtual Store Store { get; set; } = null!;
         public virtual Recipe Recipe { get; set; } = null!;
         public virtual Staff CreatedByStaff { get; set; } = null!;
+        public virtual Staff? CompletedByStaff { get; set; }
     }
 }
