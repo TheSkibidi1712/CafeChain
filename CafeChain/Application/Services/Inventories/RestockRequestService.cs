@@ -74,6 +74,7 @@ namespace CafeChain.Application.Services.Inventories
             var alert = await _context.StockAlerts
                 .Include(a => a.Ingredient)
                 .Include(a => a.Recipe)
+                .Include(a => a.PreparedItem)
                 .Include(a => a.Store)
                 .FirstOrDefaultAsync(a => a.StockAlertId == alertId);
 
@@ -118,8 +119,10 @@ namespace CafeChain.Application.Services.Inventories
             {
                 StockAlertId = alert.StockAlertId,
                 StoreId = alert.StoreId,
+                // Issue #122 — copy full transitional identity tuple from confirmed alert (no re-map).
                 IngredientId = alert.IngredientId,
                 RecipeId = alert.RecipeId,
+                PreparedItemId = alert.PreparedItemId,
                 RequestedQuantity = requestedQuantity,
                 SuggestedQuantity = suggested,
                 Status = RestockRequestStatuses.Submitted,
@@ -130,14 +133,36 @@ namespace CafeChain.Application.Services.Inventories
                 Note = noteText
             };
 
-            _context.RestockRequests.Add(request);
-            await _context.SaveChangesAsync(); // need Id for notifications
+            try
+            {
+                _context.RestockRequests.Add(request);
+                await _context.SaveChangesAsync(); // need Id for notifications
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrent create for same StockAlert SUBMITTED unique — treat as duplicate.
+                _context.ChangeTracker.Clear();
+                var existing = await _context.RestockRequests
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r =>
+                        r.StockAlertId == alertId &&
+                        r.Status == RestockRequestStatuses.Submitted);
+                if (existing != null)
+                {
+                    return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                        "Cảnh báo này đã có yêu cầu nhập hàng đang mở.");
+                }
+
+                throw;
+            }
 
             var recipients = await ResolveAccountantWarehouseAsync(alert.StoreId);
             foreach (var staffId in recipients)
             {
                 var itemName = ResolveItemName(alert);
-                var itemType = alert.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm";
+                var itemType = alert.IngredientId.HasValue
+                    ? "Nguyên liệu"
+                    : (alert.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm");
                 var storeName = alert.Store?.Name ?? $"Cửa hàng #{alert.StoreId}";
                 var body =
                     $"Yêu cầu nhập hàng mới từ Quản lý chi nhánh.\n" +
@@ -206,6 +231,7 @@ namespace CafeChain.Application.Services.Inventories
                 .AsNoTracking()
                 .Include(r => r.Ingredient)
                 .Include(r => r.Recipe)
+                .Include(r => r.PreparedItem)
                 .Include(r => r.CreatedByStaff)
                 .Where(r => r.StoreId == storeId);
 
@@ -245,6 +271,7 @@ namespace CafeChain.Application.Services.Inventories
                 .AsNoTracking()
                 .Include(x => x.Ingredient)
                 .Include(x => x.Recipe)
+                .Include(x => x.PreparedItem)
                 .Include(x => x.CreatedByStaff)
                 .Include(x => x.Store)
                 .Include(x => x.StockAlert)
@@ -270,6 +297,7 @@ namespace CafeChain.Application.Services.Inventories
                 .AsNoTracking()
                 .Include(x => x.Ingredient)
                 .Include(x => x.Recipe)
+                .Include(x => x.PreparedItem)
                 .Include(x => x.CreatedByStaff)
                 .Where(x =>
                     x.StockAlertId == stockAlertId &&
@@ -342,7 +370,9 @@ namespace CafeChain.Application.Services.Inventories
                 StockAlertId = r.StockAlertId,
                 StoreId = r.StoreId,
                 ItemName = ResolveItemName(r),
-                ItemTypeLabel = r.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
+                ItemTypeLabel = r.IngredientId.HasValue
+                    ? "Nguyên liệu"
+                    : (r.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
                 RequestedQuantity = r.RequestedQuantity,
                 SuggestedQuantity = r.SuggestedQuantity,
                 Status = r.Status,
@@ -352,6 +382,7 @@ namespace CafeChain.Application.Services.Inventories
                 CreatedAt = r.CreatedAt,
                 IngredientId = r.IngredientId,
                 RecipeId = r.RecipeId,
+                PreparedItemId = r.PreparedItemId,
                 CreatedByStaffId = r.CreatedByStaffId,
                 UpdatedAt = r.UpdatedAt,
                 StoreName = r.Store?.Name,
@@ -367,6 +398,12 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (r.IngredientId.HasValue)
                 return r.Ingredient?.Name ?? $"Nguyên liệu #{r.IngredientId}";
+            if (r.PreparedItemId.HasValue)
+            {
+                if (!string.IsNullOrWhiteSpace(r.PreparedItem?.Name)) return r.PreparedItem.Name;
+                if (!string.IsNullOrWhiteSpace(r.PreparedItem?.Code)) return r.PreparedItem.Code;
+                return $"PreparedItem #{r.PreparedItemId}";
+            }
             if (r.RecipeId.HasValue)
             {
                 if (!string.IsNullOrWhiteSpace(r.Recipe?.Name)) return r.Recipe.Name;
@@ -380,6 +417,12 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (a.IngredientId.HasValue)
                 return a.Ingredient?.Name ?? $"Nguyên liệu #{a.IngredientId}";
+            if (a.PreparedItemId.HasValue)
+            {
+                if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Name)) return a.PreparedItem.Name;
+                if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Code)) return a.PreparedItem.Code;
+                return $"PreparedItem #{a.PreparedItemId}";
+            }
             if (a.RecipeId.HasValue)
             {
                 if (!string.IsNullOrWhiteSpace(a.Recipe?.Name)) return a.Recipe.Name;

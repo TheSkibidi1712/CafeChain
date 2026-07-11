@@ -9,6 +9,8 @@ namespace CafeChain.Application.DTOs.POS
         public int ResolvedCount { get; set; }
         public int SkippedUnconfiguredCount { get; set; }
         public int EvaluatedCount { get; set; }
+        /// <summary>Issue #122 — collision / unknown / multi-OPEN review skips.</summary>
+        public int ReviewCount { get; set; }
         public string Source { get; set; } = string.Empty;
     }
 }

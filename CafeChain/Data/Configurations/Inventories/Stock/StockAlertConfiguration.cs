@@ -10,9 +10,20 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
         {
             entity.ToTable("StockAlerts", t =>
             {
+                // Issue #122 — transitional identity truth table:
+                // 1) Ingredient-only
+                // 2) Legacy Recipe-only BTP
+                // 3) Compatibility Recipe + PreparedItem
+                // 4) PreparedItem-only
                 t.HasCheckConstraint(
-                    "CK_StockAlerts_XOR_Item",
-                    "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)");
+                    "CK_StockAlerts_Identity",
+                    @"
+(
+  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)
+)");
             });
 
             entity.HasKey(x => x.StockAlertId);
@@ -72,15 +83,16 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.RecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            // Issue #98 — optional reporter for SALES_REPORT
+            entity.HasOne(x => x.PreparedItem)
+                .WithMany()
+                .HasForeignKey(x => x.PreparedItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.ReportedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.ReportedByStaffId)
                 .OnDelete(DeleteBehavior.SetNull);
 
-            // Issue #99 — manager confirm/reject actors.
-            // Restrict (not SetNull): SQL Server rejects multiple cascade/set-null paths
-            // from StockAlerts → Staffs (ReportedBy already uses SetNull).
             entity.HasOne(x => x.ConfirmedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.ConfirmedByStaffId)
@@ -94,10 +106,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => new { x.StoreId, x.IngredientId });
             entity.HasIndex(x => new { x.StoreId, x.RecipeId });
+            entity.HasIndex(x => new { x.StoreId, x.PreparedItemId });
             entity.HasIndex(x => x.Status);
+            entity.HasIndex(x => x.PreparedItemId)
+                .HasDatabaseName("IX_StockAlerts_PreparedItemId");
 
-            // At most one OPEN alert per store ingredient / recipe (SQL Server filtered unique).
-            // Service-layer duplicate guard remains source of truth for all providers.
+            // At most one OPEN alert per store ingredient / recipe / prepared item.
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
                 .HasFilter("[IngredientId] IS NOT NULL AND [Status] = 'OPEN'")
@@ -107,6 +121,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .IsUnique()
                 .HasFilter("[RecipeId] IS NOT NULL AND [Status] = 'OPEN'")
                 .HasDatabaseName("UX_StockAlert_Open_Store_Recipe");
+
+            entity.HasIndex(x => new { x.StoreId, x.PreparedItemId })
+                .IsUnique()
+                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] = 'OPEN'")
+                .HasDatabaseName("UX_StockAlert_Open_Store_PreparedItem");
         }
     }
 }

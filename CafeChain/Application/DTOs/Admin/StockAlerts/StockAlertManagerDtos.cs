@@ -22,6 +22,8 @@ namespace CafeChain.Application.DTOs.Admin.StockAlerts
     {
         public int? IngredientId { get; set; }
         public int? RecipeId { get; set; }
+        /// <summary>Issue #122 — stable BTP identity when present.</summary>
+        public int? PreparedItemId { get; set; }
         public int? ReportedByStaffId { get; set; }
         public DateTime? ReportedAt { get; set; }
         public int? ConfirmedByStaffId { get; set; }

@@ -10,9 +10,16 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
         {
             entity.ToTable("RestockRequests", t =>
             {
+                // Issue #122 — same transitional identity truth table as StockAlert.
                 t.HasCheckConstraint(
-                    "CK_RestockRequests_XOR_Item",
-                    "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)");
+                    "CK_RestockRequests_Identity",
+                    @"
+(
+  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
+  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)
+)");
             });
 
             entity.HasKey(x => x.RestockRequestId);
@@ -41,7 +48,6 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.UpdatedAt)
                 .IsRequired();
 
-            // Restrict FKs — avoid SQL Server multiple cascade paths (#99 lesson).
             entity.HasOne(x => x.StockAlert)
                 .WithMany()
                 .HasForeignKey(x => x.StockAlertId)
@@ -62,6 +68,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.RecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.PreparedItem)
+                .WithMany()
+                .HasForeignKey(x => x.PreparedItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.CreatedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.CreatedByStaffId)
@@ -76,8 +87,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.HasIndex(x => x.StockAlertId);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.CreatedByStaffId);
+            entity.HasIndex(x => x.PreparedItemId)
+                .HasDatabaseName("IX_RestockRequests_PreparedItemId");
 
-            // At most one SUBMITTED request per StockAlert (service guard remains source of truth).
             entity.HasIndex(x => x.StockAlertId)
                 .IsUnique()
                 .HasFilter("[Status] = 'SUBMITTED'")
