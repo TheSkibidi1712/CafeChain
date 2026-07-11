@@ -97,6 +97,12 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.SourceRecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Issue #123 — consolidation run linkage (new movements only).
+            entity.HasOne(x => x.InventoryConsolidationRun)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryConsolidationRunId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -122,6 +128,15 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .IsUnique()
                 .HasFilter("[ProductionRunId] IS NOT NULL")
                 .HasDatabaseName("UX_InventoryTransactions_ProductionRun_Inventory_Type");
+
+            entity.HasIndex(x => x.InventoryConsolidationRunId)
+                .HasDatabaseName("IX_InventoryTransactions_InventoryConsolidationRunId");
+
+            // Exactly one consolidation movement per run + inventory row + type.
+            entity.HasIndex(x => new { x.InventoryConsolidationRunId, x.StoreInventoryId, x.Type })
+                .IsUnique()
+                .HasFilter("[InventoryConsolidationRunId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_ConsolidationRun_Inventory_Type");
 
             entity.HasIndex(x => x.CreatedAt);
 

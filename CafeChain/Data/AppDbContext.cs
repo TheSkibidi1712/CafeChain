@@ -129,6 +129,10 @@ namespace CafeChain.Data
         // Production runs (intent only — Issue #119 / 114B)
         public DbSet<ProductionRun> ProductionRuns { get; set; }
 
+        // Issue #123 — legacy BTP consolidation runs / lines
+        public DbSet<CafeChain.Models.Inventories.Consolidation.InventoryConsolidationRun> InventoryConsolidationRuns { get; set; }
+        public DbSet<CafeChain.Models.Inventories.Consolidation.InventoryConsolidationLine> InventoryConsolidationLines { get; set; }
+
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
         public DbSet<StockAlert> StockAlerts { get; set; }

@@ -1,5 +1,6 @@
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Consolidation;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Transfers;
@@ -37,6 +38,9 @@ namespace CafeChain.Models.Inventories.Transactions
         /// </summary>
         public int? SourceRecipeId { get; set; }
 
+        /// <summary>Issue #123 — consolidation run linkage (new movements only; never reparent history).</summary>
+        public int? InventoryConsolidationRunId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
@@ -45,5 +49,6 @@ namespace CafeChain.Models.Inventories.Transactions
         public virtual Order? ReferenceOrder { get; set; }
         public virtual ProductionRun? ProductionRun { get; set; }
         public virtual Recipe? SourceRecipe { get; set; }
+        public virtual InventoryConsolidationRun? InventoryConsolidationRun { get; set; }
     }
 }

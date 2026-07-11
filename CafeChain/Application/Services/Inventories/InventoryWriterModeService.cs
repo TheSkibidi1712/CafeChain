@@ -28,7 +28,11 @@ namespace CafeChain.Application.Services.Inventories
             _context = context;
             _physicalUnitConversion = physicalUnitConversion;
             _capabilities = capabilityProviders
-                .GroupBy(x => x.GetStatus().CapabilityId, StringComparer.Ordinal)
+                .GroupBy(
+                    x => x is IStoreScopedInventoryWriterCapabilityProvider scoped
+                        ? scoped.CapabilityId
+                        : x.GetStatus().CapabilityId,
+                    StringComparer.Ordinal)
                 .ToDictionary(x => x.Key, x => x.First(), StringComparer.Ordinal);
         }
 
@@ -120,7 +124,10 @@ namespace CafeChain.Application.Services.Inventories
                     continue;
                 }
 
-                var status = provider.GetStatus();
+                // Issue #123 — consolidation evidence is evaluated per store; others remain static.
+                var status = provider is IStoreScopedInventoryWriterCapabilityProvider scoped
+                    ? await scoped.GetStatusForStoreAsync(storeId)
+                    : provider.GetStatus();
                 if (!status.Ready)
                 {
                     blockers.Add(new InventoryReadinessBlocker(
