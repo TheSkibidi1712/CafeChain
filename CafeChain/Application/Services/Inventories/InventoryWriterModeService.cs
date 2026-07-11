@@ -1,12 +1,15 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Inventories;
+using CafeChain.Application.DTOs.Inventories.Cutover;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Options;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Configuration;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Data;
 using System.Security.Cryptography;
 using System.Text;
@@ -19,14 +22,17 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IPhysicalUnitConversionService _physicalUnitConversion;
         private readonly IReadOnlyDictionary<string, IInventoryWriterCapabilityProvider> _capabilities;
+        private readonly InventoryWriterGlobalOptions _globalOptions;
 
         public InventoryWriterModeService(
             AppDbContext context,
             IPhysicalUnitConversionService physicalUnitConversion,
-            IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders)
+            IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders,
+            IOptions<InventoryWriterGlobalOptions>? globalOptions = null)
         {
             _context = context;
             _physicalUnitConversion = physicalUnitConversion;
+            _globalOptions = globalOptions?.Value ?? new InventoryWriterGlobalOptions();
             _capabilities = capabilityProviders
                 .GroupBy(
                     x => x is IStoreScopedInventoryWriterCapabilityProvider scoped
@@ -76,6 +82,14 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult.Failure(
                     "Mode snapshot không thuộc giao dịch kho hiện tại.",
                     errorCode: InventoryWriterFailureCodes.InvalidSnapshot);
+            }
+
+            // Issue #124 — deployment-controlled global kill switch for all legacy Recipe BTP writes.
+            if (_globalOptions.LegacyBtpWritesDisabled)
+            {
+                return ServiceResult.Failure(
+                    "Legacy Recipe BTP writers are globally disabled for PreparedItem cutover graduation.",
+                    errorCode: CutoverFailureCodes.LegacyBtpWritesGloballyDisabled);
             }
 
             return snapshot.WriterMode switch

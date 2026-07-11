@@ -169,6 +169,17 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Interfaces.Inventories.ILegacyBtpConsolidationService,
                 CafeChain.Application.Services.Inventories.LegacyBtpConsolidationService>();
 
+            // Issue #124 — cutover reconciliation, schema probe, global legacy kill switch
+            // Bind from configuration/env: InventoryWriter__LegacyBtpWritesDisabled (do not commit secrets/appsettings).
+            services.AddOptions<CafeChain.Application.Options.InventoryWriterGlobalOptions>()
+                .BindConfiguration(CafeChain.Application.Options.InventoryWriterGlobalOptions.SectionName);
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventorySchemaReadinessProbe,
+                CafeChain.Application.Services.Inventories.InventorySchemaReadinessProbe>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.ICutoverReconciliationService,
+                CafeChain.Application.Services.Inventories.CutoverReconciliationService>();
+
             // Admin - Inventory Documents
             services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
             services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();
