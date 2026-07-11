@@ -156,6 +156,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<
                 CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
                 CafeChain.Application.Services.Admin.Production.ProductionPreparedWriterCapabilityProvider>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
+                CafeChain.Application.Services.Inventories.PosPreparedWriterCapabilityProvider>();
 
             // Admin - Inventory Documents
             services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();

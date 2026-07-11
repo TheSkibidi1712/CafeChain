@@ -1,3 +1,4 @@
+using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Production;
@@ -30,6 +31,12 @@ namespace CafeChain.Models.Inventories.Transactions
         /// <summary>Issue #120 — production run stock application linkage.</summary>
         public int? ProductionRunId { get; set; }
 
+        /// <summary>
+        /// Issue #121 — durable audit: exact ChildRecipeId (or parent sale recipe id for ingredient lines)
+        /// used when building this sales movement. Not inventory identity.
+        /// </summary>
+        public int? SourceRecipeId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
@@ -37,5 +44,6 @@ namespace CafeChain.Models.Inventories.Transactions
         public virtual InventoryTransfer? InventoryTransfer { get; set; }
         public virtual Order? ReferenceOrder { get; set; }
         public virtual ProductionRun? ProductionRun { get; set; }
+        public virtual Recipe? SourceRecipe { get; set; }
     }
 }

@@ -458,7 +458,8 @@ namespace CafeChain.Tests
                 context,
                 NullLogger<InventoryDeductionService>.Instance,
                 unitConversion,
-                estimated);
+                estimated,
+                physical);
         }
 
         private static async Task SeedAsync(
