@@ -247,7 +247,8 @@ namespace CafeChain.Controllers
 
             var staffHubRoles = new[]
             {
-                RoleConstants.SalesStaff
+                RoleConstants.SalesStaff,
+                RoleConstants.ShiftSupervisor
             };
 
             if (adminRoles.Contains(role))

@@ -20,153 +20,63 @@ namespace CafeChain.Application.Services.Inventories
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryDeductionService> _logger;
+        private readonly IUnitConversionService _unitConversion;
+        private readonly IEstimatedBomCostService _estimatedBomCost;
+        private readonly IStockAlertService? _stockAlertService;
+        private readonly IInventoryWriterModeService? _writerModeService;
 
-        // Giới hạn tối đa 5 tầng BOM — đồng bộ với AdminRecipeService
-        private const int MAX_BOM_DEPTH = 5;
-
-        public InventoryDeductionService(AppDbContext context, ILogger<InventoryDeductionService> logger)
+        public InventoryDeductionService(
+            AppDbContext context,
+            ILogger<InventoryDeductionService> logger,
+            IUnitConversionService unitConversion,
+            IEstimatedBomCostService estimatedBomCost,
+            IStockAlertService? stockAlertService = null,
+            IInventoryWriterModeService? writerModeService = null)
         {
             _context = context;
             _logger = logger;
+            _unitConversion = unitConversion;
+            _estimatedBomCost = estimatedBomCost;
+            _stockAlertService = stockAlertService;
+            _writerModeService = writerModeService;
         }
 
         // ============================================================
-        // COGS: Tính giá vốn an toàn — Có Depth Limit + Cycle Guard
+        // COGS READ adapter over EstimatedBomCost (Issue #117)
+        // Complete → Success(total). Incomplete → Failure (never Success(0) fake complete).
+        // Does not apply YieldPercentage. Does not mutate stock.
+        //
+        // CRITICAL: DeductStockForOrder* MUST NOT call this method.
+        // Cost incompleteness (missing package price / PackageQuantity / primary) is NOT a
+        // quantity conversion failure and must never block valid inventory deduction.
         // ============================================================
-        public async Task<decimal> CalculateRecipeCogsAsync(int recipeId)
+        public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
         {
-            // Khởi tạo visited set để phát hiện vòng lặp
-            return await CalculateRecipeCogsInternalAsync(recipeId, new HashSet<int>(), 0);
-        }
+            var estimate = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
+            if (estimate.IsComplete && estimate.TotalCost.HasValue)
+                return ServiceResult<decimal>.Success(estimate.TotalCost.Value);
 
-        /// <summary>
-        /// Internal recursive COGS calculation với Cycle Guard và Depth Limit.
-        /// </summary>
-        private async Task<decimal> CalculateRecipeCogsInternalAsync(
-            int recipeId, HashSet<int> visited, int depth)
-        {
-            // GUARD 1: Depth Limit — tránh StackOverflow
-            if (depth > MAX_BOM_DEPTH)
-            {
-                _logger.LogWarning(
-                    "Tính COGS vượt quá {MaxDepth} tầng cho Recipe #{RecipeId}. Trả về 0.",
-                    MAX_BOM_DEPTH, recipeId);
-                return 0;
-            }
+            var message = estimate.Issues.Count > 0
+                ? estimate.Issues[0].Message
+                : $"Giá vốn ước tính chưa đủ dữ liệu cho Recipe #{recipeId}.";
 
-            // GUARD 2: Cycle Detection — tránh đệ quy vô hạn
-            if (!visited.Add(recipeId))
-            {
-                _logger.LogWarning(
-                    "Phát hiện vòng lặp khi tính COGS tại Recipe #{RecipeId}. Trả về 0.",
-                    recipeId);
-                return 0;
-            }
+            _logger.LogWarning(
+                "EstimatedBomCost incomplete for Recipe #{RecipeId}: {Message} (issues={Count})",
+                recipeId, message, estimate.Issues.Count);
 
-            // KHÔNG lọc theo Status/Active — phải tính được COGS cho cả Recipe đã Archived
-            // để bảo vệ dữ liệu lịch sử (VD: đơn hàng cũ cần tra cứu giá vốn)
-            var recipe = await _context.Recipes
-                .Include(r => r.RecipeDetails)
-                .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
-
-            if (recipe == null) return 0;
-
-            decimal totalCost = 0;
-
-            foreach (var detail in recipe.RecipeDetails)
-            {
-                decimal detailCost = 0;
-
-                if (detail.IngredientId.HasValue)
-                {
-                    // Lấy giá vốn từ Supplier (Supplier chính hoặc đầu tiên)
-                    var supplier = await _context.IngredientSuppliers
-                        .Where(s => s.IngredientId == detail.IngredientId.Value)
-                        .OrderByDescending(s => s.IsPrimary)
-                        .FirstOrDefaultAsync();
-
-                    decimal unitPrice = supplier?.CurrentPrice ?? 0;
-
-                    // FIX #4: Apply Unit Conversion — quy đổi về BaseUnit trước khi nhân giá
-                    decimal convertedQty = await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, detail.Quantity, detail.UnitId);
-
-                    detailCost = unitPrice * convertedQty;
-                }
-                else if (detail.ChildRecipeId.HasValue)
-                {
-                    // Đệ quy tính giá vốn của Bán Thành Phẩm với depth + 1
-                    decimal childCost = await CalculateRecipeCogsInternalAsync(
-                        detail.ChildRecipeId.Value, visited, depth + 1);
-                    detailCost = childCost * detail.Quantity;
-                }
-
-                totalCost += detailCost;
-            }
-
-            // YieldPercentage logic:
-            //   100% = không hao hụt (mặc định, không điều chỉnh)
-            //   < 100% (VD: 95%) = hao hụt 5% → chi phí tăng: totalCost / 0.95
-            //   > 100% (VD: 110%) = nở ra 10% → chi phí giảm: totalCost / 1.10
-            //   <= 0% = KHÔNG HỢP LỆ → bỏ qua để tránh Division by Zero
-            if (recipe.YieldPercentage > 0 && recipe.YieldPercentage != 100)
-            {
-                totalCost = totalCost / (recipe.YieldPercentage / 100m);
-            }
-            else if (recipe.YieldPercentage <= 0)
-            {
-                _logger.LogError(
-                    "YieldPercentage = {Yield}% cho Recipe #{RecipeId} — không hợp lệ, bỏ qua điều chỉnh hao hụt.",
-                    recipe.YieldPercentage, recipeId);
-            }
-            // YieldPercentage == 100 → không điều chỉnh (default)
-
-            return totalCost;
+            return ServiceResult<decimal>.Failure(message);
         }
 
         // ============================================================
-        // FIX #4: Unit Conversion — Quy đổi Quantity về BaseUnit
+        // Unit Conversion via shared service (fail-closed)
         // ============================================================
-        /// <summary>
-        /// Chuyển đổi quantity từ fromUnitId về BaseUnit của Ingredient.
-        /// Nếu đã ở BaseUnit hoặc không tìm thấy conversion → trả về nguyên bản.
-        /// </summary>
-        private async Task<decimal> ConvertQuantityToBaseUnitAsync(
+        private async Task<(bool ok, decimal qty, string? error)> ConvertQuantityToBaseUnitAsync(
             int ingredientId, decimal quantity, int fromUnitId)
         {
-            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
-            if (ingredient == null || fromUnitId == ingredient.BaseUnitId)
-                return quantity; // Đã ở BaseUnit, không cần convert
-
-            // Tìm conversion trực tiếp: fromUnitId → BaseUnit
-            var conversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == fromUnitId &&
-                    uc.ToUnitId == ingredient.BaseUnitId);
-
-            if (conversion != null && conversion.FromQuantity > 0)
-            {
-                return quantity * (conversion.ToQuantity / conversion.FromQuantity);
-            }
-
-            // Thử chiều ngược: BaseUnit → fromUnitId (đảo công thức)
-            var reverseConversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == ingredient.BaseUnitId &&
-                    uc.ToUnitId == fromUnitId);
-
-            if (reverseConversion != null && reverseConversion.ToQuantity > 0)
-            {
-                return quantity * (reverseConversion.FromQuantity / reverseConversion.ToQuantity);
-            }
-
-            // Không tìm thấy conversion → log warning, trả về nguyên bản
-            _logger.LogWarning(
-                "Không tìm thấy tỷ lệ chuyển đổi UnitId {FromUnit} → BaseUnit cho Ingredient #{IngId}. Dùng quantity nguyên bản.",
-                fromUnitId, ingredientId);
-            return quantity;
+            var result = await _unitConversion.ConvertAsync(ingredientId, quantity, fromUnitId);
+            if (!result.IsSuccess)
+                return (false, 0m, result.Message);
+            return (true, result.Data, null);
         }
 
         // ============================================================
@@ -234,6 +144,23 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
+                if (_writerModeService != null && await ContainsBtpMutationAsync(soldItems))
+                {
+                    var snapshotResult = await _writerModeService.AcquireSnapshotAsync(storeId);
+                    if (!snapshotResult.IsSuccess || snapshotResult.Data == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(snapshotResult.Message, errorCode: snapshotResult.ErrorCode);
+                    }
+
+                    var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshotResult.Data, storeId);
+                    if (!guard.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return guard;
+                    }
+                }
+
                 foreach (var item in soldItems)
                 {
                     var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
@@ -277,12 +204,15 @@ namespace CafeChain.Application.Services.Inventories
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
+                // Issue #97: evaluate stock alerts after qty is committed (never fail deduction).
+                await EvaluateStockAlertsSafeAsync(storeId, referenceOrderId);
+
                 // Trả success kèm warnings (nếu có) — đơn hàng KHÔNG bị reject
                 if (inventoryWarnings.Any())
                 {
                     var result = ServiceResult.Success(
                         $"Trừ kho thành công. Cảnh báo: {inventoryWarnings.Count} nguyên liệu tồn kho âm.");
-                    result.Errors = inventoryWarnings;  // Dùng Errors để chứa warnings — controller check IsSuccess
+                    result.Errors = inventoryWarnings;  // Dùng Errors để chở warnings — controller check IsSuccess
                     return result;
                 }
                 return ServiceResult.Success("Trừ kho bán hàng thành công.");
@@ -298,6 +228,40 @@ namespace CafeChain.Application.Services.Inventories
                 await transaction.RollbackAsync();
                 _logger.LogError(ex, "Lỗi xuất kho bán hàng.");
                 return ServiceResult.Failure($"Lỗi xuất kho: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// Issue #97 — post-commit stock alert evaluation. Failures are logged only.
+        /// Idempotent deduction is unchanged: alerts run only after successful commit.
+        /// Offline sync and online POS share this path (same DeductStock* entrypoints).
+        /// </summary>
+        private async Task EvaluateStockAlertsSafeAsync(int storeId, int? referenceOrderId)
+        {
+            if (_stockAlertService == null)
+                return;
+
+            try
+            {
+                var source = referenceOrderId.HasValue
+                    ? StockAlertSources.PosSale
+                    : StockAlertSources.PosSale;
+
+                var alertResult = await _stockAlertService.EvaluateStoreAsync(storeId, source);
+                if (!alertResult.IsSuccess)
+                {
+                    _logger.LogWarning(
+                        "[InventoryDeduction] Stock alert evaluation failed for StoreId={StoreId}: {Message}",
+                        storeId,
+                        alertResult.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[InventoryDeduction] Stock alert evaluation threw for StoreId={StoreId}",
+                    storeId);
             }
         }
 
@@ -333,6 +297,25 @@ namespace CafeChain.Application.Services.Inventories
             return null;
         }
 
+        private async Task<bool> ContainsBtpMutationAsync(IEnumerable<POSSoldItemDto> soldItems)
+        {
+            foreach (var item in soldItems)
+            {
+                var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
+                if (drinkRecipe?.RecipeDetails.Any(x => x.ChildRecipeId.HasValue) == true)
+                    return true;
+
+                foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
+                {
+                    var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
+                    if (toppingRecipe?.RecipeDetails.Any(x => x.ChildRecipeId.HasValue) == true)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         private async Task DeductRecipeDetailsAsync(
             Recipe recipe,
             int soldQuantity,
@@ -345,11 +328,26 @@ namespace CafeChain.Application.Services.Inventories
             {
                 decimal requiredQty = detail.Quantity * soldQuantity;
 
-                // FIX #4: Apply Unit Conversion cho xuất kho
-                decimal convertedQty = detail.IngredientId.HasValue
-                    ? await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, requiredQty, detail.UnitId)
-                    : requiredQty;
+                decimal convertedQty;
+                if (detail.IngredientId.HasValue)
+                {
+                    var converted = await ConvertQuantityToBaseUnitAsync(
+                        detail.IngredientId.Value, requiredQty, detail.UnitId);
+                    if (!converted.ok)
+                    {
+                        // Do not silently deduct raw quantity — surface as failure via exception
+                        // so outer transaction rolls back and order path can retry after data fix.
+                        throw new InvalidOperationException(
+                            converted.error ??
+                            $"Thiếu quy đổi đơn vị cho nguyên liệu #{detail.IngredientId}.");
+                    }
+
+                    convertedQty = converted.qty;
+                }
+                else
+                {
+                    convertedQty = requiredQty;
+                }
 
                 var inventoryItem = await GetOrCreateInventoryItem(storeId, detail.IngredientId, detail.ChildRecipeId);
 

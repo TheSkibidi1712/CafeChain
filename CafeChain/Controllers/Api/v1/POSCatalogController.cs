@@ -1,26 +1,29 @@
 using CafeChain.Application.DTOs.POS;
-using CafeChain.Controllers.Api.v1;
-using CafeChain.Infrastructure.Interfaces.Admin.POS;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Data;
 
 namespace CafeChain.Controllers.Api.v1
 {
     /// <summary>
-    /// POS Catalog APIs — GET categories, menu-items, toppings
-    /// Tất cả queries filter theo StoreId từ JWT Claims.
-    /// N+1 prevention: sử dụng Projection (.Select) thay vì Eager Loading.
+    /// POS Catalog APIs — GET categories, menu-items, toppings.
+    /// Store-scoped via JWT. Availability uses shared IUnitConversionService (fail-closed).
     /// </summary>
     [Route("api/v1/pos")]
     public class POSCatalogController : PosApiController
     {
         private readonly AppDbContext _context;
+        private readonly IUnitConversionService _unitConversion;
         private readonly ILogger<POSCatalogController> _logger;
 
-        public POSCatalogController(AppDbContext context, ILogger<POSCatalogController> logger)
+        public POSCatalogController(
+            AppDbContext context,
+            IUnitConversionService unitConversion,
+            ILogger<POSCatalogController> logger)
         {
             _context = context;
+            _unitConversion = unitConversion;
             _logger = logger;
         }
 
@@ -121,6 +124,8 @@ namespace CafeChain.Controllers.Api.v1
                     .ToList();
                 item.Price = item.Sizes.FirstOrDefault()?.Price ?? item.Price;
 
+                // Existing product behavior: only inventory-available toppings are returned.
+                // Unavailable toppings (incl. MissingUnitConversion) are omitted, not listed with reason.
                 var availableToppings = new List<POSToppingDto>();
                 foreach (var topping in item.AvailableToppings)
                 {
@@ -208,9 +213,31 @@ namespace CafeChain.Controllers.Api.v1
 
             foreach (var detail in recipe.RecipeDetails)
             {
-                var requiredQty = detail.IngredientId.HasValue
-                    ? await ConvertQuantityToBaseUnitAsync(detail.IngredientId.Value, detail.Quantity, detail.UnitId)
-                    : detail.Quantity;
+                decimal requiredQty;
+                if (detail.IngredientId.HasValue)
+                {
+                    var converted = await _unitConversion.ConvertAsync(
+                        detail.IngredientId.Value,
+                        detail.Quantity,
+                        detail.UnitId);
+
+                    if (!converted.IsSuccess)
+                    {
+                        _logger.LogWarning(
+                            "[POSCatalog] MissingUnitConversion IngredientId={IngredientId} FromUnitId={UnitId}: {Message}",
+                            detail.IngredientId, detail.UnitId, converted.Message);
+                        return RecipeAvailabilityResult.Unavailable(
+                            "MissingUnitConversion",
+                            "Thiếu quy đổi đơn vị nguyên liệu",
+                            25);
+                    }
+
+                    requiredQty = converted.Data;
+                }
+                else
+                {
+                    requiredQty = detail.Quantity;
+                }
 
                 var inventory = await _context.StoreInventories
                     .FirstOrDefaultAsync(i =>
@@ -226,40 +253,6 @@ namespace CafeChain.Controllers.Api.v1
             }
 
             return RecipeAvailabilityResult.Available();
-        }
-
-        private async Task<decimal> ConvertQuantityToBaseUnitAsync(
-            int ingredientId,
-            decimal quantity,
-            int fromUnitId)
-        {
-            var ingredient = await _context.Ingredients.FindAsync(ingredientId);
-            if (ingredient == null || fromUnitId == ingredient.BaseUnitId)
-                return quantity;
-
-            var conversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == fromUnitId &&
-                    uc.ToUnitId == ingredient.BaseUnitId);
-
-            if (conversion != null && conversion.FromQuantity > 0)
-                return quantity * (conversion.ToQuantity / conversion.FromQuantity);
-
-            var reverseConversion = await _context.UnitConversions
-                .FirstOrDefaultAsync(uc =>
-                    uc.IngredientId == ingredientId &&
-                    uc.FromUnitId == ingredient.BaseUnitId &&
-                    uc.ToUnitId == fromUnitId);
-
-            if (reverseConversion != null && reverseConversion.ToQuantity > 0)
-                return quantity * (reverseConversion.FromQuantity / reverseConversion.ToQuantity);
-
-            _logger.LogWarning(
-                "[POSCatalog] Missing unit conversion for IngredientId={IngredientId}, UnitId={UnitId}. Using raw quantity.",
-                ingredientId,
-                fromUnitId);
-            return quantity;
         }
 
         private sealed record RecipeAvailabilityResult(

@@ -1,0 +1,705 @@
+{
+  "GeneratedAtUtc": "2026-07-10T22:50:53.4678781+00:00",
+  "SchemaVersion": "113.A.1",
+  "Mode": "ReadOnly",
+  "Offers": [
+    {
+      "IngredientSupplierId": 3,
+      "IngredientId": 1,
+      "IngredientCode": "ING00001",
+      "IngredientName": "C\u00E0 ph\u00EA h\u1EA1t Robusta 1kg",
+      "SupplierId": 3,
+      "SupplierCode": "SUP003",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p C",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 140000,
+      "PackageQuantity": 1,
+      "PackageUnitId": 2,
+      "PackageUnitCode": "kg",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": 1000,
+      "BaseUnitCost": 140,
+      "PackageDefinitionComplete": true,
+      "CostingStatus": "Complete",
+      "Classification": "Complete",
+      "CostIssueCodes": [],
+      "AuditIssueCodes": [],
+      "Messages": []
+    },
+    {
+      "IngredientSupplierId": 2,
+      "IngredientId": 2,
+      "IngredientCode": "ING00002",
+      "IngredientName": "S\u1EEFa \u0111\u1EB7c \u00D4ng Th\u1ECD Vinamilk 380g",
+      "SupplierId": 2,
+      "SupplierCode": "SUP002",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p B",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 27000,
+      "PackageQuantity": null,
+      "PackageUnitId": 3,
+      "PackageUnitCode": "ml",
+      "PackageUnitType": "TheTich",
+      "PackageUnitActive": true,
+      "BaseUnitId": 3,
+      "BaseUnitCode": "ml",
+      "BaseUnitType": "TheTich",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": false,
+      "CostingStatus": "Incomplete",
+      "Classification": "BusinessDecisionRequired",
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "AuditIssueCodes": [],
+      "Messages": [
+        "Offer #2 thi\u1EBFu PackageQuantity."
+      ]
+    },
+    {
+      "IngredientSupplierId": 9,
+      "IngredientId": 3,
+      "IngredientCode": "ING00003",
+      "IngredientName": "Tr\u00E0 \u0111en Lipton h\u1ED9p 100 t\u00FAi",
+      "SupplierId": 4,
+      "SupplierCode": "SUP004",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p D",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 120000,
+      "PackageQuantity": null,
+      "PackageUnitId": 1,
+      "PackageUnitCode": "g",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": false,
+      "CostingStatus": "Incomplete",
+      "Classification": "BusinessDecisionRequired",
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "AuditIssueCodes": [],
+      "Messages": [
+        "Offer #9 thi\u1EBFu PackageQuantity."
+      ]
+    },
+    {
+      "IngredientSupplierId": 8,
+      "IngredientId": 4,
+      "IngredientCode": "ING00004",
+      "IngredientName": "B\u1ED9t s\u1EEFa B-One 1kg",
+      "SupplierId": 1,
+      "SupplierCode": "SUP001",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p A",
+      "Active": true,
+      "IsPrimary": false,
+      "CurrentPrice": 85000,
+      "PackageQuantity": 1,
+      "PackageUnitId": 2,
+      "PackageUnitCode": "kg",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": true,
+      "CostingStatus": "Incomplete",
+      "Classification": "SafeRemediationCandidate",
+      "CostIssueCodes": [
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "AuditIssueCodes": [
+        "SOLE_COMPLETE_OFFER_NOT_PRIMARY"
+      ],
+      "Messages": [
+        "Nguy\u00EAn li\u1EC7u #4 kh\u00F4ng c\u00F3 NCC ch\u00EDnh Active \u0111\u1EC3 \u01B0\u1EDBc t\u00EDnh gi\u00E1 v\u1ED1n.",
+        "Sole Active offer has complete package metadata but IsPrimary=false."
+      ]
+    },
+    {
+      "IngredientSupplierId": 7,
+      "IngredientId": 5,
+      "IngredientCode": "ING00005",
+      "IngredientName": "B\u1ED9t cacao Van Houten 1kg",
+      "SupplierId": 3,
+      "SupplierCode": "SUP003",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p C",
+      "Active": true,
+      "IsPrimary": false,
+      "CurrentPrice": 180000,
+      "PackageQuantity": 1,
+      "PackageUnitId": 2,
+      "PackageUnitCode": "kg",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": true,
+      "CostingStatus": "Incomplete",
+      "Classification": "SafeRemediationCandidate",
+      "CostIssueCodes": [
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "AuditIssueCodes": [
+        "SOLE_COMPLETE_OFFER_NOT_PRIMARY"
+      ],
+      "Messages": [
+        "Nguy\u00EAn li\u1EC7u #5 kh\u00F4ng c\u00F3 NCC ch\u00EDnh Active \u0111\u1EC3 \u01B0\u1EDBc t\u00EDnh gi\u00E1 v\u1ED1n.",
+        "Sole Active offer has complete package metadata but IsPrimary=false."
+      ]
+    },
+    {
+      "IngredientSupplierId": 1,
+      "IngredientId": 6,
+      "IngredientCode": "ING00006",
+      "IngredientName": "\u0110\u01B0\u1EDDng tr\u1EAFng Bi\u00EAn H\u00F2a 1kg",
+      "SupplierId": 1,
+      "SupplierCode": "SUP001",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p A",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 22000,
+      "PackageQuantity": 1,
+      "PackageUnitId": 2,
+      "PackageUnitCode": "kg",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": 1000,
+      "BaseUnitCost": 22,
+      "PackageDefinitionComplete": true,
+      "CostingStatus": "Complete",
+      "Classification": "Complete",
+      "CostIssueCodes": [],
+      "AuditIssueCodes": [],
+      "Messages": []
+    },
+    {
+      "IngredientSupplierId": 4,
+      "IngredientId": 8,
+      "IngredientCode": "ING00008",
+      "IngredientName": "Syrup Torani Vanilla 750ml",
+      "SupplierId": 4,
+      "SupplierCode": "SUP004",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p D",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 250000,
+      "PackageQuantity": null,
+      "PackageUnitId": 3,
+      "PackageUnitCode": "ml",
+      "PackageUnitType": "TheTich",
+      "PackageUnitActive": true,
+      "BaseUnitId": 3,
+      "BaseUnitCode": "ml",
+      "BaseUnitType": "TheTich",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": false,
+      "CostingStatus": "Incomplete",
+      "Classification": "BusinessDecisionRequired",
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "AuditIssueCodes": [],
+      "Messages": [
+        "Offer #4 thi\u1EBFu PackageQuantity."
+      ]
+    },
+    {
+      "IngredientSupplierId": 6,
+      "IngredientId": 9,
+      "IngredientCode": "ING00009",
+      "IngredientName": "Matcha Nh\u1EADt B\u1EA3n 500g",
+      "SupplierId": 5,
+      "SupplierCode": "SUP005",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p E",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 450000,
+      "PackageQuantity": null,
+      "PackageUnitId": 1,
+      "PackageUnitCode": "g",
+      "PackageUnitType": "KhoiLuong",
+      "PackageUnitActive": true,
+      "BaseUnitId": 1,
+      "BaseUnitCode": "g",
+      "BaseUnitType": "KhoiLuong",
+      "NormalizedPackageBaseQuantity": null,
+      "BaseUnitCost": null,
+      "PackageDefinitionComplete": false,
+      "CostingStatus": "Incomplete",
+      "Classification": "BusinessDecisionRequired",
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "AuditIssueCodes": [],
+      "Messages": [
+        "Offer #6 thi\u1EBFu PackageQuantity."
+      ]
+    },
+    {
+      "IngredientSupplierId": 5,
+      "IngredientId": 10,
+      "IngredientCode": "ING00010",
+      "IngredientName": "Kem b\u00E9o Rich\u0027s 1L",
+      "SupplierId": 2,
+      "SupplierCode": "SUP002",
+      "SupplierName": "Nh\u00E0 cung c\u1EA5p B",
+      "Active": true,
+      "IsPrimary": true,
+      "CurrentPrice": 95000,
+      "PackageQuantity": 1,
+      "PackageUnitId": 4,
+      "PackageUnitCode": "l",
+      "PackageUnitType": "TheTich",
+      "PackageUnitActive": true,
+      "BaseUnitId": 3,
+      "BaseUnitCode": "ml",
+      "BaseUnitType": "TheTich",
+      "NormalizedPackageBaseQuantity": 1000,
+      "BaseUnitCost": 95,
+      "PackageDefinitionComplete": true,
+      "CostingStatus": "Complete",
+      "Classification": "Complete",
+      "CostIssueCodes": [],
+      "AuditIssueCodes": [],
+      "Messages": []
+    }
+  ],
+  "Primaries": [
+    {
+      "IngredientId": 1,
+      "IngredientCode": "ING00001",
+      "IngredientName": "C\u00E0 ph\u00EA h\u1EA1t Robusta 1kg",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 3,
+      "SelectedPrimaryComplete": true,
+      "IssueCodes": [],
+      "Status": "PRIMARY_COMPLETE"
+    },
+    {
+      "IngredientId": 2,
+      "IngredientCode": "ING00002",
+      "IngredientName": "S\u1EEFa \u0111\u1EB7c \u00D4ng Th\u1ECD Vinamilk 380g",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 2,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "Status": "PRIMARY_INCOMPLETE"
+    },
+    {
+      "IngredientId": 3,
+      "IngredientCode": "ING00003",
+      "IngredientName": "Tr\u00E0 \u0111en Lipton h\u1ED9p 100 t\u00FAi",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 9,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "Status": "PRIMARY_INCOMPLETE"
+    },
+    {
+      "IngredientId": 4,
+      "IngredientCode": "ING00004",
+      "IngredientName": "B\u1ED9t s\u1EEFa B-One 1kg",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_SUPPLIER_OFFER",
+        "SOLE_COMPLETE_OFFER_NOT_PRIMARY"
+      ],
+      "Status": "NO_ACTIVE_PRIMARY"
+    },
+    {
+      "IngredientId": 5,
+      "IngredientCode": "ING00005",
+      "IngredientName": "B\u1ED9t cacao Van Houten 1kg",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_SUPPLIER_OFFER",
+        "SOLE_COMPLETE_OFFER_NOT_PRIMARY"
+      ],
+      "Status": "NO_ACTIVE_PRIMARY"
+    },
+    {
+      "IngredientId": 6,
+      "IngredientCode": "ING00006",
+      "IngredientName": "\u0110\u01B0\u1EDDng tr\u1EAFng Bi\u00EAn H\u00F2a 1kg",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 1,
+      "SelectedPrimaryComplete": true,
+      "IssueCodes": [],
+      "Status": "PRIMARY_COMPLETE"
+    },
+    {
+      "IngredientId": 7,
+      "IngredientCode": "ING00007",
+      "IngredientName": "\u0110\u00E1 vi\u00EAn 1kg",
+      "ActiveOfferCount": 0,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "NO_ACTIVE_OFFER"
+      ],
+      "Status": "NO_ACTIVE_OFFER"
+    },
+    {
+      "IngredientId": 8,
+      "IngredientCode": "ING00008",
+      "IngredientName": "Syrup Torani Vanilla 750ml",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 4,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "Status": "PRIMARY_INCOMPLETE"
+    },
+    {
+      "IngredientId": 9,
+      "IngredientCode": "ING00009",
+      "IngredientName": "Matcha Nh\u1EADt B\u1EA3n 500g",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 6,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "MISSING_PACKAGE_QUANTITY"
+      ],
+      "Status": "PRIMARY_INCOMPLETE"
+    },
+    {
+      "IngredientId": 10,
+      "IngredientCode": "ING00010",
+      "IngredientName": "Kem b\u00E9o Rich\u0027s 1L",
+      "ActiveOfferCount": 1,
+      "ActivePrimaryCount": 1,
+      "SelectedPrimaryOfferId": 5,
+      "SelectedPrimaryComplete": true,
+      "IssueCodes": [],
+      "Status": "PRIMARY_COMPLETE"
+    },
+    {
+      "IngredientId": 11,
+      "IngredientCode": "ING00011",
+      "IngredientName": "B\u1ED9t n\u0103ng V\u0129nh Thu\u1EADn 400g",
+      "ActiveOfferCount": 0,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "NO_ACTIVE_OFFER"
+      ],
+      "Status": "NO_ACTIVE_OFFER"
+    },
+    {
+      "IngredientId": 12,
+      "IngredientCode": "ING00012",
+      "IngredientName": "\u0110\u01B0\u1EDDng n\u00E2u H\u00E0n Qu\u1ED1c 1kg",
+      "ActiveOfferCount": 0,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "NO_ACTIVE_OFFER"
+      ],
+      "Status": "NO_ACTIVE_OFFER"
+    },
+    {
+      "IngredientId": 13,
+      "IngredientCode": "ING00013",
+      "IngredientName": "N\u01B0\u1EDBc l\u1ECDc Lavie 500ml",
+      "ActiveOfferCount": 0,
+      "ActivePrimaryCount": 0,
+      "SelectedPrimaryOfferId": null,
+      "SelectedPrimaryComplete": false,
+      "IssueCodes": [
+        "NO_ACTIVE_OFFER"
+      ],
+      "Status": "NO_ACTIVE_OFFER"
+    }
+  ],
+  "PriceHistories": [
+    {
+      "IngredientSupplierId": 1,
+      "CurrentHistoryCount": 1,
+      "MissingCurrentHistory": false,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": true,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [],
+      "Messages": []
+    },
+    {
+      "IngredientSupplierId": 2,
+      "CurrentHistoryCount": 1,
+      "MissingCurrentHistory": false,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": true,
+      "IncompletePackageSnapshot": true,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_INCOMPLETE_SNAPSHOT"
+      ],
+      "Messages": [
+        "Current history missing package snapshot."
+      ]
+    },
+    {
+      "IngredientSupplierId": 3,
+      "CurrentHistoryCount": 1,
+      "MissingCurrentHistory": false,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": true,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [],
+      "Messages": []
+    },
+    {
+      "IngredientSupplierId": 4,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    },
+    {
+      "IngredientSupplierId": 5,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    },
+    {
+      "IngredientSupplierId": 6,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    },
+    {
+      "IngredientSupplierId": 7,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    },
+    {
+      "IngredientSupplierId": 8,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    },
+    {
+      "IngredientSupplierId": 9,
+      "CurrentHistoryCount": 0,
+      "MissingCurrentHistory": true,
+      "MultipleCurrentHistories": false,
+      "SnapshotMatchesOffer": false,
+      "IncompletePackageSnapshot": false,
+      "InvalidPrice": false,
+      "InactiveOrUnknownPackageUnit": false,
+      "IssueCodes": [
+        "PRICE_HISTORY_MISSING_CURRENT"
+      ],
+      "Messages": [
+        "No IsCurrent price-history row."
+      ]
+    }
+  ],
+  "Recipes": [
+    {
+      "RecipeId": 1,
+      "RecipeCode": "RCP_CF_SUA",
+      "Name": "Recipe CF S\u1EEFa",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY",
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "LineSummaries": [
+        "Detail=1 Ingredient status=Complete cost=7000 140,000 \u20AB / g\u00F3i 1 kg = 140 \u20AB/g; 50 g = 7,000 \u20AB",
+        "Detail=2 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=3 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC"
+      ]
+    },
+    {
+      "RecipeId": 2,
+      "RecipeCode": "RCP_CF_DEN",
+      "Name": "Recipe CF \u0110en",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "LineSummaries": [
+        "Detail=4 Ingredient status=Complete cost=8400 140,000 \u20AB / g\u00F3i 1 kg = 140 \u20AB/g; 60 g = 8,400 \u20AB",
+        "Detail=5 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC"
+      ]
+    },
+    {
+      "RecipeId": 3,
+      "RecipeCode": "RCP_TS",
+      "Name": "Recipe Tr\u00E0 s\u1EEFa",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY",
+        "MISSING_SUPPLIER_OFFER",
+        "LEGACY_CHILD_RECIPE_WITHOUT_OUTPUT"
+      ],
+      "LineSummaries": [
+        "Detail=6 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=7 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=8 Ingredient status=Complete cost=440 22,000 \u20AB / g\u00F3i 1 kg = 22 \u20AB/g; 20 g = 440 \u20AB",
+        "Detail=9 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=21 ChildRecipe status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 BTP"
+      ]
+    },
+    {
+      "RecipeId": 4,
+      "RecipeCode": "RCP_TS_SOCOLA",
+      "Name": "Recipe Tr\u00E0 s\u1EEFa socola",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_PACKAGE_QUANTITY",
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "LineSummaries": [
+        "Detail=10 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=11 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=12 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=13 Ingredient status=Complete cost=440 22,000 \u20AB / g\u00F3i 1 kg = 22 \u20AB/g; 20 g = 440 \u20AB",
+        "Detail=14 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC"
+      ]
+    },
+    {
+      "RecipeId": 5,
+      "RecipeCode": "RCP_TC_DEN",
+      "Name": "Tr\u00E2n ch\u00E2u \u0111en",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "LineSummaries": [
+        "Detail=15 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=16 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=17 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC"
+      ]
+    },
+    {
+      "RecipeId": 6,
+      "RecipeCode": "RCP_TC_TRANG",
+      "Name": "Tr\u00E2n ch\u00E2u tr\u1EAFng",
+      "Status": "Incomplete",
+      "TotalCost": null,
+      "CostIssueCodes": [
+        "MISSING_SUPPLIER_OFFER"
+      ],
+      "LineSummaries": [
+        "Detail=18 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC",
+        "Detail=19 Ingredient status=Complete cost=880 22,000 \u20AB / g\u00F3i 1 kg = 22 \u20AB/g; 40 g = 880 \u20AB",
+        "Detail=20 Ingredient status=Incomplete cost=null Ch\u01B0a \u0111\u1EE7 d\u1EEF li\u1EC7u gi\u00E1 g\u00F3i / NCC"
+      ]
+    }
+  ],
+  "Summary": {
+    "OfferCount": 9,
+    "OfferComplete": 3,
+    "OfferSafeCandidate": 2,
+    "OfferBusinessDecision": 4,
+    "OfferInvalid": 0,
+    "IngredientsWithNoActivePrimary": 2,
+    "IngredientsWithMultipleActivePrimary": 0,
+    "RecipesComplete": 0,
+    "RecipesIncomplete": 6,
+    "PriceHistoryIssues": 7
+  }
+}

@@ -3,6 +3,8 @@ import TopNavbar from './components/TopNavbar'
 import POSLayout from './POSLayout'
 import OrderHistory from './pages/OrderHistory'
 import ShiftSummary from './pages/ShiftSummary'
+import BranchInventory from './pages/BranchInventory'
+import Notifications from './pages/Notifications'
 import PaymentResult from './pages/PaymentResult'
 import PrinterStatusSimulator from './components/dev/PrinterStatusSimulator'
 
@@ -28,6 +30,8 @@ function App() {
           <Route index element={<Navigate to="/order" replace />} />
           <Route path="order" element={<POSLayout />} />
           <Route path="history" element={<OrderHistory />} />
+          <Route path="inventory" element={<BranchInventory />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="shift" element={<ShiftSummary />} />
         </Route>
       </Routes>

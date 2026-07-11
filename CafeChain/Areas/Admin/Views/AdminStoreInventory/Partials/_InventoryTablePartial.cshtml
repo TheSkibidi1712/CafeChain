@@ -27,6 +27,14 @@
 
                     <td class="ingredient-name">
                         @item.IngredientName
+                        @if (!string.IsNullOrWhiteSpace(item.IdentityBadge))
+                        {
+                            <small class="text-muted d-block">@item.IdentityBadge@(item.LegacyRecipeId.HasValue && item.PreparedItemId.HasValue ? $" · Công thức legacy #{item.LegacyRecipeId}" : string.Empty)</small>
+                        }
+                        @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
+                        {
+                            <small class="text-warning d-block">Chưa xác nhận đơn vị tồn</small>
+                        }
                     </td>
 
                     <td class="stock">

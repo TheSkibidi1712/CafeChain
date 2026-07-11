@@ -3,10 +3,12 @@ using CafeChain.Data.Configurations;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Auditing;
+using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.StockTake;
 using CafeChain.Models.Inventories.Suppliers;
@@ -71,6 +73,7 @@ namespace CafeChain.Data
         public DbSet<OrderTopping> OrderToppings { get; set; }
         public DbSet<InvoiceAuditLog> InvoiceAuditLogs { get; set; }
         public DbSet<OtpChallenge> OtpChallenges { get; set; }
+        public DbSet<StaffNotification> StaffNotifications { get; set; }
 
         // ========================= DRINK =========================
         public DbSet<Drink> Drinks { get; set; }
@@ -98,6 +101,8 @@ namespace CafeChain.Data
         // ========================= INVENTORY =========================
         // Auditing
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<InventoryWriterModeTransition> InventoryWriterModeTransitions { get; set; }
+        public DbSet<StoreInventoryWriterConfiguration> StoreInventoryWriterConfigurations { get; set; }
 
         // Costing
         public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
@@ -117,8 +122,13 @@ namespace CafeChain.Data
         public DbSet<Unit> Units { get; set; }
         public DbSet<UnitConversion> UnitConversions { get; set; }
 
+        // Prepared items (BTP master — ADR-0006 / #116)
+        public DbSet<PreparedItem> PreparedItems { get; set; }
+
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
+        public DbSet<StockAlert> StockAlerts { get; set; }
+        public DbSet<RestockRequest> RestockRequests { get; set; }
 
         // Stock Take
         public DbSet<StockTakeSession> StockTakeSessions { get; set; }

@@ -27,6 +27,7 @@ namespace CafeChain.Application.Services.Admin.Staffs
         private const int ROLE_ACCOUNTANT_WAREHOUSE = 5;    // Kế toán/kho
         private const int ROLE_SYSTEM_ADMIN = 6;            // Quản trị hệ thống
         private const int ROLE_CUSTOMER = 7;                // Khách hàng
+        private const int ROLE_SHIFT_SUPERVISOR = 8;        // Ca trưởng
 
         private const int SCOPE_COUNTRY = 1;
         private const int SCOPE_PROVINCE = 2;
@@ -41,6 +42,23 @@ namespace CafeChain.Application.Services.Admin.Staffs
             ROLE_STORE_MANAGER,
             ROLE_SYSTEM_ADMIN,
             ROLE_CUSTOMER
+        };
+
+        // AreaManager may only assign store-operational roles (Issue #94 — fix fragile RoleId range).
+        private static readonly int[] AREA_MANAGER_ASSIGNABLE_ROLES =
+        {
+            ROLE_STORE_MANAGER,
+            ROLE_SALES_STAFF,
+            ROLE_SHIFT_SUPERVISOR,
+            ROLE_ACCOUNTANT_WAREHOUSE
+        };
+
+        // StoreManager assignable roles (also used by dropdown filter).
+        private static readonly int[] STORE_MANAGER_ASSIGNABLE_ROLES =
+        {
+            ROLE_SALES_STAFF,
+            ROLE_SHIFT_SUPERVISOR,
+            ROLE_ACCOUNTANT_WAREHOUSE
         };
 
         /// <summary>
@@ -84,29 +102,20 @@ namespace CafeChain.Application.Services.Admin.Staffs
 
             if (isAdmin)
             {
-                // Admin được thấy toàn bộ role nội bộ, trừ Khách hàng đã filter ở trên
-                // Bao gồm:
-                // Chủ doanh nghiệp, Quản lý vùng, Quản lý chi nhánh,
-                // Nhân viên bán hàng, Kế toán/kho, Quản trị hệ thống
+                // Admin/SystemAdmin: toàn bộ role nội bộ (gồm Ca trưởng), trừ Khách hàng.
             }
             else if (isStoreManager)
             {
-                // Quản lý chi nhánh chỉ được tạo nhân sự thuộc chi nhánh
+                // Quản lý chi nhánh: NV bán hàng, Ca trưởng, Kế toán/kho
                 roles = roles
-                    .Where(r =>
-                        r.RoleId == ROLE_SALES_STAFF ||
-                        r.RoleId == ROLE_ACCOUNTANT_WAREHOUSE)
+                    .Where(r => STORE_MANAGER_ASSIGNABLE_ROLES.Contains(r.RoleId))
                     .ToList();
             }
             else
             {
-                // Các role trung gian như Quản lý vùng
-                // Không được tạo role cấp hệ thống, không được tạo khách hàng
+                // Quản lý vùng (và role trung gian tương tự): store-operational only
                 roles = roles
-                    .Where(r =>
-                        r.RoleId == ROLE_STORE_MANAGER ||
-                        r.RoleId == ROLE_SALES_STAFF ||
-                        r.RoleId == ROLE_ACCOUNTANT_WAREHOUSE)
+                    .Where(r => AREA_MANAGER_ASSIGNABLE_ROLES.Contains(r.RoleId))
                     .ToList();
             }
 
@@ -323,8 +332,8 @@ namespace CafeChain.Application.Services.Admin.Staffs
             bool isAreaManager = rolesStr.Contains(RoleConstants.AreaManager);
             if (isAreaManager && !isAdmin)
             {
-                // Lớp 1: Chống leo quyền dọc
-                if (model.SelectedRoleId >= 1 && model.SelectedRoleId <= 7)
+                // Lớp 1: allow-list store-operational roles only (Issue #94)
+                if (!AREA_MANAGER_ASSIGNABLE_ROLES.Contains(model.SelectedRoleId))
                 {
                     throw new UnauthorizedAccessException("Bạn không có quyền cấp phát tài khoản ngang hàng hoặc cấp cao hơn!");
                 }
@@ -548,12 +557,12 @@ namespace CafeChain.Application.Services.Admin.Staffs
             }
             // Province-level (Area Manager): ScopeRefId do form frontend gửi lên (dropdown Tỉnh/TP)
 
-            // === GUARD CLAUSE AREA MANAGER KHÔNG XIN PHÉP (Lớp 1 & Lớp 2) ===
+            // === GUARD CLAUSE AREA MANAGER (Lớp 1 & Lớp 2) — Issue #94 allow-list ===
             var rolesStr = user.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
             bool isAreaManager = rolesStr.Contains(RoleConstants.AreaManager);
             if (isAreaManager && !isAdmin)
             {
-                if (model.SelectedRoleId >= 1 && model.SelectedRoleId <= 7)
+                if (!AREA_MANAGER_ASSIGNABLE_ROLES.Contains(model.SelectedRoleId))
                 {
                     throw new UnauthorizedAccessException("Bạn không có quyền sửa đổi cấp phát Role ngang hàng hoặc cấp cao hơn!");
                 }

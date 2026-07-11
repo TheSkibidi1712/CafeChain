@@ -131,6 +131,10 @@ namespace CafeChain.Areas.Admin.Controllers
                     StoreName = x.StoreName,
 
                     IngredientName = x.IngredientName,
+                    IdentityBadge = x.IdentityBadge,
+                    LegacyRecipeId = x.LegacyRecipeId,
+                    PreparedItemId = x.PreparedItemId,
+                    QuantitySemanticsStatus = x.QuantitySemanticsStatus,
 
                     AvailableQty = x.AvailableQty,
                     ReservedQty = x.ReservedQty,
@@ -158,6 +162,8 @@ namespace CafeChain.Areas.Admin.Controllers
                     StoreName = x.StoreName,
 
                     IngredientName = x.IngredientName,
+                    IdentityBadge = x.IdentityBadge,
+                    QuantitySemanticsStatus = x.QuantitySemanticsStatus,
                     TypeName = x.TypeName,
                     StockStatusName = x.StockStatusName,
 

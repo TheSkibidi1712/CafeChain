@@ -1,7 +1,11 @@
-import { useEffect, useMemo, useState } from 'react'
+import { Component, useEffect, useMemo, useState, type ErrorInfo, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { db, type CartSyncQueueItem, type SyncStatus } from '../db/CafeChainPOSDB'
+import { db } from '../db/CafeChainPOSDB'
 import { apiClient } from '../services/apiClient'
+import {
+  formatHistoryMoney,
+  mapLocalOrdersSafe,
+} from '../utils/orderHistoryLocalMapper'
 
 const LABELS = {
   paid: 'Đã thanh toán',
@@ -15,8 +19,8 @@ const LABELS = {
   noPrintData: 'Chưa có dữ liệu in',
 } as const
 
-const formatVND = (amount: number): string =>
-  new Intl.NumberFormat('vi-VN').format(Math.max(0, amount || 0)) + 'đ'
+const formatVND = (amount: number | null | undefined): string =>
+  formatHistoryMoney(amount)
 
 const formatDateTime = (value: string): string => {
   const date = new Date(value)
@@ -119,10 +123,12 @@ interface ReprintFeedback {
 
 interface HistoryPaymentLine {
   method: string
-  amount: number
+  amount: number | null
   status: string
   paidAt?: string | null
   transactionCode?: string | null
+  receivedAmount?: number | null
+  changeAmount?: number | null
 }
 
 interface HistoryDetailLine {
@@ -142,7 +148,7 @@ interface HistoryRow {
   clientOrderId?: string | null
   code: string
   soldAt: string
-  total: number
+  total: number | null
   paymentSummary: string
   orderState: string
   syncState?: string
@@ -157,6 +163,8 @@ interface HistoryRow {
   lastError?: string
   items: HistoryDetailLine[]
   payments: HistoryPaymentLine[]
+  isDegraded?: boolean
+  degradeReason?: string
 }
 
 const normalizePaymentMethod = (method?: string | null): string => {
@@ -181,12 +189,6 @@ const getBackendOrderState = (order: OrderHistoryItem): string => {
   if (order.orderStatusId === 6) return LABELS.cancelled
   if (order.paymentStatusId === 2 && order.orderStatusId === 5) return LABELS.paid
   return LABELS.paying
-}
-
-const getLocalSyncLabel = (status: SyncStatus): string => {
-  if (status === 'Syncing') return LABELS.syncing
-  if (status === 'Failed') return LABELS.syncFailed
-  return LABELS.pendingSync
 }
 
 const getStatusTone = (label: string): string => {
@@ -217,24 +219,38 @@ const buildItemSummary = (items: HistoryDetailLine[]): string => {
   return items.length > 2 ? `${head} +${items.length - 2} món` : head
 }
 
+const safeMoney = (value: unknown): number | null => {
+  if (typeof value === 'number' && Number.isFinite(value)) return value
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value)
+    if (Number.isFinite(n)) return n
+  }
+  return null
+}
+
 const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
   const payments = (order.payments ?? []).map((payment) => ({
-    method: normalizePaymentMethod(payment.paymentMethod),
-    amount: payment.amount,
-    status: normalizePaymentStatus(payment.paymentStatusId, payment.paymentStatus),
-    paidAt: payment.paidAt,
-    transactionCode: payment.transactionCode,
+    method: normalizePaymentMethod(payment?.paymentMethod),
+    amount: safeMoney(payment?.amount),
+    status: normalizePaymentStatus(payment?.paymentStatusId, payment?.paymentStatus),
+    paidAt: payment?.paidAt,
+    transactionCode: payment?.transactionCode,
   }))
 
-  const items = (order.orderDetails ?? []).map((detail) => ({
-    drinkName: detail.drinkName,
-    sizeName: detail.sizeName,
-    quantity: detail.quantity,
-    unitPrice: detail.price,
-    lineTotal: detail.lineTotal ?? detail.price * detail.quantity,
-    note: detail.note,
-    toppings: detail.toppings ?? [],
-  }))
+  const items = (order.orderDetails ?? []).map((detail) => {
+    const quantity = safeMoney(detail?.quantity) ?? 0
+    const unitPrice = safeMoney(detail?.price) ?? 0
+    const lineTotal = safeMoney(detail?.lineTotal) ?? unitPrice * quantity
+    return {
+      drinkName: detail?.drinkName?.trim() || 'Món',
+      sizeName: detail?.sizeName,
+      quantity,
+      unitPrice,
+      lineTotal,
+      note: detail?.note,
+      toppings: detail?.toppings ?? [],
+    }
+  })
 
   const isPaid = order.paymentStatusId === 2 || payments.some((payment) => payment.status === LABELS.paid)
 
@@ -245,7 +261,7 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
     clientOrderId: order.clientOrderId,
     code: `#${order.orderId}`,
     soldAt: order.createdAt,
-    total: order.total,
+    total: safeMoney(order.total),
     paymentSummary: summarizePayments(payments, order.paymentMethod),
     orderState: getBackendOrderState(order),
     receiptState: isPaid ? LABELS.officialReceiptReady : LABELS.noPrintData,
@@ -257,60 +273,6 @@ const mapBackendOrder = (order: OrderHistoryItem): HistoryRow => {
     note: order.note,
     items,
     payments,
-  }
-}
-
-const mapLocalOrder = (order: CartSyncQueueItem): HistoryRow => {
-  const cartSnapshot = order.cartSnapshot ?? []
-  const fallbackItems = order.items ?? []
-  const clientOrderId = order.clientOrderId || 'local-offline-order'
-  const items: HistoryDetailLine[] = cartSnapshot.length > 0
-    ? cartSnapshot.map((item) => ({
-      drinkName: item.name,
-      sizeName: item.sizeName,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      lineTotal: item.unitPrice * item.quantity,
-      note: item.note,
-      toppings: item.toppings?.map((topping) => topping.name ?? `Topping #${topping.toppingId}`) ?? [],
-    }))
-    : fallbackItems.map((item) => ({
-      drinkName: item.name,
-      sizeName: null,
-      quantity: item.quantity,
-      unitPrice: item.unitPrice,
-      lineTotal: item.unitPrice * item.quantity,
-      note: item.note,
-      toppings: item.toppings?.map((topping) => `Topping #${topping.toppingId}`) ?? [],
-    }))
-
-  const syncState = getLocalSyncLabel(order.syncStatus)
-
-  return {
-    key: `local-${order.queueId ?? clientOrderId}`,
-    source: 'local',
-    clientOrderId,
-    code: `Tạm ${clientOrderId.slice(0, 8)}`,
-    soldAt: order.soldAt,
-    total: order.totalAmount,
-    paymentSummary: 'Tiền mặt',
-    orderState: syncState,
-    syncState,
-    receiptState: LABELS.noPrintData,
-    drinkLabelState: LABELS.noPrintData,
-    workShiftId: order.workShiftId,
-    staffName: `Nhân viên #${order.staffId}`,
-    storeName: `Cửa hàng #${order.storeId}`,
-    orderType: order.orderType === 'take-away' ? 'Mang đi' : 'Tại quán',
-    retryCount: order.retryCount,
-    lastError: order.lastError,
-    items,
-    payments: [{
-      method: 'Tiền mặt',
-      amount: order.paymentSnapshot.amount,
-      status: LABELS.paid,
-      paidAt: order.paymentSnapshot.capturedAt,
-    }],
   }
 }
 
@@ -380,6 +342,12 @@ function DetailDrawer({
         </div>
 
         <div className="space-y-5 p-5">
+          {order.isDegraded && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11px] font-semibold text-amber-800">
+              {order.degradeReason || 'Đơn cục bộ thiếu dữ liệu; hiển thị hạn chế.'}
+            </div>
+          )}
+
           <section className="space-y-3">
             <div className="flex flex-wrap gap-2">
               <StatusPill label={order.orderState} />
@@ -410,45 +378,60 @@ function DetailDrawer({
           <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="mb-3 text-xs font-extrabold text-text-primary">Thanh toán</h3>
             <div className="space-y-2">
-              {order.payments.map((payment, index) => (
-                <div key={`${payment.method}-${index}`} className="flex items-start justify-between gap-3 text-xs">
-                  <div className="min-w-0">
-                    <p className="truncate font-bold text-text-primary">{payment.method}</p>
-                    <p className="truncate text-[11px] text-text-muted">
-                      {payment.status}{payment.transactionCode ? ` • ${payment.transactionCode}` : ''}
-                    </p>
+              {order.payments.length === 0 ? (
+                <p className="text-xs text-text-muted">Chưa có dữ liệu</p>
+              ) : (
+                order.payments.map((payment, index) => (
+                  <div key={`${payment.method}-${index}`} className="flex items-start justify-between gap-3 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-bold text-text-primary">{payment.method}</p>
+                      <p className="truncate text-[11px] text-text-muted">
+                        {payment.status}{payment.transactionCode ? ` • ${payment.transactionCode}` : ''}
+                      </p>
+                      {(payment.receivedAmount != null || payment.changeAmount != null) && (
+                        <p className="mt-0.5 truncate text-[11px] text-text-muted">
+                          {payment.receivedAmount != null ? `Nhận ${formatVND(payment.receivedAmount)}` : ''}
+                          {payment.receivedAmount != null && payment.changeAmount != null ? ' • ' : ''}
+                          {payment.changeAmount != null ? `Thối ${formatVND(payment.changeAmount)}` : ''}
+                        </p>
+                      )}
+                    </div>
+                    <p className="shrink-0 font-bold text-text-primary">{formatVND(payment.amount)}</p>
                   </div>
-                  <p className="shrink-0 font-bold text-text-primary">{formatVND(payment.amount)}</p>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
 
           <section className="rounded-lg border border-border bg-surface p-4">
             <h3 className="mb-3 text-xs font-extrabold text-text-primary">Món trong đơn</h3>
             <div className="space-y-3">
-              {order.items.map((item, index) => (
-                <div key={`${item.drinkName}-${index}`} className="border-b border-border-light pb-3 last:border-b-0 last:pb-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-bold text-text-primary">
-                        {item.quantity}x {item.drinkName}
-                      </p>
-                      <p className="truncate text-[11px] text-text-muted">
-                        {item.sizeName ? `Size ${item.sizeName}` : 'Không chọn size'}
-                        {item.toppings.length > 0 ? ` • ${item.toppings.join(', ')}` : ''}
-                      </p>
-                      {item.note && (
-                        <p className="mt-1 line-clamp-2 text-[11px] text-text-secondary">{item.note}</p>
-                      )}
-                    </div>
-                    <div className="shrink-0 text-right text-xs">
-                      <p className="font-bold text-text-primary">{formatVND(item.lineTotal)}</p>
-                      <p className="text-[11px] text-text-muted">{formatVND(item.unitPrice)}/món</p>
+              {order.items.length === 0 ? (
+                <p className="text-xs text-text-muted">Không có món</p>
+              ) : (
+                order.items.map((item, index) => (
+                  <div key={`${item.drinkName}-${index}`} className="border-b border-border-light pb-3 last:border-b-0 last:pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-bold text-text-primary">
+                          {item.quantity}x {item.drinkName}
+                        </p>
+                        <p className="truncate text-[11px] text-text-muted">
+                          {item.sizeName ? `Size ${item.sizeName}` : 'Không chọn size'}
+                          {item.toppings.length > 0 ? ` • ${item.toppings.join(', ')}` : ''}
+                        </p>
+                        {item.note && (
+                          <p className="mt-1 line-clamp-2 text-[11px] text-text-secondary">{item.note}</p>
+                        )}
+                      </div>
+                      <div className="shrink-0 text-right text-xs">
+                        <p className="font-bold text-text-primary">{formatVND(item.lineTotal)}</p>
+                        <p className="text-[11px] text-text-muted">{formatVND(item.unitPrice)}/món</p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </section>
 
@@ -516,7 +499,49 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-export default function OrderHistory() {
+/** Component-level safety net — does not hide root cause of mapping bugs. */
+class OrderHistoryErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError(): { hasError: boolean } {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo): void {
+    console.warn('[OrderHistory] render error boundary', {
+      message: error.message,
+      componentStack: info.componentStack?.slice(0, 400),
+    })
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-full w-full items-center justify-center bg-surface p-6">
+          <div className="max-w-md rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+            <p className="text-sm font-bold text-red-700">Không thể tải lịch sử đơn hàng. Vui lòng thử lại.</p>
+            <p className="mt-2 text-[11px] text-text-muted">
+              Trang gặp lỗi hiển thị. Bấm tải lại trang hoặc quay lại POS.
+            </p>
+            <button
+              type="button"
+              onClick={() => this.setState({ hasError: false })}
+              className="mt-4 rounded-lg border border-red-200 bg-white px-4 py-2 text-xs font-bold text-red-700 hover:bg-red-100"
+            >
+              Thử lại
+            </button>
+          </div>
+        </div>
+      )
+    }
+    return this.props.children
+  }
+}
+
+function OrderHistoryPage() {
   const [orders, setOrders] = useState<OrderHistoryItem[]>([])
   const [pagination, setPagination] = useState<PaginationInfo>({ page: 1, pageSize: 20, totalCount: 0, totalPages: 1 })
   const [isLoading, setIsLoading] = useState(true)
@@ -564,12 +589,33 @@ export default function OrderHistory() {
   }, [])
 
   const historyRows = useMemo(() => {
+    let localMapWarning: string | null = null
+    let localRows: HistoryRow[]
+    try {
+      localRows = mapLocalOrdersSafe(localOfflineOrders ?? []).map((row) => ({
+        ...row,
+        source: 'local' as const,
+      }))
+      if (localRows.some((r) => r.isDegraded)) {
+        localMapWarning = 'Không thể đọc một số đơn hàng cục bộ.'
+      }
+    } catch (err) {
+      console.warn('[OrderHistory] local map failed', err instanceof Error ? err.message : String(err))
+      localMapWarning = 'Không thể đọc một số đơn hàng cục bộ.'
+      localRows = []
+    }
+
     const backendRows = orders.map(mapBackendOrder)
-    const localRows = (localOfflineOrders ?? []).map(mapLocalOrder)
-    return [...localRows, ...backendRows].sort((a, b) => (
-      new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime()
-    ))
+    return {
+      rows: [...localRows, ...backendRows].sort((a, b) => (
+        new Date(b.soldAt).getTime() - new Date(a.soldAt).getTime()
+      )),
+      localMapWarning,
+    }
   }, [orders, localOfflineOrders])
+
+  const displayRows = historyRows.rows
+  const localMapWarning = historyRows.localMapWarning
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > pagination.totalPages) return
@@ -653,6 +699,11 @@ export default function OrderHistory() {
               </div>
             </div>
           )}
+          {localMapWarning && (
+            <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-[11px] font-semibold text-amber-800">
+              {localMapWarning}
+            </div>
+          )}
           <div className="grid min-w-[1100px] grid-cols-[150px_145px_minmax(210px,1.5fr)_150px_130px_170px_150px_120px] gap-3 border-b border-border bg-surface px-4 py-3 text-[10px] font-extrabold uppercase text-text-muted">
             <span>Mã đơn</span>
             <span>Thời gian</span>
@@ -665,21 +716,21 @@ export default function OrderHistory() {
           </div>
 
           {isLoading ? (
-            <div className="p-16 text-center text-xs font-semibold text-text-muted">Đang tải lịch sử đơn hàng...</div>
-          ) : errorMessage && historyRows.length === 0 ? (
+            <div className="p-16 text-center text-xs font-semibold text-text-muted">Đang tải lịch sử đơn hàng…</div>
+          ) : errorMessage && displayRows.length === 0 ? (
             <div className="p-16 text-center">
-              <p className="text-xs font-semibold text-red-700">Không tải được lịch sử đơn hàng</p>
-              <p className="mt-1 text-[10px] text-text-muted">Kiểm tra backend rồi thử lại.</p>
+              <p className="text-xs font-semibold text-red-700">Không thể tải lịch sử đơn hàng. Vui lòng thử lại.</p>
+              <p className="mt-1 text-[10px] text-text-muted">Kiểm tra backend rồi bấm Làm mới.</p>
             </div>
-          ) : historyRows.length === 0 ? (
+          ) : displayRows.length === 0 ? (
             <div className="p-16 text-center">
-              <p className="text-xs font-semibold text-text-muted">Chưa có đơn hàng nào</p>
+              <p className="text-xs font-semibold text-text-muted">Chưa có đơn hàng.</p>
               <p className="mt-1 text-[10px] text-text-muted">Đơn backend và đơn offline chưa đồng bộ sẽ xuất hiện tại đây.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <div className="min-w-[1100px] divide-y divide-border">
-                {historyRows.map((order) => (
+                {displayRows.map((order) => (
                   <button
                     type="button"
                     key={order.key}
@@ -695,6 +746,9 @@ export default function OrderHistory() {
                         <p className="truncate font-mono text-[10px] text-text-muted" title={order.clientOrderId}>
                           {order.clientOrderId}
                         </p>
+                      )}
+                      {order.isDegraded && (
+                        <p className="mt-0.5 text-[10px] font-semibold text-amber-700">Đơn cục bộ thiếu dữ liệu</p>
                       )}
                     </div>
                     <p className="truncate text-text-secondary">{formatDateTime(order.soldAt)}</p>
@@ -751,5 +805,13 @@ export default function OrderHistory() {
         reprintFeedback={reprintFeedback}
       />
     </div>
+  )
+}
+
+export default function OrderHistory() {
+  return (
+    <OrderHistoryErrorBoundary>
+      <OrderHistoryPage />
+    </OrderHistoryErrorBoundary>
   )
 }

@@ -669,6 +669,8 @@ function loadDetail(id) {
         renderPhones(d.phones);
         renderBanks(d.bankAccounts);
         renderContacts(d.contacts);
+        loadIngredientOffers(d.supplierId);
+        resetOfferForm();
         supOpen('detailModal');
     });
 }
@@ -901,5 +903,173 @@ $(document).on('click', '.del-contact', function () {
     $.post(SUP_BASE + '/DeleteContact', { supplierContactId: id }, function (res) {
         if (res.success) { supToast(res.message); loadDetail(currentSupplierId); }
         else supToast(res.message, 'error');
+    });
+});
+
+// ===================== INGREDIENT OFFERS (#111) =====================
+let offerIngredients = [];
+let offerUnits = [];
+
+function loadIngredientOffers(supplierId) {
+    $.get(SUP_BASE + '/GetIngredientOffers', { supplierId }, function (res) {
+        if (!res.success) {
+            $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Không tải được</td></tr>');
+            return;
+        }
+        renderOffers(res.data || []);
+    }).fail(function () {
+        $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Lỗi tải gói mua</td></tr>');
+    });
+}
+
+function renderOffers(offers) {
+    if (!offers.length) {
+        $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Chưa có gói mua nguyên liệu</td></tr>');
+        return;
+    }
+    let html = '';
+    offers.forEach(function (o) {
+        const incomplete = !o.hasCompletePackageDefinition
+            ? ' <span class="tag-sub">Thiếu gói</span>'
+            : '';
+        const primary = o.isPrimary ? '<span class="tag-primary">Chính</span>' : '';
+        const active = o.active ? 'Active' : 'Tắt';
+        html += '<tr>'
+            + '<td>' + (o.ingredientName || '') + incomplete
+            + '<div class="text-muted" style="font-size:11px">' + (o.ingredientCode || '') + '</div></td>'
+            + '<td>' + (o.priceDisplay || '') + '</td>'
+            + '<td>' + (o.packageDisplay || '') + '</td>'
+            + '<td>' + (o.unitCode || '') + '</td>'
+            + '<td>' + primary + '</td>'
+            + '<td>' + active + '</td>'
+            + '<td class="text-center">'
+            + '<i class="fa fa-pen sup-icon-btn edit-offer" data-id="' + o.ingredientSupplierId + '" title="Sửa"></i> '
+            + '<i class="fa fa-power-off sup-icon-btn toggle-offer" data-id="' + o.ingredientSupplierId
+            + '" data-active="' + (!o.active) + '" title="Bật/Tắt"></i>'
+            + '</td></tr>';
+    });
+    $('#offerList').html(html);
+}
+
+function ensureOfferDropdowns(done) {
+    const loadIng = offerIngredients.length
+        ? $.Deferred().resolve().promise()
+        : $.get(SUP_BASE + '/GetIngredientOptions').then(function (res) {
+            offerIngredients = res.data || [];
+            const $sel = $('#of-ingredient').empty().append('<option value="">-- Chọn NL --</option>');
+            offerIngredients.forEach(function (i) {
+                $sel.append('<option value="' + i.ingredientId + '">' + i.name + ' (' + i.code + ')</option>');
+            });
+        });
+    const loadUnit = offerUnits.length
+        ? $.Deferred().resolve().promise()
+        : $.get(SUP_BASE + '/GetContentUnitOptions').then(function (res) {
+            offerUnits = res.data || [];
+            const $sel = $('#of-unit').empty().append('<option value="">-- Đơn vị --</option>');
+            offerUnits.forEach(function (u) {
+                $sel.append('<option value="' + u.unitId + '">' + u.unitCode + ' — ' + u.name + '</option>');
+            });
+        });
+    $.when(loadIng, loadUnit).always(function () { if (done) done(); });
+}
+
+function resetOfferForm() {
+    $('#of-id').val('');
+    $('#of-ingredient').val('').prop('disabled', false);
+    $('#of-unit').val('');
+    $('#of-price').val('');
+    $('#of-packageQty').val('');
+    $('#of-moq').val('');
+    $('#of-lead').val('');
+    $('#of-primary').prop('checked', false);
+    $('#of-active').prop('checked', true);
+    $('#of-note').val('');
+    $('#offer-form-error').text('');
+    $('#offer-form').hide();
+}
+
+$(document).on('click', '#btnShowOfferForm', function () {
+    ensureOfferDropdowns(function () {
+        resetOfferForm();
+        $('#of-active').prop('checked', true);
+        $('#offer-form').show();
+    });
+});
+
+$(document).on('click', '#btnCancelOffer', function () { resetOfferForm(); });
+
+$(document).on('click', '#btnSaveOffer', function () {
+    const idVal = $('#of-id').val();
+    const dto = {
+        ingredientSupplierId: idVal ? parseInt(idVal, 10) : null,
+        supplierId: currentSupplierId,
+        ingredientId: parseInt($('#of-ingredient').val(), 10) || 0,
+        unitId: parseInt($('#of-unit').val(), 10) || 0,
+        packageQuantity: $('#of-packageQty').val() === '' ? null : parseFloat($('#of-packageQty').val()),
+        currentPrice: parseFloat($('#of-price').val()),
+        minimumOrderQuantity: $('#of-moq').val() === '' ? null : parseFloat($('#of-moq').val()),
+        leadTimeDays: $('#of-lead').val() === '' ? null : parseInt($('#of-lead').val(), 10),
+        isPrimary: $('#of-primary').is(':checked'),
+        active: $('#of-active').is(':checked'),
+        note: $('#of-note').val()
+    };
+    if (!dto.ingredientId || !dto.unitId || isNaN(dto.currentPrice)) {
+        $('#offer-form-error').text('Vui lòng nhập nguyên liệu, đơn vị và giá gói mua.');
+        return;
+    }
+    const url = idVal ? (SUP_BASE + '/UpdateIngredientOffer') : (SUP_BASE + '/CreateIngredientOffer');
+    $.ajax({
+        url: url,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(dto),
+        success: function (res) {
+            if (res.success) {
+                supToast(res.message);
+                resetOfferForm();
+                loadIngredientOffers(currentSupplierId);
+            } else {
+                $('#offer-form-error').text(res.message || 'Lỗi lưu');
+                supToast(res.message || 'Lỗi lưu', 'error');
+            }
+        },
+        error: function () { $('#offer-form-error').text('Lỗi kết nối'); }
+    });
+});
+
+$(document).on('click', '.edit-offer', function () {
+    const id = $(this).data('id');
+    ensureOfferDropdowns(function () {
+        $.get(SUP_BASE + '/GetIngredientOffer', { id: id }, function (res) {
+            if (!res.success) { supToast(res.message, 'error'); return; }
+            const o = res.data;
+            $('#offer-form').show();
+            $('#of-id').val(o.ingredientSupplierId);
+            $('#of-ingredient').val(o.ingredientId).prop('disabled', true);
+            $('#of-unit').val(o.unitId);
+            $('#of-price').val(o.currentPrice);
+            $('#of-packageQty').val(o.packageQuantity != null ? o.packageQuantity : '');
+            $('#of-moq').val(o.minimumOrderQuantity != null ? o.minimumOrderQuantity : '');
+            $('#of-lead').val(o.leadTimeDays != null ? o.leadTimeDays : '');
+            $('#of-primary').prop('checked', !!o.isPrimary);
+            $('#of-active').prop('checked', !!o.active);
+            $('#of-note').val(o.note || '');
+            $('#offer-form-error').text('');
+        });
+    });
+});
+
+$(document).on('click', '.toggle-offer', function () {
+    const id = $(this).data('id');
+    const active = $(this).data('active') === true || $(this).data('active') === 'true';
+    $.ajax({
+        url: SUP_BASE + '/ToggleIngredientOffer',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ ingredientSupplierId: id, active: active }),
+        success: function (res) {
+            if (res.success) { supToast(res.message); loadIngredientOffers(currentSupplierId); }
+            else supToast(res.message, 'error');
+        }
     });
 });

@@ -1,4 +1,7 @@
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Costing;
 using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.ViewModels.Admin.Recipes;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -6,6 +9,7 @@ using System.Collections.Generic;
 using CafeChain.Data;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Models.Enums.Unit;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -13,11 +17,19 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminRecipeController : AdminBaseController
     {
         private readonly IAdminRecipeService _recipeService;
+        private readonly IRecipeOutputNormalizer _outputNormalizer;
+        private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly AppDbContext _context;
 
-        public AdminRecipeController(IAdminRecipeService recipeService, AppDbContext context)
+        public AdminRecipeController(
+            IAdminRecipeService recipeService,
+            IRecipeOutputNormalizer outputNormalizer,
+            IEstimatedBomCostService estimatedBomCost,
+            AppDbContext context)
         {
             _recipeService = recipeService;
+            _outputNormalizer = outputNormalizer;
+            _estimatedBomCost = estimatedBomCost;
             _context = context;
         }
 
@@ -28,10 +40,12 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Index()
         {
             var recipes = await _context.Recipes
-                .Include(r => r.ChildRecipeDetails) // Để xác định nó có phải Bán thành phẩm không
+                .Include(r => r.ChildRecipeDetails)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(rd => rd.Ingredient)
-                .Where(r => r.Status == "Active") // Chỉ hiển thị bản Active
+                .Include(r => r.PreparedItem)
+                .Include(r => r.OutputUnit)
+                .Where(r => r.Status == "Active")
                 .OrderByDescending(r => r.RecipeId)
                 .ToListAsync();
 
@@ -74,6 +88,9 @@ namespace CafeChain.Areas.Admin.Controllers
                     .ThenInclude(rd => rd.Unit)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(rd => rd.ChildRecipe)
+                .Include(r => r.PreparedItem)
+                    .ThenInclude(p => p!.BaseUnit)
+                .Include(r => r.OutputUnit)
                 .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
 
             if (recipe == null)
@@ -84,13 +101,10 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(recipe);
         }
 
-        // Giới hạn tối đa 5 tầng BOM cho BuildTreeHtml
         private const int MAX_TREE_DEPTH = 5;
 
-        // Đệ quy dựng HTML Tree cho BOM (dành cho API) — có Depth Limit
         private async Task<string> BuildTreeHtml(Models.Drinks.Recipe recipe, int currentDepth)
         {
-            // FIX #8: Depth Limit cho BuildTreeHtml
             if (currentDepth > MAX_TREE_DEPTH)
             {
                 return "<ul class='list-group'><li class='list-group-item text-danger'>" +
@@ -102,10 +116,9 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 if (detail.IngredientId.HasValue)
                 {
-                    // Nguyên liệu thô (Leaf node)
                     var ingName = detail.Ingredient?.Name ?? "N/A";
                     var unitName = detail.Unit?.Name ?? detail.Ingredient?.BaseUnit?.Name ?? "";
-                    
+
                     html += $@"<li class='list-group-item d-flex justify-content-between align-items-center bg-transparent px-3 py-2 border-bottom-dashed'>
                                 <div><i class='fas fa-leaf text-success me-2'></i> {ingName}</div>
                                 <span class='badge bg-light text-dark border'>{detail.Quantity} {unitName}</span>
@@ -113,7 +126,6 @@ namespace CafeChain.Areas.Admin.Controllers
                 }
                 else if (detail.ChildRecipeId.HasValue)
                 {
-                    // Bán thành phẩm (Branch node - cần đệ quy tiếp)
                     var childRecipe = await _context.Recipes
                         .Include(r => r.RecipeDetails).ThenInclude(rd => rd.Ingredient).ThenInclude(i => i.BaseUnit)
                         .Include(r => r.RecipeDetails).ThenInclude(rd => rd.Unit)
@@ -128,7 +140,7 @@ namespace CafeChain.Areas.Admin.Controllers
                                     <div class='fw-bold text-primary'><i class='fas fa-flask text-warning me-2'></i> {childName}</div>
                                     <span class='badge bg-warning text-dark'>{detail.Quantity} {unitName}</span>
                                 </div>";
-                    
+
                     if (childRecipe != null)
                     {
                         var childHtml = await BuildTreeHtml(childRecipe, currentDepth + 1);
@@ -145,13 +157,14 @@ namespace CafeChain.Areas.Admin.Controllers
         // CREATE
         // ============================================================
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             return View(new RecipeCreateVM());
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -169,6 +182,87 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = false, message = result.Message });
         }
 
+        /// <summary>
+        /// Backend-authoritative normalized output preview (no JS conversion factors).
+        /// </summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PreviewNormalizedOutput(
+            [FromBody] RecipeOutputPreviewRequest request)
+        {
+            if (request == null
+                || request.PreparedItemId <= 0
+                || request.OutputQuantity <= 0
+                || request.OutputUnitId <= 0)
+            {
+                return Json(new { success = false, message = "Thiếu BTP, sản lượng hoặc đơn vị đầu ra." });
+            }
+
+            var result = await _outputNormalizer.NormalizeAsync(
+                request.PreparedItemId,
+                request.OutputQuantity,
+                request.OutputUnitId);
+
+            if (!result.IsSuccess)
+                return Json(new { success = false, message = result.Message });
+
+            var d = result.Data;
+            return Json(new
+            {
+                success = true,
+                preview = d.PreviewText,
+                outputQuantity = d.OutputQuantity,
+                outputUnitCode = d.OutputUnitCode,
+                normalizedQuantityInBase = d.NormalizedQuantityInBase,
+                baseUnitCode = d.BaseUnitCode,
+                preparedItemCode = d.PreparedItemCode,
+                preparedItemName = d.PreparedItemName
+            });
+        }
+
+        /// <summary>
+        /// EstimatedBomCost for a saved Recipe (#117). Authoritative COMPLETE/INCOMPLETE.
+        /// </summary>
+        [HttpGet]
+        public async Task<IActionResult> EstimateBomCost(int recipeId)
+        {
+            if (recipeId <= 0)
+                return Json(new { success = false, message = "RecipeId không hợp lệ." });
+
+            var result = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
+            return Json(new
+            {
+                success = true,
+                status = result.Status.ToString(),
+                isComplete = result.IsComplete,
+                totalCost = result.TotalCost,
+                label = result.IsComplete
+                    ? "Giá vốn ước tính"
+                    : "Giá vốn ước tính — chưa đủ dữ liệu",
+                issues = result.Issues.Select(i => new { i.Code, i.Message, i.IngredientId, i.RecipeId, i.RecipeDetailId }),
+                lines = result.Lines.Select(l => new
+                {
+                    l.RecipeDetailId,
+                    componentKind = l.ComponentKind.ToString(),
+                    l.IngredientId,
+                    l.ChildRecipeId,
+                    l.PreparedItemId,
+                    l.Quantity,
+                    l.UnitId,
+                    l.UnitCode,
+                    l.QuantityInBase,
+                    l.BaseUnitCode,
+                    l.BaseUnitCost,
+                    l.LineCost,
+                    status = l.Status.ToString(),
+                    l.PackagePrice,
+                    l.PackageQuantity,
+                    l.PackageUnitCode,
+                    l.DisplaySummary
+                })
+            });
+        }
+
         // ============================================================
         // EDIT: Chỉnh sửa BOM (Versioning — Insert mới, Archive cũ)
         // ============================================================
@@ -183,6 +277,7 @@ namespace CafeChain.Areas.Admin.Controllers
                     .ThenInclude(rd => rd.ChildRecipe)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(rd => rd.Unit)
+                .Include(r => r.PreparedItem)
                 .FirstOrDefaultAsync(r => r.RecipeId == id && r.Status == "Active");
 
             if (recipe == null)
@@ -191,20 +286,37 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            // Map sang ViewModel
+            bool isLegacyUnmapped =
+                !recipe.DrinkId.HasValue
+                && !recipe.ToppingId.HasValue
+                && !recipe.PreparedItemId.HasValue;
+
+            string recipeType = recipe.ToppingId.HasValue
+                ? "TOPPING"
+                : recipe.DrinkId.HasValue
+                    ? "POS"
+                    : "SUBRECIPE";
+
             var vm = new RecipeCreateVM
             {
-                RecipeType = recipe.ToppingId.HasValue ? "TOPPING" : recipe.DrinkId.HasValue ? "POS" : "SUBRECIPE",
+                RecipeType = recipeType,
                 DrinkId = recipe.DrinkId,
                 SizeId = recipe.SizeId,
                 ToppingId = recipe.ToppingId,
-                SubRecipeName = recipe.DrinkId.HasValue || recipe.ToppingId.HasValue ? null : recipe.Name,
+                PreparedItemId = recipe.PreparedItemId,
+                ExpectedYield = recipe.OutputQuantity,
+                OutputUnitId = recipe.OutputUnitId,
+                SubRecipeName = recipe.DrinkId.HasValue || recipe.ToppingId.HasValue
+                    ? null
+                    : recipe.Name,
+                IsLegacyUnmappedSubRecipe = isLegacyUnmapped,
+                PreparedItemLocked = recipe.PreparedItemId.HasValue,
                 Active = recipe.Active,
                 EffectiveDate = recipe.EffectiveDate ?? System.DateTime.Today,
                 Details = recipe.RecipeDetails.Select(rd => new RecipeDetailVM
                 {
-                    ItemCode = rd.IngredientId.HasValue 
-                        ? $"ING_{rd.IngredientId}" 
+                    ItemCode = rd.IngredientId.HasValue
+                        ? $"ING_{rd.IngredientId}"
                         : $"REC_{rd.ChildRecipeId}",
                     Quantity = rd.Quantity,
                     UnitId = rd.UnitId,
@@ -214,7 +326,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             ViewBag.RecipeId = id;
             ViewBag.RecipeName = recipe.Name;
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             return View(vm);
         }
 
@@ -225,7 +337,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!ModelState.IsValid)
             {
                 ViewBag.RecipeId = id;
-                PopulateViewBagData();
+                await PopulateViewBagDataAsync();
                 return View(model);
             }
 
@@ -237,7 +349,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.RecipeId = id;
-            PopulateViewBagData();
+            await PopulateViewBagDataAsync();
             ModelState.AddModelError("", result.Message);
             return View(model);
         }
@@ -246,6 +358,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // DELETE: Xóa BOM (AJAX endpoint)
         // ============================================================
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteRecipeAsync(id);
@@ -272,31 +385,42 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(sizes);
         }
 
-        /// <summary>
-        /// Tập trung tải toàn bộ dữ liệu Dropdown cho View (DRY)
-        /// </summary>
-        private void PopulateViewBagData()
+        private async Task PopulateViewBagDataAsync()
         {
-            // Nguyên liệu thô — lấy giá vốn từ NCC chính (IngredientSupplier)
-            ViewBag.Ingredients = _context.Ingredients
+            // Package-normalized base-unit costs (#117) — never map CurrentPrice as ₫/Gram.
+            var ingredients = await _context.Ingredients
+                .AsNoTracking()
                 .Include(i => i.BaseUnit)
-                .Include(i => i.IngredientSuppliers)
                 .Where(x => x.Active)
-                .Select(x => new
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            var ingredientDtos = new List<object>();
+            foreach (var x in ingredients)
+            {
+                var cost = await _estimatedBomCost.ResolveIngredientBaseUnitCostAsync(x.IngredientId);
+                ingredientDtos.Add(new
                 {
                     Id = x.IngredientId,
                     Name = x.Name,
-                    // Lấy giá NCC chính, fallback giá NCC đầu tiên, fallback 0
-                    BaseCost = x.IngredientSuppliers.Any(s => s.IsPrimary) 
-                        ? x.IngredientSuppliers.First(s => s.IsPrimary).CurrentPrice
-                        : x.IngredientSuppliers.Any() 
-                            ? x.IngredientSuppliers.First().CurrentPrice
-                            : 0m,
+                    // BaseCost only when COMPLETE package-normalized unit cost exists
+                    BaseCost = cost.IsComplete ? cost.BaseUnitCost!.Value : 0m,
+                    CostComplete = cost.IsComplete,
+                    PackagePrice = cost.PackagePrice,
+                    PackageQuantity = cost.PackageQuantity,
+                    PackageUnitCode = cost.PackageUnitCode,
+                    BaseUnitCode = cost.BaseUnitCode ?? x.BaseUnit?.UnitCode,
+                    CostMessage = cost.IsComplete
+                        ? null
+                        : (cost.Issues.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn"),
                     UnitId = x.BaseUnitId,
-                    UnitName = x.BaseUnit.Name
-                }).ToList<object>();
+                    UnitName = x.BaseUnit?.Name ?? ""
+                });
+            }
 
-            // Sub-recipes — chỉ lấy bản Active
+            ViewBag.Ingredients = ingredientDtos;
+
+            // Child recipes: no silent package base cost; estimate when output contract exists later via server
             ViewBag.SubRecipes = _context.Recipes
                 .Where(x => x.Active && x.Status == "Active")
                 .Select(x => new
@@ -304,11 +428,12 @@ namespace CafeChain.Areas.Admin.Controllers
                     Id = x.RecipeId,
                     Name = x.Name,
                     BaseCost = 0m,
+                    CostComplete = false,
                     UnitId = 0,
-                    UnitName = "Phần"
+                    UnitName = "Phần",
+                    CostMessage = "BTP: dùng EstimateBomCost / sản lượng đầu ra"
                 }).ToList<object>();
 
-            // Drinks (POS Product dropdown)
             ViewBag.Drinks = _context.Drinks
                 .Where(x => x.Active)
                 .Select(x => new { x.DrinkId, x.Name })
@@ -319,11 +444,44 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Select(x => new { x.ToppingId, x.Name })
                 .ToList<object>();
 
-            // Đơn vị tính (OutputUnit dropdown)
-            ViewBag.Units = _context.Units
-                .Where(x => x.Active)
-                .Select(x => new { x.UnitId, x.Name })
+            // Active PreparedItems for BTP output identity (#112 / #116)
+            ViewBag.PreparedItems = _context.PreparedItems
+                .AsNoTracking()
+                .Where(p => p.Active)
+                .OrderBy(p => p.Code)
+                .Select(p => new
+                {
+                    p.PreparedItemId,
+                    p.Code,
+                    p.Name,
+                    p.BaseUnitId,
+                    BaseUnitCode = p.BaseUnit.UnitCode,
+                    BaseUnitName = p.BaseUnit.Name
+                })
                 .ToList<object>();
+
+            // Output units: active mass/volume/count, exclude commercial packaging
+            var units = _context.Units
+                .AsNoTracking()
+                .Where(x => x.Active
+                    && (x.Type == UnitType.KhoiLuong
+                        || x.Type == UnitType.TheTich
+                        || x.Type == UnitType.Dem))
+                .OrderBy(x => x.UnitCode)
+                .Select(x => new { x.UnitId, x.Name, x.UnitCode })
+                .ToList()
+                .Where(u => !PackageUnitCodes.IsRejectedCommercialPackaging(u.UnitCode))
+                .Select(u => new { u.UnitId, u.Name, u.UnitCode })
+                .ToList<object>();
+
+            ViewBag.Units = units;
         }
+    }
+
+    public class RecipeOutputPreviewRequest
+    {
+        public int PreparedItemId { get; set; }
+        public decimal OutputQuantity { get; set; }
+        public int OutputUnitId { get; set; }
     }
 }

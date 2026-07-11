@@ -67,28 +67,31 @@ namespace CafeChain.Data.Configurations.Drinks.Recipes
 
             // ================= SEED =================
 
+            // UnitId must match ingredient BaseUnit (or have UnitConversion).
+            // Solids (BaseUnit=g/UnitId=1) must not use ml (UnitId=3) — that caused POSCatalog
+            // "Missing unit conversion … Using raw quantity" for coffee beans / ice / powders.
             entity.HasData(
                 // ===== Recipe 1 =====
-                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m, UnitId = 3 }, // ml
-                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 1, RecipeId = 1, IngredientId = 1, Quantity = 50m, UnitId = 1 }, // g (coffee beans)
+                new RecipeDetail { RecipeDetailId = 2, RecipeId = 1, IngredientId = 2, Quantity = 30m, UnitId = 3 }, // ml (condensed milk)
+                new RecipeDetail { RecipeDetailId = 3, RecipeId = 1, IngredientId = 7, Quantity = 100m, UnitId = 1 }, // g (ice)
 
                 // ===== Recipe 2 =====
-                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 4, RecipeId = 2, IngredientId = 1, Quantity = 60m, UnitId = 1 }, // g
+                new RecipeDetail { RecipeDetailId = 5, RecipeId = 2, IngredientId = 7, Quantity = 100m, UnitId = 1 }, // g
 
                 // ===== Recipe 3 =====
-                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 6, RecipeId = 3, IngredientId = 3, Quantity = 80m, UnitId = 1 }, // g (tea)
+                new RecipeDetail { RecipeDetailId = 7, RecipeId = 3, IngredientId = 4, Quantity = 40m, UnitId = 1 }, // g (milk powder)
+                new RecipeDetail { RecipeDetailId = 8, RecipeId = 3, IngredientId = 6, Quantity = 20m, UnitId = 1 }, // g (sugar)
+                new RecipeDetail { RecipeDetailId = 9, RecipeId = 3, IngredientId = 7, Quantity = 100m, UnitId = 1 }, // g (ice)
 
                 // ===== Recipe 4 =====
-                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m, UnitId = 3 },
-                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m, UnitId = 3 },
+                new RecipeDetail { RecipeDetailId = 10, RecipeId = 4, IngredientId = 3, Quantity = 70m, UnitId = 1 }, // g
+                new RecipeDetail { RecipeDetailId = 11, RecipeId = 4, IngredientId = 4, Quantity = 40m, UnitId = 1 }, // g
+                new RecipeDetail { RecipeDetailId = 12, RecipeId = 4, IngredientId = 5, Quantity = 20m, UnitId = 1 }, // g (cacao)
+                new RecipeDetail { RecipeDetailId = 13, RecipeId = 4, IngredientId = 6, Quantity = 20m, UnitId = 1 }, // g
+                new RecipeDetail { RecipeDetailId = 14, RecipeId = 4, IngredientId = 7, Quantity = 100m, UnitId = 1 }, // g
 
                 // ===== Recipe 5 (g) =====
                 new RecipeDetail { RecipeDetailId = 15, RecipeId = 5, IngredientId = 11, Quantity = 100m, UnitId = 1 }, // g

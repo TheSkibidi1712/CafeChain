@@ -1,0 +1,109 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestListResultDto
+@{
+    ViewData["Title"] = "Yêu cầu nhập hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var statusFilter = ViewBag.StatusFilter as string ?? "SUBMITTED";
+    int page = Model.Page;
+    int totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="mb-0">Yêu cầu nhập hàng</h4>
+            <small class="text-muted">Cửa hàng #@Model.StoreId · chỉ xem (chưa xử lý kho)</small>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-auto">
+            <select name="status" class="form-select form-select-sm">
+                <option value="SUBMITTED" selected="@(statusFilter == "SUBMITTED")">SUBMITTED</option>
+                <option value="PROCESSING" selected="@(statusFilter == "PROCESSING")">PROCESSING</option>
+                <option value="COMPLETED" selected="@(statusFilter == "COMPLETED")">COMPLETED</option>
+                <option value="REJECTED" selected="@(statusFilter == "REJECTED")">REJECTED</option>
+                <option value="CANCELLED" selected="@(statusFilter == "CANCELLED")">CANCELLED</option>
+                <option value="" selected="@(string.IsNullOrEmpty(statusFilter))">Tất cả</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
+        </div>
+    </form>
+
+    @if (Model.Items == null || Model.Items.Count == 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center text-muted py-5">Không có yêu cầu phù hợp.</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm bg-white rounded">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th>
+                        <th>Mặt hàng</th>
+                        <th>Loại</th>
+                        <th>SL yêu cầu</th>
+                        <th>Ưu tiên</th>
+                        <th>Trạng thái</th>
+                        <th>Người tạo</th>
+                        <th>Thời gian</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.RestockRequestId</td>
+                        <td>@item.ItemName</td>
+                        <td>@item.ItemTypeLabel</td>
+                        <td>@item.RequestedQuantity.ToString("N3")</td>
+                        <td>
+                            <span class="badge @(item.Priority == "URGENT" ? "bg-danger" : item.Priority == "HIGH" ? "bg-warning text-dark" : "bg-secondary")">
+                                @item.Priority
+                            </span>
+                        </td>
+                        <td><span class="badge bg-primary">@item.Status</span></td>
+                        <td>@(item.CreatedByName ?? "—")</td>
+                        <td class="small">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary"
+                               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
+                               asp-route-id="@item.RestockRequestId">Chi tiết</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+
+        @if (totalPages > 1)
+        {
+            <nav class="mt-3">
+                <ul class="pagination pagination-sm">
+                    @for (var p = 1; p <= totalPages; p++)
+                    {
+                        <li class="page-item @(p == page ? "active" : "")">
+                            <a class="page-link"
+                               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index"
+                               asp-route-status="@statusFilter" asp-route-page="@p">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+</div>

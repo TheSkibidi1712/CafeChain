@@ -1,0 +1,110 @@
+@model CafeChain.Application.DTOs.POS.StaffNotificationListDto
+@{
+    ViewData["Title"] = "Thông báo";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    int page = ViewBag.Page ?? 1;
+    int pageSize = ViewBag.PageSize ?? 20;
+    int total = ViewBag.Total ?? 0;
+    int unread = ViewBag.UnreadCount ?? 0;
+    int totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h4 class="mb-0">Thông báo</h4>
+            <small class="text-muted">
+                Thông báo kho chi nhánh gửi đến bạn
+                @if (unread > 0)
+                {
+                    <span class="badge bg-danger ms-1">@unread chưa đọc</span>
+                }
+            </small>
+        </div>
+        <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkAllRead" method="post" class="m-0">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-primary btn-sm" @(unread == 0 ? "disabled" : null)>
+                Đánh dấu tất cả đã đọc
+            </button>
+        </form>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (Model.Items == null || Model.Items.Count == 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center text-muted py-5">
+                Chưa có thông báo
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="list-group shadow-sm">
+            @foreach (var item in Model.Items)
+            {
+                <div class="list-group-item @(item.IsRead ? "" : "list-group-item-warning")">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <strong>@item.Title</strong>
+                                @if (!item.IsRead)
+                                {
+                                    <span class="badge bg-danger">Chưa đọc</span>
+                                }
+                            </div>
+                            <div class="small text-muted mb-2" style="white-space: pre-wrap;">@item.Body</div>
+                            <div class="small text-secondary">
+                                @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                @if (item.EmailAttempted && !item.EmailSent)
+                                {
+                                    <span class="ms-2 text-warning">
+                                        · Email chưa gửi được, nhưng thông báo đã được ghi nhận trong hệ thống.
+                                    </span>
+                                }
+                                @if (!string.IsNullOrEmpty(item.TargetUrl))
+                                {
+                                    <a class="ms-2" href="@item.TargetUrl">Xem cảnh báo →</a>
+                                }
+                            </div>
+                        </div>
+                        @if (!item.IsRead)
+                        {
+                            <form asp-area="Admin" asp-controller="AdminNotifications" asp-action="MarkRead" method="post" class="m-0">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@item.NotificationId" />
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Đánh dấu đã đọc</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-3">
+            <small class="text-muted">Trang @(page) / @totalPages · Tổng @total</small>
+            <div class="btn-group">
+                @if (page > 1)
+                {
+                    <a class="btn btn-sm btn-outline-secondary"
+                       asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
+                       asp-route-page="@(page - 1)">Trước</a>
+                }
+                @if (page < totalPages)
+                {
+                    <a class="btn btn-sm btn-outline-secondary"
+                       asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index"
+                       asp-route-page="@(page + 1)">Sau</a>
+                }
+            </div>
+        </div>
+    }
+</div>

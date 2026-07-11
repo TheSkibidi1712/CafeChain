@@ -91,6 +91,16 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
+                },
+                // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / POS ops)
+                // AccountId is intentionally 12 (do not renumber without team approval).
+                new Account
+                {
+                    AccountId = 12,
+                    Email = "shiftsupervisor@cafechain.vn",
+                    PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
+                    Active = true,
+                    CreatedAt = new DateTime(2025, 1, 1)
                 }
             );
         }

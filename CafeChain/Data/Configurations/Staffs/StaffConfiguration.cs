@@ -157,6 +157,20 @@ namespace CafeChain.Data.Configurations.Staffs
                     AvatarUrl = "/Images/Upload/avtdf.jpg",
                     AvatarPublicId = "staffs/default-avatar",
                     CreatedAt = new DateTime(2026, 1, 1)
+                },
+                // StaffId 12 ↔ AccountId 12 (Ca trưởng) — free IDs after staff 1–6; AccountId fixed at 12.
+                new Staff
+                {
+                    StaffId = 12,
+                    AccountId = 12,
+                    FullName = "Ca trưởng chi nhánh",
+                    TaxCode = "TAX112",
+                    BaseSalary = 12000000,
+                    StoreId = 1,
+                    Active = true,
+                    AvatarUrl = "/Images/Upload/avtdf.jpg",
+                    AvatarPublicId = "staffs/default-avatar",
+                    CreatedAt = new DateTime(2026, 1, 1)
                 }
             );
         }
@@ -268,6 +282,15 @@ namespace CafeChain.Data.Configurations.Staffs
                 {
                     StaffScopeId = 5,
                     StaffId = 4,
+                    ScopeTypeId = 5, // SCOPE_STORE
+                    ScopeRefId = 1
+                },
+
+                // Ca trưởng chi nhánh (AccountId 12 / StaffId 12)
+                new StaffScope
+                {
+                    StaffScopeId = 12,
+                    StaffId = 12,
                     ScopeTypeId = 5, // SCOPE_STORE
                     ScopeRefId = 1
                 },
@@ -469,7 +492,8 @@ namespace CafeChain.Data.Configurations.Staffs
                 new StaffPhone { StaffPhoneId = 3, StaffId = 3, Phone = "0901000103", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 4, StaffId = 4, Phone = "0901000104", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 5, StaffId = 5, Phone = "0901000105", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000106", IsDefault = true }
+                new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000106", IsDefault = true },
+                new StaffPhone { StaffPhoneId = 12, StaffId = 12, Phone = "0901000112", IsDefault = true }
             );
         }
     }

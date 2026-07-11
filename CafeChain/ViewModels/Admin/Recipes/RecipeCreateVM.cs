@@ -7,26 +7,39 @@ namespace CafeChain.ViewModels.Admin.Recipes
     public class RecipeCreateVM
     {
         // ===== LOẠI CÔNG THỨC =====
-        // "POS" = Món bán (liên kết Drink+Size), "SUBRECIPE" = Bán thành phẩm (chọn từ Master Data)
+        // "POS" | "TOPPING" | "SUBRECIPE" — not persisted as DB RecipeType (#112)
         [Required(ErrorMessage = "Vui lòng chọn loại công thức")]
         public string RecipeType { get; set; } = "POS";
 
         // ===== CHO LOẠI POS (Món bán) =====
-        public int? DrinkId { get; set; }       // Dropdown 1: Chọn sản phẩm
-        public int? SizeId { get; set; }        // Dropdown 2: Chọn Size (cascaded từ DrinkId)
+        public int? DrinkId { get; set; }
+        public int? SizeId { get; set; }
 
         // ===== CHO LOẠI TOPPING =====
         public int? ToppingId { get; set; }
 
-        // ===== CHO LOẠI SUBRECIPE (Bán thành phẩm) =====
-        // Cho người dùng gõ tên Bán thành phẩm mới (VD: Cốt trà sâm bí đao)
+        // ===== CHO LOẠI SUBRECIPE / BTP (#112) =====
+        /// <summary>Stable PreparedItem produced by this BTP recipe version.</summary>
+        public int? PreparedItemId { get; set; }
+
+        /// <summary>
+        /// Free-text display only for legacy unmapped rows. New BTP identity is PreparedItemId.
+        /// </summary>
         public string? SubRecipeName { get; set; }
 
-        // Sản lượng đầu ra dự kiến (VD: 5 Lít Cốt Trà)
+        /// <summary>
+        /// Expected net output after standard loss → maps to Recipe.OutputQuantity.
+        /// Label UI: "Sản lượng dự kiến sau hao hụt chuẩn".
+        /// </summary>
         public decimal? ExpectedYield { get; set; }
 
-        // Đơn vị đầu ra (VD: Lít, Kg, Gram)
         public int? OutputUnitId { get; set; }
+
+        /// <summary>Legacy unmapped BTP (no Drink/Topping/PreparedItem) — display/audit only.</summary>
+        public bool IsLegacyUnmappedSubRecipe { get; set; }
+
+        /// <summary>When true, PreparedItem selector is locked (existing BTP version chain).</summary>
+        public bool PreparedItemLocked { get; set; }
 
         // ===== CHUNG =====
         public string? Description { get; set; }

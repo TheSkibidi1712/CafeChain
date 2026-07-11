@@ -76,27 +76,42 @@
                                     }
                                 </select>
                             </div>
-                            <!-- SUBRECIPE fields -->
+                            <!-- SUBRECIPE / BTP fields (#112) -->
                             <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="display:none;">
-                                <label class="form-label fw-bold small">Tên Bán thành phẩm <span class="text-danger">*</span></label>
-                                <input name="SubRecipeName" id="subRecipeInput" class="form-control" placeholder="VD: Cốt trà Oolong">
+                                <label class="form-label fw-bold small">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
+                                <select name="PreparedItemId" id="preparedItemSelect" class="form-select">
+                                    <option value="">-- Chọn BTP (mã + tên) --</option>
+                                    @if (ViewBag.PreparedItems != null)
+                                    {
+                                        foreach (dynamic pi in ViewBag.PreparedItems)
+                                        {
+                                            <option value="@pi.PreparedItemId"
+                                                    data-baseunitcode="@pi.BaseUnitCode"
+                                                    data-baseunitname="@pi.BaseUnitName">
+                                                @pi.Code — @pi.Name
+                                            </option>
+                                        }
+                                    }
+                                </select>
+                                <small class="text-muted">Danh tính ổn định từ master BTP (không dùng tên tự do).</small>
                             </div>
                             <div class="col-md-3 conditional-section" id="sectionSub_Yield" style="display:none;">
-                                <label class="form-label fw-bold small">Sản lượng đầu ra</label>
-                                <input asp-for="ExpectedYield" class="form-control text-end" type="number" step="0.01" placeholder="VD: 5"/>
+                                <label class="form-label fw-bold small">Sản lượng dự kiến sau hao hụt chuẩn <span class="text-danger">*</span></label>
+                                <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001" placeholder="VD: 4.5"/>
                             </div>
                             <div class="col-md-3 conditional-section" id="sectionSub_Unit" style="display:none;">
-                                <label class="form-label fw-bold small">ĐVT đầu ra</label>
+                                <label class="form-label fw-bold small">Đơn vị đầu ra <span class="text-danger">*</span></label>
                                 <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
                                     <option value="">-- ĐVT --</option>
                                     @if (ViewBag.Units != null)
                                     {
                                         foreach (dynamic unit in ViewBag.Units)
                                         {
-                                            <option value="@unit.UnitId">@unit.Name</option>
+                                            <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
                                         }
                                     }
                                 </select>
+                                <div class="small text-primary mt-1" id="normalizedOutputPreview"></div>
                             </div>
                             <!-- Common fields -->
                             <div class="col-md-3">
@@ -116,12 +131,13 @@
                         </div>
                     </div>
 
-                    <!-- Right: COGS Box -->
+                    <!-- Right: EstimatedBomCost box (#117) -->
                     <div class="col-lg-5 d-flex flex-column justify-content-center">
                         <div class="rb-cogs-box">
-                            <div class="rb-cogs-label">Dự toán Giá vốn (COGS)</div>
-                            <div class="rb-cogs-value" id="displayTotalCost">0 <small style="font-size:0.5em;">VND</small></div>
-                            <div class="rb-cogs-sub">Cập nhật theo giá nhập gần nhất</div>
+                            <div class="rb-cogs-label">Giá vốn ước tính</div>
+                            <div class="rb-cogs-value" id="displayTotalCost">—</div>
+                            <div class="rb-cogs-sub" id="displayCostStatus">Chỉ cộng dòng đủ dữ liệu gói · không ghi nhận complete khi thiếu giá</div>
+                            <div class="small text-warning mt-1" id="displayCostIncomplete" style="display:none;"></div>
                         </div>
                         <input type="hidden" asp-for="TotalCost" id="hiddenTotalCost" value="0" />
                     </div>
@@ -197,7 +213,16 @@
         {
             foreach (dynamic item in ViewBag.Ingredients)
             {
-                <option value="ING_@(item.Id)" data-basecost="@(item.BaseCost)" data-unitid="@(item.UnitId)" data-unitname="@(item.UnitName)">@(item.Name)</option>
+                <option value="ING_@(item.Id)"
+                        data-basecost="@(item.BaseCost)"
+                        data-costcomplete="@(item.CostComplete == true ? "1" : "0")"
+                        data-packageprice="@(item.PackagePrice ?? 0)"
+                        data-packageqty="@(item.PackageQuantity ?? 0)"
+                        data-packageunit="@(item.PackageUnitCode ?? "")"
+                        data-baseunitcode="@(item.BaseUnitCode ?? "")"
+                        data-costmessage="@(item.CostMessage ?? "")"
+                        data-unitid="@(item.UnitId)"
+                        data-unitname="@(item.UnitName)">@(item.Name)</option>
             }
         }
     </optgroup>
@@ -206,7 +231,12 @@
         {
             foreach (dynamic item in ViewBag.SubRecipes)
             {
-                <option value="REC_@(item.Id)" data-basecost="@(item.BaseCost)" data-unitid="@(item.UnitId)" data-unitname="@(item.UnitName)">@(item.Name)</option>
+                <option value="REC_@(item.Id)"
+                        data-basecost="0"
+                        data-costcomplete="0"
+                        data-costmessage="@(item.CostMessage ?? "")"
+                        data-unitid="@(item.UnitId)"
+                        data-unitname="@(item.UnitName)">@(item.Name)</option>
             }
         }
     </optgroup>
@@ -219,18 +249,62 @@
             let rowCount = 0;
             const tableBody = $('#bomTableBody');
 
-            // === ITEM DATA CACHE ===
+            // === ITEM DATA CACHE (BaseCost = package-normalized ₫/base unit when complete) ===
             const itemDataMap = {};
             $('#itemTemplateSelect option').each(function () {
                 const val = $(this).val();
                 if (val) {
                     itemDataMap[val] = {
                         basecost: parseFloat($(this).attr('data-basecost')) || 0,
+                        costcomplete: $(this).attr('data-costcomplete') === '1',
+                        packageprice: parseFloat($(this).attr('data-packageprice')) || 0,
+                        packageqty: parseFloat($(this).attr('data-packageqty')) || 0,
+                        packageunit: $(this).attr('data-packageunit') || '',
+                        baseunitcode: $(this).attr('data-baseunitcode') || '',
+                        costmessage: $(this).attr('data-costmessage') || '',
                         unitid: parseInt($(this).attr('data-unitid')) || 0,
                         unitname: $(this).attr('data-unitname') || ''
                     };
                 }
             });
+
+            function antiforgeryHeaders() {
+                const token = $('input[name="__RequestVerificationToken"]').val() || '';
+                return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
+            }
+
+            function clearBtpFields() {
+                $('#preparedItemSelect').val('');
+                $('input[name="ExpectedYield"]').val('');
+                $('select[name="OutputUnitId"]').val('');
+                $('#normalizedOutputPreview').text('');
+            }
+
+            function refreshNormalizedPreview() {
+                const pi = parseInt($('#preparedItemSelect').val(), 10) || 0;
+                const qty = parseFloat($('#expectedYieldInput').val()) || 0;
+                const unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
+                if (!pi || !qty || qty <= 0 || !unit) {
+                    $('#normalizedOutputPreview').text('');
+                    return;
+                }
+                $.ajax({
+                    url: '@Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" })',
+                    type: 'POST',
+                    headers: antiforgeryHeaders(),
+                    data: JSON.stringify({ preparedItemId: pi, outputQuantity: qty, outputUnitId: unit }),
+                    success: function (res) {
+                        if (res.success) {
+                            $('#normalizedOutputPreview').text(res.preview || '');
+                        } else {
+                            $('#normalizedOutputPreview').text(res.message || 'Không quy đổi được');
+                        }
+                    },
+                    error: function () {
+                        $('#normalizedOutputPreview').text('Lỗi preview (antiforgery/kết nối)');
+                    }
+                });
+            }
 
             // === 1. TOGGLE: POS vs SUBRECIPE ===
             $('input[name="RecipeType"]').on('change', function () {
@@ -242,17 +316,13 @@
                     }
                     $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
                     $('#toppingSelect').val('').trigger('change');
-                    $('#subRecipeInput').val('');
-                    $('input[name="ExpectedYield"]').val('');
-                    $('select[name="OutputUnitId"]').val('');
+                    clearBtpFields();
                 } else if (type === 'TOPPING') {
                     $('#sectionTopping').fadeIn(200);
                     $('#sectionPOS_Drink, #sectionPOS_Size, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
                     $('#drinkSelect').val('').trigger('change');
                     $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
-                    $('#subRecipeInput').val('');
-                    $('input[name="ExpectedYield"]').val('');
-                    $('select[name="OutputUnitId"]').val('');
+                    clearBtpFields();
                 } else {
                     $('#sectionPOS_Drink, #sectionPOS_Size, #sectionTopping').hide();
                     $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
@@ -262,6 +332,8 @@
                     $('#sectionPOS_Size').hide();
                 }
             });
+
+            $('#preparedItemSelect, #expectedYieldInput, #outputUnitSelect').on('change input', refreshNormalizedPreview);
 
             $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
             $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
@@ -295,19 +367,18 @@
                 calculateTotal(); // recalc food cost %
             });
 
-            // === 3. COST CALCULATION ===
+            // === 3. COST CALCULATION (#117) — no YieldPercentage divisor; no package price as ₫/g ===
             function calculateTotal() {
-                let grandTotal = 0;
+                let completeTotal = 0;
+                let anyIncomplete = false;
+                let incompleteMsgs = [];
                 $('#bomTableBody tr').each(function () {
                     const itemCode = $(this).find('.item-select').val();
                     const quantity = parseFloat($(this).find('.item-qty').val()) || 0;
-                    const yieldPct = parseFloat($(this).find('.item-yield').val()) || 100;
                     const itemInfo = itemDataMap[itemCode];
                     const baseCost = itemInfo ? itemInfo.basecost : 0;
-                    const yieldFactor = yieldPct > 0 ? (yieldPct / 100) : 1;
-                    const actualCost = (quantity * baseCost) / yieldFactor;
+                    const costComplete = itemInfo && itemInfo.costcomplete && baseCost > 0;
 
-                    // Type badge
                     const typeBadge = itemCode && itemCode.startsWith('ING_')
                         ? '<span class="rb-badge-raw">Raw Ingredient</span>'
                         : itemCode && itemCode.startsWith('REC_')
@@ -315,31 +386,60 @@
                             : '<span class="text-muted small">—</span>';
                     $(this).find('.row-type-badge').html(typeBadge);
 
-                    // Cost display
-                    if (baseCost > 0) {
+                    if (costComplete) {
+                        // quantity is already in ingredient base unit when UnitId auto-filled from base
+                        const actualCost = quantity * baseCost;
+                        completeTotal += actualCost;
                         const costFormatted = new Intl.NumberFormat('vi-VN').format(Math.round(actualCost));
                         const unitCost = new Intl.NumberFormat('vi-VN').format(Math.round(baseCost));
+                        const unitCode = itemInfo.baseunitcode || itemInfo.unitname || 'ĐVT';
+                        let pkgHint = '';
+                        if (itemInfo.packageprice > 0 && itemInfo.packageqty > 0) {
+                            const pp = new Intl.NumberFormat('vi-VN').format(Math.round(itemInfo.packageprice));
+                            pkgHint = `<span class="rb-cost-sub d-block">${pp} ₫ / gói ${itemInfo.packageqty} ${itemInfo.packageunit}</span>`;
+                        }
                         $(this).find('.row-total-display').html(
-                            `<span class="rb-cost-main">${costFormatted} <small>VND</small></span>` +
-                            `<span class="rb-cost-sub">@@ ${unitCost}/${itemInfo.unitname || 'ĐVT'}</span>`
+                            pkgHint +
+                            `<span class="rb-cost-sub">= ${unitCost} ₫/${unitCode}</span>` +
+                            `<span class="rb-cost-main d-block">${costFormatted} <small>VND</small></span>`
                         );
                     } else {
-                        $(this).find('.row-total-display').html('<span class="text-muted small">Chưa có giá</span>');
+                        anyIncomplete = true;
+                        const msg = (itemInfo && itemInfo.costmessage) ? itemInfo.costmessage : 'Chưa đủ dữ liệu giá vốn';
+                        if (itemCode) incompleteMsgs.push(msg);
+                        $(this).find('.row-total-display').html(
+                            '<span class="text-warning small">Giá vốn ước tính — chưa đủ dữ liệu</span>'
+                        );
                     }
-                    grandTotal += actualCost;
                 });
 
-                const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(grandTotal));
-                $('#displayTotalCost').html(grandTotal > 0 ? formatted + ' <small style="font-size:0.5em;">VND</small>' : '0 <small style="font-size:0.5em;">VND</small>');
-                $('#footerTotalCost').text(formatted + ' VND');
-                $('#hiddenTotalCost').val(Math.round(grandTotal));
-
-                // Food Cost %
-                const sellingPrice = parseFloat($('#sizeSelect').find(':selected').data('price')) || 0;
-                if (sellingPrice > 0 && grandTotal > 0) {
-                    const pct = ((grandTotal / sellingPrice) * 100).toFixed(1);
-                    $('#footerFoodCostPct').text(pct + '%').css('color', pct > 35 ? '#ef4444' : '#10b981');
+                if (anyIncomplete || incompleteMsgs.length > 0) {
+                    $('#displayTotalCost').html('—');
+                    $('#displayCostStatus').text('Giá vốn ước tính — chưa đủ dữ liệu');
+                    $('#displayCostIncomplete').text(incompleteMsgs.slice(0, 2).join(' · ')).show();
+                    $('#footerTotalCost').text('INCOMPLETE');
+                    $('#hiddenTotalCost').val(0);
+                    $('#footerFoodCostPct').text('—');
+                } else if (completeTotal > 0) {
+                    const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(completeTotal));
+                    $('#displayTotalCost').html(formatted + ' <small style="font-size:0.5em;">VND</small>');
+                    $('#displayCostStatus').text('Giá vốn ước tính (đủ dữ liệu gói)');
+                    $('#displayCostIncomplete').hide().text('');
+                    $('#footerTotalCost').text(formatted + ' VND');
+                    $('#hiddenTotalCost').val(Math.round(completeTotal));
+                    const sellingPrice = parseFloat($('#sizeSelect').find(':selected').data('price')) || 0;
+                    if (sellingPrice > 0) {
+                        const pct = ((completeTotal / sellingPrice) * 100).toFixed(1);
+                        $('#footerFoodCostPct').text(pct + '%').css('color', pct > 35 ? '#ef4444' : '#10b981');
+                    } else {
+                        $('#footerFoodCostPct').text('—');
+                    }
                 } else {
+                    $('#displayTotalCost').html('—');
+                    $('#displayCostStatus').text('Chưa chọn thành phần');
+                    $('#displayCostIncomplete').hide();
+                    $('#footerTotalCost').text('—');
+                    $('#hiddenTotalCost').val(0);
                     $('#footerFoodCostPct').text('—');
                 }
             }
@@ -428,6 +528,7 @@
                 const drinkVal = $('#drinkSelect').val();
                 const sizeVal = $('#sizeSelect').val();
                 const toppingVal = $('#toppingSelect').val();
+                const preparedItemVal = $('#preparedItemSelect').val();
                 const outputUnitVal = $('#outputUnitSelect').val();
                 const expectedYieldVal = $('input[name="ExpectedYield"]').val();
 
@@ -436,7 +537,7 @@
                     DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
                     SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
                     ToppingId: (recipeType === 'TOPPING' && toppingVal) ? parseInt(toppingVal) : null,
-                    SubRecipeName: recipeType === 'SUBRECIPE' ? $('#subRecipeInput').val() : null,
+                    PreparedItemId: (recipeType === 'SUBRECIPE' && preparedItemVal) ? parseInt(preparedItemVal) : null,
                     ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
                     OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,
                     Description: $('textarea[name="Description"]').val(),
@@ -469,7 +570,7 @@
                 $.ajax({
                     url: '@Url.Action("Create", "AdminRecipe", new { area = "Admin" })',
                     type: 'POST',
-                    contentType: 'application/json',
+                    headers: antiforgeryHeaders(),
                     data: JSON.stringify(payload),
                     success: function (res) {
                         if (res.success) {

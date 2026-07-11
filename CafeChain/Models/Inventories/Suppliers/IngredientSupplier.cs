@@ -10,10 +10,15 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public int SupplierId { get; set; }
 
-        // đơn vị nhập
+        // đơn vị nội dung vật lý của gói mua (ADR-0005 / Issue #111)
         public int UnitId { get; set; }
 
-        // giá hiện tại
+        /// <summary>
+        /// Lượng nội dung vật lý trong một gói mua (nullable legacy until remapped).
+        /// </summary>
+        public decimal? PackageQuantity { get; set; }
+
+        // giá hiện tại của một gói mua
         public decimal CurrentPrice { get; set; }
 
         // MOQ

@@ -35,11 +35,13 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var dayStart = utcNow.Date;
             var dayEnd = dayStart.AddDays(1);
 
+            // Issue #94: StoreManager → ShiftSupervisor (Ca trưởng) → AccountantWarehouse
             var approverRoles = new[]
             {
-        RoleConstants.StoreManager,
-        RoleConstants.AccountantWarehouse
-    };
+                RoleConstants.StoreManager,
+                RoleConstants.ShiftSupervisor,
+                RoleConstants.AccountantWarehouse
+            };
 
             var candidates = await _context.Staffs
                 .Include(staff => staff.Account)
@@ -67,24 +69,31 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                     shift.ActualCheckIn != null &&
                     shift.ActualCheckOut == null))
 
-                // Ưu tiên Quản lý chi nhánh trước
-                .ThenBy(staff => staff.Account!.AccountRoles.Any(accountRole =>
-                    accountRole.Role != null &&
-                    accountRole.Role.Active &&
-                    accountRole.Role.Name == RoleConstants.StoreManager)
-                        ? 0
-                        : 1)
-
-                // Sau đó tới Kế toán/kho
-                .ThenBy(staff => staff.Account!.AccountRoles.Any(accountRole =>
-                    accountRole.Role != null &&
-                    accountRole.Role.Active &&
-                    accountRole.Role.Name == RoleConstants.AccountantWarehouse)
-                        ? 0
-                        : 1)
+                // Role priority: StoreManager (0) → ShiftSupervisor (1) → AccountantWarehouse (2)
+                .ThenBy(staff => GetOtpApproverRolePriority(staff))
 
                 .ThenBy(staff => staff.StaffId)
                 .FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Lower rank = higher priority for OTP email routing.
+        /// SalesStaff and other roles are never in the candidate set.
+        /// </summary>
+        private static int GetOtpApproverRolePriority(Staff staff)
+        {
+            var roleNames = staff.Account?.AccountRoles
+                .Where(ar => ar.Role != null && ar.Role.Active)
+                .Select(ar => ar.Role!.Name)
+                .ToList() ?? new List<string>();
+
+            if (roleNames.Contains(RoleConstants.StoreManager))
+                return 0;
+            if (roleNames.Contains(RoleConstants.ShiftSupervisor))
+                return 1;
+            if (roleNames.Contains(RoleConstants.AccountantWarehouse))
+                return 2;
+            return 99;
         }
 
         public async Task<Store?> GetStoreAsync(int storeId)

@@ -88,6 +88,15 @@ namespace CafeChain.Extensions.Services
 
             // Inventory Core
             services.AddScoped<IInventoryService, InventoryService>();
+            // EstimatedBomCost (package-normalized COMPLETE/INCOMPLETE) — Issue #117
+            services.AddScoped<IEstimatedBomCostService, EstimatedBomCostService>();
+            // Purchase/unit read-only audit — Issue #113 Checkpoint A
+            services.AddScoped<IPurchaseUnitAuditService, PurchaseUnitAuditService>();
+            // PreparedItem inventory dual-read and dry-run analysis — Issue #115
+            services.AddScoped<IInventoryItemIdentityResolver, InventoryItemIdentityResolver>();
+            services.AddScoped<IPreparedItemInventoryCompatibilityAnalyzer, PreparedItemInventoryCompatibilityAnalyzer>();
+            services.AddScoped<IInventoryWriterModeService, InventoryWriterModeService>();
+            services.AddScoped<IStoreInventoryWriteResolver, StoreInventoryWriteResolver>();
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
             services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
 
@@ -129,7 +138,12 @@ namespace CafeChain.Extensions.Services
             // Admin - Ingredients
             services.AddScoped<IAdminIngredientService, AdminIngredientService>();
 
-            // Admin - Recipes
+            // Admin - PreparedItem master (BTP stock identity) — Issue #116
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.PreparedItems.IAdminPreparedItemService,
+                CafeChain.Application.Services.Admin.PreparedItems.AdminPreparedItemService>();
+
+            // Admin - Recipes (+ #112 BTP output normalizer)
+            services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 
             // Admin - Inventory Documents
@@ -146,6 +160,8 @@ namespace CafeChain.Extensions.Services
 
             // Admin - Store Inventories
             services.AddScoped<IAdminStoreInventoryService, AdminStoreInventoryService>();
+            // Issue #104 — MinStockLevel thresholds (Admin)
+            services.AddScoped<IInventoryThresholdService, InventoryThresholdService>();
 
             // Admin - Suppliers
             services.AddScoped<IAdminSupplierService, AdminSupplierService>();
@@ -171,10 +187,28 @@ namespace CafeChain.Extensions.Services
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();
+            services.AddScoped<IPosBranchInventoryService, PosBranchInventoryService>();
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
+
+            // Shared unit conversion (POS catalog + inventory deduction + COGS)
+            // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
+            services.AddScoped<IPhysicalUnitConversionService, PhysicalUnitConversionService>();
+            services.AddScoped<IUnitConversionService, UnitConversionService>();
+            // Ingredient supplier package definition validation — Issue #111
+            services.AddScoped<IIngredientSupplierPackageValidator, IngredientSupplierPackageValidator>();
+
+            // Inventory stock alerts (Issue #97) + shortage report (Issue #98) + manager confirm (Issue #99) + restock (Issue #100)
+            services.AddScoped<IStockAlertService, StockAlertService>();
+            services.AddScoped<IStockShortageReportService, StockShortageReportService>();
+            services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
+            services.AddScoped<IRestockRequestService, RestockRequestService>();
+
+            // Staff notifications read/mark (Issue #101)
+            services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,
+                CafeChain.Application.Services.Operations.StaffNotificationQueryService>();
 
             // Permissions
             services.AddScoped<IAdminPermissionService, AdminPermissionService>();

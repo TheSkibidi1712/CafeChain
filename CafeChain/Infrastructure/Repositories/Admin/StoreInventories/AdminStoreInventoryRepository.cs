@@ -74,8 +74,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                 var keyword = search.Trim();
 
                 query = query.Where(x =>
-                    x.IngredientId.HasValue &&
-                    x.Ingredient.Name.Contains(keyword));
+                    (x.IngredientId.HasValue && x.Ingredient.Name.Contains(keyword)) ||
+                    (x.PreparedItemId.HasValue &&
+                     (x.PreparedItem.Name.Contains(keyword) || x.PreparedItem.Code.Contains(keyword))) ||
+                    (x.RecipeId.HasValue &&
+                     (x.Recipe.Name.Contains(keyword) || x.Recipe.RecipeCode.Contains(keyword))));
             }
 
             var total = await query.CountAsync();
@@ -90,9 +93,28 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     IngredientName = x.IngredientId.HasValue
                         ? x.Ingredient.Name
+                        : x.PreparedItemId.HasValue
+                            ? x.PreparedItem.Name
                         : x.RecipeId.HasValue
-                            ? "Công thức #" + x.RecipeId.Value
+                            ? x.Recipe.Name
                             : "Không xác định",
+
+                    IdentityBadge = x.IngredientId.HasValue
+                        ? string.Empty
+                        : x.PreparedItemId.HasValue && x.RecipeId.HasValue
+                            ? "BTP liên kết"
+                            : x.PreparedItemId.HasValue
+                                ? "BTP"
+                                : x.RecipeId.HasValue
+                                    ? "BTP legacy"
+                                    : "Không xác định",
+                    LegacyRecipeId = x.RecipeId,
+                    PreparedItemId = x.PreparedItemId,
+                    QuantitySemanticsStatus = x.IngredientId.HasValue
+                        ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.NotApplicable
+                        : x.RecipeId.HasValue
+                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown
+                            : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
 
                     AvailableQty = x.AvailableQty,
                     ReservedQty = x.ReservedQty,
@@ -101,7 +123,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     UnitCode = x.IngredientId.HasValue && x.Ingredient.BaseUnit != null
                         ? x.Ingredient.BaseUnit.UnitCode
-                        : string.Empty,
+                        : x.PreparedItemId.HasValue && !x.RecipeId.HasValue && x.PreparedItem.BaseUnit != null
+                            ? x.PreparedItem.BaseUnit.UnitCode
+                            : string.Empty,
 
                     // Không phụ thuộc DocumentDate nữa. Lấy theo transaction thật sự mới nhất.
                     LastUnitPrice = _context.InventoryTransactions
@@ -299,13 +323,21 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     IngredientId = x.StoreInventory.IngredientId,
                     RecipeId = x.StoreInventory.RecipeId,
+                    PreparedItemId = x.StoreInventory.PreparedItemId,
                     IngredientName = x.StoreInventory.IngredientId.HasValue
                         ? x.StoreInventory.Ingredient.Name
+                        : null,
+                    PreparedItemName = x.StoreInventory.PreparedItemId.HasValue
+                        ? x.StoreInventory.PreparedItem.Name
                         : null,
                     UnitCode = x.StoreInventory.IngredientId.HasValue &&
                                x.StoreInventory.Ingredient.BaseUnit != null
                         ? x.StoreInventory.Ingredient.BaseUnit.UnitCode
-                        : string.Empty,
+                        : x.StoreInventory.PreparedItemId.HasValue &&
+                          !x.StoreInventory.RecipeId.HasValue &&
+                          x.StoreInventory.PreparedItem.BaseUnit != null
+                            ? x.StoreInventory.PreparedItem.BaseUnit.UnitCode
+                            : string.Empty,
 
                     x.Type,
                     x.StockStatus,
@@ -332,9 +364,24 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     IngredientName = !string.IsNullOrWhiteSpace(x.IngredientName)
                         ? x.IngredientName
+                        : !string.IsNullOrWhiteSpace(x.PreparedItemName)
+                            ? x.PreparedItemName
                         : x.RecipeId.HasValue
                             ? $"Công thức #{x.RecipeId.Value}"
                             : "Không xác định",
+
+                    IdentityBadge = x.PreparedItemId.HasValue && x.RecipeId.HasValue
+                        ? "BTP liên kết"
+                        : x.PreparedItemId.HasValue
+                            ? "BTP"
+                            : x.RecipeId.HasValue
+                                ? "BTP legacy"
+                                : string.Empty,
+                    QuantitySemanticsStatus = x.IngredientId.HasValue
+                        ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.NotApplicable
+                        : x.RecipeId.HasValue
+                            ? CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.Unknown
+                            : CafeChain.Application.DTOs.Inventories.QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
 
                     TypeName = x.Type.ToString(),
                     StockStatusName = x.StockStatus.ToString(),

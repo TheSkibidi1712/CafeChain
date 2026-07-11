@@ -60,7 +60,7 @@ namespace CafeChain.Tests
                     CreatedAt = DateTime.UtcNow,
                     AccountRoles = new List<AccountRole>
                     {
-                        new AccountRole { AccountId = AccountId, RoleId = 9 } // Shift Supervisor
+                        new AccountRole { AccountId = AccountId, RoleId = 8 } // Ca trưởng (ShiftSupervisor)
                     }
                 },
                 StaffScopes = new List<StaffScope>
@@ -84,7 +84,7 @@ namespace CafeChain.Tests
                 NewPassword = newPassword,
                 BaseSalary = 10_000_000m,
                 StoreId = StoreId,
-                SelectedRoleId = 9,
+                SelectedRoleId = 8, // Ca trưởng (ShiftSupervisor)
                 ScopeTypeId = 5,
                 ScopeRefId = StoreId,
                 Phones = new List<string>(),

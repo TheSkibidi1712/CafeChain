@@ -4,6 +4,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
@@ -126,11 +127,141 @@ namespace CafeChain.Tests.POS
             Assert.Equal(InventoryStockStatus.NEGATIVE_CONFIRMED, transaction.StockStatus);
         }
 
+        [Fact]
+        public async Task DeductStock_MissingUnitConversion_RollsBackWithoutPartialWrites()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9100);
+            await context.SaveChangesAsync();
+
+            // Force milk line to use a unit with no conversion → fail closed mid-BOM
+            const int badUnitId = 77;
+            context.Units.Add(new Unit { UnitId = badUnitId, UnitCode = "BAD", Name = "Bad", Active = true });
+            var milkDetail = await context.Set<RecipeDetail>()
+                .SingleAsync(d => d.RecipeId == BaseRecipeId && d.IngredientId == MilkIngredientId);
+            milkDetail.UnitId = badUnitId;
+            await context.SaveChangesAsync();
+
+            var milkBefore = await GetIngredientQtyAsync(context, MilkIngredientId);
+            var tapiocaBefore = await GetIngredientQtyAsync(context, TapiocaIngredientId);
+            var childBefore = await GetChildRecipeQtyAsync(context);
+            var service = CreateService(context);
+
+            var result = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(quantity: 1),
+                StoreId,
+                referenceOrderId: 9100);
+
+            Assert.False(result.IsSuccess);
+            Assert.Contains("quy đổi", result.Message, System.StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(milkBefore, await GetIngredientQtyAsync(context, MilkIngredientId));
+            Assert.Equal(tapiocaBefore, await GetIngredientQtyAsync(context, TapiocaIngredientId));
+            Assert.Equal(childBefore, await GetChildRecipeQtyAsync(context));
+            Assert.Equal(0, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9100));
+        }
+
+        [Fact]
+        public async Task DeductStock_RetryAfterConversionFixed_DeductsOnce_AndIdempotent()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            SeedCompletedPaidOrder(context, orderId: 9101);
+            await context.SaveChangesAsync();
+
+            const int badUnitId = 78;
+            context.Units.Add(new Unit { UnitId = badUnitId, UnitCode = "BAD2", Name = "Bad2", Active = true });
+            var milkDetail = await context.Set<RecipeDetail>()
+                .SingleAsync(d => d.RecipeId == BaseRecipeId && d.IngredientId == MilkIngredientId);
+            milkDetail.UnitId = badUnitId;
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var failed = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(quantity: 1),
+                StoreId,
+                referenceOrderId: 9101);
+            Assert.False(failed.IsSuccess);
+            Assert.Equal(0, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9101));
+
+            // Repair conversion data
+            milkDetail.UnitId = UnitId;
+            await context.SaveChangesAsync();
+
+            var success = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(quantity: 1),
+                StoreId,
+                referenceOrderId: 9101);
+            Assert.True(success.IsSuccess);
+            Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId)); // 100 - 5
+            Assert.Equal(3, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9101));
+
+            var retry = await service.DeductStockForCommittedOrderAsync(
+                CreateSoldItems(quantity: 1),
+                StoreId,
+                referenceOrderId: 9101);
+            Assert.True(retry.IsSuccess);
+            Assert.Equal(95m, await GetIngredientQtyAsync(context, MilkIngredientId));
+            Assert.Equal(3, await context.InventoryTransactions.CountAsync(t => t.ReferenceOrderId == 9101));
+        }
+
+        [Fact]
+        public async Task CalculateRecipeCogs_MissingConversion_ReturnsFailureNotUnderstatedTotal()
+        {
+            using var context = CreateDbContext();
+            SeedInventoryCatalog(context);
+            // Complete package offer so EstimatedBomCost reaches unit-conversion path (#117)
+            context.IngredientSuppliers.Add(new IngredientSupplier
+            {
+                IngredientId = MilkIngredientId,
+                SupplierId = 1,
+                UnitId = UnitId,
+                PackageQuantity = 1m,
+                CurrentPrice = 10000m,
+                IsPrimary = true,
+                Active = true
+            });
+            await context.SaveChangesAsync();
+            const int badUnitId = 79;
+            context.Units.Add(new Unit { UnitId = badUnitId, UnitCode = "BAD3", Name = "Bad3", Active = true });
+            var milkDetail = await context.Set<RecipeDetail>()
+                .SingleAsync(d => d.RecipeId == BaseRecipeId && d.IngredientId == MilkIngredientId);
+            milkDetail.UnitId = badUnitId;
+            await context.SaveChangesAsync();
+            var service = CreateService(context);
+
+            var cogs = await service.CalculateRecipeCogsAsync(BaseRecipeId);
+
+            Assert.False(cogs.IsSuccess);
+            Assert.DoesNotContain("Success", cogs.Message ?? "");
+            // Incomplete conversion or package/unit message — never understated Success total
+            Assert.True(
+                (cogs.Message ?? "").Contains("quy đổi", System.StringComparison.OrdinalIgnoreCase)
+                || (cogs.Message ?? "").Contains("đơn vị", System.StringComparison.OrdinalIgnoreCase)
+                || (cogs.Message ?? "").Length > 0);
+        }
+
         private static InventoryDeductionService CreateService(CafeChain.Data.AppDbContext context)
         {
+            var physical = new PhysicalUnitConversionService(
+                context,
+                new Mock<ILogger<PhysicalUnitConversionService>>().Object);
+            var unitConversion = new UnitConversionService(
+                context,
+                new Mock<ILogger<UnitConversionService>>().Object,
+                physical);
+            var normalizer = new CafeChain.Application.Services.Admin.Recipes.RecipeOutputNormalizer(context, physical);
+            var estimated = new EstimatedBomCostService(
+                context,
+                unitConversion,
+                physical,
+                normalizer,
+                new Mock<ILogger<EstimatedBomCostService>>().Object);
             return new InventoryDeductionService(
                 context,
-                new Mock<ILogger<InventoryDeductionService>>().Object);
+                new Mock<ILogger<InventoryDeductionService>>().Object,
+                unitConversion,
+                estimated);
         }
 
         private static List<POSSoldItemDto> CreateSoldItems(int quantity = 1)

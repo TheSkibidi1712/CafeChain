@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Locations;
 using CafeChain.Models.Orders;
@@ -49,6 +50,7 @@ namespace CafeChain.Models.Stores
         public virtual ICollection<StoreDrink> StoreDrinks { get; set; } = new List<StoreDrink>();
         public virtual ICollection<StoreTopping> StoreToppings { get; set; } = new List<StoreTopping>();
         public virtual ICollection<StoreInventory> StoreInventories { get; set; } = new List<StoreInventory>();
+        public virtual StoreInventoryWriterConfiguration? InventoryWriterConfiguration { get; set; }
         public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; } = new List<InventoryDocument>();
         public virtual ICollection<Shift> Shifts { get; set; } = new List<Shift>();
         public virtual ICollection<CashSession> CashSessions { get; set; } = new List<CashSession>();

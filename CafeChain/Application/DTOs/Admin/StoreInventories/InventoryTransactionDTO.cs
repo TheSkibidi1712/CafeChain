@@ -9,6 +9,8 @@
         public string StoreName { get; set; } = string.Empty;
 
         public string IngredientName { get; set; } = string.Empty;
+        public string IdentityBadge { get; set; } = string.Empty;
+        public string QuantitySemanticsStatus { get; set; } = string.Empty;
         public string TypeName { get; set; } = string.Empty;
         public string StockStatusName { get; set; } = string.Empty;
 

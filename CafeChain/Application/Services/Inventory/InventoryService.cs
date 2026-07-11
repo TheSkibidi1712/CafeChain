@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
@@ -17,10 +18,12 @@ namespace CafeChain.Application.Services.Inventory
     public class InventoryService : IInventoryService
     {
         private readonly AppDbContext _context;
+        private readonly IInventoryWriterModeService? _writerModeService;
 
-        public InventoryService(AppDbContext context)
+        public InventoryService(AppDbContext context, IInventoryWriterModeService? writerModeService = null)
         {
             _context = context;
+            _writerModeService = writerModeService;
         }
 
         // ============================================================
@@ -166,6 +169,18 @@ namespace CafeChain.Application.Services.Inventory
                                 order.StoreId, deductions);
                         }
                     }
+                }
+
+                if (_writerModeService != null
+                    && deductions.Any(x => x.StoreInventory.RecipeId.HasValue))
+                {
+                    var snapshot = await _writerModeService.AcquireSnapshotAsync(order.StoreId);
+                    if (!snapshot.IsSuccess || snapshot.Data == null)
+                        throw new InvalidOperationException(snapshot.Message);
+
+                    var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshot.Data, order.StoreId);
+                    if (!guard.IsSuccess)
+                        throw new InvalidOperationException(guard.Message);
                 }
 
                 // 5. Thực thi trừ kho + ghi log InventoryTransaction

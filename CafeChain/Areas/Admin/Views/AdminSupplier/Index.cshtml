@@ -405,6 +405,7 @@
                 <button class="sup-tab active" data-tab="tabPhones"><i class="fa fa-phone"></i> Điện thoại</button>
                 <button class="sup-tab" data-tab="tabBanks"><i class="fa fa-building-columns"></i> Ngân hàng</button>
                 <button class="sup-tab" data-tab="tabContacts"><i class="fa fa-user-tie"></i> Liên hệ</button>
+                <button class="sup-tab" data-tab="tabIngredientOffers"><i class="fa fa-box-open"></i> Nguyên liệu cung cấp</button>
             </div>
 
             <!-- TAB: PHONES -->
@@ -489,6 +490,75 @@
 
                 <!-- Danh sách người liên hệ dạng card -->
                 <div id="contactList" class="ct-card-list"></div>
+            </div>
+
+            <!-- TAB: NGUYÊN LIỆU CUNG CẤP (#111) -->
+            <div id="tabIngredientOffers" class="sup-tab-panel">
+                <div class="sup-sub-add" style="margin-bottom:10px">
+                    <button type="button" class="sup-btn sup-btn-primary" id="btnShowOfferForm">
+                        <i class="fa fa-plus"></i> Thêm gói mua
+                    </button>
+                </div>
+
+                <div id="offer-form" class="sup-secondary-expand" style="display:none;margin-bottom:12px">
+                    <input type="hidden" id="of-id" value="" />
+                    <div class="sup-grid-2">
+                        <div>
+                            <label>Nguyên liệu <span class="req">*</span></label>
+                            <select id="of-ingredient" class="sup-input"></select>
+                        </div>
+                        <div>
+                            <label>Đơn vị nội dung <span class="req">*</span></label>
+                            <select id="of-unit" class="sup-input"></select>
+                        </div>
+                        <div>
+                            <label>Giá một gói mua (₫) <span class="req">*</span></label>
+                            <input id="of-price" class="sup-input" type="number" min="0" step="1" placeholder="VD: 140000" />
+                        </div>
+                        <div>
+                            <label>Hàm lượng trong gói <span class="req">*</span></label>
+                            <input id="of-packageQty" class="sup-input" type="number" min="0" step="any" placeholder="VD: 1 hoặc 750" />
+                        </div>
+                        <div>
+                            <label>MOQ</label>
+                            <input id="of-moq" class="sup-input" type="number" min="0" step="any" />
+                        </div>
+                        <div>
+                            <label>Lead time (ngày)</label>
+                            <input id="of-lead" class="sup-input" type="number" min="0" step="1" />
+                        </div>
+                        <div>
+                            <label><input type="checkbox" id="of-primary" /> Nhà cung cấp chính</label>
+                        </div>
+                        <div>
+                            <label><input type="checkbox" id="of-active" checked /> Active</label>
+                        </div>
+                        <div style="grid-column:1/-1">
+                            <label>Ghi chú</label>
+                            <input id="of-note" class="sup-input" placeholder="Ghi chú gói mua" />
+                        </div>
+                    </div>
+                    <div class="sup-secondary-form-actions" style="margin-top:8px">
+                        <button type="button" class="sup-btn sup-btn-dark" id="btnSaveOffer"><i class="fa fa-check"></i> Lưu gói mua</button>
+                        <button type="button" class="sup-btn sup-btn-secondary" id="btnCancelOffer">Hủy</button>
+                    </div>
+                    <div id="offer-form-error" class="text-danger" style="margin-top:6px"></div>
+                </div>
+
+                <table class="sup-table">
+                    <thead>
+                        <tr>
+                            <th>Nguyên liệu</th>
+                            <th>Giá gói mua</th>
+                            <th>Hàm lượng</th>
+                            <th>Gói</th>
+                            <th>Chính</th>
+                            <th>TT</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="offerList"></tbody>
+                </table>
             </div>
         </div>
         <div class="sup-modal-footer">
