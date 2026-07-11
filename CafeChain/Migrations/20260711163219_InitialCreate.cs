@@ -859,6 +859,29 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PreparedItems",
+                columns: table => new
+                {
+                    PreparedItemId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PreparedItems", x => x.PreparedItemId);
+                    table.ForeignKey(
+                        name: "FK_PreparedItems_Units_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WheelPrizes",
                 columns: table => new
                 {
@@ -1202,52 +1225,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Recipes",
-                columns: table => new
-                {
-                    RecipeId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    RecipeCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 100m),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
-                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ParentVersionId = table.Column<int>(type: "int", nullable: true),
-                    DrinkId = table.Column<int>(type: "int", nullable: true),
-                    SizeId = table.Column<int>(type: "int", nullable: true),
-                    ToppingId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Recipes", x => x.RecipeId);
-                    table.ForeignKey(
-                        name: "FK_Recipe_ParentVersion",
-                        column: x => x.ParentVersionId,
-                        principalTable: "Recipes",
-                        principalColumn: "RecipeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Recipes_Drinks_DrinkId",
-                        column: x => x.DrinkId,
-                        principalTable: "Drinks",
-                        principalColumn: "DrinkId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Recipes_Sizes_SizeId",
-                        column: x => x.SizeId,
-                        principalTable: "Sizes",
-                        principalColumn: "SizeId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_Recipes_Toppings_ToppingId",
-                        column: x => x.ToppingId,
-                        principalTable: "Toppings",
-                        principalColumn: "ToppingId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SupplierContactPhones",
                 columns: table => new
                 {
@@ -1278,6 +1255,7 @@ namespace CafeChain.Migrations
                     IngredientId = table.Column<int>(type: "int", nullable: false),
                     SupplierId = table.Column<int>(type: "int", nullable: false),
                     UnitId = table.Column<int>(type: "int", nullable: false),
+                    PackageQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
                     CurrentPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     MinimumOrderQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     LeadTimeDays = table.Column<int>(type: "int", nullable: true),
@@ -1291,6 +1269,7 @@ namespace CafeChain.Migrations
                     table.CheckConstraint("CK_IngredientSupplier_CurrentPrice", "[CurrentPrice] >= 0");
                     table.CheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
                     table.CheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderQuantity] IS NULL OR [MinimumOrderQuantity] > 0");
+                    table.CheckConstraint("CK_IngredientSupplier_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
                     table.ForeignKey(
                         name: "FK_IngredientSuppliers_Ingredients_IngredientId",
                         column: x => x.IngredientId,
@@ -1344,6 +1323,69 @@ namespace CafeChain.Migrations
                     table.ForeignKey(
                         name: "FK_UnitConversions_Units_ToUnitId",
                         column: x => x.ToUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Recipes",
+                columns: table => new
+                {
+                    RecipeId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RecipeCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    YieldPercentage = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 100m),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false, defaultValue: "Active"),
+                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ParentVersionId = table.Column<int>(type: "int", nullable: true),
+                    DrinkId = table.Column<int>(type: "int", nullable: true),
+                    SizeId = table.Column<int>(type: "int", nullable: true),
+                    ToppingId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    OutputQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
+                    OutputUnitId = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Recipes", x => x.RecipeId);
+                    table.CheckConstraint("CK_Recipes_OutputQuantity_Positive", "[OutputQuantity] IS NULL OR [OutputQuantity] > 0");
+                    table.CheckConstraint("CK_Recipes_PreparedItemOutput_AllOrNone", "([PreparedItemId] IS NULL AND [OutputQuantity] IS NULL AND [OutputUnitId] IS NULL)\r\n                    OR ([PreparedItemId] IS NOT NULL AND [OutputQuantity] IS NOT NULL AND [OutputQuantity] > 0 AND [OutputUnitId] IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_Recipe_ParentVersion",
+                        column: x => x.ParentVersionId,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Recipes_Drinks_DrinkId",
+                        column: x => x.DrinkId,
+                        principalTable: "Drinks",
+                        principalColumn: "DrinkId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Recipes_PreparedItems_PreparedItemId",
+                        column: x => x.PreparedItemId,
+                        principalTable: "PreparedItems",
+                        principalColumn: "PreparedItemId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Recipes_Sizes_SizeId",
+                        column: x => x.SizeId,
+                        principalTable: "Sizes",
+                        principalColumn: "SizeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_Recipes_Toppings_ToppingId",
+                        column: x => x.ToppingId,
+                        principalTable: "Toppings",
+                        principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Recipes_Units_OutputUnitId",
+                        column: x => x.OutputUnitId,
                         principalTable: "Units",
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
@@ -1448,6 +1490,39 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "IngredientSupplierPriceHistories",
+                columns: table => new
+                {
+                    IngredientSupplierPriceHistoryId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    IngredientSupplierId = table.Column<int>(type: "int", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    PackageQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
+                    PackageUnitId = table.Column<int>(type: "int", nullable: true),
+                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    IsCurrent = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_IngredientSupplierPriceHistories", x => x.IngredientSupplierPriceHistoryId);
+                    table.CheckConstraint("CK_IngredientSupplierPriceHistory_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
+                    table.CheckConstraint("CK_IngredientSupplierPriceHistory_Price", "[Price] >= 0");
+                    table.ForeignKey(
+                        name: "FK_IngredientSupplierPriceHistories_IngredientSuppliers_IngredientSupplierId",
+                        column: x => x.IngredientSupplierId,
+                        principalTable: "IngredientSuppliers",
+                        principalColumn: "IngredientSupplierId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_IngredientSupplierPriceHistories_Units_PackageUnitId",
+                        column: x => x.PackageUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RecipeDetails",
                 columns: table => new
                 {
@@ -1487,30 +1562,6 @@ namespace CafeChain.Migrations
                         principalTable: "Units",
                         principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "IngredientSupplierPriceHistories",
-                columns: table => new
-                {
-                    IngredientSupplierPriceHistoryId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IngredientSupplierId = table.Column<int>(type: "int", nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    IsCurrent = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_IngredientSupplierPriceHistories", x => x.IngredientSupplierPriceHistoryId);
-                    table.CheckConstraint("CK_IngredientSupplierPriceHistory_Price", "[Price] >= 0");
-                    table.ForeignKey(
-                        name: "FK_IngredientSupplierPriceHistories_IngredientSuppliers_IngredientSupplierId",
-                        column: x => x.IngredientSupplierId,
-                        principalTable: "IngredientSuppliers",
-                        principalColumn: "IngredientSupplierId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1619,6 +1670,43 @@ namespace CafeChain.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryCostLayers_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryWriterModeTransitions",
+                columns: table => new
+                {
+                    TransitionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    FromMode = table.Column<int>(type: "int", nullable: false),
+                    ToMode = table.Column<int>(type: "int", nullable: false),
+                    ActorAccountId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    ReadinessHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    ReadinessSnapshotJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RequestedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    AppliedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Succeeded = table.Column<bool>(type: "bit", nullable: false),
+                    FailureCode = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryWriterModeTransitions", x => x.TransitionId);
+                    table.CheckConstraint("CK_InventoryWriterModeTransition_FromMode", "[FromMode] IN (0, 1, 2)");
+                    table.CheckConstraint("CK_InventoryWriterModeTransition_ToMode", "[ToMode] IN (0, 1, 2)");
+                    table.ForeignKey(
+                        name: "FK_InventoryWriterModeTransitions_Accounts_ActorAccountId",
+                        column: x => x.ActorAccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "AccountId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryWriterModeTransitions_Stores_StoreId",
                         column: x => x.StoreId,
                         principalTable: "Stores",
                         principalColumn: "StoreId",
@@ -1755,17 +1843,35 @@ namespace CafeChain.Migrations
                     StoreId = table.Column<int>(type: "int", nullable: false),
                     IngredientId = table.Column<int>(type: "int", nullable: true),
                     RecipeId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    BtpIdentityState = table.Column<int>(type: "int", nullable: true),
+                    QuantitySemanticsStatus = table.Column<int>(type: "int", nullable: true),
+                    SupersededByStoreInventoryId = table.Column<int>(type: "int", nullable: true),
+                    QuantitySemanticsEvidenceType = table.Column<int>(type: "int", nullable: true),
+                    QuantitySemanticsEvidenceReference = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    QuantitySemanticsReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    QuantitySemanticsReviewedByAccountId = table.Column<int>(type: "int", nullable: true),
                     AvailableQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false, defaultValue: 0m),
                     ReservedQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false, defaultValue: 0m),
                     MaxNegativeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    MinStockLevel = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     LastUpdated = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StoreInventories", x => x.StoreInventoryId);
-                    table.CheckConstraint("CK_StoreInventories_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)");
+                    table.CheckConstraint("CK_StoreInventories_BtpLifecycle", "([IngredientId] IS NOT NULL\r\n                        AND [BtpIdentityState] IS NULL\r\n                        AND [QuantitySemanticsStatus] IS NULL\r\n                        AND [SupersededByStoreInventoryId] IS NULL\r\n                        AND [QuantitySemanticsEvidenceType] IS NULL\r\n                        AND [QuantitySemanticsEvidenceReference] IS NULL\r\n                        AND [QuantitySemanticsReviewedAt] IS NULL\r\n                        AND [QuantitySemanticsReviewedByAccountId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND (\r\n                        ([BtpIdentityState] = 0 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NULL)\r\n                        OR ([BtpIdentityState] = 1 AND [PreparedItemId] IS NOT NULL AND [QuantitySemanticsStatus] = 1\r\n                            AND [SupersededByStoreInventoryId] IS NULL\r\n                            AND [QuantitySemanticsEvidenceType] IS NOT NULL\r\n                            AND [QuantitySemanticsEvidenceReference] IS NOT NULL\r\n                            AND [QuantitySemanticsReviewedAt] IS NOT NULL\r\n                            AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)\r\n                        OR ([BtpIdentityState] = 2 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NOT NULL)))");
+                    table.CheckConstraint("CK_StoreInventories_NotSelfSuperseded", "[SupersededByStoreInventoryId] IS NULL OR [SupersededByStoreInventoryId] <> [StoreInventoryId]");
+                    table.CheckConstraint("CK_StoreInventories_QuantityEvidence", "[QuantitySemanticsStatus] IS NULL\r\n                    OR [QuantitySemanticsStatus] = 0\r\n                    OR ([QuantitySemanticsEvidenceType] IS NOT NULL\r\n                        AND [QuantitySemanticsEvidenceReference] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedAt] IS NOT NULL\r\n                        AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)");
+                    table.CheckConstraint("CK_StoreInventories_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n                    OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)");
                     table.CheckConstraint("CK_StoreInventory_ReservedQty", "[ReservedQty] >= 0");
+                    table.ForeignKey(
+                        name: "FK_StoreInventories_Accounts_QuantitySemanticsReviewedByAccountId",
+                        column: x => x.QuantitySemanticsReviewedByAccountId,
+                        principalTable: "Accounts",
+                        principalColumn: "AccountId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_StoreInventories_Ingredients_IngredientId",
                         column: x => x.IngredientId,
@@ -1773,10 +1879,22 @@ namespace CafeChain.Migrations
                         principalColumn: "IngredientId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
+                        name: "FK_StoreInventories_PreparedItems_PreparedItemId",
+                        column: x => x.PreparedItemId,
+                        principalTable: "PreparedItems",
+                        principalColumn: "PreparedItemId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
                         name: "FK_StoreInventories_Recipes_RecipeId",
                         column: x => x.RecipeId,
                         principalTable: "Recipes",
                         principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreInventories_StoreInventories_SupersededByStoreInventoryId",
+                        column: x => x.SupersededByStoreInventoryId,
+                        principalTable: "StoreInventories",
+                        principalColumn: "StoreInventoryId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_StoreInventories_Stores_StoreId",
@@ -1815,6 +1933,29 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StoreInventoryWriterConfigurations",
+                columns: table => new
+                {
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    WriterMode = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    HasEverActivatedPreparedItem = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreInventoryWriterConfigurations", x => x.StoreId);
+                    table.CheckConstraint("CK_StoreInventoryWriterConfiguration_Mode", "[WriterMode] IN (0, 1, 2)");
+                    table.ForeignKey(
+                        name: "FK_StoreInventoryWriterConfigurations_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2134,6 +2275,43 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StaffNotifications",
+                columns: table => new
+                {
+                    StaffNotificationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    RecipientStaffId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    Title = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Body = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: false),
+                    EntityType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    EntityId = table.Column<int>(type: "int", nullable: false),
+                    IsRead = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    ReadAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EmailAttempted = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    EmailSent = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    EmailErrorSummary = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StaffNotifications", x => x.StaffNotificationId);
+                    table.ForeignKey(
+                        name: "FK_StaffNotifications_Staffs_RecipientStaffId",
+                        column: x => x.RecipientStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StaffNotifications_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "StaffPhones",
                 columns: table => new
                 {
@@ -2219,6 +2397,77 @@ namespace CafeChain.Migrations
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StockAlerts",
+                columns: table => new
+                {
+                    StockAlertId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    RecipeId = table.Column<int>(type: "int", nullable: true),
+                    AlertType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    Severity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    CurrentQtySnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    ThresholdSnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    Source = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ReportedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ReportedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ConfirmedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ManagerNote = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RejectedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    RejectedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RejectReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ResolvedReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockAlerts", x => x.StockAlertId);
+                    table.CheckConstraint("CK_StockAlerts_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Recipes_RecipeId",
+                        column: x => x.RecipeId,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Staffs_ConfirmedByStaffId",
+                        column: x => x.ConfirmedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Staffs_RejectedByStaffId",
+                        column: x => x.RejectedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Staffs_ReportedByStaffId",
+                        column: x => x.ReportedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_StockAlerts_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -2421,6 +2670,69 @@ namespace CafeChain.Migrations
                         column: x => x.UnitId,
                         principalTable: "Units",
                         principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RestockRequests",
+                columns: table => new
+                {
+                    RestockRequestId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StockAlertId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    RecipeId = table.Column<int>(type: "int", nullable: true),
+                    RequestedQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    SuggestedQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    Priority = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    HandledByStaffId = table.Column<int>(type: "int", nullable: true),
+                    HandledAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RestockRequests", x => x.RestockRequestId);
+                    table.CheckConstraint("CK_RestockRequests_XOR_Item", "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Recipes_RecipeId",
+                        column: x => x.RecipeId,
+                        principalTable: "Recipes",
+                        principalColumn: "RecipeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Staffs_HandledByStaffId",
+                        column: x => x.HandledByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_StockAlerts_StockAlertId",
+                        column: x => x.StockAlertId,
+                        principalTable: "StockAlerts",
+                        principalColumn: "StockAlertId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequests_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -2859,7 +3171,8 @@ namespace CafeChain.Migrations
                     { 4, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "salesstaff@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 5, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "accountantwarehouse@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
                     { 6, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "systemadmin@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
-                    { 7, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "khachhang@gmail.com", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true }
+                    { 7, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "khachhang@gmail.com", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true },
+                    { 12, true, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "shiftsupervisor@cafechain.vn", null, "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe", true }
                 });
 
             migrationBuilder.InsertData(
@@ -2977,7 +3290,8 @@ namespace CafeChain.Migrations
                     { 4, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), true, "Nhân viên bán hàng" },
                     { 5, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), true, "Kế toán/kho" },
                     { 6, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), false, "Quản trị hệ thống" },
-                    { 7, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), false, "Khách hàng" }
+                    { 7, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), false, "Khách hàng" },
+                    { 8, true, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), true, "Ca trưởng" }
                 });
 
             migrationBuilder.InsertData(
@@ -3108,7 +3422,8 @@ namespace CafeChain.Migrations
                     { 4, 4 },
                     { 5, 5 },
                     { 6, 6 },
-                    { 7, 7 }
+                    { 7, 7 },
+                    { 12, 8 }
                 });
 
             migrationBuilder.InsertData(
@@ -3163,11 +3478,11 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Recipes",
-                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "RecipeCode", "SizeId", "Status", "ToppingId", "YieldPercentage" },
+                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "OutputQuantity", "OutputUnitId", "ParentVersionId", "PreparedItemId", "RecipeCode", "SizeId", "Status", "ToppingId", "YieldPercentage" },
                 values: new object[,]
                 {
-                    { 5, true, null, null, "Trân châu đen", null, "RCP_TC_DEN", null, "Active", 1, 100m },
-                    { 6, true, null, null, "Trân châu trắng", null, "RCP_TC_TRANG", null, "Active", 2, 100m }
+                    { 5, true, null, null, "Trân châu đen", null, null, null, null, "RCP_TC_DEN", null, "Active", 1, 100m },
+                    { 6, true, null, null, "Trân châu trắng", null, null, null, null, "RCP_TC_TRANG", null, "Active", 2, 100m }
                 });
 
             migrationBuilder.InsertData(
@@ -3194,7 +3509,8 @@ namespace CafeChain.Migrations
                     { 3, 3, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 25000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Quản lý chi nhánh Quận 1", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX103" },
                     { 4, 4, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 9000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Nhân viên bán hàng", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX104" },
                     { 5, 5, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 15000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Nhân viên kế toán kho", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX105" },
-                    { 6, 6, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Quản trị hệ thống", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX106" }
+                    { 6, 6, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Quản trị hệ thống", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX106" },
+                    { 12, 12, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Ca trưởng chi nhánh", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX112" }
                 });
 
             migrationBuilder.InsertData(
@@ -3206,6 +3522,16 @@ namespace CafeChain.Migrations
                 table: "StoreIPs",
                 columns: new[] { "Id", "CreatedAt", "IPAddress", "IsActive", "IsPublicNetwork", "Notes", "StoreId" },
                 values: new object[] { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "171.244.10.15", true, true, "WAN Cửa hàng 1", 1 });
+
+            migrationBuilder.InsertData(
+                table: "StoreInventoryWriterConfigurations",
+                columns: new[] { "StoreId", "CreatedAt", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                });
 
             migrationBuilder.InsertData(
                 table: "StoreToppings",
@@ -3434,30 +3760,30 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderQuantity", "Note", "SupplierId", "UnitId" },
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderQuantity", "Note", "PackageQuantity", "SupplierId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, true, 22000m, 6, true, 1, 1m, "Đường Biên Hòa", 1, 2 },
-                    { 2, true, 27000m, 2, true, 2, 24m, "Sữa đặc Ông Thọ", 2, 3 },
-                    { 3, true, 140000m, 1, true, 3, 5m, "Cà phê hạt", 3, 2 },
-                    { 4, true, 250000m, 8, true, 4, 6m, "Syrup Torani", 4, 3 },
-                    { 5, true, 95000m, 10, true, 2, 12m, "Kem béo Rich", 2, 4 },
-                    { 6, true, 450000m, 9, true, 5, 1m, "Matcha Nhật", 5, 1 }
+                    { 1, true, 22000m, 6, true, 1, 1m, "Đường Biên Hòa", 1m, 1, 2 },
+                    { 2, true, 27000m, 2, true, 2, 24m, "Sữa đặc Ông Thọ", null, 2, 3 },
+                    { 3, true, 140000m, 1, true, 3, 5m, "Cà phê hạt", 1m, 3, 2 },
+                    { 4, true, 250000m, 8, true, 4, 6m, "Syrup Torani", null, 4, 3 },
+                    { 5, true, 95000m, 10, true, 2, 12m, "Kem béo Rich", 1m, 2, 4 },
+                    { 6, true, 450000m, 9, true, 5, 1m, "Matcha Nhật", null, 5, 1 }
                 });
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "LeadTimeDays", "MinimumOrderQuantity", "Note", "SupplierId", "UnitId" },
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "LeadTimeDays", "MinimumOrderQuantity", "Note", "PackageQuantity", "SupplierId", "UnitId" },
                 values: new object[,]
                 {
-                    { 7, true, 180000m, 5, 3, 2m, "Bột cacao", 3, 2 },
-                    { 8, true, 85000m, 4, 2, 2m, "Bột sữa", 1, 2 }
+                    { 7, true, 180000m, 5, 3, 2m, "Bột cacao", 1m, 3, 2 },
+                    { 8, true, 85000m, 4, 2, 2m, "Bột sữa", 1m, 1, 2 }
                 });
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderQuantity", "Note", "SupplierId", "UnitId" },
-                values: new object[] { 9, true, 120000m, 3, true, 5, 1m, "Trà Lipton", 4, 1 });
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderQuantity", "Note", "PackageQuantity", "SupplierId", "UnitId" },
+                values: new object[] { 9, true, 120000m, 3, true, 5, 1m, "Trà Lipton", null, 4, 1 });
 
             migrationBuilder.InsertData(
                 table: "RecipeDetails",
@@ -3474,13 +3800,13 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Recipes",
-                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "ParentVersionId", "RecipeCode", "SizeId", "Status", "ToppingId", "YieldPercentage" },
+                columns: new[] { "RecipeId", "Active", "DrinkId", "EffectiveDate", "Name", "OutputQuantity", "OutputUnitId", "ParentVersionId", "PreparedItemId", "RecipeCode", "SizeId", "Status", "ToppingId", "YieldPercentage" },
                 values: new object[,]
                 {
-                    { 1, true, 1, null, "Recipe CF Sữa", null, "RCP_CF_SUA", 1, "Active", null, 100m },
-                    { 2, true, 2, null, "Recipe CF Đen", null, "RCP_CF_DEN", 1, "Active", null, 100m },
-                    { 3, true, 3, null, "Recipe Trà sữa", null, "RCP_TS", 1, "Active", null, 100m },
-                    { 4, true, 4, null, "Recipe Trà sữa socola", null, "RCP_TS_SOCOLA", 1, "Active", null, 100m }
+                    { 1, true, 1, null, "Recipe CF Sữa", null, null, null, null, "RCP_CF_SUA", 1, "Active", null, 100m },
+                    { 2, true, 2, null, "Recipe CF Đen", null, null, null, null, "RCP_CF_DEN", 1, "Active", null, 100m },
+                    { 3, true, 3, null, "Recipe Trà sữa", null, null, null, null, "RCP_TS", 1, "Active", null, 100m },
+                    { 4, true, 4, null, "Recipe Trà sữa socola", null, null, null, null, "RCP_TS_SOCOLA", 1, "Active", null, 100m }
                 });
 
             migrationBuilder.InsertData(
@@ -3525,7 +3851,8 @@ namespace CafeChain.Migrations
                     { 3, true, "0901000103", 3 },
                     { 4, true, "0901000104", 4 },
                     { 5, true, "0901000105", 5 },
-                    { 6, true, "0901000106", 6 }
+                    { 6, true, "0901000106", 6 },
+                    { 12, true, "0901000112", 12 }
                 });
 
             migrationBuilder.InsertData(
@@ -3538,7 +3865,8 @@ namespace CafeChain.Migrations
                     { 3, 79, 2, 2 },
                     { 4, 1, 5, 3 },
                     { 5, 1, 5, 4 },
-                    { 6, 1, 5, 5 }
+                    { 6, 1, 5, 5 },
+                    { 12, 1, 5, 12 }
                 });
 
             migrationBuilder.InsertData(
@@ -3566,13 +3894,13 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "StoreInventories",
-                columns: new[] { "StoreInventoryId", "AvailableQty", "IngredientId", "LastUpdated", "MaxNegativeQty", "RecipeId", "StoreId" },
+                columns: new[] { "StoreInventoryId", "AvailableQty", "BtpIdentityState", "IngredientId", "LastUpdated", "MaxNegativeQty", "MinStockLevel", "PreparedItemId", "QuantitySemanticsEvidenceReference", "QuantitySemanticsEvidenceType", "QuantitySemanticsReviewedAt", "QuantitySemanticsReviewedByAccountId", "QuantitySemanticsStatus", "RecipeId", "StoreId", "SupersededByStoreInventoryId" },
                 values: new object[,]
                 {
-                    { 1, 100m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, 1 },
-                    { 2, 50m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, 1 },
-                    { 3, 80m, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, 2 },
-                    { 4, 60m, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, 3 }
+                    { 1, 100m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null },
+                    { 2, 50m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 1, null },
+                    { 3, 80m, null, 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 2, null },
+                    { 4, 60m, null, 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, null, null, null, null, null, null, null, null, 3, null }
                 });
 
             migrationBuilder.InsertData(
@@ -3620,12 +3948,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSupplierPriceHistories",
-                columns: new[] { "IngredientSupplierPriceHistoryId", "EffectiveDate", "IngredientSupplierId", "IsCurrent", "Note", "Price" },
+                columns: new[] { "IngredientSupplierPriceHistoryId", "EffectiveDate", "IngredientSupplierId", "IsCurrent", "Note", "PackageQuantity", "PackageUnitId", "Price" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, true, "Giá ban đầu", 22000m },
-                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, true, "Giá ban đầu", 27000m },
-                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, true, "Giá ban đầu", 140000m }
+                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, true, "Giá ban đầu", 1m, 2, 22000m },
+                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, true, "Giá ban đầu", null, null, 27000m },
+                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, true, "Giá ban đầu", 1m, 2, 140000m }
                 });
 
             migrationBuilder.InsertData(
@@ -3633,20 +3961,20 @@ namespace CafeChain.Migrations
                 columns: new[] { "RecipeDetailId", "ChildRecipeId", "IngredientId", "Quantity", "RecipeId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, null, 1, 50m, 1, 3 },
+                    { 1, null, 1, 50m, 1, 1 },
                     { 2, null, 2, 30m, 1, 3 },
-                    { 3, null, 7, 100m, 1, 3 },
-                    { 4, null, 1, 60m, 2, 3 },
-                    { 5, null, 7, 100m, 2, 3 },
-                    { 6, null, 3, 80m, 3, 3 },
-                    { 7, null, 4, 40m, 3, 3 },
-                    { 8, null, 6, 20m, 3, 3 },
-                    { 9, null, 7, 100m, 3, 3 },
-                    { 10, null, 3, 70m, 4, 3 },
-                    { 11, null, 4, 40m, 4, 3 },
-                    { 12, null, 5, 20m, 4, 3 },
-                    { 13, null, 6, 20m, 4, 3 },
-                    { 14, null, 7, 100m, 4, 3 },
+                    { 3, null, 7, 100m, 1, 1 },
+                    { 4, null, 1, 60m, 2, 1 },
+                    { 5, null, 7, 100m, 2, 1 },
+                    { 6, null, 3, 80m, 3, 1 },
+                    { 7, null, 4, 40m, 3, 1 },
+                    { 8, null, 6, 20m, 3, 1 },
+                    { 9, null, 7, 100m, 3, 1 },
+                    { 10, null, 3, 70m, 4, 1 },
+                    { 11, null, 4, 40m, 4, 1 },
+                    { 12, null, 5, 20m, 4, 1 },
+                    { 13, null, 6, 20m, 4, 1 },
+                    { 14, null, 7, 100m, 4, 1 },
                     { 21, 5, null, 1m, 3, 1 }
                 });
 
@@ -3907,6 +4235,11 @@ namespace CafeChain.Migrations
                 name: "IX_IngredientSupplierPriceHistories_IngredientSupplierId_EffectiveDate",
                 table: "IngredientSupplierPriceHistories",
                 columns: new[] { "IngredientSupplierId", "EffectiveDate" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IngredientSupplierPriceHistories_PackageUnitId",
+                table: "IngredientSupplierPriceHistories",
+                column: "PackageUnitId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientSuppliers_Active",
@@ -4212,6 +4545,21 @@ namespace CafeChain.Migrations
                 columns: new[] { "ToStoreId", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryWriterModeTransitions_ActorAccountId",
+                table: "InventoryWriterModeTransitions",
+                column: "ActorAccountId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryWriterModeTransitions_StoreId_RequestedAt",
+                table: "InventoryWriterModeTransitions",
+                columns: new[] { "StoreId", "RequestedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryWriterModeTransitions_Succeeded",
+                table: "InventoryWriterModeTransitions",
+                column: "Succeeded");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InvoiceAuditLogs_CashierId",
                 table: "InvoiceAuditLogs",
                 column: "CashierId");
@@ -4478,6 +4826,22 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PreparedItems_Active",
+                table: "PreparedItems",
+                column: "Active");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PreparedItems_BaseUnitId",
+                table: "PreparedItems",
+                column: "BaseUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PreparedItems_Code",
+                table: "PreparedItems",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ProductTypes_Code",
                 table: "ProductTypes",
                 column: "Code",
@@ -4569,6 +4933,18 @@ namespace CafeChain.Migrations
                 columns: new[] { "DrinkId", "SizeId" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Recipes_OneActive_PreparedItem",
+                table: "Recipes",
+                column: "PreparedItemId",
+                unique: true,
+                filter: "[PreparedItemId] IS NOT NULL AND [Active] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Recipes_OutputUnitId",
+                table: "Recipes",
+                column: "OutputUnitId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Recipes_ParentVersionId",
                 table: "Recipes",
                 column: "ParentVersionId");
@@ -4623,6 +4999,43 @@ namespace CafeChain.Migrations
                 name: "IX_RequestDeduplications_Status_ExpiredAt",
                 table: "RequestDeduplications",
                 columns: new[] { "Status", "ExpiredAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_CreatedByStaffId",
+                table: "RestockRequests",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_HandledByStaffId",
+                table: "RestockRequests",
+                column: "HandledByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_IngredientId",
+                table: "RestockRequests",
+                column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_RecipeId",
+                table: "RestockRequests",
+                column: "RecipeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_Status",
+                table: "RestockRequests",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequests_StoreId",
+                table: "RestockRequests",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_RestockRequest_Open_StockAlert",
+                table: "RestockRequests",
+                column: "StockAlertId",
+                unique: true,
+                filter: "[Status] = 'SUBMITTED'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RolePermissions_PermissionId",
@@ -4685,6 +5098,21 @@ namespace CafeChain.Migrations
                 name: "IX_StaffDependents_StaffId",
                 table: "StaffDependents",
                 column: "StaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffNotification_Entity",
+                table: "StaffNotifications",
+                columns: new[] { "EntityType", "EntityId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffNotification_Recipient_IsRead",
+                table: "StaffNotifications",
+                columns: new[] { "RecipientStaffId", "IsRead" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StaffNotification_StoreId",
+                table: "StaffNotifications",
+                column: "StoreId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StaffPhones_StaffId",
@@ -4761,6 +5189,55 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_ConfirmedByStaffId",
+                table: "StockAlerts",
+                column: "ConfirmedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_IngredientId",
+                table: "StockAlerts",
+                column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_RecipeId",
+                table: "StockAlerts",
+                column: "RecipeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_RejectedByStaffId",
+                table: "StockAlerts",
+                column: "RejectedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_ReportedByStaffId",
+                table: "StockAlerts",
+                column: "ReportedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_Status",
+                table: "StockAlerts",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlerts_StoreId",
+                table: "StockAlerts",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_StockAlert_Open_Store_Ingredient",
+                table: "StockAlerts",
+                columns: new[] { "StoreId", "IngredientId" },
+                unique: true,
+                filter: "[IngredientId] IS NOT NULL AND [Status] = 'OPEN'");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_StockAlert_Open_Store_Recipe",
+                table: "StockAlerts",
+                columns: new[] { "StoreId", "RecipeId" },
+                unique: true,
+                filter: "[RecipeId] IS NOT NULL AND [Status] = 'OPEN'");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StockTakeDetails_IngredientId",
                 table: "StockTakeDetails",
                 column: "IngredientId");
@@ -4809,9 +5286,25 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Store_PreparedItem_Compatibility",
+                table: "StoreInventories",
+                columns: new[] { "StoreId", "PreparedItemId" },
+                filter: "[PreparedItemId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_StoreInventories_IngredientId",
                 table: "StoreInventories",
                 column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_PreparedItemId",
+                table: "StoreInventories",
+                column: "PreparedItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_QuantitySemanticsReviewedByAccountId",
+                table: "StoreInventories",
+                column: "QuantitySemanticsReviewedByAccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_StoreInventories_RecipeId",
@@ -4824,11 +5317,23 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StoreInventories_SupersededByStoreInventoryId",
+                table: "StoreInventories",
+                column: "SupersededByStoreInventoryId");
+
+            migrationBuilder.CreateIndex(
                 name: "UX_Store_Ingredient",
                 table: "StoreInventories",
                 columns: new[] { "StoreId", "IngredientId" },
                 unique: true,
                 filter: "[IngredientId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_Store_PreparedItem_Canonical",
+                table: "StoreInventories",
+                columns: new[] { "PreparedItemId", "StoreId" },
+                unique: true,
+                filter: "[PreparedItemId] IS NOT NULL AND [BtpIdentityState] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "UX_Store_Recipe",
@@ -5174,6 +5679,9 @@ namespace CafeChain.Migrations
                 name: "InventoryTransferDetails");
 
             migrationBuilder.DropTable(
+                name: "InventoryWriterModeTransitions");
+
+            migrationBuilder.DropTable(
                 name: "InvoiceAuditLogs");
 
             migrationBuilder.DropTable(
@@ -5210,6 +5718,9 @@ namespace CafeChain.Migrations
                 name: "RequestDeduplications");
 
             migrationBuilder.DropTable(
+                name: "RestockRequests");
+
+            migrationBuilder.DropTable(
                 name: "RevenueByStoreDto");
 
             migrationBuilder.DropTable(
@@ -5226,6 +5737,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StaffDependents");
+
+            migrationBuilder.DropTable(
+                name: "StaffNotifications");
 
             migrationBuilder.DropTable(
                 name: "StaffPerformanceDto");
@@ -5247,6 +5761,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StoreInventorySnapshots");
+
+            migrationBuilder.DropTable(
+                name: "StoreInventoryWriterConfigurations");
 
             migrationBuilder.DropTable(
                 name: "StoreIPs");
@@ -5321,6 +5838,9 @@ namespace CafeChain.Migrations
                 name: "Ratings");
 
             migrationBuilder.DropTable(
+                name: "StockAlerts");
+
+            migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
@@ -5348,13 +5868,13 @@ namespace CafeChain.Migrations
                 name: "InventoryDocuments");
 
             migrationBuilder.DropTable(
+                name: "Orders");
+
+            migrationBuilder.DropTable(
                 name: "Ingredients");
 
             migrationBuilder.DropTable(
                 name: "Recipes");
-
-            migrationBuilder.DropTable(
-                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "PermissionGroups");
@@ -5367,18 +5887,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Suppliers");
-
-            migrationBuilder.DropTable(
-                name: "Units");
-
-            migrationBuilder.DropTable(
-                name: "Drinks");
-
-            migrationBuilder.DropTable(
-                name: "Sizes");
-
-            migrationBuilder.DropTable(
-                name: "Toppings");
 
             migrationBuilder.DropTable(
                 name: "Customers");
@@ -5396,10 +5904,16 @@ namespace CafeChain.Migrations
                 name: "WorkShifts");
 
             migrationBuilder.DropTable(
-                name: "DrinkCategories");
+                name: "Drinks");
 
             migrationBuilder.DropTable(
-                name: "ProductTypes");
+                name: "PreparedItems");
+
+            migrationBuilder.DropTable(
+                name: "Sizes");
+
+            migrationBuilder.DropTable(
+                name: "Toppings");
 
             migrationBuilder.DropTable(
                 name: "MemberLevels");
@@ -5409,6 +5923,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Staffs");
+
+            migrationBuilder.DropTable(
+                name: "DrinkCategories");
+
+            migrationBuilder.DropTable(
+                name: "ProductTypes");
+
+            migrationBuilder.DropTable(
+                name: "Units");
 
             migrationBuilder.DropTable(
                 name: "Accounts");
