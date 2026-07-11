@@ -171,7 +171,10 @@ namespace CafeChain.Data.Configurations.Stores
             {
                 t.HasCheckConstraint(
                     "CK_StoreInventories_XOR_Item",
-                    "([IngredientId] IS NOT NULL AND [RecipeId] IS NULL) OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL)"
+                    @"([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)
+                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)
+                    OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
+                    OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)"
                 );
 
                 // ADR-0001: ĐÃ XÓA CK_StoreInventory_AvailableQty >= 0
@@ -230,6 +233,11 @@ namespace CafeChain.Data.Configurations.Stores
                 .HasForeignKey(x => x.RecipeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.PreparedItem)
+                .WithMany()
+                .HasForeignKey(x => x.PreparedItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= UNIQUE =================
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
@@ -241,10 +249,17 @@ namespace CafeChain.Data.Configurations.Stores
                 .HasFilter("[RecipeId] IS NOT NULL")
                 .HasDatabaseName("UX_Store_Recipe");
 
+            // Intentionally non-unique during the dual-read period. A legacy RecipeId row
+            // and a future PreparedItem-only row may coexist until a reviewed cutover.
+            entity.HasIndex(x => new { x.StoreId, x.PreparedItemId })
+                .HasFilter("[PreparedItemId] IS NOT NULL")
+                .HasDatabaseName("IX_Store_PreparedItem_Compatibility");
+
             // ================= INDEX =================
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.IngredientId);
             entity.HasIndex(x => x.RecipeId);
+            entity.HasIndex(x => x.PreparedItemId);
 
             // ================= SEED =================
             entity.HasData(

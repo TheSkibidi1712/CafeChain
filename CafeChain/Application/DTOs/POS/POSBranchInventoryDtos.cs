@@ -8,10 +8,14 @@ namespace CafeChain.Application.DTOs.POS
         public int StoreInventoryId { get; set; }
         public int StoreId { get; set; }
 
-        /// <summary>Ingredient | Recipe</summary>
+        /// <summary>Ingredient | Recipe | PreparedItem</summary>
         public string ItemType { get; set; } = string.Empty;
 
         public int ItemId { get; set; }
+        public int? LegacyRecipeId { get; set; }
+        public int? PreparedItemId { get; set; }
+        public bool IsLegacyUnmapped { get; set; }
+        public string QuantitySemanticsStatus { get; set; } = string.Empty;
         public string ItemName { get; set; } = string.Empty;
         public string? ItemCode { get; set; }
 

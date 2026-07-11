@@ -54,7 +54,17 @@
                 <tr>
                     <td>@item.StoreName</td>
 
-                    <td>@item.IngredientName</td>
+                    <td>
+                        @item.IngredientName
+                        @if (!string.IsNullOrWhiteSpace(item.IdentityBadge))
+                        {
+                            <small class="text-muted d-block">@item.IdentityBadge</small>
+                        }
+                        @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
+                        {
+                            <small class="text-warning d-block">Chưa xác nhận đơn vị tồn</small>
+                        }
+                    </td>
 
                     <td>
                         <span title="@item.StockStatusName">

@@ -41,7 +41,7 @@ const formatDateTime = (value: string): string => {
 
 const itemTypeLabel = (itemType: string): string => {
   if (itemType === 'Ingredient') return 'Nguyên liệu'
-  if (itemType === 'Recipe') return 'Bán thành phẩm'
+  if (itemType === 'Recipe' || itemType === 'PreparedItem') return 'Bán thành phẩm'
   return itemType
 }
 
@@ -301,6 +301,21 @@ export default function BranchInventory() {
                         <div className="font-semibold text-text-primary">{item.itemName}</div>
                         {item.itemCode ? (
                           <div className="text-[11px] text-text-muted">{item.itemCode}</div>
+                        ) : null}
+                        {item.isLegacyUnmapped ? (
+                          <div className="mt-1 inline-flex rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                            BTP legacy · Chưa liên kết BTP
+                          </div>
+                        ) : null}
+                        {item.legacyRecipeId && item.preparedItemId ? (
+                          <>
+                            <div className="mt-1 text-[10px] text-text-muted">Công thức legacy #{item.legacyRecipeId}</div>
+                            {item.quantitySemanticsStatus === 'QUANTITY_SEMANTICS_UNKNOWN' ? (
+                              <div className="mt-1 inline-flex rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">
+                                Chưa xác nhận đơn vị tồn
+                              </div>
+                            ) : null}
+                          </>
                         ) : null}
                       </td>
                       <td className="px-4 py-3 text-text-secondary whitespace-nowrap">

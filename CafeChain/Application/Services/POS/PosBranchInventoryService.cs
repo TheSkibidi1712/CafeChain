@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -20,6 +21,7 @@ namespace CafeChain.Application.Services.POS
         public const string QuantityStatusInStock = "Còn hàng";
         public const string ItemTypeIngredient = "Ingredient";
         public const string ItemTypeRecipe = "Recipe";
+        public const string ItemTypePreparedItem = "PreparedItem";
 
         private readonly AppDbContext _context;
 
@@ -46,7 +48,7 @@ namespace CafeChain.Application.Services.POS
             if (itemType != null && normalizedType == null && !string.IsNullOrWhiteSpace(itemType))
             {
                 return ServiceResult<POSBranchInventoryListDto>.Failure(
-                    "itemType phải là Ingredient, Recipe, hoặc để trống.");
+                    "itemType phải là Ingredient, Recipe, PreparedItem, hoặc để trống.");
             }
 
             var query = _context.StoreInventories
@@ -59,7 +61,11 @@ namespace CafeChain.Application.Services.POS
             }
             else if (normalizedType == ItemTypeRecipe)
             {
-                query = query.Where(i => i.RecipeId != null);
+                query = query.Where(i => i.IngredientId == null && (i.RecipeId != null || i.PreparedItemId != null));
+            }
+            else if (normalizedType == ItemTypePreparedItem)
+            {
+                query = query.Where(i => i.IngredientId == null && i.PreparedItemId != null);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -71,7 +77,10 @@ namespace CafeChain.Application.Services.POS
                       (i.Ingredient.Code != null && i.Ingredient.Code.Contains(keyword)))) ||
                     (i.RecipeId != null &&
                      ((i.Recipe.Name != null && i.Recipe.Name.Contains(keyword)) ||
-                      (i.Recipe.RecipeCode != null && i.Recipe.RecipeCode.Contains(keyword)))));
+                      (i.Recipe.RecipeCode != null && i.Recipe.RecipeCode.Contains(keyword)))) ||
+                    (i.PreparedItemId != null &&
+                     (i.PreparedItem.Name.Contains(keyword) ||
+                      i.PreparedItem.Code.Contains(keyword))));
             }
 
             var total = await query.CountAsync();
@@ -79,7 +88,7 @@ namespace CafeChain.Application.Services.POS
             var rows = await query
                 .OrderBy(i => i.IngredientId != null
                     ? i.Ingredient.Name
-                    : (i.Recipe != null ? i.Recipe.Name : ""))
+                    : (i.PreparedItem != null ? i.PreparedItem.Name : (i.Recipe != null ? i.Recipe.Name : "")))
                 .ThenBy(i => i.StoreInventoryId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -89,6 +98,7 @@ namespace CafeChain.Application.Services.POS
                     i.StoreId,
                     i.IngredientId,
                     i.RecipeId,
+                    i.PreparedItemId,
                     IngredientName = i.Ingredient != null ? i.Ingredient.Name : null,
                     IngredientCode = i.Ingredient != null ? i.Ingredient.Code : null,
                     UnitCode = i.Ingredient != null && i.Ingredient.BaseUnit != null
@@ -99,6 +109,14 @@ namespace CafeChain.Application.Services.POS
                         : null,
                     RecipeName = i.Recipe != null ? i.Recipe.Name : null,
                     RecipeCode = i.Recipe != null ? i.Recipe.RecipeCode : null,
+                    PreparedItemName = i.PreparedItem != null ? i.PreparedItem.Name : null,
+                    PreparedItemCode = i.PreparedItem != null ? i.PreparedItem.Code : null,
+                    PreparedItemUnitCode = i.PreparedItem != null && i.PreparedItem.BaseUnit != null
+                        ? i.PreparedItem.BaseUnit.UnitCode
+                        : null,
+                    PreparedItemUnitName = i.PreparedItem != null && i.PreparedItem.BaseUnit != null
+                        ? i.PreparedItem.BaseUnit.Name
+                        : null,
                     i.AvailableQty,
                     i.ReservedQty,
                     i.MinStockLevel,
@@ -109,7 +127,7 @@ namespace CafeChain.Application.Services.POS
             var items = rows.Select(r =>
             {
                 var isIngredient = r.IngredientId.HasValue;
-                var itemId = isIngredient ? r.IngredientId!.Value : (r.RecipeId ?? 0);
+                var itemId = isIngredient ? r.IngredientId!.Value : (r.PreparedItemId ?? r.RecipeId ?? 0);
                 string itemName;
                 string? itemCode;
                 string unitName;
@@ -124,21 +142,39 @@ namespace CafeChain.Application.Services.POS
                 }
                 else
                 {
-                    itemName = !string.IsNullOrWhiteSpace(r.RecipeName)
+                    itemName = !string.IsNullOrWhiteSpace(r.PreparedItemName)
+                        ? r.PreparedItemName!
+                        : !string.IsNullOrWhiteSpace(r.RecipeName)
                         ? r.RecipeName!
                         : (!string.IsNullOrWhiteSpace(r.RecipeCode)
                             ? r.RecipeCode!
                             : $"Bán thành phẩm #{itemId}");
-                    itemCode = r.RecipeCode;
-                    unitName = "—";
+                    itemCode = r.PreparedItemCode ?? r.RecipeCode;
+                    // RecipeId-backed quantities may still represent legacy batches.
+                    // Do not label them as authoritative PreparedItem base-unit quantities.
+                    unitName = !r.RecipeId.HasValue && !string.IsNullOrWhiteSpace(r.PreparedItemUnitCode)
+                        ? r.PreparedItemUnitCode!
+                        : (!r.RecipeId.HasValue && !string.IsNullOrWhiteSpace(r.PreparedItemUnitName)
+                            ? r.PreparedItemUnitName!
+                            : "—");
                 }
 
                 return new POSBranchInventoryItemDto
                 {
                     StoreInventoryId = r.StoreInventoryId,
                     StoreId = r.StoreId,
-                    ItemType = isIngredient ? ItemTypeIngredient : ItemTypeRecipe,
+                    ItemType = isIngredient
+                        ? ItemTypeIngredient
+                        : (r.PreparedItemId.HasValue && !r.RecipeId.HasValue ? ItemTypePreparedItem : ItemTypeRecipe),
                     ItemId = itemId,
+                    LegacyRecipeId = r.RecipeId,
+                    PreparedItemId = r.PreparedItemId,
+                    IsLegacyUnmapped = !isIngredient && r.RecipeId.HasValue && !r.PreparedItemId.HasValue,
+                    QuantitySemanticsStatus = isIngredient
+                        ? QuantitySemanticsStatuses.NotApplicable
+                        : r.RecipeId.HasValue
+                            ? QuantitySemanticsStatuses.Unknown
+                            : QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
                     ItemName = itemName,
                     ItemCode = itemCode,
                     AvailableQty = r.AvailableQty,
@@ -192,6 +228,8 @@ namespace CafeChain.Application.Services.POS
                 return ItemTypeIngredient;
             if (itemType.Equals(ItemTypeRecipe, StringComparison.OrdinalIgnoreCase))
                 return ItemTypeRecipe;
+            if (itemType.Equals(ItemTypePreparedItem, StringComparison.OrdinalIgnoreCase))
+                return ItemTypePreparedItem;
 
             return null;
         }

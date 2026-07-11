@@ -1,6 +1,6 @@
 import { apiClient } from './apiClient'
 
-export type BranchInventoryItemType = 'Ingredient' | 'Recipe'
+export type BranchInventoryItemType = 'Ingredient' | 'Recipe' | 'PreparedItem'
 
 export type QuantityStatus = 'Tồn âm' | 'Hết hàng' | 'Còn hàng'
 
@@ -9,6 +9,10 @@ export interface BranchInventoryItem {
   storeId: number
   itemType: BranchInventoryItemType | string
   itemId: number
+  legacyRecipeId?: number | null
+  preparedItemId?: number | null
+  isLegacyUnmapped?: boolean
+  quantitySemanticsStatus?: string
   itemName: string
   itemCode?: string | null
   availableQty: number
