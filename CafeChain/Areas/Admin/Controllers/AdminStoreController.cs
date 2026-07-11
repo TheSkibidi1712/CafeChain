@@ -1,5 +1,7 @@
 using CafeChain.Data;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Configuration;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -42,7 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // 2. CREATE (POST): Validate và insert dữ liệu xuống DB
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(Store store)
+        public async Task<IActionResult> Create(Store store)
         {
             // Loại bỏ các trường tự động tạo/không cần thiết khỏi ModelState check
             ModelState.Remove("Province");
@@ -50,13 +52,32 @@ namespace CafeChain.Areas.Admin.Controllers
             ModelState.Remove("Ward");
             ModelState.Remove("Staffs");
             ModelState.Remove("Orders");
+            ModelState.Remove("InventoryWriterConfiguration");
 
             if (ModelState.IsValid)
             {
-                store.CreatedAt = System.DateTime.Now;
-                _context.Stores.Add(store);
-                _context.SaveChanges();
-                return RedirectToAction(nameof(Index));
+                await using var transaction = await _context.Database.BeginTransactionAsync();
+                try
+                {
+                    var now = DateTime.UtcNow;
+                    store.CreatedAt = now;
+                    store.InventoryWriterConfiguration = new StoreInventoryWriterConfiguration
+                    {
+                        WriterMode = InventoryWriterMode.LegacyRecipe,
+                        HasEverActivatedPreparedItem = false,
+                        CreatedAt = now,
+                        UpdatedAt = now
+                    };
+                    _context.Stores.Add(store);
+                    await _context.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                    return RedirectToAction(nameof(Index));
+                }
+                catch
+                {
+                    await transaction.RollbackAsync();
+                    ModelState.AddModelError(string.Empty, "Không thể tạo cửa hàng cùng cấu hình writer kho.");
+                }
             }
             
             // XỬ LÝ LỖI: Trả về View cùng bộ Dropdown data để người dùng không phải chọn lại

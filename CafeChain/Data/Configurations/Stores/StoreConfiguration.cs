@@ -187,6 +187,42 @@ namespace CafeChain.Data.Configurations.Stores
                     "[ReservedQty] >= 0"
                 );
 
+                t.HasCheckConstraint(
+                    "CK_StoreInventories_BtpLifecycle",
+                    @"([IngredientId] IS NOT NULL
+                        AND [BtpIdentityState] IS NULL
+                        AND [QuantitySemanticsStatus] IS NULL
+                        AND [SupersededByStoreInventoryId] IS NULL
+                        AND [QuantitySemanticsEvidenceType] IS NULL
+                        AND [QuantitySemanticsEvidenceReference] IS NULL
+                        AND [QuantitySemanticsReviewedAt] IS NULL
+                        AND [QuantitySemanticsReviewedByAccountId] IS NULL)
+                    OR ([IngredientId] IS NULL AND (
+                        ([BtpIdentityState] = 0 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NULL)
+                        OR ([BtpIdentityState] = 1 AND [PreparedItemId] IS NOT NULL AND [QuantitySemanticsStatus] = 1
+                            AND [SupersededByStoreInventoryId] IS NULL
+                            AND [QuantitySemanticsEvidenceType] IS NOT NULL
+                            AND [QuantitySemanticsEvidenceReference] IS NOT NULL
+                            AND [QuantitySemanticsReviewedAt] IS NOT NULL
+                            AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)
+                        OR ([BtpIdentityState] = 2 AND [QuantitySemanticsStatus] IS NOT NULL AND [SupersededByStoreInventoryId] IS NOT NULL)))"
+                );
+
+                t.HasCheckConstraint(
+                    "CK_StoreInventories_QuantityEvidence",
+                    @"[QuantitySemanticsStatus] IS NULL
+                    OR [QuantitySemanticsStatus] = 0
+                    OR ([QuantitySemanticsEvidenceType] IS NOT NULL
+                        AND [QuantitySemanticsEvidenceReference] IS NOT NULL
+                        AND [QuantitySemanticsReviewedAt] IS NOT NULL
+                        AND [QuantitySemanticsReviewedByAccountId] IS NOT NULL)"
+                );
+
+                t.HasCheckConstraint(
+                    "CK_StoreInventories_NotSelfSuperseded",
+                    "[SupersededByStoreInventoryId] IS NULL OR [SupersededByStoreInventoryId] <> [StoreInventoryId]"
+                );
+
                 // ADR-0001: ĐÃ XÓA CK_StoreInventory_ReservedQty_Valid (ReservedQty <= AvailableQty)
                 // Lý do: Constraint này tự động vi phạm khi AvailableQty xuống âm.
             });
@@ -211,6 +247,11 @@ namespace CafeChain.Data.Configurations.Stores
 
             entity.Property(x => x.LastUpdated)
                 .HasDefaultValueSql("GETDATE()");
+
+            entity.Property(x => x.BtpIdentityState).HasConversion<int?>();
+            entity.Property(x => x.QuantitySemanticsStatus).HasConversion<int?>();
+            entity.Property(x => x.QuantitySemanticsEvidenceType).HasConversion<int?>();
+            entity.Property(x => x.QuantitySemanticsEvidenceReference).HasMaxLength(500);
 
             // 🔥 QUAN TRỌNG: concurrency token
             entity.Property(x => x.RowVersion)
@@ -238,6 +279,16 @@ namespace CafeChain.Data.Configurations.Stores
                 .HasForeignKey(x => x.PreparedItemId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.SupersededByStoreInventory)
+                .WithMany()
+                .HasForeignKey(x => x.SupersededByStoreInventoryId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne<CafeChain.Models.Customers.Account>()
+                .WithMany()
+                .HasForeignKey(x => x.QuantitySemanticsReviewedByAccountId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= UNIQUE =================
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
@@ -255,11 +306,20 @@ namespace CafeChain.Data.Configurations.Stores
                 .HasFilter("[PreparedItemId] IS NOT NULL")
                 .HasDatabaseName("IX_Store_PreparedItem_Compatibility");
 
+            // Reverse property order so EF keeps this as a separate index from the
+            // #115 StoreId + PreparedItemId compatibility index. Uniqueness is still
+            // enforced on the same pair for canonical rows.
+            entity.HasIndex(x => new { x.PreparedItemId, x.StoreId })
+                .IsUnique()
+                .HasFilter("[PreparedItemId] IS NOT NULL AND [BtpIdentityState] = 1")
+                .HasDatabaseName("UX_Store_PreparedItem_Canonical");
+
             // ================= INDEX =================
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.IngredientId);
             entity.HasIndex(x => x.RecipeId);
             entity.HasIndex(x => x.PreparedItemId);
+            entity.HasIndex(x => x.SupersededByStoreInventoryId);
 
             // ================= SEED =================
             entity.HasData(

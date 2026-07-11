@@ -23,19 +23,22 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IUnitConversionService _unitConversion;
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IStockAlertService? _stockAlertService;
+        private readonly IInventoryWriterModeService? _writerModeService;
 
         public InventoryDeductionService(
             AppDbContext context,
             ILogger<InventoryDeductionService> logger,
             IUnitConversionService unitConversion,
             IEstimatedBomCostService estimatedBomCost,
-            IStockAlertService? stockAlertService = null)
+            IStockAlertService? stockAlertService = null,
+            IInventoryWriterModeService? writerModeService = null)
         {
             _context = context;
             _logger = logger;
             _unitConversion = unitConversion;
             _estimatedBomCost = estimatedBomCost;
             _stockAlertService = stockAlertService;
+            _writerModeService = writerModeService;
         }
 
         // ============================================================
@@ -138,6 +141,23 @@ namespace CafeChain.Application.Services.Inventories
                     {
                         await transaction.CommitAsync();
                         return ServiceResult.Success("Đơn hàng đã được trừ kho trước đó.");
+                    }
+                }
+
+                if (_writerModeService != null && await ContainsBtpMutationAsync(soldItems))
+                {
+                    var snapshotResult = await _writerModeService.AcquireSnapshotAsync(storeId);
+                    if (!snapshotResult.IsSuccess || snapshotResult.Data == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(snapshotResult.Message, errorCode: snapshotResult.ErrorCode);
+                    }
+
+                    var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshotResult.Data, storeId);
+                    if (!guard.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return guard;
                     }
                 }
 
@@ -275,6 +295,25 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return null;
+        }
+
+        private async Task<bool> ContainsBtpMutationAsync(IEnumerable<POSSoldItemDto> soldItems)
+        {
+            foreach (var item in soldItems)
+            {
+                var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
+                if (drinkRecipe?.RecipeDetails.Any(x => x.ChildRecipeId.HasValue) == true)
+                    return true;
+
+                foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
+                {
+                    var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
+                    if (toppingRecipe?.RecipeDetails.Any(x => x.ChildRecipeId.HasValue) == true)
+                        return true;
+                }
+            }
+
+            return false;
         }
 
         private async Task DeductRecipeDetailsAsync(

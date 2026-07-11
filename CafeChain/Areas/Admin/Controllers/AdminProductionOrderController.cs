@@ -1,4 +1,5 @@
 using CafeChain.Data;
+using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.ViewModels.Admin.Productions;
@@ -15,10 +16,14 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminProductionOrderController : AdminBaseController
     {
         private readonly AppDbContext _context;
+        private readonly IInventoryWriterModeService? _writerModeService;
 
-        public AdminProductionOrderController(AppDbContext context)
+        public AdminProductionOrderController(
+            AppDbContext context,
+            IInventoryWriterModeService? writerModeService = null)
         {
             _context = context;
+            _writerModeService = writerModeService;
         }
 
         // ============================================================
@@ -123,6 +128,23 @@ namespace CafeChain.Areas.Admin.Controllers
             using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                if (_writerModeService != null)
+                {
+                    var snapshot = await _writerModeService.AcquireSnapshotAsync(storeId);
+                    if (!snapshot.IsSuccess || snapshot.Data == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new { success = false, message = snapshot.Message });
+                    }
+
+                    var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshot.Data, storeId);
+                    if (!guard.IsSuccess)
+                    {
+                        await transaction.RollbackAsync();
+                        return Json(new { success = false, message = guard.Message });
+                    }
+                }
+
                 // 1. Load Recipe + BOM
                 var recipe = await _context.Recipes
                     .Include(r => r.RecipeDetails)

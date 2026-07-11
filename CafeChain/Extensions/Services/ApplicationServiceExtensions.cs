@@ -95,6 +95,8 @@ namespace CafeChain.Extensions.Services
             // PreparedItem inventory dual-read and dry-run analysis — Issue #115
             services.AddScoped<IInventoryItemIdentityResolver, InventoryItemIdentityResolver>();
             services.AddScoped<IPreparedItemInventoryCompatibilityAnalyzer, PreparedItemInventoryCompatibilityAnalyzer>();
+            services.AddScoped<IInventoryWriterModeService, InventoryWriterModeService>();
+            services.AddScoped<IStoreInventoryWriteResolver, StoreInventoryWriteResolver>();
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
             services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
 

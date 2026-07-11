@@ -3,6 +3,7 @@ using CafeChain.Data.Configurations;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Auditing;
+using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
@@ -100,6 +101,8 @@ namespace CafeChain.Data
         // ========================= INVENTORY =========================
         // Auditing
         public DbSet<AuditLog> AuditLogs { get; set; }
+        public DbSet<InventoryWriterModeTransition> InventoryWriterModeTransitions { get; set; }
+        public DbSet<StoreInventoryWriterConfiguration> StoreInventoryWriterConfigurations { get; set; }
 
         // Costing
         public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
