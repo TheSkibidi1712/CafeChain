@@ -29,12 +29,19 @@ namespace CafeChain.Application.Services.Inventories
             ("InventoryWriterModeTransitions", new[] { "TransitionId", "ReadinessSnapshotJson", "ReadinessHash" }),
         };
 
-        private static readonly string[] RequiredIndexHints =
+        /// <summary>Correctness-critical uniqueness (hard fail). Names are preferred; semantic column match is accepted.</summary>
+        private static readonly (string PreferredName, string Table, string[] Columns, string? SqlFilterHint)[] CriticalUniques =
         {
-            "UX_InventoryConsolidationRuns_Store_RequestKey",
-            "UX_InventoryTransactions_ConsolidationRun_Inventory_Type",
-            "UX_InventoryTransactions_ProductionRun_Inventory_Type",
-            "UX_StockAlert_Open_Store_PreparedItem",
+            ("UX_InventoryConsolidationRuns_Store_RequestKey", "InventoryConsolidationRuns", new[] { "StoreId", "RequestKey" }, null),
+            ("UX_InventoryTransactions_ConsolidationRun_Inventory_Type", "InventoryTransactions",
+                new[] { "InventoryConsolidationRunId", "StoreInventoryId", "Type" }, "InventoryConsolidationRunId"),
+            ("UX_InventoryTransactions_ProductionRun_Inventory_Type", "InventoryTransactions",
+                new[] { "ProductionRunId", "StoreInventoryId", "Type" }, "ProductionRunId"),
+            ("UX_StockAlert_Open_Store_PreparedItem", "StockAlerts", new[] { "StoreId", "PreparedItemId" }, "PreparedItemId"),
+        };
+
+        private static readonly string[] PerformanceIndexHints =
+        {
             "IX_InventoryTransactions_SourceRecipeId",
             "IX_InventoryTransactions_ProductionRunId",
             "IX_InventoryTransactions_InventoryConsolidationRunId",
@@ -80,16 +87,34 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
-                // Indexes: soft check by exact name (EnsureCreated / regenerated InitialCreate may rename).
-                // Tables + columns remain hard fail-closed; missing named indexes become diagnostics.
-                foreach (var index in RequiredIndexHints)
+                // Correctness-critical uniqueness: hard fail if neither preferred name nor semantic unique exists.
+                foreach (var (name, table, columns, filterHint) in CriticalUniques)
                 {
-                    var exists = await IndexExistsAsync(index, isSqlServer, cancellationToken);
-                    if (!exists)
+                    if (missingTables.Contains(table))
                     {
-                        missingIndexes.Add(index);
-                        diagnostics.Add($"IndexSoftMissing:{index}");
+                        missingIndexes.Add(name);
+                        continue;
                     }
+
+                    var byName = await IndexExistsAsync(name, isSqlServer, cancellationToken);
+                    var bySemantic = byName
+                        || await UniqueIndexOnColumnsExistsAsync(table, columns, isSqlServer, cancellationToken);
+                    if (!bySemantic)
+                    {
+                        missingIndexes.Add(name);
+                        diagnostics.Add($"CriticalUniqueMissing:{name} on {table}({string.Join(",", columns)})");
+                    }
+                    else if (!byName)
+                    {
+                        diagnostics.Add($"CriticalUniqueRenamed:{name} semantic-ok filterHint={filterHint}");
+                    }
+                }
+
+                // Performance indexes: soft diagnostics only.
+                foreach (var index in PerformanceIndexHints)
+                {
+                    if (!await IndexExistsAsync(index, isSqlServer, cancellationToken))
+                        diagnostics.Add($"PerformanceIndexSoftMissing:{index}");
                 }
 
                 diagnostics.Add(isSqlServer ? "Provider=SqlServer" : "Provider=Other");
@@ -99,9 +124,10 @@ namespace CafeChain.Application.Services.Inventories
                 return Fail("ProbeException=" + ex.GetType().Name + ":" + ex.Message, diagnostics);
             }
 
-            // Hard gate: tables + columns. Named indexes soft-reported so schema contract remains valid
-            // after teammate consolidated migrations with equivalent uniqueness under different names.
-            var ready = missingTables.Count == 0 && missingColumns.Count == 0;
+            // Hard gate: tables + columns + correctness-critical uniqueness.
+            var ready = missingTables.Count == 0
+                        && missingColumns.Count == 0
+                        && missingIndexes.Count == 0;
 
             if (!ready)
                 failureCode = CutoverFailureCodes.SchemaContractNotReady;
@@ -274,6 +300,122 @@ namespace CafeChain.Application.Services.Inventories
             {
                 return false;
             }
+        }
+
+        /// <summary>
+        /// True when a unique index (any name) covers exactly the given column set (order-insensitive).
+        /// Does not validate filtered-index predicate text (provider-dependent); column uniqueness is the hard bar.
+        /// </summary>
+        private async Task<bool> UniqueIndexOnColumnsExistsAsync(
+            string table, string[] columns, bool sqlServer, CancellationToken ct)
+        {
+            try
+            {
+                var (conn, owns) = await OpenProbeConnectionAsync(ct);
+                try
+                {
+                    if (sqlServer)
+                    {
+                        // Find unique indexes on table whose columns match the set.
+                        await using var cmd = conn.CreateCommand();
+                        cmd.CommandText = @"
+SELECT i.name
+FROM sys.indexes i
+INNER JOIN sys.tables t ON i.object_id = t.object_id
+WHERE t.name = @table AND i.is_unique = 1 AND i.is_hypothetical = 0";
+                        var p = cmd.CreateParameter();
+                        p.ParameterName = "@table";
+                        p.Value = table;
+                        cmd.Parameters.Add(p);
+                        var candidates = new List<string>();
+                        await using (var reader = await cmd.ExecuteReaderAsync(ct))
+                        {
+                            while (await reader.ReadAsync(ct))
+                                candidates.Add(reader.GetString(0));
+                        }
+
+                        foreach (var indexName in candidates)
+                        {
+                            await using var cmd2 = conn.CreateCommand();
+                            cmd2.CommandText = @"
+SELECT c.name
+FROM sys.indexes i
+INNER JOIN sys.index_columns ic ON i.object_id = ic.object_id AND i.index_id = ic.index_id
+INNER JOIN sys.columns c ON ic.object_id = c.object_id AND ic.column_id = c.column_id
+INNER JOIN sys.tables t ON i.object_id = t.object_id
+WHERE t.name = @table AND i.name = @index AND ic.is_included_column = 0
+ORDER BY ic.key_ordinal";
+                            var pt = cmd2.CreateParameter();
+                            pt.ParameterName = "@table";
+                            pt.Value = table;
+                            cmd2.Parameters.Add(pt);
+                            var pi = cmd2.CreateParameter();
+                            pi.ParameterName = "@index";
+                            pi.Value = indexName;
+                            cmd2.Parameters.Add(pi);
+                            var cols = new List<string>();
+                            await using var r2 = await cmd2.ExecuteReaderAsync(ct);
+                            while (await r2.ReadAsync(ct))
+                                cols.Add(r2.GetString(0));
+                            if (ColumnSetsEqual(cols, columns))
+                                return true;
+                        }
+
+                        return false;
+                    }
+
+                    // SQLite: unique indexes via PRAGMA index_list / index_info
+                    await using var listCmd = conn.CreateCommand();
+                    listCmd.CommandText = $"PRAGMA index_list(\"{table}\")";
+                    var uniqueNames = new List<string>();
+                    await using (var reader = await listCmd.ExecuteReaderAsync(ct))
+                    {
+                        while (await reader.ReadAsync(ct))
+                        {
+                            // seq, name, unique, origin, partial
+                            var unique = reader.GetInt32(2) == 1;
+                            if (unique)
+                                uniqueNames.Add(reader.GetString(1));
+                        }
+                    }
+
+                    foreach (var indexName in uniqueNames)
+                    {
+                        await using var infoCmd = conn.CreateCommand();
+                        infoCmd.CommandText = $"PRAGMA index_info(\"{indexName}\")";
+                        var cols = new List<string>();
+                        await using var r = await infoCmd.ExecuteReaderAsync(ct);
+                        while (await r.ReadAsync(ct))
+                        {
+                            // seqno, cid, name
+                            if (!r.IsDBNull(2))
+                                cols.Add(r.GetString(2));
+                        }
+
+                        if (ColumnSetsEqual(cols, columns))
+                            return true;
+                    }
+
+                    return false;
+                }
+                finally
+                {
+                    if (owns)
+                        await conn.DisposeAsync();
+                }
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private static bool ColumnSetsEqual(IReadOnlyList<string> a, IReadOnlyList<string> b)
+        {
+            if (a.Count != b.Count) return false;
+            var sa = a.Select(x => x.ToLowerInvariant()).OrderBy(x => x).ToArray();
+            var sb = b.Select(x => x.ToLowerInvariant()).OrderBy(x => x).ToArray();
+            return sa.SequenceEqual(sb);
         }
 
         private static string ComputeContractHash(

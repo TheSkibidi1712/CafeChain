@@ -104,6 +104,80 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task SchemaProbe_MissingConsolidationRequestKeyUnique_IsNotReady()
+        {
+            using var ctx = CreateDbContext();
+            // Drop all unique indexes on consolidation runs so semantic uniqueness fails.
+            await using (var cmd = ctx.Database.GetDbConnection().CreateCommand())
+            {
+                if (cmd.Connection!.State != System.Data.ConnectionState.Open)
+                    await cmd.Connection.OpenAsync();
+                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='InventoryConsolidationRuns'";
+                var names = new List<string>();
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                        names.Add(reader.GetString(0));
+                }
+
+                foreach (var name in names)
+                    await ctx.Database.ExecuteSqlRawAsync($"DROP INDEX IF EXISTS \"{name}\"");
+            }
+
+            var report = await new InventorySchemaReadinessProbe(ctx).ProbeAsync();
+            Assert.False(report.IsReady);
+            Assert.Contains(report.MissingIndexes, x => x.Contains("ConsolidationRuns", StringComparison.OrdinalIgnoreCase)
+                || x.Contains("RequestKey", StringComparison.OrdinalIgnoreCase)
+                || x == "UX_InventoryConsolidationRuns_Store_RequestKey");
+        }
+
+        [Fact]
+        public async Task SchemaProbe_MissingPreparedAlertUniqueIndex_IsNotReady()
+        {
+            using var ctx = CreateDbContext();
+            await using (var cmd = ctx.Database.GetDbConnection().CreateCommand())
+            {
+                if (cmd.Connection!.State != System.Data.ConnectionState.Open)
+                    await cmd.Connection.OpenAsync();
+                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='StockAlerts'";
+                var names = new List<string>();
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                        names.Add(reader.GetString(0));
+                }
+
+                foreach (var name in names.Where(n =>
+                             n.Contains("PreparedItem", StringComparison.OrdinalIgnoreCase)
+                             || n.Contains("Open", StringComparison.OrdinalIgnoreCase)
+                             || n.Contains("UX_", StringComparison.OrdinalIgnoreCase)))
+                    await ctx.Database.ExecuteSqlRawAsync($"DROP INDEX IF EXISTS \"{name}\"");
+            }
+
+            var report = await new InventorySchemaReadinessProbe(ctx).ProbeAsync();
+            // If any unique covering StoreId+PreparedItem remains, probe may still pass — force by dropping ALL StockAlerts indexes
+            if (report.IsReady)
+            {
+                await using var cmd = ctx.Database.GetDbConnection().CreateCommand();
+                cmd.CommandText = "SELECT name FROM sqlite_master WHERE type='index' AND tbl_name='StockAlerts'";
+                var names = new List<string>();
+                await using (var reader = await cmd.ExecuteReaderAsync())
+                {
+                    while (await reader.ReadAsync())
+                        names.Add(reader.GetString(0));
+                }
+
+                foreach (var name in names)
+                    await ctx.Database.ExecuteSqlRawAsync($"DROP INDEX IF EXISTS \"{name}\"");
+                report = await new InventorySchemaReadinessProbe(ctx).ProbeAsync();
+            }
+
+            Assert.False(report.IsReady);
+            Assert.Contains(report.MissingIndexes, x => x.Contains("StockAlert", StringComparison.OrdinalIgnoreCase)
+                || x.Contains("PreparedItem", StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public async Task Recon_CleanStore_WithNoOpEvidence_IsClean()
         {
             using var ctx = CreateDbContext();
