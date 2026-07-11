@@ -464,18 +464,20 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void AmbiguousSeed_PackageQuantity_RemainsNull()
+        public void OwnerApprovedDemoSeed_FormerAmbiguousOffers_HaveExplicitPackageQuantity()
         {
+            // #113 Hybrid D: model HasData now carries owner-approved demo package quantities
+            // (EnsureCreated path). Migration InsertData may lag until InitialCreate regenerate.
             using var ctx = CreateDbContext();
             var syrup = ctx.IngredientSuppliers.Single(x => x.IngredientSupplierId == 4);
             var condensed = ctx.IngredientSuppliers.Single(x => x.IngredientSupplierId == 2);
             var matcha = ctx.IngredientSuppliers.Single(x => x.IngredientSupplierId == 6);
             var tea = ctx.IngredientSuppliers.Single(x => x.IngredientSupplierId == 9);
 
-            Assert.Null(syrup.PackageQuantity);
-            Assert.Null(condensed.PackageQuantity);
-            Assert.Null(matcha.PackageQuantity);
-            Assert.Null(tea.PackageQuantity);
+            Assert.Equal(750m, syrup.PackageQuantity);
+            Assert.Equal(380m, condensed.PackageQuantity);
+            Assert.Equal(500m, matcha.PackageQuantity);
+            Assert.Equal(200m, tea.PackageQuantity);
         }
 
         [Fact]

@@ -52,10 +52,12 @@ namespace CafeChain.Data.Configurations.Inventories.Ingredients
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ================= SEED =================
+            // Display names for IS#2 / IS#9 are synthetic demo labels (#113) aligned with package unit
+            // (volume ml / net mass g). Codes and FKs stay stable. Not real supplier product names.
             entity.HasData(
                 new Ingredient { IngredientId = 1, Code = "ING00001", Name = "Cà phê hạt Robusta 1kg", BaseUnitId = 1, Active = true },
-                new Ingredient { IngredientId = 2, Code = "ING00002", Name = "Sữa đặc Ông Thọ Vinamilk 380g", BaseUnitId = 3, Active = true },
-                new Ingredient { IngredientId = 3, Code = "ING00003", Name = "Trà đen Lipton hộp 100 túi", BaseUnitId = 1, Active = true },
+                new Ingredient { IngredientId = 2, Code = "ING00002", Name = "Sữa đặc demo lon 380 ml", BaseUnitId = 3, Active = true },
+                new Ingredient { IngredientId = 3, Code = "ING00003", Name = "Trà đen demo hộp 100 túi × 2 g", BaseUnitId = 1, Active = true },
                 new Ingredient { IngredientId = 4, Code = "ING00004", Name = "Bột sữa B-One 1kg", BaseUnitId = 1, Active = true },
                 new Ingredient { IngredientId = 5, Code = "ING00005", Name = "Bột cacao Van Houten 1kg", BaseUnitId = 1, Active = true },
                 new Ingredient { IngredientId = 6, Code = "ING00006", Name = "Đường trắng Biên Hòa 1kg", BaseUnitId = 1, Active = true },

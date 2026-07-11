@@ -251,16 +251,33 @@ Required inputs for BUSINESS_DECISION rows:
 
 ---
 
-## 16. Intentionally incomplete items (expected after Checkpoint A)
+## 16. Demo package seed (Checkpoint B / Hybrid D) and remaining incompletes
 
-Until owner supplies package specs:
+### 16.1 Owner-approved demo HasData (model seed)
 
-- Syrup, condensed milk, matcha, tea primary offers with null `PackageQuantity`
+`IngredientSupplierConfiguration` + `IngredientConfiguration` now carry explicit package metadata for demo/dev **EnsureCreated** paths. This is **not** verified supplier invoice evidence.
+
+| Offer | Package | Classification |
+|-------|---------|----------------|
+| IS#4 syrup | 750 ml | OwnerApprovedDemoSeed |
+| IS#6 matcha | 500 g | OwnerApprovedDemoSeed |
+| IS#7 cacao | 1 kg, **IsPrimary=true** | OwnerApprovedDemoSeed |
+| IS#8 milk powder | 1 kg, **IsPrimary=true** | OwnerApprovedDemoSeed |
+| IS#2 condensed milk | 380 **ml** (display: “Sữa đặc demo lon 380 ml”) | **OwnerApprovedSyntheticDemoAssumption** — no g↔ml density conversion |
+| IS#9 tea box | 200 **g** net (100 × 2 g; display: “Trà đen demo hộp 100 túi × 2 g”) | **OwnerApprovedSyntheticDemoAssumption** — bag count is not qty |
+
+**Production** must replace synthetic assumptions with verified supplier package specs before relying on costs.
+
+**Migration lag:** committed `InitialCreate` InsertData may still hold older null/non-primary values until the team regenerates InitialCreate after merge. Hybrid D does **not** claim migration-based fresh SQL Server proof.
+
+### 16.2 Still intentionally incomplete (independent of package seed)
+
 - Ingredients with no Active offers (ice, starch, brown sugar, water, …)
 - Recipes using those ingredients
 - ChildRecipe lines without PreparedItem/output (legacy BTP)
+- Price-history snapshot gaps (audit-only; not rewritten by package seed)
 
-These must remain **INCOMPLETE**, not fake COMPLETE.
+Do not invent COMPLETE for those rows.
 
 ---
 
@@ -283,5 +300,6 @@ These must remain **INCOMPLETE**, not fake COMPLETE.
 - [x] `dotnet run -- audit-purchase-units`
 - [x] Console summary + JSON output
 - [x] Tests for classification + read-only behavior
-- [ ] Checkpoint B: apply approved remediation (not this checkpoint)
-- [ ] Close #113 (after full remediation verification)
+- [x] Checkpoint B Hybrid D: model HasData demo package seed + EnsureCreated tests
+- [ ] Team regenerates InitialCreate so migration-based fresh DB matches model seed
+- [ ] Close #113 (after migration-based fresh DB verification)
