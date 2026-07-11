@@ -337,14 +337,59 @@ namespace CafeChain.Tests
             Assert.Equal(8m, updated.AvailableQty);
         }
 
+        /// <summary>
+        /// Issue #119: production confirm no longer mutates stock (stock apply deferred to #120 / 114C).
+        /// Confirms production intent leaves compatibility inventory unchanged.
+        /// Legacy RecipeId stock credit path will return under #120 tests.
+        /// </summary>
         [Fact]
-        public async Task LegacyProductionWriter_UpdatesCompatibilityRowByRecipeIdWithoutCreatingDuplicate()
+        public async Task ProductionRunConfirm_DoesNotMutateCompatibilityInventory_Issue119()
         {
             using var context = CreateDbContext();
             await SeedAsync(context, linkRecipeToPreparedItem: true);
+
+            var now = DateTime.UtcNow;
+            if (!await context.Stores.AnyAsync(x => x.StoreId == StoreId))
+            {
+                context.Stores.Add(new Store
+                {
+                    StoreId = StoreId,
+                    Name = "Store 115",
+                    Address = "A",
+                    Phone = "1",
+                    Active = true,
+                    CreatedAt = now
+                });
+            }
+
+            if (!await context.StoreInventoryWriterConfigurations.AnyAsync(x => x.StoreId == StoreId))
+            {
+                context.StoreInventoryWriterConfigurations.Add(
+                    new CafeChain.Models.Inventories.Configuration.StoreInventoryWriterConfiguration
+                    {
+                        StoreId = StoreId,
+                        WriterMode = CafeChain.Models.Enums.Inventory.InventoryWriterMode.LegacyRecipe,
+                        HasEverActivatedPreparedItem = false,
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        RowVersion = new byte[] { 0 }
+                    });
+            }
+
+            const int staffId = 9101;
+            context.Staffs.Add(new CafeChain.Models.Staffs.Staff
+            {
+                StaffId = staffId,
+                AccountId = staffId,
+                FullName = "Prod Staff",
+                StoreId = StoreId,
+                Active = true,
+                CreatedAt = now
+            });
+
             var compatibilityRow = new StoreInventory
             {
-                StoreId = 1, // AdminProductionOrderController currently resolves the active store as 1.
+                StoreId = StoreId,
                 RecipeId = RecipeId,
                 PreparedItemId = PreparedItemId,
                 AvailableQty = 10m,
@@ -354,19 +399,40 @@ namespace CafeChain.Tests
             context.StoreInventories.Add(compatibilityRow);
             await context.SaveChangesAsync();
 
-            await new AdminProductionOrderController(context).Execute(new ProductionExecuteRequest
-            {
-                RecipeId = RecipeId,
-                Batches = 2m
-            });
+            var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
+            var writer = new InventoryWriterModeService(
+                context,
+                physical,
+                Array.Empty<CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider>());
+            var scope = new CafeChain.Application.Services.Security.ScopeAuthorizationService(context);
+            var service = new CafeChain.Application.Services.Admin.Production.ProductionRunService(
+                context,
+                scope,
+                writer,
+                new Microsoft.Extensions.Logging.Abstractions.NullLogger<CafeChain.Application.Services.Admin.Production.ProductionRunService>());
+
+            var result = await service.CreateAndConfirmAsync(
+                new CafeChain.Application.DTOs.Admin.Production.CreateAndConfirmProductionRunRequest
+                {
+                    RequestKey = Guid.NewGuid(),
+                    StoreId = StoreId,
+                    RecipeId = RecipeId,
+                    RequestedRunCount = 2m
+                },
+                staffId: staffId,
+                staffHomeStoreId: StoreId);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.False(result.Data!.StockApplied);
 
             var rows = await context.StoreInventories
-                .Where(x => x.StoreId == 1 && x.RecipeId == RecipeId)
+                .Where(x => x.StoreId == StoreId && x.RecipeId == RecipeId)
                 .ToListAsync();
             var updated = Assert.Single(rows);
             Assert.Equal(compatibilityRow.StoreInventoryId, updated.StoreInventoryId);
             Assert.Equal(PreparedItemId, updated.PreparedItemId);
-            Assert.Equal(12m, updated.AvailableQty);
+            Assert.Equal(10m, updated.AvailableQty); // unchanged — no stock writer in #119
+            Assert.Equal(0, await context.InventoryTransactions.CountAsync());
         }
 
         private static PreparedItemInventoryCompatibilityAnalyzer CreateAnalyzer(AppDbContext context)

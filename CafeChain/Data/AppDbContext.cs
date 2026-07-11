@@ -9,6 +9,7 @@ using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
+using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.StockTake;
 using CafeChain.Models.Inventories.Suppliers;
@@ -124,6 +125,9 @@ namespace CafeChain.Data
 
         // Prepared items (BTP master — ADR-0006 / #116)
         public DbSet<PreparedItem> PreparedItems { get; set; }
+
+        // Production runs (intent only — Issue #119 / 114B)
+        public DbSet<ProductionRun> ProductionRuns { get; set; }
 
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }

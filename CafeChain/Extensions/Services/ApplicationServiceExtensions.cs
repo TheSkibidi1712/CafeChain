@@ -146,6 +146,11 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 
+            // Admin - Production runs (intent + idempotency only — Issue #119; stock apply = #120)
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunService>();
+
             // Admin - Inventory Documents
             services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
             services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();

@@ -44,9 +44,9 @@
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label">Số lượng <span class="text-danger">*</span></label>
-                            <input type="number" step="0.01" min="0.01" name="PlannedBatches" id="batchInput"
-                                   class="form-control fw-bold text-center" value="10" required />
+                            <label class="form-label">Số lượng mẻ <span class="text-danger">*</span></label>
+                            <input type="number" step="any" min="0.00001" max="9999" name="PlannedBatches" id="batchInput"
+                                   class="form-control fw-bold text-center" value="1" required />
                         </div>
 
                         <div class="col-md-6">
@@ -109,53 +109,57 @@
                     <button type="button" class="btn btn-outline-dark">
                         <i class="fas fa-print me-1"></i> In nhãn
                     </button>
-                    <button type="submit" class="btn btn-primary-action" id="btnComplete" disabled>
-                        <i class="fas fa-check-circle me-1"></i> Hoàn tất & Lưu kho
+                    <button type="button" class="btn btn-primary-action" id="btnComplete" disabled>
+                        <i class="fas fa-check-circle me-1"></i> Ghi nhận lệnh sơ chế
                     </button>
                 </div>
             </div>
         </div>
     </form>
 
-    <!-- History Placeholder (Visual only as per UI mockup, since no DB/Backend access is allowed) -->
     <div class="history-section">
         <div class="history-header">
-            <h3 class="history-title">Lịch sử sơ chế gần đây</h3>
-            <a href="#" class="history-link">Xem tất cả báo cáo</a>
+            <h3 class="history-title">Lịch sử lệnh sơ chế gần đây</h3>
+            <span class="history-link text-muted small">Chưa áp dụng tồn kho (chờ bước kho)</span>
         </div>
         <div class="history-card">
             <table class="table po-table">
                 <thead>
                     <tr>
-                        <th width="15%">MÃ LỆNH</th>
-                        <th width="25%">TÊN THÀNH PHẨM</th>
-                        <th width="15%">SỐ LƯỢNG</th>
-                        <th width="20%">NGƯỜI THỰC HIỆN</th>
-                        <th width="15%" class="text-center">TRẠNG THÁI</th>
-                        <th width="10%" class="text-center">THAO TÁC</th>
+                        <th>MÃ LỆNH</th>
+                        <th>CỬA HÀNG</th>
+                        <th>CÔNG THỨC</th>
+                        <th>SỐ MẺ</th>
+                        <th>NGƯỜI GHI NHẬN</th>
+                        <th>XÁC NHẬN</th>
+                        <th class="text-center">TRẠNG THÁI</th>
+                        <th class="text-center">TỒN KHO</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @if (ViewBag.RecentHistory != null && ((IEnumerable<dynamic>)ViewBag.RecentHistory).Any())
+                    @{
+                        var history = ViewBag.RecentHistory as IEnumerable<CafeChain.Application.DTOs.Admin.Production.ProductionRunHistoryItemDto>;
+                    }
+                    @if (history != null && history.Any())
                     {
-                        foreach (var hist in (IEnumerable<dynamic>)ViewBag.RecentHistory)
+                        foreach (var hist in history)
                         {
                             <tr>
-                                <td class="text-muted fw-bold">#PR-@hist.CreatedAt.ToString("yyMMdd")-@hist.TransactionId.ToString("D2")</td>
-                                <td class="fw-bold">@hist.RecipeName</td>
-                                <td>@hist.Quantity.ToString("0.##") mẻ</td>
-                                <td>Hệ thống</td>
-                                <td class="text-center"><span class="badge-status-done">HOÀN TẤT</span></td>
-                                <td class="text-center">
-                                    <a href="#" class="action-icon"><i class="fas fa-eye"></i></a>
-                                </td>
+                                <td class="text-muted fw-bold">#PR-@hist.ProductionRunId</td>
+                                <td>@(hist.StoreName ?? hist.StoreId.ToString())</td>
+                                <td class="fw-bold">@(hist.RecipeName ?? $"Recipe #{hist.RecipeId}")</td>
+                                <td>@hist.RequestedRunCount.ToString("0.#####") mẻ</td>
+                                <td>@(hist.ActorName ?? "—")</td>
+                                <td class="small">@hist.ConfirmedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-center"><span class="badge-status-done">@hist.Status</span></td>
+                                <td class="text-center text-muted small">Chưa áp dụng vào kho</td>
                             </tr>
                         }
                     }
                     else
                     {
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-4">Chưa có lịch sử sơ chế nào.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Chưa có lệnh sơ chế nào.</td>
                         </tr>
                     }
                 </tbody>
@@ -168,10 +172,32 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
         $(document).ready(function () {
-            // Setup Select2
+            const defaultStoreId = @(ViewBag.DefaultStoreId ?? 0);
+            let requestKey = (window.crypto && crypto.randomUUID)
+                ? crypto.randomUUID()
+                : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                    const r = Math.random() * 16 | 0;
+                    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                }));
+
+            function newRequestKey() {
+                requestKey = (window.crypto && crypto.randomUUID)
+                    ? crypto.randomUUID()
+                    : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+                        const r = Math.random() * 16 | 0;
+                        const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                        return v.toString(16);
+                    }));
+            }
+
+            function antiforgeryHeaders() {
+                const token = $('input[name="__RequestVerificationToken"]').val() || '';
+                return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
+            }
+
             $('#recipeSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm công thức sơ chế --', width: '100%' });
 
-            // Debounce function
             function debounce(func, wait) {
                 let timeout;
                 return function () {
@@ -181,7 +207,6 @@
                 };
             }
 
-            // SKU Generation (Visual)
             $('#recipeSelect').on('change', function() {
                 const recipeId = $(this).val();
                 if(recipeId) {
@@ -191,7 +216,6 @@
                 }
             });
 
-            // AJAX BOM Explosion
             const fetchBOM = debounce(function () {
                 const recipeId = $('#recipeSelect').val();
                 const batches = parseFloat($('#batchInput').val()) || 0;
@@ -216,18 +240,14 @@
                         }
 
                         tbody.empty();
-                        
+
                         if (response.data.length === 0) {
                             tbody.append('<tr><td colspan="4" class="text-center text-muted py-4">Công thức chưa có chi tiết BOM</td></tr>');
                             btnComplete.prop('disabled', true);
                         } else {
                             response.data.forEach(function (item) {
-                                // Since CalculateIngredients does not return stock data, we mock it or display N/A.
-                                // In the mockup, there is a stock value. We will show '---' since backend doesn't provide it, 
-                                // but if it did, we would check if (item.actualQuantity > item.stock) to highlight in red.
-                                // We'll just display the Yêu cầu (Required) in red for visual matching to the mockup if it looks like a large amount.
                                 const reqClass = item.actualQuantity > 10 ? 'req-val exceeds' : 'req-val';
-                                const stockVisual = '---'; // Placeholder as no DB change is allowed
+                                const stockVisual = '---';
 
                                 tbody.append(`
                                     <tr>
@@ -247,71 +267,99 @@
                 });
             }, 400);
 
-            // Bind change events to trigger debounce
             $('#recipeSelect').on('change', fetchBOM);
             $('#batchInput').on('input', fetchBOM);
 
-            // Initial fetch if values exist
             if ($('#recipeSelect').val()) { fetchBOM(); }
 
-            // HOÀN TẤT MẺ NẤU (AJAX Execute)
+            // Issue #119 — confirm durable intent only (no stock write until #120)
+            let lastPayloadSignature = null;
+
+            function payloadSignature(recipeId, runCount, notes) {
+                return [recipeId, String(runCount), (notes || '').trim()].join('|');
+            }
+
             $('#btnComplete').click(function (e) {
                 e.preventDefault();
-                const recipeId = $('#recipeSelect').val();
-                const batches = parseFloat($('#batchInput').val()) || 0;
+                const recipeId = parseInt($('#recipeSelect').val(), 10) || 0;
+                const runCount = parseFloat($('#batchInput').val());
+                const notes = $('textarea[name="Notes"]').val();
+
+                if (!recipeId || !(runCount > 0) || runCount > 9999 || Number.isNaN(runCount)) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Số mẻ không hợp lệ',
+                        text: 'Số mẻ nấu phải > 0 và ≤ 9999 (hỗ trợ số thập phân).',
+                        confirmButtonColor: '#ea580c'
+                    });
+                    return;
+                }
+
+                const sig = payloadSignature(recipeId, runCount, notes);
+                if (lastPayloadSignature !== null && lastPayloadSignature !== sig) {
+                    newRequestKey();
+                }
+                lastPayloadSignature = sig;
 
                 Swal.fire({
                     icon: 'question',
-                    title: 'Hoàn tất sơ chế?',
-                    html: '<p>Hệ thống sẽ tiến hành <b>xuất kho nguyên liệu</b> và <b>nhập kho bán thành phẩm</b>.</p>',
+                    title: 'Ghi nhận lệnh sơ chế?',
+                    html: '<p>Hệ thống sẽ <b>ghi nhận lệnh</b> (idempotent).<br/>Tồn kho <b>chưa được cập nhật</b> ở bước này.</p>',
                     showCancelButton: true,
                     confirmButtonText: '<i class="fas fa-check me-1"></i> Xác nhận',
                     cancelButtonText: 'Hủy',
                     confirmButtonColor: '#ea580c',
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        const btn = $('#btnComplete');
-                        btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Đang xử lý...');
+                    if (!result.isConfirmed) return;
 
-                        $.ajax({
-                            url: '@Url.Action("Execute", "AdminProductionOrder", new { area = "Admin" })',
-                            type: 'POST',
-                            contentType: 'application/json',
-                            data: JSON.stringify({
-                                recipeId: parseInt(recipeId),
-                                batches: batches,
-                                notes: $('textarea[name="Notes"]').val()
-                            }),
-                            success: function(res) {
-                                btn.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i> Hoàn tất & Lưu kho');
-                                if (res.success) {
-                                    Swal.fire({ icon: 'success', title: 'Thành công!', text: res.message, confirmButtonColor: '#10b981' })
-                                        .then(() => window.location.reload());
-                                } else {
-                                    let errorHtml = `<p class="fw-bold text-danger">${res.message}</p>`;
-                                    if (res.errors && res.errors.length > 0) {
-                                        errorHtml += '<ul class="text-start text-danger small">';
-                                        res.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
-                                        errorHtml += '</ul>';
-                                    }
-                                    Swal.fire({ icon: 'error', title: 'Thất bại!', html: errorHtml, confirmButtonColor: '#ef4444' });
-                                }
-                            },
-                            error: function() {
-                                btn.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i> Hoàn tất & Lưu kho');
-                                Swal.fire({ icon: 'error', title: 'Lỗi mạng', text: 'Không kết nối được với server.' });
+                    const btn = $('#btnComplete');
+                    btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i>Đang xử lý...');
+
+                    $.ajax({
+                        url: '@Url.Action("Execute", "AdminProductionOrder", new { area = "Admin" })',
+                        type: 'POST',
+                        headers: antiforgeryHeaders(),
+                        data: JSON.stringify({
+                            requestKey: requestKey,
+                            storeId: defaultStoreId > 0 ? defaultStoreId : null,
+                            recipeId: recipeId,
+                            requestedRunCount: runCount,
+                            notes: notes
+                        }),
+                        success: function(res) {
+                            const label = '<i class="fas fa-check-circle me-1"></i> Ghi nhận lệnh sơ chế';
+                            if (res.success) {
+                                newRequestKey();
+                                lastPayloadSignature = null;
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Đã ghi nhận',
+                                    text: res.message || 'Lệnh sơ chế đã được ghi nhận. Tồn kho chưa được cập nhật.',
+                                    confirmButtonColor: '#10b981'
+                                }).then(() => window.location.reload());
+                            } else {
+                                btn.prop('disabled', false).html(label);
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Thất bại!',
+                                    text: res.message || 'Không ghi nhận được lệnh.',
+                                    confirmButtonColor: '#ef4444'
+                                });
                             }
-                        });
-                    }
+                        },
+                        error: function() {
+                            // Keep same requestKey for retry after network loss
+                            btn.prop('disabled', false).html('<i class="fas fa-check-circle me-1"></i> Ghi nhận lệnh sơ chế');
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Lỗi mạng',
+                                text: 'Không kết nối được với server. Bạn có thể thử lại với cùng RequestKey.',
+                                confirmButtonColor: '#ef4444'
+                            });
+                        }
+                    });
                 });
             });
-
-            @if (TempData["SuccessMsg"] != null)
-            {
-                <text>
-                Swal.fire({ icon: 'success', title: 'Thành công!', text: '@TempData["SuccessMsg"]', confirmButtonColor: '#10b981' });
-                </text>
-            }
         });
     </script>
 }
