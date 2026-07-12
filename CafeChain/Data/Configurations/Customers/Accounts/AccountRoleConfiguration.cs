@@ -61,7 +61,7 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                 // AccountId 12 → RoleId 8 (Ca trưởng / ShiftSupervisor)
                 new AccountRole
                 {
-                    AccountId = 12,
+                    AccountId = 15,
                     RoleId = 8
                 }
             );

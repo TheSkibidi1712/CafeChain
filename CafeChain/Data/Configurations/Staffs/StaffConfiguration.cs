@@ -162,7 +162,7 @@ namespace CafeChain.Data.Configurations.Staffs
                 new Staff
                 {
                     StaffId = 12,
-                    AccountId = 12,
+                    AccountId = 15,
                     FullName = "Ca trưởng chi nhánh",
                     TaxCode = "TAX112",
                     BaseSalary = 12000000,

@@ -96,7 +96,7 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                 // AccountId is intentionally 12 (do not renumber without team approval).
                 new Account
                 {
-                    AccountId = 12,
+                    AccountId = 15,
                     Email = "shiftsupervisor@cafechain.vn",
                     PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                     Active = true,
