@@ -215,7 +215,7 @@ namespace CafeChain.Tests
         }
 
         [Fact]
-        public async Task PreparedItemMode_RejectsAsNotReady()
+        public async Task ProductionRun_Create_PreparedItemMode_Succeeds()
         {
             using var context = CreateDbContext();
             await SeedAsync(context, InventoryWriterMode.PreparedItem);
@@ -224,9 +224,85 @@ namespace CafeChain.Tests
             var result = await service.CreateAndConfirmAsync(
                 NewRequest(Guid.NewGuid(), RecipeId, 1m), StaffId, StoreId);
 
-            Assert.False(result.IsSuccess);
-            Assert.Equal(ProductionRunFailureCodes.ProductionWriterNotReady, result.ErrorCode);
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Equal(1, await context.ProductionRuns.CountAsync());
             Assert.Equal(0, await context.InventoryTransactions.CountAsync());
+        }
+
+        [Fact]
+        public async Task ProductionRun_Create_LegacyMode_AfterGraduation_IsRejected()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, InventoryWriterMode.LegacyRecipe);
+            var service = CreateService(context);
+
+            var result = await service.CreateAndConfirmAsync(
+                NewRequest(Guid.NewGuid(), RecipeId, 1m), StaffId, StoreId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(ProductionRunFailureCodes.ModeLegacy, result.ErrorCode);
+            Assert.Contains("chưa sử dụng cơ chế tồn kho bán thành phẩm", result.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, await context.ProductionRuns.CountAsync());
+        }
+
+        [Fact]
+        public async Task ProductionRun_Create_CapabilityNotReady_IsRejected()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, InventoryWriterMode.PreparedItem);
+            var service = CreateService(context, includeProductionCapability: false);
+
+            var result = await service.CreateAndConfirmAsync(
+                NewRequest(Guid.NewGuid(), RecipeId, 1m), StaffId, StoreId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(ProductionRunFailureCodes.CapabilityNotReady, result.ErrorCode);
+            Assert.Equal(0, await context.ProductionRuns.CountAsync());
+        }
+
+        [Fact]
+        public async Task ProductionRun_Create_PersistsIntentWithoutMutatingInventory()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, InventoryWriterMode.PreparedItem);
+            var service = CreateService(context);
+
+            Assert.True((await service.CreateAndConfirmAsync(
+                NewRequest(Guid.NewGuid(), RecipeId, 2m), StaffId, StoreId)).IsSuccess);
+
+            Assert.Equal(0, await context.InventoryTransactions.CountAsync());
+            Assert.Equal(1, await context.ProductionRuns.CountAsync(r => r.Status == ProductionRunStatus.Confirmed));
+        }
+
+        [Fact]
+        public async Task ProductionRun_Create_ReplaySameKey_DoesNotDuplicateRun()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, InventoryWriterMode.PreparedItem);
+            var service = CreateService(context);
+            var key = Guid.NewGuid();
+
+            var first = await service.CreateAndConfirmAsync(NewRequest(key, RecipeId, 2m), StaffId, StoreId);
+            var second = await service.CreateAndConfirmAsync(NewRequest(key, RecipeId, 2m), StaffId, StoreId);
+
+            Assert.True(first.IsSuccess && second.IsSuccess);
+            Assert.True(second.Data!.WasReplay);
+            Assert.Equal(1, await context.ProductionRuns.CountAsync());
+        }
+
+        [Fact]
+        public async Task ProductionRun_Create_SameKeyDifferentPayload_IsRejected()
+        {
+            using var context = CreateDbContext();
+            await SeedAsync(context, InventoryWriterMode.PreparedItem);
+            var service = CreateService(context);
+            var key = Guid.NewGuid();
+
+            Assert.True((await service.CreateAndConfirmAsync(NewRequest(key, RecipeId, 2m), StaffId, StoreId)).IsSuccess);
+            var second = await service.CreateAndConfirmAsync(NewRequest(key, RecipeId, 5m), StaffId, StoreId);
+
+            Assert.False(second.IsSuccess);
+            Assert.Equal(ProductionRunFailureCodes.IdempotencyKeyReused, second.ErrorCode);
         }
 
         [Fact]
@@ -411,18 +487,21 @@ namespace CafeChain.Tests
             Assert.Equal(1, await context.ProductionRuns.CountAsync());
         }
 
-        private static ProductionRunService CreateService(AppDbContext context)
+        private static ProductionRunService CreateService(
+            AppDbContext context,
+            bool includeProductionCapability = true)
         {
             var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
-            var writer = new InventoryWriterModeService(
-                context,
-                physical,
-                Array.Empty<IInventoryWriterCapabilityProvider>());
+            IInventoryWriterCapabilityProvider[] caps = includeProductionCapability
+                ? new IInventoryWriterCapabilityProvider[] { new ProductionPreparedWriterCapabilityProvider() }
+                : Array.Empty<IInventoryWriterCapabilityProvider>();
+            var writer = new InventoryWriterModeService(context, physical, caps);
             var scope = new ScopeAuthorizationService(context);
             return new ProductionRunService(
                 context,
                 scope,
                 writer,
+                caps,
                 NullLogger<ProductionRunService>.Instance);
         }
 
@@ -439,9 +518,11 @@ namespace CafeChain.Tests
                 RequestedRunCount = runs
             };
 
+        private const int UnitG = 1;
+
         private static async Task SeedAsync(
             AppDbContext context,
-            InventoryWriterMode mode = InventoryWriterMode.LegacyRecipe)
+            InventoryWriterMode mode = InventoryWriterMode.PreparedItem)
         {
             var now = DateTime.UtcNow;
             context.Stores.Add(new Store
@@ -463,6 +544,11 @@ namespace CafeChain.Tests
                 CreatedAt = now
             });
 
+            // #131 — multi-store create needs PreparedItem mode on both when testing create success.
+            var otherMode = mode == InventoryWriterMode.PreparedItem
+                ? InventoryWriterMode.PreparedItem
+                : InventoryWriterMode.LegacyRecipe;
+
             context.StoreInventoryWriterConfigurations.Add(new StoreInventoryWriterConfiguration
             {
                 StoreId = StoreId,
@@ -475,8 +561,8 @@ namespace CafeChain.Tests
             context.StoreInventoryWriterConfigurations.Add(new StoreInventoryWriterConfiguration
             {
                 StoreId = OtherStoreId,
-                WriterMode = InventoryWriterMode.LegacyRecipe,
-                HasEverActivatedPreparedItem = false,
+                WriterMode = otherMode,
+                HasEverActivatedPreparedItem = otherMode == InventoryWriterMode.PreparedItem,
                 CreatedAt = now,
                 UpdatedAt = now,
                 RowVersion = new byte[] { 0 }
@@ -492,6 +578,16 @@ namespace CafeChain.Tests
                 CreatedAt = now
             });
 
+            var pi = new CafeChain.Models.Inventories.PreparedItems.PreparedItem
+            {
+                Code = $"PI-119-{Guid.NewGuid():N}"[..20],
+                Name = "BTP 119",
+                BaseUnitId = UnitG,
+                Active = true
+            };
+            context.PreparedItems.Add(pi);
+            await context.SaveChangesAsync();
+
             context.Recipes.Add(new Recipe
             {
                 RecipeId = RecipeId,
@@ -499,7 +595,10 @@ namespace CafeChain.Tests
                 Name = "BTP 119",
                 YieldPercentage = 100m,
                 Active = true,
-                Status = "Active"
+                Status = "Active",
+                PreparedItemId = pi.PreparedItemId,
+                OutputQuantity = 500m,
+                OutputUnitId = UnitG
             });
 
             await context.SaveChangesAsync();

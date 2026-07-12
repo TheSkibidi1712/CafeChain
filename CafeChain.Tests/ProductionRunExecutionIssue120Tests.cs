@@ -72,6 +72,58 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task ProductionRun_Create_AndExecute_UseSamePreparedItemModeContract()
+        {
+            using var context = CreateDbContext();
+            await SeedFullAsync(context, InventoryWriterMode.PreparedItem);
+            var confirm = CreateConfirmService(context);
+            var create = await confirm.CreateAndConfirmAsync(
+                new CafeChain.Application.DTOs.Admin.Production.CreateAndConfirmProductionRunRequest
+                {
+                    RequestKey = Guid.NewGuid(),
+                    StoreId = StoreId,
+                    RecipeId = RecipeId,
+                    RequestedRunCount = 1m
+                },
+                StaffId,
+                StoreId);
+            Assert.True(create.IsSuccess, create.Message);
+
+            var exec = await CreateExecutionService(context).ExecuteAsync(create.Data!.ProductionRunId, StaffId, StoreId);
+            Assert.True(exec.IsSuccess, exec.Message);
+            Assert.True(exec.Data!.StockApplied);
+            Assert.Equal(4500m, exec.Data.NormalizedOutputQuantity);
+        }
+
+        [Fact]
+        public async Task ProductionRun_LegacyConfirmedBeforeCutover_CannotExecuteWhileLegacy()
+        {
+            using var context = CreateDbContext();
+            await SeedFullAsync(context, InventoryWriterMode.LegacyRecipe);
+            var run = await ConfirmRunAsync(context, 1m);
+            var result = await CreateExecutionService(context).ExecuteAsync(run.ProductionRunId, StaffId, StoreId);
+            Assert.False(result.IsSuccess);
+            Assert.Equal(ProductionRunExecutionFailureCodes.ModeLegacy, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task ProductionRun_LegacyConfirmedBeforeCutover_ExecutesAfterPreparedItemActivation()
+        {
+            using var context = CreateDbContext();
+            await SeedFullAsync(context, InventoryWriterMode.LegacyRecipe);
+            var run = await ConfirmRunAsync(context, 1m);
+
+            var cfg = await context.StoreInventoryWriterConfigurations.SingleAsync(x => x.StoreId == StoreId);
+            cfg.WriterMode = InventoryWriterMode.PreparedItem;
+            cfg.HasEverActivatedPreparedItem = true;
+            await context.SaveChangesAsync();
+
+            var result = await CreateExecutionService(context).ExecuteAsync(run.ProductionRunId, StaffId, StoreId);
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.True(result.Data!.StockApplied);
+        }
+
+        [Fact]
         public async Task LegacyRecipeMode_RejectsExecution()
         {
             using var context = CreateDbContext();
@@ -370,14 +422,41 @@ namespace CafeChain.Tests
                 context,
                 new ScopeAuthorizationService(context),
                 writer,
+                caps,
                 NullLogger<ProductionRunService>.Instance);
         }
 
         /// <summary>
-        /// Seed a CONFIRMED run directly (#119 confirm rejects PreparedItem/Blocked modes by design).
+        /// #131 — prefer real CreateAndConfirm when store is PreparedItem; fallback seed for Legacy-only scenarios.
         /// </summary>
         private static async Task<ProductionRun> ConfirmRunAsync(AppDbContext context, decimal runs)
         {
+            var mode = await context.StoreInventoryWriterConfigurations
+                .AsNoTracking()
+                .Where(c => c.StoreId == StoreId)
+                .Select(c => c.WriterMode)
+                .FirstOrDefaultAsync();
+
+            if (mode == InventoryWriterMode.PreparedItem)
+            {
+                var svc = CreateConfirmService(context);
+                var result = await svc.CreateAndConfirmAsync(
+                    new CafeChain.Application.DTOs.Admin.Production.CreateAndConfirmProductionRunRequest
+                    {
+                        RequestKey = Guid.NewGuid(),
+                        StoreId = StoreId,
+                        RecipeId = RecipeId,
+                        RequestedRunCount = runs
+                    },
+                    StaffId,
+                    StoreId);
+                if (!result.IsSuccess)
+                    throw new InvalidOperationException($"CreateAndConfirm failed: {result.ErrorCode} {result.Message}");
+
+                return await context.ProductionRuns.SingleAsync(r => r.ProductionRunId == result.Data!.ProductionRunId);
+            }
+
+            // Legacy seed path for tests that assert Execute rejects Legacy mode.
             var now = DateTime.UtcNow;
             var run = new ProductionRun
             {
