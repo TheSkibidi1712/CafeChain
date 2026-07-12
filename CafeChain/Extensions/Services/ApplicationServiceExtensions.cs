@@ -234,6 +234,9 @@ namespace CafeChain.Extensions.Services
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110
             services.AddScoped<IPhysicalUnitConversionService, PhysicalUnitConversionService>();
             services.AddScoped<IUnitConversionService, UnitConversionService>();
+            // #127 Admin unit conversion / package semantics UX
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.UnitConversions.IAdminUnitConversionService,
+                CafeChain.Application.Services.Admin.UnitConversions.AdminUnitConversionService>();
             // Ingredient supplier package definition validation — Issue #111
             services.AddScoped<IIngredientSupplierPackageValidator, IngredientSupplierPackageValidator>();
 

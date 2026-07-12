@@ -14,5 +14,12 @@ namespace CafeChain.Application.Constants
         public const string ConversionOverflow = "CONVERSION_OVERFLOW";
         public const string ConflictingConversion = "CONFLICTING_CONVERSION";
         public const string InvalidIngredient = "INVALID_INGREDIENT";
+
+        // #127 Admin validation (additive; does not change runtime POS convert codes above)
+        public const string PhysicalConversionConflict = "PHYSICAL_CONVERSION_CONFLICT";
+        public const string PhysicalStandardAlreadySupported = "PHYSICAL_STANDARD_ALREADY_SUPPORTED";
+        public const string CrossDimensionConversionNotSupported = "CROSS_DIMENSION_CONVERSION_NOT_SUPPORTED";
+        public const string PackageConflictAcknowledgementRequired = "PACKAGE_CONFLICT_ACKNOWLEDGEMENT_REQUIRED";
+        public const string DuplicateConversionPair = "DUPLICATE_CONVERSION_PAIR";
     }
 }

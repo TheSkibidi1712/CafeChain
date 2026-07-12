@@ -1,113 +1,305 @@
-@model List<CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM>
-
+@model CafeChain.Application.DTOs.Admin.UnitConversions.AdminUnitConversionIndexDto
 @{
-    ViewData["Title"] = "Quản lý Quy đổi Đơn vị";
+    ViewData["Title"] = "Đơn vị và quy đổi";
+    var canWrite = ViewBag.CanWrite as bool? ?? true;
+    var tab = Context.Request.Query["tab"].ToString();
+    if (string.IsNullOrWhiteSpace(tab)) tab = "measuring";
 }
 
-<style>
-    .uc-badge-from {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-    .uc-badge-to {
-        background: linear-gradient(135deg, #f97316, #ea580c);
-        color: white;
-        padding: 4px 12px;
-        border-radius: 20px;
-        font-weight: 600;
-        font-size: 0.85rem;
-    }
-    .uc-arrow {
-        font-size: 1.2rem;
-        color: #94a3b8;
-    }
-    .uc-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
-        background: white;
-    }
-</style>
+<link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
+@Html.AntiForgeryToken()
 
-<div class="container-fluid px-4 mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="uc-page">
+<div class="container-fluid px-4 pt-4 pb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0">
-                <i class="fas fa-exchange-alt me-2" style="color: #f97316;"></i>Quy đổi Đơn vị (Unit Conversion)
-            </h3>
-            <p class="text-muted mb-0">Khai báo tỷ lệ quy đổi giữa các đơn vị tính theo từng nguyên liệu</p>
+            <p class="text-muted small mb-1">Kho &amp; Cung ứng</p>
+            <h1 class="uc-page-title mb-1">Đơn vị và quy đổi</h1>
+            <p class="text-muted mb-0" style="max-width:40rem;">
+                Tách rõ <strong>quy đổi vật lý chuẩn</strong>, <strong>quy đổi đo lường theo nguyên liệu</strong>
+                và <strong>quy cách đóng gói nhà cung cấp</strong> (authority giá vốn).
+            </p>
         </div>
-        <a asp-action="Create" class="btn btn-primary shadow-sm" style="background-color: #f97316; border-color: #f97316;">
-            <i class="fas fa-plus me-1"></i> Thêm quy đổi
-        </a>
+        @if (canWrite)
+        {
+            <a asp-action="Create" class="btn btn-uc-primary">Thêm quy đổi đo lường</a>
+        }
     </div>
 
     @if (TempData["SuccessMsg"] != null)
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="fas fa-check-circle me-2"></i>@TempData["SuccessMsg"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        <div class="alert alert-success">@TempData["SuccessMsg"]</div>
+    }
+    @if (TempData["ErrorMsg"] != null)
+    {
+        <div class="alert alert-danger">@TempData["ErrorMsg"]</div>
+    }
+
+    <div class="uc-tab-bar" role="tablist">
+        <a class="uc-tab @(tab == "physical" ? "active" : "")" href="?tab=physical">A. Quy đổi vật lý chuẩn</a>
+        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" href="?tab=measuring&search=@Model.Search&status=@Model.StatusFilter">B. Quy đổi đo lường theo NL</a>
+        <a class="uc-tab @(tab == "package" ? "active" : "")" href="?tab=package&search=@Model.Search">C. Quy cách đóng gói NCC</a>
+    </div>
+
+    @* ── A. Physical ── *@
+    @if (tab == "physical")
+    {
+        <div class="uc-card mb-3">
+            <div class="uc-card-header">Quy đổi vật lý chuẩn (read-only)</div>
+            <div class="p-3">
+                <p class="small text-muted">Nguồn: hệ thống (<code>PhysicalUnitConversionRegistry</code>). Không thêm/sửa/xóa trong Admin.</p>
+                <table class="table mb-0" aria-label="Quy đổi vật lý chuẩn">
+                    <thead>
+                        <tr>
+                            <th>Quy đổi</th>
+                            <th>Chiều</th>
+                            <th>Nguồn</th>
+                            <th>Sửa được</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var p in Model.PhysicalStandards)
+                    {
+                        <tr>
+                            <td class="uc-phys-item">@p.DisplayText</td>
+                            <td>@p.Dimension</td>
+                            <td>@p.Source</td>
+                            <td><span class="uc-status uc-status-ok">Không</span></td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+                <p class="small text-muted mt-2 mb-0">oz / cup / tsp / tbsp không thuộc chuẩn vật lý — chỉ xuất hiện trong quy đổi đo lường theo nguyên liệu khi có row.</p>
+            </div>
         </div>
     }
 
-    <div class="uc-card">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr style="background-color: #f1f5f9;">
-                        <th class="text-uppercase text-muted" style="font-size: 0.75rem;">#</th>
-                        <th class="text-uppercase text-muted" style="font-size: 0.75rem;">Nguyên liệu</th>
-                        <th class="text-uppercase text-muted text-center" style="font-size: 0.75rem;">Quy đổi</th>
-                        <th class="text-uppercase text-muted text-center" style="font-size: 0.75rem;">Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @if (Model != null && Model.Any())
-                    {
-                        var idx = 0;
-                        foreach (var item in Model)
-                        {
-                            idx++;
-                            <tr>
-                                <td class="align-middle text-muted fw-bold">@idx</td>
-                                <td class="align-middle">
-                                    <span class="fw-bold">@item.IngredientName</span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <span class="uc-badge-from">@item.FromQuantity @item.FromUnitName</span>
-                                    <i class="fas fa-equals uc-arrow mx-2"></i>
-                                    <span class="uc-badge-to">@item.ToQuantity @item.ToUnitName</span>
-                                </td>
-                                <td class="align-middle text-center">
-                                    <a asp-action="Edit" asp-route-id="@item.UnitConversionId" class="btn btn-sm btn-outline-primary me-1">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <form asp-action="Delete" asp-route-id="@item.UnitConversionId" method="post" class="d-inline"
-                                          onsubmit="return confirm('Bạn chắc chắn muốn xóa quy đổi này?');">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    }
-                    else
-                    {
-                        <tr>
-                            <td colspan="4" class="text-center text-muted py-5">
-                                <i class="fas fa-inbox fa-3x mb-3 d-block" style="color: #cbd5e1;"></i>
-                                Chưa có quy đổi nào. Bấm <strong>"Thêm quy đổi"</strong> để bắt đầu.
-                            </td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+    @* ── B. Measuring ── *@
+    @if (tab == "measuring" || string.IsNullOrEmpty(tab))
+    {
+        <div class="uc-phys-strip" aria-label="Tham chiếu vật lý">
+            <strong class="small text-uppercase text-muted">Quy đổi vật lý chuẩn (read-only):</strong>
+            @foreach (var p in Model.PhysicalStandards)
+            {
+                <span class="uc-phys-item ms-2">@p.DisplayText</span>
+            }
+            <span class="uc-status uc-status-ok ms-2">Hệ thống · không sửa</span>
         </div>
-    </div>
+
+        <form method="get" class="uc-card mb-3 p-3">
+            <input type="hidden" name="tab" value="measuring" />
+            <div class="row g-2 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label small fw-semibold" for="search">Tìm nguyên liệu (mã / tên)</label>
+                    <input class="form-control" id="search" name="search" value="@Model.Search" autocomplete="off" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small fw-semibold" for="status">Trạng thái</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="ALL" selected="@(Model.StatusFilter == "ALL")">Tất cả</option>
+                        <option value="ok" selected="@(Model.StatusFilter == "ok")">Hợp lệ</option>
+                        <option value="package_conflict" selected="@(Model.StatusFilter == "package_conflict")">Mâu thuẫn package</option>
+                        <option value="review" selected="@(Model.StatusFilter == "review")">Cần xem xét</option>
+                    </select>
+                </div>
+                <div class="col-md-4 d-flex gap-2">
+                    <button type="submit" class="btn btn-uc-primary">Lọc</button>
+                    <a asp-action="Index" asp-route-tab="measuring" class="btn btn-uc-ghost">Đặt lại</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="uc-card">
+            <div class="uc-card-header d-flex justify-content-between">
+                <span>Quy đổi đo lường theo nguyên liệu</span>
+                <span class="small text-muted">@Model.TotalGroups nhóm · @Model.ConflictGroupCount cần chú ý</span>
+            </div>
+            @if (Model.Groups == null || !Model.Groups.Any())
+            {
+                <div class="p-4 text-center text-muted">
+                    <p class="fw-semibold mb-1">Chưa có quy đổi đo lường theo nguyên liệu.</p>
+                    <p class="small mb-0">Các quy đổi vật lý chuẩn vẫn được áp dụng.</p>
+                </div>
+            }
+            else
+            {
+                @foreach (var g in Model.Groups)
+                {
+                    var stClass = g.GroupStatusKey switch
+                    {
+                        "package_conflict" => "uc-status-warn",
+                        "review" => "uc-status-review",
+                        _ => "uc-status-ok"
+                    };
+                    <section class="uc-group" aria-labelledby="ing-@g.IngredientId">
+                        <div class="uc-group-header">
+                            <h2 class="h6 mb-0" id="ing-@g.IngredientId">
+                                <code>[@g.IngredientCode]</code> @g.IngredientName
+                            </h2>
+                            <span class="small text-muted">Đơn vị tồn kho cơ sở: <strong>@g.BaseUnitCode</strong> (@g.BaseUnitName)</span>
+                            <span class="uc-status @stClass">@g.GroupStatusLabel</span>
+                        </div>
+
+                        <div class="uc-section-label">Quy đổi đo lường</div>
+                        @if (!g.Conversions.Any())
+                        {
+                            <p class="small text-muted mb-2">Nguyên liệu này chưa có quy đổi đo lường riêng. Các quy đổi vật lý chuẩn vẫn được áp dụng.</p>
+                        }
+                        @foreach (var row in g.Conversions)
+                        {
+                            var rowClass = row.StatusKey switch
+                            {
+                                "package_conflict" => "uc-status-warn",
+                                "review" => "uc-status-review",
+                                _ => "uc-status-ok"
+                            };
+                            <div class="uc-row">
+                                <div>
+                                    <div class="uc-factor">
+                                        @row.FromQuantity.ToString("0.####") @row.FromUnitCode
+                                        =
+                                        @row.ToQuantity.ToString("0.####") @row.ToUnitCode
+                                    </div>
+                                    <div class="uc-reverse">
+                                        Chiều ngược (suy ra): 1 @row.ToUnitCode ≈ @row.ReverseFactor.ToString("0.########") @row.FromUnitCode
+                                    </div>
+                                    <span class="uc-status @rowClass">@row.StatusLabel</span>
+                                </div>
+                                <div class="d-flex flex-wrap gap-1">
+                                    @if (canWrite && row.AllowEdit)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           asp-action="Edit" asp-route-id="@row.UnitConversionId">Sửa</a>
+                                    }
+                                    else if (canWrite && !row.AllowEdit)
+                                    {
+                                        <span class="small text-muted align-self-center">Không sửa hệ số</span>
+                                    }
+                                    @if (canWrite)
+                                    {
+                                        <form asp-action="Delete" method="post" class="d-inline"
+                                              onsubmit="return confirm('Xóa quy đổi này?');">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@row.UnitConversionId" />
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">Xóa quy đổi</button>
+                                        </form>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="uc-section-label">Quy cách đóng gói nhà cung cấp (authority giá vốn)</div>
+                        @if (g.PrimaryPackage != null)
+                        {
+                            <div class="small">
+                                <div>@g.PrimaryPackage.DisplayPackage
+                                    @if (!string.IsNullOrEmpty(g.PrimaryPackage.SupplierName))
+                                    {
+                                        <span class="text-muted">· @g.PrimaryPackage.SupplierName</span>
+                                    }
+                                    @if (g.PrimaryPackage.IsPrimary)
+                                    {
+                                        <span class="uc-status uc-status-ok ms-1">Primary</span>
+                                    }
+                                </div>
+                                @if (g.PrimaryPackage.PackagePrice.HasValue)
+                                {
+                                    <div>Giá một gói: <strong>@g.PrimaryPackage.PackagePrice.Value.ToString("N0")</strong></div>
+                                }
+                                <div>Giá vốn theo đơn vị cơ sở:
+                                    @if (g.PrimaryPackage.IsComplete)
+                                    {
+                                        <strong>@g.PrimaryPackage.DisplayBaseCost</strong>
+                                        <span class="uc-status uc-status-ok">Đủ dữ liệu</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="uc-status uc-status-warn">Thiếu dữ liệu</span>
+                                        <span class="text-muted">@g.PrimaryPackage.IncompleteReason</span>
+                                    }
+                                </div>
+                                @if (g.HasPackageConflict)
+                                {
+                                    <div class="alert alert-warning py-2 mt-2 mb-0 small" role="alert">
+                                        <strong>Dữ liệu đang mâu thuẫn</strong> giữa quy đổi đo lường (package-like) và quy cách NCC.
+                                        Giá vốn dùng <em>quy cách nhà cung cấp</em>. Không tự chọn winner.
+                                    </div>
+                                }
+                                <div class="mt-2">
+                                    <a class="btn btn-sm btn-uc-ghost"
+                                       asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index">
+                                        Xem nhà cung cấp
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </section>
+                }
+            }
+        </div>
+    }
+
+    @* ── C. Package only view ── *@
+    @if (tab == "package")
+    {
+        <div class="uc-card">
+            <div class="uc-card-header">Quy cách đóng gói nhà cung cấp</div>
+            <div class="p-3">
+                <p class="small text-muted">
+                    Dữ liệu thuộc <strong>IngredientSupplier</strong> (PackageQuantity, UnitId, CurrentPrice).
+                    Không lưu vào UnitConversion. CRUD offer tại màn Nhà cung cấp.
+                </p>
+                @if (Model.Groups == null || !Model.Groups.Any(g => g.PrimaryPackage?.IngredientSupplierId != null))
+                {
+                    <p class="text-muted">Không có offer primary trong danh sách hiện tại. Thử tìm nguyên liệu hoặc mở màn Nhà cung cấp.</p>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table" aria-label="Quy cách gói">
+                            <thead>
+                                <tr>
+                                    <th>Nguyên liệu</th>
+                                    <th>NCC</th>
+                                    <th>Số lượng tịnh / gói</th>
+                                    <th>Giá một gói</th>
+                                    <th>Giá vốn / base</th>
+                                    <th>TT</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            @foreach (var g in Model.Groups.Where(x => x.PrimaryPackage?.IngredientSupplierId != null))
+                            {
+                                var p = g.PrimaryPackage!;
+                                <tr>
+                                    <td><code>[@g.IngredientCode]</code> @g.IngredientName<br /><span class="small text-muted">Base: @g.BaseUnitCode</span></td>
+                                    <td>@(p.SupplierName ?? "—")</td>
+                                    <td>@p.DisplayPackage</td>
+                                    <td>@(p.PackagePrice?.ToString("N0") ?? "—")</td>
+                                    <td>@p.DisplayBaseCost</td>
+                                    <td>
+                                        @if (p.IsComplete)
+                                        {
+                                            <span class="uc-status uc-status-ok">Đủ dữ liệu</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="uc-status uc-status-warn">Thiếu</span>
+                                            <div class="small text-muted">@p.IncompleteReason</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        <a class="btn btn-sm btn-uc-ghost" asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index">Xem NCC</a>
+                                    </td>
+                                </tr>
+                            }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    }
+</div>
 </div>

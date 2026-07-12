@@ -1,211 +1,142 @@
 @model CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM
-
+@using CafeChain.Application.DTOs.Admin.UnitConversions
 @{
-    ViewData["Title"] = "Tạo Quy đổi Đơn vị";
+    ViewData["Title"] = "Tạo quy đổi đo lường theo nguyên liệu";
+    var ingredients = ViewBag.Ingredients as List<AdminIngredientOptionDto> ?? new();
+    var units = ViewBag.Units as List<AdminUnitOptionDto> ?? new();
+    var physical = ViewBag.PhysicalStandards as List<PhysicalStandardDto> ?? new();
 }
 
-<style>
-    .conv-card {
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.07);
-        background: white;
-    }
-    .conv-header {
-        background: linear-gradient(135deg, #1e293b, #0f172a);
-        color: white;
-        border-radius: 12px 12px 0 0;
-        padding: 20px;
-    }
-    .conv-formula-box {
-        background: #f8fafc;
-        border: 2px dashed #cbd5e1;
-        border-radius: 12px;
-        padding: 30px;
-        text-align: center;
-    }
-    .conv-equals {
-        font-size: 2rem;
-        font-weight: 800;
-        color: #f97316;
-        line-height: 1;
-    }
-    .btn-conv-primary {
-        background-color: #f97316;
-        border-color: #f97316;
-        color: white;
-        font-weight: 600;
-    }
-    .btn-conv-primary:hover {
-        background-color: #ea580c;
-        border-color: #ea580c;
-        color: white;
-    }
-    .conv-preview {
-        background: linear-gradient(135deg, #fef3c7, #fde68a);
-        border: 1px solid #f59e0b;
-        border-radius: 8px;
-        padding: 12px 20px;
-        font-weight: 600;
-        color: #92400e;
-        font-size: 1.1rem;
-        text-align: center;
-        display: none;
-    }
-</style>
+<link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
 
-<div class="container-fluid px-4 mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="uc-page">
+<div class="container-fluid px-4 pt-4 pb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
-            <h3 class="fw-bold text-dark mb-0">
-                <i class="fas fa-exchange-alt me-2" style="color: #f97316;"></i>Tạo Quy đổi Đơn vị
-            </h3>
-            <p class="text-muted mb-0">Khai báo cách quy đổi giữa 2 đơn vị tính cho 1 nguyên liệu cụ thể</p>
+            <h1 class="uc-page-title mb-1">Tạo quy đổi đo lường theo nguyên liệu</h1>
+            <p class="text-muted small mb-0">Chỉ tạo khi đã có quy cách đo lường được người vận hành xác nhận. Không nhập conversion chỉ từ tên gói.</p>
         </div>
-        <a asp-action="Index" class="btn btn-light border shadow-sm"><i class="fas fa-arrow-left me-1"></i> Quay lại</a>
+        <a asp-action="Index" class="btn btn-uc-ghost">Quay lại</a>
     </div>
 
-    <form asp-action="Create" method="post" id="conversionForm">
-        @Html.AntiForgeryToken()
+    <div class="uc-phys-strip">
+        <strong class="small">Quy đổi vật lý chuẩn (không lưu row):</strong>
+        @foreach (var p in physical)
+        {
+            <span class="uc-phys-item ms-2">@p.DisplayText</span>
+        }
+    </div>
 
-        <!-- SECTION 1: Chọn nguyên liệu -->
-        <div class="conv-card mb-4">
-            <div class="conv-header">
-                <h5 class="mb-0"><i class="fas fa-box-open me-2"></i>Nguyên liệu áp dụng</h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label fw-bold">Chọn nguyên liệu <span class="text-danger">*</span></label>
-                        <select name="IngredientId" id="ingredientSelect" class="form-select" required>
-                            <option value="">-- Chọn nguyên liệu --</option>
-                            @if (ViewBag.Ingredients != null)
+    <form asp-action="Create" method="post" id="conversionForm" class="uc-card p-4">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert" tabindex="-1"></div>
+
+        <div class="row g-4 uc-form-grid">
+            <div class="col-lg-7">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold" for="ingredientSelect">Nguyên liệu <span class="text-danger">*</span></label>
+                    <select asp-for="IngredientId" id="ingredientSelect" class="form-select" required aria-describedby="ingHelp">
+                        <option value="">-- Chọn nguyên liệu (mã + tên) --</option>
+                        @foreach (var ing in ingredients)
+                        {
+                            <option value="@ing.IngredientId" data-code="@ing.Code" data-base="@ing.BaseUnitCode">
+                                [@ing.Code] @ing.Name
+                            </option>
+                        }
+                    </select>
+                    <div id="ingHelp" class="form-text">Tìm theo mã hoặc tên. Mỗi row thuộc một nguyên liệu.</div>
+                    <span asp-validation-for="IngredientId" class="text-danger small"></span>
+                </div>
+
+                <div class="row g-3 align-items-end mb-3">
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" for="FromQuantity">Số lượng đầu vào <span class="text-danger">*</span></label>
+                        <input asp-for="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" min="0.0001" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" for="FromUnitId">Đơn vị đầu vào <span class="text-danger">*</span></label>
+                        <select asp-for="FromUnitId" id="FromUnitId" class="form-select" required>
+                            <option value="">-- ĐVT --</option>
+                            @foreach (var u in units)
                             {
-                                foreach (dynamic ing in ViewBag.Ingredients)
-                                {
-                                    <option value="@ing.IngredientId">@ing.Name</option>
-                                }
+                                <option value="@u.UnitId"
+                                        data-code="@u.UnitCode"
+                                        data-type="@u.Type"
+                                        data-pack="@(u.IsPackagingCount ? "1" : "0")"
+                                        data-phys="@(u.IsPhysicalStandard ? "1" : "0")">
+                                    @u.Name (@u.UnitCode)@(u.IsPackagingCount ? " · đếm/đóng gói" : "")
+                                </option>
                             }
                         </select>
-                        <small class="text-muted">Mỗi nguyên liệu có bảng quy đổi riêng</small>
-                        <span asp-validation-for="IngredientId" class="text-danger small"></span>
                     </div>
+                    <div class="col-md-1 text-center fw-bold text-muted pb-2">=</div>
+                    <div class="col-md-3">
+                        <label class="form-label fw-semibold" for="ToQuantity">Số lượng đầu ra <span class="text-danger">*</span></label>
+                        <input asp-for="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" min="0.0001" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra <span class="text-danger">*</span></label>
+                        <select asp-for="ToUnitId" id="ToUnitId" class="form-select" required>
+                            <option value="">-- ĐVT --</option>
+                            @foreach (var u in units)
+                            {
+                                <option value="@u.UnitId"
+                                        data-code="@u.UnitCode"
+                                        data-type="@u.Type"
+                                        data-pack="@(u.IsPackagingCount ? "1" : "0")"
+                                        data-phys="@(u.IsPhysicalStandard ? "1" : "0")">
+                                    @u.UnitCode
+                                </option>
+                            }
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-check mb-3" id="pkgAckWrap" style="display:none;">
+                    <input class="form-check-input" asp-for="PackageConflictAcknowledged" id="PackageConflictAcknowledged" />
+                    <label class="form-check-label" for="PackageConflictAcknowledged" id="pkgAckLabel">
+                        Tôi xác nhận mâu thuẫn với quy cách đóng gói NCC và vẫn lưu quy đổi đo lường
+                        (không đổi package; giá vốn vẫn dùng quy cách NCC).
+                    </label>
+                </div>
+            </div>
+
+            <div class="col-lg-5">
+                <div id="evalPanel" class="uc-eval-panel" aria-live="polite">
+                    <div class="small text-muted">Xem trước hệ số / conflict (server)…</div>
                 </div>
             </div>
         </div>
 
-        <!-- SECTION 2: Công thức quy đổi -->
-        <div class="conv-card mb-4">
-            <div class="conv-header">
-                <h5 class="mb-0"><i class="fas fa-calculator me-2"></i>Công thức Quy đổi</h5>
-            </div>
-            <div class="card-body p-4">
-                <div class="conv-formula-box">
-                    <div class="row align-items-center justify-content-center g-3">
-                        <!-- FROM: Số lượng + Đơn vị nguồn -->
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold text-muted small">Số lượng nguồn</label>
-                            <input type="number" step="0.0001" min="0.0001"
-                                   name="FromQuantity" id="fromQty"
-                                   class="form-control form-control-lg text-center fw-bold"
-                                   value="1" required />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold text-muted small">Đơn vị nguồn</label>
-                            <select name="FromUnitId" id="fromUnitSelect" class="form-select form-select-lg" required>
-                                <option value="">-- ĐVT --</option>
-                                @if (ViewBag.Units != null)
-                                {
-                                    foreach (dynamic unit in ViewBag.Units)
-                                    {
-                                        <option value="@unit.UnitId" data-code="@unit.UnitCode">@unit.Name (@unit.UnitCode)</option>
-                                    }
-                                }
-                            </select>
-                            <span asp-validation-for="FromUnitId" class="text-danger small"></span>
-                        </div>
-
-                        <!-- DẤU BẰNG -->
-                        <div class="col-md-1 d-flex align-items-end justify-content-center pb-2">
-                            <span class="conv-equals">=</span>
-                        </div>
-
-                        <!-- TO: Số lượng + Đơn vị đích -->
-                        <div class="col-md-2">
-                            <label class="form-label fw-bold text-muted small">Số lượng đích</label>
-                            <input type="number" step="0.0001" min="0.0001"
-                                   name="ToQuantity" id="toQty"
-                                   class="form-control form-control-lg text-center fw-bold"
-                                   value="1000" required />
-                        </div>
-                        <div class="col-md-3">
-                            <label class="form-label fw-bold text-muted small">Đơn vị đích</label>
-                            <select name="ToUnitId" id="toUnitSelect" class="form-select form-select-lg" required>
-                                <option value="">-- ĐVT --</option>
-                                @if (ViewBag.Units != null)
-                                {
-                                    foreach (dynamic unit in ViewBag.Units)
-                                    {
-                                        <option value="@unit.UnitId" data-code="@unit.UnitCode">@unit.Name (@unit.UnitCode)</option>
-                                    }
-                                }
-                            </select>
-                            <span asp-validation-for="ToUnitId" class="text-danger small"></span>
-                        </div>
-                    </div>
-
-                    <!-- Live Preview -->
-                    <div class="mt-4">
-                        <div class="conv-preview" id="convPreview">
-                            <i class="fas fa-check-circle me-2"></i>
-                            <span id="previewText"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ACTION BUTTONS -->
-        <div class="d-flex justify-content-end gap-3 mb-5">
-            <a asp-action="Index" class="btn btn-light border px-4 shadow-sm">Hủy</a>
-            <button type="submit" class="btn btn-conv-primary px-5 shadow-sm">
-                <i class="fas fa-save me-2"></i>LƯU QUY ĐỔI
-            </button>
+        <div class="d-flex justify-content-end gap-2 mt-4">
+            <a asp-action="Index" class="btn btn-uc-ghost">Hủy</a>
+            <button type="submit" class="btn btn-uc-primary" id="btnSave">Lưu quy đổi đo lường</button>
         </div>
     </form>
 </div>
+</div>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
-
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/Admin/UnitConversion/unit-conversion-form.js" asp-append-version="true"></script>
     <script>
-        $(document).ready(function () {
-            // Select2 cho chọn nguyên liệu
-            $('#ingredientSelect').select2({
-                theme: 'bootstrap-5',
-                placeholder: '-- Tìm nguyên liệu --',
-                width: '100%'
-            });
-
-            // Live Preview khi thay đổi bất kỳ trường nào
-            function updatePreview() {
-                const fromQty = parseFloat($('#fromQty').val()) || 0;
-                const toQty = parseFloat($('#toQty').val()) || 0;
-                const fromUnit = $('#fromUnitSelect option:selected').text().trim();
-                const toUnit = $('#toUnitSelect option:selected').text().trim();
-                const ingredient = $('#ingredientSelect option:selected').text().trim();
-
-                if (fromQty > 0 && toQty > 0 && fromUnit !== '-- ĐVT --' && toUnit !== '-- ĐVT --' && ingredient !== '-- Chọn nguyên liệu --') {
-                    const text = `${ingredient}: ${fromQty} ${fromUnit} = ${toQty} ${toUnit}`;
-                    $('#previewText').text(text);
-                    $('#convPreview').slideDown(200);
-                } else {
-                    $('#convPreview').slideUp(200);
-                }
+        window.CafeChainUnitConversionForm.init({
+            evaluateUrl: '@Url.Action("Evaluate", "AdminUnitConversion", new { area = "Admin" })',
+            isEdit: false
+        });
+        $('#ingredientSelect').select2({
+            theme: 'bootstrap-5', width: '100%',
+            placeholder: '-- Chọn nguyên liệu (mã + tên) --',
+            matcher: function (params, data) {
+                if ($.trim(params.term) === '') return data;
+                if (!data.id) return null;
+                var term = params.term.toLowerCase();
+                var $el = $(data.element);
+                var code = String($el.data('code') || '').toLowerCase();
+                var text = String(data.text || '').toLowerCase();
+                if (code.indexOf(term) > -1 || text.indexOf(term) > -1) return data;
+                return null;
             }
-
-            $('#fromQty, #toQty').on('input', updatePreview);
-            $('#fromUnitSelect, #toUnitSelect, #ingredientSelect').on('change', updatePreview);
         });
     </script>
 }

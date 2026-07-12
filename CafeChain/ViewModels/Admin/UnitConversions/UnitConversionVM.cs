@@ -25,5 +25,10 @@ namespace CafeChain.ViewModels.Admin.UnitConversions
         [Required(ErrorMessage = "Số lượng đích phải lớn hơn 0")]
         [Range(0.0001, double.MaxValue, ErrorMessage = "Số lượng đích phải lớn hơn 0")]
         public decimal ToQuantity { get; set; } = 1000;
+
+        /// <summary>
+        /// #127 Command-only: acknowledge package conflict. Not an entity column.
+        /// </summary>
+        public bool PackageConflictAcknowledged { get; set; }
     }
 }

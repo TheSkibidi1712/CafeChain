@@ -1,207 +1,185 @@
-using CafeChain.Data;
-using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Application.DTOs.Admin.UnitConversions;
+using CafeChain.Application.Interfaces.Admin.UnitConversions;
 using CafeChain.ViewModels.Admin.UnitConversions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System.Linq;
 using System.Threading.Tasks;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    /// <summary>
+    /// #127 Admin unit conversion UX — physical / measuring / package separation.
+    /// Authorization: RequireAdminPanelAccess via AdminBaseController (unchanged).
+    /// </summary>
     [Area("Admin")]
     public class AdminUnitConversionController : AdminBaseController
     {
-        private readonly AppDbContext _context;
+        private readonly IAdminUnitConversionService _service;
 
-        public AdminUnitConversionController(AppDbContext context)
+        public AdminUnitConversionController(IAdminUnitConversionService service)
         {
-            _context = context;
+            _service = service;
         }
 
-        // ============================================================
-        // INDEX: Danh sách tất cả quy đổi
-        // ============================================================
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? search = null, string? status = null)
         {
-            var conversions = await _context.UnitConversions
-                .Include(uc => uc.Ingredient)
-                .Include(uc => uc.FromUnit)
-                .Include(uc => uc.ToUnit)
-                .OrderBy(uc => uc.Ingredient.Name)
-                .ThenBy(uc => uc.FromUnit.Name)
-                .Select(uc => new UnitConversionVM
-                {
-                    UnitConversionId = uc.UnitConversionId,
-                    IngredientId = uc.IngredientId,
-                    IngredientName = uc.Ingredient.Name,
-                    FromUnitId = uc.FromUnitId,
-                    FromUnitName = uc.FromUnit.Name,
-                    FromQuantity = uc.FromQuantity,
-                    ToUnitId = uc.ToUnitId,
-                    ToUnitName = uc.ToUnit.Name,
-                    ToQuantity = uc.ToQuantity
-                })
-                .ToListAsync();
-
-            return View(conversions);
+            var model = await _service.GetIndexAsync(search, status);
+            ViewBag.CanWrite = true; // same as before: any Admin panel role can mutate
+            return View(model);
         }
 
-        // ============================================================
-        // CREATE (GET): Form tạo mới
-        // ============================================================
         [HttpGet]
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            PopulateDropdowns();
+            await PopulateFormLookupsAsync();
             return View(new UnitConversionVM());
         }
 
-        // ============================================================
-        // CREATE (POST): Lưu quy đổi mới
-        // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(UnitConversionVM model)
         {
-            // Validate: Đơn vị nguồn và đích không được trùng nhau
-            if (model.FromUnitId == model.ToUnitId)
-            {
-                ModelState.AddModelError("ToUnitId", "Đơn vị nguồn và đơn vị đích không được giống nhau.");
-            }
-
             if (!ModelState.IsValid)
             {
-                PopulateDropdowns();
+                await PopulateFormLookupsAsync();
                 return View(model);
             }
 
-            // Kiểm tra trùng lặp (cùng Ingredient + cùng cặp đơn vị)
-            var exists = await _context.UnitConversions.AnyAsync(uc =>
-                uc.IngredientId == model.IngredientId &&
-                uc.FromUnitId == model.FromUnitId &&
-                uc.ToUnitId == model.ToUnitId);
-
-            if (exists)
+            var request = ToRequest(model);
+            var result = await _service.CreateAsync(request);
+            if (!result.IsSuccess)
             {
-                ModelState.AddModelError("", "Quy đổi cho cặp đơn vị này của nguyên liệu đã tồn tại.");
-                PopulateDropdowns();
+                ModelState.AddModelError("", result.Message ?? "Không lưu được quy đổi.");
+                ViewBag.EvalErrorCode = result.ErrorCode;
+                await PopulateFormLookupsAsync();
+                // Re-run evaluate for panel
+                ViewBag.Eval = await _service.EvaluateAsync(request);
                 return View(model);
             }
 
-            var entity = new UnitConversion
-            {
-                IngredientId = model.IngredientId,
-                FromUnitId = model.FromUnitId,
-                FromQuantity = model.FromQuantity,
-                ToUnitId = model.ToUnitId,
-                ToQuantity = model.ToQuantity
-            };
-
-            _context.UnitConversions.Add(entity);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMsg"] = $"Tạo quy đổi thành công: {model.FromQuantity} → {model.ToQuantity}";
+            TempData["SuccessMsg"] = "Đã tạo quy đổi đo lường theo nguyên liệu.";
             return RedirectToAction(nameof(Index));
         }
 
-        // ============================================================
-        // EDIT (GET)
-        // ============================================================
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var entity = await _context.UnitConversions
-                .Include(uc => uc.Ingredient)
-                .Include(uc => uc.FromUnit)
-                .Include(uc => uc.ToUnit)
-                .FirstOrDefaultAsync(uc => uc.UnitConversionId == id);
-
-            if (entity == null) return NotFound();
+            var data = await _service.GetForEditAsync(id);
+            if (data == null) return NotFound();
 
             var vm = new UnitConversionVM
             {
-                UnitConversionId = entity.UnitConversionId,
-                IngredientId = entity.IngredientId,
-                IngredientName = entity.Ingredient.Name,
-                FromUnitId = entity.FromUnitId,
-                FromUnitName = entity.FromUnit.Name,
-                FromQuantity = entity.FromQuantity,
-                ToUnitId = entity.ToUnitId,
-                ToUnitName = entity.ToUnit.Name,
-                ToQuantity = entity.ToQuantity
+                UnitConversionId = data.UnitConversionId ?? 0,
+                IngredientId = data.IngredientId,
+                FromUnitId = data.FromUnitId,
+                FromQuantity = data.FromQuantity,
+                ToUnitId = data.ToUnitId,
+                ToQuantity = data.ToQuantity
             };
-
-            PopulateDropdowns();
+            await PopulateFormLookupsAsync();
+            ViewBag.Eval = await _service.EvaluateAsync(data);
             return View(vm);
         }
 
-        // ============================================================
-        // EDIT (POST)
-        // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(UnitConversionVM model)
         {
-            if (model.FromUnitId == model.ToUnitId)
-            {
-                ModelState.AddModelError("ToUnitId", "Đơn vị nguồn và đơn vị đích không được giống nhau.");
-            }
-
             if (!ModelState.IsValid)
             {
-                PopulateDropdowns();
+                await PopulateFormLookupsAsync();
                 return View(model);
             }
 
-            var entity = await _context.UnitConversions.FindAsync(model.UnitConversionId);
-            if (entity == null) return NotFound();
+            var request = ToRequest(model);
+            var result = await _service.UpdateAsync(request);
+            if (!result.IsSuccess)
+            {
+                ModelState.AddModelError("", result.Message ?? "Không cập nhật được.");
+                ViewBag.EvalErrorCode = result.ErrorCode;
+                await PopulateFormLookupsAsync();
+                ViewBag.Eval = await _service.EvaluateAsync(request);
+                return View(model);
+            }
 
-            entity.IngredientId = model.IngredientId;
-            entity.FromUnitId = model.FromUnitId;
-            entity.FromQuantity = model.FromQuantity;
-            entity.ToUnitId = model.ToUnitId;
-            entity.ToQuantity = model.ToQuantity;
-
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMsg"] = "Cập nhật quy đổi thành công!";
+            TempData["SuccessMsg"] = result.Message ?? "Cập nhật thành công.";
             return RedirectToAction(nameof(Index));
         }
 
-        // ============================================================
-        // DELETE (POST)
-        // ============================================================
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
-            var entity = await _context.UnitConversions.FindAsync(id);
-            if (entity == null) return NotFound();
-
-            _context.UnitConversions.Remove(entity);
-            await _context.SaveChangesAsync();
-
-            TempData["SuccessMsg"] = "Đã xóa quy đổi đơn vị.";
+            var result = await _service.DeleteAsync(id);
+            TempData[result.IsSuccess ? "SuccessMsg" : "ErrorMsg"] =
+                result.Message ?? (result.IsSuccess ? "Đã xóa." : "Không xóa được.");
             return RedirectToAction(nameof(Index));
         }
 
-        // ============================================================
-        // HELPER: Nạp dữ liệu Dropdown
-        // ============================================================
-        private void PopulateDropdowns()
+        /// <summary>#127 Server re-evaluation for form preview (JSON).</summary>
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Evaluate([FromBody] AdminUnitConversionEvaluateRequest request)
         {
-            ViewBag.Ingredients = _context.Ingredients
-                .Where(i => i.Active)
-                .OrderBy(i => i.Name)
-                .Select(i => new { i.IngredientId, i.Name })
-                .ToList<object>();
+            if (request == null)
+                return Json(new { success = false, message = "Thiếu dữ liệu." });
 
-            ViewBag.Units = _context.Units
-                .Where(u => u.Active)
-                .OrderBy(u => u.Name)
-                .Select(u => new { u.UnitId, u.Name, u.UnitCode })
-                .ToList<object>();
+            var eval = await _service.EvaluateAsync(request);
+            return Json(new
+            {
+                success = eval.IsValid,
+                eval.ErrorCode,
+                eval.Message,
+                eval.IsPhysicalStandard,
+                eval.HasPhysicalConflict,
+                eval.PhysicalExpectedFactor,
+                eval.IsCrossDimension,
+                eval.IsMassVolumeCross,
+                eval.HasPackageConflict,
+                eval.RequiresPackageAcknowledgement,
+                eval.PrimaryPackageQuantity,
+                eval.PrimaryPackageUnitCode,
+                eval.PrimaryPackageUnitName,
+                eval.PrimaryPackagePrice,
+                eval.ProposedPackageLikeQuantity,
+                eval.PrimarySupplierId,
+                eval.PrimarySupplierName,
+                eval.Factor,
+                eval.ReverseFactor,
+                eval.FromUnitCode,
+                eval.ToUnitCode,
+                eval.FromDimension,
+                eval.ToDimension,
+                eval.FromIsPackagingCount,
+                eval.ToIsPackagingCount,
+                eval.Warnings,
+                eval.Codes
+            });
         }
+
+        [HttpGet]
+        public async Task<IActionResult> SearchIngredients(string? q = null)
+        {
+            var data = await _service.GetIngredientOptionsAsync(q);
+            return Json(new { success = true, data });
+        }
+
+        private async Task PopulateFormLookupsAsync()
+        {
+            ViewBag.Ingredients = await _service.GetIngredientOptionsAsync(null);
+            ViewBag.Units = await _service.GetUnitOptionsAsync();
+            ViewBag.PhysicalStandards = _service.GetPhysicalStandards();
+        }
+
+        private static AdminUnitConversionEvaluateRequest ToRequest(UnitConversionVM model) => new()
+        {
+            UnitConversionId = model.UnitConversionId > 0 ? model.UnitConversionId : null,
+            IngredientId = model.IngredientId,
+            FromUnitId = model.FromUnitId,
+            FromQuantity = model.FromQuantity,
+            ToUnitId = model.ToUnitId,
+            ToQuantity = model.ToQuantity,
+            PackageConflictAcknowledged = model.PackageConflictAcknowledged
+        };
     }
 }
