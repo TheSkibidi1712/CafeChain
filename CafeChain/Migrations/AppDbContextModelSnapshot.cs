@@ -3730,6 +3730,195 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.BranchReceipt", b =>
+                {
+                    b.Property<int>("BranchReceiptId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BranchReceiptId"));
+
+                    b.Property<DateTime?>("ConfirmedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ConfirmedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ReceiptCode")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ReceiptKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ReceivedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("nvarchar(16)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("BranchReceiptId");
+
+                    b.HasIndex("ConfirmedByStaffId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("ReceiptCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_BranchReceipts_ReceiptCode");
+
+                    b.HasIndex("ReceivedByStaffId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.HasIndex("StoreId", "ReceiptKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_BranchReceipts_Store_ReceiptKey");
+
+                    b.ToTable("BranchReceipts", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.BranchReceiptLine", b =>
+                {
+                    b.Property<int>("BranchReceiptLineId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BranchReceiptLineId"));
+
+                    b.Property<decimal?>("ActualPackagePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("BaseUnitCostSnapshot")
+                        .HasColumnType("decimal(18,4)");
+
+                    b.Property<int>("BaseUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("BranchReceiptId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("IngredientSupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("InputQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("InputUnitId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("InventoryTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("LineTotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal?>("PackageQuantitySnapshot")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("PackageUnitIdSnapshot")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("PreparedItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ReceivedBaseQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("RecipeId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("RestockRequestFulfillmentId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("RestockRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.HasKey("BranchReceiptLineId");
+
+                    b.HasIndex("BaseUnitId");
+
+                    b.HasIndex("BranchReceiptId");
+
+                    b.HasIndex("IngredientId");
+
+                    b.HasIndex("IngredientSupplierId");
+
+                    b.HasIndex("InputUnitId");
+
+                    b.HasIndex("InventoryTransactionId");
+
+                    b.HasIndex("PackageUnitIdSnapshot");
+
+                    b.HasIndex("PreparedItemId");
+
+                    b.HasIndex("RecipeId");
+
+                    b.HasIndex("RestockRequestFulfillmentId");
+
+                    b.HasIndex("RestockRequestId");
+
+                    b.HasIndex("SupplierId");
+
+                    b.ToTable("BranchReceiptLines", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BranchReceiptLines_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequest", b =>
                 {
                     b.Property<int>("RestockRequestId")
@@ -3814,6 +4003,126 @@ namespace CafeChain.Migrations
                         {
                             t.HasCheckConstraint("CK_RestockRequests_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequestFulfillment", b =>
+                {
+                    b.Property<int>("RestockRequestFulfillmentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RestockRequestFulfillmentId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("InventoryDocumentDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("PlannedBaseQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("RestockRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.HasKey("RestockRequestFulfillmentId");
+
+                    b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("RestockRequestId");
+
+                    b.HasIndex("SourceType");
+
+                    b.HasIndex("Status");
+
+                    b.ToTable("RestockRequestFulfillments", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequestTransition", b =>
+                {
+                    b.Property<int>("RestockRequestTransitionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("RestockRequestTransitionId"));
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("BranchReceiptId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("InventoryTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NewStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<DateTime>("OccurredAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PreviousStatus")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
+                    b.Property<decimal?>("QuantityAfter")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("QuantityBefore")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RequestKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("RestockRequestId")
+                        .HasColumnType("int");
+
+                    b.HasKey("RestockRequestTransitionId");
+
+                    b.HasIndex("ActorStaffId");
+
+                    b.HasIndex("BranchReceiptId");
+
+                    b.HasIndex("InventoryTransactionId");
+
+                    b.HasIndex("OccurredAtUtc");
+
+                    b.HasIndex("RestockRequestId");
+
+                    b.HasIndex("RestockRequestId", "OccurredAtUtc");
+
+                    b.ToTable("RestockRequestTransitions", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Stock.StockAlert", b =>
@@ -4879,6 +5188,9 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("BeforeQty")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<int?>("BranchReceiptLineId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -4924,6 +5236,9 @@ namespace CafeChain.Migrations
 
                     b.HasKey("InventoryTransactionId");
 
+                    b.HasIndex("BranchReceiptLineId")
+                        .HasDatabaseName("IX_InventoryTransactions_BranchReceiptLineId");
+
                     b.HasIndex("CreatedAt");
 
                     b.HasIndex("InventoryConsolidationRunId")
@@ -4946,6 +5261,11 @@ namespace CafeChain.Migrations
                     b.HasIndex("StoreInventoryId");
 
                     b.HasIndex("Type");
+
+                    b.HasIndex("BranchReceiptLineId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InventoryTransactions_BranchReceiptLine_Type")
+                        .HasFilter("[BranchReceiptLineId] IS NOT NULL");
 
                     b.HasIndex("StoreInventoryId", "CreatedAt");
 
@@ -9071,6 +9391,137 @@ namespace CafeChain.Migrations
                     b.Navigation("Store");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.BranchReceipt", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ConfirmedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ConfirmedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ReceivedByStaff")
+                        .WithMany()
+                        .HasForeignKey("ReceivedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ConfirmedByStaff");
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("ReceivedByStaff");
+
+                    b.Navigation("Store");
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.BranchReceiptLine", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "BaseUnit")
+                        .WithMany()
+                        .HasForeignKey("BaseUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceipt", "BranchReceipt")
+                        .WithMany("Lines")
+                        .HasForeignKey("BranchReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "Ingredient")
+                        .WithMany()
+                        .HasForeignKey("IngredientId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Suppliers.IngredientSupplier", "IngredientSupplier")
+                        .WithMany()
+                        .HasForeignKey("IngredientSupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "InputUnit")
+                        .WithMany()
+                        .HasForeignKey("InputUnitId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Transactions.InventoryTransaction", "InventoryTransaction")
+                        .WithMany()
+                        .HasForeignKey("InventoryTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Unit", "PackageUnitSnapshot")
+                        .WithMany()
+                        .HasForeignKey("PackageUnitIdSnapshot")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.PreparedItems.PreparedItem", "PreparedItem")
+                        .WithMany()
+                        .HasForeignKey("PreparedItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Drinks.Recipe", "Recipe")
+                        .WithMany()
+                        .HasForeignKey("RecipeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.RestockRequestFulfillment", "RestockRequestFulfillment")
+                        .WithMany()
+                        .HasForeignKey("RestockRequestFulfillmentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.RestockRequest", "RestockRequest")
+                        .WithMany()
+                        .HasForeignKey("RestockRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
+                        .WithMany()
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("BaseUnit");
+
+                    b.Navigation("BranchReceipt");
+
+                    b.Navigation("Ingredient");
+
+                    b.Navigation("IngredientSupplier");
+
+                    b.Navigation("InputUnit");
+
+                    b.Navigation("InventoryTransaction");
+
+                    b.Navigation("PackageUnitSnapshot");
+
+                    b.Navigation("PreparedItem");
+
+                    b.Navigation("Recipe");
+
+                    b.Navigation("RestockRequest");
+
+                    b.Navigation("RestockRequestFulfillment");
+
+                    b.Navigation("Supplier");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequest", b =>
                 {
                     b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
@@ -9124,6 +9575,58 @@ namespace CafeChain.Migrations
                     b.Navigation("StockAlert");
 
                     b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequestFulfillment", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "CreatedByStaff")
+                        .WithMany()
+                        .HasForeignKey("CreatedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.RestockRequest", "RestockRequest")
+                        .WithMany()
+                        .HasForeignKey("RestockRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByStaff");
+
+                    b.Navigation("RestockRequest");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.RestockRequestTransition", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ActorStaff")
+                        .WithMany()
+                        .HasForeignKey("ActorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceipt", "BranchReceipt")
+                        .WithMany()
+                        .HasForeignKey("BranchReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Transactions.InventoryTransaction", "InventoryTransaction")
+                        .WithMany()
+                        .HasForeignKey("InventoryTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Stock.RestockRequest", "RestockRequest")
+                        .WithMany()
+                        .HasForeignKey("RestockRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorStaff");
+
+                    b.Navigation("BranchReceipt");
+
+                    b.Navigation("InventoryTransaction");
+
+                    b.Navigation("RestockRequest");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Stock.StockAlert", b =>
@@ -9319,6 +9822,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Transactions.InventoryTransaction", b =>
                 {
+                    b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceiptLine", "BranchReceiptLine")
+                        .WithMany()
+                        .HasForeignKey("BranchReceiptLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.Consolidation.InventoryConsolidationRun", "InventoryConsolidationRun")
                         .WithMany()
                         .HasForeignKey("InventoryConsolidationRunId")
@@ -9354,6 +9862,8 @@ namespace CafeChain.Migrations
                         .HasForeignKey("StoreInventoryId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("BranchReceiptLine");
 
                     b.Navigation("InventoryConsolidationRun");
 
@@ -10302,6 +10812,11 @@ namespace CafeChain.Migrations
                     b.Navigation("RecipeDetails");
 
                     b.Navigation("ToConversions");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.BranchReceipt", b =>
+                {
+                    b.Navigation("Lines");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.StockTake.StockTakeSession", b =>
