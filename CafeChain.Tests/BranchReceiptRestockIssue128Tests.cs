@@ -297,6 +297,72 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task LinkFulfillment_RejectsInventoryDocumentDetailId_DualPostBoundary()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedSubmittedRequestAsync(ctx, requested: 100m);
+            var workflow = CreateWorkflowService(ctx);
+
+            var link = await workflow.LinkFulfillmentAsync(
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles,
+                new LinkRestockFulfillmentRequest
+                {
+                    SourceType = RestockFulfillmentSourceTypes.Supplier,
+                    PlannedBaseQuantity = 50m,
+                    InventoryDocumentDetailId = 999
+                });
+            Assert.False(link.IsSuccess);
+            Assert.Equal(0, await ctx.RestockRequestFulfillments.CountAsync());
+        }
+
+        [Fact]
+        public async Task PartiallyReceived_CannotCancel()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            var service = CreateReceiptService(ctx);
+            var draft = await service.CreateDraftAsync(NewReceiptRequest(
+                requestId, 40m, UnitGram, 4_000m, "k-partial-cancel"), ManagerStaffId, ManagerRoles);
+            Assert.True((await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles)).IsSuccess);
+
+            var cancel = await CreateWorkflowService(ctx).CancelAsync(
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "late");
+            Assert.False(cancel.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.TransitionInvalid, cancel.ErrorCode);
+            var req = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
+            Assert.Equal(RestockRequestStatuses.PartiallyReceived, req.Status);
+        }
+
+        [Fact]
+        public async Task BranchReceipt_AlertEvaluationFailure_DoesNotRollbackReceipt()
+        {
+            // Alias of AlertFailure_DoesNotRollbackReceipt with explicit post-commit assertions.
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            var failingAlerts = new Mock<IStockAlertService>();
+            failingAlerts
+                .Setup(s => s.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
+                .ReturnsAsync(ServiceResult<CafeChain.Application.DTOs.POS.StockAlertEvaluationResultDto>.Failure("boom"));
+
+            var service = CreateReceiptService(ctx, failingAlerts.Object);
+            var draft = await service.CreateDraftAsync(NewReceiptRequest(
+                requestId, 40m, UnitGram, 4_000m, "k-alert-alias"), ManagerStaffId, ManagerRoles);
+            var confirm = await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+
+            Assert.True(confirm.IsSuccess, confirm.Message);
+            Assert.True(confirm.Data!.AlertEvaluationFailed);
+            Assert.Equal(BranchReceiptStatuses.Confirmed,
+                (await ctx.BranchReceipts.SingleAsync(r => r.BranchReceiptId == draft.Data.BranchReceiptId)).Status);
+            Assert.Equal(40m, (await ctx.StoreInventories.SingleAsync(i =>
+                i.StoreId == StoreId && i.IngredientId == IngredientId)).AvailableQty);
+            Assert.Equal(1, await ctx.InventoryTransactions.CountAsync());
+            Assert.Equal(RestockRequestStatuses.PartiallyReceived,
+                (await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId)).Status);
+        }
+
+        [Fact]
         public async Task AlertFailure_DoesNotRollbackReceipt()
         {
             using var ctx = CreateDbContext();

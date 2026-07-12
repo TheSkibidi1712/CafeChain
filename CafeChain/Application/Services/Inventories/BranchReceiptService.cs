@@ -67,10 +67,17 @@ namespace CafeChain.Application.Services.Inventories
             if (request.Lines == null || request.Lines.Count == 0)
                 return FailDetail("Phiếu nhận cần ít nhất một dòng.", BranchReceiptErrorCodes.QuantityInvalid);
 
-            // StoreManager / ShiftSupervisor: own store only (caller supplies store + roles).
+            // StoreManager / ShiftSupervisor: own store only (server-side, not UI-only).
             if (IsBranchScopedOnly(roleNames))
             {
-                // Store is validated against role at controller; service re-checks via staff home store if needed.
+                var staffStoreId = await _context.Staffs.AsNoTracking()
+                    .Where(s => s.StaffId == actorStaffId && s.Active)
+                    .Select(s => (int?)s.StoreId)
+                    .FirstOrDefaultAsync();
+                if (!staffStoreId.HasValue || staffStoreId.Value <= 0)
+                    return FailDetail("Không xác định được cửa hàng của nhân viên.", BranchReceiptErrorCodes.Unauthorized);
+                if (request.StoreId != staffStoreId.Value)
+                    return FailDetail("Chỉ tạo phiếu nhận cho cửa hàng được phân công.", BranchReceiptErrorCodes.StoreMismatch);
             }
 
             var now = DateTime.UtcNow;
@@ -421,6 +428,10 @@ namespace CafeChain.Application.Services.Inventories
                 // Resolve / lock inventory rows ASC
                 var inventoryByLine = new Dictionary<int, StoreInventory>();
                 var writerSnapshots = new Dictionary<int, Application.DTOs.Inventories.InventoryWriterModeSnapshot>();
+                var actorAccountId = await _context.Staffs.AsNoTracking()
+                    .Where(s => s.StaffId == actorStaffId)
+                    .Select(s => (int?)s.AccountId)
+                    .FirstOrDefaultAsync();
 
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
@@ -463,6 +474,14 @@ namespace CafeChain.Application.Services.Inventories
                         }
                         else if (resolve.Status == InventoryWriteResolutionStatuses.CreateAllowed)
                         {
+                            if (!actorAccountId.HasValue)
+                            {
+                                await transaction.RollbackAsync();
+                                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                    "Thiếu AccountId actor để tạo canonical PreparedItem.",
+                                    errorCode: BranchReceiptErrorCodes.ConfirmFailed);
+                            }
+
                             inv = new StoreInventory
                             {
                                 StoreId = receipt.StoreId,
@@ -471,6 +490,10 @@ namespace CafeChain.Application.Services.Inventories
                                 IngredientId = null,
                                 BtpIdentityState = BtpIdentityState.Canonical,
                                 QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                                QuantitySemanticsEvidenceType = QuantitySemanticsEvidenceType.SystemCanonicalCreation,
+                                QuantitySemanticsEvidenceReference = $"BRANCH_RECEIPT:{receipt.BranchReceiptId}",
+                                QuantitySemanticsReviewedAt = DateTime.UtcNow,
+                                QuantitySemanticsReviewedByAccountId = actorAccountId.Value,
                                 AvailableQty = 0,
                                 ReservedQty = 0,
                                 LastUpdated = DateTime.UtcNow

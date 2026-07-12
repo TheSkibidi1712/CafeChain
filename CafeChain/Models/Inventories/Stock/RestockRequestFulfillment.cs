@@ -16,7 +16,10 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>SUPPLIER | MANUAL (no transfer dual-post in #128).</summary>
         public string SourceType { get; set; } = string.Empty;
 
-        /// <summary>Optional reuse of import source detail — not independently confirmable via dual-post.</summary>
+        /// <summary>
+        /// Reserved for future import-detail link. #128 rejects setting this via API to prevent
+        /// InventoryDocument Confirm + BranchReceipt Confirm double-post of the same source.
+        /// </summary>
         public int? InventoryDocumentDetailId { get; set; }
 
         public string Status { get; set; } = string.Empty;
