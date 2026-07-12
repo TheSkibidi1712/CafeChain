@@ -6,6 +6,9 @@
     'use strict';
 
     function token() {
+        if (window.CafeChainAdminAjax && window.CafeChainAdminAjax.getAntiforgeryToken) {
+            return window.CafeChainAdminAjax.getAntiforgeryToken();
+        }
         return $('input[name="__RequestVerificationToken"]').val() || '';
     }
 

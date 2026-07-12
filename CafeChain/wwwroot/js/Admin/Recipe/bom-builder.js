@@ -6,6 +6,9 @@
     'use strict';
 
     function antiforgeryHeaders() {
+        if (window.CafeChainAdminAjax && window.CafeChainAdminAjax.antiforgeryHeaders) {
+            return window.CafeChainAdminAjax.antiforgeryHeaders();
+        }
         var token = $('input[name="__RequestVerificationToken"]').val() || '';
         return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
     }

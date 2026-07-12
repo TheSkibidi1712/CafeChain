@@ -256,7 +256,8 @@ namespace CafeChain.Tests.POS
             var path = Path.Combine(FindRepoRoot(), "CafeChain", "Areas", "Admin", "Views", "AdminRecipe", "Create.cshtml");
             var html = File.ReadAllText(path);
             Assert.Contains("Sản lượng đầu ra của một mẻ", html, StringComparison.Ordinal);
-            Assert.Contains("asp-for=\"ExpectedYield\"", html, StringComparison.Ordinal);
+            // Field contract: ExpectedYield (name attribute after #129 typed page model)
+            Assert.Contains("name=\"ExpectedYield\"", html, StringComparison.Ordinal);
             Assert.DoesNotContain("Sản lượng dự kiến sau hao hụt chuẩn", html, StringComparison.Ordinal);
             Assert.Contains("Không nhân thêm Yield", html, StringComparison.OrdinalIgnoreCase);
         }
@@ -346,8 +347,9 @@ namespace CafeChain.Tests.POS
         [Fact]
         public void AdminRecipe_List_TypeFromIdentityFields_NotNameHeuristic()
         {
-            var controllerPath = Path.Combine(FindRepoRoot(), "CafeChain", "Areas", "Admin", "Controllers", "AdminRecipeController.cs");
-            var src = File.ReadAllText(controllerPath);
+            // #129: type key resolution lives in AdminRecipeQueryService (thin controller).
+            var queryPath = Path.Combine(FindRepoRoot(), "CafeChain", "Application", "Services", "Admin", "Recipes", "AdminRecipeQueryService.cs");
+            var src = File.ReadAllText(queryPath);
             Assert.Contains("ResolveRecipeTypeKey", src, StringComparison.Ordinal);
             Assert.Contains("ToppingId", src, StringComparison.Ordinal);
             Assert.Contains("PreparedItemId", src, StringComparison.Ordinal);

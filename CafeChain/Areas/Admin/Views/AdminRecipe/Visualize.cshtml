@@ -1,11 +1,9 @@
-@model CafeChain.Models.Drinks.Recipe
+@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeVisualizePageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Xem cấu trúc BOM - " + Model.Name;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    string typeLabel = Model.ToppingId.HasValue ? "Topping"
-        : Model.DrinkId.HasValue ? "Món bán (POS)"
-        : Model.PreparedItemId.HasValue ? "Bán thành phẩm"
-        : "Công thức";
+    var statusBadge = AdminStatusDescriptor.Of(Model.Status, Model.Status, "rb-status-active");
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
@@ -18,7 +16,7 @@
                 <a asp-action="Index">Công thức BOM</a> &gt; <span>Xem cấu trúc BOM</span>
             </nav>
             <h1 class="rb-page-title mb-1">Xem cấu trúc BOM</h1>
-            <p class="text-muted mb-0">@Model.Name · #@Model.RecipeId · @typeLabel</p>
+            <p class="text-muted mb-0">@Model.Name · #@Model.RecipeId · @Model.TypeLabel</p>
         </div>
         <div class="d-flex gap-2">
             <a asp-action="Index" class="btn btn-rb-ghost">Quay lại</a>
@@ -29,16 +27,16 @@
     <div class="rb-card mb-3">
         <div class="card-body p-3">
             <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
-                <span class="rb-status-badge rb-status-active">@Model.Status</span>
-                @if (Model.PreparedItem != null)
+                <partial name="_StatusBadge" model="statusBadge" />
+                @if (Model.PreparedItemId.HasValue)
                 {
-                    <span class="rb-badge-sub">[@Model.PreparedItem.Code] @Model.PreparedItem.Name</span>
+                    <span class="rb-badge-sub">[@Model.PreparedItemCode] @Model.PreparedItemName</span>
                 }
                 @if (Model.OutputQuantity.HasValue)
                 {
                     <span class="rb-status-badge rb-status-complete">
                         Sản lượng mẻ: @Model.OutputQuantity.Value.ToString("0.####")
-                        @(Model.OutputUnit?.UnitCode ?? Model.OutputUnit?.Name)
+                        @(Model.OutputUnitCode ?? Model.OutputUnitName)
                     </span>
                 }
             </div>
@@ -52,31 +50,25 @@
 
     <div class="rb-card">
         <div class="card-body">
-            @if (Model.RecipeDetails == null || !Model.RecipeDetails.Any())
+            @if (Model.FirstLevelNodes == null || !Model.FirstLevelNodes.Any())
             {
                 <p class="text-muted mb-0">Công thức chưa có thành phần BOM.</p>
             }
             else
             {
                 <ul class="list-group list-group-flush">
-                @foreach (var detail in Model.RecipeDetails)
+                @foreach (var detail in Model.FirstLevelNodes)
                 {
-                    bool isIng = detail.IngredientId.HasValue;
-                    string name = isIng
-                        ? (detail.Ingredient?.Name ?? "N/A")
-                        : (detail.ChildRecipe?.Name ?? "N/A");
+                    bool isIng = detail.Kind == CafeChain.ViewModels.Admin.Recipes.RecipeBomTreeNodeKind.Ingredient;
                     string code = isIng
                         ? $"ING_{detail.IngredientId}"
                         : $"REC_{detail.ChildRecipeId}";
-                    string unit = detail.Unit?.Name
-                        ?? (isIng ? detail.Ingredient?.BaseUnit?.Name : "")
-                        ?? "";
                     string badge = isIng ? "rb-badge-raw" : "rb-badge-sub";
                     string kind = isIng ? "Nguyên liệu thô" : "Bán thành phẩm con";
                     <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
                         <div>
                             <span class="@badge">@kind</span>
-                            <span class="fw-semibold ms-2">@name</span>
+                            <span class="fw-semibold ms-2">@detail.DisplayName</span>
                             <div class="small text-muted">
                                 <code>@code</code>
                                 @if (!isIng && detail.ChildRecipeId.HasValue)
@@ -85,8 +77,8 @@
                                 }
                             </div>
                         </div>
-                        <span class="badge bg-light text-dark border font-monospace">
-                            @detail.Quantity.ToString("0.####") @unit
+                        <span class="badge bg-light text-dark border font-monospace" aria-label="Số lượng thành phần">
+                            @detail.Quantity.ToString("0.####") @detail.UnitName
                         </span>
                     </li>
                 }

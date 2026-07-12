@@ -1,4 +1,5 @@
 @model CafeChain.ViewModels.Admin.Recipes.AdminRecipeListPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Công thức BOM";
     var filter = Model?.TypeFilter ?? "ALL";
@@ -55,9 +56,7 @@
                 {
                     <tr>
                         <td colspan="9" class="text-center py-5">
-                            <p class="fw-semibold mb-1">Chưa có công thức</p>
-                            <p class="text-muted small mb-3">Tạo định mức đầu tiên cho món bán hoặc BTP.</p>
-                            <a asp-action="Create" class="btn btn-rb-save">Thêm công thức</a>
+                            <partial name="_EmptyState" model='("Chưa có công thức", "Tạo định mức đầu tiên cho món bán hoặc BTP.", "Thêm công thức", Url.Action("Create"), (string?)null, true)' />
                         </td>
                     </tr>
                 }
@@ -71,8 +70,8 @@
                             "TOPPING" => "rb-badge-topping",
                             _ => "rb-badge-sub"
                         };
-                        var costClass = r.CostComplete == true ? "rb-status-complete"
-                            : r.CostComplete == false ? "rb-status-incomplete" : "rb-status-inactive";
+                        var activeDesc = AdminStatusDisplay.RecipeActive(r.Active);
+                        var costDesc = AdminStatusDisplay.RecipeCost(r.CostComplete, r.CostStatus);
                         <tr data-recipe-type="@r.RecipeType" data-recipe-id="@r.RecipeId">
                             <td><span class="@typeClass">@r.TypeLabel</span></td>
                             <td>
@@ -89,12 +88,10 @@
                             <td class="font-monospace">@r.OutputPerBatchDisplay</td>
                             <td class="font-monospace">@r.NormalizedOutputDisplay</td>
                             <td>
-                                <span class="rb-status-badge @(r.Active ? "rb-status-active" : "rb-status-inactive")">
-                                    @(r.Active ? "Hoạt động" : "Ngưng")
-                                </span>
+                                <partial name="_StatusBadge" model="activeDesc" />
                             </td>
                             <td>
-                                <span class="rb-status-badge @costClass">@r.CostStatus</span>
+                                <partial name="_StatusBadge" model="costDesc" />
                                 @if (r.CostComplete == true && r.EstimatedCost.HasValue)
                                 {
                                     <div class="small text-muted font-monospace">

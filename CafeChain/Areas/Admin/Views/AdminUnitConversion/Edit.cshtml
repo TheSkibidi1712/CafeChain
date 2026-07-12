@@ -1,11 +1,12 @@
-@model CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM
+@model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionFormPageVM
 @using CafeChain.Application.DTOs.Admin.UnitConversions
 @{
     ViewData["Title"] = "Sửa quy đổi đo lường";
-    var ingredients = ViewBag.Ingredients as List<AdminIngredientOptionDto> ?? new();
-    var units = ViewBag.Units as List<AdminUnitOptionDto> ?? new();
-    var physical = ViewBag.PhysicalStandards as List<PhysicalStandardDto> ?? new();
-    var eval = ViewBag.Eval as AdminUnitConversionEvaluateResult;
+    var form = Model.Form;
+    var ingredients = Model.Ingredients ?? new();
+    var units = Model.Units ?? new();
+    var physical = Model.PhysicalStandards ?? new();
+    var eval = Model.Eval;
 }
 
 <link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
@@ -14,7 +15,7 @@
 <div class="container-fluid px-4 pt-4 pb-5">
     <div class="d-flex flex-wrap justify-content-between mb-3">
         <div>
-            <h1 class="uc-page-title mb-1">Sửa quy đổi đo lường #@Model.UnitConversionId</h1>
+            <h1 class="uc-page-title mb-1">Sửa quy đổi đo lường #@form.UnitConversionId</h1>
             <p class="text-muted small">Server re-evaluate trước khi lưu. Không đổi schema package.</p>
         </div>
         <a asp-action="Index" class="btn btn-uc-ghost">Quay lại</a>
@@ -30,7 +31,7 @@
 
     <form asp-action="Edit" method="post" id="conversionForm" class="uc-card p-4">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="UnitConversionId" />
+        <input type="hidden" name="UnitConversionId" value="@form.UnitConversionId" />
         <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
 
         @if (eval != null && eval.IsMassVolumeCross)
@@ -44,10 +45,10 @@
             <div class="col-lg-7">
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="ingredientSelect">Nguyên liệu</label>
-                    <select asp-for="IngredientId" id="ingredientSelect" class="form-select" required>
+                    <select name="IngredientId" id="ingredientSelect" class="form-select" required>
                         @foreach (var ing in ingredients)
                         {
-                            <option value="@ing.IngredientId" selected="@(ing.IngredientId == Model.IngredientId)" data-code="@ing.Code">
+                            <option value="@ing.IngredientId" selected="@(ing.IngredientId == form.IngredientId)" data-code="@ing.Code">
                                 [@ing.Code] @ing.Name
                             </option>
                         }
@@ -55,34 +56,34 @@
                 </div>
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold" asp-for="FromQuantity">SL đầu vào</label>
-                        <input asp-for="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" />
+                        <label class="form-label fw-semibold" for="FromQuantity">SL đầu vào</label>
+                        <input name="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" value="@form.FromQuantity" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold" asp-for="FromUnitId">ĐVT vào</label>
-                        <select asp-for="FromUnitId" id="FromUnitId" class="form-select">
+                        <label class="form-label fw-semibold" for="FromUnitId">ĐVT vào</label>
+                        <select name="FromUnitId" id="FromUnitId" class="form-select">
                             @foreach (var u in units)
                             {
-                                <option value="@u.UnitId" selected="@(u.UnitId == Model.FromUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
+                                <option value="@u.UnitId" selected="@(u.UnitId == form.FromUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
                             }
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold" asp-for="ToQuantity">SL đầu ra</label>
-                        <input asp-for="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" />
+                        <label class="form-label fw-semibold" for="ToQuantity">SL đầu ra</label>
+                        <input name="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" value="@form.ToQuantity" />
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold" asp-for="ToUnitId">ĐVT ra</label>
-                        <select asp-for="ToUnitId" id="ToUnitId" class="form-select">
+                        <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra</label>
+                        <select name="ToUnitId" id="ToUnitId" class="form-select">
                             @foreach (var u in units)
                             {
-                                <option value="@u.UnitId" selected="@(u.UnitId == Model.ToUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
+                                <option value="@u.UnitId" selected="@(u.UnitId == form.ToUnitId)" data-code="@u.UnitCode" data-type="@u.Type" data-pack="@(u.IsPackagingCount ? "1" : "0")">@u.UnitCode</option>
                             }
                         </select>
                     </div>
                 </div>
                 <div class="form-check mt-3" id="pkgAckWrap" style="display:none;">
-                    <input class="form-check-input" asp-for="PackageConflictAcknowledged" id="PackageConflictAcknowledged" />
+                    <input class="form-check-input" name="PackageConflictAcknowledged" type="checkbox" value="true" id="PackageConflictAcknowledged" checked="@form.PackageConflictAcknowledged" />
                     <label class="form-check-label" for="PackageConflictAcknowledged">
                         Xác nhận mâu thuẫn package NCC và vẫn lưu (package không đổi).
                     </label>
@@ -108,7 +109,7 @@
         window.CafeChainUnitConversionForm.init({
             evaluateUrl: '@Url.Action("Evaluate", "AdminUnitConversion", new { area = "Admin" })',
             isEdit: true,
-            unitConversionId: @Model.UnitConversionId
+            unitConversionId: @form.UnitConversionId
         });
         $('#ingredientSelect').select2({ theme: 'bootstrap-5', width: '100%' });
     </script>

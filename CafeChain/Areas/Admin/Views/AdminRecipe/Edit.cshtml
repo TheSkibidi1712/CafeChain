@@ -1,8 +1,10 @@
-@model CafeChain.ViewModels.Admin.Recipes.RecipeCreateVM
+@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
 @{
     ViewData["Title"] = "Tạo phiên bản công thức";
-    var recipeId = (int)ViewBag.RecipeId;
-    var recipeName = (string)ViewBag.RecipeName;
+    var form = Model.Form;
+    var options = Model.Options;
+    var recipeId = Model.SourceRecipeId ?? 0;
+    var recipeName = Model.RecipeName ?? "";
     var previewUrl = Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" });
     var bomOptionsUrl = Url.Action("GetBomOptions", "AdminPreparedItem", new { area = "Admin" });
 }
@@ -30,26 +32,23 @@
             <div class="rb-card-header"><span class="rb-section-title">A. Loại và đối tượng</span></div>
             <div class="card-body p-4">
                 <div class="rb-toggle btn-group w-100 mb-3" role="group">
-                    <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" @(Model.RecipeType == "POS" ? "checked" : "")>
+                    <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" @(form.RecipeType == "POS" ? "checked" : "")>
                     <label class="btn py-2" for="typePOS">Món bán (POS)</label>
-                    <input type="radio" class="btn-check" name="RecipeType" id="typeTOPPING" value="TOPPING" autocomplete="off" @(Model.RecipeType == "TOPPING" ? "checked" : "")>
+                    <input type="radio" class="btn-check" name="RecipeType" id="typeTOPPING" value="TOPPING" autocomplete="off" @(form.RecipeType == "TOPPING" ? "checked" : "")>
                     <label class="btn py-2" for="typeTOPPING">Topping</label>
-                    <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off" @(Model.RecipeType == "SUBRECIPE" ? "checked" : "")>
+                    <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off" @(form.RecipeType == "SUBRECIPE" ? "checked" : "")>
                     <label class="btn py-2" for="typeSUBRECIPE">Bán thành phẩm</label>
                 </div>
 
                 <div class="row g-3">
-                    <div class="col-md-4 conditional-section" id="sectionPOS_Drink" style="@(Model.RecipeType == "POS" ? "" : "display:none;")">
+                    <div class="col-md-4 conditional-section" id="sectionPOS_Drink" style="@(form.RecipeType == "POS" ? "" : "display:none;")">
                         <label class="form-label fw-semibold" for="drinkSelect">Sản phẩm POS</label>
                         <select name="DrinkId" id="drinkSelect" class="form-select">
                             <option value="">-- Chọn --</option>
-                            @if (ViewBag.Drinks != null)
+                            @foreach (var drink in options.Drinks)
                             {
-                                foreach (dynamic drink in ViewBag.Drinks)
-                                {
-                                    var sel = Model.DrinkId.HasValue && Model.DrinkId.Value == (int)drink.DrinkId;
-                                    <option value="@drink.DrinkId" selected="@sel">@drink.Name</option>
-                                }
+                                var sel = form.DrinkId.HasValue && form.DrinkId.Value == drink.Id;
+                                <option value="@drink.Id" selected="@sel">@drink.Name</option>
                             }
                         </select>
                     </div>
@@ -57,87 +56,80 @@
                         <label class="form-label fw-semibold" for="sizeSelect">Size</label>
                         <select name="SizeId" id="sizeSelect" class="form-select"><option value="">-- Size --</option></select>
                     </div>
-                    <div class="col-md-4 conditional-section" id="sectionTopping" style="@(Model.RecipeType == "TOPPING" ? "" : "display:none;")">
+                    <div class="col-md-4 conditional-section" id="sectionTopping" style="@(form.RecipeType == "TOPPING" ? "" : "display:none;")">
                         <label class="form-label fw-semibold" for="toppingSelect">Topping</label>
                         <select name="ToppingId" id="toppingSelect" class="form-select">
                             <option value="">-- Chọn --</option>
-                            @if (ViewBag.Toppings != null)
+                            @foreach (var topping in options.Toppings)
                             {
-                                foreach (dynamic topping in ViewBag.Toppings)
-                                {
-                                    var sel = Model.ToppingId.HasValue && Model.ToppingId.Value == (int)topping.ToppingId;
-                                    <option value="@topping.ToppingId" selected="@sel">@topping.Name</option>
-                                }
+                                var sel = form.ToppingId.HasValue && form.ToppingId.Value == topping.Id;
+                                <option value="@topping.Id" selected="@sel">@topping.Name</option>
                             }
                         </select>
                     </div>
-                    <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
+                    <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="@(form.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
                         <label class="form-label fw-semibold" for="preparedItemSelect">Bán thành phẩm đầu ra</label>
-                        @if (Model.IsLegacyUnmappedSubRecipe)
+                        @if (form.IsLegacyUnmappedSubRecipe)
                         {
                             <div class="alert alert-warning py-2 small">Legacy chưa map BTP — bắt buộc chọn BTP + sản lượng + ĐVT trước khi lưu phiên bản Active.</div>
                         }
-                        <select name="PreparedItemId" id="preparedItemSelect" class="form-select" @(Model.PreparedItemLocked ? "disabled" : "")>
+                        <select name="PreparedItemId" id="preparedItemSelect" class="form-select" @(form.PreparedItemLocked ? "disabled" : "")>
                             <option value="">-- Chọn BTP (mã + tên) --</option>
-                            @if (ViewBag.PreparedItems != null)
+                            @foreach (var pi in options.PreparedItems)
                             {
-                                foreach (dynamic pi in ViewBag.PreparedItems)
-                                {
-                                    var sel = Model.PreparedItemId.HasValue && Model.PreparedItemId.Value == (int)pi.PreparedItemId;
-                                    <option value="@pi.PreparedItemId"
-                                            data-code="@pi.Code"
-                                            data-name="@pi.Name"
-                                            data-baseunitcode="@pi.BaseUnitCode"
-                                            data-baseunitname="@pi.BaseUnitName"
-                                            data-activerecipeid="@(pi.ActiveRecipeId ?? "")"
-                                            data-hasactive="@(pi.HasActiveRecipe == true ? "1" : "0")"
-                                            selected="@sel">
-                                        [@pi.Code] @pi.Name
-                                    </option>
-                                }
+                                var sel = form.PreparedItemId.HasValue && form.PreparedItemId.Value == pi.PreparedItemId;
+                                <option value="@pi.PreparedItemId"
+                                        data-code="@pi.Code"
+                                        data-name="@pi.Name"
+                                        data-baseunitcode="@pi.BaseUnitCode"
+                                        data-baseunitname="@pi.BaseUnitName"
+                                        data-activerecipeid="@(pi.ActiveRecipeId?.ToString() ?? "")"
+                                        data-hasactive="@(pi.HasActiveRecipe ? "1" : "0")"
+                                        selected="@sel">
+                                    [@pi.Code] @pi.Name
+                                </option>
                             }
                         </select>
-                        @if (Model.PreparedItemLocked && Model.PreparedItemId.HasValue)
+                        @if (form.PreparedItemLocked && form.PreparedItemId.HasValue)
                         {
-                            <input type="hidden" name="PreparedItemId" value="@Model.PreparedItemId" />
+                            <input type="hidden" name="PreparedItemId" value="@form.PreparedItemId" />
                             <div class="form-text">BTP cố định trong chuỗi phiên bản (không đổi).</div>
                         }
                     </div>
                     <div class="col-md-3">
-                        <label class="form-label fw-semibold">Ngày hiệu lực</label>
-                        <input asp-for="EffectiveDate" class="form-control" type="date" />
+                        <label class="form-label fw-semibold" for="EffectiveDate">Ngày hiệu lực</label>
+                        <input name="EffectiveDate" id="EffectiveDate" class="form-control" type="date"
+                               value="@(form.EffectiveDate.ToString("yyyy-MM-dd"))" />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold">Trạng thái</label>
                         <div class="form-check form-switch mt-2">
-                            <input asp-for="Active" class="form-check-input" type="checkbox" />
-                            <label class="form-check-label" asp-for="Active">Kích hoạt</label>
+                            <input name="Active" class="form-check-input" type="checkbox" id="Active" value="true" checked="@form.Active" />
+                            <label class="form-check-label" for="Active">Kích hoạt</label>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="rb-card mb-4 conditional-section" id="sectionOutput" style="@(Model.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
+        <section class="rb-card mb-4 conditional-section" id="sectionOutput" style="@(form.RecipeType == "SUBRECIPE" ? "" : "display:none;")">
             <div class="rb-card-header"><span class="rb-section-title">B. Sản lượng đầu ra</span></div>
             <div class="card-body p-4">
                 <div class="row g-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
-                        <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001" />
+                        <input name="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
+                               value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))" />
                         <div class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm Yield %.</div>
                     </div>
                     <div class="col-md-4">
                         <label class="form-label fw-semibold" for="outputUnitSelect">Đơn vị đầu ra</label>
                         <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
                             <option value="">-- ĐVT --</option>
-                            @if (ViewBag.Units != null)
+                            @foreach (var unit in options.Units)
                             {
-                                foreach (dynamic unit in ViewBag.Units)
-                                {
-                                    var sel = Model.OutputUnitId.HasValue && Model.OutputUnitId.Value == (int)unit.UnitId;
-                                    <option value="@unit.UnitId" selected="@sel">@unit.Name (@unit.UnitCode)</option>
-                                }
+                                var sel = form.OutputUnitId.HasValue && form.OutputUnitId.Value == unit.UnitId;
+                                <option value="@unit.UnitId" selected="@sel">@unit.Name (@unit.UnitCode)</option>
                             }
                         </select>
                     </div>
@@ -184,10 +176,10 @@
                     <div id="displayCostStatus" class="small">Tính từ các dòng đủ dữ liệu gói</div>
                     <ul class="rb-cost-issues" id="displayCostIssues" style="display:none;"></ul>
                 </div>
-                <input type="hidden" asp-for="TotalCost" id="hiddenTotalCost" value="0" />
+                <input type="hidden" name="TotalCost" id="hiddenTotalCost" value="0" />
                 <div class="mt-3">
-                    <label class="form-label fw-semibold" asp-for="Description">Lưu ý kỹ thuật</label>
-                    <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                    <label class="form-label fw-semibold" for="Description">Lưu ý kỹ thuật</label>
+                    <textarea name="Description" id="Description" class="form-control" rows="2">@form.Description</textarea>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-3">
                     <a asp-action="Index" class="btn btn-rb-ghost">Hủy</a>
@@ -202,56 +194,49 @@
 <select id="itemTemplateSelect" class="d-none" aria-hidden="true">
     <option value="">-- Chọn --</option>
     <optgroup label="Nguyên liệu thô">
-        @if (ViewBag.Ingredients != null)
+        @foreach (var item in options.Ingredients)
         {
-            foreach (dynamic item in ViewBag.Ingredients)
-            {
-                <option value="ING_@(item.Id)"
-                        data-kind="ingredient"
-                        data-basecost="@item.BaseCost"
-                        data-costcomplete="@(item.CostComplete == true ? "1" : "0")"
-                        data-costmessage="@(item.CostMessage ?? "")"
-                        data-baseunitcode="@(item.BaseUnitCode ?? "")"
-                        data-unitid="@item.UnitId"
-                        data-unitname="@item.UnitName">[@(item.Id)] @item.Name</option>
-            }
+            <option value="ING_@(item.Id)"
+                    data-kind="ingredient"
+                    data-basecost="@item.BaseCost"
+                    data-costcomplete="@(item.CostComplete ? "1" : "0")"
+                    data-costmessage="@(item.CostMessage ?? "")"
+                    data-baseunitcode="@(item.BaseUnitCode ?? "")"
+                    data-unitid="@item.UnitId"
+                    data-unitname="@item.UnitName">[@(item.Id)] @item.Name</option>
         }
     </optgroup>
     <optgroup label="Bán thành phẩm con">
-        @if (ViewBag.SubRecipes != null)
+        @foreach (var item in options.SubRecipes)
         {
-            foreach (dynamic item in ViewBag.SubRecipes)
-            {
-                <option value="REC_@(item.Id)"
-                        data-kind="child_recipe"
-                        data-recipeid="@item.Id"
-                        data-picode="@(item.PreparedItemCode ?? "")"
-                        data-piname="@(item.PreparedItemName ?? "")"
-                        data-basecost="0"
-                        data-costcomplete="0"
-                        data-costmessage="@(item.CostMessage ?? "")"
-                        data-unitid="@item.UnitId"
-                        data-unitname="@item.UnitName">[REC#@item.Id] @item.Name</option>
-            }
+            <option value="REC_@(item.Id)"
+                    data-kind="child_recipe"
+                    data-recipeid="@item.Id"
+                    data-picode="@(item.PreparedItemCode ?? "")"
+                    data-piname="@(item.PreparedItemName ?? "")"
+                    data-basecost="0"
+                    data-costcomplete="0"
+                    data-costmessage="@(item.CostMessage ?? "")"
+                    data-unitid="@item.UnitId"
+                    data-unitname="@item.UnitName">[REC#@item.Id] @item.Name</option>
         }
     </optgroup>
 </select>
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/Admin/shared/admin-ajax.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Recipe/bom-builder.js" asp-append-version="true"></script>
     <script>
         (function () {
             const prefills = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(
-                (Model.Details ?? new List<CafeChain.ViewModels.Admin.Recipes.RecipeDetailVM>()).Select(d => new {
+                (form.Details ?? new List<CafeChain.ViewModels.Admin.Recipes.RecipeDetailVM>()).Select(d => new {
                     itemCode = d.ItemCode,
                     qty = d.Quantity,
                     unitId = d.UnitId,
                     unitName = d.UnitName
                 })));
 
-            // Light-theme edit: reuse create row engine by bootstrapping create then converting save to form submit
-            // Minimal edit path: use create init for rows + hide AJAX save
             window.CafeChainBomBuilder.initCreate({
                 preparedCreateUrl: '@Url.Action("Index", "AdminPreparedItem", new { area = "Admin" })',
                 bomOptionsUrl: '@bomOptionsUrl',
@@ -262,10 +247,8 @@
                 editUrlTemplate: ''
             });
 
-            // Clear default empty row and load prefills
             $('#bomTableBody').empty();
             if (prefills && prefills.length) {
-                // Re-add via DOM clone of addRow is internal — trigger clicks
                 prefills.forEach(function (p, idx) {
                     $('#btnAddRow').click();
                     var tr = $('#bomTableBody tr').eq(idx);
@@ -278,13 +261,8 @@
                 $('#btnAddRow').click();
             }
 
-            // Disable create AJAX save; use form POST
             $('#btnSaveRecipe').remove();
-            // Ensure section visibility for current type
             $('input[name="RecipeType"]:checked').trigger('change');
-            if ($('#preparedItemSelect').prop('disabled')) {
-                // still preview
-            }
             window.CafeChainBomBuilder.initEdit({ previewUrl: '@previewUrl' });
         })();
     </script>

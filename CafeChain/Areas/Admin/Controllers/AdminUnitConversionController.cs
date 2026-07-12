@@ -23,16 +23,20 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(string? search = null, string? status = null)
         {
-            var model = await _service.GetIndexAsync(search, status);
-            ViewBag.CanWrite = true; // same as before: any Admin panel role can mutate
-            return View(model);
+            var data = await _service.GetIndexAsync(search, status);
+            return View(new AdminUnitConversionIndexPageVM
+            {
+                Data = data,
+                CanWrite = true,
+                Search = search,
+                Status = status
+            });
         }
 
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            await PopulateFormLookupsAsync();
-            return View(new UnitConversionVM());
+            return View(await BuildFormPageAsync(new UnitConversionVM(), isEdit: false));
         }
 
         [HttpPost]
@@ -40,21 +44,17 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Create(UnitConversionVM model)
         {
             if (!ModelState.IsValid)
-            {
-                await PopulateFormLookupsAsync();
-                return View(model);
-            }
+                return View(await BuildFormPageAsync(model, isEdit: false));
 
             var request = ToRequest(model);
             var result = await _service.CreateAsync(request);
             if (!result.IsSuccess)
             {
                 ModelState.AddModelError("", result.Message ?? "Không lưu được quy đổi.");
-                ViewBag.EvalErrorCode = result.ErrorCode;
-                await PopulateFormLookupsAsync();
-                // Re-run evaluate for panel
-                ViewBag.Eval = await _service.EvaluateAsync(request);
-                return View(model);
+                var page = await BuildFormPageAsync(model, isEdit: false);
+                page.EvalErrorCode = result.ErrorCode;
+                page.Eval = await _service.EvaluateAsync(request);
+                return View(page);
             }
 
             TempData["SuccessMsg"] = "Đã tạo quy đổi đo lường theo nguyên liệu.";
@@ -76,9 +76,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 ToUnitId = data.ToUnitId,
                 ToQuantity = data.ToQuantity
             };
-            await PopulateFormLookupsAsync();
-            ViewBag.Eval = await _service.EvaluateAsync(data);
-            return View(vm);
+            var page = await BuildFormPageAsync(vm, isEdit: true);
+            page.Eval = await _service.EvaluateAsync(data);
+            return View(page);
         }
 
         [HttpPost]
@@ -86,20 +86,17 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Edit(UnitConversionVM model)
         {
             if (!ModelState.IsValid)
-            {
-                await PopulateFormLookupsAsync();
-                return View(model);
-            }
+                return View(await BuildFormPageAsync(model, isEdit: true));
 
             var request = ToRequest(model);
             var result = await _service.UpdateAsync(request);
             if (!result.IsSuccess)
             {
                 ModelState.AddModelError("", result.Message ?? "Không cập nhật được.");
-                ViewBag.EvalErrorCode = result.ErrorCode;
-                await PopulateFormLookupsAsync();
-                ViewBag.Eval = await _service.EvaluateAsync(request);
-                return View(model);
+                var page = await BuildFormPageAsync(model, isEdit: true);
+                page.EvalErrorCode = result.ErrorCode;
+                page.Eval = await _service.EvaluateAsync(request);
+                return View(page);
             }
 
             TempData["SuccessMsg"] = result.Message ?? "Cập nhật thành công.";
@@ -116,7 +113,6 @@ namespace CafeChain.Areas.Admin.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        /// <summary>#127 Server re-evaluation for form preview (JSON).</summary>
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Evaluate([FromBody] AdminUnitConversionEvaluateRequest request)
@@ -164,11 +160,16 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
-        private async Task PopulateFormLookupsAsync()
+        private async Task<AdminUnitConversionFormPageVM> BuildFormPageAsync(UnitConversionVM form, bool isEdit)
         {
-            ViewBag.Ingredients = await _service.GetIngredientOptionsAsync(null);
-            ViewBag.Units = await _service.GetUnitOptionsAsync();
-            ViewBag.PhysicalStandards = _service.GetPhysicalStandards();
+            return new AdminUnitConversionFormPageVM
+            {
+                Form = form,
+                Ingredients = await _service.GetIngredientOptionsAsync(null),
+                Units = await _service.GetUnitOptionsAsync(),
+                PhysicalStandards = _service.GetPhysicalStandards(),
+                IsEdit = isEdit
+            };
         }
 
         private static AdminUnitConversionEvaluateRequest ToRequest(UnitConversionVM model) => new()

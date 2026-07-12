@@ -1,0 +1,21 @@
+@model (string? Code, string? Name, string? TypeLabel)
+@{
+    var code = Model.Code;
+    var name = Model.Name ?? "";
+    var type = Model.TypeLabel;
+}
+<span class="admin-identity-label">
+    @if (!string.IsNullOrWhiteSpace(type))
+    {
+        <span class="small text-muted me-1">@type</span>
+    }
+    @if (!string.IsNullOrWhiteSpace(code))
+    {
+        <span class="fw-semibold">[@code]</span>
+        <span>@name</span>
+    }
+    else
+    {
+        <span class="fw-semibold">@name</span>
+    }
+</span>

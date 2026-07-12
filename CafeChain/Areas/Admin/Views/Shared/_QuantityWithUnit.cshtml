@@ -1,0 +1,10 @@
+@model (decimal? Quantity, string? Unit, string? AriaLabel)
+@{
+    var qty = Model.Quantity;
+    var unit = Model.Unit ?? "";
+    var aria = Model.AriaLabel ?? "Số lượng và đơn vị";
+    var text = qty.HasValue
+        ? $"{qty.Value.ToString("0.####")} {unit}".Trim()
+        : "—";
+}
+<span class="font-monospace" aria-label="@aria">@text</span>

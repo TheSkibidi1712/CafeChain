@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
+using CafeChain.ViewModels.Admin.PreparedItems;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
@@ -27,16 +28,22 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             const int pageSize = 10;
             var (data, total) = await _service.GetPagedAsync(search, status, page, pageSize);
+            var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
 
-            ViewBag.Page = page;
-            ViewBag.TotalPages = Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
-            ViewBag.Search = search;
-            ViewBag.Status = status;
-            ViewBag.CanWrite = User.IsInRole(RoleConstants.SystemAdmin)
-                || User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.AccountantWarehouse);
+            var vm = new AdminPreparedItemIndexPageVM
+            {
+                Items = data,
+                Search = search,
+                Status = status,
+                Page = page,
+                TotalPages = totalPages,
+                TotalCount = total,
+                CanWrite = User.IsInRole(RoleConstants.SystemAdmin)
+                    || User.IsInRole(RoleConstants.BusinessOwner)
+                    || User.IsInRole(RoleConstants.AccountantWarehouse)
+            };
 
-            return View(data);
+            return View(vm);
         }
 
         [HttpGet]
@@ -55,7 +62,6 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
-        /// <summary>#126 BOM combobox refresh — active BTP options with recipe meta (no form wipe).</summary>
         [HttpGet]
         public async Task<IActionResult> GetBomOptions(string? search = null)
         {

@@ -1,0 +1,17 @@
+@model CafeChain.ViewModels.Admin.Recipes.RecipeBomTreeResult
+@{
+    var roots = Model?.Roots ?? new List<CafeChain.ViewModels.Admin.Recipes.RecipeBomTreeNodeVM>();
+}
+<ul class="list-group list-group-flush mb-0">
+@if (roots.Count == 0)
+{
+    <li class="list-group-item text-muted">Công thức chưa có thành phần BOM.</li>
+}
+else
+{
+    foreach (var node in roots)
+    {
+        <partial name="Partials/_BomTreeNode" model="node" />
+    }
+}
+</ul>

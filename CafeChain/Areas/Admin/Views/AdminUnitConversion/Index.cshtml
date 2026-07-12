@@ -1,7 +1,8 @@
-@model CafeChain.Application.DTOs.Admin.UnitConversions.AdminUnitConversionIndexDto
+@model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionIndexPageVM
 @{
     ViewData["Title"] = "Đơn vị và quy đổi";
-    var canWrite = ViewBag.CanWrite as bool? ?? true;
+    var canWrite = Model?.CanWrite ?? true;
+    var data = Model?.Data ?? new CafeChain.Application.DTOs.Admin.UnitConversions.AdminUnitConversionIndexDto();
     var tab = Context.Request.Query["tab"].ToString();
     if (string.IsNullOrWhiteSpace(tab)) tab = "measuring";
 }
@@ -37,8 +38,8 @@
 
     <div class="uc-tab-bar" role="tablist">
         <a class="uc-tab @(tab == "physical" ? "active" : "")" href="?tab=physical">A. Quy đổi vật lý chuẩn</a>
-        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" href="?tab=measuring&search=@Model.Search&status=@Model.StatusFilter">B. Quy đổi đo lường theo NL</a>
-        <a class="uc-tab @(tab == "package" ? "active" : "")" href="?tab=package&search=@Model.Search">C. Quy cách đóng gói NCC</a>
+        <a class="uc-tab @(tab == "measuring" || tab == "" ? "active" : "")" href="?tab=measuring&search=@data.Search&status=@data.StatusFilter">B. Quy đổi đo lường theo NL</a>
+        <a class="uc-tab @(tab == "package" ? "active" : "")" href="?tab=package&search=@data.Search">C. Quy cách đóng gói NCC</a>
     </div>
 
     @* ── A. Physical ── *@
@@ -58,7 +59,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                    @foreach (var p in Model.PhysicalStandards)
+                    @foreach (var p in data.PhysicalStandards)
                     {
                         <tr>
                             <td class="uc-phys-item">@p.DisplayText</td>
@@ -79,7 +80,7 @@
     {
         <div class="uc-phys-strip" aria-label="Tham chiếu vật lý">
             <strong class="small text-uppercase text-muted">Quy đổi vật lý chuẩn (read-only):</strong>
-            @foreach (var p in Model.PhysicalStandards)
+            @foreach (var p in data.PhysicalStandards)
             {
                 <span class="uc-phys-item ms-2">@p.DisplayText</span>
             }
@@ -91,15 +92,15 @@
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-semibold" for="search">Tìm nguyên liệu (mã / tên)</label>
-                    <input class="form-control" id="search" name="search" value="@Model.Search" autocomplete="off" />
+                    <input class="form-control" id="search" name="search" value="@data.Search" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold" for="status">Trạng thái</label>
                     <select class="form-select" id="status" name="status">
-                        <option value="ALL" selected="@(Model.StatusFilter == "ALL")">Tất cả</option>
-                        <option value="ok" selected="@(Model.StatusFilter == "ok")">Hợp lệ</option>
-                        <option value="package_conflict" selected="@(Model.StatusFilter == "package_conflict")">Mâu thuẫn package</option>
-                        <option value="review" selected="@(Model.StatusFilter == "review")">Cần xem xét</option>
+                        <option value="ALL" selected="@(data.StatusFilter == "ALL")">Tất cả</option>
+                        <option value="ok" selected="@(data.StatusFilter == "ok")">Hợp lệ</option>
+                        <option value="package_conflict" selected="@(data.StatusFilter == "package_conflict")">Mâu thuẫn package</option>
+                        <option value="review" selected="@(data.StatusFilter == "review")">Cần xem xét</option>
                     </select>
                 </div>
                 <div class="col-md-4 d-flex gap-2">
@@ -112,9 +113,9 @@
         <div class="uc-card">
             <div class="uc-card-header d-flex justify-content-between">
                 <span>Quy đổi đo lường theo nguyên liệu</span>
-                <span class="small text-muted">@Model.TotalGroups nhóm · @Model.ConflictGroupCount cần chú ý</span>
+                <span class="small text-muted">@data.TotalGroups nhóm · @data.ConflictGroupCount cần chú ý</span>
             </div>
-            @if (Model.Groups == null || !Model.Groups.Any())
+            @if (data.Groups == null || !data.Groups.Any())
             {
                 <div class="p-4 text-center text-muted">
                     <p class="fw-semibold mb-1">Chưa có quy đổi đo lường theo nguyên liệu.</p>
@@ -123,7 +124,7 @@
             }
             else
             {
-                @foreach (var g in Model.Groups)
+                @foreach (var g in data.Groups)
                 {
                     var stClass = g.GroupStatusKey switch
                     {
@@ -249,7 +250,7 @@
                     Dữ liệu thuộc <strong>IngredientSupplier</strong> (PackageQuantity, UnitId, CurrentPrice).
                     Không lưu vào UnitConversion. CRUD offer tại màn Nhà cung cấp.
                 </p>
-                @if (Model.Groups == null || !Model.Groups.Any(g => g.PrimaryPackage?.IngredientSupplierId != null))
+                @if (data.Groups == null || !data.Groups.Any(g => g.PrimaryPackage?.IngredientSupplierId != null))
                 {
                     <p class="text-muted">Không có offer primary trong danh sách hiện tại. Thử tìm nguyên liệu hoặc mở màn Nhà cung cấp.</p>
                 }
@@ -269,7 +270,7 @@
                                 </tr>
                             </thead>
                             <tbody>
-                            @foreach (var g in Model.Groups.Where(x => x.PrimaryPackage?.IngredientSupplierId != null))
+                            @foreach (var g in data.Groups.Where(x => x.PrimaryPackage?.IngredientSupplierId != null))
                             {
                                 var p = g.PrimaryPackage!;
                                 <tr>

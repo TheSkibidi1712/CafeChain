@@ -148,6 +148,12 @@ namespace CafeChain.Extensions.Services
             // Admin - Recipes (+ #112 BTP output normalizer)
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeQueryService,
+                CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,
+                CafeChain.Application.Services.Admin.Recipes.RecipeBomTreeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Actor.IAdminActorContextAccessor,
+                CafeChain.Application.Services.Admin.Actor.AdminActorContextAccessor>();
 
             // Admin - Production runs (#119 intent; #120 stock apply)
             services.AddScoped<

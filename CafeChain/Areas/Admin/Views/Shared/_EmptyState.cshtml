@@ -1,0 +1,24 @@
+@model (string Title, string? Message, string? ActionLabel, string? ActionUrl, string? ActionId, bool ShowAction)
+@{
+    var title = Model.Title ?? "Chưa có dữ liệu";
+    var message = Model.Message;
+    var show = Model.ShowAction && (!string.IsNullOrWhiteSpace(Model.ActionLabel));
+}
+<div class="rb-empty-state text-center py-4">
+    <p class="fw-semibold mb-1">@title</p>
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <p class="text-muted small mb-3">@message</p>
+    }
+    @if (show)
+    {
+        if (!string.IsNullOrWhiteSpace(Model.ActionUrl))
+        {
+            <a class="btn btn-rb-save" href="@Model.ActionUrl">@Model.ActionLabel</a>
+        }
+        else
+        {
+            <button type="button" class="btn btn-rb-save" id="@(Model.ActionId ?? "btnEmptyPrimaryAction")">@Model.ActionLabel</button>
+        }
+    }
+</div>

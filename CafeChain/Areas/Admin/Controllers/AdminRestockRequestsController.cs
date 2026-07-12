@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,13 +13,16 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IRestockRequestService _service;
         private readonly IRestockRequestWorkflowService _workflow;
+        private readonly IAdminActorContextAccessor _actor;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
-            IRestockRequestWorkflowService workflow)
+            IRestockRequestWorkflowService workflow,
+            IAdminActorContextAccessor actor)
         {
             _service = service;
             _workflow = workflow;
+            _actor = actor;
         }
 
         [HttpGet]
@@ -31,11 +34,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction("Index", "AdminNotifications");
             }
 
-            var storeId = ResolveStoreId();
-            if (storeId <= 0)
+            var ctx = _actor.Get(User);
+            if (ctx.StoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.ListForStoreAsync(storeId, status, page, 20);
+            var result = await _service.ListForStoreAsync(ctx.StoreId, status, page, 20);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tải được danh sách yêu cầu.";
@@ -57,19 +60,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var storeId = ResolveStoreId();
-            var roles = RoleNames();
-            var staffId = ResolveStaffId();
-
+            var ctx = _actor.Get(User);
             var result = await _workflow.GetWorkflowDetailAsync(
-                id, staffId, storeId > 0 ? storeId : null, roles);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
 
             if (!result.IsSuccess || result.Data == null)
             {
-                // Fallback to simple detail for store-scoped list users
-                if (storeId > 0)
+                if (ctx.StoreId > 0)
                 {
-                    var simple = await _service.GetDetailAsync(id, storeId);
+                    var simple = await _service.GetDetailAsync(id, ctx.StoreId);
                     if (simple.IsSuccess && simple.Data != null)
                     {
                         ViewBag.CanWarehouse = CanWarehouseActions();
@@ -124,8 +123,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            var ctx = _actor.Get(User);
             var result = await _workflow.StartProcessingAsync(
-                id, ResolveStaffId(), ResolveStoreIdOrNull(), RoleNames(), reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -141,8 +141,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            var ctx = _actor.Get(User);
             var result = await _workflow.RejectAsync(
-                id, ResolveStaffId(), ResolveStoreIdOrNull(), RoleNames(), reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -158,8 +159,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            var ctx = _actor.Get(User);
             var result = await _workflow.CancelAsync(
-                id, ResolveStaffId(), ResolveStoreIdOrNull(), RoleNames(), reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -175,8 +177,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
+            var ctx = _actor.Get(User);
             var result = await _workflow.LinkFulfillmentAsync(
-                id, ResolveStaffId(), ResolveStoreIdOrNull(), RoleNames(), model);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, model);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -205,30 +208,5 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool CanCancel() =>
             CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
-
-        private int ResolveStoreId()
-        {
-            var claim = User.FindFirst("StoreId")?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private int? ResolveStoreIdOrNull()
-        {
-            var id = ResolveStoreId();
-            return id > 0 ? id : null;
-        }
-
-        private int ResolveStaffId()
-        {
-            var claim = User.FindFirst("StaffId")?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private List<string> RoleNames() =>
-            User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
-                .Select(c => c.Value)
-                .Distinct()
-                .ToList();
     }
 }

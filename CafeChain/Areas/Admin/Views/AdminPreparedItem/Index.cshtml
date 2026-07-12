@@ -1,10 +1,11 @@
-@model List<CafeChain.Application.DTOs.Admin.PreparedItems.AdminPreparedItemDTO>
-@using CafeChain.Application.Constants
+@model CafeChain.ViewModels.Admin.PreparedItems.AdminPreparedItemIndexPageVM
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Danh mục bán thành phẩm";
-    var canWrite = ViewBag.CanWrite as bool? ?? false;
-    int page = ViewBag.Page ?? 1;
-    int totalPages = ViewBag.TotalPages ?? 1;
+    var canWrite = Model?.CanWrite ?? false;
+    int page = Model?.Page ?? 1;
+    int totalPages = Model?.TotalPages ?? 1;
+    var items = Model?.Items ?? new List<CafeChain.Application.DTOs.Admin.PreparedItems.AdminPreparedItemDTO>();
     int colCount = canWrite ? 8 : 7;
 }
 
@@ -37,15 +38,15 @@
             <div class="row g-2 align-items-end">
                 <div class="col-md-5">
                     <label class="form-label small fw-semibold" for="searchBox">Tìm theo mã / tên</label>
-                    <input name="search" id="searchBox" class="form-control" value="@ViewBag.Search"
+                    <input name="search" id="searchBox" class="form-control" value="@Model.Search"
                            placeholder="VD: BTP-PEARL hoặc trân châu" autocomplete="off" />
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small fw-semibold" for="statusFilter">Trạng thái</label>
                     <select name="status" id="statusFilter" class="form-select">
                         <option value="">Tất cả</option>
-                        <option value="true" selected="@(ViewBag.Status?.ToString() == "True")">Hoạt động</option>
-                        <option value="false" selected="@(ViewBag.Status?.ToString() == "False")">Ngừng hoạt động</option>
+                        <option value="true" selected="@(Model.Status == true)">Hoạt động</option>
+                        <option value="false" selected="@(Model.Status == false)">Ngừng hoạt động</option>
                     </select>
                 </div>
                 <div class="col-md-4 d-flex gap-2">
@@ -75,34 +76,22 @@
                     </tr>
                 </thead>
                 <tbody>
-                @if (Model == null || !Model.Any())
+                @if (items == null || !items.Any())
                 {
                     <tr>
                         <td colspan="@colCount" class="text-center py-5">
-                            <div class="rb-empty-state" id="preparedItemEmptyState">
-                                <p class="fw-semibold mb-1">Chưa có bán thành phẩm.</p>
-                                <p class="text-muted small mb-3">Hãy tạo BTP trước khi tạo công thức sơ chế.</p>
-                                @if (canWrite)
-                                {
-                                    <button type="button" class="btn btn-rb-save" id="btnCreateEmpty">
-                                        Tạo bán thành phẩm đầu tiên
-                                    </button>
-                                }
+                            <div id="preparedItemEmptyState">
+                                <partial name="_EmptyState" model='("Chưa có bán thành phẩm.", "Hãy tạo BTP trước khi tạo công thức sơ chế.", "Tạo bán thành phẩm đầu tiên", (string?)null, "btnCreateEmpty", canWrite)' />
                             </div>
                         </td>
                     </tr>
                 }
                 else
                 {
-                    foreach (var item in Model)
+                    foreach (var item in items)
                     {
-                        var statusClass = item.Active ? "rb-status-active" : "rb-status-inactive";
-                        var configClass = item.ConfigStatusKey switch
-                        {
-                            "has_active" => "rb-status-complete",
-                            "inactive" => "rb-status-inactive",
-                            _ => "rb-status-incomplete"
-                        };
+                        var statusDesc = AdminStatusDisplay.RecipeActive(item.Active);
+                        var configDesc = AdminStatusDisplay.PreparedItemConfig(item.ConfigStatusKey, item.ConfigStatus);
                         <tr data-id="@item.PreparedItemId">
                             <td><code class="rb-code">@item.Code</code></td>
                             <td class="fw-semibold">@item.Name</td>
@@ -111,9 +100,7 @@
                                 <small class="text-muted">(@item.BaseUnitName)</small>
                             </td>
                             <td>
-                                <span class="rb-status-badge @statusClass">
-                                    @(item.Active ? "Hoạt động" : "Ngừng hoạt động")
-                                </span>
+                                <partial name="_StatusBadge" model="statusDesc" />
                             </td>
                             <td>
                                 @if (item.ActiveRecipeId.HasValue)
@@ -136,7 +123,7 @@
                             </td>
                             <td class="text-center font-monospace">@item.VersionCount</td>
                             <td>
-                                <span class="rb-status-badge @configClass">@item.ConfigStatus</span>
+                                <partial name="_StatusBadge" model="configDesc" />
                             </td>
                             @if (canWrite)
                             {

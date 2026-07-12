@@ -1,10 +1,11 @@
-@model CafeChain.ViewModels.Admin.UnitConversions.UnitConversionVM
+@model CafeChain.ViewModels.Admin.UnitConversions.AdminUnitConversionFormPageVM
 @using CafeChain.Application.DTOs.Admin.UnitConversions
 @{
     ViewData["Title"] = "Tạo quy đổi đo lường theo nguyên liệu";
-    var ingredients = ViewBag.Ingredients as List<AdminIngredientOptionDto> ?? new();
-    var units = ViewBag.Units as List<AdminUnitOptionDto> ?? new();
-    var physical = ViewBag.PhysicalStandards as List<PhysicalStandardDto> ?? new();
+    var form = Model.Form;
+    var ingredients = Model.Ingredients ?? new();
+    var units = Model.Units ?? new();
+    var physical = Model.PhysicalStandards ?? new();
 }
 
 <link rel="stylesheet" href="~/css/unit-conversion.css" asp-append-version="true" />
@@ -35,7 +36,7 @@
             <div class="col-lg-7">
                 <div class="mb-3">
                     <label class="form-label fw-semibold" for="ingredientSelect">Nguyên liệu <span class="text-danger">*</span></label>
-                    <select asp-for="IngredientId" id="ingredientSelect" class="form-select" required aria-describedby="ingHelp">
+                    <select name="IngredientId" id="ingredientSelect" class="form-select" required aria-describedby="ingHelp" value="@form.IngredientId">
                         <option value="">-- Chọn nguyên liệu (mã + tên) --</option>
                         @foreach (var ing in ingredients)
                         {
@@ -45,17 +46,17 @@
                         }
                     </select>
                     <div id="ingHelp" class="form-text">Tìm theo mã hoặc tên. Mỗi row thuộc một nguyên liệu.</div>
-                    <span asp-validation-for="IngredientId" class="text-danger small"></span>
+                    <span class="text-danger small" data-valmsg-for="IngredientId"></span>
                 </div>
 
                 <div class="row g-3 align-items-end mb-3">
                     <div class="col-md-3">
                         <label class="form-label fw-semibold" for="FromQuantity">Số lượng đầu vào <span class="text-danger">*</span></label>
-                        <input asp-for="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" min="0.0001" />
+                        <input name="FromQuantity" id="FromQuantity" class="form-control text-end" type="number" step="any" min="0.0001" value="@form.FromQuantity" />
                     </div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold" for="FromUnitId">Đơn vị đầu vào <span class="text-danger">*</span></label>
-                        <select asp-for="FromUnitId" id="FromUnitId" class="form-select" required>
+                        <select name="FromUnitId" id="FromUnitId" class="form-select" required>
                             <option value="">-- ĐVT --</option>
                             @foreach (var u in units)
                             {
@@ -72,11 +73,11 @@
                     <div class="col-md-1 text-center fw-bold text-muted pb-2">=</div>
                     <div class="col-md-3">
                         <label class="form-label fw-semibold" for="ToQuantity">Số lượng đầu ra <span class="text-danger">*</span></label>
-                        <input asp-for="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" min="0.0001" />
+                        <input name="ToQuantity" id="ToQuantity" class="form-control text-end" type="number" step="any" min="0.0001" value="@form.ToQuantity" />
                     </div>
                     <div class="col-md-2">
                         <label class="form-label fw-semibold" for="ToUnitId">ĐVT ra <span class="text-danger">*</span></label>
-                        <select asp-for="ToUnitId" id="ToUnitId" class="form-select" required>
+                        <select name="ToUnitId" id="ToUnitId" class="form-select" required>
                             <option value="">-- ĐVT --</option>
                             @foreach (var u in units)
                             {
@@ -93,7 +94,7 @@
                 </div>
 
                 <div class="form-check mb-3" id="pkgAckWrap" style="display:none;">
-                    <input class="form-check-input" asp-for="PackageConflictAcknowledged" id="PackageConflictAcknowledged" />
+                    <input class="form-check-input" name="PackageConflictAcknowledged" type="checkbox" value="true" id="PackageConflictAcknowledged" checked="@form.PackageConflictAcknowledged" />
                     <label class="form-check-label" for="PackageConflictAcknowledged" id="pkgAckLabel">
                         Tôi xác nhận mâu thuẫn với quy cách đóng gói NCC và vẫn lưu quy đổi đo lường
                         (không đổi package; giá vốn vẫn dùng quy cách NCC).

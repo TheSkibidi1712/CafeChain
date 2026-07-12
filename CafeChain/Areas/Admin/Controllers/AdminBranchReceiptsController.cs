@@ -1,6 +1,6 @@
-using System.Security.Claims;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,14 +8,19 @@ namespace CafeChain.Areas.Admin.Controllers
 {
     /// <summary>
     /// Issue #128 — Branch receipt draft / confirm for StoreManager & ShiftSupervisor (own store).
+    /// Controller does not mutate inventory; BranchReceiptService owns posting.
     /// </summary>
     public class AdminBranchReceiptsController : AdminBaseController
     {
         private readonly IBranchReceiptService _receiptService;
+        private readonly IAdminActorContextAccessor _actor;
 
-        public AdminBranchReceiptsController(IBranchReceiptService receiptService)
+        public AdminBranchReceiptsController(
+            IBranchReceiptService receiptService,
+            IAdminActorContextAccessor actor)
         {
             _receiptService = receiptService;
+            _actor = actor;
         }
 
         [HttpGet]
@@ -27,20 +32,20 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction("Index", "AdminRestockRequests");
             }
 
-            var storeId = ResolveStoreId();
-            if (storeId <= 0 && !IsGlobalRole())
+            var ctx = _actor.Get(User);
+            if (ctx.StoreId <= 0 && !IsGlobalRole())
                 return Unauthorized();
 
-            if (storeId <= 0)
+            if (ctx.StoreId <= 0)
             {
                 TempData["ErrorMessage"] = "Chọn cửa hàng để xem phiếu nhận.";
                 return View(new List<BranchReceiptListItemDto>());
             }
 
             var result = await _receiptService.ListForStoreAsync(
-                storeId, ResolveStaffId(), storeId, RoleNames(), status);
+                ctx.StoreId, ctx.StaffId, ctx.StoreId, ctx.RoleNames, status);
             ViewBag.StatusFilter = status;
-            ViewBag.StoreId = storeId;
+            ViewBag.StoreId = ctx.StoreId;
             return View(result.Data ?? new List<BranchReceiptListItemDto>());
         }
 
@@ -53,8 +58,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var storeId = ResolveStoreId();
-            var result = await _receiptService.GetDetailAsync(id, ResolveStaffId(), storeId > 0 ? storeId : null, RoleNames());
+            var ctx = _actor.Get(User);
+            var result = await _receiptService.GetDetailAsync(
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tìm thấy phiếu nhận.";
@@ -74,11 +80,12 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
+            var ctx = _actor.Get(User);
             ViewBag.RestockRequestId = restockRequestId;
-            ViewBag.StoreId = ResolveStoreId();
+            ViewBag.StoreId = ctx.StoreId;
             return View(new CreateBranchReceiptRequest
             {
-                StoreId = ResolveStoreId(),
+                StoreId = ctx.StoreId,
                 ReceiptKey = $"RCPT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6]}",
                 Lines = restockRequestId.HasValue
                     ? new List<CreateBranchReceiptLineInput>
@@ -99,11 +106,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var storeId = ResolveStoreId();
-            if (storeId > 0)
-                model.StoreId = storeId;
+            var ctx = _actor.Get(User);
+            if (ctx.StoreId > 0)
+                model.StoreId = ctx.StoreId;
 
-            var result = await _receiptService.CreateDraftAsync(model, ResolveStaffId(), RoleNames());
+            var result = await _receiptService.CreateDraftAsync(model, ctx.StaffId, ctx.RoleNames);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tạo được phiếu nhận.";
@@ -126,9 +133,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var storeId = ResolveStoreId();
+            var ctx = _actor.Get(User);
             var result = await _receiptService.ConfirmAsync(
-                id, ResolveStaffId(), storeId > 0 ? storeId : null, RoleNames());
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
 
             if (!result.IsSuccess)
             {
@@ -164,25 +171,5 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse);
-
-        private int ResolveStoreId()
-        {
-            var claim = User.FindFirst("StoreId")?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private int ResolveStaffId()
-        {
-            var claim = User.FindFirst("StaffId")?.Value
-                        ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private List<string> RoleNames() =>
-            User.Claims
-                .Where(c => c.Type == ClaimTypes.Role || c.Type == "role")
-                .Select(c => c.Value)
-                .Distinct()
-                .ToList();
     }
 }

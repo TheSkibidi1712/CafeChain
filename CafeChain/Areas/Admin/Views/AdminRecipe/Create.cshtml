@@ -1,6 +1,8 @@
-@model CafeChain.ViewModels.Admin.Recipes.RecipeCreateVM
+@model CafeChain.ViewModels.Admin.Recipes.AdminRecipeFormPageVM
 @{
     ViewData["Title"] = "Tạo công thức BOM";
+    var form = Model.Form;
+    var options = Model.Options;
     var preparedCreateUrl = Url.Action("Index", "AdminPreparedItem", new { area = "Admin" });
     var bomOptionsUrl = Url.Action("GetBomOptions", "AdminPreparedItem", new { area = "Admin" });
     var previewUrl = Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" });
@@ -43,12 +45,9 @@
                                 <label class="form-label fw-semibold" for="drinkSelect">Thức uống áp dụng <span class="text-danger">*</span></label>
                                 <select name="DrinkId" id="drinkSelect" class="form-select">
                                     <option value="">-- Chọn sản phẩm --</option>
-                                    @if (ViewBag.Drinks != null)
+                                    @foreach (var drink in options.Drinks)
                                     {
-                                        foreach (dynamic drink in ViewBag.Drinks)
-                                        {
-                                            <option value="@drink.DrinkId">@drink.Name</option>
-                                        }
+                                        <option value="@drink.Id">@drink.Name</option>
                                     }
                                 </select>
                             </div>
@@ -63,12 +62,9 @@
                                 <label class="form-label fw-semibold" for="toppingSelect">Topping áp dụng <span class="text-danger">*</span></label>
                                 <select name="ToppingId" id="toppingSelect" class="form-select">
                                     <option value="">-- Chọn topping --</option>
-                                    @if (ViewBag.Toppings != null)
+                                    @foreach (var topping in options.Toppings)
                                     {
-                                        foreach (dynamic topping in ViewBag.Toppings)
-                                        {
-                                            <option value="@topping.ToppingId">@topping.Name</option>
-                                        }
+                                        <option value="@topping.Id">@topping.Name</option>
                                     }
                                 </select>
                             </div>
@@ -79,23 +75,20 @@
                                     <div class="flex-grow-1" style="min-width:220px;">
                                         <select name="PreparedItemId" id="preparedItemSelect" class="form-select" aria-describedby="piHelp piSummary">
                                             <option value="">-- Chọn BTP (mã + tên) --</option>
-                                            @if (ViewBag.PreparedItems != null)
+                                            @foreach (var pi in options.PreparedItems)
                                             {
-                                                foreach (dynamic pi in ViewBag.PreparedItems)
-                                                {
-                                                    <option value="@pi.PreparedItemId"
-                                                            data-code="@pi.Code"
-                                                            data-name="@pi.Name"
-                                                            data-baseunitcode="@pi.BaseUnitCode"
-                                                            data-baseunitname="@pi.BaseUnitName"
-                                                            data-activerecipeid="@(pi.ActiveRecipeId ?? "")"
-                                                            data-activerecipecode="@(pi.ActiveRecipeCode ?? "")"
-                                                            data-activerecipename="@(pi.ActiveRecipeName ?? "")"
-                                                            data-versioncount="@(pi.VersionCount ?? 0)"
-                                                            data-hasactive="@(pi.HasActiveRecipe == true ? "1" : "0")">
-                                                        [@pi.Code] @pi.Name
-                                                    </option>
-                                                }
+                                                <option value="@pi.PreparedItemId"
+                                                        data-code="@pi.Code"
+                                                        data-name="@pi.Name"
+                                                        data-baseunitcode="@pi.BaseUnitCode"
+                                                        data-baseunitname="@pi.BaseUnitName"
+                                                        data-activerecipeid="@(pi.ActiveRecipeId?.ToString() ?? "")"
+                                                        data-activerecipecode="@(pi.ActiveRecipeCode ?? "")"
+                                                        data-activerecipename="@(pi.ActiveRecipeName ?? "")"
+                                                        data-versioncount="@pi.VersionCount"
+                                                        data-hasactive="@(pi.HasActiveRecipe ? "1" : "0")">
+                                                    [@pi.Code] @pi.Name
+                                                </option>
                                             }
                                         </select>
                                     </div>
@@ -111,12 +104,13 @@
 
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold" for="EffectiveDate">Ngày hiệu lực <span class="text-danger">*</span></label>
-                                <input asp-for="EffectiveDate" id="EffectiveDate" class="form-control" type="date" />
+                                <input name="EffectiveDate" id="EffectiveDate" class="form-control" type="date"
+                                       value="@(form.EffectiveDate.ToString("yyyy-MM-dd"))" />
                             </div>
                             <div class="col-md-3">
                                 <label class="form-label fw-semibold">Trạng thái</label>
                                 <div class="form-check form-switch mt-2">
-                                    <input asp-for="Active" class="form-check-input" type="checkbox" id="Active">
+                                    <input name="Active" class="form-check-input" type="checkbox" id="Active" value="true" checked="@form.Active">
                                     <label class="form-check-label" for="Active">Kích hoạt</label>
                                 </div>
                             </div>
@@ -131,7 +125,8 @@
                         <div class="row g-3">
                             <div class="col-md-4" id="sectionSub_Yield">
                                 <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
-                                <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
+                                <input name="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
+                                       value="@(form.ExpectedYield?.ToString(System.Globalization.CultureInfo.InvariantCulture))"
                                        aria-describedby="yieldHelp normalizedOutputPreview" />
                                 <div id="yieldHelp" class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm Yield %.</div>
                             </div>
@@ -139,12 +134,9 @@
                                 <label class="form-label fw-semibold" for="outputUnitSelect">Đơn vị đầu ra <span class="text-danger">*</span></label>
                                 <select name="OutputUnitId" id="outputUnitSelect" class="form-select" aria-describedby="normalizedOutputPreview">
                                     <option value="">-- ĐVT --</option>
-                                    @if (ViewBag.Units != null)
+                                    @foreach (var unit in options.Units)
                                     {
-                                        foreach (dynamic unit in ViewBag.Units)
-                                        {
-                                            <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
-                                        }
+                                        <option value="@unit.UnitId">@unit.Name (@unit.UnitCode)</option>
                                     }
                                 </select>
                             </div>
@@ -187,8 +179,8 @@
                     <div class="rb-card-header"><span class="rb-section-title">Lưu ý kỹ thuật</span></div>
                     <div class="card-body p-3">
                         <label class="visually-hidden" for="Description">Mô tả</label>
-                        <textarea asp-for="Description" id="Description" class="form-control border-0" rows="3"
-                                  placeholder="VD: Pha đá trước khi cho sữa..."></textarea>
+                        <textarea name="Description" id="Description" class="form-control border-0" rows="3"
+                                  placeholder="VD: Pha đá trước khi cho sữa...">@form.Description</textarea>
                     </div>
                 </section>
             </div>
@@ -205,7 +197,7 @@
                             <ul class="rb-cost-issues" id="displayCostIssues" style="display:none;"></ul>
                             <div class="d-flex flex-wrap gap-2 mt-2" id="costCtas"></div>
                         </div>
-                        <input type="hidden" asp-for="TotalCost" id="hiddenTotalCost" value="0" />
+                        <input type="hidden" name="TotalCost" id="hiddenTotalCost" value="0" />
                         <p class="small text-muted mt-3 mb-0">
                             Giá vốn incomplete không chặn lưu nếu backend cho phép. Không hiển thị 0 giả.
                         </p>
@@ -237,55 +229,50 @@
 <select id="itemTemplateSelect" class="d-none" aria-hidden="true">
     <option value="">-- Chọn thành phần --</option>
     <optgroup label="Nguyên liệu thô">
-        @if (ViewBag.Ingredients != null)
+        @foreach (var item in options.Ingredients)
         {
-            foreach (dynamic item in ViewBag.Ingredients)
-            {
-                <option value="ING_@(item.Id)"
-                        data-kind="ingredient"
-                        data-label="[@(item.Id)] @(item.Name)"
-                        data-basecost="@(item.BaseCost)"
-                        data-costcomplete="@(item.CostComplete == true ? "1" : "0")"
-                        data-packageprice="@(item.PackagePrice ?? 0)"
-                        data-packageqty="@(item.PackageQuantity ?? 0)"
-                        data-packageunit="@(item.PackageUnitCode ?? "")"
-                        data-baseunitcode="@(item.BaseUnitCode ?? "")"
-                        data-costmessage="@(item.CostMessage ?? "")"
-                        data-unitid="@(item.UnitId)"
-                        data-unitname="@(item.UnitName)">[@(item.Id)] @(item.Name)</option>
-            }
+            <option value="ING_@(item.Id)"
+                    data-kind="ingredient"
+                    data-label="[@(item.Id)] @(item.Name)"
+                    data-basecost="@(item.BaseCost)"
+                    data-costcomplete="@(item.CostComplete ? "1" : "0")"
+                    data-packageprice="@(item.PackagePrice ?? 0)"
+                    data-packageqty="@(item.PackageQuantity ?? 0)"
+                    data-packageunit="@(item.PackageUnitCode ?? "")"
+                    data-baseunitcode="@(item.BaseUnitCode ?? "")"
+                    data-costmessage="@(item.CostMessage ?? "")"
+                    data-unitid="@(item.UnitId)"
+                    data-unitname="@(item.UnitName)">[@(item.Id)] @(item.Name)</option>
         }
     </optgroup>
     <optgroup label="Bán thành phẩm con (pin Recipe)">
-        @if (ViewBag.SubRecipes != null)
+        @foreach (var item in options.SubRecipes)
         {
-            foreach (dynamic item in ViewBag.SubRecipes)
-            {
-                var piPart = item.PreparedItemCode != null
-                    ? $"BTP: [{item.PreparedItemCode}] {item.PreparedItemName}"
-                    : "BTP: (chưa map)";
-                <option value="REC_@(item.Id)"
-                        data-kind="child_recipe"
-                        data-label="[REC@(item.Id)] @(item.Name) · phiên bản #@(item.Id)"
-                        data-recipeid="@(item.Id)"
-                        data-recipecode="@(item.RecipeCode ?? "")"
-                        data-picode="@(item.PreparedItemCode ?? "")"
-                        data-piname="@(item.PreparedItemName ?? "")"
-                        data-basecost="0"
-                        data-costcomplete="0"
-                        data-costmessage="@(item.CostMessage ?? "")"
-                        data-unitid="@(item.UnitId)"
-                        data-unitname="@(item.UnitName)"
-                        data-baseunitcode="@(item.OutputUnitCode ?? "")">
-                    [REC#@(item.Id)] @(item.Name) · @piPart
-                </option>
-            }
+            var piPart = item.PreparedItemCode != null
+                ? $"BTP: [{item.PreparedItemCode}] {item.PreparedItemName}"
+                : "BTP: (chưa map)";
+            <option value="REC_@(item.Id)"
+                    data-kind="child_recipe"
+                    data-label="[REC@(item.Id)] @(item.Name) · phiên bản #@(item.Id)"
+                    data-recipeid="@(item.Id)"
+                    data-recipecode="@(item.RecipeCode ?? "")"
+                    data-picode="@(item.PreparedItemCode ?? "")"
+                    data-piname="@(item.PreparedItemName ?? "")"
+                    data-basecost="0"
+                    data-costcomplete="0"
+                    data-costmessage="@(item.CostMessage ?? "")"
+                    data-unitid="@(item.UnitId)"
+                    data-unitname="@(item.UnitName)"
+                    data-baseunitcode="@(item.OutputUnitCode ?? "")">
+                [REC#@(item.Id)] @(item.Name) · @piPart
+            </option>
         }
     </optgroup>
 </select>
 
 @section Scripts {
     @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/Admin/shared/admin-ajax.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Recipe/bom-builder.js" asp-append-version="true"></script>
     <script>
         window.CafeChainBomBuilder.initCreate({

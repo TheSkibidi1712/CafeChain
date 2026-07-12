@@ -1,0 +1,10 @@
+@model CafeChain.ViewModels.Admin.Shared.AdminStatusDescriptor
+@{
+    var label = Model?.Label ?? "—";
+    var css = Model?.CssClass ?? "rb-status-inactive";
+    var desc = Model?.AccessibleDescription ?? label;
+}
+<span class="rb-status-badge @css" title="@desc">
+    <span class="visually-hidden">@desc</span>
+    <span aria-hidden="true">@label</span>
+</span>
