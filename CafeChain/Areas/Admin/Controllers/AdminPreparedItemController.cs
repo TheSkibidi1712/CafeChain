@@ -1,6 +1,6 @@
-using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
+using CafeChain.Helpers;
 using CafeChain.ViewModels.Admin.PreparedItems;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -29,6 +29,8 @@ namespace CafeChain.Areas.Admin.Controllers
             const int pageSize = 10;
             var (data, total) = await _service.GetPagedAsync(search, status, page, pageSize);
             var totalPages = Math.Max(1, (int)Math.Ceiling((double)total / pageSize));
+            // Single source of truth for UI CTAs — must match Create/Update/SetActive Authorize roles.
+            var canWrite = RoleHelper.CanWritePreparedItems(User);
 
             var vm = new AdminPreparedItemIndexPageVM
             {
@@ -38,10 +40,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 Page = page,
                 TotalPages = totalPages,
                 TotalCount = total,
-                CanWrite = User.IsInRole(RoleConstants.SystemAdmin)
-                    || User.IsInRole(RoleConstants.BusinessOwner)
-                    || User.IsInRole(RoleConstants.AccountantWarehouse)
+                CanWrite = canWrite
             };
+
+            // Belt-and-suspenders for any residual ViewBag reads after #129 typed VM migration.
+            ViewBag.CanWrite = canWrite;
+            ViewBag.Search = search;
+            ViewBag.Status = status;
+            ViewBag.Page = page;
+            ViewBag.TotalPages = totalPages;
 
             return View(vm);
         }
@@ -71,10 +78,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles =
-            RoleConstants.SystemAdmin + "," +
-            RoleConstants.BusinessOwner + "," +
-            RoleConstants.AccountantWarehouse)]
+        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> Create([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -93,10 +97,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles =
-            RoleConstants.SystemAdmin + "," +
-            RoleConstants.BusinessOwner + "," +
-            RoleConstants.AccountantWarehouse)]
+        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> Update([FromBody] AdminPreparedItemSaveDTO dto)
         {
             if (!ModelState.IsValid)
@@ -115,10 +116,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [Authorize(Roles =
-            RoleConstants.SystemAdmin + "," +
-            RoleConstants.BusinessOwner + "," +
-            RoleConstants.AccountantWarehouse)]
+        [Authorize(Roles = RoleHelper.PreparedItemWriteRoles)]
         public async Task<IActionResult> SetActive([FromBody] AdminPreparedItemToggleDTO dto)
         {
             try

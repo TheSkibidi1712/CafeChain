@@ -2,9 +2,11 @@
 @using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Danh mục bán thành phẩm";
-    var canWrite = Model?.CanWrite ?? false;
-    int page = Model?.Page ?? 1;
-    int totalPages = Model?.TotalPages ?? 1;
+    // Prefer typed page VM (post-#129); fall back to ViewBag if model bag missing CanWrite.
+    var canWrite = Model?.CanWrite == true
+        || (ViewBag.CanWrite is bool vb && vb);
+    int page = Model?.Page ?? (ViewBag.Page as int? ?? 1);
+    int totalPages = Model?.TotalPages ?? (ViewBag.TotalPages as int? ?? 1);
     var items = Model?.Items ?? new List<CafeChain.Application.DTOs.Admin.PreparedItems.AdminPreparedItemDTO>();
     int colCount = canWrite ? 8 : 7;
 }
@@ -80,8 +82,22 @@
                 {
                     <tr>
                         <td colspan="@colCount" class="text-center py-5">
-                            <div id="preparedItemEmptyState">
-                                <partial name="_EmptyState" model='("Chưa có bán thành phẩm.", "Hãy tạo BTP trước khi tạo công thức sơ chế.", "Tạo bán thành phẩm đầu tiên", (string?)null, "btnCreateEmpty", canWrite)' />
+                            @* Inline empty CTA (restored after #129 ValueTuple _EmptyState path) so write roles always get btnCreateEmpty when CanWrite. *@
+                            <div class="rb-empty-state" id="preparedItemEmptyState">
+                                <p class="fw-semibold mb-1">Chưa có bán thành phẩm.</p>
+                                @if (canWrite)
+                                {
+                                    <p class="text-muted small mb-3">Hãy tạo BTP trước khi tạo công thức sơ chế.</p>
+                                    <button type="button" class="btn btn-rb-save" id="btnCreateEmpty">
+                                        Tạo bán thành phẩm đầu tiên
+                                    </button>
+                                }
+                                else
+                                {
+                                    <p class="text-muted small mb-0">
+                                        Chưa có BTP trong hệ thống. Chỉ Quản trị hệ thống, Chủ doanh nghiệp hoặc Kế toán/kho được tạo mới.
+                                    </p>
+                                }
                             </div>
                         </td>
                     </tr>
@@ -172,8 +188,8 @@
                         <a class="page-link"
                            asp-action="Index"
                            asp-route-page="@i"
-                           asp-route-search="@ViewBag.Search"
-                           asp-route-status="@ViewBag.Status">@i</a>
+                           asp-route-search="@(Model?.Search ?? ViewBag.Search as string)"
+                           asp-route-status="@(Model?.Status ?? ViewBag.Status as bool?)">@i</a>
                     </li>
                 }
             </ul>
