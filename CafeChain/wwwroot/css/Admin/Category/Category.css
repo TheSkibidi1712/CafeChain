@@ -179,3 +179,21 @@
     border-radius: 8px;
     font-size: 14px;
 }
+.category-ai-suggestion-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: .65rem;
+}
+
+.category-ai-option {
+    width: 100%;
+    padding: .75rem;
+    text-align: left;
+    border: 1px solid #d8dee6;
+    border-radius: 10px;
+    background: #fff;
+}
+
+.category-ai-option:hover { border-color: #d93d20; background: #fff7f5; }
+.category-ai-option-icon { font-size: 1.5rem; margin-right: .4rem; }
+.category-ai-option-code { display: block; color: #6c757d; font-size: .78rem; }

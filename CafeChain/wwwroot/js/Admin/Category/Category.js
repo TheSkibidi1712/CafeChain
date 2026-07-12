@@ -28,6 +28,25 @@ function unlockButton(btn, html) {
     btn.innerHTML = html;
 }
 
+function buildCategoryFormData(form) {
+
+    const formData = new FormData(form);
+
+    const activeCheckbox =
+        form.querySelector(
+            'input[type="checkbox"][name="Active"]'
+        );
+
+    formData.delete("Active");
+
+    formData.append(
+        "Active",
+        activeCheckbox?.checked ? "true" : "false"
+    );
+
+    return formData;
+}
+
 // =====================================================
 // VALIDATION
 // =====================================================
@@ -93,10 +112,10 @@ function validateCategoryCode(code) {
         return false;
     }
 
-    if (value.length > 50) {
+    if (value.length > 30) {
 
         toast(
-            "Mã danh mục tối đa 50 ký tự.",
+            "Mã danh mục tối đa 30 ký tự.",
             "error"
         );
 
@@ -143,7 +162,7 @@ async function createCategory(form) {
                 form.action,
                 {
                     method: "POST",
-                    body: new FormData(form)
+                    body: buildCategoryFormData(form)
                 });
 
         const result =
@@ -198,6 +217,65 @@ async function createCategory(form) {
     }
 }
 
+async function suggestCategories() {
+    const form = document.getElementById("createCategoryForm");
+    const button = document.getElementById("btnSuggestCategories");
+    const panel = document.getElementById("categoryAiSuggestions");
+    const list = document.getElementById("categoryAiSuggestionList");
+    if (!form || !button || !panel || !list) return;
+
+    const originalHtml = button.innerHTML;
+    lockButton(button, "Đang gợi ý...");
+    try {
+        const response = await fetch("/Admin/AdminCategory/AiSuggestions", {
+            method: "POST",
+            headers: { "RequestVerificationToken": form.querySelector('[name="__RequestVerificationToken"]')?.value || "" }
+        });
+        const result = await response.json();
+        if (!response.ok || !result.success) throw new Error(result.message || "Không thể tạo gợi ý.");
+
+        const suggestionMessage = document.getElementById("categoryAiSuggestionMessage");
+        if (suggestionMessage) {
+            suggestionMessage.textContent = (result.data.warnings || []).length
+                ? `Chọn một gợi ý để điền vào form. ${result.data.warnings.join(" ")}`
+                : "Chọn một gợi ý để điền vào form:";
+        }
+
+        list.innerHTML = (result.data.options || []).map((option, index) => `
+            <button type="button" class="category-ai-option" data-category-option="${index}">
+                <span class="category-ai-option-icon">${escapeCategoryHtml(option.icon)}</span>
+                <strong>${escapeCategoryHtml(option.name)}</strong>
+                <span class="category-ai-option-code">${escapeCategoryHtml(option.categoryCode)}</span>
+            </button>`).join("");
+        list.querySelectorAll("[data-category-option]").forEach(optionButton => {
+            optionButton.addEventListener("click", () => {
+                const option = result.data.options[Number(optionButton.dataset.categoryOption)];
+                form.querySelector('[name="Name"]').value = option.name;
+                form.querySelector('[name="CategoryCode"]').value = option.categoryCode;
+                form.querySelector('[name="Icon"]').value = option.icon;
+                const active = form.querySelector('input[type="checkbox"][name="Active"]');
+                if (active) active.checked = true;
+                panel.classList.add("d-none");
+                list.innerHTML = "";
+                toast("Đã điền gợi ý. Vui lòng kiểm tra trước khi lưu.", "success");
+            });
+        });
+        panel.classList.remove("d-none");
+    }
+    catch (error) {
+        toast(error.message || "Không thể tạo gợi ý danh mục.", "error");
+    }
+    finally {
+        unlockButton(button, originalHtml);
+    }
+}
+
+function escapeCategoryHtml(value) {
+    const element = document.createElement("div");
+    element.textContent = value || "";
+    return element.innerHTML;
+}
+
 // =====================================================
 // EDIT
 // =====================================================
@@ -235,7 +313,7 @@ async function editCategory(form) {
                 form.action,
                 {
                     method: "POST",
-                    body: new FormData(form)
+                    body: buildCategoryFormData(form)
                 });
 
         const result =
@@ -434,6 +512,8 @@ document.addEventListener(
                     createCategory(this);
                 });
         }
+
+        document.getElementById("btnSuggestCategories")?.addEventListener("click", suggestCategories);
 
         const editForm =
             document.getElementById(

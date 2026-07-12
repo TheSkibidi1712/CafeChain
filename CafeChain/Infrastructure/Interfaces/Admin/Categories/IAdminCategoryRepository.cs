@@ -4,7 +4,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Categories
 {
     public interface IAdminCategoryRepository
     {
-        Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync();
+        Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync(CancellationToken cancellationToken = default);
 
         Task<DrinkCategory?> GetCategoryByIdAsync(int id);
 
@@ -14,7 +14,9 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Categories
 
         void UpdateCategory(DrinkCategory category);
 
-        Task<bool> CategoryExistsAsync(string name, int? excludeId = null);
+        Task<bool> CategoryExistsAsync(string name, int? excludeId = null, CancellationToken cancellationToken = default);
+
+        Task<bool> CategoryCodeExistsAsync(string code, int? excludeId = null, CancellationToken cancellationToken = default);
 
         Task<bool> ToggleStatusAsync(int id);
 

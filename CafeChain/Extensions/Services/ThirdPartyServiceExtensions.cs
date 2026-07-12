@@ -2,6 +2,9 @@
 using CafeChain.Application.Services.Cloudinaries;
 using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Infrastrusture.Configurations;
+using CafeChain.Infrastructure.Configurations;
+using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.Services.AI;
 using CloudinaryDotNet;
 using Microsoft.Extensions.Options;
 using QuestPDF.Infrastructure;
@@ -15,7 +18,24 @@ namespace CafeChain.Extensions.Services
             services.AddCafeChainCloudinary(configuration);
             services.AddCafeChainQuestPdf();
             services.AddCafeChainPayOS(environment);
+            services.AddCafeChainOllama(configuration);
 
+            return services;
+        }
+
+        private static IServiceCollection AddCafeChainOllama(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<AIOptions>(configuration.GetSection(AIOptions.SectionName));
+            services.Configure<OllamaOptions>(configuration.GetSection(OllamaOptions.SectionName));
+            var options = configuration.GetSection(OllamaOptions.SectionName).Get<OllamaOptions>() ?? new();
+            if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+                throw new InvalidOperationException("Ollama:BaseUrl phải là URL tuyệt đối hợp lệ.");
+
+            services.AddHttpClient<IOllamaClient, OllamaClient>(client =>
+            {
+                client.BaseAddress = baseUri;
+                client.Timeout = TimeSpan.FromSeconds(Math.Clamp(options.TimeoutSeconds, 1, 600));
+            });
             return services;
         }
 

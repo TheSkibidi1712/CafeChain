@@ -11,6 +11,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
+using CafeChain.Application.DTOs.AI;
 
 
 
@@ -78,7 +79,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<StoreInventory> GetOrCreateStoreInventoryForIngredientAsync(int storeId, int ingredientId);
 
-        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
+        Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId, CancellationToken cancellationToken = default);
 
         Task AddStoreInventoryAsync(StoreInventory inventory);
 
@@ -155,11 +156,16 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<List<SupplierDropdownVM>> GetSupplierDropdownAsync();
 
-        Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId);
+        Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId, CancellationToken cancellationToken = default);
 
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 
         Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds);
+
+        Task<IReadOnlyList<SupplierOfferDTO>> GetSupplierOffersAsync(
+            IEnumerable<int> ingredientIds,
+            DateTime effectiveDate,
+            CancellationToken cancellationToken = default);
 
         Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type, InventoryDocumentPurpose? purpose = null);
 

@@ -3,7 +3,10 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.AI;
 using Microsoft.AspNetCore.Mvc;
+using CafeChain.Application.Exceptions;
+using CafeChain.ViewModels.Admin.Categories;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -12,13 +15,16 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IAdminCategoryService _categoryService;
         private readonly IAdminPermissionService _permissionService;
+        private readonly IAIService _aiService;
 
         public AdminCategoryController(
             IAdminCategoryService categoryService,
-            IAdminPermissionService permissionService)
+            IAdminPermissionService permissionService,
+            IAIService aiService)
         {
             _categoryService = categoryService;
             _permissionService = permissionService;
+            _aiService = aiService;
         }
 
         // =====================================================
@@ -83,6 +89,25 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiSuggestions()
+        {
+            var guard = await EnsureCategoryPermissionAsync(PermissionConstants.CategoryCreate);
+            if (guard != null) return guard;
+
+            var result = await _aiService.SuggestCategoriesAsync(HttpContext.RequestAborted);
+            Response.StatusCode = result.Success ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest;
+            return Json(new
+            {
+                success = result.Success,
+                message = result.Message,
+                data = result,
+                usedOllama = result.UsedOllama,
+                usedFallback = result.UsedFallback
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AdminCreateCategoryDto dto)
         {
             var guard = await EnsureCategoryPermissionAsync(
@@ -98,14 +123,21 @@ namespace CafeChain.Areas.Admin.Controllers
                 return ValidationError();
             }
 
-            if (await _categoryService.CheckCategoryNameExistAsync(dto.Name))
+            var duplicate = await _categoryService.CheckCategoryUniquenessAsync(
+                dto.Name, dto.CategoryCode, cancellationToken: HttpContext.RequestAborted);
+            if (duplicate.NameExists || duplicate.CodeExists)
             {
-                return Error(
-                    "Tên danh mục đã tồn tại.",
-                    StatusCodes.Status409Conflict);
+                return DuplicateConflict(duplicate.NameExists, duplicate.CodeExists);
             }
 
-            await _categoryService.CreateCategoryAsync(dto);
+            try
+            {
+                await _categoryService.CreateCategoryAsync(dto);
+            }
+            catch (DuplicateDataException ex)
+            {
+                return Error(ex.Message, StatusCodes.Status409Conflict);
+            }
 
             return Success("Thêm danh mục thành công.");
         }
@@ -131,16 +163,22 @@ namespace CafeChain.Areas.Admin.Controllers
                 return ValidationError();
             }
 
-            if (await _categoryService.CheckCategoryNameExistAsync(
-                dto.Name,
-                dto.CategoryId))
+            var duplicate = await _categoryService.CheckCategoryUniquenessAsync(
+                dto.Name, dto.CategoryCode, dto.CategoryId, HttpContext.RequestAborted);
+            if (duplicate.NameExists || duplicate.CodeExists)
             {
-                return Error(
-                    "Tên danh mục đã tồn tại.",
-                    StatusCodes.Status409Conflict);
+                return DuplicateConflict(duplicate.NameExists, duplicate.CodeExists);
             }
 
-            var result = await _categoryService.UpdateCategoryAsync(dto);
+            AdminCategoryViewModel? result;
+            try
+            {
+                result = await _categoryService.UpdateCategoryAsync(dto);
+            }
+            catch (DuplicateDataException ex)
+            {
+                return Error(ex.Message, StatusCodes.Status409Conflict);
+            }
 
             if (result == null)
             {
@@ -218,6 +256,23 @@ namespace CafeChain.Areas.Admin.Controllers
             return Error(
                 "Bạn không có quyền thực hiện chức năng này.",
                 StatusCodes.Status403Forbidden);
+        }
+
+        private JsonResult DuplicateConflict(bool nameExists, bool codeExists)
+        {
+            var message = nameExists && codeExists
+                ? "Tên và mã danh mục đã tồn tại."
+                : nameExists ? "Tên danh mục đã tồn tại." : "Mã danh mục đã tồn tại.";
+            Response.StatusCode = StatusCodes.Status409Conflict;
+            var errors = new Dictionary<string, string[]>();
+            if (nameExists) errors["Name"] = ["Tên danh mục đã tồn tại."];
+            if (codeExists) errors["CategoryCode"] = ["Mã danh mục đã tồn tại."];
+            return Json(new
+            {
+                success = false,
+                message,
+                errors
+            });
         }
 
         private JsonResult Success(string message)

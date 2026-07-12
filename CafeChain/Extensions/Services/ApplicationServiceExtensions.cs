@@ -28,6 +28,7 @@ using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
+using CafeChain.Application.Interfaces.AI;
 
 // ==========================================
 // Application - Services
@@ -64,6 +65,7 @@ using CafeChain.Application.Services.Workers;
 using CafeChain.Application.Workers;
 using CafeChain.Application.Services.Admin.Permissions;
 using CafeChain.Application.Services.Systems;
+using CafeChain.Application.Services.AI;
 
 namespace CafeChain.Extensions.Services
 {
@@ -72,6 +74,7 @@ namespace CafeChain.Extensions.Services
         public static IServiceCollection AddCafeChainApplicationServices(this IServiceCollection services)
         {
             services.AddScoped<IUserContext, UserContext>();
+            services.AddScoped<IAIService, AIService>();
 
             // Account
             services.AddScoped<IAccountService, AccountService>();

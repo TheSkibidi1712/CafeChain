@@ -338,6 +338,17 @@
                     @Html.AntiForgeryToken()
 
                     <div class="mb-3">
+                        <button type="button" id="btnSuggestCategories" class="btn btn-outline-primary" disabled="@(!canCreateCategory)">
+                            <i class="fas fa-wand-magic-sparkles me-2"></i>AI Gợi Ý
+                        </button>
+                    </div>
+
+                    <div id="categoryAiSuggestions" class="category-ai-suggestions d-none mb-3" aria-live="polite">
+                        <div id="categoryAiSuggestionMessage" class="small text-muted mb-2">Chọn một gợi ý để điền vào form:</div>
+                        <div id="categoryAiSuggestionList" class="category-ai-suggestion-list"></div>
+                    </div>
+
+                    <div class="mb-3">
 
                         <label class="form-label fw-semibold">
 
@@ -386,10 +397,6 @@
                     </div>
 
                     <div class="form-check form-switch mb-4">
-
-                        <input type="hidden"
-                               name="Active"
-                               value="false" />
 
                         <input type="checkbox"
                                name="Active"
@@ -526,10 +533,6 @@
                     </div>
 
                     <div class="form-check form-switch mb-4">
-
-                        <input type="hidden"
-                               name="Active"
-                               value="false" />
 
                         <input type="checkbox"
                                id="editCategoryActive"

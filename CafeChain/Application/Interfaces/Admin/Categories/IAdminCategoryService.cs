@@ -20,6 +20,12 @@ namespace CafeChain.Application.Interfaces.Admin.Categories
 
         Task<bool> CheckCategoryNameExistAsync(string name, int? excludeId = null);
 
+        Task<(bool NameExists, bool CodeExists)> CheckCategoryUniquenessAsync(
+            string name,
+            string? code,
+            int? excludeId = null,
+            CancellationToken cancellationToken = default);
+
         Task<bool> ToggleCategoryStatusAsync(int id);
 
     }

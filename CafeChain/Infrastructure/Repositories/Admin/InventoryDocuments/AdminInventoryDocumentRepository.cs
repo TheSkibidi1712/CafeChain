@@ -13,6 +13,7 @@ using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
 using Microsoft.EntityFrameworkCore;
+using CafeChain.Application.DTOs.AI;
 using Microsoft.EntityFrameworkCore.Storage;
 using CafeChain.Models.Enums.Inventory;
 
@@ -242,7 +243,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             return inventory;
         }
 
-        public async Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId)
+        public async Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId, CancellationToken cancellationToken = default)
         {
             return await _context.StoreInventories
 
@@ -255,7 +256,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
 
                 .Where(x => x.StoreId == storeId)
 
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
         public async Task AddStoreInventoryAsync(StoreInventory inventory)
@@ -538,7 +539,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .ToListAsync();
         }
 
-        public async Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId)
+        public async Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId, CancellationToken cancellationToken = default)
         {
             return await _context.IngredientSuppliers
                 .Include(x => x.Ingredient)
@@ -551,7 +552,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Where(x =>
                     x.SupplierId == supplierId &&
                     x.Active)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<List<Ingredient>> GetActiveIngredientsAsync()
@@ -592,6 +593,42 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     ids.Contains(x.IngredientId)
                     && x.Active)
                 .ToListAsync();
+        }
+
+        public async Task<IReadOnlyList<SupplierOfferDTO>> GetSupplierOffersAsync(
+            IEnumerable<int> ingredientIds,
+            DateTime effectiveDate,
+            CancellationToken cancellationToken = default)
+        {
+            var ids = ingredientIds.Where(x => x > 0).Distinct().ToList();
+            if (ids.Count == 0)
+                return [];
+
+            var date = effectiveDate.Date;
+            return await _context.IngredientSuppliers
+                .AsNoTracking()
+                .Where(x => ids.Contains(x.IngredientId) && x.Active && x.Supplier.Active && x.Ingredient.Active)
+                .Select(x => new SupplierOfferDTO
+                {
+                    IngredientSupplierId = x.IngredientSupplierId,
+                    IngredientId = x.IngredientId,
+                    IngredientName = x.Ingredient.Name,
+                    SupplierId = x.SupplierId,
+                    SupplierName = x.Supplier.Name ?? string.Empty,
+                    PackageUnitId = x.UnitId,
+                    PackageUnitName = x.Unit.Name,
+                    BaseUnitId = x.Ingredient.BaseUnitId,
+                    PackageQuantity = x.PackageQuantity,
+                    PackagePrice = x.PriceHistories
+                        .Where(h => h.EffectiveDate <= date)
+                        .OrderByDescending(h => h.EffectiveDate)
+                        .Select(h => (decimal?)h.Price)
+                        .FirstOrDefault() ?? x.CurrentPrice,
+                    MinimumOrderQuantity = x.MinimumOrderQuantity,
+                    LeadTimeDays = x.LeadTimeDays,
+                    IsPrimary = x.IsPrimary
+                })
+                .ToListAsync(cancellationToken);
         }
 
         // =====================================================

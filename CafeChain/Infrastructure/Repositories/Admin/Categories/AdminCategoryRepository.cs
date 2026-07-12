@@ -2,6 +2,8 @@ using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Models.Drinks;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
+using CafeChain.Application.Exceptions;
 
 namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
 {
@@ -16,12 +18,12 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
 
         // QUERIES METHODS
 
-        public async Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync()
+        public async Task<IEnumerable<DrinkCategory>> GetAllCategoriesAsync(CancellationToken cancellationToken = default)
         {
             return await _context.DrinkCategories
                 .AsNoTracking()
                 .OrderBy(c => c.Name)
-                .ToListAsync();
+                .ToListAsync(cancellationToken);
         }
 
         public async Task<DrinkCategory?> GetCategoryByIdAsync(int id)
@@ -50,7 +52,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
             return (items, totalCount);
         }
 
-        public async Task<bool> CategoryExistsAsync(string name, int? excludeId = null)
+        public async Task<bool> CategoryExistsAsync(string name, int? excludeId = null, CancellationToken cancellationToken = default)
         {
             name = name.Trim();
 
@@ -64,7 +66,18 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
                     c.CategoryId != excludeId.Value);
             }
 
-            return await query.AnyAsync();
+            return await query.AnyAsync(cancellationToken);
+        }
+
+        public async Task<bool> CategoryCodeExistsAsync(
+            string code,
+            int? excludeId = null,
+            CancellationToken cancellationToken = default)
+        {
+            code = code.Trim();
+            var query = _context.DrinkCategories.AsNoTracking().Where(x => x.CategoryCode == code);
+            if (excludeId.HasValue) query = query.Where(x => x.CategoryId != excludeId.Value);
+            return await query.AnyAsync(cancellationToken);
         }
 
 
@@ -98,7 +111,23 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Categories
 
         public async Task<int> SaveChangesAsync()
         {
-            return await _context.SaveChangesAsync();
+            try
+            {
+                return await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+            {
+                throw new DuplicateDataException(
+                    "Tên hoặc mã danh mục đã tồn tại. Vui lòng tải lại dữ liệu và thử lại.",
+                    innerException: ex);
+            }
+        }
+
+        private static bool IsUniqueConstraintViolation(Exception exception)
+        {
+            for (Exception? current = exception; current != null; current = current.InnerException)
+                if (current is SqlException sql && sql.Number is 2601 or 2627) return true;
+            return false;
         }
 
         // PRIVATE METHODS

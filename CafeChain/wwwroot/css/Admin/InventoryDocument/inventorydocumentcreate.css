@@ -891,3 +891,30 @@
         font-size: 18px;
     }
 }
+.ai-supplier-panel {
+    margin-top: 1rem;
+    padding: 1rem;
+    border: 1px solid #d9e2ec;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.ai-supplier-panel-header,
+.ai-supplier-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.ai-supplier-panel-header h5 { margin: .15rem 0 .5rem; }
+.ai-supplier-reason { color: #52606d; }
+.ai-supplier-metrics { display: flex; gap: 1rem; flex-wrap: wrap; margin: .75rem 0; }
+.ai-supplier-metrics span { padding: .6rem .75rem; background: #fff; border-radius: 8px; }
+.ai-supplier-warnings { color: #92400e; margin: .75rem 0; }
+.ai-supplier-comparisons { overflow-x: auto; margin: .75rem 0; }
+.ai-risk-badge { padding: .3rem .65rem; border-radius: 999px; font-weight: 700; }
+.ai-risk-low { color: #166534; background: #dcfce7; }
+.ai-risk-medium { color: #92400e; background: #fef3c7; }
+.ai-risk-high { color: #991b1b; background: #fee2e2; }

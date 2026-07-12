@@ -24,7 +24,11 @@ const InventoryCreate = (() => {
         rowTemplate: "#ingredientRowTemplate",
         addIngredient: "#btnAddIngredient",
         saveDraft: "#btnSaveDraft",
-        createDocument: "#btnCreateDocument"
+        createDocument: "#btnCreateDocument",
+        suggestInput: "#btnAiSuggestInput",
+        inputSuggestionPanel: "#aiInputSuggestionPanel",
+        analyzeSupplier: "#btnAnalyzeSupplier",
+        aiPanel: "#aiSupplierPanel"
     };
 
     const partnerType = {
@@ -58,6 +62,10 @@ const InventoryCreate = (() => {
     let supplierIngredients = [];
     let summaryTimer = null;
     let currentRequestKey = null;
+    let supplierAnalysisController = null;
+    let supplierSuggestion = null;
+    let inputSuggestionController = null;
+    let inputSuggestion = null;
 
     async function open(type) {
 
@@ -206,6 +214,23 @@ const InventoryCreate = (() => {
             form.querySelector(
                 selector.store);
 
+        const analyzeButton = form.querySelector(selector.analyzeSupplier);
+        const suggestInputButton = form.querySelector(selector.suggestInput);
+        suggestInputButton?.classList.toggle("d-none", !isImportPurchase());
+        suggestInputButton?.addEventListener("click", suggestInventoryInput);
+        form.querySelector("#btnApplyInputSuggestion")?.addEventListener("click", applyInventoryInputSuggestion);
+        form.querySelector("#btnToggleInputSuggestion")?.addEventListener("click", () =>
+            form.querySelector("#aiInputSuggestionDetails")?.classList.toggle("d-none"));
+        form.querySelector("#btnDismissInputSuggestion")?.addEventListener("click", () =>
+            form.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none"));
+        analyzeButton?.classList.toggle("d-none", !isImportPurchase());
+        analyzeButton?.addEventListener("click", analyzeSupplier);
+        form.querySelector("#btnApplySupplierSuggestion")?.addEventListener("click", applySupplierSuggestion);
+        form.querySelector("#btnToggleSupplierComparisons")?.addEventListener("click", () =>
+            form.querySelector("#aiSupplierComparisons")?.classList.toggle("d-none"));
+        form.querySelector("#btnDismissSupplierSuggestion")?.addEventListener("click", () =>
+            form.querySelector(selector.aiPanel)?.classList.add("d-none"));
+
         supplierSelect
             ?.addEventListener(
                 "change",
@@ -214,6 +239,8 @@ const InventoryCreate = (() => {
                     if (!isImportPurchase()) {
                         return;
                     }
+
+                    invalidateAiResults();
 
                     syncPartnerFromSupplier();
 
@@ -227,6 +254,8 @@ const InventoryCreate = (() => {
             ?.addEventListener(
                 "change",
                 async () => {
+
+                    invalidateAiResults();
 
                     if (isImportAdjustment()) {
                         await loadActiveIngredients(
@@ -249,6 +278,9 @@ const InventoryCreate = (() => {
                     }
 
                 });
+
+        tableBody?.addEventListener("change", invalidateAiResults);
+        tableBody?.addEventListener("input", invalidateAiResults);
 
         form
             .querySelector(selector.partnerName)
@@ -457,6 +489,9 @@ const InventoryCreate = (() => {
 
         const showSupplier =
             isImportPurchase();
+
+        document.querySelector(selector.analyzeSupplier)?.classList.toggle("d-none", !showSupplier);
+        document.querySelector(selector.suggestInput)?.classList.toggle("d-none", !showSupplier);
 
         supplierField?.classList.toggle("d-none", !showSupplier);
         partnerField?.classList.toggle("d-none", !shouldShowPartnerField());
@@ -1702,7 +1737,6 @@ const InventoryCreate = (() => {
             console.warn(
                 "Inventory document calculate failed; using local summary.",
                 {
-                    payload: dto,
                     error
                 });
 
@@ -1799,7 +1833,6 @@ const InventoryCreate = (() => {
                 "Inventory document submit failed",
                 {
                     endpoint,
-                    payload: dto,
                     error
                 });
 
@@ -2051,6 +2084,288 @@ const InventoryCreate = (() => {
         };
     }
 
+    async function suggestInventoryInput() {
+        if (!isImportPurchase()) {
+            showError("Chỉ gợi ý dữ liệu cho phiếu nhập mua hàng.");
+            return;
+        }
+
+        const dto = buildDto(false);
+        if (!dto.storeId || !dto.documentDate) {
+            showError("Hãy chọn cửa hàng trước khi dùng AI Gợi Ý.");
+            return;
+        }
+
+        inputSuggestionController?.abort();
+        inputSuggestionController = new AbortController();
+        const timeoutId = setTimeout(() => inputSuggestionController?.abort(), 125000);
+        const button = document.querySelector(selector.suggestInput);
+        setButtonBusy(button, true);
+
+        try {
+            const response = await fetch("/Admin/AI/SuggestInventoryInput", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": document.querySelector(`${selector.form} input[name="__RequestVerificationToken"]`)?.value || ""
+                },
+                body: JSON.stringify({
+                    type: dto.type,
+                    purpose: dto.purpose,
+                    storeId: dto.storeId,
+                    documentDate: dto.documentDate
+                }),
+                signal: inputSuggestionController.signal
+            });
+            const json = await response.json();
+            if (!response.ok || !json.success)
+                throw new Error(json.message || "Không có dữ liệu phù hợp để tạo gợi ý.");
+            inputSuggestion = json.data;
+            renderInventoryInputSuggestion(inputSuggestion);
+        }
+        catch (error) {
+            if (error.name !== "AbortError") showError(error.message || "Không thể tạo gợi ý nhập kho.");
+        }
+        finally {
+            clearTimeout(timeoutId);
+            setButtonBusy(button, false);
+        }
+    }
+
+    function renderInventoryInputSuggestion(result) {
+        const panel = document.querySelector(selector.inputSuggestionPanel);
+        if (!panel) return;
+        panel.classList.remove("d-none");
+        setText(panel, "#aiInputSuggestionSource", result.usedOllama ? "Ollama diễn giải" : "Fallback C#");
+        setText(panel, "#aiInputSuggestionSummary", result.summary || result.message);
+        setText(panel, "#aiInputSuggestionReason", result.reason || "");
+        panel.querySelector("#aiInputSuggestionWarnings").innerHTML = (result.warnings || [])
+            .map(x => `<div><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(x)}</div>`).join("");
+        panel.querySelector("#aiInputSuggestionDetails").innerHTML = `
+            <div class="mb-2"><strong>${escapeHtml(result.supplierName || "Chưa có NCC bao phủ đủ")}</strong> · Tổng dự kiến ${formatCurrency(result.totalAmount)} VNĐ</div>
+            <table class="table table-sm"><thead><tr><th>Nguyên liệu</th><th>Tồn khả dụng</th><th>Ngưỡng</th><th>SL đề xuất</th><th>MOQ</th><th>Thành tiền</th></tr></thead><tbody>
+            ${(result.items || []).map(x => `<tr><td>${escapeHtml(x.ingredientName)}</td><td>${formatQuantity(x.usableQuantity)}</td><td>${formatQuantity(x.minimumStockLevel)}</td><td>${formatQuantity(x.quantity)} ${escapeHtml(x.unitName)}</td><td>${formatQuantity(x.minimumOrderQuantity)}</td><td>${formatCurrency(x.lineTotal)} VNĐ</td></tr>`).join("")}
+            </tbody></table>${renderSupplierComparisonTable(result.comparisons || [])}`;
+        panel.querySelector("#btnApplyInputSuggestion").disabled = !result.canApply || !(result.items || []).length;
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    async function applyInventoryInputSuggestion() {
+        const result = inputSuggestion;
+        if (!result?.requiresUserConfirmation || !(result.items || []).length) return;
+        const confirmation = await Swal.fire({
+            icon: "question",
+            title: "Áp dụng danh sách AI gợi ý?",
+            text: "Các dòng hiện tại sẽ được thay bằng danh sách gợi ý. Phiếu sẽ không tự submit.",
+            showCancelButton: true,
+            confirmButtonText: "Áp dụng",
+            cancelButtonText: "Giữ dữ liệu cũ"
+        });
+        if (!confirmation.isConfirmed) return;
+
+        const snapshot = collectDetails();
+        try {
+            const supplierSelect = document.querySelector(selector.supplier);
+            supplierSelect.value = String(result.supplierId);
+            syncPartnerFromSupplier();
+            await loadSupplierIngredients(String(result.supplierId));
+            resetRows();
+            (result.items || []).forEach((suggestion, index) => {
+                const row = index === 0
+                    ? document.querySelector(`${selector.tableBody} .ingredient-row`)
+                    : addIngredientRow();
+                const select = row?.querySelector(".ingredient-select");
+                if (!row || !select) throw new Error("Không thể tạo dòng nguyên liệu.");
+                select.value = String(suggestion.ingredientId);
+                if (select.value !== String(suggestion.ingredientId))
+                    throw new Error(`Nhà cung cấp không còn cung cấp ${suggestion.ingredientName}.`);
+                applyIngredientToRow(row, Number(suggestion.ingredientId), true);
+                const unitSelect = row.querySelector(".unit-select");
+                unitSelect.value = String(suggestion.unitId);
+                if (unitSelect.value !== String(suggestion.unitId))
+                    throw new Error(`Đơn vị của ${suggestion.ingredientName} không còn hợp lệ.`);
+                setValue(row, ".unit-id", suggestion.unitId);
+                setValue(row, ".quantity", suggestion.quantity);
+                setValue(row, ".unit-price", suggestion.unitPrice);
+                setValue(row, ".base-quantity", suggestion.suggestedBaseQuantity);
+                updateRowAmount(row);
+            });
+            requestSummary();
+            document.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none");
+            inputSuggestion = null;
+            notify("Đã áp dụng danh sách gợi ý. Vui lòng kiểm tra trước khi tạo phiếu.");
+        }
+        catch (error) {
+            restoreSupplierRows(snapshot);
+            showError(`${error.message || "Không thể áp dụng gợi ý."} Dữ liệu cũ đã được khôi phục.`);
+        }
+    }
+
+    async function analyzeSupplier() {
+        if (!isImportPurchase()) {
+            showError("Chỉ phân tích nhà cung cấp cho phiếu nhập mua hàng.");
+            return;
+        }
+
+        const dto = buildDto(false);
+        const details = (dto.details || []).map(item => ({
+            ingredientId: item.ingredientId,
+            unitId: item.unitId,
+            quantity: item.quantity
+        }));
+        if (!dto.storeId || !dto.documentDate || !details.length
+            || details.some(x => !x.ingredientId || !x.unitId || x.quantity <= 0)) {
+            showError("Hãy chọn cửa hàng và nhập đầy đủ nguyên liệu, đơn vị, số lượng trước khi phân tích.");
+            return;
+        }
+
+        supplierAnalysisController?.abort();
+        supplierAnalysisController = new AbortController();
+        const timeoutId = setTimeout(() => supplierAnalysisController?.abort(), 125000);
+        const button = document.querySelector(selector.analyzeSupplier);
+        setButtonBusy(button, true);
+
+        try {
+            const response = await fetch("/Admin/AI/SuggestSupplier", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": document.querySelector(`${selector.form} input[name="__RequestVerificationToken"]`)?.value || ""
+                },
+                body: JSON.stringify({
+                    type: dto.type,
+                    purpose: dto.purpose,
+                    storeId: dto.storeId,
+                    documentDate: dto.documentDate,
+                    currentSupplierId: dto.supplierId,
+                    details
+                }),
+                signal: supplierAnalysisController.signal
+            });
+            const json = await response.json();
+            if (!response.ok || !json.success) throw new Error(json.message || "Không đủ dữ liệu để phân tích.");
+            supplierSuggestion = json.data;
+            renderSupplierSuggestion(supplierSuggestion);
+        }
+        catch (error) {
+            if (error.name !== "AbortError") showError(error.message || "Không thể phân tích nhà cung cấp.");
+        }
+        finally {
+            clearTimeout(timeoutId);
+            setButtonBusy(button, false);
+        }
+    }
+
+    function renderSupplierSuggestion(result) {
+        const panel = document.querySelector(selector.aiPanel);
+        if (!panel) return;
+        panel.classList.remove("d-none");
+        setText(panel, "#aiSupplierTitle", `Đề xuất: ${result.recommendedSupplierName || "Chưa xác định"}`);
+        setText(panel, "#aiSupplierRisk", result.riskLevel || "High");
+        panel.querySelector("#aiSupplierRisk").className = `ai-risk-badge ai-risk-${String(result.riskLevel || "High").toLowerCase()}`;
+        setText(panel, "#aiSupplierSummary", result.summary || result.message);
+        setText(panel, "#aiSupplierReason", result.reason || "");
+        panel.querySelector("#aiSupplierMetrics").innerHTML = `
+            <span>Chi phí đề xuất <strong>${formatCurrency(result.recommendedTotalCost)} VNĐ</strong></span>
+            <span>Tiết kiệm <strong>${formatCurrency(result.savingsAmount)} VNĐ (${Number(result.savingsPercentage || 0).toLocaleString("vi-VN") }%)</strong></span>`;
+        panel.querySelector("#aiSupplierWarnings").innerHTML = (result.warnings || [])
+            .map(x => `<div><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(x)}</div>`).join("");
+        panel.querySelector("#aiSupplierComparisons").innerHTML = renderSupplierComparisonTable(result.comparisons || []);
+        panel.querySelector("#btnApplySupplierSuggestion").disabled = !result.recommendedSupplierId || !(result.applyItems || []).length;
+        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+
+    async function applySupplierSuggestion() {
+        const result = supplierSuggestion;
+        if (!result?.recommendedSupplierId || !result.requiresUserConfirmation) return;
+        const currentSupplierId = readInt(document.querySelector(selector.supplier)?.value);
+        const changesSupplier = currentSupplierId !== Number(result.recommendedSupplierId);
+        const confirmation = await Swal.fire({
+            icon: "question",
+            title: changesSupplier ? "Chuyển nhà cung cấp?" : "Áp dụng gợi ý?",
+            text: "Hệ thống sẽ điền lại nhà cung cấp, đơn vị, số lượng và đơn giá. Phiếu sẽ không tự submit.",
+            showCancelButton: true,
+            confirmButtonText: "Áp dụng",
+            cancelButtonText: "Bỏ qua"
+        });
+        if (!confirmation.isConfirmed) return;
+
+        const snapshot = collectDetails();
+        try {
+            const supplierSelect = document.querySelector(selector.supplier);
+            supplierSelect.value = String(result.recommendedSupplierId);
+            syncPartnerFromSupplier();
+            await loadSupplierIngredients(String(result.recommendedSupplierId));
+
+            resetRows();
+            (result.applyItems || []).forEach((suggestion, index) => {
+                const row = index === 0
+                    ? document.querySelector(`${selector.tableBody} .ingredient-row`)
+                    : addIngredientRow();
+                const select = row?.querySelector(".ingredient-select");
+                if (!row || !select) throw new Error("Không thể tạo dòng nguyên liệu.");
+                select.value = String(suggestion.ingredientId);
+                if (select.value !== String(suggestion.ingredientId))
+                    throw new Error(`Nhà cung cấp không còn cung cấp ${suggestion.ingredientName}.`);
+                applyIngredientToRow(row, Number(suggestion.ingredientId), true);
+                const unitSelect = row.querySelector(".unit-select");
+                unitSelect.value = String(suggestion.unitId);
+                setValue(row, ".unit-id", suggestion.unitId);
+                setValue(row, ".quantity", suggestion.quantity);
+                setValue(row, ".unit-price", suggestion.unitPrice);
+                setValue(row, ".base-quantity", suggestion.baseQuantity);
+                updateRowAmount(row);
+            });
+            requestSummary();
+            document.querySelector(selector.aiPanel)?.classList.add("d-none");
+            supplierSuggestion = null;
+            notify("Đã áp dụng gợi ý. Vui lòng kiểm tra trước khi tạo phiếu.");
+        }
+        catch (error) {
+            const supplierSelect = document.querySelector(selector.supplier);
+            if (supplierSelect && currentSupplierId) {
+                supplierSelect.value = String(currentSupplierId);
+                syncPartnerFromSupplier();
+                await loadSupplierIngredients(String(currentSupplierId));
+                restoreSupplierRows(snapshot);
+            }
+            showError(`${error.message || "Không thể áp dụng gợi ý."} Dữ liệu cũ chưa được submit; vui lòng kiểm tra lại form.`);
+            console.warn("Supplier suggestion apply failed", { itemCount: snapshot.length });
+        }
+    }
+
+    function restoreSupplierRows(details) {
+        resetRows();
+        (details || []).forEach((item, index) => {
+            const row = index === 0 ? document.querySelector(`${selector.tableBody} .ingredient-row`) : addIngredientRow();
+            const select = row?.querySelector(".ingredient-select");
+            if (!row || !select) return;
+            select.value = String(item.ingredientId);
+            if (!select.value) return;
+            applyIngredientToRow(row, Number(item.ingredientId), true);
+            const unitSelect = row.querySelector(".unit-select");
+            unitSelect.value = String(item.unitId);
+            setValue(row, ".unit-id", item.unitId);
+            setValue(row, ".quantity", item.quantity);
+            setValue(row, ".unit-price", item.unitPrice);
+            updateRowAmount(row);
+        });
+        requestSummary();
+    }
+
+    function renderSupplierComparisonTable(comparisons) {
+        return `<table class="table table-sm"><thead><tr><th>Nhà cung cấp</th><th>Độ phủ</th><th>Thiếu</th><th>Tổng chi phí</th><th>Giao hàng</th><th>Rủi ro</th></tr></thead><tbody>
+            ${comparisons.map(x => `<tr><td>${escapeHtml(x.supplierName)}</td><td>${x.coveredIngredientCount || 0}/${x.totalIngredientCount || 0}</td><td>${(x.missingIngredients || []).map(escapeHtml).join(", ") || "-"}</td><td>${x.totalCost == null ? "-" : `${formatCurrency(x.totalCost)} VNĐ`}</td><td>${x.leadTimeDays == null ? "Chưa có" : `${x.leadTimeDays} ngày`}</td><td>${escapeHtml(x.riskLevel)}</td></tr>`).join("")}
+            </tbody></table>`;
+    }
+
+    function invalidateAiResults() {
+        document.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none");
+        document.querySelector(selector.aiPanel)?.classList.add("d-none");
+        inputSuggestion = null;
+        supplierSuggestion = null;
+    }
+
     async function readResponseMessage(response) {
 
         const contentType =
@@ -2077,7 +2392,9 @@ const InventoryCreate = (() => {
 
                     headers: {
                         "Content-Type":
-                            "application/json"
+                            "application/json",
+                        "RequestVerificationToken":
+                            document.querySelector(`${selector.form} input[name="__RequestVerificationToken"]`)?.value || ""
                     },
 
                     body:
@@ -2088,14 +2405,7 @@ const InventoryCreate = (() => {
             const message =
                 await readResponseMessage(response);
 
-            console.warn(
-                "Inventory document request failed",
-                {
-                    url,
-                    status: response.status,
-                    payload,
-                    message
-                });
+            console.warn("Inventory document request failed", { url, status: response.status, message });
 
             throw new Error(message || "Yêu cầu không hợp lệ.");
         }

@@ -4,6 +4,8 @@ using CafeChain.Infrastrusture.Interfaces.Admin.Categories;
 using CafeChain.Models.Drinks;
 using CafeChain.ViewModels.Admin.Categories;
 using CafeChain.ViewModels.Shared;
+using CafeChain.Application.Services.AI;
+using CafeChain.Application.Exceptions;
 
 namespace CafeChain.Application.Services.Admin.Categories
 {
@@ -61,9 +63,23 @@ namespace CafeChain.Application.Services.Admin.Categories
 
         public async Task<bool> CheckCategoryNameExistAsync(string name, int? excludeId = null)
         {
-            return await _repository.CategoryExistsAsync(
-                Normalize(name),
-                excludeId);
+            var result = await CheckCategoryUniquenessAsync(name, null, excludeId);
+            return result.NameExists;
+        }
+
+        public async Task<(bool NameExists, bool CodeExists)> CheckCategoryUniquenessAsync(
+            string name,
+            string? code,
+            int? excludeId = null,
+            CancellationToken cancellationToken = default)
+        {
+            var categories = await _repository.GetAllCategoriesAsync(cancellationToken);
+            var relevant = categories.Where(x => !excludeId.HasValue || x.CategoryId != excludeId.Value).ToList();
+            var nameKey = AISuggestionUniquenessPolicy.NormalizeTextKey(name);
+            var codeKey = AISuggestionUniquenessPolicy.NormalizeCodeKey(code);
+            return (
+                relevant.Any(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name) == nameKey),
+                codeKey.Length > 0 && relevant.Any(x => AISuggestionUniquenessPolicy.NormalizeCodeKey(x.CategoryCode) == codeKey));
         }
 
 
@@ -71,6 +87,10 @@ namespace CafeChain.Application.Services.Admin.Categories
 
         public async Task<AdminCategoryViewModel> CreateCategoryAsync(AdminCreateCategoryDto dto)
         {
+            var duplicate = await CheckCategoryUniquenessAsync(dto.Name, dto.CategoryCode);
+            if (duplicate.NameExists || duplicate.CodeExists)
+                throw BuildDuplicateException(duplicate.NameExists, duplicate.CodeExists);
+
             var category = BuildCategory(dto);
 
             await _repository.CreateCategoryAsync(category);
@@ -88,6 +108,10 @@ namespace CafeChain.Application.Services.Admin.Categories
             {
                 return null;
             }
+
+            var duplicate = await CheckCategoryUniquenessAsync(dto.Name, dto.CategoryCode, dto.CategoryId);
+            if (duplicate.NameExists || duplicate.CodeExists)
+                throw BuildDuplicateException(duplicate.NameExists, duplicate.CodeExists);
 
             UpdateCategoryEntity(category, dto);
 
@@ -192,6 +216,14 @@ namespace CafeChain.Application.Services.Admin.Categories
                 Icon = category.Icon,
                 Active = category.Active
             };
+        }
+
+        private static DuplicateDataException BuildDuplicateException(bool nameExists, bool codeExists)
+        {
+            var message = nameExists && codeExists
+                ? "Tên và mã danh mục đã tồn tại."
+                : nameExists ? "Tên danh mục đã tồn tại." : "Mã danh mục đã tồn tại.";
+            return new DuplicateDataException(message, nameExists ? "Name" : "CategoryCode");
         }
 
     }
