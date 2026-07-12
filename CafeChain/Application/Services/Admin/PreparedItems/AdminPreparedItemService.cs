@@ -47,12 +47,18 @@ namespace CafeChain.Application.Services.Admin.PreparedItems
                 query = query.Where(x => x.Active == status.Value);
 
             var total = await query.CountAsync();
-            var items = await query
+            var pageEntities = await query
                 .OrderBy(x => x.Code)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .Select(x => Map(x))
                 .ToListAsync();
+
+            var ids = pageEntities.Select(x => x.PreparedItemId).ToList();
+            var recipeStats = await LoadRecipeStatsAsync(ids);
+
+            var items = pageEntities
+                .Select(x => Map(x, recipeStats.GetValueOrDefault(x.PreparedItemId)))
+                .ToList();
 
             return (items, total);
         }
@@ -64,7 +70,116 @@ namespace CafeChain.Application.Services.Admin.PreparedItems
                 .Include(x => x.BaseUnit)
                 .FirstOrDefaultAsync(x => x.PreparedItemId == id);
 
-            return entity == null ? null : Map(entity);
+            if (entity == null)
+                return null;
+
+            var stats = await LoadRecipeStatsAsync(new List<int> { id });
+            return Map(entity, stats.GetValueOrDefault(id));
+        }
+
+        public async Task<List<AdminPreparedItemBomOptionDTO>> GetBomOptionsAsync(string? search = null)
+        {
+            var query = _context.PreparedItems
+                .AsNoTracking()
+                .Include(x => x.BaseUnit)
+                .Where(x => x.Active);
+
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                var kw = search.Trim();
+                query = query.Where(x => x.Code.Contains(kw) || x.Name.Contains(kw));
+            }
+
+            var entities = await query
+                .OrderBy(x => x.Code)
+                .Take(200)
+                .ToListAsync();
+
+            var ids = entities.Select(x => x.PreparedItemId).ToList();
+            var recipeStats = await LoadRecipeStatsAsync(ids);
+
+            return entities.Select(x =>
+            {
+                var s = recipeStats.GetValueOrDefault(x.PreparedItemId);
+                return new AdminPreparedItemBomOptionDTO
+                {
+                    PreparedItemId = x.PreparedItemId,
+                    Code = x.Code,
+                    Name = x.Name,
+                    BaseUnitId = x.BaseUnitId,
+                    BaseUnitCode = x.BaseUnit?.UnitCode ?? "",
+                    BaseUnitName = x.BaseUnit?.Name ?? "",
+                    Active = x.Active,
+                    ActiveRecipeId = s?.ActiveRecipeId,
+                    ActiveRecipeCode = s?.ActiveRecipeCode,
+                    ActiveRecipeName = s?.ActiveRecipeName,
+                    VersionCount = s?.VersionCount ?? 0
+                };
+            }).ToList();
+        }
+
+        private sealed class PreparedItemRecipeStats
+        {
+            public int? ActiveRecipeId { get; set; }
+            public string? ActiveRecipeCode { get; set; }
+            public string? ActiveRecipeName { get; set; }
+            public int VersionCount { get; set; }
+        }
+
+        /// <summary>
+        /// Batch recipe projection for page IDs — no per-row recipe lookup.
+        /// </summary>
+        private async Task<Dictionary<int, PreparedItemRecipeStats>> LoadRecipeStatsAsync(List<int> preparedItemIds)
+        {
+            var result = new Dictionary<int, PreparedItemRecipeStats>();
+            if (preparedItemIds == null || preparedItemIds.Count == 0)
+                return result;
+
+            foreach (var id in preparedItemIds)
+                result[id] = new PreparedItemRecipeStats();
+
+            var versionCounts = await _context.Recipes
+                .AsNoTracking()
+                .Where(r => r.PreparedItemId != null && preparedItemIds.Contains(r.PreparedItemId.Value))
+                .GroupBy(r => r.PreparedItemId!.Value)
+                .Select(g => new { PreparedItemId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            foreach (var vc in versionCounts)
+            {
+                if (result.TryGetValue(vc.PreparedItemId, out var s))
+                    s.VersionCount = vc.Count;
+            }
+
+            var activeRecipes = await _context.Recipes
+                .AsNoTracking()
+                .Where(r =>
+                    r.PreparedItemId != null
+                    && preparedItemIds.Contains(r.PreparedItemId.Value)
+                    && r.Active
+                    && r.Status == "Active")
+                .Select(r => new
+                {
+                    PreparedItemId = r.PreparedItemId!.Value,
+                    r.RecipeId,
+                    r.RecipeCode,
+                    r.Name
+                })
+                .ToListAsync();
+
+            foreach (var ar in activeRecipes)
+            {
+                if (!result.TryGetValue(ar.PreparedItemId, out var s))
+                    continue;
+                // One Active per PreparedItem enforced by DB; first is fine.
+                if (s.ActiveRecipeId.HasValue)
+                    continue;
+                s.ActiveRecipeId = ar.RecipeId;
+                s.ActiveRecipeCode = ar.RecipeCode;
+                s.ActiveRecipeName = ar.Name;
+            }
+
+            return result;
         }
 
         public async Task<int> CreateAsync(AdminPreparedItemSaveDTO dto)
@@ -240,17 +355,45 @@ namespace CafeChain.Application.Services.Admin.PreparedItems
             return t.Length == 0 ? null : t;
         }
 
-        private static AdminPreparedItemDTO Map(PreparedItem x) => new()
+        private static AdminPreparedItemDTO Map(PreparedItem x, PreparedItemRecipeStats? stats = null)
         {
-            PreparedItemId = x.PreparedItemId,
-            Code = x.Code,
-            Name = x.Name,
-            BaseUnitId = x.BaseUnitId,
-            BaseUnitCode = x.BaseUnit?.UnitCode ?? "",
-            BaseUnitName = x.BaseUnit?.Name ?? "",
-            Description = x.Description,
-            Active = x.Active
-        };
+            stats ??= new PreparedItemRecipeStats();
+            string configKey;
+            string configLabel;
+            if (!x.Active)
+            {
+                configKey = "inactive";
+                configLabel = "Ngừng hoạt động";
+            }
+            else if (stats.ActiveRecipeId.HasValue)
+            {
+                configKey = "has_active";
+                configLabel = "Có công thức hoạt động";
+            }
+            else
+            {
+                configKey = "no_recipe";
+                configLabel = "Chưa có công thức";
+            }
+
+            return new AdminPreparedItemDTO
+            {
+                PreparedItemId = x.PreparedItemId,
+                Code = x.Code,
+                Name = x.Name,
+                BaseUnitId = x.BaseUnitId,
+                BaseUnitCode = x.BaseUnit?.UnitCode ?? "",
+                BaseUnitName = x.BaseUnit?.Name ?? "",
+                Description = x.Description,
+                Active = x.Active,
+                ActiveRecipeId = stats.ActiveRecipeId,
+                ActiveRecipeCode = stats.ActiveRecipeCode,
+                ActiveRecipeName = stats.ActiveRecipeName,
+                VersionCount = stats.VersionCount,
+                ConfigStatus = configLabel,
+                ConfigStatusKey = configKey
+            };
+        }
 
         private static bool IsUniqueViolation(DbUpdateException ex)
         {

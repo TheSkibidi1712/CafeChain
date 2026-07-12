@@ -1,167 +1,98 @@
 @model CafeChain.Models.Drinks.Recipe
 @{
-    ViewData["Title"] = "Cấu Trúc BOM - " + Model.Name;
+    ViewData["Title"] = "Xem cấu trúc BOM - " + Model.Name;
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string typeLabel = Model.ToppingId.HasValue ? "Topping"
+        : Model.DrinkId.HasValue ? "Món bán (POS)"
+        : Model.PreparedItemId.HasValue ? "Bán thành phẩm"
+        : "Công thức";
 }
 
-<div class="container-fluid p-0">
-    <div class="row mb-2 mb-xl-3">
-        <div class="col-auto d-none d-sm-block">
-            <h3><i class="align-middle fas fa-project-diagram me-2 text-primary"></i> <strong>Cấu Trúc Định Mức</strong> (BOM Tree)</h3>
+<link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+
+<div class="rb-page">
+<div class="container-fluid px-4 pt-4 pb-5">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <nav class="rb-breadcrumb">
+                <a asp-action="Index">Công thức BOM</a> &gt; <span>Xem cấu trúc BOM</span>
+            </nav>
+            <h1 class="rb-page-title mb-1">Xem cấu trúc BOM</h1>
+            <p class="text-muted mb-0">@Model.Name · #@Model.RecipeId · @typeLabel</p>
         </div>
-        <div class="col-auto ms-auto text-end mt-n1">
-            <a asp-action="Index" class="btn btn-secondary">
-                <i class="align-middle fas fa-arrow-left"></i> Quay lại
-            </a>
-            <a asp-action="Edit" asp-route-id="@Model.RecipeId" class="btn btn-primary">
-                <i class="align-middle fas fa-edit"></i> Sửa công thức
-            </a>
+        <div class="d-flex gap-2">
+            <a asp-action="Index" class="btn btn-rb-ghost">Quay lại</a>
+            <a asp-action="Edit" asp-route-id="@Model.RecipeId" class="btn btn-rb-save">Tạo phiên bản mới</a>
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-header bg-light">
-            <h5 class="card-title mb-0">
-                <i class="fas fa-sitemap text-info me-2"></i> @Model.Name 
-                <span class="badge bg-success ms-2">Hao hụt: @Model.YieldPercentage%</span>
-            </h5>
-            <small class="text-muted">Cấu trúc đa tầng (Multi-level BOM) thể hiện toàn bộ nguyên vật liệu cấu thành sản phẩm.</small>
+    <div class="rb-card mb-3">
+        <div class="card-body p-3">
+            <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                <span class="rb-status-badge rb-status-active">@Model.Status</span>
+                @if (Model.PreparedItem != null)
+                {
+                    <span class="rb-badge-sub">[@Model.PreparedItem.Code] @Model.PreparedItem.Name</span>
+                }
+                @if (Model.OutputQuantity.HasValue)
+                {
+                    <span class="rb-status-badge rb-status-complete">
+                        Sản lượng mẻ: @Model.OutputQuantity.Value.ToString("0.####")
+                        @(Model.OutputUnit?.UnitCode ?? Model.OutputUnit?.Name)
+                    </span>
+                }
+            </div>
+            <div class="small text-muted">
+                Chú giải:
+                <span class="rb-badge-raw ms-1">Nguyên liệu thô</span>
+                <span class="rb-badge-sub ms-1">Bán thành phẩm con (pin Recipe version)</span>
+            </div>
         </div>
+    </div>
+
+    <div class="rb-card">
         <div class="card-body">
-            
-            <div class="bom-tree">
-                <!-- ROOT NODE (TIER 1) -->
-                <div class="tree-node root-node">
-                    <div class="node-content d-flex align-items-center bg-primary bg-opacity-10 p-3 rounded border border-primary">
-                        <div class="node-icon bg-primary text-white rounded-circle d-flex justify-content-center align-items-center me-3" style="width: 40px; height: 40px;">
-                            <i class="fas fa-coffee fs-5"></i>
-                        </div>
-                        <div class="flex-grow-1">
-                            <h4 class="mb-0 fw-bold text-primary">@Model.Name</h4>
-                            <div class="text-muted small">
-                                @if (Model.DrinkId.HasValue) { <span>POS Product (Tier 1)</span> } else { <span>Sub-Recipe (Tier 1)</span> }
+            @if (Model.RecipeDetails == null || !Model.RecipeDetails.Any())
+            {
+                <p class="text-muted mb-0">Công thức chưa có thành phần BOM.</p>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                @foreach (var detail in Model.RecipeDetails)
+                {
+                    bool isIng = detail.IngredientId.HasValue;
+                    string name = isIng
+                        ? (detail.Ingredient?.Name ?? "N/A")
+                        : (detail.ChildRecipe?.Name ?? "N/A");
+                    string code = isIng
+                        ? $"ING_{detail.IngredientId}"
+                        : $"REC_{detail.ChildRecipeId}";
+                    string unit = detail.Unit?.Name
+                        ?? (isIng ? detail.Ingredient?.BaseUnit?.Name : "")
+                        ?? "";
+                    string badge = isIng ? "rb-badge-raw" : "rb-badge-sub";
+                    string kind = isIng ? "Nguyên liệu thô" : "Bán thành phẩm con";
+                    <li class="list-group-item d-flex flex-wrap justify-content-between align-items-center gap-2">
+                        <div>
+                            <span class="@badge">@kind</span>
+                            <span class="fw-semibold ms-2">@name</span>
+                            <div class="small text-muted">
+                                <code>@code</code>
+                                @if (!isIng && detail.ChildRecipeId.HasValue)
+                                {
+                                    <span>· Phiên bản Recipe #@detail.ChildRecipeId (pin, không auto latest)</span>
+                                }
                             </div>
                         </div>
-                        <div class="node-badge">
-                            <span class="badge bg-primary fs-6">Yield: @Model.YieldPercentage%</span>
-                        </div>
-                    </div>
-                    
-                    <!-- CHILDREN -->
-                    <div class="tree-children mt-3 ms-5 position-relative border-start border-2 border-secondary ps-4 pb-2">
-                        @foreach (var detail in Model.RecipeDetails)
-                        {
-                            await RenderNode(detail, 2);
-                        }
-                    </div>
-                </div>
-            </div>
-
+                        <span class="badge bg-light text-dark border font-monospace">
+                            @detail.Quantity.ToString("0.####") @unit
+                        </span>
+                    </li>
+                }
+                </ul>
+            }
         </div>
     </div>
 </div>
-
-@functions {
-    async Task RenderNode(CafeChain.Models.Drinks.RecipeDetail detail, int tier)
-    {
-        bool isIngredient = detail.IngredientId.HasValue;
-        bool isSubRecipe = detail.ChildRecipeId.HasValue;
-
-        string itemName = isIngredient ? (detail.Ingredient?.Name ?? "N/A") : (detail.ChildRecipe?.Name ?? "N/A");
-        string unitName = detail.Unit?.Name ?? (isIngredient ? (detail.Ingredient?.BaseUnit?.Name ?? "") : "Phần");
-        
-        string iconClass = isIngredient ? "fa-leaf text-success" : "fa-flask text-warning";
-        string bgClass = isIngredient ? "bg-success bg-opacity-10 border-success" : "bg-warning bg-opacity-10 border-warning";
-        string iconBgClass = isIngredient ? "bg-success text-white" : "bg-warning text-dark";
-        string tierLabel = isIngredient ? $"Raw Ingredient (Tier {tier})" : $"Sub-Recipe (Tier {tier})";
-
-        <div class="tree-node mb-3 position-relative">
-            <!-- Đường nối ngang -->
-            <div class="position-absolute border-bottom border-2 border-secondary" style="width: 20px; left: -24px; top: 25px;"></div>
-            
-            <div class="node-content d-flex align-items-center p-2 rounded border @bgClass @(isSubRecipe ? "cursor-pointer" : "")" 
-                 @(isSubRecipe ? $@"data-bs-toggle=""collapse"" data-bs-target=""#child-recipe-{detail.ChildRecipeId}""" : "")>
-                
-                <div class="node-icon @iconBgClass rounded-circle d-flex justify-content-center align-items-center me-3 shadow-sm" style="width: 35px; height: 35px;">
-                    <i class="fas @iconClass"></i>
-                </div>
-                
-                <div class="flex-grow-1">
-                    <h5 class="mb-0 fw-bold">@itemName</h5>
-                    <div class="text-muted" style="font-size: 0.8rem;">@tierLabel</div>
-                </div>
-                
-                <div class="d-flex align-items-center gap-3">
-                    <div class="text-end">
-                        <span class="badge bg-secondary fs-6">@detail.Quantity.ToString("0.##") @unitName</span>
-                    </div>
-                    @if (isSubRecipe)
-                    {
-                        <div class="text-muted">
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                    }
-                </div>
-            </div>
-
-            @if (isSubRecipe)
-            {
-                <div id="child-recipe-@detail.ChildRecipeId" class="collapse mt-2">
-                    <div class="tree-children ms-5 position-relative border-start border-2 border-secondary ps-4 pb-2" id="ajax-children-@detail.ChildRecipeId">
-                        <div class="text-muted small p-2"><i class="fas fa-spinner fa-spin me-2"></i>Đang tải thành phần...</div>
-                    </div>
-                </div>
-            }
-        </div>
-    }
-}
-
-@section Styles {
-    <style>
-        .cursor-pointer {
-            cursor: pointer;
-            transition: all 0.2s ease-in-out;
-        }
-        .cursor-pointer:hover {
-            transform: translateX(5px);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-        .tree-node::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -24px;
-            bottom: 0;
-            width: 2px;
-            background-color: transparent;
-        }
-    </style>
-}
-
-@section Scripts {
-    <script>
-        $(document).ready(function () {
-            // Khi mở một Sub-recipe, fetch dữ liệu con qua API
-            $('.collapse').on('show.bs.collapse', function () {
-                var targetId = $(this).attr('id');
-                var recipeId = targetId.split('-')[2];
-                var container = $('#ajax-children-' + recipeId);
-                
-                // Tránh gọi API nhiều lần
-                if (container.data('loaded')) return;
-
-                $.ajax({
-                    url: '/Admin/AdminRecipe/GetRecipeTree?id=' + recipeId,
-                    type: 'GET',
-                    success: function (res) {
-                        container.html(res);
-                        container.data('loaded', true);
-                    },
-                    error: function () {
-                        container.html('<div class="text-danger p-2"><i class="fas fa-exclamation-triangle me-2"></i>Lỗi khi tải dữ liệu</div>');
-                    }
-                });
-            });
-        });
-    </script>
-}
+</div>

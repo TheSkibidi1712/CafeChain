@@ -1,48 +1,46 @@
 @model CafeChain.ViewModels.Admin.Recipes.RecipeCreateVM
-
 @{
-    ViewData["Title"] = "Chi tiết Công thức";
+    ViewData["Title"] = "Tạo công thức BOM";
+    var preparedCreateUrl = Url.Action("Index", "AdminPreparedItem", new { area = "Admin" });
+    var bomOptionsUrl = Url.Action("GetBomOptions", "AdminPreparedItem", new { area = "Admin" });
+    var previewUrl = Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" });
+    var createUrl = Url.Action("Create", "AdminRecipe", new { area = "Admin" });
+    var indexUrl = Url.Action("Index", "AdminRecipe", new { area = "Admin" });
+    var sizesUrl = Url.Action("GetSizesByDrink", "AdminRecipe", new { area = "Admin" });
+    var editUrlTemplate = Url.Action("Edit", "AdminRecipe", new { area = "Admin", id = 0 })!.Replace("/0", "/{id}");
 }
 
-<link rel="stylesheet" href="~/css/recipe-builder.css" />
+<link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
 
-<div class="rb-page">
+<div class="rb-page rb-create-theme" data-theme="light">
 <div class="container-fluid px-4 pt-4">
-    <!-- Breadcrumb -->
-    <div class="rb-breadcrumb">
-        <a asp-controller="AdminRecipe" asp-action="Index">Recipes</a> &gt; <span>BOM Builder</span>
-    </div>
-    <h2 class="rb-page-title">Chi tiết Công thức</h2>
+    <nav class="rb-breadcrumb" aria-label="breadcrumb">
+        <a asp-action="Index">Công thức BOM</a> &gt; <span>Tạo công thức</span>
+    </nav>
+    <h1 class="rb-page-title">Tạo công thức</h1>
 
-    <form asp-action="Create" method="post" id="recipeForm">
+    <form method="post" id="recipeForm" novalidate>
         @Html.AntiForgeryToken()
+        <div id="formErrorSummary" class="alert alert-danger" style="display:none;" role="alert" tabindex="-1"></div>
 
-        <!-- CARD 1: Header & Recipe Info -->
-        <div class="rb-card mb-4">
-            <div class="card-body p-4">
-                <div class="row g-4">
-                    <!-- Left: Recipe Type + Info -->
-                    <div class="col-lg-7">
-                        <!-- Type Toggle -->
-                        <div class="rb-toggle btn-group w-100 mb-3" role="group">
+        <div class="row g-4 rb-builder-grid">
+            <div class="col-xl-8">
+                <!-- A. Loại và đối tượng -->
+                <section class="rb-card mb-4" aria-labelledby="secA">
+                    <div class="rb-card-header"><span id="secA" class="rb-section-title">A. Loại và đối tượng công thức</span></div>
+                    <div class="card-body p-4">
+                        <div class="rb-toggle btn-group w-100 mb-3" role="group" aria-label="Loại công thức">
                             <input type="radio" class="btn-check" name="RecipeType" id="typePOS" value="POS" autocomplete="off" checked>
-                            <label class="btn py-2 px-4" for="typePOS">
-                                <i class="fas fa-cash-register me-1"></i> Món bán (POS)
-                            </label>
+                            <label class="btn py-2 px-3" for="typePOS">Món bán (POS)</label>
                             <input type="radio" class="btn-check" name="RecipeType" id="typeTOPPING" value="TOPPING" autocomplete="off">
-                            <label class="btn py-2 px-4" for="typeTOPPING">
-                                <i class="fas fa-plus-circle me-1"></i> Topping
-                            </label>
+                            <label class="btn py-2 px-3" for="typeTOPPING">Topping</label>
                             <input type="radio" class="btn-check" name="RecipeType" id="typeSUBRECIPE" value="SUBRECIPE" autocomplete="off">
-                            <label class="btn py-2 px-4" for="typeSUBRECIPE">
-                                <i class="fas fa-flask me-1"></i> Bán thành phẩm
-                            </label>
+                            <label class="btn py-2 px-3" for="typeSUBRECIPE">Bán thành phẩm</label>
                         </div>
 
                         <div class="row g-3">
-                            <!-- POS: Drink -->
                             <div class="col-md-6 conditional-section" id="sectionPOS_Drink">
-                                <label class="form-label fw-bold small">Thức uống áp dụng <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold" for="drinkSelect">Thức uống áp dụng <span class="text-danger">*</span></label>
                                 <select name="DrinkId" id="drinkSelect" class="form-select">
                                     <option value="">-- Chọn sản phẩm --</option>
                                     @if (ViewBag.Drinks != null)
@@ -54,17 +52,15 @@
                                     }
                                 </select>
                             </div>
-                            <!-- POS: Size -->
                             <div class="col-md-3 conditional-section" id="sectionPOS_Size" style="display:none;">
-                                <label class="form-label fw-bold small">Size <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold" for="sizeSelect">Size <span class="text-danger">*</span></label>
                                 <select name="SizeId" id="sizeSelect" class="form-select">
                                     <option value="">-- Size --</option>
                                 </select>
-                                <small class="text-muted" id="sizePriceHint" style="font-size:0.72rem;"></small>
+                                <small class="text-muted" id="sizePriceHint"></small>
                             </div>
-                            <!-- TOPPING: Topping -->
                             <div class="col-md-6 conditional-section" id="sectionTopping" style="display:none;">
-                                <label class="form-label fw-bold small">Topping áp dụng <span class="text-danger">*</span></label>
+                                <label class="form-label fw-semibold" for="toppingSelect">Topping áp dụng <span class="text-danger">*</span></label>
                                 <select name="ToppingId" id="toppingSelect" class="form-select">
                                     <option value="">-- Chọn topping --</option>
                                     @if (ViewBag.Toppings != null)
@@ -76,32 +72,72 @@
                                     }
                                 </select>
                             </div>
-                            <!-- SUBRECIPE / BTP fields (#112) -->
-                            <div class="col-md-6 conditional-section" id="sectionSub_Recipe" style="display:none;">
-                                <label class="form-label fw-bold small">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
-                                <select name="PreparedItemId" id="preparedItemSelect" class="form-select">
-                                    <option value="">-- Chọn BTP (mã + tên) --</option>
-                                    @if (ViewBag.PreparedItems != null)
-                                    {
-                                        foreach (dynamic pi in ViewBag.PreparedItems)
-                                        {
-                                            <option value="@pi.PreparedItemId"
-                                                    data-baseunitcode="@pi.BaseUnitCode"
-                                                    data-baseunitname="@pi.BaseUnitName">
-                                                @pi.Code — @pi.Name
-                                            </option>
-                                        }
-                                    }
-                                </select>
-                                <small class="text-muted">Danh tính ổn định từ master BTP (không dùng tên tự do).</small>
+
+                            <div class="col-12 conditional-section" id="sectionSub_Recipe" style="display:none;">
+                                <label class="form-label fw-semibold" for="preparedItemSelect">Bán thành phẩm đầu ra <span class="text-danger">*</span></label>
+                                <div class="d-flex flex-wrap gap-2 align-items-start">
+                                    <div class="flex-grow-1" style="min-width:220px;">
+                                        <select name="PreparedItemId" id="preparedItemSelect" class="form-select" aria-describedby="piHelp piSummary">
+                                            <option value="">-- Chọn BTP (mã + tên) --</option>
+                                            @if (ViewBag.PreparedItems != null)
+                                            {
+                                                foreach (dynamic pi in ViewBag.PreparedItems)
+                                                {
+                                                    <option value="@pi.PreparedItemId"
+                                                            data-code="@pi.Code"
+                                                            data-name="@pi.Name"
+                                                            data-baseunitcode="@pi.BaseUnitCode"
+                                                            data-baseunitname="@pi.BaseUnitName"
+                                                            data-activerecipeid="@(pi.ActiveRecipeId ?? "")"
+                                                            data-activerecipecode="@(pi.ActiveRecipeCode ?? "")"
+                                                            data-activerecipename="@(pi.ActiveRecipeName ?? "")"
+                                                            data-versioncount="@(pi.VersionCount ?? 0)"
+                                                            data-hasactive="@(pi.HasActiveRecipe == true ? "1" : "0")">
+                                                        [@pi.Code] @pi.Name
+                                                    </option>
+                                                }
+                                            }
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-rb-ghost btn-sm" id="btnRefreshPreparedItems" title="Làm mới danh sách BTP">Làm mới danh sách</button>
+                                </div>
+                                <div id="piHelp" class="form-text">
+                                    Danh tính ổn định từ master BTP (không dùng tên tự do, không dùng RecipeId làm đầu ra).
+                                    <a href="@preparedCreateUrl" target="_blank" rel="noopener" id="linkCreatePreparedItem">Không tìm thấy BTP? Tạo bán thành phẩm</a>
+                                </div>
+                                <div id="piSummary" class="rb-summary-card" style="display:none;" aria-live="polite"></div>
+                                <div id="piActiveConflict" class="alert alert-warning mt-2 py-2 small" style="display:none;" role="alert"></div>
                             </div>
-                            <div class="col-md-3 conditional-section" id="sectionSub_Yield" style="display:none;">
-                                <label class="form-label fw-bold small">Sản lượng dự kiến sau hao hụt chuẩn <span class="text-danger">*</span></label>
-                                <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001" placeholder="VD: 4.5"/>
+
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold" for="EffectiveDate">Ngày hiệu lực <span class="text-danger">*</span></label>
+                                <input asp-for="EffectiveDate" id="EffectiveDate" class="form-control" type="date" />
                             </div>
-                            <div class="col-md-3 conditional-section" id="sectionSub_Unit" style="display:none;">
-                                <label class="form-label fw-bold small">Đơn vị đầu ra <span class="text-danger">*</span></label>
-                                <select name="OutputUnitId" id="outputUnitSelect" class="form-select">
+                            <div class="col-md-3">
+                                <label class="form-label fw-semibold">Trạng thái</label>
+                                <div class="form-check form-switch mt-2">
+                                    <input asp-for="Active" class="form-check-input" type="checkbox" id="Active">
+                                    <label class="form-check-label" for="Active">Kích hoạt</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- B. Sản lượng đầu ra -->
+                <section class="rb-card mb-4 conditional-section" id="sectionOutput" style="display:none;" aria-labelledby="secB">
+                    <div class="rb-card-header"><span id="secB" class="rb-section-title">B. Sản lượng đầu ra</span></div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-4" id="sectionSub_Yield">
+                                <label class="form-label fw-semibold" for="expectedYieldInput">Sản lượng đầu ra của một mẻ <span class="text-danger">*</span></label>
+                                <input asp-for="ExpectedYield" id="expectedYieldInput" class="form-control text-end" type="number" step="0.00001" min="0.00001"
+                                       aria-describedby="yieldHelp normalizedOutputPreview" />
+                                <div id="yieldHelp" class="form-text">Đây là lượng BTP thực nhận sau chế biến. Hệ thống không nhân thêm Yield %.</div>
+                            </div>
+                            <div class="col-md-4" id="sectionSub_Unit">
+                                <label class="form-label fw-semibold" for="outputUnitSelect">Đơn vị đầu ra <span class="text-danger">*</span></label>
+                                <select name="OutputUnitId" id="outputUnitSelect" class="form-select" aria-describedby="normalizedOutputPreview">
                                     <option value="">-- ĐVT --</option>
                                     @if (ViewBag.Units != null)
                                     {
@@ -111,102 +147,94 @@
                                         }
                                     }
                                 </select>
-                                <div class="small text-primary mt-1" id="normalizedOutputPreview"></div>
                             </div>
-                            <!-- Common fields -->
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small">Ngày hiệu lực <span class="text-danger">*</span></label>
-                                <input asp-for="EffectiveDate" class="form-control" type="date" />
-                            </div>
-                            <div class="col-md-3">
-                                <label class="form-label fw-bold small">Trạng thái</label>
-                                <div class="mt-1">
-                                    <span class="rb-status-dot active"></span>
-                                    <div class="form-check form-switch d-inline-block ms-1">
-                                        <input asp-for="Active" class="form-check-input" type="checkbox" checked style="transform:scale(1.2);cursor:pointer;">
-                                        <label class="form-check-label small" for="Active">Kích hoạt</label>
-                                    </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-semibold">Preview chuẩn hóa</label>
+                                <div id="normalizedOutputPreview" class="rb-preview-box" aria-live="polite">
+                                    <div class="rb-preview-main text-muted">—</div>
+                                    <div class="rb-preview-sub">Nhập số lượng và đơn vị để xem quy đổi tồn kho.</div>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </section>
 
-                    <!-- Right: EstimatedBomCost box (#117) -->
-                    <div class="col-lg-5 d-flex flex-column justify-content-center">
-                        <div class="rb-cogs-box">
-                            <div class="rb-cogs-label">Giá vốn ước tính</div>
-                            <div class="rb-cogs-value" id="displayTotalCost">—</div>
-                            <div class="rb-cogs-sub" id="displayCostStatus">Chỉ cộng dòng đủ dữ liệu gói · không ghi nhận complete khi thiếu giá</div>
-                            <div class="small text-warning mt-1" id="displayCostIncomplete" style="display:none;"></div>
+                <!-- C. Thành phần BOM -->
+                <section class="rb-card mb-4" aria-labelledby="secC">
+                    <div class="rb-card-header"><span id="secC" class="rb-section-title">C. Thành phần BOM</span></div>
+                    <div class="table-responsive">
+                        <table class="table rb-table" id="bomTable">
+                            <thead>
+                                <tr>
+                                    <th scope="col" class="text-center" width="4%">#</th>
+                                    <th scope="col" width="12%">Loại</th>
+                                    <th scope="col" width="28%">Thành phần</th>
+                                    <th scope="col" class="text-end" width="12%">Số lượng</th>
+                                    <th scope="col" width="12%">Đơn vị</th>
+                                    <th scope="col" class="text-end" width="14%">Giá vốn dòng</th>
+                                    <th scope="col" width="10%">Trạng thái dữ liệu</th>
+                                    <th scope="col" class="text-center" width="8%">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bomTableBody"></tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="rb-add-row" id="btnAddRow">Thêm thành phần</button>
+                </section>
+
+                <!-- Notes -->
+                <section class="rb-card mb-4">
+                    <div class="rb-card-header"><span class="rb-section-title">Lưu ý kỹ thuật</span></div>
+                    <div class="card-body p-3">
+                        <label class="visually-hidden" for="Description">Mô tả</label>
+                        <textarea asp-for="Description" id="Description" class="form-control border-0" rows="3"
+                                  placeholder="VD: Pha đá trước khi cho sữa..."></textarea>
+                    </div>
+                </section>
+            </div>
+
+            <!-- D. Kiểm tra và lưu (cost panel) -->
+            <div class="col-xl-4">
+                <section class="rb-card mb-4 sticky-top" style="top:1rem;" aria-labelledby="secD">
+                    <div class="rb-card-header"><span id="secD" class="rb-section-title">D. Kiểm tra và lưu</span></div>
+                    <div class="card-body p-3">
+                        <div id="costPanel" class="rb-cost-panel incomplete" aria-live="polite">
+                            <div class="small text-uppercase fw-bold text-muted mb-1">Giá vốn ước tính</div>
+                            <div class="rb-cogs-value" id="displayTotalCost" style="font-size:1.5rem;">—</div>
+                            <div class="small" id="displayCostStatus">Chưa chọn thành phần</div>
+                            <ul class="rb-cost-issues" id="displayCostIssues" style="display:none;"></ul>
+                            <div class="d-flex flex-wrap gap-2 mt-2" id="costCtas"></div>
                         </div>
                         <input type="hidden" asp-for="TotalCost" id="hiddenTotalCost" value="0" />
+                        <p class="small text-muted mt-3 mb-0">
+                            Giá vốn incomplete không chặn lưu nếu backend cho phép. Không hiển thị 0 giả.
+                        </p>
                     </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CARD 2: BOM Details Table -->
-        <div class="rb-card mb-4">
-            <div class="rb-card-header">
-                <i class="fas fa-list-check text-primary"></i> Danh mục Thành phần (BOM)
-            </div>
-            <div class="table-responsive">
-                <table class="table rb-table" id="bomTable">
-                    <thead>
-                        <tr>
-                            <th width="4%" class="text-center">#</th>
-                            <th width="8%">Loại</th>
-                            <th width="24%">Tên nguyên liệu</th>
-                            <th width="12%" class="text-end">Số lượng</th>
-                            <th width="10%">Đơn vị</th>
-                            <th width="10%" class="text-center">Thu hồi %</th>
-                            <th width="15%" class="text-end">Thành tiền</th>
-                            <th width="6%" class="text-center">Thao tác</th>
-                        </tr>
-                    </thead>
-                    <tbody id="bomTableBody"></tbody>
-                </table>
-            </div>
-            <!-- Dashed Add Row -->
-            <button type="button" class="rb-add-row" id="btnAddRow">
-                <i class="fas fa-plus-circle me-2"></i> Thêm thành phần
-            </button>
-        </div>
-
-        <!-- CARD 3: Notes (SOP) -->
-        <div class="rb-card mb-4">
-            <div class="rb-card-header">
-                <i class="fas fa-clipboard-list text-warning"></i> Lưu ý Kỹ thuật & Chế biến
-            </div>
-            <div class="card-body p-3">
-                <textarea asp-for="Description" class="form-control border-0" rows="3" placeholder="VD: Pha đá trước khi cho sữa, khuấy đều 30 giây..." style="resize:none;"></textarea>
+                </section>
             </div>
         </div>
     </form>
 </div>
 </div>
 
-<!-- Sticky Footer Bar -->
 <div class="rb-footer-bar">
-    <div class="d-flex gap-4">
+    <div class="d-flex gap-4 flex-wrap">
         <div class="rb-footer-metric">
             <span class="rb-footer-metric-label">Tổng giá vốn</span>
-            <span class="rb-footer-metric-value" id="footerTotalCost">0 VND</span>
-            <small class="text-muted">/ ly</small>
+            <span class="rb-footer-metric-value" id="footerTotalCost">—</span>
         </div>
         <div class="rb-footer-metric">
-            <span class="rb-footer-metric-label">Food Cost %</span>
-            <span class="rb-footer-pct" id="footerFoodCostPct">0%</span>
+            <span class="rb-footer-metric-label">Food cost %</span>
+            <span class="rb-footer-pct" id="footerFoodCostPct">—</span>
         </div>
     </div>
     <div class="d-flex gap-2">
-        <button type="button" class="btn btn-rb-ghost" onclick="window.location.reload()">Hủy</button>
-        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe"><i class="fas fa-save me-2"></i>Lưu Công thức</button>
+        <a class="btn btn-rb-ghost" href="@indexUrl">Hủy</a>
+        <button type="button" class="btn btn-rb-save" id="btnSaveRecipe">Lưu công thức</button>
     </div>
 </div>
 
-<!-- Select2 Template Cache (hidden) -->
-<select id="itemTemplateSelect" style="display:none;">
+<select id="itemTemplateSelect" class="d-none" aria-hidden="true">
     <option value="">-- Chọn thành phần --</option>
     <optgroup label="Nguyên liệu thô">
         @if (ViewBag.Ingredients != null)
@@ -214,6 +242,8 @@
             foreach (dynamic item in ViewBag.Ingredients)
             {
                 <option value="ING_@(item.Id)"
+                        data-kind="ingredient"
+                        data-label="[@(item.Id)] @(item.Name)"
                         data-basecost="@(item.BaseCost)"
                         data-costcomplete="@(item.CostComplete == true ? "1" : "0")"
                         data-packageprice="@(item.PackagePrice ?? 0)"
@@ -222,376 +252,50 @@
                         data-baseunitcode="@(item.BaseUnitCode ?? "")"
                         data-costmessage="@(item.CostMessage ?? "")"
                         data-unitid="@(item.UnitId)"
-                        data-unitname="@(item.UnitName)">@(item.Name)</option>
+                        data-unitname="@(item.UnitName)">[@(item.Id)] @(item.Name)</option>
             }
         }
     </optgroup>
-    <optgroup label="Bán thành phẩm">
+    <optgroup label="Bán thành phẩm con (pin Recipe)">
         @if (ViewBag.SubRecipes != null)
         {
             foreach (dynamic item in ViewBag.SubRecipes)
             {
+                var piPart = item.PreparedItemCode != null
+                    ? $"BTP: [{item.PreparedItemCode}] {item.PreparedItemName}"
+                    : "BTP: (chưa map)";
                 <option value="REC_@(item.Id)"
+                        data-kind="child_recipe"
+                        data-label="[REC@(item.Id)] @(item.Name) · phiên bản #@(item.Id)"
+                        data-recipeid="@(item.Id)"
+                        data-recipecode="@(item.RecipeCode ?? "")"
+                        data-picode="@(item.PreparedItemCode ?? "")"
+                        data-piname="@(item.PreparedItemName ?? "")"
                         data-basecost="0"
                         data-costcomplete="0"
                         data-costmessage="@(item.CostMessage ?? "")"
                         data-unitid="@(item.UnitId)"
-                        data-unitname="@(item.UnitName)">@(item.Name)</option>
+                        data-unitname="@(item.UnitName)"
+                        data-baseunitcode="@(item.OutputUnitCode ?? "")">
+                    [REC#@(item.Id)] @(item.Name) · @piPart
+                </option>
             }
         }
     </optgroup>
 </select>
 
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{ await Html.RenderPartialAsync("_ValidationScriptsPartial"); }
+    <script src="~/js/Admin/Recipe/bom-builder.js" asp-append-version="true"></script>
     <script>
-        $(document).ready(function () {
-            let rowCount = 0;
-            const tableBody = $('#bomTableBody');
-
-            // === ITEM DATA CACHE (BaseCost = package-normalized ₫/base unit when complete) ===
-            const itemDataMap = {};
-            $('#itemTemplateSelect option').each(function () {
-                const val = $(this).val();
-                if (val) {
-                    itemDataMap[val] = {
-                        basecost: parseFloat($(this).attr('data-basecost')) || 0,
-                        costcomplete: $(this).attr('data-costcomplete') === '1',
-                        packageprice: parseFloat($(this).attr('data-packageprice')) || 0,
-                        packageqty: parseFloat($(this).attr('data-packageqty')) || 0,
-                        packageunit: $(this).attr('data-packageunit') || '',
-                        baseunitcode: $(this).attr('data-baseunitcode') || '',
-                        costmessage: $(this).attr('data-costmessage') || '',
-                        unitid: parseInt($(this).attr('data-unitid')) || 0,
-                        unitname: $(this).attr('data-unitname') || ''
-                    };
-                }
-            });
-
-            function antiforgeryHeaders() {
-                const token = $('input[name="__RequestVerificationToken"]').val() || '';
-                return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
-            }
-
-            function clearBtpFields() {
-                $('#preparedItemSelect').val('');
-                $('input[name="ExpectedYield"]').val('');
-                $('select[name="OutputUnitId"]').val('');
-                $('#normalizedOutputPreview').text('');
-            }
-
-            function refreshNormalizedPreview() {
-                const pi = parseInt($('#preparedItemSelect').val(), 10) || 0;
-                const qty = parseFloat($('#expectedYieldInput').val()) || 0;
-                const unit = parseInt($('#outputUnitSelect').val(), 10) || 0;
-                if (!pi || !qty || qty <= 0 || !unit) {
-                    $('#normalizedOutputPreview').text('');
-                    return;
-                }
-                $.ajax({
-                    url: '@Url.Action("PreviewNormalizedOutput", "AdminRecipe", new { area = "Admin" })',
-                    type: 'POST',
-                    headers: antiforgeryHeaders(),
-                    data: JSON.stringify({ preparedItemId: pi, outputQuantity: qty, outputUnitId: unit }),
-                    success: function (res) {
-                        if (res.success) {
-                            $('#normalizedOutputPreview').text(res.preview || '');
-                        } else {
-                            $('#normalizedOutputPreview').text(res.message || 'Không quy đổi được');
-                        }
-                    },
-                    error: function () {
-                        $('#normalizedOutputPreview').text('Lỗi preview (antiforgery/kết nối)');
-                    }
-                });
-            }
-
-            // === 1. TOGGLE: POS vs SUBRECIPE ===
-            $('input[name="RecipeType"]').on('change', function () {
-                const type = $(this).val();
-                if (type === 'POS') {
-                    $('#sectionPOS_Drink').show();
-                    if ($('#drinkSelect').val()) {
-                        $('#sectionPOS_Size').show();
-                    }
-                    $('#sectionTopping, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
-                    $('#toppingSelect').val('').trigger('change');
-                    clearBtpFields();
-                } else if (type === 'TOPPING') {
-                    $('#sectionTopping').fadeIn(200);
-                    $('#sectionPOS_Drink, #sectionPOS_Size, #sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').hide();
-                    $('#drinkSelect').val('').trigger('change');
-                    $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
-                    clearBtpFields();
-                } else {
-                    $('#sectionPOS_Drink, #sectionPOS_Size, #sectionTopping').hide();
-                    $('#sectionSub_Recipe, #sectionSub_Yield, #sectionSub_Unit').fadeIn(200);
-                    $('#drinkSelect').val('').trigger('change');
-                    $('#sizeSelect').html('<option value="">-- Chọn Size --</option>');
-                    $('#toppingSelect').val('').trigger('change');
-                    $('#sectionPOS_Size').hide();
-                }
-            });
-
-            $('#preparedItemSelect, #expectedYieldInput, #outputUnitSelect').on('change input', refreshNormalizedPreview);
-
-            $('#drinkSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm sản phẩm --', width: '100%' });
-            $('#toppingSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm topping --', width: '100%' });
-
-            // === 2. CASCADED: Drink → Size ===
-            $('#drinkSelect').on('change', function () {
-                const drinkId = $(this).val();
-                const sizeSection = $('#sectionPOS_Size');
-                const sizeSelect = $('#sizeSelect');
-                if (!drinkId) { sizeSection.hide(); sizeSelect.html('<option value="">-- Chọn Size --</option>'); return; }
-
-                $.getJSON('@Url.Action("GetSizesByDrink", "AdminRecipe", new { area = "Admin" })', { drinkId: drinkId }, function (data) {
-                    let html = '<option value="">-- Chọn Size --</option>';
-                    if (data && data.length > 0) {
-                        data.forEach(function (s) {
-                            const price = new Intl.NumberFormat('vi-VN').format(s.price);
-                            html += `<option value="${s.sizeId}" data-price="${s.price}">${s.sizeName} (${price}đ)</option>`;
-                        });
-                        sizeSection.fadeIn(200);
-                    } else {
-                        html += '<option value="" disabled>Chưa có Size</option>';
-                        sizeSection.fadeIn(200);
-                    }
-                    sizeSelect.html(html);
-                });
-            });
-
-            $('#sizeSelect').on('change', function () {
-                const price = $(this).find(':selected').data('price');
-                $('#sizePriceHint').text(price ? 'Giá bán: ' + new Intl.NumberFormat('vi-VN').format(price) + 'đ' : '');
-                calculateTotal(); // recalc food cost %
-            });
-
-            // === 3. COST CALCULATION (#117) — no YieldPercentage divisor; no package price as ₫/g ===
-            function calculateTotal() {
-                let completeTotal = 0;
-                let anyIncomplete = false;
-                let incompleteMsgs = [];
-                $('#bomTableBody tr').each(function () {
-                    const itemCode = $(this).find('.item-select').val();
-                    const quantity = parseFloat($(this).find('.item-qty').val()) || 0;
-                    const itemInfo = itemDataMap[itemCode];
-                    const baseCost = itemInfo ? itemInfo.basecost : 0;
-                    const costComplete = itemInfo && itemInfo.costcomplete && baseCost > 0;
-
-                    const typeBadge = itemCode && itemCode.startsWith('ING_')
-                        ? '<span class="rb-badge-raw">Raw Ingredient</span>'
-                        : itemCode && itemCode.startsWith('REC_')
-                            ? '<span class="rb-badge-sub"><i class="fas fa-flask me-1"></i>Bán thành phẩm</span>'
-                            : '<span class="text-muted small">—</span>';
-                    $(this).find('.row-type-badge').html(typeBadge);
-
-                    if (costComplete) {
-                        // quantity is already in ingredient base unit when UnitId auto-filled from base
-                        const actualCost = quantity * baseCost;
-                        completeTotal += actualCost;
-                        const costFormatted = new Intl.NumberFormat('vi-VN').format(Math.round(actualCost));
-                        const unitCost = new Intl.NumberFormat('vi-VN').format(Math.round(baseCost));
-                        const unitCode = itemInfo.baseunitcode || itemInfo.unitname || 'ĐVT';
-                        let pkgHint = '';
-                        if (itemInfo.packageprice > 0 && itemInfo.packageqty > 0) {
-                            const pp = new Intl.NumberFormat('vi-VN').format(Math.round(itemInfo.packageprice));
-                            pkgHint = `<span class="rb-cost-sub d-block">${pp} ₫ / gói ${itemInfo.packageqty} ${itemInfo.packageunit}</span>`;
-                        }
-                        $(this).find('.row-total-display').html(
-                            pkgHint +
-                            `<span class="rb-cost-sub">= ${unitCost} ₫/${unitCode}</span>` +
-                            `<span class="rb-cost-main d-block">${costFormatted} <small>VND</small></span>`
-                        );
-                    } else {
-                        anyIncomplete = true;
-                        const msg = (itemInfo && itemInfo.costmessage) ? itemInfo.costmessage : 'Chưa đủ dữ liệu giá vốn';
-                        if (itemCode) incompleteMsgs.push(msg);
-                        $(this).find('.row-total-display').html(
-                            '<span class="text-warning small">Giá vốn ước tính — chưa đủ dữ liệu</span>'
-                        );
-                    }
-                });
-
-                if (anyIncomplete || incompleteMsgs.length > 0) {
-                    $('#displayTotalCost').html('—');
-                    $('#displayCostStatus').text('Giá vốn ước tính — chưa đủ dữ liệu');
-                    $('#displayCostIncomplete').text(incompleteMsgs.slice(0, 2).join(' · ')).show();
-                    $('#footerTotalCost').text('INCOMPLETE');
-                    $('#hiddenTotalCost').val(0);
-                    $('#footerFoodCostPct').text('—');
-                } else if (completeTotal > 0) {
-                    const formatted = new Intl.NumberFormat('vi-VN').format(Math.round(completeTotal));
-                    $('#displayTotalCost').html(formatted + ' <small style="font-size:0.5em;">VND</small>');
-                    $('#displayCostStatus').text('Giá vốn ước tính (đủ dữ liệu gói)');
-                    $('#displayCostIncomplete').hide().text('');
-                    $('#footerTotalCost').text(formatted + ' VND');
-                    $('#hiddenTotalCost').val(Math.round(completeTotal));
-                    const sellingPrice = parseFloat($('#sizeSelect').find(':selected').data('price')) || 0;
-                    if (sellingPrice > 0) {
-                        const pct = ((completeTotal / sellingPrice) * 100).toFixed(1);
-                        $('#footerFoodCostPct').text(pct + '%').css('color', pct > 35 ? '#ef4444' : '#10b981');
-                    } else {
-                        $('#footerFoodCostPct').text('—');
-                    }
-                } else {
-                    $('#displayTotalCost').html('—');
-                    $('#displayCostStatus').text('Chưa chọn thành phần');
-                    $('#displayCostIncomplete').hide();
-                    $('#footerTotalCost').text('—');
-                    $('#hiddenTotalCost').val(0);
-                    $('#footerFoodCostPct').text('—');
-                }
-            }
-
-            // === 4. ADD ROW (V4 Premium) ===
-            function addRow() {
-                const index = rowCount++;
-                const selectOptionsHtml = $('#itemTemplateSelect').html();
-                const tr = $('<tr></tr>');
-                tr.html(`
-                    <td class="text-center text-muted fw-bold">${index + 1}</td>
-                    <td class="row-type-badge"><span class="text-muted small">—</span></td>
-                    <td>
-                        <select name="Details[${index}].ItemCode" class="form-select form-select-sm item-select" required>
-                            ${selectOptionsHtml}
-                        </select>
-                    </td>
-                    <td>
-                        <input type="number" step="0.01" min="0.01" name="Details[${index}].Quantity"
-                               class="form-control form-control-sm text-end item-qty" value="1" required />
-                    </td>
-                    <td>
-                        <input type="text" class="form-control form-control-sm bg-light item-unitname"
-                               name="Details[${index}].UnitName" readonly tabindex="-1" placeholder="Tự động" />
-                        <input type="hidden" name="Details[${index}].UnitId" class="item-unitid" value="0" />
-                    </td>
-                    <td>
-                        <div class="input-group input-group-sm">
-                            <input type="number" step="0.01" min="0" max="200"
-                                   name="Details[${index}].YieldPercentage"
-                                   class="form-control text-end item-yield" value="100" />
-                            <span class="input-group-text">%</span>
-                        </div>
-                    </td>
-                    <td class="text-end row-total-display"><span class="text-muted small">Chưa chọn</span></td>
-                    <td class="text-center">
-                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fas fa-trash-alt"></i></button>
-                    </td>
-                `);
-
-                tableBody.append(tr);
-                const newSelect = tr.find('.item-select');
-                newSelect.select2({ theme: 'bootstrap-5', placeholder: "-- Tìm thành phần --", width: '100%' });
-
-                newSelect.on('select2:select', function (e) {
-                    const selectedVal = e.params.data.id;
-                    const itemInfo = itemDataMap[selectedVal];
-                    if (itemInfo) {
-                        tr.find('.item-unitname').val(itemInfo.unitname);
-                        tr.find('.item-unitid').val(itemInfo.unitid);
-                        tr.find('.item-qty').focus().select();
-                    }
-                    calculateTotal();
-                });
-                newSelect.on('select2:clear', function () {
-                    tr.find('.item-unitname').val('');
-                    tr.find('.item-unitid').val(0);
-                    calculateTotal();
-                });
-                tr.find('.item-qty').on('input', calculateTotal);
-                tr.find('.item-yield').on('input', calculateTotal);
-            }
-
-            // === 5. EVENTS ===
-            $('#btnAddRow').click(function () { addRow(); });
-
-            $(document).on('click', '.btn-remove-row', function () {
-                $(this).closest('tr').remove();
-                $('#bomTableBody tr').each(function (i) {
-                    $(this).find('td:first').text(i + 1);
-                    $(this).find('.item-select').attr('name', `Details[${i}].ItemCode`);
-                    $(this).find('.item-qty').attr('name', `Details[${i}].Quantity`);
-                    $(this).find('.item-unitname').attr('name', `Details[${i}].UnitName`);
-                    $(this).find('.item-unitid').attr('name', `Details[${i}].UnitId`);
-                    $(this).find('.item-yield').attr('name', `Details[${i}].YieldPercentage`);
-                });
-                rowCount = $('#bomTableBody tr').length;
-                calculateTotal();
-            });
-
-            addRow(); // Initial row
-
-            // === 6. SUBMIT (AJAX + SWEETALERT2) ===
-            $('#btnSaveRecipe').on('click', function () {
-                const recipeType = $('input[name="RecipeType"]:checked').val();
-                const drinkVal = $('#drinkSelect').val();
-                const sizeVal = $('#sizeSelect').val();
-                const toppingVal = $('#toppingSelect').val();
-                const preparedItemVal = $('#preparedItemSelect').val();
-                const outputUnitVal = $('#outputUnitSelect').val();
-                const expectedYieldVal = $('input[name="ExpectedYield"]').val();
-
-                const payload = {
-                    RecipeType: recipeType,
-                    DrinkId: (recipeType === 'POS' && drinkVal) ? parseInt(drinkVal) : null,
-                    SizeId: (recipeType === 'POS' && sizeVal) ? parseInt(sizeVal) : null,
-                    ToppingId: (recipeType === 'TOPPING' && toppingVal) ? parseInt(toppingVal) : null,
-                    PreparedItemId: (recipeType === 'SUBRECIPE' && preparedItemVal) ? parseInt(preparedItemVal) : null,
-                    ExpectedYield: (recipeType === 'SUBRECIPE' && expectedYieldVal) ? parseFloat(expectedYieldVal) : null,
-                    OutputUnitId: (recipeType === 'SUBRECIPE' && outputUnitVal) ? parseInt(outputUnitVal) : null,
-                    Description: $('textarea[name="Description"]').val(),
-                    Active: $('#Active').is(':checked'),
-                    EffectiveDate: $('input[name="EffectiveDate"]').val(),
-                    Details: []
-                };
-
-                $('#bomTableBody tr').each(function () {
-                    const row = $(this);
-                    const itemCode = row.find('.item-select').val();
-                    if (itemCode) {
-                        payload.Details.push({
-                            ItemCode: itemCode,
-                            Quantity: parseFloat(row.find('.item-qty').val()) || 0,
-                            UnitName: row.find('.item-unitname').val(),
-                            UnitId: parseInt(row.find('.item-unitid').val()) || 0,
-                            YieldPercentage: parseFloat(row.find('.item-yield').val()) || 100
-                        });
-                    }
-                });
-
-                if (payload.Details.length === 0) {
-                    Swal.fire({ icon: 'warning', title: 'Cảnh báo', text: 'Vui lòng thêm ít nhất một nguyên liệu vào công thức.' });
-                    return;
-                }
-
-                Swal.fire({ title: 'Đang lưu...', text: 'Vui lòng chờ trong giây lát', allowOutsideClick: false, didOpen: () => { Swal.showLoading(); } });
-
-                $.ajax({
-                    url: '@Url.Action("Create", "AdminRecipe", new { area = "Admin" })',
-                    type: 'POST',
-                    headers: antiforgeryHeaders(),
-                    data: JSON.stringify(payload),
-                    success: function (res) {
-                        if (res.success) {
-                            Swal.fire({ icon: 'success', title: 'Thành công!', text: res.message, confirmButtonColor: '#16a34a' })
-                                .then(() => { window.location.href = '@Url.Action("Index", "AdminRecipe", new { area = "Admin" })'; });
-                        } else {
-                            let errorHtml = `<p class="fw-bold">${res.message}</p>`;
-                            if (res.errors && res.errors.length > 0) {
-                                errorHtml += '<ul class="text-start text-danger small">';
-                                res.errors.forEach(err => { errorHtml += `<li>${err}</li>`; });
-                                errorHtml += '</ul>';
-                            }
-                            Swal.fire({ icon: 'error', title: 'Lỗi lưu công thức', html: errorHtml });
-                        }
-                    },
-                    error: function (xhr) {
-                        console.error(xhr.responseText);
-                        Swal.fire({ icon: 'error', title: 'Lỗi hệ thống', text: 'Không thể kết nối tới server.' });
-                    }
-                });
-            });
+        window.CafeChainBomBuilder.initCreate({
+            preparedCreateUrl: '@preparedCreateUrl',
+            bomOptionsUrl: '@bomOptionsUrl',
+            previewUrl: '@previewUrl',
+            createUrl: '@createUrl',
+            indexUrl: '@indexUrl',
+            sizesUrl: '@sizesUrl',
+            editUrlTemplate: '@editUrlTemplate'
         });
     </script>
 }

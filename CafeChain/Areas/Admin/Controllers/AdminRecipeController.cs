@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Costing;
+using CafeChain.Application.Interfaces.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.ViewModels.Admin.Recipes;
@@ -19,37 +20,150 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminRecipeService _recipeService;
         private readonly IRecipeOutputNormalizer _outputNormalizer;
         private readonly IEstimatedBomCostService _estimatedBomCost;
+        private readonly IAdminPreparedItemService _preparedItemService;
         private readonly AppDbContext _context;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
             IRecipeOutputNormalizer outputNormalizer,
             IEstimatedBomCostService estimatedBomCost,
+            IAdminPreparedItemService preparedItemService,
             AppDbContext context)
         {
             _recipeService = recipeService;
             _outputNormalizer = outputNormalizer;
             _estimatedBomCost = estimatedBomCost;
+            _preparedItemService = preparedItemService;
             _context = context;
         }
 
         // ============================================================
-        // INDEX: Danh sách Công Thức (Chỉ hiển thị Active)
+        // INDEX: Danh sách Công Thức (Active) — #126 type from identity fields
         // ============================================================
         [HttpGet]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(string? type = null)
         {
             var recipes = await _context.Recipes
-                .Include(r => r.ChildRecipeDetails)
-                .Include(r => r.RecipeDetails)
-                    .ThenInclude(rd => rd.Ingredient)
+                .AsNoTracking()
                 .Include(r => r.PreparedItem)
+                    .ThenInclude(p => p!.BaseUnit)
                 .Include(r => r.OutputUnit)
+                .Include(r => r.Size)
                 .Where(r => r.Status == "Active")
                 .OrderByDescending(r => r.RecipeId)
                 .ToListAsync();
 
-            return View(recipes);
+            var items = new List<AdminRecipeListItemVM>();
+            foreach (var r in recipes)
+            {
+                var typeKey = ResolveRecipeTypeKey(r);
+                if (!string.IsNullOrWhiteSpace(type)
+                    && !string.Equals(type, "ALL", System.StringComparison.OrdinalIgnoreCase)
+                    && !string.Equals(type, typeKey, System.StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                var vm = new AdminRecipeListItemVM
+                {
+                    RecipeId = r.RecipeId,
+                    RecipeCode = r.RecipeCode ?? "",
+                    Name = r.Name ?? "",
+                    RecipeType = typeKey,
+                    TypeLabel = typeKey switch
+                    {
+                        "POS" => "Món bán",
+                        "TOPPING" => "Topping",
+                        "SUBRECIPE" => "Bán thành phẩm",
+                        _ => "Khác"
+                    },
+                    IdentityDisplay = BuildIdentityDisplay(r, typeKey),
+                    PreparedItemId = r.PreparedItemId,
+                    PreparedItemCode = r.PreparedItem?.Code,
+                    PreparedItemName = r.PreparedItem?.Name,
+                    DrinkId = r.DrinkId,
+                    SizeId = r.SizeId,
+                    ToppingId = r.ToppingId,
+                    OutputQuantity = r.OutputQuantity,
+                    OutputUnitCode = r.OutputUnit?.UnitCode,
+                    OutputUnitName = r.OutputUnit?.Name,
+                    Active = r.Active,
+                    Status = r.Status ?? "",
+                    EffectiveDate = r.EffectiveDate,
+                    ParentVersionId = r.ParentVersionId,
+                    BaseUnitCode = r.PreparedItem?.BaseUnit?.UnitCode
+                };
+
+                if (r.OutputQuantity.HasValue && r.OutputUnitId.HasValue)
+                {
+                    vm.OutputPerBatchDisplay =
+                        $"{r.OutputQuantity.Value:0.####} {r.OutputUnit?.UnitCode ?? r.OutputUnit?.Name ?? ""}".Trim();
+                }
+
+                if (r.PreparedItemId.HasValue
+                    && r.OutputQuantity.HasValue
+                    && r.OutputUnitId.HasValue)
+                {
+                    var norm = await _outputNormalizer.NormalizeAsync(
+                        r.PreparedItemId.Value,
+                        r.OutputQuantity.Value,
+                        r.OutputUnitId.Value);
+                    if (norm.IsSuccess && norm.Data != null)
+                    {
+                        vm.NormalizedQuantityInBase = norm.Data.NormalizedQuantityInBase;
+                        vm.BaseUnitCode = norm.Data.BaseUnitCode;
+                        vm.NormalizedOutputDisplay =
+                            $"{norm.Data.NormalizedQuantityInBase:0.####} {norm.Data.BaseUnitCode}";
+                    }
+                }
+
+                // Cost status — batch-friendly sequential call (list usually small for admin)
+                try
+                {
+                    var cost = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(r.RecipeId);
+                    vm.CostComplete = cost.IsComplete;
+                    vm.EstimatedCost = cost.IsComplete ? cost.TotalCost : null;
+                    vm.CostStatus = cost.IsComplete ? "Đủ dữ liệu" : "Thiếu dữ liệu";
+                }
+                catch
+                {
+                    vm.CostStatus = "—";
+                }
+
+                items.Add(vm);
+            }
+
+            return View(new AdminRecipeListPageVM
+            {
+                TypeFilter = string.IsNullOrWhiteSpace(type) ? "ALL" : type.ToUpperInvariant(),
+                Items = items
+            });
+        }
+
+        private static string ResolveRecipeTypeKey(Models.Drinks.Recipe r)
+        {
+            if (r.ToppingId.HasValue) return "TOPPING";
+            if (r.DrinkId.HasValue) return "POS";
+            if (r.PreparedItemId.HasValue) return "SUBRECIPE";
+            // Legacy unmapped BTP
+            if (!r.DrinkId.HasValue && !r.ToppingId.HasValue) return "SUBRECIPE";
+            return "OTHER";
+        }
+
+        private static string BuildIdentityDisplay(Models.Drinks.Recipe r, string typeKey)
+        {
+            if (typeKey == "SUBRECIPE" && r.PreparedItem != null)
+                return $"[{r.PreparedItem.Code}] {r.PreparedItem.Name}";
+            if (typeKey == "SUBRECIPE")
+                return r.Name ?? $"Recipe #{r.RecipeId}";
+            if (typeKey == "TOPPING")
+                return r.Name ?? $"Topping #{r.ToppingId}";
+            if (typeKey == "POS")
+            {
+                var size = r.Size?.Name;
+                return string.IsNullOrWhiteSpace(size) ? (r.Name ?? "") : $"{r.Name} · {size}";
+            }
+            return r.Name ?? $"#{r.RecipeId}";
         }
 
         // ============================================================
@@ -420,18 +534,28 @@ namespace CafeChain.Areas.Admin.Controllers
 
             ViewBag.Ingredients = ingredientDtos;
 
-            // Child recipes: no silent package base cost; estimate when output contract exists later via server
+            // Child recipes pin RecipeId (REC_{id}) — show version + PreparedItem identity (#126)
             ViewBag.SubRecipes = _context.Recipes
+                .AsNoTracking()
+                .Include(x => x.PreparedItem)
+                .Include(x => x.OutputUnit)
                 .Where(x => x.Active && x.Status == "Active")
+                .OrderBy(x => x.Name)
                 .Select(x => new
                 {
                     Id = x.RecipeId,
                     Name = x.Name,
+                    RecipeCode = x.RecipeCode,
+                    PreparedItemId = x.PreparedItemId,
+                    PreparedItemCode = x.PreparedItem != null ? x.PreparedItem.Code : null,
+                    PreparedItemName = x.PreparedItem != null ? x.PreparedItem.Name : null,
+                    OutputQuantity = x.OutputQuantity,
+                    OutputUnitCode = x.OutputUnit != null ? x.OutputUnit.UnitCode : null,
                     BaseCost = 0m,
                     CostComplete = false,
-                    UnitId = 0,
-                    UnitName = "Phần",
-                    CostMessage = "BTP: dùng EstimateBomCost / sản lượng đầu ra"
+                    UnitId = x.OutputUnitId ?? 0,
+                    UnitName = x.OutputUnit != null ? x.OutputUnit.Name : "Phần",
+                    CostMessage = "BTP con: pin phiên bản Recipe — EstimateBomCost trên server"
                 }).ToList<object>();
 
             ViewBag.Drinks = _context.Drinks
@@ -444,19 +568,22 @@ namespace CafeChain.Areas.Admin.Controllers
                 .Select(x => new { x.ToppingId, x.Name })
                 .ToList<object>();
 
-            // Active PreparedItems for BTP output identity (#112 / #116)
-            ViewBag.PreparedItems = _context.PreparedItems
-                .AsNoTracking()
-                .Where(p => p.Active)
-                .OrderBy(p => p.Code)
+            // Active PreparedItems + active recipe meta for combobox (#126)
+            var bomOptions = await _preparedItemService.GetBomOptionsAsync(null);
+            ViewBag.PreparedItems = bomOptions
                 .Select(p => new
                 {
                     p.PreparedItemId,
                     p.Code,
                     p.Name,
                     p.BaseUnitId,
-                    BaseUnitCode = p.BaseUnit.UnitCode,
-                    BaseUnitName = p.BaseUnit.Name
+                    p.BaseUnitCode,
+                    p.BaseUnitName,
+                    p.ActiveRecipeId,
+                    p.ActiveRecipeCode,
+                    p.ActiveRecipeName,
+                    p.VersionCount,
+                    p.HasActiveRecipe
                 })
                 .ToList<object>();
 

@@ -118,15 +118,74 @@
 .rb-footer-metric-value { font-size: 1.2rem; font-weight: 800; color: var(--rb-text); }
 .rb-footer-pct { font-size: 1.1rem; font-weight: 700; color: var(--rb-success); }
 
-/* Buttons */
-.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: #64748b; font-weight: 600; border-radius: 10px; padding: 10px 24px; }
+/* Buttons — brand orange primary CTA (#126) */
+.btn-rb-ghost { background: transparent; border: 1px solid var(--rb-border); color: #64748b; font-weight: 600; border-radius: 8px; padding: 10px 24px; }
 .btn-rb-ghost:hover { background: #f1f5f9; color: var(--rb-text); }
 .btn-rb-save {
-    background: linear-gradient(135deg, #ef4444, #dc2626);
-    border: none; color: white; font-weight: 700; border-radius: 10px; padding: 10px 32px;
-    box-shadow: 0 4px 12px rgba(239,68,68,0.3);
+    background: var(--rb-primary);
+    border: 1px solid var(--rb-primary);
+    color: #fff; font-weight: 700; border-radius: 8px; padding: 10px 28px;
+    box-shadow: 0 2px 8px rgba(249,115,22,0.25);
 }
-.btn-rb-save:hover { background: linear-gradient(135deg, #dc2626, #b91c1c); color: white; }
+.btn-rb-save:hover { background: var(--rb-primary-hover); border-color: var(--rb-primary-hover); color: #fff; }
+.btn-rb-save:focus-visible, .btn-rb-ghost:focus-visible, .rb-page .form-control:focus-visible, .rb-page .form-select:focus-visible {
+    outline: 2px solid var(--rb-primary);
+    outline-offset: 2px;
+}
+
+/* Status / config badges (#126) */
+.rb-status-badge {
+    display: inline-block; font-size: 0.72rem; font-weight: 600;
+    padding: 4px 10px; border-radius: 6px; white-space: nowrap;
+}
+.rb-status-active, .rb-status-complete { background: #d1fae5; color: #047857; }
+.rb-status-inactive { background: #f1f5f9; color: #475569; }
+.rb-status-incomplete { background: #fef3c7; color: #b45309; }
+.rb-status-error { background: #fee2e2; color: #b91c1c; }
+.rb-code { font-size: 0.85rem; color: #0f172a; background: #f8fafc; padding: 2px 6px; border-radius: 4px; }
+.rb-qty-unit { font-variant-numeric: tabular-nums; font-weight: 600; }
+.rb-empty-state { max-width: 28rem; margin: 0 auto; }
+.rb-filter-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.rb-chip {
+    display: inline-block; padding: 6px 14px; border-radius: 8px;
+    border: 1px solid var(--rb-border); background: #fff; color: #475569;
+    font-size: 0.85rem; font-weight: 600; text-decoration: none;
+}
+.rb-chip:hover { border-color: var(--rb-primary); color: var(--rb-primary); }
+.rb-chip.active { background: #fff7ed; border-color: var(--rb-primary); color: #c2410c; }
+.rb-badge-topping { background: #e0e7ff; color: #3730a3; padding: 4px 12px; border-radius: 6px; font-size: 0.7rem; font-weight: 600; text-transform: uppercase; white-space: nowrap; }
+.rb-summary-card {
+    border: 1px solid #fed7aa; background: #fff7ed; border-radius: 8px; padding: 12px 16px; margin-top: 10px;
+}
+.rb-summary-card.warn { border-color: #fcd34d; background: #fffbeb; }
+.rb-preview-box {
+    border: 1px solid #e2e8f0; background: #f8fafc; border-radius: 8px; padding: 10px 14px; margin-top: 8px;
+    font-variant-numeric: tabular-nums;
+}
+.rb-preview-main { font-size: 1.1rem; font-weight: 800; color: var(--rb-text); }
+.rb-preview-sub { font-size: 0.85rem; color: #64748b; }
+.rb-cost-panel { border: 1px solid #fed7aa; background: #fff7ed; border-radius: 8px; padding: 16px; }
+.rb-cost-panel.incomplete { border-color: #fcd34d; background: #fffbeb; }
+.rb-cost-panel.complete { border-color: #a7f3d0; background: #ecfdf5; }
+.rb-cost-issues { margin: 8px 0 0; padding-left: 1.1rem; font-size: 0.85rem; }
+.rb-cost-issues li { margin-bottom: 6px; }
+.rb-dup-warn { border: 1px solid #fcd34d; background: #fffbeb; border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.85rem; }
+.rb-section-title { font-size: 0.95rem; font-weight: 700; color: var(--rb-text); margin: 0; }
+.rb-modal .modal-content { border-radius: 12px; border: 1px solid var(--rb-border); }
+.rb-modal .modal-header { border-bottom: 1px solid var(--rb-border); background: #fff; }
+.rb-modal .modal-footer { border-top: 1px solid var(--rb-border); background: #fff; }
+
+/* Light theme only — no dark page headers */
+.rb-page .bom-header-dark { display: none !important; }
+
+@media (max-width: 1199.98px) {
+    .rb-footer-bar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    .rb-builder-grid { display: block !important; }
+}
+@media (max-width: 767.98px) {
+    .rb-page-title { font-size: 1.25rem; }
+    .rb-footer-bar { position: sticky; }
+}
 
 /* Toggle buttons */
 .rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }

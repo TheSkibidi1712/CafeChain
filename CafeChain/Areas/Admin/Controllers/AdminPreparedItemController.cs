@@ -55,6 +55,14 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
+        /// <summary>#126 BOM combobox refresh — active BTP options with recipe meta (no form wipe).</summary>
+        [HttpGet]
+        public async Task<IActionResult> GetBomOptions(string? search = null)
+        {
+            var data = await _service.GetBomOptionsAsync(search);
+            return Json(new { success = true, data });
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         [Authorize(Roles =

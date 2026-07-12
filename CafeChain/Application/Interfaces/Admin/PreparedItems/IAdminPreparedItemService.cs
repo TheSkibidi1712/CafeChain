@@ -20,5 +20,8 @@ namespace CafeChain.Application.Interfaces.Admin.PreparedItems
         Task SetActiveAsync(int preparedItemId, bool active);
 
         Task<List<UnitDTO>> GetInventoryUnitsAsync();
+
+        /// <summary>#126 Active PreparedItems for BOM combobox (Code+Name + active recipe meta).</summary>
+        Task<List<AdminPreparedItemBomOptionDTO>> GetBomOptionsAsync(string? search = null);
     }
 }
