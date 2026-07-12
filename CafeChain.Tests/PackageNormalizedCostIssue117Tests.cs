@@ -532,7 +532,8 @@ namespace CafeChain.Tests.POS
                 ctx,
                 NullLogger<InventoryDeductionService>.Instance,
                 unit,
-                estimated);
+                estimated,
+                physical);
 
             var cogs = await deduction.CalculateRecipeCogsAsync(recipe.RecipeId);
             Assert.False(cogs.IsSuccess);
@@ -837,7 +838,7 @@ namespace CafeChain.Tests.POS
             var unit = new UnitConversionService(ctx, NullLogger<UnitConversionService>.Instance, physical);
             var estimated = CreateService(ctx);
             var deduction = new InventoryDeductionService(
-                ctx, NullLogger<InventoryDeductionService>.Instance, unit, estimated);
+                ctx, NullLogger<InventoryDeductionService>.Instance, unit, estimated, physical);
 
             // Cost is incomplete
             var cogs = await deduction.CalculateRecipeCogsAsync(2001);
@@ -912,7 +913,7 @@ namespace CafeChain.Tests.POS
             var unit = new UnitConversionService(ctx, NullLogger<UnitConversionService>.Instance, physical);
             var estimated = CreateService(ctx);
             var deduction = new InventoryDeductionService(
-                ctx, NullLogger<InventoryDeductionService>.Instance, unit, estimated);
+                ctx, NullLogger<InventoryDeductionService>.Instance, unit, estimated, physical);
 
             var sold = new List<CafeChain.Application.DTOs.POS.POSSoldItemDto>
             {

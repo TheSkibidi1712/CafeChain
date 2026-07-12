@@ -86,6 +86,23 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.ReferenceOrderId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.ProductionRun)
+                .WithMany()
+                .HasForeignKey(x => x.ProductionRunId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Issue #121 — exact ChildRecipe / sale-source recipe audit (not stock identity).
+            entity.HasOne(x => x.SourceRecipe)
+                .WithMany()
+                .HasForeignKey(x => x.SourceRecipeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Issue #123 — consolidation run linkage (new movements only).
+            entity.HasOne(x => x.InventoryConsolidationRun)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryConsolidationRunId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -99,6 +116,27 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
             entity.HasIndex(x => x.InventoryTransferId);
 
             entity.HasIndex(x => x.ReferenceOrderId);
+
+            entity.HasIndex(x => x.ProductionRunId)
+                .HasDatabaseName("IX_InventoryTransactions_ProductionRunId");
+
+            entity.HasIndex(x => x.SourceRecipeId)
+                .HasDatabaseName("IX_InventoryTransactions_SourceRecipeId");
+
+            // Exactly one movement per run + inventory row + type when linked to a production run.
+            entity.HasIndex(x => new { x.ProductionRunId, x.StoreInventoryId, x.Type })
+                .IsUnique()
+                .HasFilter("[ProductionRunId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_ProductionRun_Inventory_Type");
+
+            entity.HasIndex(x => x.InventoryConsolidationRunId)
+                .HasDatabaseName("IX_InventoryTransactions_InventoryConsolidationRunId");
+
+            // Exactly one consolidation movement per run + inventory row + type.
+            entity.HasIndex(x => new { x.InventoryConsolidationRunId, x.StoreInventoryId, x.Type })
+                .IsUnique()
+                .HasFilter("[InventoryConsolidationRunId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_ConsolidationRun_Inventory_Type");
 
             entity.HasIndex(x => x.CreatedAt);
 

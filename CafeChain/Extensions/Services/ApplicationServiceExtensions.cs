@@ -149,6 +149,40 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IRecipeOutputNormalizer, RecipeOutputNormalizer>();
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
 
+            // Admin - Production runs (#119 intent; #120 stock apply)
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionRunExecutionService,
+                CafeChain.Application.Services.Admin.Production.ProductionRunExecutionService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
+                CafeChain.Application.Services.Admin.Production.ProductionPreparedWriterCapabilityProvider>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
+                CafeChain.Application.Services.Inventories.PosPreparedWriterCapabilityProvider>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
+                CafeChain.Application.Services.Inventories.AlertRestockPreparedIdentityCapabilityProvider>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider,
+                CafeChain.Application.Services.Inventories.ConsolidationOrNoopEvidenceCapabilityProvider>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.ILegacyBtpConsolidationService,
+                CafeChain.Application.Services.Inventories.LegacyBtpConsolidationService>();
+
+            // Issue #124 — cutover reconciliation, schema probe, global legacy kill switch
+            // Bind from configuration/env: InventoryWriter__LegacyBtpWritesDisabled (do not commit secrets/appsettings).
+            services.AddOptions<CafeChain.Application.Options.InventoryWriterGlobalOptions>()
+                .BindConfiguration(CafeChain.Application.Options.InventoryWriterGlobalOptions.SectionName);
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.IInventorySchemaReadinessProbe,
+                CafeChain.Application.Services.Inventories.InventorySchemaReadinessProbe>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Inventories.ICutoverReconciliationService,
+                CafeChain.Application.Services.Inventories.CutoverReconciliationService>();
+
             // Admin - Inventory Documents
             services.AddScoped<IAdminInventoryDocumentService, AdminInventoryDocumentService>();
             services.AddScoped<IAdminInventoryDocumentExportService, AdminInventoryDocumentExportService>();

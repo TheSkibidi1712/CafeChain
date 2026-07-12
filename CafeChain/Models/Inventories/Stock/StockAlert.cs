@@ -1,13 +1,14 @@
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Inventories.Stock
 {
     /// <summary>
-    /// Issue #97 — persisted LOW_STOCK / OUT_OF_STOCK alert for a store inventory item
-    /// (IngredientId XOR RecipeId), following ADR-0004 one-level identity.
+    /// Issue #97 — persisted LOW_STOCK / OUT_OF_STOCK alert for a store inventory item.
+    /// Issue #122 — transitional identity: Ingredient-only, Recipe-only, Recipe+PreparedItem, PreparedItem-only.
     /// Issue #98 — optional sales-report fields (ReportedBy / ReportedAt / SALES_REPORT source).
     /// </summary>
     public class StockAlert
@@ -19,6 +20,9 @@ namespace CafeChain.Models.Inventories.Stock
         public int? IngredientId { get; set; }
 
         public int? RecipeId { get; set; }
+
+        /// <summary>Issue #122 — stable BTP identity for PreparedItem-mode alerts.</summary>
+        public int? PreparedItemId { get; set; }
 
         /// <summary>LOW_STOCK | OUT_OF_STOCK</summary>
         public string AlertType { get; set; } = string.Empty;
@@ -72,6 +76,7 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Store Store { get; set; } = null!;
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }
+        public virtual PreparedItem? PreparedItem { get; set; }
         public virtual Staff? ReportedByStaff { get; set; }
         public virtual Staff? ConfirmedByStaff { get; set; }
         public virtual Staff? RejectedByStaff { get; set; }

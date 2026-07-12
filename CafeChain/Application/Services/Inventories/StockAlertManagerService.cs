@@ -122,6 +122,7 @@ namespace CafeChain.Application.Services.Inventories
                 .AsNoTracking()
                 .Include(a => a.Ingredient)
                 .Include(a => a.Recipe)
+                .Include(a => a.PreparedItem)
                 .Include(a => a.ReportedByStaff)
                 .Where(a => a.StoreId == storeId);
 
@@ -159,6 +160,7 @@ namespace CafeChain.Application.Services.Inventories
                 .AsNoTracking()
                 .Include(a => a.Ingredient)
                 .Include(a => a.Recipe)
+                .Include(a => a.PreparedItem)
                 .Include(a => a.ReportedByStaff)
                 .Include(a => a.ConfirmedByStaff)
                 .Include(a => a.RejectedByStaff)
@@ -199,6 +201,7 @@ namespace CafeChain.Application.Services.Inventories
             var alert = await _context.StockAlerts
                 .Include(a => a.Ingredient)
                 .Include(a => a.Recipe)
+                .Include(a => a.PreparedItem)
                 .FirstOrDefaultAsync(a => a.StockAlertId == alertId);
 
             if (alert == null)
@@ -262,7 +265,9 @@ namespace CafeChain.Application.Services.Inventories
             StockAlertId = a.StockAlertId,
             StoreId = a.StoreId,
             ItemName = ResolveItemName(a),
-            ItemTypeLabel = a.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
+            ItemTypeLabel = a.IngredientId.HasValue
+                ? "Nguyên liệu"
+                : (a.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
             AlertType = a.AlertType,
             Severity = a.Severity,
             Status = a.Status,
@@ -282,7 +287,9 @@ namespace CafeChain.Application.Services.Inventories
                 StockAlertId = a.StockAlertId,
                 StoreId = a.StoreId,
                 ItemName = ResolveItemName(a),
-                ItemTypeLabel = a.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
+                ItemTypeLabel = a.IngredientId.HasValue
+                    ? "Nguyên liệu"
+                    : (a.PreparedItemId.HasValue ? "Bán thành phẩm (PreparedItem)" : "Bán thành phẩm"),
                 AlertType = a.AlertType,
                 Severity = a.Severity,
                 Status = a.Status,
@@ -295,6 +302,7 @@ namespace CafeChain.Application.Services.Inventories
                 UpdatedAt = a.UpdatedAt,
                 IngredientId = a.IngredientId,
                 RecipeId = a.RecipeId,
+                PreparedItemId = a.PreparedItemId,
                 ReportedByStaffId = a.ReportedByStaffId,
                 ReportedAt = a.ReportedAt,
                 ConfirmedByStaffId = a.ConfirmedByStaffId,
@@ -315,6 +323,12 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (a.IngredientId.HasValue)
                 return a.Ingredient?.Name ?? $"Nguyên liệu #{a.IngredientId}";
+            if (a.PreparedItemId.HasValue)
+            {
+                if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Name)) return a.PreparedItem.Name;
+                if (!string.IsNullOrWhiteSpace(a.PreparedItem?.Code)) return a.PreparedItem.Code;
+                return $"PreparedItem #{a.PreparedItemId}";
+            }
             if (a.RecipeId.HasValue)
             {
                 if (!string.IsNullOrWhiteSpace(a.Recipe?.Name)) return a.Recipe.Name;

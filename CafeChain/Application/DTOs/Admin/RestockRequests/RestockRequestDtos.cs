@@ -20,6 +20,8 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     {
         public int? IngredientId { get; set; }
         public int? RecipeId { get; set; }
+        /// <summary>Issue #122 — stable BTP identity when present.</summary>
+        public int? PreparedItemId { get; set; }
         public int CreatedByStaffId { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string? StoreName { get; set; }

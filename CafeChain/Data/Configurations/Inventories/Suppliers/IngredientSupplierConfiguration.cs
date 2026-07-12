@@ -91,11 +91,11 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ================= SEED =================
-
+            // Owner-approved demo package metadata (#113 Hybrid D).
+            // IS#2 / IS#9 = OwnerApprovedSyntheticDemoAssumption (not real supplier evidence).
+            // Migration InsertData still carries older values until team regenerates InitialCreate.
             entity.HasData(
 
-                // Approved #111 package maps: PackageQuantity=1 for structured kg/l import-unit offers only.
-                // Syrup / condensed milk / matcha / tea remain null (ambiguous).
                 new IngredientSupplier
                 {
                     IngredientSupplierId = 1,
@@ -118,12 +118,12 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierId = 2,
                     CurrentPrice = 27000,
                     UnitId = 3,
-                    PackageQuantity = null,
+                    PackageQuantity = 380m,
                     MinimumOrderQuantity = 24,
                     LeadTimeDays = 2,
                     IsPrimary = true,
                     Active = true,
-                    Note = "Sữa đặc Ông Thọ"
+                    Note = "Sữa đặc demo lon 380 ml (synthetic)"
                 },
 
                 new IngredientSupplier
@@ -148,7 +148,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierId = 4,
                     CurrentPrice = 250000,
                     UnitId = 3,
-                    PackageQuantity = null,
+                    PackageQuantity = 750m,
                     MinimumOrderQuantity = 6,
                     LeadTimeDays = 4,
                     IsPrimary = true,
@@ -178,7 +178,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierId = 5,
                     CurrentPrice = 450000,
                     UnitId = 1,
-                    PackageQuantity = null,
+                    PackageQuantity = 500m,
                     MinimumOrderQuantity = 1,
                     LeadTimeDays = 5,
                     IsPrimary = true,
@@ -196,7 +196,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     PackageQuantity = 1m,
                     MinimumOrderQuantity = 2,
                     LeadTimeDays = 3,
-                    IsPrimary = false,
+                    IsPrimary = true,
                     Active = true,
                     Note = "Bột cacao"
                 },
@@ -211,7 +211,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     PackageQuantity = 1m,
                     MinimumOrderQuantity = 2,
                     LeadTimeDays = 2,
-                    IsPrimary = false,
+                    IsPrimary = true,
                     Active = true,
                     Note = "Bột sữa"
                 },
@@ -223,12 +223,12 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierId = 4,
                     CurrentPrice = 120000,
                     UnitId = 1,
-                    PackageQuantity = null,
+                    PackageQuantity = 200m,
                     MinimumOrderQuantity = 1,
                     LeadTimeDays = 5,
                     IsPrimary = true,
                     Active = true,
-                    Note = "Trà Lipton"
+                    Note = "Trà đen demo 100 túi × 2 g (synthetic)"
                 }
             );
         }

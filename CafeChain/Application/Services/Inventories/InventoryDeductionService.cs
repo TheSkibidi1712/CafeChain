@@ -1,11 +1,13 @@
-using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Inventories;
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -16,40 +18,41 @@ using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.Inventories
 {
+    /// <summary>
+    /// POS sales stock deduction. Issue #121: PreparedItem-mode BTP via canonical identity;
+    /// LegacyRecipe keeps RecipeId BTP; Blind Selling (negative qty allowed).
+    /// </summary>
     public class InventoryDeductionService : IInventoryDeductionService
     {
         private readonly AppDbContext _context;
         private readonly ILogger<InventoryDeductionService> _logger;
         private readonly IUnitConversionService _unitConversion;
+        private readonly IPhysicalUnitConversionService _physicalConversion;
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IStockAlertService? _stockAlertService;
         private readonly IInventoryWriterModeService? _writerModeService;
+        private readonly IStoreInventoryWriteResolver? _writeResolver;
 
         public InventoryDeductionService(
             AppDbContext context,
             ILogger<InventoryDeductionService> logger,
             IUnitConversionService unitConversion,
             IEstimatedBomCostService estimatedBomCost,
+            IPhysicalUnitConversionService physicalConversion,
             IStockAlertService? stockAlertService = null,
-            IInventoryWriterModeService? writerModeService = null)
+            IInventoryWriterModeService? writerModeService = null,
+            IStoreInventoryWriteResolver? writeResolver = null)
         {
             _context = context;
             _logger = logger;
             _unitConversion = unitConversion;
             _estimatedBomCost = estimatedBomCost;
+            _physicalConversion = physicalConversion;
             _stockAlertService = stockAlertService;
             _writerModeService = writerModeService;
+            _writeResolver = writeResolver;
         }
 
-        // ============================================================
-        // COGS READ adapter over EstimatedBomCost (Issue #117)
-        // Complete → Success(total). Incomplete → Failure (never Success(0) fake complete).
-        // Does not apply YieldPercentage. Does not mutate stock.
-        //
-        // CRITICAL: DeductStockForOrder* MUST NOT call this method.
-        // Cost incompleteness (missing package price / PackageQuantity / primary) is NOT a
-        // quantity conversion failure and must never block valid inventory deduction.
-        // ============================================================
         public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
         {
             var estimate = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipeId);
@@ -67,29 +70,11 @@ namespace CafeChain.Application.Services.Inventories
             return ServiceResult<decimal>.Failure(message);
         }
 
-        // ============================================================
-        // Unit Conversion via shared service (fail-closed)
-        // ============================================================
-        private async Task<(bool ok, decimal qty, string? error)> ConvertQuantityToBaseUnitAsync(
-            int ingredientId, decimal quantity, int fromUnitId)
-        {
-            var result = await _unitConversion.ConvertAsync(ingredientId, quantity, fromUnitId);
-            if (!result.IsSuccess)
-                return (false, 0m, result.Message);
-            return (true, result.Data, null);
-        }
-
-        // ============================================================
-        // DEDUCT: Xuất kho bán hàng (giữ nguyên logic, bổ sung UnitConversion)
-        // ============================================================
         public async Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId)
         {
             return await DeductStockForOrderInternalAsync(soldItems, storeId, null);
         }
 
-        /// <summary>
-        /// Trừ kho cho một Order đã commit/paid. Idempotent theo ReferenceOrderId.
-        /// </summary>
         public async Task<ServiceResult> DeductStockForCommittedOrderAsync(
             List<POSSoldItemDto> soldItems,
             int storeId,
@@ -109,33 +94,29 @@ namespace CafeChain.Application.Services.Inventories
             if (soldItems == null || !soldItems.Any())
                 return ServiceResult.Failure("Không có sản phẩm nào để xuất kho.");
 
-            // Issue #65: Thu thập cảnh báo thiếu kho — không block đơn hàng
             var inventoryWarnings = new List<string>();
 
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
                 if (referenceOrderId.HasValue)
                 {
-                    var orderCanDeduct = await _context.Orders
-                        .AsNoTracking()
-                        .AnyAsync(order =>
-                            order.OrderId == referenceOrderId.Value &&
-                            order.StoreId == storeId &&
-                            order.OrderStatusId == SystemConstants.OrderStatuses.Completed &&
-                            order.PaymentStatusId == SystemConstants.PaymentStatuses.Paid);
-
-                    if (!orderCanDeduct)
+                    var order = await LoadOrderForUpdateAsync(referenceOrderId.Value);
+                    if (order == null
+                        || order.StoreId != storeId
+                        || order.OrderStatusId != SystemConstants.OrderStatuses.Completed
+                        || order.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult.Failure("Chỉ trừ kho cho đơn POS đã thanh toán và đã commit.");
                     }
 
+                    // Idempotency AFTER order lock
                     var alreadyDeducted = await _context.InventoryTransactions
                         .AsNoTracking()
-                        .AnyAsync(inventoryTransaction =>
-                            inventoryTransaction.ReferenceOrderId == referenceOrderId.Value &&
-                            inventoryTransaction.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
+                        .AnyAsync(t =>
+                            t.ReferenceOrderId == referenceOrderId.Value
+                            && t.Type == InventoryTransactionTypeEnum.SALES_DEDUCTION);
 
                     if (alreadyDeducted)
                     {
@@ -144,23 +125,57 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
-                if (_writerModeService != null && await ContainsBtpMutationAsync(soldItems))
-                {
-                    var snapshotResult = await _writerModeService.AcquireSnapshotAsync(storeId);
-                    if (!snapshotResult.IsSuccess || snapshotResult.Data == null)
-                    {
-                        await transaction.RollbackAsync();
-                        return ServiceResult.Failure(snapshotResult.Message, errorCode: snapshotResult.ErrorCode);
-                    }
+                InventoryWriterModeSnapshot? modeSnapshot = null;
+                InventoryWriterMode mode = InventoryWriterMode.LegacyRecipe;
 
-                    var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshotResult.Data, storeId);
-                    if (!guard.IsSuccess)
+                if (_writerModeService != null)
+                {
+                    // Always acquire when writer service is present so mode is consistent for BTP + ingredient-only Blocked.
+                    var hasBtp = await SoldItemsContainBtpAsync(soldItems);
+                    if (hasBtp)
                     {
-                        await transaction.RollbackAsync();
-                        return guard;
+                        var snapshotResult = await _writerModeService.AcquireSnapshotAsync(storeId);
+                        if (!snapshotResult.IsSuccess || snapshotResult.Data == null)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult.Failure(snapshotResult.Message, errorCode: snapshotResult.ErrorCode);
+                        }
+
+                        modeSnapshot = snapshotResult.Data;
+                        mode = modeSnapshot.WriterMode;
+
+                        if (mode == InventoryWriterMode.Blocked)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult.Failure(
+                                "Kho BTP của cửa hàng đang bị khóa; không thể trừ BTP.",
+                                errorCode: InventoryWriterFailureCodes.ModeBlocked);
+                        }
+
+                        if (mode == InventoryWriterMode.LegacyRecipe)
+                        {
+                            var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(modeSnapshot, storeId);
+                            if (!guard.IsSuccess)
+                            {
+                                await transaction.RollbackAsync();
+                                return guard;
+                            }
+                        }
+                        else if (mode == InventoryWriterMode.PreparedItem)
+                        {
+                            if (_writeResolver == null || _physicalConversion == null)
+                            {
+                                await transaction.RollbackAsync();
+                                return ServiceResult.Failure(
+                                    "PreparedItem POS writer chưa được cấu hình đầy đủ.",
+                                    errorCode: "POS_PREPARED_WRITER_NOT_CONFIGURED");
+                            }
+                        }
                     }
                 }
 
+                // Collect all requirements without mutating.
+                var requirements = new List<RequirementLine>();
                 foreach (var item in soldItems)
                 {
                     var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
@@ -173,12 +188,13 @@ namespace CafeChain.Application.Services.Inventories
                     }
                     else
                     {
-                        await DeductRecipeDetailsAsync(
+                        await CollectRequirementsAsync(
                             drinkRecipe,
                             item.Quantity,
                             storeId,
-                            inventoryWarnings,
-                            referenceOrderId);
+                            mode,
+                            modeSnapshot,
+                            requirements);
                     }
 
                     foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
@@ -192,50 +208,336 @@ namespace CafeChain.Application.Services.Inventories
                             continue;
                         }
 
-                        await DeductRecipeDetailsAsync(
+                        await CollectRequirementsAsync(
                             toppingRecipe,
                             item.Quantity,
                             storeId,
-                            inventoryWarnings,
-                            referenceOrderId);
+                            mode,
+                            modeSnapshot,
+                            requirements);
                     }
+                }
+
+                // Mutate once per StoreInventoryId (sum all paths).
+                var mutationGroups = requirements
+                    .GroupBy(r => r.StoreInventoryId)
+                    .Select(g => new
+                    {
+                        StoreInventoryId = g.Key,
+                        RequiredQty = g.Sum(x => x.RequiredQty),
+                        DisplayName = g.First().DisplayName
+                    })
+                    .OrderBy(x => x.StoreInventoryId)
+                    .ToList();
+
+                // Ledger: group by (StoreInventoryId, SourceRecipeId) so exact ChildRecipe audit is durable
+                // even when multiple children resolve to the same PreparedItem row.
+                var ledgerGroups = requirements
+                    .GroupBy(r => new { r.StoreInventoryId, r.SourceRecipeId })
+                    .Select(g => new
+                    {
+                        g.Key.StoreInventoryId,
+                        g.Key.SourceRecipeId,
+                        RequiredQty = g.Sum(x => x.RequiredQty),
+                        DisplayName = g.First().DisplayName
+                    })
+                    .OrderBy(x => x.StoreInventoryId)
+                    .ThenBy(x => x.SourceRecipeId)
+                    .ToList();
+
+                var lockedRows = new Dictionary<int, StoreInventory>();
+                var preMutationQty = new Dictionary<int, decimal>();
+
+                foreach (var line in mutationGroups)
+                {
+                    var inv = await LoadInventoryForUpdateAsync(line.StoreInventoryId);
+                    if (inv == null)
+                        throw new InvalidOperationException(
+                            $"Không tìm thấy StoreInventory #{line.StoreInventoryId} sau khi resolve.");
+
+                    var tracked = _context.StoreInventories.Local
+                        .FirstOrDefault(x => x.StoreInventoryId == inv.StoreInventoryId)
+                        ?? inv;
+                    if (_context.Entry(tracked).State == EntityState.Detached)
+                        _context.StoreInventories.Attach(tracked);
+
+                    lockedRows[tracked.StoreInventoryId] = tracked;
+                    preMutationQty[tracked.StoreInventoryId] = tracked.AvailableQty;
+
+                    var beforeQty = tracked.AvailableQty;
+                    // Blind Selling: AvailableQty -= Required; ReservedQty unchanged.
+                    tracked.AvailableQty -= line.RequiredQty;
+                    tracked.LastUpdated = DateTime.UtcNow;
+
+                    if (tracked.AvailableQty < 0)
+                    {
+                        inventoryWarnings.Add(
+                            $"⚠️ {line.DisplayName}: tồn kho âm ({tracked.AvailableQty:N2}), " +
+                            $"trước xuất: {beforeQty:N2}, xuất: {line.RequiredQty:N2}");
+
+                        _logger.LogWarning(
+                            "[InventoryDeduction] Kho âm — StoreId={StoreId}, Item={ItemName}, " +
+                            "Before={Before:N2}, Deducted={Deducted:N2}, After={After:N2}",
+                            storeId, line.DisplayName, beforeQty, line.RequiredQty, tracked.AvailableQty);
+                    }
+                }
+
+                // Sequential Before/After per inventory for multi-source ledger slices.
+                var runningQty = new Dictionary<int, decimal>(preMutationQty);
+                foreach (var ledger in ledgerGroups)
+                {
+                    if (ledger.SourceRecipeId <= 0)
+                    {
+                        throw new InvalidOperationException(
+                            "Thiếu SourceRecipeId durable audit cho movement SALES_DEDUCTION.");
+                    }
+
+                    var beforeQty = runningQty[ledger.StoreInventoryId];
+                    var afterQty = beforeQty - ledger.RequiredQty;
+                    runningQty[ledger.StoreInventoryId] = afterQty;
+
+                    _context.InventoryTransactions.Add(new InventoryTransaction
+                    {
+                        StoreInventoryId = ledger.StoreInventoryId,
+                        Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
+                        StockStatus = afterQty < 0
+                            ? InventoryStockStatus.NEGATIVE_CONFIRMED
+                            : InventoryStockStatus.NORMAL,
+                        Quantity = ledger.RequiredQty,
+                        BeforeQty = beforeQty,
+                        AfterQty = afterQty,
+                        ReferenceOrderId = referenceOrderId,
+                        SourceRecipeId = ledger.SourceRecipeId,
+                        CreatedAt = DateTime.UtcNow
+                    });
                 }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
-                // Issue #97: evaluate stock alerts after qty is committed (never fail deduction).
                 await EvaluateStockAlertsSafeAsync(storeId, referenceOrderId);
 
-                // Trả success kèm warnings (nếu có) — đơn hàng KHÔNG bị reject
                 if (inventoryWarnings.Any())
                 {
                     var result = ServiceResult.Success(
                         $"Trừ kho thành công. Cảnh báo: {inventoryWarnings.Count} nguyên liệu tồn kho âm.");
-                    result.Errors = inventoryWarnings;  // Dùng Errors để chở warnings — controller check IsSuccess
+                    result.Errors = inventoryWarnings;
                     return result;
                 }
+
                 return ServiceResult.Success("Trừ kho bán hàng thành công.");
             }
             catch (DbUpdateConcurrencyException ex)
             {
-                await transaction.RollbackAsync();
+                try { await transaction.RollbackAsync(); } catch { /* ignore */ }
+                // Clear only after concurrency — avoids detaching caller-tracked seed entities on soft failures.
+                _context.ChangeTracker.Clear();
                 _logger.LogError(ex, "Lỗi tranh chấp dữ liệu khi trừ kho.");
-                return ServiceResult.Failure("Lỗi hệ thống: Có nhiều giao dịch đồng thời đang tranh chấp kho. Vui lòng thử lại.");
+                return ServiceResult.Failure(
+                    "Lỗi hệ thống: Có nhiều giao dịch đồng thời đang tranh chấp kho. Vui lòng thử lại.");
             }
             catch (Exception ex)
             {
-                await transaction.RollbackAsync();
+                try { await transaction.RollbackAsync(); } catch { /* ignore */ }
                 _logger.LogError(ex, "Lỗi xuất kho bán hàng.");
                 return ServiceResult.Failure($"Lỗi xuất kho: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// Issue #97 — post-commit stock alert evaluation. Failures are logged only.
-        /// Idempotent deduction is unchanged: alerts run only after successful commit.
-        /// Offline sync and online POS share this path (same DeductStock* entrypoints).
-        /// </summary>
+        private async Task CollectRequirementsAsync(
+            Recipe saleRecipe,
+            int soldQuantity,
+            int storeId,
+            InventoryWriterMode mode,
+            InventoryWriterModeSnapshot? modeSnapshot,
+            List<RequirementLine> requirements)
+        {
+            var details = saleRecipe.RecipeDetails?.ToList() ?? new List<RecipeDetail>();
+            foreach (var detail in details)
+            {
+                decimal rawRequired = detail.Quantity * soldQuantity;
+
+                if (detail.IngredientId.HasValue)
+                {
+                    var converted = await _unitConversion.ConvertAsync(
+                        detail.IngredientId.Value,
+                        rawRequired,
+                        detail.UnitId);
+                    if (!converted.IsSuccess)
+                    {
+                        throw new InvalidOperationException(
+                            converted.Message ??
+                            $"Thiếu quy đổi đơn vị cho nguyên liệu #{detail.IngredientId}.");
+                    }
+
+                    var inv = await GetOrCreateIngredientInventoryAsync(storeId, detail.IngredientId.Value);
+                    var name = await _context.Ingredients.AsNoTracking()
+                        .Where(i => i.IngredientId == detail.IngredientId.Value)
+                        .Select(i => i.Name)
+                        .FirstOrDefaultAsync() ?? $"Ingredient #{detail.IngredientId}";
+
+                    requirements.Add(new RequirementLine
+                    {
+                        StoreInventoryId = inv.StoreInventoryId,
+                        RequiredQty = converted.Data,
+                        SourceRecipeId = saleRecipe.RecipeId,
+                        DisplayName = name
+                    });
+                    continue;
+                }
+
+                if (!detail.ChildRecipeId.HasValue)
+                {
+                    throw new InvalidOperationException(
+                        $"RecipeDetail #{detail.RecipeDetailId} phải có IngredientId hoặc ChildRecipeId.");
+                }
+
+                // ----- BTP path -----
+                if (mode == InventoryWriterMode.Blocked)
+                {
+                    throw new InvalidOperationException(
+                        "Kho BTP đang bị khóa; không thể trừ ChildRecipe/BTP.");
+                }
+
+                if (mode == InventoryWriterMode.PreparedItem)
+                {
+                    await CollectPreparedBtpRequirementAsync(
+                        detail,
+                        rawRequired,
+                        storeId,
+                        modeSnapshot!,
+                        requirements);
+                }
+                else
+                {
+                    // LegacyRecipe: RecipeId = exact ChildRecipeId, raw qty (no physical convert).
+                    var inv = await GetOrCreateLegacyRecipeInventoryAsync(storeId, detail.ChildRecipeId.Value);
+                    requirements.Add(new RequirementLine
+                    {
+                        StoreInventoryId = inv.StoreInventoryId,
+                        RequiredQty = rawRequired,
+                        SourceRecipeId = detail.ChildRecipeId.Value,
+                        DisplayName = $"Recipe #{detail.ChildRecipeId}"
+                    });
+                }
+            }
+        }
+
+        private async Task CollectPreparedBtpRequirementAsync(
+            RecipeDetail detail,
+            decimal rawRequired,
+            int storeId,
+            InventoryWriterModeSnapshot modeSnapshot,
+            List<RequirementLine> requirements)
+        {
+            // Exact ChildRecipe by id — no Active filter / no latest substitute.
+            var child = await _context.Recipes
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.RecipeId == detail.ChildRecipeId!.Value);
+
+            if (child == null)
+            {
+                throw new InvalidOperationException(
+                    $"Không tìm thấy ChildRecipe #{detail.ChildRecipeId}.");
+            }
+
+            if (!child.PreparedItemId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"ChildRecipe #{child.RecipeId} chưa map PreparedItemId.");
+            }
+
+            // Output contract validation (mapping validity) — do NOT multiply by OutputQuantity/Yield.
+            if (child.OutputQuantity is null or <= 0 || !child.OutputUnitId.HasValue)
+            {
+                throw new InvalidOperationException(
+                    $"ChildRecipe #{child.RecipeId} thiếu output contract hợp lệ (OutputQuantity/OutputUnitId).");
+            }
+
+            var preparedItem = await _context.PreparedItems
+                .AsNoTracking()
+                .Include(p => p.BaseUnit)
+                .FirstOrDefaultAsync(p => p.PreparedItemId == child.PreparedItemId.Value);
+
+            if (preparedItem == null || !preparedItem.Active)
+            {
+                throw new InvalidOperationException(
+                    $"PreparedItem #{child.PreparedItemId} không hợp lệ hoặc không Active.");
+            }
+
+            if (preparedItem.BaseUnit == null || !preparedItem.BaseUnit.Active)
+            {
+                throw new InvalidOperationException(
+                    $"BaseUnit của PreparedItem #{preparedItem.PreparedItemId} không hợp lệ.");
+            }
+
+            var converted = await _physicalConversion.ConvertAsync(
+                rawRequired,
+                detail.UnitId,
+                preparedItem.BaseUnitId);
+            if (!converted.IsSuccess)
+            {
+                throw new InvalidOperationException(
+                    converted.Message ??
+                    $"Không quy đổi được đơn vị BTP ChildRecipe #{child.RecipeId} → PreparedItem base unit.");
+            }
+
+            var resolve = await _writeResolver!.ResolveAsync(new StoreInventoryWriteRequest
+            {
+                ModeSnapshot = modeSnapshot,
+                StoreId = storeId,
+                IdentityType = InventoryWriteIdentityTypes.PreparedItem,
+                PreparedItemId = preparedItem.PreparedItemId,
+                NormalizedBaseUnitId = preparedItem.BaseUnitId,
+                SourceRecipeId = child.RecipeId,
+                AllowCreateIntent = false
+            });
+
+            if (resolve.Status != InventoryWriteResolutionStatuses.FoundCanonical || resolve.StoreInventory == null)
+            {
+                throw new InvalidOperationException(
+                    $"Không resolve được tồn PreparedItem #{preparedItem.PreparedItemId}: {resolve.Status} — {resolve.Message}");
+            }
+
+            requirements.Add(new RequirementLine
+            {
+                StoreInventoryId = resolve.StoreInventory.StoreInventoryId,
+                RequiredQty = converted.Data,
+                SourceRecipeId = child.RecipeId,
+                DisplayName = preparedItem.Name
+            });
+        }
+
+        private async Task<Order?> LoadOrderForUpdateAsync(int orderId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.Orders
+                    .FromSqlInterpolated(
+                        $@"SELECT * FROM Orders WITH (UPDLOCK, ROWLOCK, HOLDLOCK)
+                           WHERE OrderId = {orderId}")
+                    .SingleOrDefaultAsync();
+            }
+
+            return await _context.Orders
+                .SingleOrDefaultAsync(o => o.OrderId == orderId);
+        }
+
+        private async Task<StoreInventory?> LoadInventoryForUpdateAsync(int storeInventoryId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.StoreInventories
+                    .FromSqlInterpolated(
+                        $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK, HOLDLOCK)
+                           WHERE StoreInventoryId = {storeInventoryId}")
+                    .SingleOrDefaultAsync();
+            }
+
+            return await _context.StoreInventories
+                .SingleOrDefaultAsync(x => x.StoreInventoryId == storeInventoryId);
+        }
+
         private async Task EvaluateStockAlertsSafeAsync(int storeId, int? referenceOrderId)
         {
             if (_stockAlertService == null)
@@ -243,11 +545,7 @@ namespace CafeChain.Application.Services.Inventories
 
             try
             {
-                var source = referenceOrderId.HasValue
-                    ? StockAlertSources.PosSale
-                    : StockAlertSources.PosSale;
-
-                var alertResult = await _stockAlertService.EvaluateStoreAsync(storeId, source);
+                var alertResult = await _stockAlertService.EvaluateStoreAsync(storeId, StockAlertSources.PosSale);
                 if (!alertResult.IsSuccess)
                 {
                     _logger.LogWarning(
@@ -265,6 +563,10 @@ namespace CafeChain.Application.Services.Inventories
             }
         }
 
+        /// <summary>
+        /// KNOWN LIMITATION (#121 / ADR-0009): parent sale recipe is Active at deduction time,
+        /// not a persisted sale-time BOM snapshot. After selection, ChildRecipeId is exact.
+        /// </summary>
         private async Task<Recipe?> GetActiveRecipeAsync(int? drinkId, int? sizeId, int? toppingId)
         {
             var query = _context.Recipes
@@ -297,7 +599,7 @@ namespace CafeChain.Application.Services.Inventories
             return null;
         }
 
-        private async Task<bool> ContainsBtpMutationAsync(IEnumerable<POSSoldItemDto> soldItems)
+        private async Task<bool> SoldItemsContainBtpAsync(IEnumerable<POSSoldItemDto> soldItems)
         {
             foreach (var item in soldItems)
             {
@@ -316,96 +618,61 @@ namespace CafeChain.Application.Services.Inventories
             return false;
         }
 
-        private async Task DeductRecipeDetailsAsync(
-            Recipe recipe,
-            int soldQuantity,
-            int storeId,
-            List<string> inventoryWarnings,
-            int? referenceOrderId)
-        {
-            // STRICT OPTION B: Xuất thẳng Bán Thành Phẩm / Nguyên Liệu, KHÔNG bóc tách đệ quy
-            foreach (var detail in recipe.RecipeDetails)
-            {
-                decimal requiredQty = detail.Quantity * soldQuantity;
-
-                decimal convertedQty;
-                if (detail.IngredientId.HasValue)
-                {
-                    var converted = await ConvertQuantityToBaseUnitAsync(
-                        detail.IngredientId.Value, requiredQty, detail.UnitId);
-                    if (!converted.ok)
-                    {
-                        // Do not silently deduct raw quantity — surface as failure via exception
-                        // so outer transaction rolls back and order path can retry after data fix.
-                        throw new InvalidOperationException(
-                            converted.error ??
-                            $"Thiếu quy đổi đơn vị cho nguyên liệu #{detail.IngredientId}.");
-                    }
-
-                    convertedQty = converted.qty;
-                }
-                else
-                {
-                    convertedQty = requiredQty;
-                }
-
-                var inventoryItem = await GetOrCreateInventoryItem(storeId, detail.IngredientId, detail.ChildRecipeId);
-
-                decimal beforeQty = inventoryItem.AvailableQty;
-                inventoryItem.AvailableQty -= convertedQty; // Cho phép âm kho (Soft-block)
-
-                if (inventoryItem.AvailableQty < 0)
-                {
-                    var itemName = detail.IngredientId.HasValue
-                        ? (await _context.Ingredients.FindAsync(detail.IngredientId.Value))?.Name ?? $"Ingredient #{detail.IngredientId}"
-                        : $"Recipe #{detail.ChildRecipeId}";
-
-                    inventoryWarnings.Add(
-                        $"⚠️ {itemName}: tồn kho âm ({inventoryItem.AvailableQty:N2}), " +
-                        $"trước xuất: {beforeQty:N2}, xuất: {convertedQty:N2}");
-
-                    _logger.LogWarning(
-                        "[InventoryDeduction] Kho âm — StoreId={StoreId}, Item={ItemName}, " +
-                        "Before={Before:N2}, Deducted={Deducted:N2}, After={After:N2}",
-                        storeId, itemName, beforeQty, convertedQty, inventoryItem.AvailableQty);
-                }
-
-                _context.InventoryTransactions.Add(new InventoryTransaction
-                {
-                    StoreInventoryId = inventoryItem.StoreInventoryId,
-                    Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
-                    StockStatus = inventoryItem.AvailableQty < 0
-                        ? InventoryStockStatus.NEGATIVE_CONFIRMED
-                        : InventoryStockStatus.NORMAL,
-                    Quantity = convertedQty,
-                    BeforeQty = beforeQty,
-                    AfterQty = inventoryItem.AvailableQty,
-                    ReferenceOrderId = referenceOrderId,
-                    CreatedAt = DateTime.UtcNow
-                });
-            }
-        }
-
-        private async Task<StoreInventory> GetOrCreateInventoryItem(int storeId, int? ingredientId, int? recipeId)
+        private async Task<StoreInventory> GetOrCreateIngredientInventoryAsync(int storeId, int ingredientId)
         {
             var item = await _context.StoreInventories
-                .FirstOrDefaultAsync(i => i.StoreId == storeId && i.IngredientId == ingredientId && i.RecipeId == recipeId);
-                
-            if (item == null)
+                .FirstOrDefaultAsync(i => i.StoreId == storeId && i.IngredientId == ingredientId);
+
+            if (item != null)
+                return item;
+
+            item = new StoreInventory
             {
-                item = new StoreInventory 
-                { 
-                    StoreId = storeId, 
-                    IngredientId = ingredientId, 
-                    RecipeId = recipeId, 
-                    AvailableQty = 0,
-                    ReservedQty = 0,
-                    LastUpdated = DateTime.UtcNow
-                };
-                _context.StoreInventories.Add(item);
-                await _context.SaveChangesAsync(); // Cần Save ngay để có StoreInventoryId cho log Transaction
-            }
+                StoreId = storeId,
+                IngredientId = ingredientId,
+                RecipeId = null,
+                PreparedItemId = null,
+                AvailableQty = 0,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.StoreInventories.Add(item);
+            await _context.SaveChangesAsync();
             return item;
         }
+
+        private async Task<StoreInventory> GetOrCreateLegacyRecipeInventoryAsync(int storeId, int recipeId)
+        {
+            var item = await _context.StoreInventories
+                .FirstOrDefaultAsync(i =>
+                    i.StoreId == storeId
+                    && i.RecipeId == recipeId
+                    && i.IngredientId == null);
+
+            if (item != null)
+                return item;
+
+            item = new StoreInventory
+            {
+                StoreId = storeId,
+                IngredientId = null,
+                RecipeId = recipeId,
+                AvailableQty = 0,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+            _context.StoreInventories.Add(item);
+            await _context.SaveChangesAsync();
+            return item;
+        }
+
+        private sealed class RequirementLine
+        {
+            public int StoreInventoryId { get; init; }
+            public decimal RequiredQty { get; init; }
+            public int SourceRecipeId { get; init; }
+            public string DisplayName { get; init; } = string.Empty;
+        }
+
     }
 }

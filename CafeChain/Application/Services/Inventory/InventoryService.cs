@@ -171,12 +171,26 @@ namespace CafeChain.Application.Services.Inventory
                     }
                 }
 
-                if (_writerModeService != null
-                    && deductions.Any(x => x.StoreInventory.RecipeId.HasValue))
+                // Issue #121 — PreparedItem / Blocked stores must not write BTP via RecipeId.
+                var btpDeductions = deductions.Where(x => x.StoreInventory.RecipeId.HasValue).ToList();
+                if (_writerModeService != null && btpDeductions.Count > 0)
                 {
                     var snapshot = await _writerModeService.AcquireSnapshotAsync(order.StoreId);
                     if (!snapshot.IsSuccess || snapshot.Data == null)
                         throw new InvalidOperationException(snapshot.Message);
+
+                    if (snapshot.Data.WriterMode == InventoryWriterMode.PreparedItem)
+                    {
+                        throw new InvalidOperationException(
+                            "Cửa hàng PreparedItem: InventoryService legacy không được ghi BTP bằng RecipeId. " +
+                            "Dùng POS PreparedItem consumption writer.");
+                    }
+
+                    if (snapshot.Data.WriterMode == InventoryWriterMode.Blocked)
+                    {
+                        throw new InvalidOperationException(
+                            "Kho BTP đang bị khóa; InventoryService không được mutate BTP RecipeId.");
+                    }
 
                     var guard = _writerModeService.EnsureLegacyBtpWriteAllowed(snapshot.Data, order.StoreId);
                     if (!guard.IsSuccess)
@@ -220,6 +234,7 @@ namespace CafeChain.Application.Services.Inventory
                         BeforeQty = beforeQty,
                         AfterQty = inv.AvailableQty,
                         ReferenceOrderId = orderId,
+                        // Durable audit for Ingredient lines when sale recipe known is out of scope for this path.
                         CreatedAt = DateTime.Now
                     });
                 }

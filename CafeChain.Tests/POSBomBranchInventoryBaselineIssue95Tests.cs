@@ -193,7 +193,8 @@ namespace CafeChain.Tests.POS
                 context,
                 new Mock<ILogger<InventoryDeductionService>>().Object,
                 unitConversion,
-                estimated);
+                estimated,
+                physical);
         }
 
         private static List<POSSoldItemDto> SoldItems(int quantity)

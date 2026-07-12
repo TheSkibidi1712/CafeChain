@@ -12,6 +12,10 @@ namespace CafeChain.Models.Enums.Inventory
         ADJUSTMENT_IN = 8,
         ADJUSTMENT_OUT = 9,
         OUT_TRANSFER = 10,
-        IN_TRANSFER = 11
+        IN_TRANSFER = 11,
+        /// <summary>Issue #123 — consolidate qty off legacy/source BTP row.</summary>
+        CONSOLIDATION_OUT = 12,
+        /// <summary>Issue #123 — consolidate qty onto canonical target row.</summary>
+        CONSOLIDATION_IN = 13
     }
 }

@@ -1,5 +1,6 @@
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 
@@ -8,6 +9,7 @@ namespace CafeChain.Models.Inventories.Stock
     /// <summary>
     /// Issue #100 — official restock request from a CONFIRMED StockAlert.
     /// Does not mutate inventory or create InventoryDocument.
+    /// Issue #122 — transitional PreparedItem identity copied from StockAlert.
     /// </summary>
     public class RestockRequest
     {
@@ -20,6 +22,9 @@ namespace CafeChain.Models.Inventories.Stock
         public int? IngredientId { get; set; }
 
         public int? RecipeId { get; set; }
+
+        /// <summary>Issue #122 — stable BTP identity when alert is PreparedItem-based.</summary>
+        public int? PreparedItemId { get; set; }
 
         public decimal RequestedQuantity { get; set; }
 
@@ -49,6 +54,7 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Store Store { get; set; } = null!;
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }
+        public virtual PreparedItem? PreparedItem { get; set; }
         public virtual Staff CreatedByStaff { get; set; } = null!;
         public virtual Staff? HandledByStaff { get; set; }
     }

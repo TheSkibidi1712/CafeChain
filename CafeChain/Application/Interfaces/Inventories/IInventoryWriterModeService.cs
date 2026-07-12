@@ -17,4 +17,6 @@ namespace CafeChain.Application.Interfaces.Inventories
     {
         InventoryWriterCapabilityStatus GetStatus();
     }
+
+    // IStoreScopedInventoryWriterCapabilityProvider is defined in ILegacyBtpConsolidationService.cs
 }

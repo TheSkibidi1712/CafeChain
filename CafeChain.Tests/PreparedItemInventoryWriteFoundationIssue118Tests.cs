@@ -562,6 +562,7 @@ namespace CafeChain.Tests
                 NullLogger<InventoryDeductionService>.Instance,
                 unit,
                 estimated,
+                physical,
                 writerModeService: modeService);
         }
     }
