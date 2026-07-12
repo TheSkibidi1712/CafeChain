@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Models;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
@@ -158,15 +159,15 @@ namespace CafeChain.Data.Configurations.Staffs
                     AvatarPublicId = "staffs/default-avatar",
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
-                // StaffId 12 ↔ AccountId 12 (Ca trưởng) — free IDs after staff 1–6; AccountId fixed at 12.
+                // StaffId 12 ↔ AccountId 12 (Ca trưởng) — SeedDemoIdentities (#94 / #130).
                 new Staff
                 {
-                    StaffId = 12,
-                    AccountId = 15,
+                    StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
+                    AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,
                     FullName = "Ca trưởng chi nhánh",
                     TaxCode = "TAX112",
                     BaseSalary = 12000000,
-                    StoreId = 1,
+                    StoreId = SeedDemoIdentities.ShiftSupervisorStoreId,
                     Active = true,
                     AvatarUrl = "/Images/Upload/avtdf.jpg",
                     AvatarPublicId = "staffs/default-avatar",
@@ -286,13 +287,13 @@ namespace CafeChain.Data.Configurations.Staffs
                     ScopeRefId = 1
                 },
 
-                // Ca trưởng chi nhánh (AccountId 12 / StaffId 12)
+                // Ca trưởng chi nhánh (AccountId 12 / StaffId 12) — SeedDemoIdentities
                 new StaffScope
                 {
                     StaffScopeId = 12,
-                    StaffId = 12,
+                    StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
                     ScopeTypeId = 5, // SCOPE_STORE
-                    ScopeRefId = 1
+                    ScopeRefId = SeedDemoIdentities.ShiftSupervisorStoreId
                 },
 
                 // Nhân viên kế toán kho

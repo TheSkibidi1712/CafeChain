@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Customers;
+﻿using CafeChain.Application.Constants;
+using CafeChain.Models.Customers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
@@ -58,11 +59,11 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     AccountId = 7,
                     RoleId = 7 // Khách hàng
                 },
-                // AccountId 12 → RoleId 8 (Ca trưởng / ShiftSupervisor)
+                // AccountId 12 → RoleId 8 (Ca trưởng / ShiftSupervisor) — SeedDemoIdentities
                 new AccountRole
                 {
-                    AccountId = 15,
-                    RoleId = 8
+                    AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,
+                    RoleId = SeedDemoIdentities.ShiftSupervisorRoleId
                 }
             );
         }

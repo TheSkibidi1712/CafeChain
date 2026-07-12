@@ -1,32 +1,28 @@
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
-using CafeChain.Models.Customers;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Fixed seed identity for ShiftSupervisor / Ca trưởng:
-    /// AccountId = 12, RoleId = 8, Staff.AccountId = 12.
+    /// Guardrail for ShiftSupervisor / Ca trưởng demo seed (#94 / #130):
+    /// AccountId 12, StaffId 12, RoleId 8, StoreId 1, email shiftsupervisor@cafechain.vn.
+    /// Uses SeedDemoIdentities — not production authorization.
     /// </summary>
     public class ShiftSupervisorSeedAccount12Tests : IntegrationTestBase
     {
-        private const int FixedAccountId = 12;
-        private const int FixedStaffId = 12;
-        private const int ShiftSupervisorRoleId = 8;
-
         [Fact]
         public async Task Seed_AccountId12_Exists_WithShiftSupervisorEmail()
         {
             using var ctx = CreateDbContext();
 
             var account = await ctx.Accounts.AsNoTracking()
-                .SingleOrDefaultAsync(a => a.AccountId == FixedAccountId);
+                .SingleOrDefaultAsync(a => a.AccountId == SeedDemoIdentities.ShiftSupervisorAccountId);
 
             Assert.NotNull(account);
-            Assert.Equal("shiftsupervisor@cafechain.vn", account!.Email);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorEmail, account!.Email);
             Assert.True(account.Active);
         }
 
@@ -37,13 +33,13 @@ namespace CafeChain.Tests.POS
 
             var link = await ctx.AccountRoles.AsNoTracking()
                 .SingleOrDefaultAsync(ar =>
-                    ar.AccountId == FixedAccountId &&
-                    ar.RoleId == ShiftSupervisorRoleId);
+                    ar.AccountId == SeedDemoIdentities.ShiftSupervisorAccountId &&
+                    ar.RoleId == SeedDemoIdentities.ShiftSupervisorRoleId);
 
             Assert.NotNull(link);
 
             var role = await ctx.Roles.AsNoTracking()
-                .SingleAsync(r => r.RoleId == ShiftSupervisorRoleId);
+                .SingleAsync(r => r.RoleId == SeedDemoIdentities.ShiftSupervisorRoleId);
             Assert.Equal(RoleConstants.ShiftSupervisor, role.Name);
             Assert.Equal("Ca trưởng", role.Name);
         }
@@ -54,12 +50,12 @@ namespace CafeChain.Tests.POS
             using var ctx = CreateDbContext();
 
             var staff = await ctx.Staffs.AsNoTracking()
-                .SingleOrDefaultAsync(s => s.AccountId == FixedAccountId);
+                .SingleOrDefaultAsync(s => s.StaffId == SeedDemoIdentities.ShiftSupervisorStaffId);
 
             Assert.NotNull(staff);
-            Assert.Equal(FixedStaffId, staff!.StaffId);
-            Assert.Equal(FixedAccountId, staff.AccountId);
-            Assert.Equal(1, staff.StoreId);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorStaffId, staff!.StaffId);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorAccountId, staff.AccountId);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorStoreId, staff.StoreId);
             Assert.True(staff.Active);
             Assert.Contains("Ca trưởng", staff.FullName);
         }
@@ -69,22 +65,28 @@ namespace CafeChain.Tests.POS
         {
             using var ctx = CreateDbContext();
 
-            var count = await ctx.Accounts.AsNoTracking()
-                .CountAsync(a => a.Email == "shiftsupervisor@cafechain.vn");
+            var accountsWithEmail = await ctx.Accounts.AsNoTracking()
+                .Where(a => a.Email == SeedDemoIdentities.ShiftSupervisorEmail)
+                .ToListAsync();
 
-            Assert.Equal(1, count);
+            Assert.Single(accountsWithEmail);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorAccountId, accountsWithEmail[0].AccountId);
+
+            // No other account id may carry the SS demo email.
+            Assert.DoesNotContain(
+                accountsWithEmail,
+                a => a.AccountId != SeedDemoIdentities.ShiftSupervisorAccountId);
 
             var byRole = await (
                 from ar in ctx.AccountRoles.AsNoTracking()
                 join a in ctx.Accounts.AsNoTracking() on ar.AccountId equals a.AccountId
                 join r in ctx.Roles.AsNoTracking() on ar.RoleId equals r.RoleId
                 where r.Name == RoleConstants.ShiftSupervisor
+                      || r.RoleId == SeedDemoIdentities.ShiftSupervisorRoleId
                 select a.AccountId
             ).Distinct().ToListAsync();
 
-            Assert.Contains(FixedAccountId, byRole);
-            // Official seed should only introduce AccountId 12 for this role (tests may add more).
-            Assert.Contains(FixedAccountId, byRole);
+            Assert.Contains(SeedDemoIdentities.ShiftSupervisorAccountId, byRole);
         }
 
         [Fact]
@@ -93,12 +95,17 @@ namespace CafeChain.Tests.POS
             using var ctx = CreateDbContext();
 
             var rolesFor12 = await ctx.AccountRoles.AsNoTracking()
-                .Where(ar => ar.AccountId == FixedAccountId)
+                .Where(ar => ar.AccountId == SeedDemoIdentities.ShiftSupervisorAccountId)
                 .Select(ar => ar.RoleId)
                 .ToListAsync();
 
             Assert.Single(rolesFor12);
-            Assert.Equal(ShiftSupervisorRoleId, rolesFor12[0]);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorRoleId, rolesFor12[0]);
+
+            // RoleId 8 must be ShiftSupervisor / Ca trưởng
+            var role = await ctx.Roles.AsNoTracking()
+                .SingleAsync(r => r.RoleId == SeedDemoIdentities.ShiftSupervisorRoleId);
+            Assert.Equal(RoleConstants.ShiftSupervisor, role.Name);
         }
     }
 }

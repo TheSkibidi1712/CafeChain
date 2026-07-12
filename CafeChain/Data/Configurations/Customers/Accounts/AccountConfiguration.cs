@@ -1,4 +1,5 @@
-﻿using CafeChain.Models.Customers;
+﻿using CafeChain.Application.Constants;
+using CafeChain.Models.Customers;
 using CafeChain.Models.Staffs;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -92,12 +93,12 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / POS ops)
-                // AccountId is intentionally 12 (do not renumber without team approval).
+                // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / #130)
+                // AccountId is intentionally 12 via SeedDemoIdentities (do not renumber without team approval).
                 new Account
                 {
-                    AccountId = 15,
-                    Email = "shiftsupervisor@cafechain.vn",
+                    AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,
+                    Email = SeedDemoIdentities.ShiftSupervisorEmail,
                     PasswordHash = "$2a$11$efK2U8lomCM2d.8RIBAJpOsC3kqnEphxxGQvt2MFWwgTiDX3MIGAe",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
