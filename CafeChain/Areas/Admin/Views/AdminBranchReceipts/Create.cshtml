@@ -1,0 +1,87 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.CreateBranchReceiptRequest
+@{
+    ViewData["Title"] = "Tạo phiếu nhận hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<div class="container-fluid py-3" style="max-width:920px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h4 mb-0" style="color:#c2410c;">Tạo phiếu nhận (DRAFT)</h1>
+            <p class="text-muted small mb-0">Chưa cập nhật tồn — chỉ snapshot số lượng &amp; chi phí. Xác nhận sau mới post kho.</p>
+        </div>
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">Hủy</a>
+    </div>
+
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <form method="post" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create" class="card border-0 shadow-sm">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <input type="hidden" asp-for="StoreId" />
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-6">
+                    <label class="form-label" asp-for="ReceiptKey">ReceiptKey (idempotency)</label>
+                    <input class="form-control form-control-sm" asp-for="ReceiptKey" required maxlength="100" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" asp-for="SupplierId">SupplierId</label>
+                    <input class="form-control form-control-sm" asp-for="SupplierId" type="number" />
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" asp-for="ReferenceNumber">Số tham chiếu</label>
+                    <input class="form-control form-control-sm" asp-for="ReferenceNumber" maxlength="100" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label" asp-for="Notes">Ghi chú</label>
+                    <textarea class="form-control form-control-sm" asp-for="Notes" rows="2" maxlength="1000"></textarea>
+                </div>
+            </div>
+
+            <h2 class="h6 text-uppercase text-muted">Dòng nhận</h2>
+            @for (var i = 0; i < Model.Lines.Count; i++)
+            {
+                <div class="border rounded p-3 mb-2 bg-light">
+                    <div class="row g-2">
+                        <div class="col-md-3">
+                            <label class="form-label small">RestockRequestId</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].RestockRequestId" type="number" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Input qty</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].InputQuantity" type="number" step="0.001" min="0.001" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Input unit Id</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].InputUnitId" type="number" required />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Giá gói/đơn vị *</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].ActualPackagePrice" type="number" step="0.01" min="0.01" required />
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label small">Pkg qty</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].PackageQuantity" type="number" step="0.001" />
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label small">Pkg unit Id</label>
+                            <input class="form-control form-control-sm" asp-for="Lines[i].PackageUnitId" type="number" />
+                        </div>
+                    </div>
+                </div>
+            }
+
+            <div class="alert alert-light border small mb-0">
+                Cost snapshot bắt buộc &gt; 0. Over-receipt bị chặn. Inventory chỉ đổi khi <strong>Xác nhận</strong>.
+            </div>
+        </div>
+        <div class="card-footer bg-white d-flex justify-content-end gap-2">
+            <button type="submit" class="btn text-white" style="background:#ea580c;">Lưu nháp</button>
+        </div>
+    </form>
+</div>

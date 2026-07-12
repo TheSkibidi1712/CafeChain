@@ -1,16 +1,14 @@
 namespace CafeChain.Application.Constants
 {
-    /// <summary>Issue #100 — RestockRequest status codes.</summary>
+    /// <summary>Issue #100 / #128 — RestockRequest status codes (intent-only until BranchReceipt confirm).</summary>
     public static class RestockRequestStatuses
     {
         public const string Submitted = "SUBMITTED";
-        /// <summary>Future warehouse processing.</summary>
         public const string Processing = "PROCESSING";
-        /// <summary>Future warehouse completion.</summary>
+        /// <summary>Issue #128 — some confirmed receipts, remaining &gt; 0.</summary>
+        public const string PartiallyReceived = "PARTIALLY_RECEIVED";
         public const string Completed = "COMPLETED";
-        /// <summary>Future warehouse reject.</summary>
         public const string Rejected = "REJECTED";
-        /// <summary>Future cancel.</summary>
         public const string Cancelled = "CANCELLED";
     }
 

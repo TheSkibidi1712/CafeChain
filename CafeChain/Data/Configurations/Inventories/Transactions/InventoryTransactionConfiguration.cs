@@ -103,6 +103,12 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.InventoryConsolidationRunId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Issue #128 — one BRANCH_RECEIPT_IN per receipt line.
+            entity.HasOne(x => x.BranchReceiptLine)
+                .WithMany()
+                .HasForeignKey(x => x.BranchReceiptLineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -137,6 +143,15 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .IsUnique()
                 .HasFilter("[InventoryConsolidationRunId] IS NOT NULL")
                 .HasDatabaseName("UX_InventoryTransactions_ConsolidationRun_Inventory_Type");
+
+            // Issue #128 — one movement per BranchReceiptLine + Type when linked.
+            entity.HasIndex(x => new { x.BranchReceiptLineId, x.Type })
+                .IsUnique()
+                .HasFilter("[BranchReceiptLineId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_BranchReceiptLine_Type");
+
+            entity.HasIndex(x => x.BranchReceiptLineId)
+                .HasDatabaseName("IX_InventoryTransactions_BranchReceiptLineId");
 
             entity.HasIndex(x => x.CreatedAt);
 

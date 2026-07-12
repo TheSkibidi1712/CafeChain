@@ -245,6 +245,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockShortageReportService, StockShortageReportService>();
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
+            // Issue #128 — restock workflow + branch receipt posting
+            services.AddScoped<IRestockRequestWorkflowService, RestockRequestWorkflowService>();
+            services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 
             // Staff notifications read/mark (Issue #101)
             services.AddScoped<CafeChain.Application.Interfaces.Operations.IStaffNotificationQueryService,

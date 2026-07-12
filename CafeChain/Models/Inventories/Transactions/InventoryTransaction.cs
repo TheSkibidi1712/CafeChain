@@ -41,6 +41,9 @@ namespace CafeChain.Models.Inventories.Transactions
         /// <summary>Issue #123 — consolidation run linkage (new movements only; never reparent history).</summary>
         public int? InventoryConsolidationRunId { get; set; }
 
+        /// <summary>Issue #128 — one BRANCH_RECEIPT_IN movement per BranchReceiptLine.</summary>
+        public int? BranchReceiptLineId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
@@ -50,5 +53,6 @@ namespace CafeChain.Models.Inventories.Transactions
         public virtual ProductionRun? ProductionRun { get; set; }
         public virtual Recipe? SourceRecipe { get; set; }
         public virtual InventoryConsolidationRun? InventoryConsolidationRun { get; set; }
+        public virtual CafeChain.Models.Inventories.Stock.BranchReceiptLine? BranchReceiptLine { get; set; }
     }
 }

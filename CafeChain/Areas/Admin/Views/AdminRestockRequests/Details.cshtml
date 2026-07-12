@@ -1,52 +1,222 @@
-@model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestDetailDto
+@model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestWorkflowDetailDto
 @{
     ViewData["Title"] = "Chi tiết yêu cầu nhập hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var canWarehouse = ViewBag.CanWarehouse as bool? ?? false;
+    var canCreateReceipt = ViewBag.CanCreateReceipt as bool? ?? false;
+    var canCancel = ViewBag.CanCancel as bool? ?? false;
+    var statusClass = Model.Status switch
+    {
+        "COMPLETED" => "bg-success",
+        "PARTIALLY_RECEIVED" => "bg-warning text-dark",
+        "PROCESSING" => "bg-info text-dark",
+        "REJECTED" or "CANCELLED" => "bg-secondary",
+        _ => "bg-primary"
+    };
 }
 
 <div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
         <div>
-            <h4 class="mb-0">Yêu cầu nhập hàng #@Model.RestockRequestId</h4>
-            <small class="text-muted">@Model.ItemName · @Model.ItemTypeLabel</small>
+            <h1 class="h4 mb-1" style="color:#c2410c;">Yêu cầu #@Model.RestockRequestId</h1>
+            <p class="text-muted small mb-0">@Model.ItemName · @Model.ItemTypeLabel</p>
         </div>
-        <a class="btn btn-sm btn-outline-secondary"
-           asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">← Danh sách</a>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-secondary"
+               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">← Danh sách</a>
+            <a class="btn btn-sm btn-outline-primary"
+               asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">Phiếu nhận</a>
+            @if (canCreateReceipt && Model.Status is "SUBMITTED" or "PROCESSING" or "PARTIALLY_RECEIVED")
+            {
+                <a class="btn btn-sm text-white" style="background:#ea580c;"
+                   asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create"
+                   asp-route-restockRequestId="@Model.RestockRequestId">Nhận hàng</a>
+            }
+        </div>
     </div>
 
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="status">@TempData["SuccessMessage"]</div>
+    }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
     }
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div><strong>Trạng thái:</strong> <span class="badge bg-primary">@Model.Status</span></div>
-                    <div><strong>Ưu tiên:</strong> @Model.Priority</div>
-                    <div><strong>Số lượng yêu cầu:</strong> @Model.RequestedQuantity.ToString("N3")</div>
-                    <div><strong>Số lượng gợi ý:</strong> @(Model.SuggestedQuantity?.ToString("N3") ?? "—")</div>
-                    <div><strong>Cửa hàng:</strong> @(Model.StoreName ?? $"#{Model.StoreId}")</div>
-                    <div><strong>Tạo lúc:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                    <div><strong>Người tạo:</strong> @(Model.CreatedByName ?? $"#{Model.CreatedByStaffId}")</div>
-                </div>
-                <div class="col-md-6">
-                    <div><strong>Cảnh báo kho:</strong>
-                        <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details"
-                           asp-route-id="@Model.StockAlertId">#@Model.StockAlertId</a>
-                        (@(Model.AlertStatus ?? "—") / @(Model.AlertType ?? "—"))
+    <div class="row g-3 mb-3">
+        <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+                        <span class="badge @statusClass">@Model.Status</span>
+                        <span class="badge @(Model.Priority == "URGENT" ? "bg-danger" : Model.Priority == "HIGH" ? "bg-warning text-dark" : "bg-secondary")">@Model.Priority</span>
                     </div>
-                    <div><strong>Tồn snapshot:</strong> @(Model.AlertCurrentQtySnapshot?.ToString("N3") ?? "—")</div>
-                    <div><strong>Ngưỡng snapshot:</strong> @(Model.AlertThresholdSnapshot?.ToString("N3") ?? "—")</div>
-                    <div class="mt-2"><strong>Ghi chú:</strong></div>
-                    <div class="border rounded p-2 bg-light small" style="white-space: pre-wrap;">@(Model.Note ?? "—")</div>
+                    <div class="row g-2 small">
+                        <div class="col-sm-6"><strong>SL yêu cầu (base):</strong> @Model.RequestedQuantity.ToString("N3")</div>
+                        <div class="col-sm-6"><strong>Đã nhận:</strong> <span class="fw-semibold" style="color:#c2410c;">@Model.ReceivedQuantity.ToString("N3")</span></div>
+                        <div class="col-sm-6"><strong>Còn lại:</strong> @Model.RemainingQuantity.ToString("N3")</div>
+                        <div class="col-sm-6"><strong>Gợi ý:</strong> @(Model.SuggestedQuantity?.ToString("N3") ?? "—")</div>
+                        <div class="col-sm-6"><strong>Cửa hàng:</strong> @(Model.StoreName ?? $"#{Model.StoreId}")</div>
+                        <div class="col-sm-6"><strong>Tạo bởi:</strong> @(Model.CreatedByName ?? $"#{Model.CreatedByStaffId}")</div>
+                        <div class="col-sm-6"><strong>Tạo lúc:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                        <div class="col-sm-6">
+                            <strong>Cảnh báo:</strong>
+                            <a asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@Model.StockAlertId">#@Model.StockAlertId</a>
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <strong class="small">Ghi chú</strong>
+                        <div class="border rounded p-2 bg-light small" style="white-space:pre-wrap;">@(Model.Note ?? "—")</div>
+                    </div>
+                    <p class="text-muted small mt-3 mb-0">
+                        RestockRequest chỉ là intent. Tồn kho chỉ đổi khi phiếu nhận <strong>CONFIRMED</strong>.
+                    </p>
                 </div>
             </div>
-            <hr />
-            <p class="text-muted small mb-0">
-                Phiên bản này chỉ ghi nhận yêu cầu. Xử lý kho / phiếu nhập / cập nhật tồn sẽ được làm ở issue sau.
-            </p>
+        </div>
+        <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Thao tác</h2>
+                    @if (canWarehouse && Model.Status == "SUBMITTED")
+                    {
+                        <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-sm btn-outline-primary w-100">Chuyển PROCESSING</button>
+                        </form>
+                    }
+                    @if (canWarehouse && Model.Status is "SUBMITTED" or "PROCESSING")
+                    {
+                        <form method="post" asp-action="Reject" asp-route-id="@Model.RestockRequestId" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <label class="form-label small" for="rejectReason">Từ chối (bắt buộc lý do)</label>
+                            <textarea id="rejectReason" name="reason" class="form-control form-control-sm mb-1" required rows="2"></textarea>
+                            <button type="submit" class="btn btn-sm btn-outline-danger w-100">Từ chối</button>
+                        </form>
+                    }
+                    @if (canCancel && Model.Status is "SUBMITTED" or "PROCESSING")
+                    {
+                        <form method="post" asp-action="Cancel" asp-route-id="@Model.RestockRequestId" class="mb-2">
+                            @Html.AntiForgeryToken()
+                            <label class="form-label small" for="cancelReason">Hủy</label>
+                            <input id="cancelReason" name="reason" class="form-control form-control-sm mb-1" />
+                            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Hủy yêu cầu</button>
+                        </form>
+                    }
+                    @if (canWarehouse && Model.Status is "SUBMITTED" or "PROCESSING" or "PARTIALLY_RECEIVED")
+                    {
+                        <hr />
+                        <form method="post" asp-action="LinkFulfillment" asp-route-id="@Model.RestockRequestId">
+                            @Html.AntiForgeryToken()
+                            <label class="form-label small">Gắn fulfillment (không đổi tồn)</label>
+                            <select name="SourceType" class="form-select form-select-sm mb-1">
+                                <option value="SUPPLIER">SUPPLIER</option>
+                                <option value="MANUAL">MANUAL</option>
+                            </select>
+                            <input name="PlannedBaseQuantity" type="number" step="0.001" min="0.001" class="form-control form-control-sm mb-1" placeholder="Planned base qty" required />
+                            <input name="Notes" class="form-control form-control-sm mb-1" placeholder="Ghi chú" />
+                            <button type="submit" class="btn btn-sm btn-outline-dark w-100">Link fulfillment</button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h2 class="h6 mb-0">Lịch sử chuyển trạng thái</h2>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Timeline == null || Model.Timeline.Count == 0)
+                    {
+                        <div class="p-3 text-muted small">Chưa có transition history.</div>
+                    }
+                    else
+                    {
+                        <ol class="list-group list-group-flush">
+                            @foreach (var t in Model.Timeline)
+                            {
+                                <li class="list-group-item small">
+                                    <div class="fw-semibold">@t.PreviousStatus → @t.NewStatus</div>
+                                    <div class="text-muted">@t.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(t.ActorName ?? $"#{t.ActorStaffId}")</div>
+                                    @if (!string.IsNullOrEmpty(t.Reason))
+                                    {
+                                        <div>@t.Reason</div>
+                                    }
+                                    @if (t.BranchReceiptId.HasValue)
+                                    {
+                                        <div>
+                                            Phiếu
+                                            <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details"
+                                               asp-route-id="@t.BranchReceiptId">#@t.BranchReceiptId</a>
+                                            @if (t.QuantityAfter.HasValue)
+                                            {
+                                                <span>· qty @t.QuantityAfter.Value.ToString("N3")</span>
+                                            }
+                                        </div>
+                                    }
+                                </li>
+                            }
+                        </ol>
+                    }
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-white d-flex justify-content-between">
+                    <h2 class="h6 mb-0">Phiếu nhận liên quan</h2>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Receipts == null || Model.Receipts.Count == 0)
+                    {
+                        <div class="p-3 text-muted small">Chưa có phiếu nhận.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var r in Model.Receipts)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center small">
+                                    <div>
+                                        <a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details"
+                                           asp-route-id="@r.BranchReceiptId">@r.ReceiptCode</a>
+                                        <span class="badge @(r.Status == "CONFIRMED" ? "bg-success" : "bg-secondary")">@r.Status</span>
+                                        <div class="text-muted">@r.TotalBaseQuantity.ToString("N3") base · @r.TotalLineCost.ToString("N0")</div>
+                                    </div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
+            <div class="card border-0 shadow-sm">
+                <div class="card-header bg-white">
+                    <h2 class="h6 mb-0">Fulfillment</h2>
+                </div>
+                <div class="card-body p-0">
+                    @if (Model.Fulfillments == null || Model.Fulfillments.Count == 0)
+                    {
+                        <div class="p-3 text-muted small">Chưa gắn nguồn xử lý.</div>
+                    }
+                    else
+                    {
+                        <ul class="list-group list-group-flush">
+                            @foreach (var f in Model.Fulfillments)
+                            {
+                                <li class="list-group-item small">
+                                    <strong>@f.SourceType</strong> · @f.Status · planned @f.PlannedBaseQuantity.ToString("N3")
+                                    <div class="text-muted">@f.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            </div>
         </div>
     </div>
 </div>

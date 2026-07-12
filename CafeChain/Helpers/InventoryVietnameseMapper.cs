@@ -72,6 +72,7 @@ namespace CafeChain.Helpers
                 InventoryTransactionTypeEnum.ADJUSTMENT_OUT => "Điều chỉnh giảm",
                 InventoryTransactionTypeEnum.OUT_TRANSFER => "Xuất chuyển kho",
                 InventoryTransactionTypeEnum.IN_TRANSFER => "Nhập chuyển kho",
+                InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN => "Nhập kho chi nhánh (phiếu nhận)",
                 _ => "Không xác định"
             };
         }

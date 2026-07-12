@@ -16,6 +16,8 @@ namespace CafeChain.Models.Enums.Inventory
         /// <summary>Issue #123 — consolidate qty off legacy/source BTP row.</summary>
         CONSOLIDATION_OUT = 12,
         /// <summary>Issue #123 — consolidate qty onto canonical target row.</summary>
-        CONSOLIDATION_IN = 13
+        CONSOLIDATION_IN = 13,
+        /// <summary>Issue #128 — branch restock receipt stock-in (only on BranchReceipt confirm).</summary>
+        BRANCH_RECEIPT_IN = 14
     }
 }

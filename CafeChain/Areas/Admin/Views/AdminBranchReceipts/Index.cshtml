@@ -1,0 +1,96 @@
+@model List<CafeChain.Application.DTOs.Admin.RestockRequests.BranchReceiptListItemDto>
+@{
+    ViewData["Title"] = "Phiếu nhận hàng chi nhánh";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var statusFilter = ViewBag.StatusFilter as string;
+    var storeId = ViewBag.StoreId as int? ?? 0;
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-0" style="color:#c2410c;">Phiếu nhận hàng</h1>
+            <p class="text-muted small mb-0">Cửa hàng #@storeId · chỉ <strong>CONFIRMED</strong> mới cập nhật tồn kho</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a class="btn btn-sm btn-outline-secondary"
+               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">Yêu cầu nhập hàng</a>
+            <a class="btn btn-sm text-white"
+               style="background:#ea580c;"
+               asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create">+ Tạo phiếu nhận</a>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="status">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning" role="status">@TempData["WarningMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <form method="get" class="row g-2 mb-3" aria-label="Lọc phiếu nhận">
+        <div class="col-auto">
+            <label class="visually-hidden" for="status">Trạng thái</label>
+            <select id="status" name="status" class="form-select form-select-sm">
+                <option value="" selected="@(string.IsNullOrEmpty(statusFilter))">Tất cả</option>
+                <option value="DRAFT" selected="@(statusFilter == "DRAFT")">DRAFT</option>
+                <option value="CONFIRMED" selected="@(statusFilter == "CONFIRMED")">CONFIRMED</option>
+            </select>
+        </div>
+        <div class="col-auto">
+            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
+        </div>
+    </form>
+
+    @if (Model == null || Model.Count == 0)
+    {
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center text-muted py-5">Chưa có phiếu nhận.</div>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive shadow-sm bg-white rounded">
+            <table class="table table-hover align-middle mb-0">
+                <caption class="visually-hidden">Danh sách phiếu nhận hàng chi nhánh</caption>
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col">Mã</th>
+                        <th scope="col">ReceiptKey</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">SL base</th>
+                        <th scope="col">Giá trị</th>
+                        <th scope="col">Nhận lúc</th>
+                        <th scope="col"><span class="visually-hidden">Thao tác</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold">@item.ReceiptCode</td>
+                        <td class="small text-muted">@item.ReceiptKey</td>
+                        <td>
+                            <span class="badge @(item.Status == "CONFIRMED" ? "bg-success" : "bg-secondary")">@item.Status</span>
+                        </td>
+                        <td>@item.TotalBaseQuantity.ToString("N3")</td>
+                        <td>@item.TotalLineCost.ToString("N0")</td>
+                        <td class="small">@item.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                        <td>
+                            <a class="btn btn-sm btn-outline-primary"
+                               asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details"
+                               asp-route-id="@item.BranchReceiptId">Chi tiết</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

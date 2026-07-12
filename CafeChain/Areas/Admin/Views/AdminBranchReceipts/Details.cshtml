@@ -1,0 +1,135 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.BranchReceiptDetailDto
+@{
+    ViewData["Title"] = "Chi tiết phiếu nhận";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var canConfirm = ViewBag.CanConfirm as bool? ?? false;
+}
+
+<div class="container-fluid py-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+        <div>
+            <h1 class="h4 mb-1" style="color:#c2410c;">@Model.ReceiptCode</h1>
+            <p class="text-muted small mb-0">
+                <span class="badge @(Model.Status == "CONFIRMED" ? "bg-success" : "bg-secondary")">@Model.Status</span>
+                · Key <code>@Model.ReceiptKey</code>
+                · Cửa hàng #@Model.StoreId
+            </p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn btn-sm btn-outline-secondary"
+               asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">← Danh sách</a>
+            @if (canConfirm)
+            {
+                <form method="post" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Confirm"
+                      asp-route-id="@Model.BranchReceiptId"
+                      onsubmit="return confirm('Xác nhận nhập kho? Thao tác không thể hoàn tác.');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-sm text-white" style="background:#ea580c;">
+                        Xác nhận nhập kho
+                    </button>
+                </form>
+            }
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success" role="status">@TempData["SuccessMessage"]</div>
+    }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="alert alert-warning" role="status">@TempData["WarningMessage"]</div>
+    }
+    @if (TempData["ErrorMessage"] != null)
+    {
+        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    <div class="row g-3 mb-3">
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Phiếu nhận</h2>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5">Nhà cung cấp</dt>
+                        <dd class="col-7">@(Model.SupplierName ?? (Model.SupplierId.HasValue ? $"#{Model.SupplierId}" : "—"))</dd>
+                        <dt class="col-5">Tham chiếu</dt>
+                        <dd class="col-7">@(Model.ReferenceNumber ?? "—")</dd>
+                        <dt class="col-5">Nhận lúc</dt>
+                        <dd class="col-7">@Model.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
+                        <dt class="col-5">Xác nhận lúc</dt>
+                        <dd class="col-7">@(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</dd>
+                        <dt class="col-5">Ghi chú</dt>
+                        <dd class="col-7" style="white-space:pre-wrap;">@(Model.Notes ?? "—")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #ea580c !important;">
+                <div class="card-body">
+                    <h2 class="h6 text-uppercase text-muted">Tác động tồn kho</h2>
+                    <div class="display-6 fs-3 fw-semibold" style="color:#c2410c;">@Model.TotalBaseQuantity.ToString("N3")</div>
+                    <div class="small text-muted mb-2">Tổng base quantity · @Model.LineCount dòng</div>
+                    <div class="fw-semibold">@Model.TotalLineCost.ToString("N0") VND</div>
+                    <div class="small text-muted">
+                        @(Model.Status == "CONFIRMED"
+                            ? "Đã post InventoryTransaction BRANCH_RECEIPT_IN + cost layer (ingredient)."
+                            : "DRAFT — chưa thay đổi AvailableQty / ledger.")
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <caption class="px-3 pt-2 small text-muted">Chi tiết dòng nhận — snapshot chi phí bền vững</caption>
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">Yêu cầu</th>
+                            <th scope="col">Identity</th>
+                            <th scope="col">Input</th>
+                            <th scope="col">Base qty</th>
+                            <th scope="col">Unit cost</th>
+                            <th scope="col">Line total</th>
+                            <th scope="col">Txn</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var line in Model.Lines)
+                    {
+                        <tr>
+                            <td>
+                                <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
+                                   asp-route-id="@line.RestockRequestId">#@line.RestockRequestId</a>
+                            </td>
+                            <td class="small">
+                                @if (line.IngredientId.HasValue)
+                                {
+                                    <span>ING #@line.IngredientId</span>
+                                }
+                                else if (line.PreparedItemId.HasValue)
+                                {
+                                    <span>PI #@line.PreparedItemId</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </td>
+                            <td>@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
+                            <td class="fw-semibold">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
+                            <td>@line.BaseUnitCostSnapshot.ToString("N4")</td>
+                            <td>@line.LineTotalCost.ToString("N0")</td>
+                            <td class="small">@(line.InventoryTransactionId?.ToString() ?? "—")</td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

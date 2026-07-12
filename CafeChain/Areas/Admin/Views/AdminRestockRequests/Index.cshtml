@@ -10,9 +10,11 @@
 <div class="container-fluid py-3">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
         <div>
-            <h4 class="mb-0">Yêu cầu nhập hàng</h4>
-            <small class="text-muted">Cửa hàng #@Model.StoreId · chỉ xem (chưa xử lý kho)</small>
+            <h4 class="mb-0" style="color:#c2410c;">Yêu cầu nhập hàng</h4>
+            <small class="text-muted">Cửa hàng #@Model.StoreId · intent-only · tồn chỉ đổi khi phiếu nhận CONFIRMED</small>
         </div>
+        <a class="btn btn-sm btn-outline-primary"
+           asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">Phiếu nhận hàng</a>
     </div>
 
     @if (TempData["SuccessMessage"] != null)
@@ -29,6 +31,7 @@
             <select name="status" class="form-select form-select-sm">
                 <option value="SUBMITTED" selected="@(statusFilter == "SUBMITTED")">SUBMITTED</option>
                 <option value="PROCESSING" selected="@(statusFilter == "PROCESSING")">PROCESSING</option>
+                <option value="PARTIALLY_RECEIVED" selected="@(statusFilter == "PARTIALLY_RECEIVED")">PARTIALLY_RECEIVED</option>
                 <option value="COMPLETED" selected="@(statusFilter == "COMPLETED")">COMPLETED</option>
                 <option value="REJECTED" selected="@(statusFilter == "REJECTED")">REJECTED</option>
                 <option value="CANCELLED" selected="@(statusFilter == "CANCELLED")">CANCELLED</option>
