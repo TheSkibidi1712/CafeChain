@@ -213,13 +213,25 @@ namespace CafeChain.Areas.Admin.Controllers
                 staffId,
                 staffHomeStoreId);
 
-            if (!result.IsSuccess || result.Data == null)
+            if (!result.IsSuccess)
             {
                 return Json(new
                 {
                     success = false,
                     message = result.Message,
                     errorCode = result.ErrorCode,
+                    stockApplied = false,
+                    costEvidenceGaps = result.Data?.CostEvidenceGaps
+                });
+            }
+
+            if (result.Data == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = result.Message ?? "Không có dữ liệu kết quả.",
+                    errorCode = result.ErrorCode ?? "EXECUTION_FAILED",
                     stockApplied = false
                 });
             }
@@ -240,6 +252,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 outputBaseUnitId = data.OutputBaseUnitId,
                 outputStoreInventoryId = data.OutputStoreInventoryId,
                 outputPreparedItemId = data.OutputPreparedItemId,
+                valuationStatus = data.ValuationStatus,
+                totalInputCost = data.TotalInputCost,
+                outputUnitCost = data.OutputUnitCost,
+                valuedAtUtc = data.ValuedAtUtc,
                 movements = data.Movements,
                 messageKey = data.MessageKey,
                 message = result.Message

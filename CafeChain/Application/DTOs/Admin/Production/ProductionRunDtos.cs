@@ -46,5 +46,12 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public string? ActorName { get; set; }
         public bool StockApplied { get; set; }
         public bool CanApplyStock { get; set; }
+
+        /// <summary>Issue #132 read-model: Pending / Complete.</summary>
+        public string ValuationStatus { get; set; } = "Pending";
+
+        public decimal? TotalInputCost { get; set; }
+        public decimal? OutputUnitCost { get; set; }
+        public decimal? NormalizedOutputQuantity { get; set; }
     }
 }

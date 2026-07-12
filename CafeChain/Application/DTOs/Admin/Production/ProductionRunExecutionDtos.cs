@@ -15,8 +15,17 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public string? OutputBaseUnitCode { get; set; }
         public int? OutputStoreInventoryId { get; set; }
         public int? OutputPreparedItemId { get; set; }
+
+        /// <summary>Issue #132 — Pending / Complete.</summary>
+        public string ValuationStatus { get; set; } = string.Empty;
+
+        public decimal? TotalInputCost { get; set; }
+        public decimal? OutputUnitCost { get; set; }
+        public DateTime? ValuedAtUtc { get; set; }
+
         public string MessageKey { get; set; } = string.Empty;
         public List<ProductionRunMovementSummaryDto> Movements { get; set; } = new();
+        public List<ProductionCostEvidenceGapDto> CostEvidenceGaps { get; set; } = new();
     }
 
     public sealed class ProductionRunMovementSummaryDto
@@ -27,6 +36,17 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public decimal Quantity { get; set; }
         public decimal BeforeQty { get; set; }
         public decimal AfterQty { get; set; }
+        public decimal? UnitCost { get; set; }
+        public decimal? TotalCost { get; set; }
+    }
+
+    public sealed class ProductionCostEvidenceGapDto
+    {
+        public string InputCode { get; set; } = string.Empty;
+        public string InputName { get; set; } = string.Empty;
+        public decimal RequiredQuantity { get; set; }
+        public decimal AvailableLayerQuantity { get; set; }
+        public decimal MissingQuantity { get; set; }
     }
 
     public static class ProductionRunExecutionFailureCodes
@@ -51,5 +71,7 @@ namespace CafeChain.Application.DTOs.Admin.Production
         public const string SelfConsumptionNotSupported = "SELF_CONSUMPTION_NOT_SUPPORTED";
         public const string ConcurrencyConflict = "CONCURRENCY_CONFLICT";
         public const string ExecutionFailed = "EXECUTION_FAILED";
+        public const string CostEvidenceIncomplete = "PRODUCTION_COST_EVIDENCE_INCOMPLETE";
+        public const string ZeroOutputRejected = "ZERO_OUTPUT_REJECTED";
     }
 }

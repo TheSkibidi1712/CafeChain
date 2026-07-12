@@ -17,6 +17,10 @@ namespace CafeChain.Data.Configurations.Inventories.Production
                 table.HasCheckConstraint(
                     "CK_ProductionRuns_Status",
                     "[Status] IN (1, 2)");
+
+                table.HasCheckConstraint(
+                    "CK_ProductionRuns_ValuationStatus",
+                    "[ValuationStatus] IN (0, 1)");
             });
 
             entity.HasKey(x => x.ProductionRunId);
@@ -36,6 +40,20 @@ namespace CafeChain.Data.Configurations.Inventories.Production
             entity.Property(x => x.Status)
                 .HasConversion<int>()
                 .IsRequired();
+
+            entity.Property(x => x.ValuationStatus)
+                .HasConversion<int>()
+                .IsRequired()
+                .HasDefaultValue(Models.Enums.Inventory.ProductionValuationStatus.Pending);
+
+            entity.Property(x => x.TotalInputCost)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.OutputUnitCost)
+                .HasColumnType("decimal(18,8)");
+
+            entity.Property(x => x.ValuedAtUtc)
+                .HasColumnType("datetime2");
 
             entity.Property(x => x.Notes)
                 .HasMaxLength(500);

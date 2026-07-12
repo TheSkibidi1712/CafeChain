@@ -399,6 +399,7 @@ namespace CafeChain.Tests
             var writer = new InventoryWriterModeService(context, physical, caps);
             var resolver = new StoreInventoryWriteResolver(context, writer);
             var scope = new ScopeAuthorizationService(context);
+            var cost = new InventoryCostLayerConsumptionService(context);
             return new ProductionRunExecutionService(
                 context,
                 scope,
@@ -406,6 +407,7 @@ namespace CafeChain.Tests
                 resolver,
                 physical,
                 unit,
+                cost,
                 caps,
                 NullLogger<ProductionRunExecutionService>.Instance);
         }
@@ -554,6 +556,21 @@ namespace CafeChain.Tests
                 LastUpdated = now,
                 RowVersion = new byte[] { 0 }
             });
+
+            // #132 — actual FIFO cost evidence for successful execute paths
+            if (ingredientQty > 0)
+            {
+                context.InventoryCostLayers.Add(new CafeChain.Models.Inventories.Costing.InventoryCostLayer
+                {
+                    StoreId = StoreId,
+                    IngredientId = IngredientId,
+                    PreparedItemId = null,
+                    Quantity = ingredientQty,
+                    RemainingQuantity = ingredientQty,
+                    UnitCost = 10.00m,
+                    CreatedAt = now
+                });
+            }
 
             await context.SaveChangesAsync();
         }

@@ -212,6 +212,7 @@ IF DB_ID(N'{Database}') IS NULL
             var caps = new IInventoryWriterCapabilityProvider[] { new ProductionPreparedWriterCapabilityProvider() };
             var writer = new InventoryWriterModeService(context, physical, caps);
             var resolver = new StoreInventoryWriteResolver(context, writer);
+            var cost = new InventoryCostLayerConsumptionService(context);
             return new ProductionRunExecutionService(
                 context,
                 new ScopeAuthorizationService(context),
@@ -219,6 +220,7 @@ IF DB_ID(N'{Database}') IS NULL
                 resolver,
                 physical,
                 unit,
+                cost,
                 caps,
                 NullLogger<ProductionRunExecutionService>.Instance);
         }
@@ -252,6 +254,34 @@ IF DB_ID(N'{Database}') IS NULL
                 inv.AvailableQty = available;
                 inv.ReservedQty = reserved;
                 inv.LastUpdated = DateTime.UtcNow;
+            }
+
+            // #132 cost evidence for successful execute paths
+            var layers = await context.InventoryCostLayers
+                .Where(x => x.StoreId == StoreId && x.IngredientId == IngredientId)
+                .ToListAsync();
+            if (layers.Count > 0)
+            {
+                var layerIds = layers.Select(x => x.InventoryCostLayerId).ToList();
+                var allocs = await context.ProductionCostAllocations
+                    .Where(a => layerIds.Contains(a.InventoryCostLayerId))
+                    .ToListAsync();
+                context.ProductionCostAllocations.RemoveRange(allocs);
+                context.InventoryCostLayers.RemoveRange(layers);
+            }
+
+            if (available > 0)
+            {
+                context.InventoryCostLayers.Add(new CafeChain.Models.Inventories.Costing.InventoryCostLayer
+                {
+                    StoreId = StoreId,
+                    IngredientId = IngredientId,
+                    PreparedItemId = null,
+                    Quantity = available,
+                    RemainingQuantity = available,
+                    UnitCost = 10.00m,
+                    CreatedAt = DateTime.UtcNow
+                });
             }
 
             await context.SaveChangesAsync();

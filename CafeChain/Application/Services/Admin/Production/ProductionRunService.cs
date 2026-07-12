@@ -212,6 +212,7 @@ namespace CafeChain.Application.Services.Admin.Production
                     RequestKey = requestKey,
                     RequestFingerprint = fingerprint,
                     Status = ProductionRunStatus.Confirmed,
+                    ValuationStatus = ProductionValuationStatus.Pending,
                     Notes = notes,
                     CreatedByStaffId = staffId,
                     CreatedAt = now,
@@ -274,7 +275,7 @@ namespace CafeChain.Application.Services.Admin.Production
 
             take = Math.Min(take, 20);
 
-            return await (
+            var items = await (
                 from run in _context.ProductionRuns.AsNoTracking()
                 where run.StoreId == storeId
                 join recipe in _context.Recipes.AsNoTracking() on run.RecipeId equals recipe.RecipeId into recipes
@@ -298,10 +299,38 @@ namespace CafeChain.Application.Services.Admin.Production
                     CreatedByStaffId = run.CreatedByStaffId,
                     ActorName = staff != null ? staff.FullName : null,
                     StockApplied = run.Status == ProductionRunStatus.Completed,
-                    CanApplyStock = run.Status == ProductionRunStatus.Confirmed
+                    CanApplyStock = run.Status == ProductionRunStatus.Confirmed,
+                    ValuationStatus = run.ValuationStatus == ProductionValuationStatus.Complete ? "Complete" : "Pending",
+                    TotalInputCost = run.TotalInputCost,
+                    OutputUnitCost = run.OutputUnitCost
                 })
                 .Take(take)
                 .ToListAsync();
+
+            // Attach PRODUCTION_IN quantity when completed (read-only).
+            if (items.Count == 0)
+                return items;
+
+            var completedIds = items.Where(x => x.StockApplied).Select(x => x.ProductionRunId).ToList();
+            if (completedIds.Count == 0)
+                return items;
+
+            var outputQty = await _context.InventoryTransactions.AsNoTracking()
+                .Where(t => t.ProductionRunId != null
+                            && completedIds.Contains(t.ProductionRunId.Value)
+                            && t.Type == Models.Enums.Inventory.InventoryTransactionTypeEnum.PRODUCTION_IN)
+                .GroupBy(t => t.ProductionRunId!.Value)
+                .Select(g => new { RunId = g.Key, Qty = g.Sum(x => x.Quantity) })
+                .ToListAsync();
+
+            var qtyMap = outputQty.ToDictionary(x => x.RunId, x => x.Qty);
+            foreach (var item in items)
+            {
+                if (qtyMap.TryGetValue(item.ProductionRunId, out var q))
+                    item.NormalizedOutputQuantity = q;
+            }
+
+            return items;
         }
 
         private async Task<ServiceResult> AuthorizeStoreAsync(int staffId, int staffHomeStoreId, int storeId)
