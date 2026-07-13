@@ -185,7 +185,27 @@
                                 {
                                     @if (type == "TOPPING")
                                     {
-                                        <td>@recipe.ConsumptionSourceDisplay</td>
+                                        var source = recipe.ToppingConsumptionSource;
+                                        <td class="rb-source-cell">
+                                            <span class="rb-source-badge @(source?.MappingValid == true ? "is-valid" : "is-warning")">
+                                                @(source?.SourceLabel ?? recipe.ConsumptionSourceDisplay)
+                                            </span>
+                                            @if (source != null)
+                                            {
+                                                <div class="small text-muted mt-1">@source.Reason</div>
+                                                @foreach (var component in source.Components.Take(2))
+                                                {
+                                                    <div class="rb-source-line">
+                                                        <span class="font-monospace">@component.IdentityDisplay</span>
+                                                        <span>@component.QuantityDisplay/phần</span>
+                                                        @if (component.ChildRecipeId.HasValue)
+                                                        {
+                                                            <span>· pin Recipe #@component.ChildRecipeId</span>
+                                                        }
+                                                    </div>
+                                                }
+                                            }
+                                        </td>
                                     }
                                     else
                                     {

@@ -1,8 +1,12 @@
 ﻿@model IEnumerable<CafeChain.ViewModels.Admin.Toppings.AdminToppingVM>
 
+@using CafeChain.Helpers
+@using CafeChain.ViewModels.Admin.Recipes
+
 @{
     var currentController =
         ViewContext.RouteData.Values["controller"]?.ToString();
+    var canWriteRecipes = RoleHelper.CanWriteRecipes(User);
 }
 
 <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" />
@@ -78,7 +82,8 @@
                     <tr>
                         <th>TOPPING</th>
                         <th>MÃ</th>
-                        <th>GIÁ</th>
+                        <th>GIÁ BÁN</th>
+                        <th>NGUỒN TIÊU HAO / GIÁ VỐN</th>
                         <th>TRẠNG THÁI</th>
                         <th class="text-end">HÀNH ĐỘNG</th>
                     </tr>
@@ -119,10 +124,78 @@
                             </td>
 
                             <!-- PRICE -->
-                            <td class="fw-semibold text-danger">
+                            <td>
+                                <div class="fw-semibold text-danger">+ @item.Price.ToString("N0") đ</div>
+                                <div class="small text-muted">Giá bán từ Topping.Price</div>
+                            </td>
 
-                                + @item.Price.ToString("N0") đ
+                            <!-- CONSUMPTION SOURCE -->
+                            <td class="topping-source-cell">
+                                <span class="topping-source-badge @(item.ConsumptionSource.MappingValid ? "is-valid" : "is-warning")">
+                                    @item.ConsumptionSource.SourceLabel
+                                </span>
+                                <div class="small text-muted mt-1">@item.ConsumptionSource.Reason</div>
 
+                                @foreach (var component in item.ConsumptionSource.Components)
+                                {
+                                    <div class="topping-source-component">
+                                        <div class="font-monospace text-break">@component.IdentityDisplay</div>
+                                        <div>
+                                            @component.QuantityDisplay/phần
+                                            @if (component.ChildRecipeId.HasValue)
+                                            {
+                                                <span>· pin Recipe #@component.ChildRecipeId</span>
+                                            }
+                                        </div>
+                                        @if (component.PreparedItemId.HasValue)
+                                        {
+                                            <a asp-area="Admin"
+                                               asp-controller="AdminStoreInventory"
+                                               asp-action="Index"
+                                               asp-route-tab="prepared-items"
+                                               asp-route-search="@component.PreparedItemCode"
+                                               class="small">Xem tồn kho BTP</a>
+                                        }
+                                    </div>
+                                }
+
+                                <div class="topping-cost-authority">
+                                    @if (item.ConsumptionSource.EstimatedCostPerPortion.HasValue)
+                                    {
+                                        <span>Giá vốn BOM ước tính: <strong>@item.ConsumptionSource.EstimatedCostPerPortion.Value.ToString("N0") đ/phần</strong></span>
+                                    }
+                                    else
+                                    {
+                                        <span>@item.ConsumptionSource.CostStatus</span>
+                                    }
+                                    <span>Giá vốn thực tế: FIFO khi bán</span>
+                                </div>
+
+                                <div class="mt-2 d-flex flex-wrap gap-2">
+                                    @if (item.ConsumptionSource.ActiveRecipeId.HasValue)
+                                    {
+                                        <a asp-area="Admin"
+                                           asp-controller="AdminRecipe"
+                                           asp-action="Visualize"
+                                           asp-route-recipeId="@item.ConsumptionSource.ActiveRecipeId"
+                                           class="btn btn-sm btn-outline-secondary">Xem BOM</a>
+                                        @if (canWriteRecipes)
+                                        {
+                                            <a asp-area="Admin"
+                                               asp-controller="AdminRecipe"
+                                               asp-action="Edit"
+                                               asp-route-id="@item.ConsumptionSource.ActiveRecipeId"
+                                               class="btn btn-sm btn-outline-primary">Sửa BOM</a>
+                                        }
+                                    }
+                                    else if (canWriteRecipes)
+                                    {
+                                        <a asp-area="Admin"
+                                           asp-controller="AdminRecipe"
+                                           asp-action="Create"
+                                           class="btn btn-sm btn-outline-primary">Tạo BOM</a>
+                                    }
+                                </div>
                             </td>
 
                             <!-- STATUS -->

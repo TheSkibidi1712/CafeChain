@@ -55,8 +55,11 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.Unit)
                 .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Ingredient)
+                .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.ChildRecipe)
                         .ThenInclude(c => c!.PreparedItem)
+                            .ThenInclude(p => p!.BaseUnit)
                 .OrderByDescending(r => r.RecipeId)
                 .ToListAsync();
 
@@ -228,13 +231,27 @@ namespace CafeChain.Application.Services.Admin.Recipes
                     BaseUnitCode = recipe.PreparedItem?.BaseUnit?.UnitCode,
                     ComponentCount = recipe.RecipeDetails?.Count ?? 0,
                     PortionDefinitionDisplay = BuildPortionDefinition(recipe),
-                    ConsumptionSourceDisplay = BuildConsumptionSource(recipe),
                     ConfigurationHealth = configuration,
                     CostingHealth = costing,
                     CostComplete = cost?.IsComplete,
                     EstimatedCost = cost?.IsComplete == true ? cost.TotalCost : null,
                     CostStatus = costing.Label
                 };
+
+                if (typeKey == "TOPPING")
+                {
+                    vm.ToppingConsumptionSource = BuildToppingConsumptionSource(recipe);
+                    ApplyToppingCost(
+                        vm.ToppingConsumptionSource,
+                        cost?.IsComplete == true,
+                        cost?.IsComplete == true ? cost.TotalCost : null,
+                        costing.Label);
+                    vm.ConsumptionSourceDisplay = vm.ToppingConsumptionSource.SourceLabel;
+                }
+                else
+                {
+                    vm.ConsumptionSourceDisplay = BuildConsumptionSource(recipe);
+                }
 
                 if (typeKey == "SUBRECIPE"
                     && recipe.OutputQuantity.HasValue
@@ -266,6 +283,74 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 TotalCount = total,
                 Items = items
             };
+        }
+
+        public async Task<IReadOnlyDictionary<int, ToppingConsumptionSourceVM>> GetToppingConsumptionSourcesAsync(
+            IEnumerable<int> toppingIds)
+        {
+            var ids = toppingIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+            var summaries = ids.ToDictionary(x => x, CreateMissingToppingSource);
+            if (ids.Count == 0)
+                return summaries;
+
+            var recipes = await _context.Recipes
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(r => r.ToppingId.HasValue
+                    && ids.Contains(r.ToppingId.Value)
+                    && r.Active
+                    && r.Status == "Active")
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Unit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Ingredient)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.ChildRecipe)
+                        .ThenInclude(c => c!.PreparedItem)
+                            .ThenInclude(p => p!.BaseUnit)
+                .OrderByDescending(r => r.EffectiveDate)
+                .ThenByDescending(r => r.RecipeId)
+                .ToListAsync();
+
+            var costs = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
+                recipes.Select(x => x.RecipeId));
+
+            foreach (var group in recipes.GroupBy(x => x.ToppingId!.Value))
+            {
+                var activeRecipes = group.ToList();
+                if (activeRecipes.Count > 1)
+                {
+                    summaries[group.Key] = new ToppingConsumptionSourceVM
+                    {
+                        ToppingId = group.Key,
+                        ActiveRecipeId = activeRecipes[0].RecipeId,
+                        ActiveRecipeCode = activeRecipes[0].RecipeCode,
+                        SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid,
+                        SourceLabel = "Liên kết nguồn không hợp lệ",
+                        MappingValid = false,
+                        Reason = $"Có {activeRecipes.Count} công thức Active cho cùng topping; cần chỉ giữ một phiên bản hiệu lực."
+                    };
+                    continue;
+                }
+
+                var recipe = activeRecipes[0];
+                var source = BuildToppingConsumptionSource(recipe);
+                costs.TryGetValue(recipe.RecipeId, out var cost);
+                var costLabel = cost?.IsComplete == true
+                    ? "Giá vốn BOM đã xác định"
+                    : "Chưa xác định đầy đủ giá vốn BOM";
+                ApplyToppingCost(
+                    source,
+                    cost?.IsComplete == true,
+                    cost?.IsComplete == true ? cost.TotalCost : null,
+                    costLabel);
+                summaries[group.Key] = source;
+            }
+
+            return summaries;
         }
 
         public async Task<AdminRecipeFormPageVM> GetCreatePageAsync()
@@ -348,8 +433,17 @@ namespace CafeChain.Application.Services.Admin.Recipes
         {
             var recipe = await _context.Recipes
                 .AsNoTracking()
+                .AsSplitQuery()
                 .Include(r => r.PreparedItem)
                 .Include(r => r.OutputUnit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Unit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Ingredient)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.ChildRecipe)
+                        .ThenInclude(c => c!.PreparedItem)
+                            .ThenInclude(p => p!.BaseUnit)
                 .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
 
             if (recipe == null)
@@ -361,7 +455,7 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 : recipe.PreparedItemId.HasValue ? "Bán thành phẩm"
                 : "Công thức";
 
-            return new AdminRecipeVisualizePageVM
+            var page = new AdminRecipeVisualizePageVM
             {
                 RecipeId = recipe.RecipeId,
                 Name = recipe.Name ?? "",
@@ -375,6 +469,21 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 OutputUnitName = recipe.OutputUnit?.Name,
                 FirstLevelNodes = tree.Roots
             };
+
+            if (recipe.ToppingId.HasValue)
+            {
+                page.ToppingConsumptionSource = BuildToppingConsumptionSource(recipe);
+                var cost = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipe.RecipeId);
+                ApplyToppingCost(
+                    page.ToppingConsumptionSource,
+                    cost.IsComplete,
+                    cost.IsComplete ? cost.TotalCost : null,
+                    cost.IsComplete
+                        ? "Giá vốn BOM đã xác định"
+                        : "Chưa xác định đầy đủ giá vốn BOM");
+            }
+
+            return page;
         }
 
         public async Task<AdminRecipeFormOptionsVM> GetFormOptionsAsync()
@@ -578,6 +687,140 @@ namespace CafeChain.Application.Services.Admin.Recipes
             if (hasIngredient)
                 return "Nguyên liệu trực tiếp";
             return "Liên kết nguồn không hợp lệ";
+        }
+
+        private static ToppingConsumptionSourceVM CreateMissingToppingSource(int toppingId)
+            => new()
+            {
+                ToppingId = toppingId,
+                SourceCode = ToppingConsumptionSourceCodes.NoActiveRecipe,
+                SourceLabel = "Chưa cấu hình nguồn tiêu hao",
+                MappingValid = false,
+                Reason = "Topping chưa có công thức Active. Tên topping không được dùng để tự suy luận nguồn tiêu hao."
+            };
+
+        private static ToppingConsumptionSourceVM BuildToppingConsumptionSource(
+            Models.Drinks.Recipe recipe)
+        {
+            var source = new ToppingConsumptionSourceVM
+            {
+                ToppingId = recipe.ToppingId ?? 0,
+                ActiveRecipeId = recipe.RecipeId,
+                ActiveRecipeCode = recipe.RecipeCode
+            };
+            var details = recipe.RecipeDetails?
+                .OrderBy(x => x.RecipeDetailId)
+                .ToList() ?? new List<Models.Drinks.RecipeDetail>();
+
+            if (details.Count == 0)
+            {
+                source.SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid;
+                source.SourceLabel = "Liên kết nguồn không hợp lệ";
+                source.Reason = "Công thức Active chưa có RecipeDetail nguồn tiêu hao.";
+                return source;
+            }
+
+            var hasInvalid = false;
+            foreach (var detail in details)
+            {
+                var hasIngredientId = detail.IngredientId.HasValue;
+                var hasChildRecipeId = detail.ChildRecipeId.HasValue;
+                if (hasIngredientId == hasChildRecipeId)
+                {
+                    hasInvalid = true;
+                    continue;
+                }
+
+                var unitCode = detail.Unit?.UnitCode ?? detail.Unit?.Name ?? "";
+                if (hasIngredientId)
+                {
+                    if (detail.Ingredient == null)
+                        hasInvalid = true;
+
+                    source.Components.Add(new ToppingConsumptionComponentVM
+                    {
+                        SourceKind = ToppingConsumptionSourceCodes.DirectIngredient,
+                        IngredientId = detail.IngredientId,
+                        IngredientCode = detail.Ingredient?.Code,
+                        IngredientName = detail.Ingredient?.Name,
+                        Quantity = detail.Quantity,
+                        UnitCode = unitCode
+                    });
+                    continue;
+                }
+
+                var childRecipe = detail.ChildRecipe;
+                var preparedItem = childRecipe?.PreparedItem;
+                if (childRecipe == null
+                    || !childRecipe.PreparedItemId.HasValue
+                    || preparedItem == null)
+                {
+                    hasInvalid = true;
+                }
+
+                source.Components.Add(new ToppingConsumptionComponentVM
+                {
+                    SourceKind = ToppingConsumptionSourceCodes.PreparedItem,
+                    ChildRecipeId = detail.ChildRecipeId,
+                    ChildRecipeCode = childRecipe?.RecipeCode,
+                    ChildRecipeName = childRecipe?.Name,
+                    PreparedItemId = childRecipe?.PreparedItemId,
+                    PreparedItemCode = preparedItem?.Code,
+                    PreparedItemName = preparedItem?.Name,
+                    PreparedItemBaseUnitCode = preparedItem?.BaseUnit?.UnitCode,
+                    Quantity = detail.Quantity,
+                    UnitCode = unitCode
+                });
+            }
+
+            var hasIngredient = source.Components.Any(x =>
+                x.SourceKind == ToppingConsumptionSourceCodes.DirectIngredient);
+            var hasPreparedItem = source.Components.Any(x =>
+                x.SourceKind == ToppingConsumptionSourceCodes.PreparedItem);
+
+            if (hasInvalid || source.Components.Count != details.Count)
+            {
+                source.SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid;
+                source.SourceLabel = "Liên kết nguồn không hợp lệ";
+                source.MappingValid = false;
+                source.Reason = "Một hoặc nhiều dòng BOM thiếu đúng một IngredientId hoặc ChildRecipeId pin tới BTP hợp lệ.";
+            }
+            else if (hasIngredient && hasPreparedItem)
+            {
+                source.SourceCode = ToppingConsumptionSourceCodes.MixedOrInvalid;
+                source.SourceLabel = "Nguồn hỗn hợp cần kiểm tra";
+                source.MappingValid = true;
+                source.Reason = "BOM tiêu hao đồng thời nguyên liệu trực tiếp và BTP đã sơ chế.";
+            }
+            else if (hasPreparedItem)
+            {
+                source.SourceCode = ToppingConsumptionSourceCodes.PreparedItem;
+                source.SourceLabel = "Nguồn bán thành phẩm đã sơ chế";
+                source.MappingValid = true;
+                source.Reason = "ChildRecipeId pin chính xác phiên bản công thức tạo BTP; không dùng phiên bản latest theo tên.";
+            }
+            else
+            {
+                source.SourceCode = ToppingConsumptionSourceCodes.DirectIngredient;
+                source.SourceLabel = "Nguồn nguyên liệu trực tiếp";
+                source.MappingValid = true;
+                source.Reason = "RecipeDetail trỏ trực tiếp tới IngredientId.";
+            }
+
+            return source;
+        }
+
+        private static void ApplyToppingCost(
+            ToppingConsumptionSourceVM source,
+            bool costComplete,
+            decimal? estimatedCost,
+            string costStatus)
+        {
+            source.CostComplete = source.MappingValid && costComplete;
+            source.EstimatedCostPerPortion = source.CostComplete ? estimatedCost : null;
+            source.CostStatus = source.CostComplete
+                ? costStatus
+                : "Chưa xác định đầy đủ giá vốn BOM";
         }
 
         private static string BuildIdentityDisplay(Models.Drinks.Recipe r, string typeKey)

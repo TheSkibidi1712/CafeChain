@@ -81,6 +81,7 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public decimal? OutputQuantity { get; set; }
         public string? OutputUnitCode { get; set; }
         public string? OutputUnitName { get; set; }
+        public ToppingConsumptionSourceVM? ToppingConsumptionSource { get; set; }
         public List<RecipeBomTreeNodeVM> FirstLevelNodes { get; set; } = new();
     }
 

@@ -1,6 +1,7 @@
 using CafeChain.Application.DTOs.Admin.DrinkToppings;
 using CafeChain.Application.DTOs.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.DrinkToppings;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.ViewModels.Admin.DrinkToppings;
 using CafeChain.ViewModels.Admin.Toppings;
@@ -12,13 +13,16 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IAdminToppingService _toppingService;
         private readonly IAdminDrinkToppingService _drinkToppingService;
+        private readonly IAdminRecipeQueryService _recipeQueryService;
 
         public AdminToppingController(
             IAdminToppingService toppingService,
-            IAdminDrinkToppingService drinkToppingService)
+            IAdminDrinkToppingService drinkToppingService,
+            IAdminRecipeQueryService recipeQueryService)
         {
             _toppingService = toppingService;
             _drinkToppingService = drinkToppingService;
+            _recipeQueryService = recipeQueryService;
         }
 
         // =====================================================
@@ -28,8 +32,9 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            var toppings =
-                await _toppingService.GetAllAsync();
+            var toppings = (await _toppingService.GetAllAsync()).ToList();
+            var sources = await _recipeQueryService.GetToppingConsumptionSourcesAsync(
+                toppings.Select(x => x.ToppingId));
 
             var vm = toppings.Select(x => new AdminToppingVM
             {
@@ -38,8 +43,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 Name = x.Name,
                 Price = x.Price,
                 ImageUrl = x.ImageUrl,
-                Active = x.Active
-            });
+                Active = x.Active,
+                ConsumptionSource = sources[x.ToppingId]
+            }).ToList();
 
             return View(vm);
         }

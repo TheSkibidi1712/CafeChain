@@ -49,6 +49,8 @@ namespace CafeChain.ViewModels.Admin.Recipes
 
         public string ConsumptionSourceDisplay { get; set; } = "Chưa cấu hình";
 
+        public ToppingConsumptionSourceVM? ToppingConsumptionSource { get; set; }
+
         public BomHealthStatusVM ConfigurationHealth { get; set; } = new();
 
         public BomHealthStatusVM CostingHealth { get; set; } = new();

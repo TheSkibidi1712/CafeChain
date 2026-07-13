@@ -21,6 +21,9 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
 
         Task<AdminRecipeVisualizePageVM?> GetVisualizePageAsync(int recipeId);
 
+        Task<IReadOnlyDictionary<int, ToppingConsumptionSourceVM>> GetToppingConsumptionSourcesAsync(
+            IEnumerable<int> toppingIds);
+
         Task<AdminRecipeFormOptionsVM> GetFormOptionsAsync();
 
         Task<List<RecipeSizeOptionVM>> GetSizesByDrinkAsync(int drinkId);
