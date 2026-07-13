@@ -23,6 +23,7 @@ using Xunit;
 namespace CafeChain.Tests
 {
     /// <summary>Issue #124 — SQL Server concurrent activation proof on CafeChain_Issue124Tests.</summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class CutoverActivationSqlServerIssue124Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";
