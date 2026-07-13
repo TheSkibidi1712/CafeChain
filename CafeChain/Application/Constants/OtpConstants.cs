@@ -2,7 +2,12 @@ namespace CafeChain.Application.Constants
 {
     public static class OtpConstants
     {
+        /// <summary>Six-character alphanumeric OTP (no ambiguous O/0/I/1).</summary>
         public const int CodeLength = 6;
+
+        /// <summary>Allowed OTP alphabet — uppercase + digits, excludes O,0,I,1.</summary>
+        public const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
         public const int TtlMinutes = 5;
         public const int MaxFailedAttempts = 5;
         public const int ResendCooldownSeconds = 60;
@@ -26,6 +31,15 @@ namespace CafeChain.Application.Constants
         public static class TargetTypes
         {
             public const string Shifts = "shifts";
+        }
+
+        public static class ErrorCodes
+        {
+            public const string NoEligibleApprover = "NO_ELIGIBLE_APPROVER";
+            public const string PayloadMismatch = "OTP_CHALLENGE_PAYLOAD_MISMATCH";
+            public const string ApproverNoLongerEligible = "OTP_APPROVER_NO_LONGER_ELIGIBLE";
+            public const string EmailFailed = "OTP_EMAIL_FAILED";
+            public const string Required = "OTP_REQUIRED";
         }
 
         public static class Thresholds

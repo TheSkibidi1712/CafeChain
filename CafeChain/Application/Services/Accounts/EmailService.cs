@@ -223,20 +223,21 @@ namespace CafeChain.Application.Services.Accounts
         </table>
 
         <div style='text-align:center;margin:25px 0'>
-            <p style='font-size:15px;color:#333;margin-bottom:8px'>Mã OTP xác nhận:</p>
+            <p style='font-size:15px;color:#333;margin-bottom:8px'>Mã OTP xác nhận (6 ký tự chữ in hoa và số):</p>
             <div style='font-size:36px;font-weight:bold;
                         letter-spacing:10px;
                         background:#fff3ed;
                         color:#ff4d00;
                         padding:15px 25px;
                         border-radius:10px;
-                        display:inline-block'>
-                {otpCode}
+                        display:inline-block;
+                        font-family:Consolas,monospace'>
+                {System.Net.WebUtility.HtmlEncode(otpCode)}
             </div>
         </div>
 
         <p style='font-size:13px;color:#888;text-align:center'>
-            Mã có hiệu lực trong <b>{ttlMinutes} phút</b>.
+            Mã gồm chữ in hoa và số (không phân biệt hoa thường khi nhập). Hiệu lực <b>{ttlMinutes} phút</b>.
         </p>
 
         <hr style='border:none;border-top:1px solid #eee;margin:20px 0' />

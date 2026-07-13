@@ -16,20 +16,24 @@ using Xunit;
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Issue #90: WorkShift Cash Discrepancy OTP Backend Integration.
-    /// Tests that CloseShiftAsync requires OTP when discrepancy exceeds threshold
-    /// and consumes OTP atomically on successful close.
+    /// Issue #90 / Phase 1: WorkShift Cash Discrepancy OTP Backend Integration.
+    /// CloseShiftAsync requires OTP when discrepancy exceeds threshold
+    /// and consumes OTP atomically on successful close (fingerprint + anti-self).
     /// </summary>
     public class POSWorkShiftOtpCloseIssue90Tests
     {
         private const int UserId = 17;
         private const int StoreId = 3;
         private const int ShiftId = 90;
+        private const int ApproverStaffId = 200;
         private const decimal StartingCash = 500_000m;
+        private const decimal HighDiscrepancyActual = 440_000m;
+        private const string DefaultReason = "Thiếu tiền mặt sau kiểm két.";
 
-        // ================================================================
-        // Helpers
-        // ================================================================
+        private static readonly OtpPayloadFingerprintService Fingerprint = new();
+
+        private static readonly Guid ValidOtpPublicId =
+            Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
 
         private static WorkShift CreateOpenShift(decimal expectedEndingCash = StartingCash)
         {
@@ -48,23 +52,29 @@ namespace CafeChain.Tests.POS
         private static OtpChallenge CreateApprovedChallenge(
             int shiftId = ShiftId,
             int storeId = StoreId,
+            int requestedBy = UserId,
+            int approverId = ApproverStaffId,
             string actionType = "CASH_DIFFERENCE",
             string targetType = "shifts",
             int? targetId = null,
-            string status = "Approved")
+            string status = "Approved",
+            decimal actualEndingCash = HighDiscrepancyActual,
+            string reason = DefaultReason)
         {
             return new OtpChallenge
             {
                 OtpChallengeId = 1,
-                PublicId = Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee"),
+                PublicId = ValidOtpPublicId,
                 StoreId = storeId,
                 WorkShiftId = shiftId,
-                RequestedByStaffId = UserId,
-                ApproverStaffId = 200,
+                RequestedByStaffId = requestedBy,
+                ApproverStaffId = approverId,
                 ActionType = actionType,
                 TargetType = targetType,
                 TargetId = targetId,
-                Reason = "Tiền mặt thực tế thiếu so với hệ thống",
+                Reason = reason,
+                PayloadFingerprint = Fingerprint.BuildCashDifferenceFingerprint(
+                    storeId, requestedBy, shiftId, actualEndingCash, reason),
                 OtpHash = "hashed",
                 ExpiresAt = DateTime.UtcNow.AddMinutes(5),
                 Status = status,
@@ -74,19 +84,33 @@ namespace CafeChain.Tests.POS
             };
         }
 
-        private static readonly Guid ValidOtpPublicId =
-            Guid.Parse("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee");
+        private static Mock<IOtpChallengeRepository> SetupOtpRepo(OtpChallenge challenge, bool approverEligible = true)
+        {
+            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
+            otpRepo.Setup(r => r.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.GetByPublicIdForUpdateAsync(ValidOtpPublicId))
+                .ReturnsAsync(challenge);
+            otpRepo.Setup(r => r.IsApproverStillEligibleAsync(
+                    challenge.ApproverStaffId, It.IsAny<int>(), It.IsAny<int>()))
+                .ReturnsAsync(approverEligible);
+            otpRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            return otpRepo;
+        }
 
         private static WorkShiftService CreateService(
             Mock<IWorkShiftRepository> shiftRepo,
-            Mock<IOtpChallengeRepository>? otpRepo = null)
+            Mock<IOtpChallengeRepository>? otpRepo = null,
+            Mock<ISupervisorAuthService>? supervisorAuth = null)
         {
             return new WorkShiftService(
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
+                supervisorAuth?.Object ?? Mock.Of<ISupervisorAuthService>(),
                 otpRepo?.Object ?? Mock.Of<IOtpChallengeRepository>(),
+                Fingerprint,
                 Mock.Of<ILogger<WorkShiftService>>());
         }
 
@@ -106,9 +130,6 @@ namespace CafeChain.Tests.POS
             return repo;
         }
 
-        // ================================================================
-        // TEST 1: Close within threshold — no OTP needed
-        // ================================================================
         [Fact]
         public async Task CloseShift_DiscrepancyWithinThreshold_NoOtpRequired()
         {
@@ -116,7 +137,6 @@ namespace CafeChain.Tests.POS
             var shiftRepo = SetupShiftRepo(shift);
             var service = CreateService(shiftRepo);
 
-            // discrepancy = -10,000 (< 50K and < 2% of 500K)
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
                 ActualEndingCash = 490_000m,
@@ -127,16 +147,11 @@ namespace CafeChain.Tests.POS
             Assert.Equal("Closed", shift.Status);
         }
 
-        // ================================================================
-        // TEST 2: Discrepancy within threshold requires reason but not OTP
-        // ================================================================
         [Fact]
         public async Task CloseShift_DiscrepancyWithinThreshold_RequiresReasonNotOtp()
         {
             var shift = CreateOpenShift();
-            var shiftRepo = SetupShiftRepo(shift);
-            // Don't setup UpdateShiftAsync since it should fail before
-            shiftRepo.Reset();
+            var shiftRepo = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
             shiftRepo.Setup(r => r.GetActiveShiftAsync(UserId, StoreId))
                 .ReturnsAsync(shift);
             shiftRepo.Setup(r => r.HasOpenPosPaymentAsync(shift.ShiftId, StoreId))
@@ -145,7 +160,6 @@ namespace CafeChain.Tests.POS
                 .ReturnsAsync(0m);
             var service = CreateService(shiftRepo);
 
-            // discrepancy = -10,000 but no reason
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
                 ActualEndingCash = 490_000m
@@ -156,9 +170,6 @@ namespace CafeChain.Tests.POS
             Assert.NotEqual("Closed", shift.Status);
         }
 
-        // ================================================================
-        // TEST 3: Over 50,000 VND without OTP → OTP_REQUIRED
-        // ================================================================
         [Fact]
         public async Task CloseShift_Over50KDiscrepancy_NoOtp_ReturnsOtpRequired()
         {
@@ -166,11 +177,10 @@ namespace CafeChain.Tests.POS
             var shiftRepo = SetupShiftRepo(shift);
             var service = CreateService(shiftRepo);
 
-            // discrepancy = -60,000 (> 50K threshold)
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két."
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason
             });
 
             Assert.False(result.IsSuccess);
@@ -179,19 +189,13 @@ namespace CafeChain.Tests.POS
             Assert.NotEqual("Closed", shift.Status);
         }
 
-        // ================================================================
-        // TEST 4: Over 2% expected without OTP → OTP_REQUIRED
-        // ================================================================
         [Fact]
         public async Task CloseShift_Over2PercentDiscrepancy_NoOtp_ReturnsOtpRequired()
         {
-            // expected = 1,000,000 (starting 500K + 500K sales)
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift, totalCashSales: 500_000m);
             var service = CreateService(shiftRepo);
 
-            // actual = 970,000, expected = 1,000,000, discrepancy = -30,000
-            // abs(-30,000) = 30,000 < 50K, but 30,000 / 1,000,000 = 3% > 2%
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
                 ActualEndingCash = 970_000m,
@@ -202,49 +206,40 @@ namespace CafeChain.Tests.POS
             Assert.Equal("OTP_REQUIRED", result.ErrorCode);
         }
 
-        // ================================================================
-        // TEST 5: Approved OTP for correct shift → allows close
-        // ================================================================
         [Fact]
         public async Task CloseShift_WithApprovedOtp_AllowsClose()
         {
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift);
             var challenge = CreateApprovedChallenge();
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
             Assert.True(result.IsSuccess, result.Message);
             Assert.Equal("Closed", shift.Status);
+            otpRepo.Verify(r => r.CommitTransactionAsync(), Times.Once);
         }
 
-        // ================================================================
-        // TEST 6: OTP marked Used after successful close
-        // ================================================================
         [Fact]
         public async Task CloseShift_WithOtp_MarksOtpUsed()
         {
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift);
             var challenge = CreateApprovedChallenge();
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
@@ -253,9 +248,6 @@ namespace CafeChain.Tests.POS
             Assert.NotNull(challenge.UsedAt);
         }
 
-        // ================================================================
-        // TEST 7: Used OTP cannot be reused
-        // ================================================================
         [Fact]
         public async Task CloseShift_WithUsedOtp_Rejected()
         {
@@ -263,40 +255,34 @@ namespace CafeChain.Tests.POS
             var shiftRepo = SetupShiftRepo(shift);
             var challenge = CreateApprovedChallenge(status: OtpConstants.Statuses.Used);
             challenge.UsedAt = DateTime.UtcNow;
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
             Assert.False(result.IsSuccess);
             Assert.Contains("đã được sử dụng", result.Message);
+            otpRepo.Verify(r => r.RollbackTransactionAsync(), Times.Once);
         }
 
-        // ================================================================
-        // TEST 8: Approved OTP for different shift → rejected
-        // ================================================================
         [Fact]
         public async Task CloseShift_OtpForDifferentShift_Rejected()
         {
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift);
-            var challenge = CreateApprovedChallenge(shiftId: 999); // wrong shift
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var challenge = CreateApprovedChallenge(shiftId: 999);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
@@ -304,24 +290,19 @@ namespace CafeChain.Tests.POS
             Assert.Contains("ca két tiền hiện tại", result.Message);
         }
 
-        // ================================================================
-        // TEST 9: Approved OTP for different store → rejected
-        // ================================================================
         [Fact]
         public async Task CloseShift_OtpForDifferentStore_Rejected()
         {
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift);
-            var challenge = CreateApprovedChallenge(storeId: 999); // wrong store
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var challenge = CreateApprovedChallenge(storeId: 999);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
@@ -329,24 +310,19 @@ namespace CafeChain.Tests.POS
             Assert.Contains("chi nhánh hiện tại", result.Message);
         }
 
-        // ================================================================
-        // TEST 10: Mismatched TargetId → rejected
-        // ================================================================
         [Fact]
         public async Task CloseShift_OtpWithMismatchedTargetId_Rejected()
         {
             var shift = CreateOpenShift();
             var shiftRepo = SetupShiftRepo(shift);
-            var challenge = CreateApprovedChallenge(targetId: 888); // targetId != ShiftId
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
+            var challenge = CreateApprovedChallenge(targetId: 888);
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
@@ -354,11 +330,68 @@ namespace CafeChain.Tests.POS
             Assert.Contains("không khớp ca hiện tại", result.Message);
         }
 
-        // ================================================================
-        // TEST 11: If close fails, OTP remains Approved
-        // ================================================================
         [Fact]
-        public async Task CloseShift_WhenUpdateFails_OtpRemainsApproved()
+        public async Task CloseShift_PayloadCashMismatch_Rejected()
+        {
+            var shift = CreateOpenShift();
+            var shiftRepo = SetupShiftRepo(shift);
+            var challenge = CreateApprovedChallenge(actualEndingCash: 430_000m);
+            var otpRepo = SetupOtpRepo(challenge);
+            var service = CreateService(shiftRepo, otpRepo);
+
+            var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
+            {
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
+                OtpChallengePublicId = ValidOtpPublicId
+            });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(OtpConstants.ErrorCodes.PayloadMismatch, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task CloseShift_SelfApproval_Rejected()
+        {
+            var shift = CreateOpenShift();
+            var shiftRepo = SetupShiftRepo(shift);
+            var challenge = CreateApprovedChallenge(approverId: UserId);
+            var otpRepo = SetupOtpRepo(challenge);
+            var service = CreateService(shiftRepo, otpRepo);
+
+            var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
+            {
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
+                OtpChallengePublicId = ValidOtpPublicId
+            });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(OtpConstants.ErrorCodes.NoEligibleApprover, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task CloseShift_InactiveApprover_Rejected()
+        {
+            var shift = CreateOpenShift();
+            var shiftRepo = SetupShiftRepo(shift);
+            var challenge = CreateApprovedChallenge();
+            var otpRepo = SetupOtpRepo(challenge, approverEligible: false);
+            var service = CreateService(shiftRepo, otpRepo);
+
+            var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
+            {
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
+                OtpChallengePublicId = ValidOtpPublicId
+            });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(OtpConstants.ErrorCodes.ApproverNoLongerEligible, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task CloseShift_WhenUpdateFails_RollsBackAndDoesNotCommitUsed()
         {
             var shift = CreateOpenShift();
             var shiftRepo = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
@@ -372,31 +405,22 @@ namespace CafeChain.Tests.POS
                 .ThrowsAsync(new Exception("DB connection lost"));
 
             var challenge = CreateApprovedChallenge();
-            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
-            otpRepo.Setup(r => r.GetByPublicIdAsync(ValidOtpPublicId))
-                .ReturnsAsync(challenge);
-
+            var otpRepo = SetupOtpRepo(challenge);
             var service = CreateService(shiftRepo, otpRepo);
 
             var result = await service.CloseShiftAsync(UserId, StoreId, new CloseShiftRequestDto
             {
-                ActualEndingCash = 440_000m,
-                DiscrepancyReason = "Thiếu tiền mặt sau kiểm két.",
+                ActualEndingCash = HighDiscrepancyActual,
+                DiscrepancyReason = DefaultReason,
                 OtpChallengePublicId = ValidOtpPublicId
             });
 
-            // Close fails, caught by catch block
             Assert.False(result.IsSuccess);
-            // OTP should NOT be marked Used since SaveChangesAsync threw
-            // In-memory challenge object was mutated, but DB was never updated
-            // because SaveChangesAsync threw before persisting.
-            // The key guarantee is: DB never saw Status=Used.
             Assert.Contains("Lỗi hệ thống", result.Message);
+            otpRepo.Verify(r => r.RollbackTransactionAsync(), Times.Once);
+            otpRepo.Verify(r => r.CommitTransactionAsync(), Times.Never);
         }
 
-        // ================================================================
-        // TEST 12: Existing PIN exception close still works
-        // ================================================================
         [Fact]
         public async Task CloseShiftByException_WithPin_StillWorks()
         {
@@ -417,22 +441,16 @@ namespace CafeChain.Tests.POS
                 .ReturnsAsync(ServiceResult<SupervisorPinAuthorizationDto>.Success(
                     new SupervisorPinAuthorizationDto
                     {
-                        SupervisorStaffId = 200
+                        SupervisorStaffId = ApproverStaffId
                     },
                     "PIN hợp lệ."));
 
-            var service = new WorkShiftService(
-                shiftRepo.Object,
-                Mock.Of<IHrAttendanceService>(),
-                Mock.Of<IPOSOrderRepository>(),
-                supervisorAuth.Object,
-                Mock.Of<IOtpChallengeRepository>(),
-                Mock.Of<ILogger<WorkShiftService>>());
+            var service = CreateService(shiftRepo, supervisorAuth: supervisorAuth);
 
             var result = await service.CloseShiftByExceptionAsync(UserId, StoreId, ShiftId,
                 new CloseShiftExceptionRequestDto
                 {
-                    ActualEndingCash = 440_000m,
+                    ActualEndingCash = HighDiscrepancyActual,
                     DiscrepancyReason = "Thiếu tiền mặt.",
                     ExceptionReason = "Mất mạng kéo dài.",
                     SupervisorPin = "9999"

@@ -7,6 +7,10 @@ namespace CafeChain.Application.DTOs.POS
         public int? TargetId { get; set; }
         public int? WorkShiftId { get; set; }
         public string Reason { get; set; } = string.Empty;
+
+        /// <summary>Required for CASH_DIFFERENCE fingerprint binding.</summary>
+        public decimal ActualEndingCash { get; set; }
+
         public string? OldValueJson { get; set; }
         public string? NewValueJson { get; set; }
     }
@@ -29,5 +33,6 @@ namespace CafeChain.Application.DTOs.POS
         public int ExpiresInSeconds { get; set; }
         public int ResendAvailableInSeconds { get; set; }
         public int RemainingAttempts { get; set; }
+        public bool WasExistingActive { get; set; }
     }
 }

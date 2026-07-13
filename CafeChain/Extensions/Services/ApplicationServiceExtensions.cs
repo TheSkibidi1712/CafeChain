@@ -239,6 +239,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
+            services.AddSingleton<IOtpCodeGenerator, OtpCodeGenerator>();
+            services.AddSingleton<IOtpPayloadFingerprintService, OtpPayloadFingerprintService>();
 
             // Shared unit conversion (POS catalog + inventory deduction + COGS)
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110

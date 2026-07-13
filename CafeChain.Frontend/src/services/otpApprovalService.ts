@@ -26,6 +26,8 @@ export interface OtpRequestPayload {
   targetId: number
   workShiftId: number
   reason: string
+  /** Bound into OTP fingerprint — must match close payload. */
+  actualEndingCash: number
   oldValueJson?: string | null
   newValueJson?: string | null
 }

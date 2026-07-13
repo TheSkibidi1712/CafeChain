@@ -115,7 +115,8 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            // Phase 1: exclude actor (0 = no self) — still prefers ShiftSupervisor over SM/AW.
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             // Email/OTP must target Ca trưởng assigned at store (DB), not StoreManager first.
@@ -133,7 +134,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(210, approver!.StaffId);
@@ -150,7 +151,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(202, approver!.StaffId);
@@ -166,7 +167,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(301, approver!.StaffId);
@@ -174,18 +175,18 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task OtpApprover_FallsBackToAccountant_WhenOnlyAccountantExists()
+        public async Task OtpApprover_DoesNotSelectAccountant_WhenOnlyAccountantExists_Phase1()
         {
+            // Phase 1 anti-self-approval hardening: no AccountantWarehouse default for OTP.
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
             SeedApproverStaff(ctx, staffId: 303, accountId: 3003, roleId: RoleAccountant, email: "acc@test.local");
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
-            Assert.NotNull(approver);
-            Assert.Equal(303, approver!.StaffId);
+            Assert.Null(approver);
         }
 
         [Fact]
@@ -198,11 +199,28 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(402, approver!.StaffId);
             Assert.NotEqual(404, approver.StaffId);
+        }
+
+        [Fact]
+        public async Task OtpApprover_ExcludesActor_AntiSelfApproval()
+        {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            SeedApproverStaff(ctx, staffId: 501, accountId: 5001, roleId: RoleShiftSupervisor, email: "actor-ss@test.local");
+            SeedApproverStaff(ctx, staffId: 502, accountId: 5002, roleId: RoleStoreManager, email: "sm@test.local");
+            await ctx.SaveChangesAsync();
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 501, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(502, approver!.StaffId);
+            Assert.NotEqual(501, approver.StaffId);
         }
 
         // -----------------------------------------------------------------

@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 namespace CafeChain.Models.Operations
 {
     /// <summary>
-    /// OTP email xác nhận thao tác vận hành nhạy cảm bởi Ca trưởng/Cửa hàng trưởng.
+    /// One-time OTP email challenge for sensitive operational approvals (Phase 1: CASH_DIFFERENCE).
     /// </summary>
     public class OtpChallenge
     {
@@ -36,6 +36,10 @@ namespace CafeChain.Models.Operations
         [MaxLength(255)]
         public string OtpHash { get; set; } = string.Empty;
 
+        /// <summary>SHA-256 hex fingerprint of canonical action payload (required for new challenges).</summary>
+        [MaxLength(128)]
+        public string PayloadFingerprint { get; set; } = string.Empty;
+
         public DateTime ExpiresAt { get; set; }
 
         public DateTime? ApprovedAt { get; set; }
@@ -60,6 +64,10 @@ namespace CafeChain.Models.Operations
         public string? OldValueJson { get; set; }
 
         public string? NewValueJson { get; set; }
+
+        /// <summary>SQL Server concurrency token (EnsureCreated maps as rowversion).</summary>
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
 
         public virtual Store Store { get; set; } = null!;
 

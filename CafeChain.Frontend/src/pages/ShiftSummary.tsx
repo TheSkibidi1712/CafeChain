@@ -478,6 +478,7 @@ export default function ShiftSummary() {
         targetId: shift.shiftId,
         workShiftId: shift.shiftId,
         reason: discrepancyReason.trim() || 'Chênh lệch két vượt ngưỡng khi đóng ca.',
+        actualEndingCash: Number(actualEndingCash),
         oldValueJson: JSON.stringify({ expectedEndingCash }),
         newValueJson: JSON.stringify({
           actualEndingCash,
@@ -570,8 +571,9 @@ export default function ShiftSummary() {
       setOtpMessage('Vui lòng gửi OTP cho ca trưởng trước.')
       return
     }
-    if (!/^\d{6}$/.test(otpCode.trim())) {
-      setOtpMessage('Vui lòng nhập đủ 6 chữ số OTP.')
+    const normalizedOtp = otpCode.trim().toUpperCase().replace(/\s+/g, '')
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(normalizedOtp)) {
+      setOtpMessage('Vui lòng nhập đủ 6 ký tự OTP (chữ in hoa và số, không gồm O/0/I/1).')
       return
     }
 
@@ -580,7 +582,7 @@ export default function ShiftSummary() {
     try {
       const response = await verifyOtp({
         otpChallengePublicId,
-        otpCode: otpCode.trim(),
+        otpCode: otpCode.trim().toUpperCase().replace(/\s+/g, ''),
       })
       const envelope = extractOtpEnvelope(response)
 
@@ -1075,18 +1077,26 @@ export default function ShiftSummary() {
                       <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
                         <div>
                           <label className="block text-xs font-semibold text-text-secondary mb-1">
-                            Mã OTP 6 số
+                            Mã OTP 6 ký tự (chữ + số)
                           </label>
                           <input
                             type="text"
-                            inputMode="numeric"
+                            inputMode="text"
                             autoComplete="one-time-code"
+                            autoCapitalize="characters"
                             maxLength={6}
                             value={otpCode}
-                            onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                            onChange={(event) =>
+                              setOtpCode(
+                                event.target.value
+                                  .toUpperCase()
+                                  .replace(/[^A-Z0-9]/g, '')
+                                  .slice(0, 6)
+                              )
+                            }
                             disabled={otpBusy || isSubmitting || expiresInSeconds === 0}
-                            className="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm tracking-[0.35em] outline-none focus:border-violet-500 text-text-primary bg-white font-extrabold"
-                            placeholder="••••••"
+                            className="w-full px-3 py-2 border border-violet-200 rounded-lg text-sm tracking-[0.35em] outline-none focus:border-violet-500 text-text-primary bg-white font-extrabold uppercase"
+                            placeholder="A2B3C4"
                           />
                         </div>
                         <button
