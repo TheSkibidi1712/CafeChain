@@ -21,6 +21,7 @@ namespace CafeChain.Tests
     /// <summary>
     /// Issue #123 — SQL Server concurrency proofs on dedicated CafeChain_Issue123Tests.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class LegacyBtpConsolidationSqlServerIssue123Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";
