@@ -8,10 +8,33 @@ $(document).ready(function () {
     let isCreateSubmitting = false;
     let isEditSubmitting = false;
 
+    $.ajaxPrefilter(function (options, originalOptions, xhr) {
+        if ((options.type || 'GET').toUpperCase() !== 'GET') {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) xhr.setRequestHeader('RequestVerificationToken', token);
+        }
+    });
+
     initCreateForm();
     initEditForm();
     initStatusSwitch();
     initImageManager();
+
+    $(document).on('click', '.js-toggle-drink', function () {
+        const id = Number(this.dataset.id);
+        if (!id || !window.confirm('Bạn có chắc muốn đổi trạng thái đồ uống?')) return;
+        $.ajax({
+            url: '/Admin/AdminDrink/ToggleStatus',
+            type: 'POST',
+            data: { id },
+            success: function (result) {
+                if (!result.success) return notify(result.message || 'Không thể cập nhật trạng thái.', 'error');
+                notify(result.message || 'Đã cập nhật trạng thái.');
+                window.location.reload();
+            },
+            error: function (xhr) { notify(xhr.responseJSON?.message || 'Không thể cập nhật trạng thái.', 'error'); }
+        });
+    });
 
     function notify(message, type) {
         if (typeof toast === 'function') {
@@ -727,6 +750,20 @@ $(document).ready(function () {
         }
     }
 
+    document.addEventListener('drink-ai-image-ready', async event => {
+        const file = event.detail?.file;
+        if (!file) { event.detail?.complete?.(false); return; }
+        try {
+            const croppedFile = await cropImageToSquare(file);
+            selectedCreateFiles = [croppedFile];
+            setCreateDefaultIndex(0);
+            renderCreatePreview();
+            event.detail?.complete?.(true);
+        } catch {
+            event.detail?.complete?.(false);
+        }
+    });
+
     function reloadDrinkTable() {
         const $table = $('#datatablesSimple');
 
@@ -746,3 +783,301 @@ $(document).ready(function () {
         });
     }
 });
+
+// AI suggestion for Drink Create. It never submits the form or persists relations.
+(function initDrinkAiSuggestion() {
+    const button = document.getElementById('btnDrinkAiSuggestionLegacy');
+    if (!button) return;
+    const form = document.getElementById('drinkCreateForm');
+    const name = document.getElementById('DrinkCreateDTO_Name');
+    const category = document.getElementById('DrinkCreateDTO_CategoryId');
+    const productType = document.getElementById('DrinkCreateDTO_ProductTypeId');
+    const code = document.getElementById('DrinkCreateDTO_DrinkCode');
+    const description = document.getElementById('DrinkCreateDTO_Description');
+    const panel = document.getElementById('drinkAiSuggestionPanel');
+    let suggestion = null;
+    let controller = null;
+
+    const notifyAi = (message, type = 'success') => typeof toast === 'function' ? toast(message, type) : alert(message);
+    const clear = () => {
+        suggestion = null;
+        panel.classList.add('d-none');
+        document.getElementById('drinkAiSizes').innerHTML = '';
+        document.getElementById('drinkAiToppings').innerHTML = '';
+    };
+    const chips = items => (items || []).map(x => `<span class="ai-chip">${String(x.code || x.name).replace(/[<>&]/g, '')}</span>`).join('') || '<span class="text-muted">Không có</span>';
+
+    button.addEventListener('click', async () => {
+        if (!name.value.trim() || !category.value || !productType.value) {
+            notifyAi('Vui lòng nhập tên, danh mục và loại sản phẩm.', 'error');
+            return;
+        }
+        controller?.abort();
+        controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 125000);
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        clear();
+        try {
+            const response = await fetch('/Admin/AdminDrink/AiSuggestion', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': form.querySelector('input[name="__RequestVerificationToken"]').value
+                },
+                body: JSON.stringify({ name: name.value.trim(), categoryId: Number(category.value), productTypeId: Number(productType.value) }),
+                signal: controller.signal
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            suggestion = result.data;
+            document.getElementById('drinkAiCode').textContent = suggestion.drinkCode;
+            document.getElementById('drinkAiDescription').textContent = suggestion.description;
+            document.getElementById('drinkAiSizes').innerHTML = chips(suggestion.sizes);
+            document.getElementById('drinkAiToppings').innerHTML = chips(suggestion.toppings);
+            document.getElementById('drinkAiWarnings').textContent = (suggestion.warnings || []).join(' ');
+            document.getElementById('drinkAiSource').textContent = suggestion.usedOllama ? 'Ollama' : 'C# fallback';
+            panel.classList.remove('d-none');
+        } catch (error) {
+            if (error.name !== 'AbortError') notifyAi(error.message, 'error');
+        } finally {
+            clearTimeout(timeout);
+            button.disabled = false;
+            button.innerHTML = original;
+        }
+    });
+
+    document.getElementById('btnApplyDrinkAi').addEventListener('click', async () => {
+        if (!suggestion) return;
+        if ((code.value.trim() || description.value.trim()) && !window.confirm('Ghi đè mã/mô tả hiện tại bằng gợi ý AI?')) return;
+        code.value = suggestion.drinkCode;
+        description.value = suggestion.description;
+        clear();
+        notifyAi('Đã điền gợi ý. Dữ liệu chưa được lưu.');
+    });
+    document.getElementById('btnDismissDrinkAi').addEventListener('click', clear);
+    [name, category, productType].forEach(x => x.addEventListener('change', clear));
+    name.addEventListener('input', clear);
+})();
+
+// AI form options for Drink Create. Nothing is persisted or submitted here.
+(function initFullDrinkAiSuggestion() {
+    const button = document.getElementById('btnDrinkAiSuggestion');
+    if (!button) return;
+    const form = document.getElementById('drinkCreateForm');
+    const idea = document.getElementById('drinkAiIdea');
+    const fields = {
+        name: document.getElementById('DrinkCreateDTO_Name'),
+        category: document.getElementById('DrinkCreateDTO_CategoryId'),
+        productType: document.getElementById('DrinkCreateDTO_ProductTypeId'),
+        code: document.getElementById('DrinkCreateDTO_DrinkCode'),
+        description: document.getElementById('DrinkCreateDTO_Description')
+    };
+    const panel = document.getElementById('drinkAiSuggestionPanel');
+    const image = document.getElementById('drinkAiImage');
+    const attribution = document.getElementById('drinkAiImageAttribution');
+    const retryImage = document.getElementById('btnRegenerateDrinkAiImage');
+    const optionList = document.getElementById('drinkAiOptionList');
+    const applyButton = document.getElementById('btnApplyDrinkAi');
+    const warnings = document.getElementById('drinkAiWarnings');
+    let options = [];
+    let selectedOption = null;
+    let generatedImageFile = null;
+    let generatedImageUrl = null;
+    let textController = null;
+    let imageController = null;
+    const token = () => form.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    const notify = (message, type = 'success') => typeof toast === 'function' ? toast(message, type) : alert(message);
+    const clearImage = () => {
+        imageController?.abort();
+        imageController = null;
+        generatedImageFile = null;
+        if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
+        generatedImageUrl = null;
+        image.removeAttribute('src');
+        image.classList.add('d-none');
+        attribution.replaceChildren();
+        attribution.classList.add('d-none');
+    };
+    const clear = () => {
+        clearImage();
+        options = [];
+        selectedOption = null;
+        optionList.replaceChildren();
+        warnings.textContent = '';
+        applyButton.disabled = true;
+        retryImage.disabled = true;
+        panel.classList.add('d-none');
+    };
+    const requestJson = async (url, body, timeoutMs, controller) => {
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
+                body: JSON.stringify(body), signal: controller.signal
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            return result;
+        } finally { clearTimeout(timeout); }
+    };
+    const base64File = data => {
+        const bytes = atob(data.base64Data);
+        const array = new Uint8Array(bytes.length);
+        for (let index = 0; index < bytes.length; index++) array[index] = bytes.charCodeAt(index);
+        return new File([array], data.fileName || 'drink-ai.png', { type: data.contentType || 'image/png' });
+    };
+    const safePexelsUrl = value => {
+        try {
+            const url = new URL(value);
+            return url.protocol === 'https:' && (url.hostname === 'pexels.com' || url.hostname.endsWith('.pexels.com'))
+                ? url.href : null;
+        } catch { return null; }
+    };
+    const renderAttribution = data => {
+        attribution.replaceChildren();
+        if (data.imageSource === 'Pexels') {
+            attribution.append(document.createTextNode('Photo by '));
+            const photographerUrl = safePexelsUrl(data.photographerUrl);
+            if (photographerUrl) {
+                const photographerLink = document.createElement('a');
+                photographerLink.href = photographerUrl;
+                photographerLink.target = '_blank';
+                photographerLink.rel = 'noopener noreferrer';
+                photographerLink.textContent = data.photographer || 'Pexels contributor';
+                attribution.append(photographerLink);
+            } else {
+                attribution.append(document.createTextNode(data.photographer || 'Pexels contributor'));
+            }
+            attribution.append(document.createTextNode(' on '));
+            const photoLink = document.createElement('a');
+            photoLink.href = safePexelsUrl(data.photoUrl) || 'https://www.pexels.com';
+            photoLink.target = '_blank';
+            photoLink.rel = 'noopener noreferrer';
+            photoLink.textContent = 'Pexels';
+            attribution.append(photoLink);
+        } else {
+            attribution.textContent = 'Ảnh được tạo local bằng ComfyUI.';
+        }
+        attribution.classList.remove('d-none');
+    };
+    const generateImage = async () => {
+        if (!selectedOption?.fields?.imagePrompt) return;
+        clearImage();
+        imageController = new AbortController();
+        const activeImageController = imageController;
+        applyButton.disabled = true;
+        retryImage.disabled = true;
+        retryImage.textContent = 'Đang tạo ảnh...';
+        try {
+            const result = await requestJson('/Admin/AdminDrink/AiImageSuggestion', {
+                imagePrompt: selectedOption.fields.imagePrompt,
+                fileNamePrefix: selectedOption.fields.drinkCode || 'drink_ai',
+                excludedExternalImageIds: selectedOption.excludedExternalImageIds || []
+            }, 190000, activeImageController);
+            if (result.data.externalImageId) {
+                selectedOption.excludedExternalImageIds = [
+                    ...(selectedOption.excludedExternalImageIds || []),
+                    Number(result.data.externalImageId)
+                ];
+            }
+            generatedImageFile = base64File(result.data);
+            generatedImageUrl = URL.createObjectURL(generatedImageFile);
+            image.src = generatedImageUrl;
+            image.classList.remove('d-none');
+            renderAttribution(result.data);
+        } catch (error) {
+            if (error.name !== 'AbortError') notify(`${error.message} Bạn vẫn có thể áp dụng phần nội dung.`, 'error');
+        } finally {
+            if (imageController === activeImageController) {
+                applyButton.disabled = !selectedOption?.canApply;
+                retryImage.disabled = !selectedOption;
+                retryImage.textContent = 'Tạo lại ảnh';
+            }
+        }
+    };
+    const selectOption = (option, card) => {
+        selectedOption = option;
+        optionList.querySelectorAll('.ai-option-card').forEach(x => x.classList.remove('is-selected'));
+        card.classList.add('is-selected');
+        applyButton.disabled = !option.canApply;
+        retryImage.disabled = false;
+        generateImage();
+    };
+    const renderOptions = result => {
+        options = Array.isArray(result.options) ? result.options.slice(0, 3) : [];
+        optionList.replaceChildren();
+        options.forEach(option => {
+            const f = option.fields || {};
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'ai-option-card text-start';
+            const title = document.createElement('strong');
+            title.textContent = option.title || f.name || 'Gợi ý đồ uống';
+            const meta = document.createElement('div');
+            meta.className = 'small text-muted mt-1';
+            meta.textContent = `${f.drinkCode || ''} · ${f.categoryName || ''} · ${f.productTypeName || ''}`;
+            const description = document.createElement('div');
+            description.className = 'small mt-2';
+            description.textContent = f.description || '';
+            card.append(title, meta, description);
+            card.addEventListener('click', () => selectOption(option, card));
+            optionList.appendChild(card);
+        });
+        warnings.textContent = (result.warnings || []).join(' ');
+        document.getElementById('drinkAiSource').textContent = result.usedOllama ? 'Ollama + C#' : 'C# fallback';
+        panel.classList.remove('d-none');
+    };
+
+    button.addEventListener('click', async () => {
+        textController?.abort();
+        textController = new AbortController();
+        const activeTextController = textController;
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        clear();
+        try {
+            const result = await requestJson('/Admin/AdminDrink/AiSuggestion', {
+                idea: idea.value.trim() || null,
+                currentDrinkCode: fields.code.value.trim() || null,
+                currentName: fields.name.value.trim() || null,
+                currentDescription: fields.description.value.trim() || null,
+                currentCategoryId: fields.category.value ? Number(fields.category.value) : null,
+                currentProductTypeId: fields.productType.value ? Number(fields.productType.value) : null
+            }, 130000, activeTextController);
+            renderOptions(result);
+        } catch (error) {
+            if (error.name !== 'AbortError') notify(error.message, 'error');
+        } finally {
+            if (textController === activeTextController) {
+                button.disabled = false;
+                button.innerHTML = original;
+            }
+        }
+    });
+    retryImage.addEventListener('click', generateImage);
+    applyButton.addEventListener('click', async () => {
+        if (!selectedOption?.canApply) return notify('Vui lòng chọn một gợi ý hợp lệ.', 'error');
+        const suggestion = selectedOption.fields;
+        const willOverwrite = Object.values(fields).some(x => x.value?.trim()) || document.querySelector('#createImagePreview .image-preview-card');
+        if (willOverwrite && !window.confirm('Một số dữ liệu hoặc ảnh hiện tại sẽ được thay thế. Tiếp tục áp dụng gợi ý AI?')) return;
+        fields.name.value = suggestion.name || '';
+        fields.category.value = String(suggestion.categoryId);
+        fields.productType.value = String(suggestion.productTypeId);
+        fields.code.value = suggestion.drinkCode;
+        fields.description.value = suggestion.description;
+        if (generatedImageFile) {
+            const imageApplied = await new Promise(resolve => document.dispatchEvent(
+                new CustomEvent('drink-ai-image-ready', { detail: { file: generatedImageFile, complete: resolve } })));
+            if (!imageApplied) notify('Không thể đưa ảnh AI vào trình xử lý ảnh; các trường văn bản vẫn đã được điền.', 'error');
+        }
+        clear();
+        notify('Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.');
+    });
+    document.getElementById('btnDismissDrinkAi').addEventListener('click', clear);
+    const invalidate = () => { textController?.abort(); clear(); };
+    [idea, ...Object.values(fields)].forEach(x => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', invalidate));
+})();

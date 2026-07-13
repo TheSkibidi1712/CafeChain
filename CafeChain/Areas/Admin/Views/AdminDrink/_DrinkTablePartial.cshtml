@@ -1,7 +1,20 @@
 @model IEnumerable<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 
 @{
     var drinks = Model?.ToList() ?? new List<CafeChain.Application.DTOs.Admin.Drinks.AdminDrinkDTO>();
+    var canUpdate = false;
+    var canToggle = false;
+    var canUpdateImage = false;
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+    {
+        canUpdate = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkUpdate)).Data?.Allowed == true;
+        canToggle = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkToggleStatus)).Data?.Allowed == true;
+        canUpdateImage = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkUpdateImage)).Data?.Allowed == true;
+    }
 }
 
 <tbody>
@@ -68,6 +81,8 @@
 
             <td class="text-center">
                 <div class="drink-action-group">
+                    @if (canUpdateImage)
+                    {
                     <button type="button"
                             class="btn drink-action-btn btn-manage-images"
                             data-id="@item.DrinkId"
@@ -75,13 +90,25 @@
                             title="Quản lý ảnh">
                         <i class="fas fa-images"></i>
                     </button>
+                    }
 
+                    @if (canUpdate)
+                    {
                     <a asp-action="Edit"
                        asp-route-id="@item.DrinkId"
                        class="btn drink-action-btn"
                        title="Sửa đồ uống">
                         <i class="fas fa-pen"></i>
                     </a>
+                    }
+
+                    @if (canToggle)
+                    {
+                        <button type="button" class="btn drink-action-btn js-toggle-drink"
+                                data-id="@item.DrinkId" title="Đổi trạng thái">
+                            <i class="fas @(item.Active ? "fa-lock text-danger" : "fa-unlock text-success")"></i>
+                        </button>
+                    }
                 </div>
             </td>
         </tr>

@@ -19,7 +19,40 @@ namespace CafeChain.Extensions.Services
             services.AddCafeChainQuestPdf();
             services.AddCafeChainPayOS(environment);
             services.AddCafeChainOllama(configuration);
+            services.AddCafeChainPexels(configuration);
+            services.AddCafeChainComfyUI(configuration);
 
+            return services;
+        }
+
+        private static IServiceCollection AddCafeChainComfyUI(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<ComfyUIOptions>(configuration.GetSection(ComfyUIOptions.SectionName));
+            var options = configuration.GetSection(ComfyUIOptions.SectionName).Get<ComfyUIOptions>() ?? new();
+            if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+                throw new InvalidOperationException("ComfyUI:BaseUrl phải là URL tuyệt đối hợp lệ.");
+
+            services.AddHttpClient<IComfyUIClient, ComfyUIClient>(client =>
+            {
+                client.BaseAddress = baseUri;
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            });
+            return services;
+        }
+
+        private static IServiceCollection AddCafeChainPexels(this IServiceCollection services, IConfiguration configuration)
+        {
+            services.Configure<PexelsOptions>(configuration.GetSection(PexelsOptions.SectionName));
+            services.Configure<AIImageOptions>(configuration.GetSection(AIImageOptions.SectionName));
+            var options = configuration.GetSection(PexelsOptions.SectionName).Get<PexelsOptions>() ?? new();
+            if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
+                throw new InvalidOperationException("Pexels:BaseUrl phải là URL tuyệt đối hợp lệ.");
+
+            services.AddHttpClient<IPexelsClient, PexelsClient>(client =>
+            {
+                client.BaseAddress = baseUri;
+                client.Timeout = Timeout.InfiniteTimeSpan;
+            });
             return services;
         }
 

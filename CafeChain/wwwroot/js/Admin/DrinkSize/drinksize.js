@@ -4,6 +4,38 @@ let selectedDrinkId = 0;
 let drinkModalInstance = null;
 let priceModalInstance = null;
 
+function getSizeAntiForgeryToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+}
+
+function normalizeSizeTypeValue(value) {
+    const normalized = String(value ?? '').trim().toLowerCase();
+
+    if (normalized === '1' || normalized === 'cup') {
+        return '1';
+    }
+
+    if (normalized === '2' || normalized === 'volume') {
+        return '2';
+    }
+
+    return '';
+}
+
+function getSizeTypeLabel(value) {
+    const normalized = normalizeSizeTypeValue(value);
+
+    if (normalized === '1') {
+        return 'Ly';
+    }
+
+    if (normalized === '2') {
+        return 'Dung tích';
+    }
+
+    return 'Chưa xác định';
+}
+
 // =========================
 // RENDER UI (QUAN TRỌNG)
 // =========================
@@ -138,7 +170,7 @@ function confirmAssign() {
 
     fetch('/Admin/AdminSize/AssignDrink', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getSizeAntiForgeryToken() },
         body: JSON.stringify({
             drinkId: selectedDrinkId,
             sizeId: currentSizeId,
@@ -181,7 +213,8 @@ function toggleEdit(drinkSizeId) {
         }
 
         fetch(`/Admin/AdminSize/UpdatePrice?drinkSizeId=${drinkSizeId}&price=${price}`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'RequestVerificationToken': getSizeAntiForgeryToken() }
         })
             .then(() => {
                 input.disabled = true;
@@ -198,7 +231,8 @@ function toggleEdit(drinkSizeId) {
 // =========================
 function toggleDrinkSize(id) {
     fetch(`/Admin/AdminSize/ToggleDrinkSize?id=${id}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: { 'RequestVerificationToken': getSizeAntiForgeryToken() }
     })
         .then(res => {
             if (!res.ok) {
@@ -227,7 +261,8 @@ function toggleSize(id) {
     fetch(`/Admin/AdminSize/ToggleStatus?id=${id}`, {
         method: 'POST',
         headers: {
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'RequestVerificationToken': getSizeAntiForgeryToken()
         }
     })
         .then(readJsonResult)
@@ -319,7 +354,8 @@ function postJson(url, payload) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Accept': 'application/json',
+            'RequestVerificationToken': getSizeAntiForgeryToken()
         },
         body: JSON.stringify(payload)
     }).then(readJsonResult);
@@ -381,6 +417,165 @@ document.addEventListener("DOMContentLoaded", function () {
 
 });
 
+document.addEventListener("DOMContentLoaded", function initSizeAiSuggestion() {
+    const button = document.getElementById('btnSizeAiSuggestionLegacy');
+    if (!button) return;
+    const name = document.getElementById('create-name');
+    const description = document.getElementById('create-description');
+    const sizeType = document.getElementById('create-size-type');
+    const code = document.getElementById('create-code');
+    const panel = document.getElementById('sizeAiSuggestionPanel');
+    let suggestion = null;
+    let controller = null;
+    const clear = () => { suggestion = null; panel.classList.add('d-none'); };
+
+    button.addEventListener('click', async () => {
+        if (!name.value.trim()) return toast('Vui lòng nhập tên size.', 'error');
+        controller?.abort();
+        controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 15000);
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        clear();
+        try {
+            const response = await fetch('/Admin/AdminSize/AiSuggestion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getSizeAntiForgeryToken() },
+                body: JSON.stringify({ name: name.value.trim(), description: description.value.trim(), sizeType: Number(sizeType.value) }),
+                signal: controller.signal
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            suggestion = result.data;
+            document.getElementById('sizeAiCode').textContent = suggestion.sizeCode;
+            panel.classList.remove('d-none');
+        } catch (error) {
+            if (error.name !== 'AbortError') toast(error.message, 'error');
+        } finally {
+            clearTimeout(timeout);
+            button.disabled = false;
+            button.innerHTML = original;
+        }
+    });
+    document.getElementById('btnApplySizeAi').addEventListener('click', () => {
+        if (!suggestion) return;
+        if (code.value.trim() && !window.confirm('Ghi đè mã size hiện tại?')) return;
+        code.value = suggestion.sizeCode;
+        clear();
+        toast('Đã điền mã gợi ý. Dữ liệu chưa được lưu.', 'success');
+    });
+    document.getElementById('btnDismissSizeAi').addEventListener('click', clear);
+    [name, description].forEach(x => x.addEventListener('input', clear));
+    sizeType.addEventListener('change', clear);
+});
+
+document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion() {
+    const button = document.getElementById('btnSizeAiSuggestion');
+    if (!button) return;
+    const idea = document.getElementById('sizeAiIdea');
+    const name = document.getElementById('create-name');
+    const code = document.getElementById('create-code');
+    const description = document.getElementById('create-description');
+    const sizeType = document.getElementById('create-size-type');
+    const panel = document.getElementById('sizeAiSuggestionPanel');
+    const optionList = document.getElementById('sizeAiOptionList');
+    const applyButton = document.getElementById('btnApplySizeAi');
+    const warnings = document.getElementById('sizeAiWarnings');
+    let selectedOption = null;
+    let controller = null;
+    const clear = () => {
+        selectedOption = null;
+        optionList.replaceChildren();
+        warnings.textContent = '';
+        applyButton.disabled = true;
+        panel.classList.add('d-none');
+    };
+    const selectOption = (option, card) => {
+        selectedOption = option;
+        optionList.querySelectorAll('.ai-option-card').forEach(x => x.classList.remove('is-selected'));
+        card.classList.add('is-selected');
+        applyButton.disabled = !option.canApply;
+    };
+    const renderOptions = result => {
+        optionList.replaceChildren();
+        (result.options || []).slice(0, 3).forEach(option => {
+            const fields = option.fields || {};
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'ai-option-card text-start';
+            const title = document.createElement('strong');
+            title.textContent = option.title || fields.name || 'Gợi ý size';
+            const meta = document.createElement('div');
+            meta.className = 'small text-muted mt-1';
+            meta.textContent = `${fields.sizeCode || ''} · ${getSizeTypeLabel(fields.sizeType)}`;
+            const descriptionText = document.createElement('div');
+            descriptionText.className = 'small mt-2';
+            descriptionText.textContent = fields.description || '';
+            card.append(title, meta, descriptionText);
+            card.addEventListener('click', () => selectOption(option, card));
+            optionList.appendChild(card);
+        });
+        warnings.textContent = (result.warnings || []).join(' ');
+        document.getElementById('sizeAiSource').textContent = result.usedOllama ? 'Ollama + C#' : 'C# fallback';
+        panel.classList.remove('d-none');
+    };
+
+    button.addEventListener('click', async () => {
+        controller?.abort();
+        controller = new AbortController();
+        const activeController = controller;
+        const timeout = setTimeout(() => activeController.abort(), 130000);
+        const original = button.innerHTML;
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
+        clear();
+        try {
+            const currentSizeType = normalizeSizeTypeValue(sizeType.value);
+            const response = await fetch('/Admin/AdminSize/AiSuggestion', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getSizeAntiForgeryToken() },
+                body: JSON.stringify({
+                    idea: idea.value.trim() || null,
+                    currentSizeCode: code.value.trim() || null,
+                    currentName: name.value.trim() || null,
+                    currentDescription: description.value.trim() || null,
+                    currentSizeType: currentSizeType ? Number(currentSizeType) : null
+                }), signal: activeController.signal
+            });
+            const result = await response.json();
+            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
+            renderOptions(result);
+        } catch (error) {
+            if (error.name !== 'AbortError') toast(error.message, 'error');
+        } finally {
+            clearTimeout(timeout);
+            if (controller === activeController) { button.disabled = false; button.innerHTML = original; }
+        }
+    });
+    applyButton.addEventListener('click', () => {
+        if (!selectedOption?.canApply) return toast('Vui lòng chọn một gợi ý hợp lệ.', 'error');
+        const suggestion = selectedOption.fields;
+        const suggestedSizeType = normalizeSizeTypeValue(suggestion.sizeType);
+        if (!suggestedSizeType) {
+            return toast('Loại size do AI gợi ý không hợp lệ. Vui lòng chọn gợi ý khác.', 'error');
+        }
+        if ([name, code, description].some(x => x.value.trim()) || sizeType.value) {
+            if (!window.confirm('Ghi đè dữ liệu size hiện tại bằng gợi ý AI?')) return;
+        }
+        name.value = suggestion.name;
+        code.value = suggestion.sizeCode;
+        description.value = suggestion.description;
+        sizeType.value = suggestedSizeType;
+        clear();
+        toast('Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.', 'success');
+    });
+    document.getElementById('btnDismissSizeAi').addEventListener('click', clear);
+    const invalidate = () => { controller?.abort(); clear(); };
+    [idea, name, code, description].forEach(x => x.addEventListener('input', invalidate));
+    sizeType.addEventListener('change', invalidate);
+});
+
 // =========================
 // CREATE SIZE
 // =========================
@@ -398,7 +593,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const name = document.getElementById("create-name").value.trim();
         const sizeCode = document.getElementById("create-code").value.trim().toUpperCase();
         const description = document.getElementById("create-description").value.trim();
-        const sizeType = Number(document.getElementById("create-size-type").value);
+        const sizeTypeElement = document.getElementById("create-size-type");
+        const sizeTypeValue = normalizeSizeTypeValue(sizeTypeElement.value);
+
+        if (!sizeTypeValue) {
+            toast("Vui lòng chọn loại size", "error");
+            sizeTypeElement.focus();
+            return;
+        }
+
+        const sizeType = Number(sizeTypeValue);
 
         if (!validateSizeForm(sizeCode, name)) {
             return;
@@ -421,7 +625,7 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("create-code").value = "";
             document.getElementById("create-name").value = "";
             document.getElementById("create-description").value = "";
-            document.getElementById("create-size-type").value = "1";
+            document.getElementById("create-size-type").value = "";
 
             const modal = bootstrap.Modal.getInstance(
                 document.getElementById("createModal")
@@ -437,4 +641,9 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    document.getElementById("createModal")?.addEventListener("hidden.bs.modal", function () {
+        createForm.reset();
+        document.getElementById("create-size-type").value = "";
+        document.getElementById("sizeAiSuggestionPanel")?.classList.add("d-none");
+    });
 });

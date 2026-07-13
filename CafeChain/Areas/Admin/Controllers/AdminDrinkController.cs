@@ -3,21 +3,35 @@ using CafeChain.Application.Interfaces.Admin.Drinks;
 using CafeChain.ViewModels.Admin.Drinks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Security.Claims;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.AI;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.AI;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     public class AdminDrinkController : AdminBaseController
     {
         private readonly IAdminDrinkService _drinkService;
+        private readonly IAdminPermissionService _permissionService;
+        private readonly IAIService _aiService;
 
-        public AdminDrinkController(IAdminDrinkService drinkService)
+        public AdminDrinkController(
+            IAdminDrinkService drinkService,
+            IAdminPermissionService permissionService,
+            IAIService aiService)
         {
             _drinkService = drinkService;
+            _permissionService = permissionService;
+            _aiService = aiService;
         }
 
         [HttpGet]
         public async Task<IActionResult> IndexPartial(AdminDrinkFilterDTO filter)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkView);
+            if (guard != null) return guard;
             var viewModel = await _drinkService.GetIndexDataAsync(filter);
 
             return PartialView("_DrinkTablePartial", viewModel.Drinks.Items);
@@ -26,6 +40,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(AdminDrinkFilterDTO filter)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkView, false);
+            if (guard != null) return guard;
             var viewModel = await _drinkService.GetIndexDataAsync(filter);
 
             return View(viewModel);
@@ -34,6 +50,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate, false);
+            if (guard != null) return guard;
             var categories = await _drinkService.GetDrinkCategoriesAsync();
 
             var productTypes = await _drinkService.GetProductTypesAsync();
@@ -70,6 +88,8 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Create(
             AdminDrinkCreateViewModel viewModel)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
             ModelState.Remove("DrinkCreateDTO.ImageFiles");
 
             ModelState.Remove(nameof(viewModel.Categories));
@@ -117,6 +137,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdate, false);
+            if (guard != null) return guard;
             var updateDTO = await _drinkService.GetDrinkForUpdateAsync(id);
 
             if (updateDTO == null)
@@ -159,6 +181,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(AdminDrinkEditViewModel viewModel)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdate);
+            if (guard != null) return guard;
             ModelState.Remove(nameof(viewModel.Categories));
 
             ModelState.Remove(nameof(viewModel.ProductTypes));
@@ -202,8 +226,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> ToggleStatus(int id)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkToggleStatus);
+            if (guard != null) return guard;
             try
             {
                 await _drinkService.ToggleDrinkStatusAsync(id);
@@ -233,6 +260,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetImages(int drinkId)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdateImage);
+            if (guard != null) return guard;
             var images =  await _drinkService.GetDrinkImagesAsync(drinkId);
 
             return Json(new
@@ -243,8 +272,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UploadImage(int drinkId, IFormFile imageFile, bool isDefault)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdateImage);
+            if (guard != null) return guard;
             try
             {
                 await _drinkService.AddDrinkImageAsync(drinkId, imageFile, isDefault);
@@ -266,8 +298,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> SetDefaultImage(int drinkId, int drinkImageId)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdateImage);
+            if (guard != null) return guard;
             try
             {
                 await _drinkService.SetDefaultDrinkImageAsync(drinkId, drinkImageId);
@@ -289,8 +324,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteImage(int drinkImageId)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdateImage);
+            if (guard != null) return guard;
             try
             {
                 await _drinkService.DeleteDrinkImageAsync(drinkImageId);
@@ -312,8 +350,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> UpdateImage(int drinkImageId, IFormFile newImageFile)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkUpdateImage);
+            if (guard != null) return guard;
             try
             {
                 await _drinkService.UpdateDrinkImageAsync(drinkImageId, newImageFile);
@@ -332,6 +373,59 @@ namespace CafeChain.Areas.Admin.Controllers
                     message = ex.Message
                 });
             }
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiSuggestion([FromBody] DrinkSuggestionRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Thông tin gợi ý không hợp lệ.", StatusCodes.Status400BadRequest);
+
+            var result = await _aiService.SuggestDrinkAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Json(new
+            {
+                success = result.Success,
+                message = result.Message,
+                options = result.Options,
+                warnings = result.Warnings,
+                usedOllama = result.UsedOllama,
+                usedFallback = result.UsedFallback
+            });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiImageSuggestion([FromBody] AIImageSuggestionRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Prompt tạo ảnh không hợp lệ.", StatusCodes.Status400BadRequest);
+            var result = await _aiService.GenerateMasterImageAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return Json(new { success = result.Success, message = result.Message, data = result });
+        }
+
+        private async Task<IActionResult?> EnsurePermissionAsync(string permissionCode, bool jsonResponse = true)
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+                return jsonResponse ? ApiError("Unauthorized.", StatusCodes.Status401Unauthorized)
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            var decision = await _permissionService.HasPermissionAsync(accountId, permissionCode);
+            if (!decision.IsSuccess || decision.Data?.Allowed != true)
+                return jsonResponse ? ApiError("Bạn không có quyền thực hiện chức năng này.", StatusCodes.Status403Forbidden)
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            return null;
+        }
+
+        private JsonResult ApiError(string message, int statusCode)
+        {
+            Response.StatusCode = statusCode;
+            return Json(new { success = false, message });
         }
     }
 }

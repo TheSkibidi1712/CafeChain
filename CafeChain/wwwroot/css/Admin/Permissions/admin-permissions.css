@@ -253,7 +253,10 @@
 }
 
 .perm-primary-button {
-    color: #fff;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    font-weight: 800;
+    opacity: 1;
     background: var(--perm-accent);
     border-color: var(--perm-accent);
     padding: 0 16px;
@@ -270,16 +273,18 @@
 }
 
 .perm-primary-button:disabled {
-    color: #fff;
-    background: #fb923c;
-    border-color: #fb923c;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
+    background: #c2410c;
+    border-color: #9a3412;
     cursor: not-allowed;
     box-shadow: none;
     opacity: 1;
 }
 
 .perm-primary-button.is-loading:disabled {
-    color: #fff;
+    color: #fff !important;
+    -webkit-text-fill-color: #fff;
     background: var(--perm-accent-dark);
     border-color: var(--perm-accent-dark);
     cursor: wait;
@@ -670,8 +675,9 @@
 }
 
 .perm-form-row {
-    display: grid;
-    grid-template-columns: minmax(170px, .7fr) minmax(220px, 1fr) minmax(220px, 1fr) auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
     gap: 12px;
     padding: 18px;
     border-bottom: 1px solid var(--perm-border);
@@ -680,6 +686,7 @@
 
 .perm-form-row label {
     display: grid;
+    flex: 1 1 220px;
     gap: 7px;
     margin: 0;
 }
@@ -698,6 +705,12 @@
     padding: 0 10px;
     outline: none;
     background: #fff;
+}
+
+.perm-form-row > button {
+    height: 40px;
+    align-self: flex-end;
+    flex: 0 0 auto;
 }
 
 .perm-scope-list {
@@ -745,7 +758,7 @@
     }
 
     .perm-form-row {
-        grid-template-columns: 1fr 1fr;
+        align-items: flex-end;
     }
 }
 
@@ -774,9 +787,14 @@
     }
 
     .perm-permission-groups,
-    .perm-form-row,
     .perm-override-row {
         grid-template-columns: 1fr;
+    }
+
+    .perm-form-row label,
+    .perm-form-row > button {
+        flex: 1 1 100%;
+        width: 100%;
     }
 
     .perm-radio-set {

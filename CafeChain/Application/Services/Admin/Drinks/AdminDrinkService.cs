@@ -193,8 +193,6 @@ namespace CafeChain.Application.Services.Admin.Drinks
             drink.CategoryId = updateDTO.CategoryId == 0 ? null : updateDTO.CategoryId;
             drink.ProductTypeId = updateDTO.ProductTypeId;
             drink.Description = description;
-            drink.Active = updateDTO.Active;
-
             await _drinkRepository.UpdateDrinkAsync(drink);
 
             await _drinkRepository.SaveChangesAsync();

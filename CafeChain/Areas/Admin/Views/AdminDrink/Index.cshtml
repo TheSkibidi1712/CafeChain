@@ -1,4 +1,8 @@
 @model CafeChain.ViewModels.Admin.Drinks.AdminDrinkIndexViewModel
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 
 @{
     ViewData["Title"] = "Quản lý Nước uống";
@@ -20,6 +24,11 @@
 
     string TabClass(bool? active) =>
         filter.Active == active ? "drink-tab active" : "drink-tab";
+    var canCreate = false;
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+    {
+        canCreate = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkCreate)).Data?.Allowed == true;
+    }
 }
 
 @section Styles {
@@ -27,6 +36,7 @@
 }
 
 <div class="drink-page">
+    @Html.AntiForgeryToken()
     <div class="drink-page-header">
         <div>
             <h1>Danh sách Nước uống</h1>
@@ -39,10 +49,13 @@
                 Xóa lọc
             </a>
 
+            @if (canCreate)
+            {
             <a asp-action="Create" class="btn drink-primary-btn">
                 <i class="fas fa-plus"></i>
                 Thêm mới
             </a>
+            }
         </div>
     </div>
 

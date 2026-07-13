@@ -1,8 +1,17 @@
 @model CafeChain.ViewModels.Admin.Drinks.AdminDrinkEditViewModel
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 
 @{
     ViewData["Title"] = "Chỉnh sửa Nước uống";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var canUpdateImage = false;
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+    {
+        canUpdateImage = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.DrinkUpdateImage)).Data?.Allowed == true;
+    }
 }
 
 <div class="container-fluid px-4">
@@ -156,12 +165,13 @@
 
                         </div>
 
-                        <div class="form-check form-switch bg-light p-3 rounded">
+                        <div class="form-check form-switch bg-light p-3 rounded d-none" aria-hidden="true">
 
                             <input class="form-check-input ms-0 me-2"
                                    type="checkbox"
                                    role="switch"
                                    id="activeStatusSwitch"
+                                   disabled
                                    asp-for="DrinkUpdateDTO.Active" />
 
                             <label class="form-check-label fw-semibold text-success"
@@ -196,6 +206,8 @@
 
         </div>
 
+        @if (canUpdateImage)
+        {
         <div class="col-lg-4">
 
             <div class="card shadow-sm border-0">
@@ -267,11 +279,14 @@
             </div>
 
         </div>
+        }
 
     </div>
 
 </div>
 
+@if (canUpdateImage)
+{
 <!-- Modal Edit Image -->
 <div class="modal fade"
      id="editImageModal"
@@ -338,6 +353,7 @@
         </div>
     </div>
 </div>
+}
 
 @section Scripts {
 

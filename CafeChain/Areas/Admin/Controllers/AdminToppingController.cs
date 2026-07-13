@@ -5,6 +5,11 @@ using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.ViewModels.Admin.DrinkToppings;
 using CafeChain.ViewModels.Admin.Toppings;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.AI;
+using CafeChain.Application.Interfaces.Admin.Permissions;
+using CafeChain.Application.Interfaces.AI;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -12,13 +17,19 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IAdminToppingService _toppingService;
         private readonly IAdminDrinkToppingService _drinkToppingService;
+        private readonly IAdminPermissionService _permissionService;
+        private readonly IAIService _aiService;
 
         public AdminToppingController(
             IAdminToppingService toppingService,
-            IAdminDrinkToppingService drinkToppingService)
+            IAdminDrinkToppingService drinkToppingService,
+            IAdminPermissionService permissionService,
+            IAIService aiService)
         {
             _toppingService = toppingService;
             _drinkToppingService = drinkToppingService;
+            _permissionService = permissionService;
+            _aiService = aiService;
         }
 
         // =====================================================
@@ -28,6 +39,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> Index()
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingView, false);
+            if (guard != null) return guard;
             var toppings =
                 await _toppingService.GetAllAsync();
 
@@ -53,6 +66,8 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Create(
             AdminToppingVM vm)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingCreate);
+            if (guard != null) return guard;
             try
             {
                 if (!ModelState.IsValid)
@@ -92,6 +107,8 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Edit(
             AdminToppingVM vm)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingUpdate);
+            if (guard != null) return guard;
             try
             {
                 if (!ModelState.IsValid)
@@ -131,6 +148,8 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> ToggleStatus(
             int id)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingToggleStatus);
+            if (guard != null) return guard;
             try
             {
                 await _toppingService
@@ -159,6 +178,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetDrinks(int toppingId)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingAssignDrink);
+            if (guard != null) return guard;
             try
             {
                 var result =
@@ -189,6 +210,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Assign([FromBody] AssignDrinkToppingVM vm)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingAssignDrink);
+            if (guard != null) return guard;
             if (!ModelState.IsValid)
             {
                 return Json(new
@@ -232,6 +255,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Toggle(int id)
         {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingAssignDrink);
+            if (guard != null) return guard;
             try
             {
                 if (id <= 0)
@@ -264,6 +289,52 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
         // PRIVATE HELPERS
         // =====================================================
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiSuggestion([FromBody] ToppingSuggestionRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Thông tin gợi ý không hợp lệ.", StatusCodes.Status400BadRequest);
+            var result = await _aiService.SuggestToppingAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = StatusCodes.Status400BadRequest;
+            return Json(new { success = result.Success, message = result.Message, options = result.Options,
+                warnings = result.Warnings,
+                usedOllama = result.UsedOllama, usedFallback = result.UsedFallback });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiImageSuggestion([FromBody] AIImageSuggestionRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.ToppingCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Prompt tạo ảnh không hợp lệ.", StatusCodes.Status400BadRequest);
+            var result = await _aiService.GenerateMasterImageAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return Json(new { success = result.Success, message = result.Message, data = result });
+        }
+
+        private async Task<IActionResult?> EnsurePermissionAsync(string permissionCode, bool jsonResponse = true)
+        {
+            if (!int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+                return jsonResponse ? ApiError("Unauthorized.", StatusCodes.Status401Unauthorized)
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            var decision = await _permissionService.HasPermissionAsync(accountId, permissionCode);
+            if (!decision.IsSuccess || decision.Data?.Allowed != true)
+                return jsonResponse ? ApiError("Bạn không có quyền thực hiện chức năng này.", StatusCodes.Status403Forbidden)
+                    : RedirectToAction("AccessDenied", "Account", new { area = "" });
+            return null;
+        }
+
+        private JsonResult ApiError(string message, int statusCode)
+        {
+            Response.StatusCode = statusCode;
+            return Json(new { success = false, message });
+        }
 
         private static ToppingDto MapToDto(AdminToppingVM vm)
         {

@@ -5,6 +5,7 @@
     <RollForward>LatestMajor</RollForward>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>CafeChain-Development-Secrets</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -23,6 +24,13 @@
     <PackageReference Include="payOS" Version="1.0.7" />
     <PackageReference Include="QuestPDF" Version="2026.6.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Update="Resources\AI\ComfyUI\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

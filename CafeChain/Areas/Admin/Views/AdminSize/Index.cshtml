@@ -1,11 +1,25 @@
 ﻿@model IEnumerable<CafeChain.ViewModels.Admin.Sizes.AdminSizeVM>
+@using System.Security.Claims
+@using CafeChain.Application.Constants
+@using CafeChain.Application.Interfaces.Admin.Permissions
+@inject IAdminPermissionService PermissionService
 @{
     var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var canCreate = false; var canUpdate = false; var canToggle = false; var canAssign = false; var canViewTopping = false;
+    if (int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var accountId))
+    {
+        canCreate = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeCreate)).Data?.Allowed == true;
+        canUpdate = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeUpdate)).Data?.Allowed == true;
+        canToggle = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeToggleStatus)).Data?.Allowed == true;
+        canAssign = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.SizeAssignDrink)).Data?.Allowed == true;
+        canViewTopping = (await PermissionService.HasPermissionAsync(accountId, PermissionConstants.ToppingView)).Data?.Allowed == true;
+    }
 }
 
 <link rel="stylesheet" href="~/css/Admin/Size/size.css" />
 
 <div class="container-fluid p-4">
+    @Html.AntiForgeryToken()
 
     <!-- Tabs -->
     <div class="d-flex mb-3 border-bottom">
@@ -17,6 +31,8 @@
             Quản lý Size
         </a>
 
+        @if (canViewTopping)
+        {
         <a asp-area="Admin"
                asp-controller="AdminTopping"
                asp-action="Index"
@@ -24,6 +40,7 @@
             @(currentController == "AdminTopping" ? "text-danger border-bottom border-danger" : "text-muted")">
             Quản lý Topping
         </a>
+        }
     </div>
     @if (TempData["Error"] != null)
     {
@@ -39,11 +56,14 @@
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h5 class="fw-bold mb-0">Danh sách Size</h5>
 
+            @if (canCreate)
+            {
             <button class="btn btn-orange px-3"
                     data-bs-toggle="modal"
                     data-bs-target="#createModal">
                 <i class="fas fa-plus me-2"></i> Thêm mới
             </button>
+            }
         </div>
 
         <!-- Table -->
@@ -98,12 +118,17 @@
 
                         <td class="text-end">
                             <!-- ASSIGN DRINK-->
+                            @if (canAssign)
+                            {
                             <button class="btn btn-sm btn-warning me-2"
                                     onclick="openDrinkModal(@item.SizeId, '@item.Name')">
                                 <i class="fas fa-link"></i>
                             </button>
+                            }
 
                             <!-- EDIT -->
+                            @if (canUpdate)
+                            {
                             <button class="btn btn-sm btn-light me-2"
                                     data-bs-toggle="modal"
                                     data-bs-target="#editModal"
@@ -116,12 +141,16 @@
                                 )">
                                 <i class="fas fa-pen text-primary"></i>
                             </button>
+                            }
 
                             <!-- TOGGLE -->
+                            @if (canToggle)
+                            {
                             <button class="btn btn-sm btn-light"
                                     onclick="toggleSize(@item.SizeId)">
                                 <i class="fas @(item.Active ? "fa-lock text-danger" : "fa-unlock text-success")"></i>
                             </button>
+                            }
 
                         </td>
                     </tr>
@@ -193,6 +222,7 @@
                                     name="SizeType"
                                     class="form-select bg-light"
                                     required>
+                                <option value="" selected>-- Chọn loại size --</option>
                                 <option value="1">Ly</option>
                                 <option value="2">Dung tích</option>
                             </select>
@@ -208,6 +238,26 @@
                                    class="form-control bg-light"
                                    placeholder="Ví dụ: Size vừa"
                                    maxlength="300" />
+                        </div>
+
+                        <div class="col-12">
+                            <label for="sizeAiIdea" class="form-label fw-semibold">Ý tưởng cho AI <span class="text-muted fw-normal">(không bắt buộc)</span></label>
+                            <input id="sizeAiIdea" class="form-control mb-2" maxlength="200" placeholder="Ví dụ: chai 330ml" autocomplete="off" />
+                            <button type="button" id="btnSizeAiSuggestion" class="btn btn-outline-primary btn-sm">
+                                <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý
+                            </button>
+                            <div id="sizeAiSuggestionPanel" class="ai-suggestion-panel mt-2 d-none">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong>Chọn một gợi ý</strong>
+                                    <span id="sizeAiSource" class="badge bg-secondary"></span>
+                                </div>
+                                <div id="sizeAiOptionList" class="ai-option-grid"></div>
+                                <div id="sizeAiWarnings" class="small text-warning mt-2"></div>
+                                <div class="d-flex gap-2 mt-2">
+                                    <button type="button" id="btnApplySizeAi" class="btn btn-primary btn-sm" disabled>Áp dụng</button>
+                                    <button type="button" id="btnDismissSizeAi" class="btn btn-light btn-sm">Bỏ qua</button>
+                                </div>
+                            </div>
                         </div>
 
                     </div>
