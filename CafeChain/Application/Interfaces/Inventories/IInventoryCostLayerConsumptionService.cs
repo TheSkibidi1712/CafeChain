@@ -4,13 +4,15 @@ using CafeChain.Models.Inventories.Costing;
 namespace CafeChain.Application.Interfaces.Inventories
 {
     /// <summary>
-    /// Narrow FIFO cost-layer planner/consumer (#132).
+    /// Narrow FIFO cost-layer planner/consumer (#132 production, #133 sales).
     /// Does not commit; operates inside the caller's DbContext transaction.
     /// </summary>
     public interface IInventoryCostLayerConsumptionService
     {
         /// <summary>
-        /// Load FIFO layers (RemainingQuantity &gt; 0), lock on SQL Server, plan full coverage.
+        /// Load FIFO layers (RemainingQuantity &gt; 0), lock on SQL Server, plan coverage.
+        /// When <paramref name="requireFullCoverage"/> is true (production), incomplete fails.
+        /// When false (sales Option B), returns partial plan with IsFullyCovered=false.
         /// Does not mutate layers until <see cref="ApplyPlan"/> is called.
         /// </summary>
         Task<ServiceResult<CostLayerConsumptionPlan>> PlanConsumeAsync(
@@ -18,10 +20,12 @@ namespace CafeChain.Application.Interfaces.Inventories
             int? ingredientId,
             int? preparedItemId,
             decimal requiredBaseQuantity,
+            bool requireFullCoverage = true,
             CancellationToken cancellationToken = default);
 
         /// <summary>
-        /// Apply RemainingQuantity decrements for a previously built plan (same tracked entities).
+        /// Apply RemainingQuantity decrements for plan slices (same tracked entities).
+        /// Supports partial plans (sales incomplete cost).
         /// </summary>
         void ApplyPlan(CostLayerConsumptionPlan plan);
     }
@@ -55,5 +59,10 @@ namespace CafeChain.Application.Interfaces.Inventories
         public const string InvalidQuantity = "COST_LAYER_INVALID_QUANTITY";
         public const string IncompleteEvidence = "PRODUCTION_COST_EVIDENCE_INCOMPLETE";
         public const string InvalidUnitCost = "COST_LAYER_INVALID_UNIT_COST";
+    }
+
+    public static class SalesCogsCodes
+    {
+        public const string Incomplete = "SALES_COGS_INCOMPLETE";
     }
 }

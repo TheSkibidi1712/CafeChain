@@ -109,6 +109,8 @@ namespace CafeChain.Data
         public DbSet<InventoryCostLayer> InventoryCostLayers { get; set; }
         public DbSet<InventoryCostAllocation> InventoryCostAllocations { get; set; }
         public DbSet<ProductionCostAllocation> ProductionCostAllocations { get; set; }
+        public DbSet<SalesCostAllocation> SalesCostAllocations { get; set; }
+        public DbSet<SalesCostGap> SalesCostGaps { get; set; }
 
         // Debts
         public DbSet<InventoryDebt> InventoryDebts { get; set; }

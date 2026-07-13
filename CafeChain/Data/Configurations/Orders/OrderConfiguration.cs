@@ -42,6 +42,21 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.Total)
                 .HasColumnType("decimal(18,2)");
 
+            // Issue #133 — actual sales COGS snapshot (separate from selling price)
+            entity.Property(x => x.CostStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(Models.Enums.Inventory.SalesCostStatus.Pending)
+                .IsRequired();
+
+            entity.Property(x => x.TotalCogs)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.GrossProfit)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.CostedAtUtc)
+                .HasColumnType("datetime2");
+
             // ================= TIME =================
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
@@ -114,6 +129,17 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.CostStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(Models.Enums.Inventory.SalesCostStatus.Pending)
+                .IsRequired();
+
+            entity.Property(x => x.UnitCogs)
+                .HasColumnType("decimal(18,4)");
+
+            entity.Property(x => x.TotalCogs)
+                .HasColumnType("decimal(18,2)");
+
             // RELATION
             entity.HasOne(x => x.Order)
                 .WithMany(x => x.OrderDetails)
@@ -154,6 +180,14 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasMaxLength(200);
 
             entity.Property(x => x.Price)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.CostStatus)
+                .HasConversion<int>()
+                .HasDefaultValue(Models.Enums.Inventory.SalesCostStatus.Pending)
+                .IsRequired();
+
+            entity.Property(x => x.TotalCogs)
                 .HasColumnType("decimal(18,2)");
 
             entity.HasOne(x => x.OrderDetail)

@@ -24,6 +24,7 @@ namespace CafeChain.Application.Services.Inventories
             int? ingredientId,
             int? preparedItemId,
             decimal requiredBaseQuantity,
+            bool requireFullCoverage = true,
             CancellationToken cancellationToken = default)
         {
             var hasIng = ingredientId is > 0;
@@ -48,13 +49,12 @@ namespace CafeChain.Application.Services.Inventories
                 hasPi ? preparedItemId : null,
                 cancellationToken);
 
-            // Deterministic FIFO + lock order by Id ASC among selected
             layers = layers
                 .OrderBy(x => x.CreatedAt)
                 .ThenBy(x => x.InventoryCostLayerId)
                 .ToList();
 
-            var available = layers.Sum(x => x.RemainingQuantity);
+            var available = layers.Where(x => x.UnitCost > 0).Sum(x => x.RemainingQuantity);
             var remaining = requiredBaseQuantity;
             var slices = new List<CostLayerAllocationSlice>();
             decimal totalCost = 0m;
@@ -64,12 +64,9 @@ namespace CafeChain.Application.Services.Inventories
                 if (remaining <= 0)
                     break;
 
+                // Layers without valid unit cost do not cover evidence (no zero fake).
                 if (layer.UnitCost <= 0)
-                {
-                    return ServiceResult<CostLayerConsumptionPlan>.Failure(
-                        $"InventoryCostLayer #{layer.InventoryCostLayerId} thiếu UnitCost hợp lệ.",
-                        errorCode: InventoryCostLayerConsumptionFailureCodes.IncompleteEvidence);
-                }
+                    continue;
 
                 if (layer.RemainingQuantity <= 0)
                     continue;
@@ -92,16 +89,21 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             var covered = requiredBaseQuantity - remaining;
-            var fully = remaining <= 0 && covered == requiredBaseQuantity && slices.Count > 0;
+            var fully = remaining <= 0 && covered == requiredBaseQuantity && slices.Count > 0
+                        && covered > 0;
 
-            if (!fully)
+            // Edge: required > 0, no layers → not full
+            if (requiredBaseQuantity > 0 && covered <= 0)
+                fully = false;
+
+            if (requireFullCoverage && !fully)
             {
                 return ServiceResult<CostLayerConsumptionPlan>.Failure(
                     $"Không đủ bằng chứng giá vốn FIFO. Cần {requiredBaseQuantity}, layer còn {available}.",
                     errorCode: InventoryCostLayerConsumptionFailureCodes.IncompleteEvidence);
             }
 
-            var weighted = totalCost / requiredBaseQuantity;
+            var weighted = covered > 0 ? totalCost / covered : 0m;
 
             return ServiceResult<CostLayerConsumptionPlan>.Success(new CostLayerConsumptionPlan
             {
@@ -113,18 +115,21 @@ namespace CafeChain.Application.Services.Inventories
                 AvailableLayerQuantity = available,
                 TotalCost = totalCost,
                 WeightedUnitCost = weighted,
-                IsFullyCovered = true,
+                IsFullyCovered = fully,
                 Slices = slices
             });
         }
 
         public void ApplyPlan(CostLayerConsumptionPlan plan)
         {
-            if (plan == null || !plan.IsFullyCovered)
-                throw new InvalidOperationException("Cannot apply incomplete cost-layer plan.");
+            if (plan == null)
+                throw new InvalidOperationException("Cannot apply null cost-layer plan.");
 
             foreach (var slice in plan.Slices)
             {
+                if (slice.Quantity <= 0)
+                    continue;
+
                 var layer = slice.Layer;
                 if (layer.RemainingQuantity < slice.Quantity)
                 {
@@ -144,8 +149,6 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (_context.Database.IsSqlServer())
             {
-                // Lock matching rows; filter RemainingQuantity in SQL; order for determinism.
-                // UPDLOCK+HOLDLOCK serializes concurrent producers/consumers of the same identity.
                 List<InventoryCostLayer> locked;
                 if (ingredientId.HasValue)
                 {
@@ -176,7 +179,6 @@ namespace CafeChain.Application.Services.Inventories
                     .ToList();
             }
 
-            // SQLite / in-memory tests — transaction isolation + deterministic order
             IQueryable<InventoryCostLayer> query = _context.InventoryCostLayers
                 .Where(x => x.StoreId == storeId && x.RemainingQuantity > 0);
 

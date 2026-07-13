@@ -6,6 +6,7 @@ using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
@@ -21,6 +22,7 @@ namespace CafeChain.Application.Services.Inventories
     /// <summary>
     /// POS sales stock deduction. Issue #121: PreparedItem-mode BTP via canonical identity;
     /// LegacyRecipe keeps RecipeId BTP; Blind Selling (negative qty allowed).
+    /// Issue #133: actual FIFO COGS allocations/gaps + order snapshot (payment-independent Option B).
     /// </summary>
     public class InventoryDeductionService : IInventoryDeductionService
     {
@@ -32,6 +34,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IStockAlertService? _stockAlertService;
         private readonly IInventoryWriterModeService? _writerModeService;
         private readonly IStoreInventoryWriteResolver? _writeResolver;
+        private readonly IInventoryCostLayerConsumptionService? _costLayerConsumption;
 
         public InventoryDeductionService(
             AppDbContext context,
@@ -41,7 +44,8 @@ namespace CafeChain.Application.Services.Inventories
             IPhysicalUnitConversionService physicalConversion,
             IStockAlertService? stockAlertService = null,
             IInventoryWriterModeService? writerModeService = null,
-            IStoreInventoryWriteResolver? writeResolver = null)
+            IStoreInventoryWriteResolver? writeResolver = null,
+            IInventoryCostLayerConsumptionService? costLayerConsumption = null)
         {
             _context = context;
             _logger = logger;
@@ -51,6 +55,7 @@ namespace CafeChain.Application.Services.Inventories
             _stockAlertService = stockAlertService;
             _writerModeService = writerModeService;
             _writeResolver = writeResolver;
+            _costLayerConsumption = costLayerConsumption;
         }
 
         public async Task<ServiceResult<decimal>> CalculateRecipeCogsAsync(int recipeId)
@@ -72,7 +77,7 @@ namespace CafeChain.Application.Services.Inventories
 
         public async Task<ServiceResult> DeductStockForOrderAsync(List<POSSoldItemDto> soldItems, int storeId)
         {
-            return await DeductStockForOrderInternalAsync(soldItems, storeId, null);
+            return await DeductStockWithConcurrencyRetryAsync(soldItems, storeId, null);
         }
 
         public async Task<ServiceResult> DeductStockForCommittedOrderAsync(
@@ -83,7 +88,34 @@ namespace CafeChain.Application.Services.Inventories
             if (referenceOrderId <= 0)
                 return ServiceResult.Failure("Thiếu mã đơn hàng đã commit để trừ kho.");
 
-            return await DeductStockForOrderInternalAsync(soldItems, storeId, referenceOrderId);
+            return await DeductStockWithConcurrencyRetryAsync(soldItems, storeId, referenceOrderId);
+        }
+
+        private async Task<ServiceResult> DeductStockWithConcurrencyRetryAsync(
+            List<POSSoldItemDto> soldItems,
+            int storeId,
+            int? referenceOrderId)
+        {
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                var result = await DeductStockForOrderInternalAsync(soldItems, storeId, referenceOrderId);
+                if (result.IsSuccess)
+                    return result;
+
+                var isConcurrency = (result.Message ?? string.Empty).Contains("tranh chấp", StringComparison.OrdinalIgnoreCase)
+                    || (result.Message ?? string.Empty).Contains("concurrency", StringComparison.OrdinalIgnoreCase);
+                if (!isConcurrency || attempt == 2)
+                    return result;
+
+                _context.ChangeTracker.Clear();
+                _logger.LogWarning(
+                    "[InventoryDeduction] Retry after concurrency StoreId={StoreId} OrderId={OrderId} Attempt={Attempt}",
+                    storeId,
+                    referenceOrderId,
+                    attempt + 1);
+            }
+
+            return ServiceResult.Failure("Lỗi hệ thống: Có nhiều giao dịch đồng thời đang tranh chấp kho. Vui lòng thử lại.");
         }
 
         private async Task<ServiceResult> DeductStockForOrderInternalAsync(
@@ -99,19 +131,19 @@ namespace CafeChain.Application.Services.Inventories
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                Order? lockedOrder = null;
                 if (referenceOrderId.HasValue)
                 {
-                    var order = await LoadOrderForUpdateAsync(referenceOrderId.Value);
-                    if (order == null
-                        || order.StoreId != storeId
-                        || order.OrderStatusId != SystemConstants.OrderStatuses.Completed
-                        || order.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
+                    lockedOrder = await LoadOrderForUpdateAsync(referenceOrderId.Value);
+                    if (lockedOrder == null
+                        || lockedOrder.StoreId != storeId
+                        || lockedOrder.OrderStatusId != SystemConstants.OrderStatuses.Completed
+                        || lockedOrder.PaymentStatusId != SystemConstants.PaymentStatuses.Paid)
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult.Failure("Chỉ trừ kho cho đơn POS đã thanh toán và đã commit.");
                     }
 
-                    // Idempotency AFTER order lock
                     var alreadyDeducted = await _context.InventoryTransactions
                         .AsNoTracking()
                         .AnyAsync(t =>
@@ -121,7 +153,7 @@ namespace CafeChain.Application.Services.Inventories
                     if (alreadyDeducted)
                     {
                         await transaction.CommitAsync();
-                        return ServiceResult.Success("Đơn hàng đã được trừ kho trước đó.");
+                        return BuildReplayResult(lockedOrder);
                     }
                 }
 
@@ -130,7 +162,6 @@ namespace CafeChain.Application.Services.Inventories
 
                 if (_writerModeService != null)
                 {
-                    // Always acquire when writer service is present so mode is consistent for BTP + ingredient-only Blocked.
                     var hasBtp = await SoldItemsContainBtpAsync(soldItems);
                     if (hasBtp)
                     {
@@ -174,51 +205,76 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
-                // Collect all requirements without mutating.
+                // Build attributed requirements.
+                // Prefer OrderDetails when present (#133); otherwise soldItems (legacy tests/mock).
                 var requirements = new List<RequirementLine>();
-                foreach (var item in soldItems)
+                var usedOrderLines = false;
+                if (referenceOrderId.HasValue)
                 {
-                    var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
-                    if (drinkRecipe == null)
+                    var detailCount = await _context.OrderDetails
+                        .AsNoTracking()
+                        .CountAsync(d => d.OrderId == referenceOrderId.Value);
+                    if (detailCount > 0)
                     {
-                        _logger.LogWarning(
-                            "Không tìm thấy công thức (BOM) hoạt động cho DrinkId={DrinkId}, SizeId={SizeId}",
-                            item.DrinkId,
-                            item.SizeId);
-                    }
-                    else
-                    {
-                        await CollectRequirementsAsync(
-                            drinkRecipe,
-                            item.Quantity,
+                        await CollectRequirementsFromOrderAsync(
+                            referenceOrderId.Value,
                             storeId,
                             mode,
                             modeSnapshot,
                             requirements);
-                    }
-
-                    foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
-                    {
-                        var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
-                        if (toppingRecipe == null)
-                        {
-                            _logger.LogWarning(
-                                "Không tìm thấy công thức (BOM) hoạt động cho ToppingId={ToppingId}",
-                                topping.ToppingId);
-                            continue;
-                        }
-
-                        await CollectRequirementsAsync(
-                            toppingRecipe,
-                            item.Quantity,
-                            storeId,
-                            mode,
-                            modeSnapshot,
-                            requirements);
+                        usedOrderLines = true;
                     }
                 }
 
-                // Mutate once per StoreInventoryId (sum all paths).
+                if (!usedOrderLines)
+                {
+                    foreach (var item in soldItems)
+                    {
+                        var drinkRecipe = await GetActiveRecipeAsync(item.DrinkId, item.SizeId, null);
+                        if (drinkRecipe == null)
+                        {
+                            _logger.LogWarning(
+                                "Không tìm thấy công thức (BOM) hoạt động cho DrinkId={DrinkId}, SizeId={SizeId}",
+                                item.DrinkId,
+                                item.SizeId);
+                        }
+                        else
+                        {
+                            await CollectRequirementsAsync(
+                                drinkRecipe,
+                                item.Quantity,
+                                storeId,
+                                mode,
+                                modeSnapshot,
+                                requirements,
+                                orderDetailId: null,
+                                orderToppingId: null);
+                        }
+
+                        foreach (var topping in item.Toppings ?? new List<POSOrderToppingDto>())
+                        {
+                            var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
+                            if (toppingRecipe == null)
+                            {
+                                _logger.LogWarning(
+                                    "Không tìm thấy công thức (BOM) hoạt động cho ToppingId={ToppingId}",
+                                    topping.ToppingId);
+                                continue;
+                            }
+
+                            await CollectRequirementsAsync(
+                                toppingRecipe,
+                                item.Quantity,
+                                storeId,
+                                mode,
+                                modeSnapshot,
+                                requirements,
+                                orderDetailId: null,
+                                orderToppingId: null);
+                        }
+                    }
+                }
+
                 var mutationGroups = requirements
                     .GroupBy(r => r.StoreInventoryId)
                     .Select(g => new
@@ -230,8 +286,6 @@ namespace CafeChain.Application.Services.Inventories
                     .OrderBy(x => x.StoreInventoryId)
                     .ToList();
 
-                // Ledger: group by (StoreInventoryId, SourceRecipeId) so exact ChildRecipe audit is durable
-                // even when multiple children resolve to the same PreparedItem row.
                 var ledgerGroups = requirements
                     .GroupBy(r => new { r.StoreInventoryId, r.SourceRecipeId })
                     .Select(g => new
@@ -239,11 +293,54 @@ namespace CafeChain.Application.Services.Inventories
                         g.Key.StoreInventoryId,
                         g.Key.SourceRecipeId,
                         RequiredQty = g.Sum(x => x.RequiredQty),
+                        Lines = g.ToList(),
                         DisplayName = g.First().DisplayName
                     })
                     .OrderBy(x => x.StoreInventoryId)
                     .ThenBy(x => x.SourceRecipeId)
                     .ToList();
+
+                // ---- Cost plans (partial allowed for sales) BEFORE qty mutation ----
+                var costByIdentity = new Dictionary<string, CostLayerConsumptionPlan>();
+                if (_costLayerConsumption != null && referenceOrderId.HasValue)
+                {
+                    foreach (var identityGroup in requirements
+                        .Where(r => r.IngredientId.HasValue || r.PreparedItemId.HasValue)
+                        .GroupBy(r => IdentityKey(r.IngredientId, r.PreparedItemId))
+                        .OrderBy(g => g.Key))
+                    {
+                        var sample = identityGroup.First();
+                        var required = identityGroup.Sum(x => x.RequiredQty);
+                        var planResult = await _costLayerConsumption.PlanConsumeAsync(
+                            storeId,
+                            sample.IngredientId,
+                            sample.PreparedItemId,
+                            required,
+                            requireFullCoverage: false);
+
+                        if (!planResult.IsSuccess || planResult.Data == null)
+                        {
+                            // Treat plan failure (invalid identity) as zero coverage gap for sales.
+                            costByIdentity[identityGroup.Key] = new CostLayerConsumptionPlan
+                            {
+                                StoreId = storeId,
+                                IngredientId = sample.IngredientId,
+                                PreparedItemId = sample.PreparedItemId,
+                                RequiredQuantity = required,
+                                CoveredQuantity = 0,
+                                AvailableLayerQuantity = 0,
+                                TotalCost = 0,
+                                WeightedUnitCost = 0,
+                                IsFullyCovered = false,
+                                Slices = Array.Empty<CostLayerAllocationSlice>()
+                            };
+                        }
+                        else
+                        {
+                            costByIdentity[identityGroup.Key] = planResult.Data;
+                        }
+                    }
+                }
 
                 var lockedRows = new Dictionary<int, StoreInventory>();
                 var preMutationQty = new Dictionary<int, decimal>();
@@ -265,7 +362,6 @@ namespace CafeChain.Application.Services.Inventories
                     preMutationQty[tracked.StoreInventoryId] = tracked.AvailableQty;
 
                     var beforeQty = tracked.AvailableQty;
-                    // Blind Selling: AvailableQty -= Required; ReservedQty unchanged.
                     tracked.AvailableQty -= line.RequiredQty;
                     tracked.LastUpdated = DateTime.UtcNow;
 
@@ -282,8 +378,25 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
-                // Sequential Before/After per inventory for multi-source ledger slices.
+                // Apply layer decrements (partial OK)
+                if (_costLayerConsumption != null)
+                {
+                    foreach (var plan in costByIdentity.Values.OrderBy(p =>
+                                 IdentityKey(p.IngredientId, p.PreparedItemId)))
+                    {
+                        if (plan.Slices.Count > 0)
+                            _costLayerConsumption.ApplyPlan(plan);
+                    }
+                }
+
+                // Distribute FIFO slices to attributed requirements (deterministic line order).
+                var now = DateTime.UtcNow;
+                var reqCostState = BuildRequirementCostDistribution(requirements, costByIdentity);
+
                 var runningQty = new Dictionary<int, decimal>(preMutationQty);
+                var pendingAllocations = new List<(InventoryTransaction Tx, RequirementLine Req, CostLayerAllocationSlice Slice)>();
+                var ledgerCompleteness = new Dictionary<InventoryTransaction, bool>();
+
                 foreach (var ledger in ledgerGroups)
                 {
                     if (ledger.SourceRecipeId <= 0)
@@ -296,7 +409,17 @@ namespace CafeChain.Application.Services.Inventories
                     var afterQty = beforeQty - ledger.RequiredQty;
                     runningQty[ledger.StoreInventoryId] = afterQty;
 
-                    _context.InventoryTransactions.Add(new InventoryTransaction
+                    var lines = ledger.Lines;
+                    var allComplete = lines.All(l => reqCostState[l].IsComplete);
+                    decimal? unitCost = null;
+                    decimal? totalCost = null;
+                    if (allComplete && lines.Count > 0)
+                    {
+                        totalCost = lines.Sum(l => reqCostState[l].AllocatedCost);
+                        unitCost = ledger.RequiredQty > 0 ? totalCost / ledger.RequiredQty : null;
+                    }
+
+                    var tx = new InventoryTransaction
                     {
                         StoreInventoryId = ledger.StoreInventoryId,
                         Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
@@ -306,10 +429,83 @@ namespace CafeChain.Application.Services.Inventories
                         Quantity = ledger.RequiredQty,
                         BeforeQty = beforeQty,
                         AfterQty = afterQty,
+                        UnitCost = unitCost,
+                        TotalCost = totalCost,
                         ReferenceOrderId = referenceOrderId,
                         SourceRecipeId = ledger.SourceRecipeId,
-                        CreatedAt = DateTime.UtcNow
-                    });
+                        CreatedAt = now
+                    };
+                    _context.InventoryTransactions.Add(tx);
+                    ledgerCompleteness[tx] = allComplete;
+
+                    foreach (var req in lines)
+                    {
+                        foreach (var slice in reqCostState[req].Slices)
+                        {
+                            pendingAllocations.Add((tx, req, slice));
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync(); // materialize transaction ids
+
+                if (referenceOrderId.HasValue && lockedOrder != null)
+                {
+                    foreach (var (tx, req, slice) in pendingAllocations)
+                    {
+                        if (!req.OrderDetailId.HasValue)
+                            continue;
+
+                        _context.SalesCostAllocations.Add(new SalesCostAllocation
+                        {
+                            OrderId = referenceOrderId.Value,
+                            OrderDetailId = req.OrderDetailId.Value,
+                            OrderToppingId = req.OrderToppingId,
+                            InventoryTransactionId = tx.InventoryTransactionId,
+                            InventoryCostLayerId = slice.InventoryCostLayerId,
+                            IngredientId = req.IngredientId,
+                            PreparedItemId = req.PreparedItemId,
+                            Quantity = slice.Quantity,
+                            UnitCost = slice.UnitCost,
+                            TotalCost = slice.TotalCost,
+                            CreatedAtUtc = now
+                        });
+                    }
+
+                    // Gaps only when inventory identity supports cost layers (Ingredient XOR PreparedItem).
+                    foreach (var req in requirements
+                        .Where(r => r.OrderDetailId.HasValue
+                                    && (r.IngredientId.HasValue || r.PreparedItemId.HasValue))
+                        .OrderBy(r => r.OrderDetailId)
+                        .ThenBy(r => r.OrderToppingId ?? 0)
+                        .ThenBy(r => IdentityKey(r.IngredientId, r.PreparedItemId)))
+                    {
+                        var state = reqCostState[req];
+                        if (state.IsComplete)
+                            continue;
+
+                        _context.SalesCostGaps.Add(new SalesCostGap
+                        {
+                            OrderId = referenceOrderId.Value,
+                            OrderDetailId = req.OrderDetailId!.Value,
+                            OrderToppingId = req.OrderToppingId,
+                            IngredientId = req.IngredientId,
+                            PreparedItemId = req.PreparedItemId,
+                            RequiredQuantity = req.RequiredQty,
+                            AllocatedCostQuantity = state.AllocatedQty,
+                            MissingCostQuantity = Math.Max(0m, req.RequiredQty - state.AllocatedQty),
+                            BaseUnitId = req.BaseUnitId,
+                            ReasonCode = SalesCogsCodes.Incomplete,
+                            CreatedAtUtc = now
+                        });
+                    }
+
+                    await SnapshotOrderCogsAsync(lockedOrder, requirements, reqCostState, now);
+                    if (lockedOrder.CostStatus == SalesCostStatus.Incomplete)
+                    {
+                        inventoryWarnings.Add(
+                            $"{SalesCogsCodes.Incomplete}: Đơn hàng đã thanh toán nhưng giá vốn chưa đầy đủ.");
+                    }
                 }
 
                 await _context.SaveChangesAsync();
@@ -320,7 +516,9 @@ namespace CafeChain.Application.Services.Inventories
                 if (inventoryWarnings.Any())
                 {
                     var result = ServiceResult.Success(
-                        $"Trừ kho thành công. Cảnh báo: {inventoryWarnings.Count} nguyên liệu tồn kho âm.");
+                        inventoryWarnings.Any(w => w.StartsWith(SalesCogsCodes.Incomplete, StringComparison.Ordinal))
+                            ? "Trừ kho thành công. Giá vốn chưa đầy đủ."
+                            : $"Trừ kho thành công. Cảnh báo: {inventoryWarnings.Count} nguyên liệu tồn kho âm.");
                     result.Errors = inventoryWarnings;
                     return result;
                 }
@@ -330,7 +528,6 @@ namespace CafeChain.Application.Services.Inventories
             catch (DbUpdateConcurrencyException ex)
             {
                 try { await transaction.RollbackAsync(); } catch { /* ignore */ }
-                // Clear only after concurrency — avoids detaching caller-tracked seed entities on soft failures.
                 _context.ChangeTracker.Clear();
                 _logger.LogError(ex, "Lỗi tranh chấp dữ liệu khi trừ kho.");
                 return ServiceResult.Failure(
@@ -344,13 +541,271 @@ namespace CafeChain.Application.Services.Inventories
             }
         }
 
+        private ServiceResult BuildReplayResult(Order order)
+        {
+            if (order.CostStatus == SalesCostStatus.Incomplete)
+            {
+                var r = ServiceResult.Success("Đơn hàng đã được trừ kho trước đó.");
+                r.Errors = new List<string>
+                {
+                    $"{SalesCogsCodes.Incomplete}: Đơn hàng đã thanh toán nhưng giá vốn chưa đầy đủ."
+                };
+                return r;
+            }
+
+            return ServiceResult.Success("Đơn hàng đã được trừ kho trước đó.");
+        }
+
+        private static string IdentityKey(int? ingredientId, int? preparedItemId)
+            => ingredientId.HasValue ? $"I:{ingredientId.Value}" : $"P:{preparedItemId ?? 0}";
+
+        private sealed class ReqCostState
+        {
+            public decimal AllocatedQty { get; set; }
+            public decimal AllocatedCost { get; set; }
+            public bool IsComplete { get; set; }
+            public List<CostLayerAllocationSlice> Slices { get; } = new();
+        }
+
+        private static Dictionary<RequirementLine, ReqCostState> BuildRequirementCostDistribution(
+            List<RequirementLine> requirements,
+            Dictionary<string, CostLayerConsumptionPlan> costByIdentity)
+        {
+            var result = requirements.ToDictionary(r => r, _ => new ReqCostState());
+
+            // Mutable pool of remaining slice qty per identity (FIFO already ordered)
+            var pools = new Dictionary<string, List<(CostLayerAllocationSlice Slice, decimal Remaining)>>();
+            foreach (var kv in costByIdentity)
+            {
+                pools[kv.Key] = kv.Value.Slices
+                    .Select(s => (s, s.Quantity))
+                    .ToList();
+            }
+
+            var orderedReqs = requirements
+                .Where(r => r.IngredientId.HasValue || r.PreparedItemId.HasValue)
+                .OrderBy(r => r.OrderDetailId ?? int.MaxValue)
+                .ThenBy(r => r.OrderToppingId ?? int.MaxValue)
+                .ThenBy(r => IdentityKey(r.IngredientId, r.PreparedItemId))
+                .ThenBy(r => r.SourceRecipeId)
+                .ThenBy(r => r.StoreInventoryId)
+                .ToList();
+
+            foreach (var req in orderedReqs)
+            {
+                var key = IdentityKey(req.IngredientId, req.PreparedItemId);
+                if (!pools.TryGetValue(key, out var pool))
+                {
+                    result[req].IsComplete = false;
+                    continue;
+                }
+
+                var need = req.RequiredQty;
+                var state = result[req];
+                for (var i = 0; i < pool.Count && need > 0; i++)
+                {
+                    var (slice, rem) = pool[i];
+                    if (rem <= 0)
+                        continue;
+
+                    var take = Math.Min(need, rem);
+                    if (take <= 0)
+                        continue;
+
+                    var portionCost = take * slice.UnitCost;
+                    state.Slices.Add(new CostLayerAllocationSlice
+                    {
+                        Layer = slice.Layer,
+                        InventoryCostLayerId = slice.InventoryCostLayerId,
+                        Quantity = take,
+                        UnitCost = slice.UnitCost,
+                        TotalCost = portionCost
+                    });
+                    state.AllocatedQty += take;
+                    state.AllocatedCost += portionCost;
+                    pool[i] = (slice, rem - take);
+                    need -= take;
+                }
+
+                state.IsComplete = need <= 0 && state.AllocatedQty == req.RequiredQty && req.RequiredQty > 0;
+            }
+
+            // Requirements without layer identity (legacy recipe-only rows): no COGS evidence
+            foreach (var req in requirements.Where(r => !r.IngredientId.HasValue && !r.PreparedItemId.HasValue))
+            {
+                result[req].IsComplete = false;
+            }
+
+            return result;
+        }
+
+        private async Task SnapshotOrderCogsAsync(
+            Order order,
+            List<RequirementLine> requirements,
+            Dictionary<RequirementLine, ReqCostState> costState,
+            DateTime now)
+        {
+            var details = await _context.OrderDetails
+                .Include(d => d.OrderToppings)
+                .Where(d => d.OrderId == order.OrderId)
+                .OrderBy(d => d.OrderDetailId)
+                .ToListAsync();
+
+            foreach (var detail in details)
+            {
+                // Drink BOM requirements (no topping id)
+                var drinkReqs = requirements
+                    .Where(r => r.OrderDetailId == detail.OrderDetailId && r.OrderToppingId == null)
+                    .ToList();
+
+                if (drinkReqs.Count == 0)
+                {
+                    // No BOM lines → treat complete with zero actual cost for drink body
+                    detail.CostStatus = SalesCostStatus.Complete;
+                    detail.TotalCogs = 0m;
+                    detail.UnitCogs = 0m;
+                }
+                else if (drinkReqs.All(r => costState[r].IsComplete))
+                {
+                    var total = drinkReqs.Sum(r => costState[r].AllocatedCost);
+                    detail.CostStatus = SalesCostStatus.Complete;
+                    detail.TotalCogs = total;
+                    detail.UnitCogs = detail.Quantity > 0 ? total / detail.Quantity : null;
+                }
+                else
+                {
+                    detail.CostStatus = SalesCostStatus.Incomplete;
+                    detail.TotalCogs = null;
+                    detail.UnitCogs = null;
+                }
+
+                foreach (var topping in detail.OrderToppings.OrderBy(t => t.OrderToppingId))
+                {
+                    var topReqs = requirements
+                        .Where(r => r.OrderDetailId == detail.OrderDetailId
+                                    && r.OrderToppingId == topping.OrderToppingId)
+                        .ToList();
+
+                    if (topReqs.Count == 0)
+                    {
+                        topping.CostStatus = SalesCostStatus.Complete;
+                        topping.TotalCogs = 0m;
+                    }
+                    else if (topReqs.All(r => costState[r].IsComplete))
+                    {
+                        topping.CostStatus = SalesCostStatus.Complete;
+                        topping.TotalCogs = topReqs.Sum(r => costState[r].AllocatedCost);
+                    }
+                    else
+                    {
+                        topping.CostStatus = SalesCostStatus.Incomplete;
+                        topping.TotalCogs = null;
+                    }
+                }
+            }
+
+            var anyIncomplete = details.Any(d =>
+                d.CostStatus == SalesCostStatus.Incomplete
+                || d.OrderToppings.Any(t => t.CostStatus == SalesCostStatus.Incomplete));
+
+            // Also incomplete if attributed requirements missing completeness
+            if (requirements.Any(r => r.OrderDetailId.HasValue && !costState[r].IsComplete
+                                      && (r.IngredientId.HasValue || r.PreparedItemId.HasValue
+                                          || (!r.IngredientId.HasValue && !r.PreparedItemId.HasValue))))
+            {
+                // legacy recipe identity without layer → incomplete
+                anyIncomplete = anyIncomplete
+                    || requirements.Any(r => r.OrderDetailId.HasValue && !costState[r].IsComplete);
+            }
+
+            order.CostedAtUtc = now;
+            if (anyIncomplete)
+            {
+                order.CostStatus = SalesCostStatus.Incomplete;
+                order.TotalCogs = null;
+                order.GrossProfit = null;
+            }
+            else
+            {
+                var totalCogs = details.Sum(d => (d.TotalCogs ?? 0m)
+                    + d.OrderToppings.Sum(t => t.TotalCogs ?? 0m));
+                order.CostStatus = SalesCostStatus.Complete;
+                order.TotalCogs = totalCogs;
+                // Revenue authority: actual collected total after voucher/points (Order.Total).
+                order.GrossProfit = order.Total - totalCogs;
+            }
+        }
+
+        private async Task CollectRequirementsFromOrderAsync(
+            int orderId,
+            int storeId,
+            InventoryWriterMode mode,
+            InventoryWriterModeSnapshot? modeSnapshot,
+            List<RequirementLine> requirements)
+        {
+            var details = await _context.OrderDetails
+                .Include(d => d.OrderToppings)
+                .Where(d => d.OrderId == orderId)
+                .OrderBy(d => d.OrderDetailId)
+                .ToListAsync();
+
+            foreach (var detail in details)
+            {
+                var drinkRecipe = await GetActiveRecipeAsync(detail.DrinkId, detail.SizeId, null);
+                if (drinkRecipe == null)
+                {
+                    _logger.LogWarning(
+                        "Không tìm thấy công thức (BOM) hoạt động cho OrderDetail #{OrderDetailId} DrinkId={DrinkId}",
+                        detail.OrderDetailId,
+                        detail.DrinkId);
+                }
+                else
+                {
+                    await CollectRequirementsAsync(
+                        drinkRecipe,
+                        detail.Quantity,
+                        storeId,
+                        mode,
+                        modeSnapshot,
+                        requirements,
+                        detail.OrderDetailId,
+                        orderToppingId: null);
+                }
+
+                foreach (var topping in detail.OrderToppings.OrderBy(t => t.OrderToppingId))
+                {
+                    var toppingRecipe = await GetActiveRecipeAsync(null, null, topping.ToppingId);
+                    if (toppingRecipe == null)
+                    {
+                        _logger.LogWarning(
+                            "Không tìm thấy công thức topping cho OrderTopping #{Id} ToppingId={ToppingId}",
+                            topping.OrderToppingId,
+                            topping.ToppingId);
+                        continue;
+                    }
+
+                    await CollectRequirementsAsync(
+                        toppingRecipe,
+                        detail.Quantity,
+                        storeId,
+                        mode,
+                        modeSnapshot,
+                        requirements,
+                        detail.OrderDetailId,
+                        topping.OrderToppingId);
+                }
+            }
+        }
+
         private async Task CollectRequirementsAsync(
             Recipe saleRecipe,
             int soldQuantity,
             int storeId,
             InventoryWriterMode mode,
             InventoryWriterModeSnapshot? modeSnapshot,
-            List<RequirementLine> requirements)
+            List<RequirementLine> requirements,
+            int? orderDetailId,
+            int? orderToppingId)
         {
             var details = saleRecipe.RecipeDetails?.ToList() ?? new List<RecipeDetail>();
             foreach (var detail in details)
@@ -371,17 +826,21 @@ namespace CafeChain.Application.Services.Inventories
                     }
 
                     var inv = await GetOrCreateIngredientInventoryAsync(storeId, detail.IngredientId.Value);
-                    var name = await _context.Ingredients.AsNoTracking()
-                        .Where(i => i.IngredientId == detail.IngredientId.Value)
-                        .Select(i => i.Name)
-                        .FirstOrDefaultAsync() ?? $"Ingredient #{detail.IngredientId}";
+                    var ing = await _context.Ingredients.AsNoTracking()
+                        .FirstOrDefaultAsync(i => i.IngredientId == detail.IngredientId.Value);
+                    var name = ing?.Name ?? $"Ingredient #{detail.IngredientId}";
 
                     requirements.Add(new RequirementLine
                     {
                         StoreInventoryId = inv.StoreInventoryId,
                         RequiredQty = converted.Data,
                         SourceRecipeId = saleRecipe.RecipeId,
-                        DisplayName = name
+                        DisplayName = name,
+                        OrderDetailId = orderDetailId,
+                        OrderToppingId = orderToppingId,
+                        IngredientId = detail.IngredientId.Value,
+                        PreparedItemId = null,
+                        BaseUnitId = ing?.BaseUnitId
                     });
                     continue;
                 }
@@ -392,7 +851,6 @@ namespace CafeChain.Application.Services.Inventories
                         $"RecipeDetail #{detail.RecipeDetailId} phải có IngredientId hoặc ChildRecipeId.");
                 }
 
-                // ----- BTP path -----
                 if (mode == InventoryWriterMode.Blocked)
                 {
                     throw new InvalidOperationException(
@@ -406,18 +864,24 @@ namespace CafeChain.Application.Services.Inventories
                         rawRequired,
                         storeId,
                         modeSnapshot!,
-                        requirements);
+                        requirements,
+                        orderDetailId,
+                        orderToppingId);
                 }
                 else
                 {
-                    // LegacyRecipe: RecipeId = exact ChildRecipeId, raw qty (no physical convert).
                     var inv = await GetOrCreateLegacyRecipeInventoryAsync(storeId, detail.ChildRecipeId.Value);
                     requirements.Add(new RequirementLine
                     {
                         StoreInventoryId = inv.StoreInventoryId,
                         RequiredQty = rawRequired,
                         SourceRecipeId = detail.ChildRecipeId.Value,
-                        DisplayName = $"Recipe #{detail.ChildRecipeId}"
+                        DisplayName = $"Recipe #{detail.ChildRecipeId}",
+                        OrderDetailId = orderDetailId,
+                        OrderToppingId = orderToppingId,
+                        IngredientId = null,
+                        PreparedItemId = null,
+                        BaseUnitId = null
                     });
                 }
             }
@@ -428,9 +892,10 @@ namespace CafeChain.Application.Services.Inventories
             decimal rawRequired,
             int storeId,
             InventoryWriterModeSnapshot modeSnapshot,
-            List<RequirementLine> requirements)
+            List<RequirementLine> requirements,
+            int? orderDetailId,
+            int? orderToppingId)
         {
-            // Exact ChildRecipe by id — no Active filter / no latest substitute.
             var child = await _context.Recipes
                 .AsNoTracking()
                 .FirstOrDefaultAsync(r => r.RecipeId == detail.ChildRecipeId!.Value);
@@ -447,7 +912,6 @@ namespace CafeChain.Application.Services.Inventories
                     $"ChildRecipe #{child.RecipeId} chưa map PreparedItemId.");
             }
 
-            // Output contract validation (mapping validity) — do NOT multiply by OutputQuantity/Yield.
             if (child.OutputQuantity is null or <= 0 || !child.OutputUnitId.HasValue)
             {
                 throw new InvalidOperationException(
@@ -504,7 +968,12 @@ namespace CafeChain.Application.Services.Inventories
                 StoreInventoryId = resolve.StoreInventory.StoreInventoryId,
                 RequiredQty = converted.Data,
                 SourceRecipeId = child.RecipeId,
-                DisplayName = preparedItem.Name
+                DisplayName = preparedItem.Name,
+                OrderDetailId = orderDetailId,
+                OrderToppingId = orderToppingId,
+                IngredientId = null,
+                PreparedItemId = preparedItem.PreparedItemId,
+                BaseUnitId = preparedItem.BaseUnitId
             });
         }
 
@@ -672,7 +1141,11 @@ namespace CafeChain.Application.Services.Inventories
             public decimal RequiredQty { get; init; }
             public int SourceRecipeId { get; init; }
             public string DisplayName { get; init; } = string.Empty;
+            public int? OrderDetailId { get; init; }
+            public int? OrderToppingId { get; init; }
+            public int? IngredientId { get; init; }
+            public int? PreparedItemId { get; init; }
+            public int? BaseUnitId { get; init; }
         }
-
     }
 }
