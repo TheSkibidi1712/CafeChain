@@ -19,9 +19,14 @@
             <h1 class="rb-page-title mb-1">Công thức BOM</h1>
             <p class="text-muted mb-0">Định mức nguyên liệu cho món bán, topping và bán thành phẩm.</p>
         </div>
-        <a asp-action="Create" class="btn btn-rb-save">
-            <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
-        </a>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-action="DataHealth" class="btn btn-rb-ghost">
+                <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
+            </a>
+            <a asp-action="Create" class="btn btn-rb-save">
+                <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
+            </a>
+        </div>
     </div>
 
     <div class="rb-filter-chips mb-3" role="tablist" aria-label="Lọc loại công thức">

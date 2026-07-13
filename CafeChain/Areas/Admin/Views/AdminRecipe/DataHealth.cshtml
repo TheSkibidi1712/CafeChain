@@ -1,0 +1,129 @@
+@model CafeChain.ViewModels.Admin.Recipes.BomDataHealthPageVM
+@{
+    ViewData["Title"] = "Tình trạng dữ liệu BOM";
+}
+
+<link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
+
+<div class="rb-page">
+    <div class="container-fluid px-4 pt-4 pb-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <nav class="rb-breadcrumb" aria-label="breadcrumb">
+                    <span>Sản xuất / BOM</span> &gt; <span>Tình trạng dữ liệu BOM</span>
+                </nav>
+                <h1 class="rb-page-title mb-1">Tình trạng dữ liệu BOM</h1>
+                <p class="text-muted mb-0">
+                    Kiểm tra cấu hình công thức và dữ liệu giá vốn toàn hệ thống. Trạng thái cửa hàng được đánh giá riêng.
+                </p>
+            </div>
+            <a asp-action="Index" class="btn btn-rb-ghost">
+                <i class="fas fa-list me-2" aria-hidden="true"></i>Danh sách công thức
+            </a>
+        </div>
+
+        <section class="rb-health-summary mb-3" aria-label="Tổng hợp tình trạng dữ liệu BOM">
+            <div class="rb-health-metric rb-health-ok">
+                <span>Hoàn chỉnh</span>
+                <strong>@Model.CompleteCount</strong>
+            </div>
+            <div class="rb-health-metric">
+                <span>Thiếu giá</span>
+                <strong>@Model.MissingQuoteCount</strong>
+            </div>
+            <div class="rb-health-metric">
+                <span>Thiếu quy đổi</span>
+                <strong>@Model.MissingConversionCount</strong>
+            </div>
+            <div class="rb-health-metric">
+                <span>Thiếu output</span>
+                <strong>@Model.MissingOutputCount</strong>
+            </div>
+            <div class="rb-health-metric">
+                <span>Mapping lỗi</span>
+                <strong>@Model.MappingErrorCount</strong>
+            </div>
+        </section>
+
+        <div class="rb-card rb-health-table-wrap">
+            <div class="table-responsive">
+                <table class="table rb-table rb-health-table mb-0" aria-label="Chi tiết tình trạng dữ liệu BOM">
+                    <thead>
+                        <tr>
+                            <th>Công thức</th>
+                            <th>Cấu hình</th>
+                            <th>Dữ liệu giá vốn</th>
+                            <th>Lý do và xử lý</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @if (!Model.Items.Any())
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center py-5">
+                                Chưa có công thức để đánh giá.
+                            </td>
+                        </tr>
+                    }
+                    else
+                    {
+                        foreach (var row in Model.Items)
+                        {
+                            var configClass = row.Configuration.IsComplete
+                                ? "rb-status-complete"
+                                : row.Configuration.Code == "INACTIVE" ? "rb-status-inactive" : "rb-status-incomplete";
+                            var costClass = row.Costing.IsComplete ? "rb-status-complete" : "rb-status-error";
+                            var reasons = row.Configuration.Reasons.Concat(row.Costing.Reasons).ToList();
+                            <tr>
+                                <td class="rb-health-identity">
+                                    <div class="d-flex align-items-center gap-2 mb-1">
+                                        <span class="rb-status-badge rb-status-inactive">@row.TypeLabel</span>
+                                        <span class="font-monospace text-muted">#@row.RecipeId</span>
+                                    </div>
+                                    <div class="fw-semibold text-break">@row.IdentityDisplay</div>
+                                    @if (!string.IsNullOrWhiteSpace(row.RecipeCode))
+                                    {
+                                        <div class="small text-muted font-monospace text-break">@row.RecipeCode</div>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="rb-status-badge @configClass">@row.Configuration.Label</span>
+                                </td>
+                                <td>
+                                    <span class="rb-status-badge @costClass">@row.Costing.Label</span>
+                                    @if (row.Costing.IsComplete && row.EstimatedCost.HasValue)
+                                    {
+                                        <div class="small text-muted font-monospace mt-1">@row.EstimatedCost.Value.ToString("N0") VND</div>
+                                    }
+                                </td>
+                                <td class="rb-health-reasons">
+                                    @if (reasons.Count == 0)
+                                    {
+                                        <span class="text-muted">Không có lỗi dữ liệu.</span>
+                                    }
+                                    else
+                                    {
+                                        foreach (var reason in reasons)
+                                        {
+                                            var ctaUrl = reason.CtaId.HasValue
+                                                ? Url.Action(reason.CtaAction, reason.CtaController, new { id = reason.CtaId.Value })
+                                                : Url.Action(reason.CtaAction, reason.CtaController);
+                                            <div class="rb-health-reason">
+                                                <div>
+                                                    <code>@reason.Code</code>
+                                                    <span>@reason.Message</span>
+                                                </div>
+                                                <a class="btn btn-sm btn-outline-secondary" href="@ctaUrl">@reason.CtaLabel</a>
+                                            </div>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

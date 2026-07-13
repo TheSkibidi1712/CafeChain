@@ -92,6 +92,28 @@ namespace CafeChain.Application.Services.Inventories
             return await CalculateRecipeInternalAsync(recipeId, path, depth: 0, memo);
         }
 
+        public async Task<IReadOnlyDictionary<int, CostCalculationResult>> CalculateRecipesEstimatedCostAsync(
+            IEnumerable<int> recipeIds)
+        {
+            var requestedIds = recipeIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+            var memo = new Dictionary<int, CostCalculationResult>();
+            var results = new Dictionary<int, CostCalculationResult>();
+
+            foreach (var recipeId in requestedIds)
+            {
+                results[recipeId] = await CalculateRecipeInternalAsync(
+                    recipeId,
+                    new HashSet<int>(),
+                    depth: 0,
+                    memo);
+            }
+
+            return results;
+        }
+
         private async Task<CostCalculationResult> CalculateRecipeInternalAsync(
             int recipeId,
             HashSet<int> path,

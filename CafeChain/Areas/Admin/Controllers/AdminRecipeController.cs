@@ -38,6 +38,12 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        public async Task<IActionResult> DataHealth()
+        {
+            return View(await _queryService.GetDataHealthPageAsync());
+        }
+
+        [HttpGet]
         public async Task<IActionResult> GetRecipeTree(int id)
         {
             var tree = await _bomTreeQuery.BuildTreeAsync(id);

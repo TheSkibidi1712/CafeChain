@@ -24,19 +24,102 @@ namespace CafeChain.Application.Services.Admin.Recipes
         private readonly IEstimatedBomCostService _estimatedBomCost;
         private readonly IAdminPreparedItemService _preparedItemService;
         private readonly IRecipeBomTreeQueryService _bomTree;
+        private readonly IBomDataHealthEvaluator _healthEvaluator;
 
         public AdminRecipeQueryService(
             AppDbContext context,
             IRecipeOutputNormalizer outputNormalizer,
             IEstimatedBomCostService estimatedBomCost,
             IAdminPreparedItemService preparedItemService,
-            IRecipeBomTreeQueryService bomTree)
+            IRecipeBomTreeQueryService bomTree,
+            IBomDataHealthEvaluator healthEvaluator)
         {
             _context = context;
             _outputNormalizer = outputNormalizer;
             _estimatedBomCost = estimatedBomCost;
             _preparedItemService = preparedItemService;
             _bomTree = bomTree;
+            _healthEvaluator = healthEvaluator;
+        }
+
+        public async Task<BomDataHealthPageVM> GetDataHealthPageAsync()
+        {
+            var recipes = await _context.Recipes
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Include(r => r.PreparedItem)
+                    .ThenInclude(p => p!.BaseUnit)
+                .Include(r => r.OutputUnit)
+                .Include(r => r.Size)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.Unit)
+                .Include(r => r.RecipeDetails)
+                    .ThenInclude(d => d.ChildRecipe)
+                        .ThenInclude(c => c!.PreparedItem)
+                .OrderByDescending(r => r.RecipeId)
+                .ToListAsync();
+
+            var costResults = await _estimatedBomCost.CalculateRecipesEstimatedCostAsync(
+                recipes.Select(x => x.RecipeId));
+            var page = new BomDataHealthPageVM();
+
+            foreach (var recipe in recipes)
+            {
+                var typeKey = ResolveRecipeTypeKey(recipe);
+                var configuration = _healthEvaluator.EvaluateConfiguration(recipe);
+                var costing = costResults.TryGetValue(recipe.RecipeId, out var costResult)
+                    ? _healthEvaluator.EvaluateCosting(costResult)
+                    : new BomHealthStatusVM
+                    {
+                        Code = BomCostingHealthCodes.Indeterminate,
+                        Label = "Không xác định được giá vốn",
+                        Reasons = new List<BomHealthReasonVM>
+                        {
+                            new()
+                            {
+                                Code = BomCostingHealthCodes.Indeterminate,
+                                GroupCode = BomCostingHealthCodes.Indeterminate,
+                                Message = "Không nhận được kết quả tính giá vốn cho công thức.",
+                                CtaLabel = "Kiểm tra BOM",
+                                CtaController = "AdminRecipe",
+                                CtaAction = "Edit",
+                                CtaId = recipe.RecipeId
+                            }
+                        }
+                    };
+
+                page.Items.Add(new BomDataHealthRowVM
+                {
+                    RecipeId = recipe.RecipeId,
+                    RecipeCode = recipe.RecipeCode ?? "",
+                    Name = recipe.Name ?? "",
+                    TypeLabel = typeKey switch
+                    {
+                        "POS" => "Món bán",
+                        "TOPPING" => "Topping",
+                        "SUBRECIPE" => "Bán thành phẩm",
+                        _ => "Khác"
+                    },
+                    IdentityDisplay = BuildIdentityDisplay(recipe, typeKey),
+                    Configuration = configuration,
+                    Costing = costing,
+                    EstimatedCost = costResult?.IsComplete == true ? costResult.TotalCost : null
+                });
+            }
+
+            page.CompleteCount = page.Items.Count(x => x.Configuration.IsComplete && x.Costing.IsComplete);
+            page.MissingQuoteCount = page.Items.Count(x => x.Costing.Reasons.Any(r =>
+                r.GroupCode == BomCostingHealthCodes.MissingQuote));
+            page.MissingConversionCount = page.Items.Count(x => x.Costing.Reasons.Any(r =>
+                r.GroupCode == BomCostingHealthCodes.MissingConversion));
+            page.MissingOutputCount = page.Items.Count(x => x.Configuration.Reasons.Any(r =>
+                r.Code == BomConfigurationHealthCodes.MissingOutputIdentity
+                || r.Code == BomConfigurationHealthCodes.MissingOutputQuantity
+                || r.Code == BomConfigurationHealthCodes.MissingOutputUnit));
+            page.MappingErrorCount = page.Items.Count(x => x.Configuration.Reasons.Any(r =>
+                r.Code == BomConfigurationHealthCodes.InvalidPreparedItemMapping));
+
+            return page;
         }
 
         public async Task<AdminRecipeListPageVM> GetIndexPageAsync(string? typeFilter = null)

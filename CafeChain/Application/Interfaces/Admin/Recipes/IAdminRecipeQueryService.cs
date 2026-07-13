@@ -8,6 +8,8 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
     {
         Task<AdminRecipeListPageVM> GetIndexPageAsync(string? typeFilter = null);
 
+        Task<BomDataHealthPageVM> GetDataHealthPageAsync();
+
         Task<AdminRecipeFormPageVM> GetCreatePageAsync();
 
         Task<AdminRecipeFormPageVM?> GetEditPageAsync(int recipeId);
