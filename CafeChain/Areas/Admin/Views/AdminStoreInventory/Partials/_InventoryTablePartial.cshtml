@@ -1,95 +1,116 @@
-﻿@model List<CafeChain.ViewModels.Admin.StoreInventories.InventoryItemVM>
+@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
+@{
+    var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
+}
 
-<table class="inventory-table">
-    <thead>
-        <tr>
-            <th>Kho</th>
-            <th>Mặt hàng</th>
-            <th title="Tổng số lượng trong kho">Tồn kho</th>
-            <th title="Số lượng đã được giữ cho đơn hàng / phiếu">Đang giữ</th>
-            <th title="Số lượng có thể sử dụng ngay">Khả dụng</th>
-            <th title="Giới hạn âm kho cho mặt hàng tại kho này">Âm tối đa</th>
-            <th>Giá gần nhất</th>
-            <th>NCC</th>
-            <th>Cập nhật</th>
-        </tr>
-    </thead>
+<div class="inventory-table-wrap">
+    <table class="inventory-table @(isPreparedItems ? "prepared-item-table" : "ingredient-table")">
+        <thead>
+            <tr>
+                <th>@(isPreparedItems ? "Mã BTP" : "Mã NL")</th>
+                <th>@(isPreparedItems ? "Bán thành phẩm" : "Nguyên liệu")</th>
+                <th>ĐVT</th>
+                <th title="Tổng số lượng trong kho">Tồn kho</th>
+                <th title="Số lượng đã được giữ cho đơn hàng / phiếu">Đang giữ</th>
+                <th title="Số lượng có thể sử dụng ngay">Khả dụng</th>
+                @if (isPreparedItems)
+                {
+                    <th class="inventory-secondary">Giá vốn thực tế</th>
+                    <th class="inventory-secondary">Nguồn gần nhất</th>
+                }
+                else
+                {
+                    <th class="inventory-secondary">Giá nhập gần nhất</th>
+                    <th class="inventory-secondary">NCC</th>
+                }
+                <th class="inventory-secondary">Cập nhật</th>
+            </tr>
+        </thead>
 
-    <tbody>
-        @if (Model != null && Model.Any())
-        {
-            foreach (var item in Model)
+        <tbody>
+            @if (Model.Items.Any())
             {
-                var available = item.AvailableQty - item.ReservedQty;
-
+                foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td class="item-code">@(string.IsNullOrWhiteSpace(item.ItemCode) ? "—" : item.ItemCode)</td>
+                        <td class="ingredient-name">
+                            <div>@item.IngredientName</div>
+                            @if (isPreparedItems)
+                            {
+                                <span class="inventory-identity-badge">@item.IdentityBadge</span>
+                                @if (item.LegacyRecipeId.HasValue)
+                                {
+                                    <small class="inventory-warning d-block">
+                                        Dòng compatibility từ Recipe #@item.LegacyRecipeId; PreparedItem vẫn là định danh tồn kho chính.
+                                    </small>
+                                }
+                                @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
+                                {
+                                    <small class="inventory-warning d-block">Chưa xác nhận ngữ nghĩa số lượng theo ĐVT cơ sở.</small>
+                                }
+                            }
+                        </td>
+                        <td class="unit-code">@(string.IsNullOrWhiteSpace(item.UnitCode) ? "—" : item.UnitCode)</td>
+                        <td class="stock">@($"{item.AvailableQty:N2} {item.UnitCode}")</td>
+                        <td class="reserved @(item.ReservedQty > 0 ? "highlight" : "")">
+                            @($"{item.ReservedQty:N2} {item.UnitCode}")
+                        </td>
+                        <td class="usable @(item.UsableQty <= 0 ? "danger" : "")">
+                            @($"{item.UsableQty:N2} {item.UnitCode}")
+                        </td>
+                        @if (isPreparedItems)
+                        {
+                            <td class="inventory-secondary">
+                                @if (item.CostEvidenceStatus == "ACTUAL_LAYER" && item.LastUnitPrice.HasValue)
+                                {
+                                    <div class="cost-value">@item.LastUnitPrice.Value.ToString("N2") đ/@item.UnitCode</div>
+                                    <small class="text-muted">Layer #@item.LatestCostLayerId</small>
+                                }
+                                else
+                                {
+                                    <span class="cost-missing">Chưa có cost layer</span>
+                                }
+                            </td>
+                            <td class="inventory-secondary">
+                                @if (item.SourceProductionRunId.HasValue)
+                                {
+                                    <div>Lệnh sơ chế #@item.SourceProductionRunId</div>
+                                    <small class="text-muted">@(item.LatestCostLayerAt?.ToString("dd/MM/yyyy HH:mm"))</small>
+                                }
+                                else if (item.LatestCostLayerId.HasValue)
+                                {
+                                    <span>Layer kho #@item.LatestCostLayerId</span>
+                                }
+                                else
+                                {
+                                    <span>—</span>
+                                }
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="inventory-secondary">
+                                @(item.LastUnitPrice.HasValue ? $"{item.LastUnitPrice:N0} đ" : "—")
+                            </td>
+                            <td class="inventory-secondary">
+                                @(!string.IsNullOrWhiteSpace(item.LastSupplierName) ? item.LastSupplierName : "—")
+                            </td>
+                        }
+                        <td class="inventory-secondary">@item.LastUpdated.ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+            }
+            else
+            {
                 <tr>
-                    <td>@item.StoreName</td>
-
-                    <td class="ingredient-name">
-                        @item.IngredientName
-                        @if (!string.IsNullOrWhiteSpace(item.IdentityBadge))
-                        {
-                            <small class="text-muted d-block">@item.IdentityBadge@(item.LegacyRecipeId.HasValue && item.PreparedItemId.HasValue ? $" · Công thức legacy #{item.LegacyRecipeId}" : string.Empty)</small>
-                        }
-                        @if (item.QuantitySemanticsStatus == "QUANTITY_SEMANTICS_UNKNOWN")
-                        {
-                            <small class="text-warning d-block">Chưa xác nhận đơn vị tồn</small>
-                        }
-                    </td>
-
-                    <td class="stock">
-                        @($"{item.AvailableQty:N0} {item.UnitCode}")
-                    </td>
-
-                    <td class="reserved @(item.ReservedQty > 0 ? "highlight" : "")">
-                        @($"{item.ReservedQty:N0} {item.UnitCode}")
-                    </td>
-
-                    <td class="usable @(available <= 0 ? "danger" : "")">
-                        @($"{available:N0} {item.UnitCode}")
-                    </td>
-
-                    <td>
-                        @if (item.MaxNegativeQty.HasValue)
-                        {
-                            @($"-{item.MaxNegativeQty:N0} {item.UnitCode}")
-                        }
-                        else
-                        {
-                            <span>-</span>
-                        }
-                    </td>
-
-                    <td>
-                        @if (item.LastUnitPrice.HasValue)
-                        {
-                            @($"{item.LastUnitPrice:N0} đ")
-                        }
-                        else
-                        {
-                            <span>-</span>
-                        }
-                    </td>
-
-                    <td>
-                        @(!string.IsNullOrWhiteSpace(item.LastSupplierName)
-                            ? item.LastSupplierName
-                            : "-")
-                    </td>
-
-                    <td>
-                        @item.LastUpdated.ToString("dd/MM/yyyy HH:mm")
+                    <td colspan="9" class="empty-data">
+                        @(isPreparedItems
+                            ? "Chưa có bán thành phẩm trong kho cửa hàng này. BTP chỉ xuất hiện sau khi luồng sản xuất ghi nhận tồn kho."
+                            : "Không tìm thấy nguyên liệu trong kho cửa hàng này.")
                     </td>
                 </tr>
             }
-        }
-        else
-        {
-            <tr>
-                <td colspan="9" class="empty-data">
-                    Không có dữ liệu tồn kho
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
+        </tbody>
+    </table>
+</div>

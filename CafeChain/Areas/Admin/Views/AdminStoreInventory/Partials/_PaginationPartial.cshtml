@@ -1,8 +1,8 @@
 ﻿@model CafeChain.ViewModels.Admin.StoreInventories.InventoryIndexVM
 
 @{
-    var currentPage = ViewBag.Page != null ? (int)ViewBag.Page : 1;
-    var totalPages = ViewBag.TotalPages != null ? (int)ViewBag.TotalPages : 0;
+    var currentPage = Model.Page;
+    var totalPages = Model.TotalPages;
 }
 
 @if (totalPages > 1)
@@ -12,7 +12,7 @@
         @if (currentPage > 1)
         {
             <a class="page-btn"
-               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = currentPage - 1 })">
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage - 1 })">
                 ←
             </a>
         }
@@ -20,7 +20,7 @@
         @for (int i = 1; i <= totalPages; i++)
         {
             <a class="page-btn @(i == currentPage ? "active" : "")"
-               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = i })">
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = i })">
                 @i
             </a>
         }
@@ -28,7 +28,7 @@
         @if (currentPage < totalPages)
         {
             <a class="page-btn"
-               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, search = ViewBag.Search, page = currentPage + 1 })">
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = currentPage + 1 })">
                 →
             </a>
         }

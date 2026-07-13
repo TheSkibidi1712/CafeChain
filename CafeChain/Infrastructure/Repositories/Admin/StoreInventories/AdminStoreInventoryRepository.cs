@@ -53,6 +53,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
         public async Task<(List<InventoryDTO> data, int total)> GetPagedAsync(
             List<int> storeIds,
             int storeId,
+            string inventoryType,
             string? search,
             int page,
             int pageSize)
@@ -67,6 +68,18 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
             if (storeId > 0)
             {
                 query = query.Where(x => x.StoreId == storeId);
+            }
+
+            if (string.Equals(
+                inventoryType,
+                InventoryCatalogTypes.PreparedItems,
+                StringComparison.OrdinalIgnoreCase))
+            {
+                query = query.Where(x => x.PreparedItemId.HasValue || x.RecipeId.HasValue);
+            }
+            else
+            {
+                query = query.Where(x => x.IngredientId.HasValue);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -90,6 +103,17 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     StoreId = x.StoreId,
                     StoreName = x.Store.Name,
+
+                    ItemCode = x.IngredientId.HasValue
+                        ? x.Ingredient.Code
+                        : x.PreparedItemId.HasValue
+                            ? x.PreparedItem.Code
+                            : x.RecipeId.HasValue
+                                ? x.Recipe.RecipeCode
+                                : string.Empty,
+                    ItemType = x.IngredientId.HasValue
+                        ? InventoryCatalogTypes.Ingredients
+                        : InventoryCatalogTypes.PreparedItems,
 
                     IngredientName = x.IngredientId.HasValue
                         ? x.Ingredient.Name
@@ -123,7 +147,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
 
                     UnitCode = x.IngredientId.HasValue && x.Ingredient.BaseUnit != null
                         ? x.Ingredient.BaseUnit.UnitCode
-                        : x.PreparedItemId.HasValue && !x.RecipeId.HasValue && x.PreparedItem.BaseUnit != null
+                        : x.PreparedItemId.HasValue && x.PreparedItem.BaseUnit != null
                             ? x.PreparedItem.BaseUnit.UnitCode
                             : string.Empty,
 
@@ -143,7 +167,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                             t.InventoryDocument.Supplier != null)
                         .OrderByDescending(t => t.CreatedAt)
                         .Select(t => t.InventoryDocument.Supplier!.Name)
-                        .FirstOrDefault()
+                        .FirstOrDefault(),
+
+                    CostEvidenceStatus = x.IngredientId.HasValue
+                        ? "NOT_APPLICABLE"
+                        : x.PreparedItemId.HasValue
+                            ? string.Empty
+                            : "LEGACY_NO_PREPARED_ITEM"
                 })
                 .OrderBy(x => x.StoreName)
                 .ThenBy(x => x.IngredientName)
@@ -151,7 +181,66 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.StoreInventories
                 .Take(pageSize)
                 .ToListAsync();
 
+            await EnrichPreparedItemCostLayersAsync(data);
+
             return (data, total);
+        }
+
+        private async Task EnrichPreparedItemCostLayersAsync(List<InventoryDTO> rows)
+        {
+            var preparedRows = rows
+                .Where(x => x.PreparedItemId.HasValue)
+                .ToList();
+            if (preparedRows.Count == 0)
+                return;
+
+            var preparedItemIds = preparedRows
+                .Select(x => x.PreparedItemId!.Value)
+                .Distinct()
+                .ToList();
+            var storeIds = preparedRows
+                .Select(x => x.StoreId)
+                .Distinct()
+                .ToList();
+
+            var layers = await _context.InventoryCostLayers
+                .AsNoTracking()
+                .Where(x => x.PreparedItemId.HasValue
+                    && preparedItemIds.Contains(x.PreparedItemId.Value)
+                    && storeIds.Contains(x.StoreId))
+                .OrderByDescending(x => x.CreatedAt)
+                .ThenByDescending(x => x.InventoryCostLayerId)
+                .Select(x => new
+                {
+                    x.InventoryCostLayerId,
+                    x.StoreId,
+                    PreparedItemId = x.PreparedItemId!.Value,
+                    x.UnitCost,
+                    x.SourceProductionRunId,
+                    x.CreatedAt
+                })
+                .ToListAsync();
+
+            var latestByIdentity = layers
+                .GroupBy(x => (x.StoreId, x.PreparedItemId))
+                .ToDictionary(x => x.Key, x => x.First());
+
+            foreach (var row in preparedRows)
+            {
+                if (!latestByIdentity.TryGetValue((row.StoreId, row.PreparedItemId!.Value), out var layer))
+                {
+                    row.CostEvidenceStatus = "MISSING_ACTUAL_LAYER";
+                    row.LastUnitPrice = null;
+                    continue;
+                }
+
+                row.LatestCostLayerId = layer.InventoryCostLayerId;
+                row.LatestCostLayerAt = layer.CreatedAt;
+                row.SourceProductionRunId = layer.SourceProductionRunId;
+                row.LastUnitPrice = layer.UnitCost;
+                row.CostEvidenceStatus = "ACTUAL_LAYER";
+                row.LastSupplierName = null;
+            }
         }
 
         // =====================================================

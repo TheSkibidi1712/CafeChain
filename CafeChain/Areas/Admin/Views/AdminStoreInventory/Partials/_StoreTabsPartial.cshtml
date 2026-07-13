@@ -6,7 +6,7 @@
         foreach (var store in Model.Stores)
         {
             <a class="store-tab @(store.StoreId == Model.StoreId ? "active" : "")"
-               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = store.StoreId, search = ViewBag.Search, page = 1 })">
+               href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = store.StoreId, inventoryType = Model.ActiveTab, search = Model.Search, page = 1 })">
                 @store.StoreName
             </a>
         }
