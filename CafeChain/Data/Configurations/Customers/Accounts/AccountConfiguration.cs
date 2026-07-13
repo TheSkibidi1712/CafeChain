@@ -93,8 +93,8 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
-                // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / #130)
-                // AccountId is intentionally 12 via SeedDemoIdentities (do not renumber without team approval).
+                // Fixed seed — ShiftSupervisor / Ca trưởng (Issue #94 / #130 follow-up)
+                // AccountId is intentionally 15 via SeedDemoIdentities (do not renumber without team approval).
                 new Account
                 {
                     AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,

@@ -59,7 +59,7 @@ namespace CafeChain.Data.Configurations.Customers.Accounts
                     AccountId = 7,
                     RoleId = 7 // Khách hàng
                 },
-                // AccountId 12 → RoleId 8 (Ca trưởng / ShiftSupervisor) — SeedDemoIdentities
+                // AccountId 15 → RoleId 8 (Ca trưởng / ShiftSupervisor) — SeedDemoIdentities
                 new AccountRole
                 {
                     AccountId = SeedDemoIdentities.ShiftSupervisorAccountId,

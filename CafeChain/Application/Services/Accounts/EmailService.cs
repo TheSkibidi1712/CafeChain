@@ -1,22 +1,41 @@
 using System.Net;
 using System.Net.Mail;
 using CafeChain.Application.Interfaces.Accounts;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Application.Services.Accounts
 {
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration config)
+        public EmailService(IConfiguration config, ILogger<EmailService> logger)
         {
             _config = config;
+            _logger = logger;
         }
 
         public async Task SendAsync(string to, string subject, string body)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(to))
+                    throw new InvalidOperationException("Thiếu địa chỉ email người nhận.");
+
+                // Local/dev: DeliveryMode=Log skips SMTP so OTP/close-shift can be tested without Gmail.
+                var deliveryMode = (_config["Email:DeliveryMode"] ?? "Smtp").Trim();
+                if (string.Equals(deliveryMode, "Log", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning(
+                        "EMAIL_LOG_ONLY | To={To} | Subject={Subject} | BodyPreview={Preview}",
+                        to.Trim(),
+                        subject,
+                        TruncateForLog(body, 500));
+                    await Task.CompletedTask;
+                    return;
+                }
+
                 var smtpHost = _config["Email:SmtpHost"]?.Trim();
                 var smtpPortRaw = _config["Email:SmtpPort"]?.Trim();
                 var email = _config["Email:Address"]?.Trim();
@@ -31,8 +50,6 @@ namespace CafeChain.Application.Services.Accounts
                     throw new InvalidOperationException("Thiếu cấu hình Email:Address (tài khoản SMTP gửi đi).");
                 if (string.IsNullOrWhiteSpace(password))
                     throw new InvalidOperationException("Thiếu cấu hình Email:Password (Gmail cần App Password).");
-                if (string.IsNullOrWhiteSpace(to))
-                    throw new InvalidOperationException("Thiếu địa chỉ email người nhận.");
 
                 using var client = new SmtpClient(smtpHost, smtpPort)
                 {
@@ -45,7 +62,7 @@ namespace CafeChain.Application.Services.Accounts
 
                 var mail = new MailMessage()
                 {
-                    From = new MailAddress(email, "CafeChain Support"), // 🔥 From name
+                    From = new MailAddress(email, "CafeChain Support"),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = true
@@ -79,6 +96,13 @@ namespace CafeChain.Application.Services.Accounts
             {
                 throw new InvalidOperationException("Lỗi gửi email: " + (ex.Message ?? "không xác định"), ex);
             }
+        }
+
+        private static string TruncateForLog(string? text, int max)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var cleaned = text.Replace('\r', ' ').Replace('\n', ' ');
+            return cleaned.Length <= max ? cleaned : cleaned.Substring(0, max) + "...";
         }
 
         private static string SummarizeSmtp(SmtpException ex)

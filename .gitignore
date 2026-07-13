@@ -10,6 +10,11 @@
 *.userosscache
 *.sln.docstates
 
+# Local machine config (connection strings, private secrets) — do not commit.
+# Copy appsettings.Local.json.example → appsettings.Local.json and edit Server=...
+**/appsettings.Local.json
+CafeChain/appsettings.Local.json
+
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs
 

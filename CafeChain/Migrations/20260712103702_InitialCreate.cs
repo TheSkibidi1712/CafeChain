@@ -3710,7 +3710,7 @@ namespace CafeChain.Migrations
                     { 4, 4, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 9000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Nhân viên bán hàng", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX104" },
                     { 5, 5, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 15000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Nhân viên kế toán kho", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX105" },
                     { 6, 6, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 35000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Quản trị hệ thống", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX106" },
-                    { 12, 15, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Ca trưởng chi nhánh", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX112" }
+                    { 15, 15, true, 0m, "staffs/default-avatar", "/Images/Upload/avtdf.jpg", 12000000m, null, new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, 0, null, "Ca trưởng chi nhánh", 0, null, 0m, null, 0m, 0, null, null, 1, "TAX112" }
                 });
 
             migrationBuilder.InsertData(
@@ -4041,7 +4041,7 @@ namespace CafeChain.Migrations
                     { 4, true, "0901000104", 4 },
                     { 5, true, "0901000105", 5 },
                     { 6, true, "0901000106", 6 },
-                    { 12, true, "0901000112", 12 }
+                    { 15, true, "0901000115", 15 }
                 });
 
             migrationBuilder.InsertData(
@@ -4055,7 +4055,7 @@ namespace CafeChain.Migrations
                     { 4, 1, 5, 3 },
                     { 5, 1, 5, 4 },
                     { 6, 1, 5, 5 },
-                    { 12, 1, 5, 12 }
+                    { 15, 1, 5, 15 }
                 });
 
             migrationBuilder.InsertData(

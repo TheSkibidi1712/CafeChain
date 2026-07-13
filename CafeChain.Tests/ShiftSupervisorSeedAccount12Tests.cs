@@ -7,14 +7,14 @@ using Xunit;
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Guardrail for ShiftSupervisor / Ca trưởng demo seed (#94 / #130):
-    /// AccountId 12, StaffId 12, RoleId 8, StoreId 1, email shiftsupervisor@cafechain.vn.
+    /// Guardrail for ShiftSupervisor / Ca trưởng demo seed (#94 / #130 follow-up):
+    /// AccountId 15, StaffId 15, RoleId 8, StoreId 1, email shiftsupervisor@cafechain.vn.
     /// Uses SeedDemoIdentities — not production authorization.
     /// </summary>
     public class ShiftSupervisorSeedAccount12Tests : IntegrationTestBase
     {
         [Fact]
-        public async Task Seed_AccountId12_Exists_WithShiftSupervisorEmail()
+        public async Task Seed_AccountId15_Exists_WithShiftSupervisorEmail()
         {
             using var ctx = CreateDbContext();
 
@@ -27,7 +27,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task Seed_AccountId12_LinkedToRoleId8_CaTruong()
+        public async Task Seed_AccountId15_LinkedToRoleId8_CaTruong()
         {
             using var ctx = CreateDbContext();
 
@@ -45,7 +45,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task Seed_Staff_References_AccountId12_StoreId1()
+        public async Task Seed_Staff_References_AccountId15_StoreId1()
         {
             using var ctx = CreateDbContext();
 
@@ -90,17 +90,17 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task Seed_AccountRole_Maps_12_To_8_OnlyOnce()
+        public async Task Seed_AccountRole_Maps_15_To_8_OnlyOnce()
         {
             using var ctx = CreateDbContext();
 
-            var rolesFor12 = await ctx.AccountRoles.AsNoTracking()
+            var rolesFor15 = await ctx.AccountRoles.AsNoTracking()
                 .Where(ar => ar.AccountId == SeedDemoIdentities.ShiftSupervisorAccountId)
                 .Select(ar => ar.RoleId)
                 .ToListAsync();
 
-            Assert.Single(rolesFor12);
-            Assert.Equal(SeedDemoIdentities.ShiftSupervisorRoleId, rolesFor12[0]);
+            Assert.Single(rolesFor15);
+            Assert.Equal(SeedDemoIdentities.ShiftSupervisorRoleId, rolesFor15[0]);
 
             // RoleId 8 must be ShiftSupervisor / Ca trưởng
             var role = await ctx.Roles.AsNoTracking()

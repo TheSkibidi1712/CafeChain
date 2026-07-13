@@ -159,7 +159,7 @@ namespace CafeChain.Data.Configurations.Staffs
                     AvatarPublicId = "staffs/default-avatar",
                     CreatedAt = new DateTime(2026, 1, 1)
                 },
-                // StaffId 12 ↔ AccountId 12 (Ca trưởng) — SeedDemoIdentities (#94 / #130).
+                // StaffId 15 ↔ AccountId 15 (Ca trưởng) — SeedDemoIdentities (#94 / #130 follow-up).
                 new Staff
                 {
                     StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
@@ -287,10 +287,10 @@ namespace CafeChain.Data.Configurations.Staffs
                     ScopeRefId = 1
                 },
 
-                // Ca trưởng chi nhánh (AccountId 12 / StaffId 12) — SeedDemoIdentities
+                // Ca trưởng chi nhánh (AccountId 15 / StaffId 15) — SeedDemoIdentities
                 new StaffScope
                 {
-                    StaffScopeId = 12,
+                    StaffScopeId = 15,
                     StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
                     ScopeTypeId = 5, // SCOPE_STORE
                     ScopeRefId = SeedDemoIdentities.ShiftSupervisorStoreId
@@ -494,7 +494,13 @@ namespace CafeChain.Data.Configurations.Staffs
                 new StaffPhone { StaffPhoneId = 4, StaffId = 4, Phone = "0901000104", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 5, StaffId = 5, Phone = "0901000105", IsDefault = true },
                 new StaffPhone { StaffPhoneId = 6, StaffId = 6, Phone = "0901000106", IsDefault = true },
-                new StaffPhone { StaffPhoneId = 12, StaffId = 12, Phone = "0901000112", IsDefault = true }
+                new StaffPhone
+                {
+                    StaffPhoneId = SeedDemoIdentities.ShiftSupervisorStaffId,
+                    StaffId = SeedDemoIdentities.ShiftSupervisorStaffId,
+                    Phone = "0901000115",
+                    IsDefault = true
+                }
             );
         }
     }

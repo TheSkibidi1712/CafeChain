@@ -6,6 +6,8 @@ using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Operations;
 using CafeChain.Models.Staffs;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
 using System.Security.Cryptography;
 
 namespace CafeChain.Application.Services.POS
@@ -15,15 +17,18 @@ namespace CafeChain.Application.Services.POS
         private readonly IOtpChallengeRepository _repository;
         private readonly IEmailService _emailService;
         private readonly ILogger<OtpApprovalService> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public OtpApprovalService(
             IOtpChallengeRepository repository,
             IEmailService emailService,
-            ILogger<OtpApprovalService> logger)
+            ILogger<OtpApprovalService> logger,
+            IWebHostEnvironment environment)
         {
             _repository = repository;
             _emailService = emailService;
             _logger = logger;
+            _environment = environment;
         }
 
         public async Task<ServiceResult<OtpChallengeResponseDto>> RequestOtpAsync(
@@ -95,17 +100,34 @@ namespace CafeChain.Application.Services.POS
             }
             catch (Exception ex)
             {
-                // Log exception type/message only — never OTP code or SMTP password.
+                // Log exception type/message only — never SMTP password.
                 _logger.LogWarning(
                     ex,
-                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | ErrorType={ErrorType} | Error={Error}",
+                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | To={To} | ErrorType={ErrorType} | Error={Error}",
                     storeId,
                     requestedByStaffId,
                     approver.StaffId,
+                    MaskEmail(approver.Account.Email),
                     ex.GetType().Name,
                     ex.Message);
 
-                // Email fail → mark challenge Cancelled (giữ audit, không xóa)
+                // Development: keep challenge Pending and surface OTP so local close-shift can proceed
+                // when Gmail/SMTP is not configured (see Email:DeliveryMode=Log in appsettings.Local.json).
+                if (_environment.IsDevelopment())
+                {
+                    _logger.LogWarning(
+                        "OTP_DEV_CAPTURE | PublicId={PublicId} | ApproverStaffId={ApproverStaffId} | To={To} | OtpCode={OtpCode}",
+                        challenge.PublicId,
+                        approver.StaffId,
+                        MaskEmail(approver.Account.Email),
+                        otpCode);
+
+                    return ServiceResult<OtpChallengeResponseDto>.Success(
+                        MapResponse(challenge, nowUtc),
+                        $"SMTP lỗi — Development capture. OTP gửi tới {MaskEmail(approver.Account.Email)}: {otpCode}");
+                }
+
+                // Production/Staging: cancel challenge (giữ audit, không xóa)
                 challenge.Status = OtpConstants.Statuses.Cancelled;
                 challenge.CancelledAt = DateTime.UtcNow;
                 await _repository.SaveChangesAsync();
@@ -122,12 +144,14 @@ namespace CafeChain.Application.Services.POS
                     userMessage = "Không gửi được OTP ca trưởng. " + ex.Message;
                 }
 
-                return ServiceResult<OtpChallengeResponseDto>.Failure(userMessage);
+                return ServiceResult<OtpChallengeResponseDto>.Failure(
+                    userMessage,
+                    errorCode: "OTP_EMAIL_FAILED");
             }
 
             return ServiceResult<OtpChallengeResponseDto>.Success(
                 MapResponse(challenge, nowUtc),
-                "OTP đã được gửi đến email ca trưởng.");
+                $"OTP đã được gửi đến email ca trưởng/quản lý ({MaskEmail(approver.Account.Email)}).");
         }
 
         public async Task<ServiceResult<OtpChallengeResponseDto>> VerifyOtpAsync(OtpVerifyDto request)
@@ -347,6 +371,15 @@ namespace CafeChain.Application.Services.POS
         {
             var value = RandomNumberGenerator.GetInt32(0, 1_000_000);
             return value.ToString($"D{OtpConstants.CodeLength}");
+        }
+
+        private static string MaskEmail(string? email)
+        {
+            if (string.IsNullOrWhiteSpace(email)) return "(none)";
+            var value = email.Trim();
+            var at = value.IndexOf('@');
+            if (at <= 1) return "***";
+            return value[0] + "***" + value.Substring(at);
         }
     }
 }

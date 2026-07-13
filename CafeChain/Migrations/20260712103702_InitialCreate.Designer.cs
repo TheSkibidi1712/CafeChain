@@ -6994,7 +6994,7 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            StaffId = 12,
+                            StaffId = 15,
                             AccountId = 15,
                             Active = true,
                             Allowance = 0m,
@@ -7232,10 +7232,10 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            StaffPhoneId = 12,
+                            StaffPhoneId = 15,
                             IsDefault = true,
-                            Phone = "0901000112",
-                            StaffId = 12
+                            Phone = "0901000115",
+                            StaffId = 15
                         });
                 });
 
@@ -7305,10 +7305,10 @@ namespace CafeChain.Migrations
                         },
                         new
                         {
-                            StaffScopeId = 12,
+                            StaffScopeId = 15,
                             ScopeRefId = 1,
                             ScopeTypeId = 5,
-                            StaffId = 12
+                            StaffId = 15
                         },
                         new
                         {
