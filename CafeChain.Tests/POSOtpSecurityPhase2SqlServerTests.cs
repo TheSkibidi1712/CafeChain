@@ -425,6 +425,11 @@ IF DB_ID(N'{Database}') IS NULL
             }
 
             var shift = await ctx.Shifts.Where(s => s.StoreId == _storeId).OrderBy(s => s.ShiftId).FirstAsync();
+            // Seeded stores already have a 06:00 shift. Pin this fixture to midnight so
+            // late-opening assertions do not depend on the wall-clock time of the test run.
+            shift.StartTime = TimeSpan.Zero;
+            await ctx.SaveChangesAsync();
+
             if (!await ctx.StaffShifts.AnyAsync(ss => ss.StaffId == staffId && ss.WorkDate.Date == DateTime.Today))
             {
                 ctx.StaffShifts.Add(new StaffShift
