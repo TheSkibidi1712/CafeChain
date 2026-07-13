@@ -271,26 +271,6 @@ namespace CafeChain.Application.Services.Inventories
                 IngredientSupplierId = i.IngredientSupplierId ?? cost.IngredientSupplierId
             }));
 
-            if (!cost.IsComplete)
-            {
-                return (new CostLineResult
-                {
-                    RecipeDetailId = detail.RecipeDetailId,
-                    ComponentKind = CostComponentKind.Ingredient,
-                    IngredientId = ingredientId,
-                    Quantity = detail.Quantity,
-                    UnitId = detail.UnitId,
-                    UnitCode = detail.Unit?.UnitCode,
-                    BaseUnitCode = cost.BaseUnitCode,
-                    PackagePrice = cost.PackagePrice,
-                    PackageQuantity = cost.PackageQuantity,
-                    PackageUnitCode = cost.PackageUnitCode,
-                    IngredientSupplierId = cost.IngredientSupplierId,
-                    Status = CostCompletenessStatus.Incomplete,
-                    DisplaySummary = "Chưa đủ dữ liệu giá gói / NCC"
-                }, issues);
-            }
-
             var convert = await _unitConversion.ConvertAsync(
                 ingredientId, detail.Quantity, detail.UnitId, cost.BaseUnitId);
 
@@ -320,6 +300,27 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             var qtyBase = convert.Data;
+            if (!cost.IsComplete)
+            {
+                return (new CostLineResult
+                {
+                    RecipeDetailId = detail.RecipeDetailId,
+                    ComponentKind = CostComponentKind.Ingredient,
+                    IngredientId = ingredientId,
+                    Quantity = detail.Quantity,
+                    UnitId = detail.UnitId,
+                    UnitCode = detail.Unit?.UnitCode,
+                    QuantityInBase = qtyBase,
+                    BaseUnitCode = cost.BaseUnitCode,
+                    PackagePrice = cost.PackagePrice,
+                    PackageQuantity = cost.PackageQuantity,
+                    PackageUnitCode = cost.PackageUnitCode,
+                    IngredientSupplierId = cost.IngredientSupplierId,
+                    Status = CostCompletenessStatus.Incomplete,
+                    DisplaySummary = "Định lượng đã chuẩn hóa; chưa đủ dữ liệu giá gói / NCC"
+                }, issues);
+            }
+
             var lineCost = qtyBase * cost.BaseUnitCost!.Value;
             var packageLabel = cost.PackageQuantity.HasValue && !string.IsNullOrEmpty(cost.PackageUnitCode)
                 ? $"{cost.PackagePrice:N0} ₫ / gói {cost.PackageQuantity:0.####} {cost.PackageUnitCode}"

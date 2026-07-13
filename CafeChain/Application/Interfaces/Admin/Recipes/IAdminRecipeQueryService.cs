@@ -21,6 +21,8 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
 
         Task<AdminRecipeVisualizePageVM?> GetVisualizePageAsync(int recipeId);
 
+        Task<BomOperationalDetailVM?> GetOperationalDetailAsync(int recipeId, int storeId);
+
         Task<IReadOnlyDictionary<int, ToppingConsumptionSourceVM>> GetToppingConsumptionSourcesAsync(
             IEnumerable<int> toppingIds);
 

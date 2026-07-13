@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Costing;
 using CafeChain.Application.Interfaces.Admin.PreparedItems;
 using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.ViewModels.Admin.Recipes;
 using Microsoft.EntityFrameworkCore;
@@ -435,7 +437,9 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Include(r => r.PreparedItem)
+                    .ThenInclude(p => p!.BaseUnit)
                 .Include(r => r.OutputUnit)
+                .Include(r => r.Size)
                 .Include(r => r.RecipeDetails)
                     .ThenInclude(d => d.Unit)
                 .Include(r => r.RecipeDetails)
@@ -450,30 +454,120 @@ namespace CafeChain.Application.Services.Admin.Recipes
                 return null;
 
             var tree = await _bomTree.BuildTreeAsync(recipeId);
-            string typeLabel = recipe.ToppingId.HasValue ? "Topping"
-                : recipe.DrinkId.HasValue ? "Món bán (POS)"
-                : recipe.PreparedItemId.HasValue ? "Bán thành phẩm"
-                : "Công thức";
+            var typeKey = ResolveRecipeTypeKey(recipe);
+            var typeLabel = typeKey switch
+            {
+                "TOPPING" => "Topping",
+                "POS" => "Món bán",
+                "SUBRECIPE" => "Bán thành phẩm",
+                _ => "Công thức"
+            };
+            var cost = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipe.RecipeId);
+            var configuration = _healthEvaluator.EvaluateConfiguration(recipe);
+            var costing = _healthEvaluator.EvaluateCosting(cost);
+            decimal? normalizedOutput = null;
+            string? outputBaseUnitCode = recipe.PreparedItem?.BaseUnit?.UnitCode;
+
+            if (typeKey == "SUBRECIPE"
+                && recipe.PreparedItemId.HasValue
+                && recipe.OutputQuantity.HasValue
+                && recipe.OutputQuantity.Value > 0
+                && recipe.OutputUnitId.HasValue)
+            {
+                var normalized = await _outputNormalizer.NormalizeAsync(
+                    recipe.PreparedItemId.Value,
+                    recipe.OutputQuantity.Value,
+                    recipe.OutputUnitId.Value);
+                if (normalized.IsSuccess && normalized.Data != null)
+                {
+                    normalizedOutput = normalized.Data.NormalizedQuantityInBase;
+                    outputBaseUnitCode = normalized.Data.BaseUnitCode;
+                }
+            }
 
             var page = new AdminRecipeVisualizePageVM
             {
                 RecipeId = recipe.RecipeId,
+                RecipeCode = recipe.RecipeCode ?? "",
                 Name = recipe.Name ?? "",
                 Status = recipe.Status ?? "",
+                Active = recipe.Active,
+                EffectiveDate = recipe.EffectiveDate,
+                ParentVersionId = recipe.ParentVersionId,
+                RecipeTypeKey = typeKey,
                 TypeLabel = typeLabel,
+                IdentityDisplay = BuildIdentityDisplay(recipe, typeKey),
                 PreparedItemId = recipe.PreparedItemId,
                 PreparedItemCode = recipe.PreparedItem?.Code,
                 PreparedItemName = recipe.PreparedItem?.Name,
                 OutputQuantity = recipe.OutputQuantity,
                 OutputUnitCode = recipe.OutputUnit?.UnitCode,
                 OutputUnitName = recipe.OutputUnit?.Name,
+                NormalizedOutputQuantity = normalizedOutput,
+                OutputBaseUnitCode = outputBaseUnitCode,
+                ConfigurationHealth = configuration,
+                CostingHealth = costing,
+                EstimatedBatchCost = typeKey == "SUBRECIPE" && cost.IsComplete ? cost.TotalCost : null,
+                EstimatedPortionCost = typeKey != "SUBRECIPE" && cost.IsComplete ? cost.TotalCost : null,
+                EstimatedUnitCost = typeKey == "SUBRECIPE"
+                    && cost.IsComplete
+                    && normalizedOutput > 0
+                        ? cost.TotalCost / normalizedOutput.Value
+                        : null,
                 FirstLevelNodes = tree.Roots
             };
+
+            var costLines = cost.Lines
+                .Where(x => x.RecipeDetailId.HasValue)
+                .GroupBy(x => x.RecipeDetailId!.Value)
+                .ToDictionary(x => x.Key, x => x.First());
+            var issuesByDetail = cost.Issues
+                .Where(x => x.RecipeDetailId.HasValue)
+                .GroupBy(x => x.RecipeDetailId!.Value)
+                .ToDictionary(x => x.Key, x => x.ToList());
+
+            foreach (var detail in recipe.RecipeDetails.OrderBy(x => x.RecipeDetailId))
+            {
+                costLines.TryGetValue(detail.RecipeDetailId, out var line);
+                issuesByDetail.TryGetValue(detail.RecipeDetailId, out var detailIssues);
+                var child = detail.ChildRecipe;
+                var preparedItem = child?.PreparedItem;
+                var reasons = detailIssues == null || detailIssues.Count == 0
+                    ? new List<BomHealthReasonVM>()
+                    : _healthEvaluator.EvaluateCosting(CostCalculationResult.Incomplete(
+                        line == null ? Array.Empty<CostLineResult>() : new[] { line },
+                        detailIssues)).Reasons;
+
+                page.Components.Add(new BomComponentDetailVM
+                {
+                    RecipeDetailId = detail.RecipeDetailId,
+                    ComponentType = detail.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
+                    IngredientId = detail.IngredientId,
+                    ChildRecipeId = detail.ChildRecipeId,
+                    ChildRecipeCode = child?.RecipeCode,
+                    PreparedItemId = child?.PreparedItemId,
+                    PreparedItemCode = preparedItem?.Code,
+                    ItemCode = detail.IngredientId.HasValue
+                        ? detail.Ingredient?.Code ?? $"ING_{detail.IngredientId}"
+                        : preparedItem?.Code ?? $"REC_{detail.ChildRecipeId}",
+                    ItemName = detail.IngredientId.HasValue
+                        ? detail.Ingredient?.Name ?? "Nguyên liệu không tồn tại"
+                        : preparedItem?.Name ?? child?.Name ?? "BTP chưa ánh xạ",
+                    Quantity = detail.Quantity,
+                    UnitCode = detail.Unit?.UnitCode ?? detail.Unit?.Name ?? "",
+                    NormalizedQuantity = line?.QuantityInBase,
+                    BaseUnitCode = line?.BaseUnitCode ?? preparedItem?.BaseUnit?.UnitCode,
+                    EstimatedLineCost = line?.LineCost,
+                    CostStatus = line?.Status == CostCompletenessStatus.Complete
+                        ? "Đủ dữ liệu ước tính"
+                        : reasons.FirstOrDefault()?.Message ?? "Chưa đủ dữ liệu giá vốn",
+                    CostReasons = reasons
+                });
+            }
 
             if (recipe.ToppingId.HasValue)
             {
                 page.ToppingConsumptionSource = BuildToppingConsumptionSource(recipe);
-                var cost = await _estimatedBomCost.CalculateRecipeEstimatedCostAsync(recipe.RecipeId);
                 ApplyToppingCost(
                     page.ToppingConsumptionSource,
                     cost.IsComplete,
@@ -484,6 +578,137 @@ namespace CafeChain.Application.Services.Admin.Recipes
             }
 
             return page;
+        }
+
+        public async Task<BomOperationalDetailVM?> GetOperationalDetailAsync(int recipeId, int storeId)
+        {
+            if (recipeId <= 0 || storeId <= 0)
+                return null;
+
+            var recipe = await _context.Recipes
+                .AsNoTracking()
+                .Where(x => x.RecipeId == recipeId)
+                .Select(x => new
+                {
+                    x.RecipeId,
+                    x.PreparedItemId,
+                    PreparedItemCode = x.PreparedItem != null ? x.PreparedItem.Code : null,
+                    PreparedItemName = x.PreparedItem != null ? x.PreparedItem.Name : null,
+                    BaseUnitCode = x.PreparedItem != null && x.PreparedItem.BaseUnit != null
+                        ? x.PreparedItem.BaseUnit.UnitCode
+                        : null
+                })
+                .FirstOrDefaultAsync();
+            var store = await _context.Stores
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId && x.Active)
+                .Select(x => new { x.StoreId, x.Name })
+                .FirstOrDefaultAsync();
+            if (recipe == null || store == null)
+                return null;
+
+            var result = new BomOperationalDetailVM
+            {
+                StoreId = store.StoreId,
+                StoreName = store.Name
+            };
+
+            if (recipe.PreparedItemId.HasValue)
+            {
+                var stockRows = await _context.StoreInventories
+                    .AsNoTracking()
+                    .Where(x => x.StoreId == storeId
+                        && x.PreparedItemId == recipe.PreparedItemId.Value)
+                    .OrderBy(x => x.StoreInventoryId)
+                    .ToListAsync();
+                var canonical = stockRows
+                    .Where(x => x.BtpIdentityState == BtpIdentityState.Canonical
+                        && x.QuantitySemanticsStatus == InventoryQuantitySemanticsStatus.BaseUnitConfirmed)
+                    .ToList();
+                var hasLegacyCollision = stockRows.Any(x => x.BtpIdentityState == BtpIdentityState.Legacy);
+
+                if (canonical.Count == 1 && !hasLegacyCollision)
+                {
+                    var row = canonical[0];
+                    var latestLayer = await _context.InventoryCostLayers
+                        .AsNoTracking()
+                        .Where(x => x.StoreId == storeId
+                            && x.PreparedItemId == recipe.PreparedItemId.Value
+                            && x.SourceProductionRunId.HasValue)
+                        .OrderByDescending(x => x.CreatedAt)
+                        .ThenByDescending(x => x.InventoryCostLayerId)
+                        .Select(x => new
+                        {
+                            x.InventoryCostLayerId,
+                            x.SourceProductionRunId,
+                            x.UnitCost,
+                            x.CreatedAt
+                        })
+                        .FirstOrDefaultAsync();
+
+                    result.OutputStock = new BomPreparedItemStockVM
+                    {
+                        StoreInventoryId = row.StoreInventoryId,
+                        PreparedItemId = recipe.PreparedItemId.Value,
+                        PreparedItemCode = recipe.PreparedItemCode ?? "",
+                        PreparedItemName = recipe.PreparedItemName ?? "",
+                        BaseUnitCode = recipe.BaseUnitCode ?? "",
+                        CurrentQuantity = row.AvailableQty,
+                        ReservedQuantity = row.ReservedQty,
+                        UsableQuantity = row.AvailableQty - row.ReservedQty,
+                        LatestCostLayerId = latestLayer?.InventoryCostLayerId,
+                        SourceProductionRunId = latestLayer?.SourceProductionRunId,
+                        ActualUnitCost = latestLayer?.UnitCost,
+                        ActualLayerCreatedAt = latestLayer?.CreatedAt
+                    };
+                }
+            }
+
+            var runs = await (
+                from run in _context.ProductionRuns.AsNoTracking()
+                where run.StoreId == storeId && run.RecipeId == recipeId
+                join staff in _context.Staffs.AsNoTracking()
+                    on run.CreatedByStaffId equals staff.StaffId into staffRows
+                from staff in staffRows.DefaultIfEmpty()
+                orderby run.CreatedAt descending
+                select new BomProductionRunVM
+                {
+                    ProductionRunId = run.ProductionRunId,
+                    RequestedRunCount = run.RequestedRunCount,
+                    Status = run.Status == ProductionRunStatus.Completed
+                        ? "Đã hoàn tất"
+                        : "Đã xác nhận",
+                    ConfirmedAt = run.ConfirmedAt,
+                    CompletedAt = run.CompletedAt,
+                    ActorName = staff != null ? staff.FullName : null,
+                    ActualTotalInputCost = run.TotalInputCost,
+                    ActualOutputUnitCost = run.OutputUnitCost
+                })
+                .Take(5)
+                .ToListAsync();
+
+            if (runs.Count > 0)
+            {
+                var runIds = runs.Select(x => x.ProductionRunId).ToList();
+                var outputRows = await _context.InventoryTransactions
+                    .AsNoTracking()
+                    .Where(x => x.ProductionRunId.HasValue
+                        && runIds.Contains(x.ProductionRunId.Value)
+                        && x.Type == InventoryTransactionTypeEnum.PRODUCTION_IN)
+                    .Select(x => new { ProductionRunId = x.ProductionRunId!.Value, x.Quantity })
+                    .ToListAsync();
+                var outputQuantities = outputRows
+                    .GroupBy(x => x.ProductionRunId)
+                    .ToDictionary(x => x.Key, x => x.Sum(y => y.Quantity));
+                foreach (var run in runs)
+                {
+                    if (outputQuantities.TryGetValue(run.ProductionRunId, out var quantity))
+                        run.NormalizedOutputQuantity = quantity;
+                }
+            }
+
+            result.RecentRuns = runs;
+            return result;
         }
 
         public async Task<AdminRecipeFormOptionsVM> GetFormOptionsAsync()

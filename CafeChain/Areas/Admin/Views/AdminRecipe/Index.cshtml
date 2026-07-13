@@ -231,7 +231,8 @@
                                 <td class="rb-actions-cell">
                                     <a class="btn btn-sm btn-outline-secondary"
                                        asp-action="Visualize"
-                                       asp-route-recipeId="@recipe.RecipeId">Xem cấu trúc BOM</a>
+                                       asp-route-recipeId="@recipe.RecipeId"
+                                       asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Xem cấu trúc BOM</a>
                                     @if (Model.CanWrite)
                                     {
                                         <a class="btn btn-sm btn-outline-primary"

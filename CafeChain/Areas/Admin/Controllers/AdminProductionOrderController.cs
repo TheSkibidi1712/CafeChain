@@ -36,25 +36,32 @@ namespace CafeChain.Areas.Admin.Controllers
         public IActionResult Index() => RedirectToAction(nameof(Create));
 
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int storeId = 0, int recipeId = 0)
         {
             var accountId = GetAccountId();
             var stores = accountId > 0
                 ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
                 : new List<InventoryStoreDTO>();
             var homeStoreId = User.GetStoreIdOrDefault();
-            var storeId = stores.Any(x => x.StoreId == homeStoreId)
-                ? homeStoreId
-                : stores.FirstOrDefault()?.StoreId ?? 0;
+            var selectedStoreId = stores.Any(x => x.StoreId == storeId)
+                ? storeId
+                : stores.Any(x => x.StoreId == homeStoreId)
+                    ? homeStoreId
+                    : stores.FirstOrDefault()?.StoreId ?? 0;
+            var recipeOptions = (await _readinessService.GetRecipeOptionsAsync()).ToList();
+            var selectedRecipeId = recipeOptions.Any(x => x.RecipeId == recipeId && x.Selectable)
+                ? recipeId
+                : 0;
             var model = new ProductionOrderVM
             {
-                StoreId = storeId,
+                StoreId = selectedStoreId,
+                TargetRecipeId = selectedRecipeId,
                 Stores = stores,
-                RecipeOptions = (await _readinessService.GetRecipeOptionsAsync()).ToList()
+                RecipeOptions = recipeOptions
             };
 
-            ViewBag.RecentHistory = storeId > 0
-                ? await _productionRunService.GetRecentAsync(storeId, 5)
+            ViewBag.RecentHistory = selectedStoreId > 0
+                ? await _productionRunService.GetRecentAsync(selectedStoreId, 5)
                 : Array.Empty<ProductionRunHistoryItemDto>();
 
             return View(model);

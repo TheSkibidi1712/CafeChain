@@ -44,13 +44,13 @@
 .rb-cogs-box {
     background: #fff7ed;
     border: 1px solid #fed7aa;
-    border-radius: 12px;
+    border-radius: var(--rb-radius);
     padding: 16px 20px;
     text-align: center;
 }
-.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #c2410c; }
+.rb-cogs-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0; color: #c2410c; }
 .rb-cogs-value { font-size: 1.8rem; font-weight: 800; color: #ea580c; line-height: 1.2; }
-.rb-cogs-sub { font-size: 0.65rem; color: #9a3412; text-transform: uppercase; letter-spacing: 0.5px; }
+.rb-cogs-sub { font-size: 0.65rem; color: #9a3412; text-transform: uppercase; letter-spacing: 0; }
 
 /* Status dot */
 .rb-status-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
@@ -73,7 +73,7 @@
 .rb-table thead th {
     background: #f8fafc; color: var(--rb-muted);
     font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.5px; border-bottom: 1px solid var(--rb-border);
+    letter-spacing: 0; border-bottom: 1px solid var(--rb-border);
     padding: 10px 16px;
 }
 .rb-table tbody td { padding: 14px 16px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; font-size: 0.88rem; }
@@ -276,9 +276,130 @@
 /* Light theme only — no dark page headers */
 .rb-page .bom-header-dark { display: none !important; }
 
+/* BOM detail and operational linkage (#150) */
+.min-w-0 { min-width: 0; }
+.rb-detail-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+.rb-detail-actions, .rb-operational-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
+}
+.rb-detail-overview, .rb-output-contract, .rb-cost-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+}
+.rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div {
+    min-width: 0;
+    padding: 14px 16px;
+    border-right: 1px solid var(--rb-border);
+    border-bottom: 1px solid var(--rb-border);
+}
+.rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n), .rb-cost-metrics > div:nth-child(3n) {
+    border-right: 0;
+}
+.rb-detail-overview span, .rb-output-contract span, .rb-cost-metrics span,
+.rb-readiness-strip span, .rb-actual-cost-box span {
+    display: block;
+    color: #64748b;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+.rb-detail-overview strong, .rb-output-contract strong, .rb-cost-metrics strong {
+    display: block;
+    margin-top: 4px;
+    color: var(--rb-text);
+    overflow-wrap: anywhere;
+}
+.rb-output-contract a { display: inline-block; margin-top: 6px; }
+.rb-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.rb-detail-reason {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+    padding: 9px 0;
+    border-top: 1px solid #edf0f4;
+}
+.rb-detail-reason code { display: block; width: fit-content; color: #9a3412; }
+.rb-detail-reason span { display: block; margin-top: 3px; color: #475569; overflow-wrap: anywhere; }
+.rb-detail-table { min-width: 960px; }
+.rb-detail-table th:first-child { min-width: 230px; }
+.rb-detail-table th:last-child { min-width: 210px; }
+.rb-detail-empty { padding: 28px 18px; color: #64748b; text-align: center; }
+.rb-cost-metrics > p {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 12px 16px;
+    color: #64748b;
+    background: #f8fafc;
+}
+.rb-store-selector {
+    display: grid;
+    grid-template-columns: minmax(240px, 420px) auto;
+    align-items: end;
+    gap: 8px;
+}
+.rb-readiness-strip {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid #f1c48b;
+    border-radius: var(--rb-radius);
+    background: #fff7e8;
+}
+.rb-readiness-strip.is-ready { border-color: #a9d8be; background: #edf8f1; }
+.rb-readiness-strip > div { padding: 12px 14px; border-right: 1px solid rgba(71, 84, 103, 0.16); }
+.rb-readiness-strip > div:last-child { border-right: 0; }
+.rb-readiness-strip strong { display: block; margin-top: 3px; overflow-wrap: anywhere; }
+.rb-operational-reasons { margin: 10px 0 0; padding-left: 20px; color: #7c2d12; }
+.rb-operational-reasons li { margin-bottom: 5px; overflow-wrap: anywhere; }
+.rb-subpanel {
+    min-width: 0;
+    padding: 16px;
+    border: 1px solid var(--rb-border);
+    border-radius: var(--rb-radius);
+    background: #fff;
+}
+.rb-subpanel h2 { margin: 0 0 12px; font-size: 1rem; color: var(--rb-text); }
+.rb-stock-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin: 0;
+}
+.rb-stock-grid div { padding: 10px; border: 1px solid #edf0f4; border-radius: 6px; }
+.rb-stock-grid dt { color: #64748b; font-size: 0.75rem; }
+.rb-stock-grid dd { margin: 3px 0 0; font-weight: 800; color: var(--rb-text); }
+.rb-actual-cost-box { margin-top: 10px; padding: 12px; border-left: 3px solid #475569; background: #f8fafc; }
+.rb-actual-cost-box strong, .rb-actual-cost-box small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
+.rb-run-list article { padding: 10px 0; border-top: 1px solid #edf0f4; }
+.rb-run-list article:first-child { padding-top: 0; border-top: 0; }
+.rb-run-list article > div { display: flex; justify-content: space-between; gap: 8px; }
+.rb-run-list article p { margin: 4px 0; color: #64748b; font-size: 0.82rem; }
+.rb-run-list article small { color: #334155; overflow-wrap: anywhere; }
+
 @media (max-width: 1199.98px) {
     .rb-footer-bar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
     .rb-builder-grid { display: block !important; }
+    .rb-detail-header { align-items: stretch; }
+    .rb-detail-actions { justify-content: flex-start; }
+}
+@media (max-width: 1023.98px) {
+    .rb-detail-header { flex-direction: column; }
+    .rb-detail-grid { grid-template-columns: 1fr; }
+    .rb-detail-overview, .rb-output-contract { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .rb-detail-overview > div:nth-child(3n), .rb-output-contract > div:nth-child(3n) { border-right: 1px solid var(--rb-border); }
+    .rb-detail-overview > div:nth-child(2n), .rb-output-contract > div:nth-child(2n) { border-right: 0; }
 }
 @media (max-width: 767.98px) {
     .rb-page-title { font-size: 1.25rem; }
@@ -291,16 +412,26 @@
     .rb-list-filters .btn { width: 100%; }
     .rb-recipe-tabs { gap: 16px; overflow-x: auto; }
     .rb-recipe-tab { white-space: nowrap; }
+    .rb-detail-actions .btn, .rb-operational-actions .btn { flex: 1 1 100%; }
+    .rb-detail-overview, .rb-output-contract, .rb-cost-metrics, .rb-readiness-strip, .rb-stock-grid { grid-template-columns: 1fr; }
+    .rb-detail-overview > div, .rb-output-contract > div, .rb-cost-metrics > div, .rb-readiness-strip > div {
+        border-right: 0;
+        border-bottom: 1px solid var(--rb-border);
+    }
+    .rb-detail-reason { grid-template-columns: 1fr; }
+    .rb-detail-reason .btn { width: 100%; }
+    .rb-store-selector { grid-template-columns: 1fr; }
+    .rb-store-selector .btn { width: 100%; }
 }
 
 /* Toggle buttons */
 .rb-toggle .btn-check:checked + .btn { background: var(--rb-primary); border-color: var(--rb-primary); color: #fff; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
-.rb-toggle .btn { border-color: var(--rb-border); color: #64748b; font-weight: 600; border-radius: 10px !important; }
+.rb-toggle .btn { border-color: var(--rb-border); color: #64748b; font-weight: 600; border-radius: var(--rb-radius) !important; }
 
 /* Select2 overrides */
-.rb-page .select2-container--bootstrap-5 .select2-selection { border-color: var(--rb-border); border-radius: 10px; min-height: 40px; }
+.rb-page .select2-container--bootstrap-5 .select2-selection { border-color: var(--rb-border); border-radius: var(--rb-radius); min-height: 40px; }
 .rb-page .select2-container--bootstrap-5 .select2-results__group { background: #f1f5f9; font-weight: 700; font-size: 0.8rem; }
 
 /* Inputs */
-.rb-page .form-control, .rb-page .form-select { border-radius: 10px; border-color: var(--rb-border); }
+.rb-page .form-control, .rb-page .form-select { border-radius: var(--rb-radius); border-color: var(--rb-border); }
 .rb-page .form-control:focus, .rb-page .form-select:focus { border-color: var(--rb-primary); box-shadow: 0 0 0 3px rgba(249,115,22,0.1); }
