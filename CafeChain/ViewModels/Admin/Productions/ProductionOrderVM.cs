@@ -1,11 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.StoreInventories;
 
 namespace CafeChain.ViewModels.Admin.Productions
 {
     public class ProductionOrderVM
     {
+        [Required(ErrorMessage = "Vui lòng chọn cửa hàng")]
+        public int StoreId { get; set; }
+
+        public List<InventoryStoreDTO> Stores { get; set; } = new();
+
+        public List<ProductionRecipeOptionDto> RecipeOptions { get; set; } = new();
+
         // Chọn công thức Bán thành phẩm cần nấu
         [Required(ErrorMessage = "Vui lòng chọn công thức sơ chế")]
         public int TargetRecipeId { get; set; }

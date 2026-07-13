@@ -165,6 +165,9 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunService>();
             services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionReadinessService,
+                CafeChain.Application.Services.Admin.Production.ProductionReadinessService>();
+            services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunExecutionService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunExecutionService>();
             services.AddScoped<
