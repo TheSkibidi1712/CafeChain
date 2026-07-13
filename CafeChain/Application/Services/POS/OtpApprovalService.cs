@@ -125,20 +125,22 @@ namespace CafeChain.Application.Services.POS
                     ex.Message);
 
                 // Development: keep challenge Pending and surface OTP so local close-shift can proceed
-                // when Gmail/SMTP is not configured (see Email:DeliveryMode=Log in appsettings.Local.json).
+                // when Gmail/SMTP is not configured. Include short SMTP reason for debugging.
                 if (_environment.IsDevelopment())
                 {
+                    var smtpReason = TruncateUserFacing(ex.Message, 160);
                     _logger.LogWarning(
-                        "OTP_DEV_CAPTURE | PublicId={PublicId} | ApproverStaffId={ApproverStaffId} | Role={Role} | To={To} | OtpCode={OtpCode}",
+                        "OTP_DEV_CAPTURE | PublicId={PublicId} | ApproverStaffId={ApproverStaffId} | Role={Role} | To={To} | OtpCode={OtpCode} | SmtpError={SmtpError}",
                         challenge.PublicId,
                         approver.StaffId,
                         approverRoleLabel,
                         MaskEmail(approverEmail),
-                        otpCode);
+                        otpCode,
+                        smtpReason);
 
                     return ServiceResult<OtpChallengeResponseDto>.Success(
                         MapResponse(challenge, nowUtc),
-                        $"SMTP lỗi — Development capture. OTP gửi {approverRoleLabel} {MaskEmail(approverEmail)}: {otpCode}");
+                        $"SMTP lỗi ({smtpReason}). Development: OTP {approverRoleLabel} {MaskEmail(approverEmail)} = {otpCode}");
                 }
 
                 // Production/Staging: cancel challenge (giữ audit, không xóa)
@@ -394,6 +396,13 @@ namespace CafeChain.Application.Services.POS
             var at = value.IndexOf('@');
             if (at <= 1) return "***";
             return value[0] + "***" + value.Substring(at);
+        }
+
+        private static string TruncateUserFacing(string? text, int max)
+        {
+            if (string.IsNullOrWhiteSpace(text)) return "không xác định";
+            var cleaned = text.Replace('\r', ' ').Replace('\n', ' ').Trim();
+            return cleaned.Length <= max ? cleaned : cleaned.Substring(0, max) + "...";
         }
 
         /// <summary>

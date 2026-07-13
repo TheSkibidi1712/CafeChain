@@ -39,7 +39,8 @@ namespace CafeChain.Application.Services.Accounts
                 var smtpHost = _config["Email:SmtpHost"]?.Trim();
                 var smtpPortRaw = _config["Email:SmtpPort"]?.Trim();
                 var email = _config["Email:Address"]?.Trim();
-                var password = _config["Email:Password"];
+                // Gmail App Password may be pasted with spaces — strip them.
+                var password = (_config["Email:Password"] ?? string.Empty).Replace(" ", string.Empty).Trim();
 
                 // Fail fast with actionable messages — never include secrets/OTP in exceptions.
                 if (string.IsNullOrWhiteSpace(smtpHost))
@@ -51,42 +52,64 @@ namespace CafeChain.Application.Services.Accounts
                 if (string.IsNullOrWhiteSpace(password))
                     throw new InvalidOperationException("Thiếu cấu hình Email:Password (Gmail cần App Password).");
 
-                using var client = new SmtpClient(smtpHost, smtpPort)
-                {
-                    Credentials = new NetworkCredential(email, password),
-                    EnableSsl = true,
-                    UseDefaultCredentials = false,
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Timeout = 10000
-                };
+                // IMPORTANT: set UseDefaultCredentials = false BEFORE Credentials.
+                // Object-initializer order Credentials then UseDefaultCredentials=false clears the password
+                // and Gmail returns authentication failure.
+                using var client = new SmtpClient(smtpHost, smtpPort);
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.EnableSsl = true;
+                client.Timeout = 30_000;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(email, password);
 
-                var mail = new MailMessage()
+                using var mail = new MailMessage
                 {
                     From = new MailAddress(email, "CafeChain Support"),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = true
                 };
-
                 mail.To.Add(to);
 
+                _logger.LogInformation(
+                    "EMAIL_SMTP_SEND | Host={Host}:{Port} | From={From} | To={To} | Subject={Subject}",
+                    smtpHost,
+                    smtpPort,
+                    email,
+                    to.Trim(),
+                    subject);
+
                 await client.SendMailAsync(mail);
+
+                _logger.LogInformation("EMAIL_SMTP_OK | To={To}", to.Trim());
             }
             catch (SmtpException ex)
             {
                 // Gmail 5.7.0 / auth failures — config issue, not OTP domain bug.
                 var detail = ex.Message ?? string.Empty;
+                var status = ex.StatusCode.ToString();
+                _logger.LogError(
+                    ex,
+                    "EMAIL_SMTP_FAILED | Status={Status} | Detail={Detail}",
+                    status,
+                    SummarizeSmtp(ex));
+
                 if (detail.Contains("5.7.0", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("5.7.8", StringComparison.OrdinalIgnoreCase)
                     || detail.Contains("Authentication Required", StringComparison.OrdinalIgnoreCase)
-                    || detail.Contains("not authenticated", StringComparison.OrdinalIgnoreCase))
+                    || detail.Contains("not authenticated", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("Username and Password not accepted", StringComparison.OrdinalIgnoreCase)
+                    || status.Contains("MustIssueStartTlsFirst", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
-                        "Xác thực SMTP thất bại (Authentication Required). " +
-                        "Kiểm tra Email:Address và Email:Password — với Gmail cần bật 2FA và dùng App Password 16 ký tự.",
+                        "Xác thực SMTP thất bại. Kiểm tra Email:Address + Email:Password (Gmail App Password 16 ký tự, bật 2FA). " +
+                        "Chi tiết: " + SummarizeSmtp(ex),
                         ex);
                 }
 
-                throw new InvalidOperationException("Lỗi SMTP khi gửi email: " + SummarizeSmtp(ex), ex);
+                throw new InvalidOperationException(
+                    "Lỗi SMTP khi gửi email [" + status + "]: " + SummarizeSmtp(ex),
+                    ex);
             }
             catch (InvalidOperationException)
             {
