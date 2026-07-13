@@ -98,11 +98,11 @@ graph TD
 * **Các nhiệm vụ cụ thể**:
   1. [ ] **POS Access Guard**: Thêm Action Filter hoặc kiểm tra trong `PosController.Index` để kiểm tra nhân viên đăng nhập có ca hoạt động (`ActualCheckIn != null && ActualCheckOut == null`) hay không. Nếu không, chuyển hướng tới trang thông báo khóa.
   2. [ ] **Sale Session Binding**: Đảm bảo tất cả các hóa đơn (`Invoice`) khi lưu trữ đều được gắn chặt với ID ca làm việc hiện tại (`StaffShiftId`) để dễ dàng đối soát quỹ tiền mặt.
-  3. [ ] **Shift Leader Elevation Modal**:
-     * Khi nhân viên thực hiện thao tác nhạy cảm (Hủy hóa đơn, Giảm giá sâu, Đổi giá gốc), hệ thống hiển thị popup khóa màn hình.
-     * Trưởng ca nhập mã PIN 4 số hoặc quét khuôn mặt FaceID ngay trên thiết bị để cấp quyền tiếp tục.
+  3. [x] **Supervisor OTP Approval** (#139–#143):
+     * Thao tác nhạy cảm (chênh lệch két, đóng ca ngoại lệ, mở ca trễ) yêu cầu OTP one-time 6 ký tự alphanumeric gửi email Ca trưởng.
+     * Không còn PIN 4 số cố định / `Staff.PinHash`.
   4. [ ] **Xử lý Edge Cases**:
-     * Phòng chống brute-force mã PIN xác thực của Trưởng ca.
+     * OTP: TTL, max attempts, resend cooldown, anti-self-approval, payload fingerprint.
      * Xử lý trường hợp ca làm việc hết hạn giữa chừng khi nhân viên đang thực hiện giao dịch dở dang trên POS.
 
 ---

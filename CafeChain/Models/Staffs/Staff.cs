@@ -28,7 +28,6 @@ namespace CafeChain.Models.Staffs
         public string? HealthInsuranceNumber { get; set; }
 
         public string? FaceDescriptor { get; set; }
-        public string? PinHash { get; set; }
         public DateTime? DateOfBirth { get; set; }
         public int StoreId { get; set; }
 

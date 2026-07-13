@@ -229,7 +229,6 @@ namespace CafeChain.Extensions.Services
             // HR & Attendance
             services.AddScoped<IHrAttendanceService, HrAttendanceService>();
             services.AddScoped<IWorkShiftService, WorkShiftService>();
-            services.AddScoped<ISupervisorAuthService, SupervisorAuthService>();
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();

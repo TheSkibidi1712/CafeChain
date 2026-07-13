@@ -19,7 +19,6 @@ namespace CafeChain.Application.Services.POS
         private readonly IWorkShiftRepository _shiftRepo;
         private readonly IHrAttendanceService _hrAttendanceService;
         private readonly IPOSOrderRepository _posRepo;
-        private readonly ISupervisorAuthService _supervisorAuthService;
         private readonly IOtpChallengeRepository _otpChallengeRepo;
         private readonly IOtpPayloadFingerprintService _otpFingerprint;
         private readonly ILogger<WorkShiftService> _logger;
@@ -28,7 +27,6 @@ namespace CafeChain.Application.Services.POS
             IWorkShiftRepository shiftRepo,
             IHrAttendanceService hrAttendanceService,
             IPOSOrderRepository posRepo,
-            ISupervisorAuthService supervisorAuthService,
             IOtpChallengeRepository otpChallengeRepo,
             IOtpPayloadFingerprintService otpFingerprint,
             ILogger<WorkShiftService> logger)
@@ -36,7 +34,6 @@ namespace CafeChain.Application.Services.POS
             _shiftRepo = shiftRepo;
             _hrAttendanceService = hrAttendanceService;
             _posRepo = posRepo;
-            _supervisorAuthService = supervisorAuthService;
             _otpChallengeRepo = otpChallengeRepo;
             _otpFingerprint = otpFingerprint;
             _logger = logger;
@@ -339,14 +336,6 @@ namespace CafeChain.Application.Services.POS
             {
                 if (request == null)
                     return ServiceResult.Failure("Thiếu dữ liệu đóng ca ngoại lệ.");
-
-                // Phase 2: PIN no longer authorizes this flow.
-                if (!string.IsNullOrWhiteSpace(request.SupervisorPin))
-                {
-                    return ServiceResult.Failure(
-                        "Đóng ca ngoại lệ không còn dùng PIN supervisor. Vui lòng gửi và xác nhận OTP online.",
-                        errorCode: OtpConstants.ErrorCodes.FeatureNotAvailable);
-                }
 
                 var exceptionReason = request.ExceptionReason?.Trim();
                 if (string.IsNullOrWhiteSpace(exceptionReason))

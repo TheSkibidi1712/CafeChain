@@ -1,21 +1,17 @@
 using System;
 using System.Linq;
 using System.Threading.Tasks;
-using CafeChain.Application.Constants;
-using CafeChain.Application.Services.POS;
 using CafeChain.Data;
-using CafeChain.Infrastructure.Interfaces.Admin.POS;
-using CafeChain.Models.Orders;
+using CafeChain.Models.Staffs;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Moq;
 using Xunit;
 
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Phase 3 (#140) SQL boundary: disabled PIN endpoints must not create authorization evidence.
+    /// Phase 3/4 (#140/#143) SQL boundary: current model has no Staff.PinHash;
+    /// EnsureCreated schema must not expose PIN credential column under active model.
     /// Dedicated DB: CafeChain_OtpSecurityPhase3Tests.
     /// </summary>
     public sealed class POSOtpSecurityPhase3SqlServerTests : IAsyncLifetime
@@ -50,7 +46,7 @@ IF DB_ID(N'{Database}') IS NULL
             catch (Exception ex)
             {
                 throw new InvalidOperationException(
-                    $"SQL Server integration environment unavailable for OTP Phase 3. Server={Server}, Database={Database}. {ex.Message}",
+                    $"SQL Server integration environment unavailable for OTP Phase 3/4. Server={Server}, Database={Database}. {ex.Message}",
                     ex);
             }
         }
@@ -58,27 +54,36 @@ IF DB_ID(N'{Database}') IS NULL
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
-        public async Task SqlServer_DisabledPinEndpoint_CannotCreateAuthorizationEvidence()
+        public async Task SqlServer_StaffSchema_DoesNotContainPinHash_UnderCurrentModel()
         {
+            Assert.Null(typeof(Staff).GetProperty("PinHash"));
+
+            await using var ctx = CreateContext();
+            var entity = ctx.Model.FindEntityType(typeof(Staff));
+            Assert.NotNull(entity);
+            Assert.DoesNotContain(entity!.GetProperties(), p => p.Name.Equals("PinHash", StringComparison.OrdinalIgnoreCase));
+
+            await using var conn = ctx.Database.GetDbConnection();
+            await conn.OpenAsync();
+            await using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"
+SELECT COUNT(*)
+FROM INFORMATION_SCHEMA.COLUMNS
+WHERE TABLE_NAME = N'Staffs' AND COLUMN_NAME = N'PinHash';";
+            var count = Convert.ToInt32(await cmd.ExecuteScalarAsync());
+            Assert.Equal(0, count);
+        }
+
+        [Fact]
+        public async Task SqlServer_DisabledLegacyRoutes_CannotCreateAuthorizationEvidence()
+        {
+            // Routes fully removed — no PIN service can write InvoiceAuditLog as auth evidence.
             await using var ctx = CreateContext();
             var before = await ctx.InvoiceAuditLogs.CountAsync();
 
-            // Even if a repository were wired, AuthorizePinAsync must not call CreateAuditLog.
-            var repo = new Mock<ISupervisorRepository>(MockBehavior.Strict);
-            var service = new SupervisorAuthService(repo.Object, new MemoryCache(new MemoryCacheOptions()));
-
-            var tasks = Enumerable.Range(0, 8).Select(async i =>
-            {
-                var r = await service.AuthorizePinAsync(
-                    "1234", cashierId: 1, storeId: 1,
-                    actionName: "VOID_INVOICE", targetId: i, reason: "race");
-                Assert.False(r.IsSuccess);
-                Assert.Equal(OtpConstants.ErrorCodes.FeatureNotAvailable, r.ErrorCode);
-                return r;
-            });
-
-            await Task.WhenAll(tasks);
-            repo.Verify(r => r.CreateAuditLogAsync(It.IsAny<InvoiceAuditLog>()), Times.Never);
+            Assert.Null(Type.GetType("CafeChain.Application.Services.POS.SupervisorAuthService, CafeChain"));
+            Assert.Null(typeof(CafeChain.Controllers.AttendanceController).GetMethod("AuthorizeBypass"));
+            Assert.Null(typeof(CafeChain.Areas.Admin.Controllers.AdminPOSController).GetMethod("AuthorizeSupervisor"));
 
             await using var verify = CreateContext();
             var after = await verify.InvoiceAuditLogs.CountAsync();

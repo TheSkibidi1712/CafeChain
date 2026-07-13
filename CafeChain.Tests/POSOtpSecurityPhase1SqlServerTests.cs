@@ -242,7 +242,6 @@ IF DB_ID(N'{Database}') IS NULL
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo,
                 _fingerprint,
                 NullLogger<WorkShiftService>.Instance);
@@ -531,7 +530,6 @@ IF DB_ID(N'{Database}') IS NULL
                 new WorkShiftRepository(ctx),
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 new OtpChallengeRepository(ctx),
                 _fingerprint,
                 NullLogger<WorkShiftService>.Instance);

@@ -102,17 +102,12 @@ namespace CafeChain.Application.DTOs.POS
 
     /// <summary>
     /// DTO request đóng WorkShift ngoại lệ khi còn Offline Order local chưa sync.
-    /// Phase 2: OtpChallengePublicId (inherited) required; SupervisorPin rejected if non-empty.
+    /// Requires OtpChallengePublicId (inherited from CloseShiftRequestDto).
     /// </summary>
     public class CloseShiftExceptionRequestDto : CloseShiftRequestDto
     {
         /// <summary>Lý do đóng ngoại lệ, bắt buộc.</summary>
         public string? ExceptionReason { get; set; }
-
-        /// <summary>
-        /// Legacy PIN field — Phase 2 no longer authorizes. Non-empty values are rejected.
-        /// </summary>
-        public string? SupervisorPin { get; set; }
 
         /// <summary>Tóm tắt Offline Order local tại POS, không làm nguồn sự thật backend.</summary>
         public OfflineQueueSummaryDto OfflineQueueSummary { get; set; } = new();
@@ -136,20 +131,6 @@ namespace CafeChain.Application.DTOs.POS
         public string Phone { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public DateTime? DateOfBirth { get; set; }
-    }
-
-    /// <summary>
-    /// DTO yêu cầu bypass ủy quyền Trưởng ca (Voucher, Mở ca trễ, Hủy đơn...)
-    /// </summary>
-    public class BypassAuthorizationRequest
-    {
-        public string Pin { get; set; } = null!;
-        /// <summary>"SOFT_VOUCHER_BYPASS", "OPEN_SHIFT_LATE", "VOID_INVOICE", "PRICE_OVERRIDE"</summary>
-        public string ActionName { get; set; } = null!;
-        public int? TargetId { get; set; }
-        public string Reason { get; set; } = null!;
-        /// <summary>Giá trị voucher/chiết khấu được duyệt bypass (nullable)</summary>
-        public decimal? DiscountValue { get; set; }
     }
 
     /// <summary>

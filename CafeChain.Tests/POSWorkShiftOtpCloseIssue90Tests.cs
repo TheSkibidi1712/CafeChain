@@ -101,14 +101,12 @@ namespace CafeChain.Tests.POS
 
         private static WorkShiftService CreateService(
             Mock<IWorkShiftRepository> shiftRepo,
-            Mock<IOtpChallengeRepository>? otpRepo = null,
-            Mock<ISupervisorAuthService>? supervisorAuth = null)
+            Mock<IOtpChallengeRepository>? otpRepo = null)
         {
             return new WorkShiftService(
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                supervisorAuth?.Object ?? Mock.Of<ISupervisorAuthService>(),
                 otpRepo?.Object ?? Mock.Of<IOtpChallengeRepository>(),
                 Fingerprint,
                 Mock.Of<ILogger<WorkShiftService>>());
@@ -422,27 +420,12 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CloseShiftByException_WithLegacyPin_IsRejected()
+        public void CloseShiftExceptionRequestDto_HasNoSupervisorPinProperty()
         {
-            var shift = CreateOpenShift();
-            var shiftRepo = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            shiftRepo.Setup(r => r.GetActiveShiftAsync(UserId, StoreId))
-                .ReturnsAsync(shift);
-
-            var service = CreateService(shiftRepo);
-
-            var result = await service.CloseShiftByExceptionAsync(UserId, StoreId, ShiftId,
-                new CloseShiftExceptionRequestDto
-                {
-                    ActualEndingCash = HighDiscrepancyActual,
-                    DiscrepancyReason = "Thiếu tiền mặt.",
-                    ExceptionReason = "Mất mạng kéo dài.",
-                    SupervisorPin = "9999"
-                });
-
-            Assert.False(result.IsSuccess);
-            Assert.Equal(OtpConstants.ErrorCodes.FeatureNotAvailable, result.ErrorCode);
-            Assert.NotEqual("Closed", shift.Status);
+            var prop = typeof(CloseShiftExceptionRequestDto).GetProperty("SupervisorPin");
+            Assert.Null(prop);
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("Pin"));
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("PinCode"));
         }
     }
 }

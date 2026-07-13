@@ -108,7 +108,6 @@ namespace CafeChain.Extensions.Services
 
             // POS
             services.AddScoped<IPOSOrderRepository, POSOrderRepository>();
-            services.AddScoped<ISupervisorRepository, SupervisorRepository>();
             services.AddScoped<IOtpChallengeRepository, OtpChallengeRepository>();
 
             // Permissions

@@ -50,21 +50,6 @@ namespace CafeChain.Application.Constants
             public const string LateOpeningRequiresOtp = "LATE_OPENING_REQUIRES_OTP";
         }
 
-        /// <summary>
-        /// Phase 3 (#140): legacy PIN bypass/management messages (disabled, not deleted until #143).
-        /// </summary>
-        public static class PinDisabledMessages
-        {
-            public const string SupervisorPinAuth =
-                "Xác thực PIN supervisor không còn được hỗ trợ. Các thao tác nhạy cảm dùng OTP phê duyệt (online) hoặc đã bị gỡ.";
-
-            public const string UpdatePin =
-                "Đặt/đổi PIN supervisor không còn được hỗ trợ. Mã PIN cố định đã bị loại khỏi luồng phê duyệt.";
-
-            public const string GenericApprovalBool =
-                "Phê duyệt supervisor generic (success bool) không còn được hỗ trợ.";
-        }
-
         public static class Thresholds
         {
             /// <summary>Absolute VND amount above which OTP is required.</summary>

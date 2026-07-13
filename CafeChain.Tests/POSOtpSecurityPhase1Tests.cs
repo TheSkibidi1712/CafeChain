@@ -552,7 +552,6 @@ namespace CafeChain.Tests.POS
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo,
                 _fingerprint,
                 NullLogger<WorkShiftService>.Instance);
@@ -674,7 +673,6 @@ namespace CafeChain.Tests.POS
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 new OtpChallengeRepository(ctx),
                 _fingerprint,
                 NullLogger<WorkShiftService>.Instance);

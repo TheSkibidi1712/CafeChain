@@ -26,20 +26,17 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IWorkShiftService _workShiftService;
         private readonly IPOSOrderService _orderService;
-        private readonly ISupervisorAuthService _supervisorAuthService;
         private readonly IPOSOrderRepository _repository;
         private readonly IInventoryDeductionService _inventoryDeductionService;
 
         public AdminPOSController(
             IWorkShiftService workShiftService,
             IPOSOrderService orderService,
-            ISupervisorAuthService supervisorAuthService,
             IPOSOrderRepository repository,
             IInventoryDeductionService inventoryDeductionService)
         {
             _workShiftService = workShiftService;
             _orderService = orderService;
-            _supervisorAuthService = supervisorAuthService;
             _repository = repository;
             _inventoryDeductionService = inventoryDeductionService;
         }
@@ -253,24 +250,6 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _orderService.GetCloseShiftDataAsync(userId, storeId);
             if (!result.IsSuccess) return Json(new { success = false, message = result.Message });
             return Json(new { success = true, shift = result.Data });
-        }
-
-        // ============================================================
-        // API: Supervisor PIN Authorization — DISABLED Phase 3 (#140)
-        // Legacy generic success-bool approval is not migratable to bound OTP.
-        // React POS + OTP challenges replace sensitive shift approvals.
-        // ============================================================
-        [HttpPost]
-        public IActionResult AuthorizeSupervisor([FromBody] SupervisorAuthRequestDto request)
-        {
-            // Non-empty PIN and empty PIN alike: feature removed (no audit, no success bool).
-            return Json(new
-            {
-                success = false,
-                message = CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.SupervisorPinAuth,
-                errorCode = CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable,
-                remainingAttempts = 0
-            });
         }
 
         // ============================================================

@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using CafeChain.Application.Interfaces.Attendance;
-using CafeChain.Application.Interfaces.POS;
-using CafeChain.Application.DTOs.POS;
 
 namespace CafeChain.Controllers
 {
@@ -14,16 +12,13 @@ namespace CafeChain.Controllers
     {
         private readonly IAttendanceSecurityService _securityService;
         private readonly IAttendanceActionService _actionService;
-        private readonly ISupervisorAuthService _supervisorAuthService;
 
         public AttendanceController(
-            IAttendanceSecurityService securityService, 
-            IAttendanceActionService actionService,
-            ISupervisorAuthService supervisorAuthService)
+            IAttendanceSecurityService securityService,
+            IAttendanceActionService actionService)
         {
             _securityService = securityService;
             _actionService = actionService;
-            _supervisorAuthService = supervisorAuthService;
         }
 
         /// <summary>
@@ -41,7 +36,7 @@ namespace CafeChain.Controllers
         {
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _securityService.ValidateStoreIPAsync(storeId, clientIp);
-            
+
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -56,7 +51,7 @@ namespace CafeChain.Controllers
                 return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
 
             var result = await _securityService.ProcessFirstLoginPasswordChangeAsync(accountId, oldPassword, newPassword);
-            
+
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -100,23 +95,6 @@ namespace CafeChain.Controllers
             return Ok(new { success = true, message = result.Message });
         }
 
-        [HttpPost("UpdatePin")]
-        public async Task<IActionResult> UpdatePin([FromForm] string pin)
-        {
-            if (!TryGetAccountId(out int accountId))
-                return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
-
-            // Phase 3 (#140): PIN management disabled (FEATURE_NOT_AVAILABLE).
-            var result = await _securityService.UpdatePinAsync(accountId, pin);
-
-            return BadRequest(new
-            {
-                success = false,
-                message = result.Message,
-                errorCode = result.ErrorCode
-            });
-        }
-
         /// <summary>
         /// API tổng hợp: Trả về thông tin nhân viên, trạng thái Face ID, và lịch ca hôm nay
         /// Frontend StaffHub gọi API này khi page load
@@ -158,22 +136,6 @@ namespace CafeChain.Controllers
             ViewBag.AccountId = accountId;
 
             return View("~/Views/Attendance/MyBYOD.cshtml");
-        }
-
-        // ============================================================
-        // API: Authorize Bypass — DISABLED Phase 3 (#140)
-        // No active business mutation callers; generic PIN→audit bool removed.
-        // ============================================================
-        [HttpPost("AuthorizeBypass")]
-        public Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request)
-        {
-            // Reject non-empty PIN and all payloads — no dual mode, no InvoiceAuditLog write.
-            return Task.FromResult<IActionResult>(BadRequest(new
-            {
-                success = false,
-                message = CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.SupervisorPinAuth,
-                errorCode = CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable
-            }));
         }
     }
 

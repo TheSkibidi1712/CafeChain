@@ -86,14 +86,12 @@ graph TD
    - **Hủy hóa đơn:** Hủy đơn hàng đã in/đã thanh toán để thối tiền lại cho khách (nguy cơ thu ngân đút túi riêng).
    - **Giảm giá tay (Manual Discount):** Giảm giá trực tiếp trên tổng hóa đơn > 15% mà không có voucher hợp lệ.
    - **Sửa giá gốc:** Thay đổi đơn giá của món đồ uống trực tiếp tại quầy bán hàng.
-2. **Giao diện chặn (Bypass Modal):**
-   - Khóa toàn bộ màn hình POS bằng một lớp phủ mờ (Backdrop).
-   - Yêu cầu Trưởng ca nhập mã PIN 4 số bảo mật ngay trên máy bán hàng (hoặc dùng Camera quét Face ID).
-3. **API Ủy quyền (`AuthorizeBypass`):**
-   - Gửi dữ liệu qua `POST /api/Attendance/AuthorizeBypass` gồm: `{ TargetInvoiceId, LeaderPin, StoreId, ActionName }`.
-   - Backend truy vấn bảng `Staff` có mã PIN khớp với `PinHash` (sử dụng so khớp Bcrypt an toàn).
-   - Kiểm tra xem Staff phê duyệt đó có Role là `ShiftSupervisor` (Ca trưởng) hoặc cao hơn tại cửa hàng đó hay không.
-   - **Ghi log kiểm toán (`InvoiceAuditLog`):** Bắt buộc ghi nhận: *Ai duyệt, duyệt cho hóa đơn nào, hành động gì, vào thời điểm nào* để làm cơ sở đối soát sau này.
+2. **OTP phê duyệt (one-time, #139–#143):**
+   - Không còn PIN cố định / `Staff.PinHash` / `AuthorizeBypass` PIN.
+   - Thao tác nhạy cảm trong scope (CASH_DIFFERENCE, CLOSE_SHIFT_EXCEPTION, OPEN_SHIFT_LATE) dùng OTP challenge 6 ký tự alphanumeric gửi email Ca trưởng.
+3. **OTP lifecycle:**
+   - Request → Verify → Consume; payload fingerprint; anti-self-approval; max attempts/TTL/resend.
+   - **Ghi log kiểm toán:** actor/approver/action/target/reason/challenge PublicId — không lưu OTP plaintext/hash trên Staff.
 
 ---
 
@@ -150,12 +148,11 @@ Chúng ta đang xây dựng Module Bán Hàng Tại Quầy POS cho dự án Cafe
    - Thực hiện tích lũy/khấu trừ điểm Loyalty và ghi nhận Voucher nếu có.
    - Đối với việc Trừ Kho Nguyên Liệu (Inventory Deduction): Hãy gọi qua một Service trung gian đại diện (ví dụ: IInventoryDeductionService.DeductForOrder(orderId)) để kích hoạt cơ chế ngầm của hệ thống, TUYỆT ĐỐI không viết code SQL/EF truy cập trực tiếp vào DB Nguyên liệu trong service POS để tránh vi phạm nguyên tắc Đóng gói Module.
 
-4. Cơ Chế Ủy Quyền Trưởng Ca (Shift Leader Authorization Bypass):
-   - Khi xảy ra các thao tác: Hủy hóa đơn đã thanh toán, Sửa giá bán đồ uống gốc, hoặc Giảm giá tay (Manual Discount) > 15%.
-   - Client phải kích hoạt Backdrop phủ mờ toàn màn hình POS, chặn tương tác và hiển thị Form nhập mã PIN 4 số.
-   - Tạo endpoint API AuthorizeBypass nhận: { TargetInvoiceId, LeaderPin, StoreId, ActionName }.
-   - Backend truy vấn Staff tại StoreId có Role >= Ca trưởng (ShiftSupervisor) và so khớp PIN bằng BCrypt.Net.BCrypt.Verify(Pin, staff.PinHash).
-   - Nếu đúng, ghi log kiểm toán vào bảng kiểm toán hệ thống (InvoiceAuditLog) ghi nhận: Ai duyệt, cho Order nào, hành động gì, thời gian. Sau đó trả về success mở khóa Client.
+4. Cơ Chế Ủy Quyền Trưởng Ca (OTP one-time — #139–#143):
+   - Không còn PIN 4 số / Staff.PinHash / AuthorizeBypass PIN endpoint.
+   - CASH_DIFFERENCE / CLOSE_SHIFT_EXCEPTION / OPEN_SHIFT_LATE bắt buộc OtpChallengePublicId đã Approved rồi consume.
+   - Approver selection theo role/store/email active; anti-self-approval; payload fingerprint binding.
+   - InvoiceAuditLog chỉ là historical evidence, không phải authorization authority.
 
 5. Thiết Kế Giao Diện POS (Premium UI Rules):
    - Sử dụng gam màu Dark Mode thời thượng (Dark Navy #0f172a / #1e293b).

@@ -50,7 +50,7 @@ graph TD
 ### C. Settings (Module C)
 | Tính năng | Mô tả | Ghi chú |
 |---|---|---|
-| **Mã PIN** | Tạo/đổi PIN 4 số – dùng cho Trưởng ca khi cấp quyền trên POS. | Lưu trong `Staff.PinHash` (bcrypt). |
+| **OTP phê duyệt** | Duyệt thao tác nhạy cảm bằng OTP one-time 6 ký tự (email Ca trưởng). | Không còn PIN cố định / `Staff.PinHash` (#143). |
 | **Face ID** | Đăng ký lại khuôn mặt (3 góc: Straight, Left, Right). | Vector lưu trong `Staff.FaceDescriptor` (JSON). |
 | **Thông tin cá nhân** | Đổi mật khẩu, cập nhật email, số điện thoại. | Thao tác qua `AccountService`. |
 
@@ -103,7 +103,7 @@ graph TD
 1. **Login & Redirect**: Đăng nhập với Cashier → chuyển tới `/StaffHub/Index`.
 2. **Attendance**: Click **Vào Ca** → camera bật, gửi vector, backend trả `200`. Mở tab thứ 2, click lại → nhận `409` và reload.
 3. **POS Access**: Sau check‑in, nút “Đi tới POS” hiển thị và hoạt động; nếu chưa check‑in, nút khuyết và trả `403`.
-4. **Settings**: Thay đổi PIN, cập nhật FaceID, đổi mật khẩu – mọi thay đổi phải ghi vào DB và phản ánh trên UI.
+4. **Settings**: Cập nhật FaceID, đổi mật khẩu – mọi thay đổi phải ghi vào DB và phản ánh trên UI. (PIN cố định đã gỡ #143; OTP one-time cho supervisor approval.)
 
 ---
 

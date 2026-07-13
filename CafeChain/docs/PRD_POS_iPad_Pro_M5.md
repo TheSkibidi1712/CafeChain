@@ -41,9 +41,9 @@ Xây dựng lại module POS dành riêng cho iPad Pro M5, chạy trên Safari (
 15. As a Thu ngân, I want to thấy tiền thối lại tự động sau khi nhập tiền khách đưa, so that giảm sai sót khi thối tiền.
 16. As a Thu ngân, I want to chọn loại đơn (Tại quán / Mang đi), so that báo cáo phân loại chính xác.
 
-### Bảo mật & Ủy quyền (Supervisor Auth)
-17. As a Trưởng ca, I want to xác thực PIN 4 số khi thu ngân thực hiện thao tác nhạy cảm (hủy đơn, giảm giá sâu, sửa giá gốc), so that mọi hành động rủi ro đều có audit trail.
-18. As a Trưởng ca, I want to khóa PIN sau 5 lần nhập sai trong 15 phút, so that chống brute-force.
+### Bảo mật & Ủy quyền (Supervisor Auth — OTP, #139–#143)
+17. As a Trưởng ca, I want to duyệt thao tác nhạy cảm bằng OTP one-time 6 ký tự (email), so that mọi hành động rủi ro đều có audit trail bound theo challenge/payload.
+18. As a Hệ thống, I want OTP hết hạn / khóa sau max attempts và chống self-approval, so that credential tái sử dụng (PIN cố định) không còn tồn tại.
 
 ### Bán hàng Offline (PWA + IndexedDB)
 19. As a Thu ngân, I want to thấy trạng thái Online/Offline rõ ràng trên header POS, so that biết mạng đang hoạt động hay không.

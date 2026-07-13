@@ -47,19 +47,11 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CloseShiftException_PinPayload_IsRejected()
+        public void CloseShiftExceptionRequestDto_HasNoLegacyPinFields()
         {
-            var shift = CreateOpenShift();
-            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
-            var service = CreateWorkShiftService(repository, Mock.Of<IOtpChallengeRepository>());
-
-            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequestWithPin("1234"));
-
-            Assert.False(result.IsSuccess);
-            Assert.Equal(OtpConstants.ErrorCodes.FeatureNotAvailable, result.ErrorCode);
-            Assert.Equal("Open", shift.Status);
-            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("SupervisorPin"));
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("Pin"));
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("PinCode"));
         }
 
         [Fact]
@@ -172,7 +164,6 @@ namespace CafeChain.Tests.POS
                 repository.Object,
                 Mock.Of<IHrAttendanceService>(),
                 posRepo ?? Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo,
                 Fingerprint,
                 Mock.Of<ILogger<WorkShiftService>>());
@@ -232,22 +223,6 @@ namespace CafeChain.Tests.POS
                 Mock.Of<IPrintDispatcher>(),
                 Mock.Of<IPayOSService>(),
                 Mock.Of<ILogger<POSOrderService>>());
-        }
-
-        private static CloseShiftExceptionRequestDto CreateExceptionRequestWithPin(string pin)
-        {
-            return new CloseShiftExceptionRequestDto
-            {
-                ActualEndingCash = 500000m,
-                ExceptionReason = "Mất mạng kéo dài, còn đơn offline chưa sync.",
-                SupervisorPin = pin,
-                OfflineQueueSummary = new OfflineQueueSummaryDto
-                {
-                    OfflineOrderCount = 2,
-                    EstimatedTotal = 90000m,
-                    LocalCashTotal = 90000m
-                }
-            };
         }
 
         private static CloseShiftExceptionRequestDto CreateExceptionRequestWithOtp()

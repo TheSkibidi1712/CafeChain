@@ -134,12 +134,5 @@ namespace CafeChain.Application.Services.Attendance
             return ServiceResult.Success("Đăng ký Face ID thành công! Bạn có thể sử dụng khuôn mặt để chấm công.");
         }
 
-        public Task<ServiceResult> UpdatePinAsync(int accountId, string pin)
-        {
-            // Phase 3 (#140): PIN management UI/API disabled. PinHash cleanup is #143.
-            return Task.FromResult(ServiceResult.Failure(
-                CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.UpdatePin,
-                errorCode: CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable));
-        }
     }
 }

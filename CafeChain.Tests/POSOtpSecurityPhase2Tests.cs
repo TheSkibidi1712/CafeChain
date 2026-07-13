@@ -49,20 +49,10 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CloseShiftException_PinPayload_IsRejected()
+        public void CloseShiftException_HasNoLegacySupervisorPinDtoField()
         {
-            var service = CreateCloseService(CreateOpenShift(), out _, out _);
-            var result = await service.CloseShiftByExceptionAsync(UserId, StoreId, ShiftId,
-                new CloseShiftExceptionRequestDto
-                {
-                    ActualEndingCash = 500_000m,
-                    ExceptionReason = "Mất mạng",
-                    SupervisorPin = "1234",
-                    OfflineQueueSummary = DefaultOffline()
-                });
-
-            Assert.False(result.IsSuccess);
-            Assert.Equal(OtpConstants.ErrorCodes.FeatureNotAvailable, result.ErrorCode);
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("SupervisorPin"));
+            Assert.Null(typeof(CloseShiftRequestDto).GetProperty("SupervisorPin"));
         }
 
         [Fact]
@@ -164,7 +154,6 @@ namespace CafeChain.Tests.POS
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 Mock.Of<IPOSOrderRepository>(),
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo.Object,
                 Fp,
                 Mock.Of<ILogger<WorkShiftService>>());
@@ -445,7 +434,6 @@ namespace CafeChain.Tests.POS
                 shiftRepo.Object,
                 Mock.Of<IHrAttendanceService>(),
                 posRepo.Object,
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo.Object,
                 Fp,
                 Mock.Of<ILogger<WorkShiftService>>());
@@ -493,7 +481,6 @@ namespace CafeChain.Tests.POS
                 shiftRepo.Object,
                 hr.Object,
                 posRepo.Object,
-                Mock.Of<ISupervisorAuthService>(),
                 otpRepo.Object,
                 Fp,
                 Mock.Of<ILogger<WorkShiftService>>());

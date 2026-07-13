@@ -584,7 +584,6 @@
                 </div>
             </div>
             <ul class="sh-settings-list">
-                @* Phase 3 (#140): PIN management UI removed — fixed PIN approvals disabled. *@
                 <li class="sh-settings-item" id="settingsFaceItem" style="display:none;" onclick="openFaceModal()">
                     <i class="bi bi-person-bounding-box" style="color:var(--accent);"></i>
                     <span>Đăng ký Face ID</span>
@@ -633,9 +632,6 @@
             }
         </div>
     </div>
-
-    @* Phase 3 (#140): CHANGE PIN modal removed — UpdatePin API returns FEATURE_NOT_AVAILABLE. *@
-    <div id="pinModalOverlay" style="display:none" aria-hidden="true"></div>
 
     <!-- MODAL: REGISTER FACE ID -->
     <div class="sh-toast-overlay" id="faceModalOverlay">
@@ -939,18 +935,6 @@
             btn.textContent = 'Đóng';
             if (typeof onConfirm === 'function') onConfirm();
         };
-    }
-
-    // ========= PIN CHANGE DISABLED (Phase 3 #140) =========
-    function openPinModal() {
-        showToast('error', 'Không khả dụng', 'Đặt/đổi PIN supervisor không còn được hỗ trợ.');
-    }
-    function closePinModal() {
-        var el = document.getElementById('pinModalOverlay');
-        if (el) el.classList.remove('active');
-    }
-    function submitNewPin() {
-        showToast('error', 'Không khả dụng', 'Đặt/đổi PIN supervisor không còn được hỗ trợ.');
     }
 
     var faceStream = null;

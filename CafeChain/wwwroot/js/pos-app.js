@@ -16,10 +16,6 @@ let tempSelectedSize = null;
 let tempSelectedToppings = [];
 let ckCashAmount = 0;
 let ckTotal = 0;
-let pinValue = '';
-let pinResolve = null;
-let pinActionName = '';
-let pinTargetId = 0;
 let csExpectedCash = 0;
 let successCountdownTimer = null;
 
@@ -456,36 +452,7 @@ async function confirmCloseShift() {
 }
 
 // ==========================================
-// 10. PIN AUTH — DISABLED Phase 3 (#140)
-// Generic PIN approval bool removed. Sensitive flows use OTP (React POS).
-// ==========================================
-function openPinModal(actionName, targetId, actionLabel) {
-    Swal.fire({
-        icon: 'info',
-        title: 'PIN không còn hỗ trợ',
-        text: 'Xác thực PIN supervisor không còn được hỗ trợ. Dùng OTP phê duyệt online trên POS React cho các thao tác nhạy cảm.',
-        confirmButtonColor: '#F97316'
-    });
-    return Promise.resolve(null);
-}
-function closePinModal() {
-    $('#pinOverlay').removeClass('active');
-    if (pinResolve) { pinResolve(null); pinResolve = null; }
-}
-function pinInput(key) { /* disabled */ }
-function updatePinDots() { /* disabled */ }
-async function submitPin() {
-    Swal.fire({
-        icon: 'error',
-        title: 'FEATURE_NOT_AVAILABLE',
-        text: 'Xác thực PIN supervisor không còn được hỗ trợ.',
-        confirmButtonColor: '#F97316'
-    });
-    if (pinResolve) { pinResolve(null); pinResolve = null; }
-}
-
-// ==========================================
-// 11. OFFLINE MODE
+// 10. OFFLINE MODE
 // ==========================================
 const OFFLINE_KEY = 'CafeChain_Offline_Orders';
 function saveOfflineOrder(dto) {

@@ -22,7 +22,7 @@ using Xunit;
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Issue #94 — Wire Role ShiftSupervisor ("Ca trưởng") for AdminStaff, StaffHub/POS, OTP, PIN.
+    /// Issue #94 — Wire Role ShiftSupervisor ("Ca trưởng") for AdminStaff, StaffHub/POS, OTP approver selection.
     /// </summary>
     public class POSShiftSupervisorRoleWiringIssue94Tests : IntegrationTestBase
     {
@@ -224,44 +224,28 @@ namespace CafeChain.Tests.POS
         }
 
         // -----------------------------------------------------------------
-        // PIN supervisor eligibility
+        // OTP approver eligibility (no Staff.PinHash)
         // -----------------------------------------------------------------
 
         [Fact]
-        public async Task PinSupervisors_IncludeShiftSupervisor_WithPinHash_ExcludeSalesStaff()
+        public async Task OtpApprover_IncludesShiftSupervisor_WithoutPinHash_ExcludeSalesStaff()
         {
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
-            SeedApproverStaff(
-                ctx,
-                staffId: 502,
-                accountId: 5002,
-                roleId: RoleShiftSupervisor,
-                email: "ss@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("1234"));
-            SeedApproverStaff(
-                ctx,
-                staffId: 504,
-                accountId: 5004,
-                roleId: RoleSalesStaff,
-                email: "sale@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("9999"));
-            SeedApproverStaff(
-                ctx,
-                staffId: 503,
-                accountId: 5003,
-                roleId: RoleAccountant,
-                email: "acc@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("4321"));
+            SeedApproverStaff(ctx, staffId: 502, accountId: 5002, roleId: RoleShiftSupervisor, email: "ss@test.local");
+            SeedApproverStaff(ctx, staffId: 504, accountId: 5004, roleId: RoleSalesStaff, email: "sale@test.local");
+            SeedApproverStaff(ctx, staffId: 503, accountId: 5003, roleId: RoleAccountant, email: "acc@test.local");
             await ctx.SaveChangesAsync();
 
-            var repo = new SupervisorRepository(ctx);
-            var supervisors = await repo.GetSupervisorsWithPinAsync(StoreId);
+            Assert.Null(typeof(Staff).GetProperty("PinHash"));
 
-            Assert.Contains(supervisors, s => s.StaffId == 502);
-            Assert.Contains(supervisors, s => s.StaffId == 503);
-            Assert.DoesNotContain(supervisors, s => s.StaffId == 504);
-            Assert.All(supervisors, s => Assert.False(string.IsNullOrEmpty(s.PinHash)));
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(502, approver!.StaffId);
+            Assert.NotEqual(504, approver.StaffId);
+            Assert.NotEqual(503, approver.StaffId);
         }
 
         // -----------------------------------------------------------------
@@ -369,8 +353,7 @@ namespace CafeChain.Tests.POS
             int staffId,
             int accountId,
             int roleId,
-            string email,
-            string? pinHash = null)
+            string email)
         {
             ctx.Accounts.Add(new Account
             {
@@ -394,7 +377,6 @@ namespace CafeChain.Tests.POS
                 StoreId = StoreId,
                 FullName = $"Staff {staffId}",
                 Active = true,
-                PinHash = pinHash,
                 CreatedAt = DateTime.UtcNow,
                 BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()
