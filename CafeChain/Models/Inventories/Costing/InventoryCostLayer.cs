@@ -1,4 +1,5 @@
 using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Inventories.Refunds;
 
 namespace CafeChain.Models.Inventories.Costing
 {
@@ -30,6 +31,13 @@ namespace CafeChain.Models.Inventories.Costing
         /// </summary>
         public int? SourceProductionRunId { get; set; }
 
+        /// <summary>
+        /// Issue #134 — compensating layer created by full-order cash refund.
+        /// Does not reprice original historical layers.
+        /// </summary>
+        public int? SourceOrderRefundId { get; set; }
+
         public virtual ProductionRun? SourceProductionRun { get; set; }
+        public virtual OrderRefund? SourceOrderRefund { get; set; }
     }
 }

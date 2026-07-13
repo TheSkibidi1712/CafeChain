@@ -109,6 +109,12 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.BranchReceiptLineId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Issue #134 — cash refund sales return linkage.
+            entity.HasOne(x => x.OrderRefund)
+                .WithMany()
+                .HasForeignKey(x => x.OrderRefundId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.StoreInventoryId);
@@ -152,6 +158,15 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
 
             entity.HasIndex(x => x.BranchReceiptLineId)
                 .HasDatabaseName("IX_InventoryTransactions_BranchReceiptLineId");
+
+            entity.HasIndex(x => x.OrderRefundId)
+                .HasDatabaseName("IX_InventoryTransactions_OrderRefundId");
+
+            // One SALES_RETURN per refund + inventory row (full-order restore slice)
+            entity.HasIndex(x => new { x.OrderRefundId, x.StoreInventoryId, x.Type })
+                .IsUnique()
+                .HasFilter("[OrderRefundId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_OrderRefund_Inventory_Type");
 
             entity.HasIndex(x => x.CreatedAt);
 

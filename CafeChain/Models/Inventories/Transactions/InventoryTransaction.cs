@@ -3,6 +3,7 @@ using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Consolidation;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Inventories.Refunds;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
@@ -44,6 +45,9 @@ namespace CafeChain.Models.Inventories.Transactions
         /// <summary>Issue #128 — one BRANCH_RECEIPT_IN movement per BranchReceiptLine.</summary>
         public int? BranchReceiptLineId { get; set; }
 
+        /// <summary>Issue #134 — full-order cash refund linkage (SALES_RETURN).</summary>
+        public int? OrderRefundId { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public virtual StoreInventory StoreInventory { get; set; }
@@ -54,5 +58,6 @@ namespace CafeChain.Models.Inventories.Transactions
         public virtual Recipe? SourceRecipe { get; set; }
         public virtual InventoryConsolidationRun? InventoryConsolidationRun { get; set; }
         public virtual CafeChain.Models.Inventories.Stock.BranchReceiptLine? BranchReceiptLine { get; set; }
+        public virtual OrderRefund? OrderRefund { get; set; }
     }
 }

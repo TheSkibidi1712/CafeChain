@@ -68,6 +68,7 @@ namespace CafeChain.Helpers
                 InventoryTransactionTypeEnum.PRODUCTION_IN => "Nhập sản xuất",
                 InventoryTransactionTypeEnum.PRODUCTION_OUT => "Xuất sản xuất",
                 InventoryTransactionTypeEnum.SALES_DEDUCTION => "Trừ tồn bán hàng",
+                InventoryTransactionTypeEnum.SALES_RETURN => "Hoàn tồn bán hàng (refund)",
                 InventoryTransactionTypeEnum.ADJUSTMENT_IN => "Điều chỉnh tăng",
                 InventoryTransactionTypeEnum.ADJUSTMENT_OUT => "Điều chỉnh giảm",
                 InventoryTransactionTypeEnum.OUT_TRANSFER => "Xuất chuyển kho",

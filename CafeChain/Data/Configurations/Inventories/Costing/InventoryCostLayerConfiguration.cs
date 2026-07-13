@@ -57,6 +57,11 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
                 .HasForeignKey(x => x.SourceProductionRunId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.SourceOrderRefund)
+                .WithMany()
+                .HasForeignKey(x => x.SourceOrderRefundId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.IngredientId);
@@ -98,6 +103,11 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
                 .IsUnique()
                 .HasFilter("[SourceProductionRunId] IS NOT NULL")
                 .HasDatabaseName("UX_InventoryCostLayers_SourceProductionRunId");
+
+            // Issue #134 — compensating refund layers (many per refund, index for lookup)
+            entity.HasIndex(x => x.SourceOrderRefundId)
+                .HasFilter("[SourceOrderRefundId] IS NOT NULL")
+                .HasDatabaseName("IX_InventoryCostLayers_SourceOrderRefundId");
         }
     }
 }

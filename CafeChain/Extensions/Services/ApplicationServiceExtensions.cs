@@ -25,6 +25,7 @@ using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Services.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
@@ -232,6 +233,7 @@ namespace CafeChain.Extensions.Services
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();
+            services.AddScoped<IOrderRefundService, OrderRefundService>();
             services.AddScoped<IPosBranchInventoryService, PosBranchInventoryService>();
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();

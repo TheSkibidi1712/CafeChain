@@ -7,6 +7,7 @@ using CafeChain.Data;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
+using CafeChain.Models.Inventories.Refunds;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
@@ -142,6 +143,27 @@ namespace CafeChain.Application.Services.Inventories
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult.Failure("Chỉ trừ kho cho đơn POS đã thanh toán và đã commit.");
+                    }
+
+                    // #134 — never deduct after payment refunded / completed cash refund.
+                    if (lockedOrder.PaymentStatusId == SystemConstants.PaymentStatuses.Refunded)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            "Đơn đã hoàn tiền — không trừ kho bán.",
+                            errorCode: "ORDER_REFUNDED");
+                    }
+
+                    var refundBlocksDeduction = await _context.OrderRefunds.AsNoTracking()
+                        .AnyAsync(r => r.OrderId == referenceOrderId.Value
+                                       && (r.Status == OrderRefundStatus.Completed
+                                           || r.Status == OrderRefundStatus.Processing));
+                    if (refundBlocksDeduction)
+                    {
+                        await transaction.RollbackAsync();
+                        return ServiceResult.Failure(
+                            "Đơn đang/đã hoàn tiền — không trừ kho bán.",
+                            errorCode: "ORDER_REFUNDED");
                     }
 
                     var alreadyDeducted = await _context.InventoryTransactions
