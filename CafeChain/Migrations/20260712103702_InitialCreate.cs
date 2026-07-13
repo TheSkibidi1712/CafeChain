@@ -2973,6 +2973,11 @@ namespace CafeChain.Migrations
                     PointDiscount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
                     PointsUsed = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
                     Total = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    // Issue #133 — actual sales COGS (must exist for EF Order queries / workers)
+                    CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    GrossProfit = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    CostedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
                 },
                 constraints: table =>
@@ -3192,7 +3197,10 @@ namespace CafeChain.Migrations
                     SizeName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Quantity = table.Column<int>(type: "int", nullable: false),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false)
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    UnitCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -3341,7 +3349,9 @@ namespace CafeChain.Migrations
                     OrderDetailId = table.Column<int>(type: "int", nullable: false),
                     ToppingId = table.Column<int>(type: "int", nullable: false),
                     ToppingName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
+                    TotalCogs = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
                 },
                 constraints: table =>
                 {

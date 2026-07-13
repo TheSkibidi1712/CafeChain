@@ -58,6 +58,13 @@ namespace CafeChain.Application.Services.POS
             }
 
             var approverEmail = approver.Account.Email.Trim();
+            if (!IsPlausibleEmail(approverEmail))
+            {
+                return ServiceResult<OtpChallengeResponseDto>.Failure(
+                    $"Email người duyệt OTP không hợp lệ trong CSDL: '{approverEmail}'. " +
+                    "Vui lòng sửa email tài khoản Ca trưởng (Account.Email) trong Admin — ví dụ đúng: name@gmail.com (tránh gmal.com).");
+            }
+
             var approverRoleLabel = ResolveApproverRoleLabel(approver);
 
             var store = await _repository.GetStoreAsync(storeId);
@@ -387,6 +394,33 @@ namespace CafeChain.Application.Services.POS
             var at = value.IndexOf('@');
             if (at <= 1) return "***";
             return value[0] + "***" + value.Substring(at);
+        }
+
+        /// <summary>
+        /// Lightweight format check only — does not call external "email exists" APIs.
+        /// Catches common typos like gmal.com / missing TLD that would make SMTP "succeed" but never deliver.
+        /// </summary>
+        private static bool IsPlausibleEmail(string email)
+        {
+            try
+            {
+                var addr = new System.Net.Mail.MailAddress(email);
+                if (!string.Equals(addr.Address, email, StringComparison.OrdinalIgnoreCase))
+                    return false;
+                var host = addr.Host ?? string.Empty;
+                if (host.IndexOf('.') < 1)
+                    return false;
+                // Common typo traps for gmail
+                if (host.Equals("gmal.com", StringComparison.OrdinalIgnoreCase)
+                    || host.Equals("gmial.com", StringComparison.OrdinalIgnoreCase)
+                    || host.Equals("gamil.com", StringComparison.OrdinalIgnoreCase))
+                    return false;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>Human label for UI/logs — based on role of the selected DB staff row.</summary>
