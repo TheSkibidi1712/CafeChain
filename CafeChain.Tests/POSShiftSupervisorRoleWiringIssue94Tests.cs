@@ -105,7 +105,7 @@ namespace CafeChain.Tests.POS
         // -----------------------------------------------------------------
 
         [Fact]
-        public async Task OtpApprover_PrefersStoreManager_OverShiftSupervisor_AndAccountant()
+        public async Task OtpApprover_PrefersShiftSupervisor_OverStoreManager_AndAccountant()
         {
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
@@ -118,7 +118,26 @@ namespace CafeChain.Tests.POS
             var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
 
             Assert.NotNull(approver);
-            Assert.Equal(101, approver!.StaffId);
+            // Email/OTP must target Ca trưởng assigned at store (DB), not StoreManager first.
+            Assert.Equal(102, approver!.StaffId);
+            Assert.Equal("ss@test.local", approver.Account!.Email);
+        }
+
+        [Fact]
+        public async Task OtpApprover_UsesShiftSupervisorEmail_FromDatabaseAccount()
+        {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            const string liveEmail = "catruong.store50@cafechain.vn";
+            SeedApproverStaff(ctx, staffId: 210, accountId: 2210, roleId: RoleShiftSupervisor, email: liveEmail);
+            await ctx.SaveChangesAsync();
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(210, approver!.StaffId);
+            Assert.Equal(liveEmail, approver.Account!.Email);
         }
 
         [Fact]
@@ -135,6 +154,23 @@ namespace CafeChain.Tests.POS
 
             Assert.NotNull(approver);
             Assert.Equal(202, approver!.StaffId);
+        }
+
+        [Fact]
+        public async Task OtpApprover_FallsBackToStoreManager_WhenNoShiftSupervisor()
+        {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            SeedApproverStaff(ctx, staffId: 301, accountId: 3001, roleId: RoleStoreManager, email: "sm-only@test.local");
+            SeedApproverStaff(ctx, staffId: 303, accountId: 3003, roleId: RoleAccountant, email: "acc@test.local");
+            await ctx.SaveChangesAsync();
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(301, approver!.StaffId);
+            Assert.Equal("sm-only@test.local", approver.Account!.Email);
         }
 
         [Fact]

@@ -35,11 +35,12 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             var dayStart = utcNow.Date;
             var dayEnd = dayStart.AddDays(1);
 
-            // Issue #94: StoreManager → ShiftSupervisor (Ca trưởng) → AccountantWarehouse
+            // OTP close-shift: email = Account.Email of staff row assigned to this store (DB), not a hard-coded address.
+            // Prefer Ca trưởng (ShiftSupervisor) first; fall back StoreManager → AccountantWarehouse if no SS.
             var approverRoles = new[]
             {
-                RoleConstants.StoreManager,
                 RoleConstants.ShiftSupervisor,
+                RoleConstants.StoreManager,
                 RoleConstants.AccountantWarehouse
             };
 
@@ -61,23 +62,23 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .AsNoTracking()
                 .ToListAsync();
 
+            // 1) Prefer Ca trưởng at this store (any on-shift SS first).
+            // 2) Else StoreManager / Accountant fallback.
+            // Email always comes from the selected Staff.Account.Email in DB.
             return candidates
-                // Ưu tiên người đang có ca làm trong ngày
-                .OrderByDescending(staff => staff.StaffShifts.Any(shift =>
+                .OrderBy(staff => GetOtpApproverRolePriority(staff))
+                .ThenByDescending(staff => staff.StaffShifts.Any(shift =>
                     shift.WorkDate >= dayStart &&
                     shift.WorkDate < dayEnd &&
                     shift.ActualCheckIn != null &&
                     shift.ActualCheckOut == null))
-
-                // Role priority: StoreManager (0) → ShiftSupervisor (1) → AccountantWarehouse (2)
-                .ThenBy(staff => GetOtpApproverRolePriority(staff))
-
                 .ThenBy(staff => staff.StaffId)
                 .FirstOrDefault();
         }
 
         /// <summary>
         /// Lower rank = higher priority for OTP email routing.
+        /// Primary: ShiftSupervisor (Ca trưởng) assigned to the store.
         /// SalesStaff and other roles are never in the candidate set.
         /// </summary>
         private static int GetOtpApproverRolePriority(Staff staff)
@@ -87,9 +88,9 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .Select(ar => ar.Role!.Name)
                 .ToList() ?? new List<string>();
 
-            if (roleNames.Contains(RoleConstants.StoreManager))
-                return 0;
             if (roleNames.Contains(RoleConstants.ShiftSupervisor))
+                return 0;
+            if (roleNames.Contains(RoleConstants.StoreManager))
                 return 1;
             if (roleNames.Contains(RoleConstants.AccountantWarehouse))
                 return 2;

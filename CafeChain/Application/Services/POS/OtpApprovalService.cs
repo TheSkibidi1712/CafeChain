@@ -48,12 +48,17 @@ namespace CafeChain.Application.Services.POS
                 return ServiceResult<OtpChallengeResponseDto>.Failure("Không tìm thấy nhân viên yêu cầu hợp lệ tại cửa hàng này.");
 
             var nowUtc = DateTime.UtcNow;
+            // Approver = staff gán tại store trong DB (ưu tiên role Ca trưởng) — email lấy từ Account.Email, không hard-code.
             var approver = await _repository.GetOtpApproverAsync(storeId, nowUtc);
             if (approver == null || string.IsNullOrWhiteSpace(approver.Account?.Email))
             {
                 return ServiceResult<OtpChallengeResponseDto>.Failure(
-                    "Không tìm thấy Ca trưởng/Cửa hàng trưởng đang hoạt động có email tại cửa hàng này.");
+                    "Không tìm thấy Ca trưởng (hoặc quản lý dự phòng) đang hoạt động có email tại cửa hàng này. " +
+                    "Vui lòng gán role Ca trưởng và email cho nhân viên cửa hàng trong Admin.");
             }
+
+            var approverEmail = approver.Account.Email.Trim();
+            var approverRoleLabel = ResolveApproverRoleLabel(approver);
 
             var store = await _repository.GetStoreAsync(storeId);
             if (store == null)
@@ -83,7 +88,7 @@ namespace CafeChain.Application.Services.POS
             // Save challenge TRƯỚC khi gửi email — tránh email thành công mà challenge chưa tồn tại
             await _repository.AddAsync(challenge);
 
-            var subject = $"[Xác nhận ca trưởng] Lệch két cần xác nhận - {store.Name}";
+            var subject = $"[Xác nhận {approverRoleLabel}] Lệch két cần xác nhận - {store.Name}";
             var body = _emailService.BuildOperationalOtpEmail(
                 otpCode,
                 store.Name,
@@ -96,18 +101,19 @@ namespace CafeChain.Application.Services.POS
 
             try
             {
-                await _emailService.SendAsync(approver.Account.Email.Trim(), subject, body);
+                await _emailService.SendAsync(approverEmail, subject, body);
             }
             catch (Exception ex)
             {
                 // Log exception type/message only — never SMTP password.
                 _logger.LogWarning(
                     ex,
-                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | To={To} | ErrorType={ErrorType} | Error={Error}",
+                    "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | Role={Role} | To={To} | ErrorType={ErrorType} | Error={Error}",
                     storeId,
                     requestedByStaffId,
                     approver.StaffId,
-                    MaskEmail(approver.Account.Email),
+                    approverRoleLabel,
+                    MaskEmail(approverEmail),
                     ex.GetType().Name,
                     ex.Message);
 
@@ -116,15 +122,16 @@ namespace CafeChain.Application.Services.POS
                 if (_environment.IsDevelopment())
                 {
                     _logger.LogWarning(
-                        "OTP_DEV_CAPTURE | PublicId={PublicId} | ApproverStaffId={ApproverStaffId} | To={To} | OtpCode={OtpCode}",
+                        "OTP_DEV_CAPTURE | PublicId={PublicId} | ApproverStaffId={ApproverStaffId} | Role={Role} | To={To} | OtpCode={OtpCode}",
                         challenge.PublicId,
                         approver.StaffId,
-                        MaskEmail(approver.Account.Email),
+                        approverRoleLabel,
+                        MaskEmail(approverEmail),
                         otpCode);
 
                     return ServiceResult<OtpChallengeResponseDto>.Success(
                         MapResponse(challenge, nowUtc),
-                        $"SMTP lỗi — Development capture. OTP gửi tới {MaskEmail(approver.Account.Email)}: {otpCode}");
+                        $"SMTP lỗi — Development capture. OTP gửi {approverRoleLabel} {MaskEmail(approverEmail)}: {otpCode}");
                 }
 
                 // Production/Staging: cancel challenge (giữ audit, không xóa)
@@ -151,7 +158,7 @@ namespace CafeChain.Application.Services.POS
 
             return ServiceResult<OtpChallengeResponseDto>.Success(
                 MapResponse(challenge, nowUtc),
-                $"OTP đã được gửi đến email ca trưởng/quản lý ({MaskEmail(approver.Account.Email)}).");
+                $"OTP đã được gửi đến {approverRoleLabel} ({MaskEmail(approverEmail)}).");
         }
 
         public async Task<ServiceResult<OtpChallengeResponseDto>> VerifyOtpAsync(OtpVerifyDto request)
@@ -380,6 +387,23 @@ namespace CafeChain.Application.Services.POS
             var at = value.IndexOf('@');
             if (at <= 1) return "***";
             return value[0] + "***" + value.Substring(at);
+        }
+
+        /// <summary>Human label for UI/logs — based on role of the selected DB staff row.</summary>
+        private static string ResolveApproverRoleLabel(Staff approver)
+        {
+            var roleNames = approver.Account?.AccountRoles
+                .Where(ar => ar.Role != null && ar.Role.Active)
+                .Select(ar => ar.Role!.Name)
+                .ToList() ?? new List<string>();
+
+            if (roleNames.Contains(RoleConstants.ShiftSupervisor))
+                return RoleConstants.ShiftSupervisor;
+            if (roleNames.Contains(RoleConstants.StoreManager))
+                return RoleConstants.StoreManager;
+            if (roleNames.Contains(RoleConstants.AccountantWarehouse))
+                return RoleConstants.AccountantWarehouse;
+            return "người duyệt";
         }
     }
 }
