@@ -134,24 +134,12 @@ namespace CafeChain.Application.Services.Attendance
             return ServiceResult.Success("Đăng ký Face ID thành công! Bạn có thể sử dụng khuôn mặt để chấm công.");
         }
 
-        public async Task<ServiceResult> UpdatePinAsync(int accountId, string pin)
+        public Task<ServiceResult> UpdatePinAsync(int accountId, string pin)
         {
-            if (string.IsNullOrWhiteSpace(pin) || pin.Length != 4 || !pin.All(char.IsDigit))
-            {
-                return ServiceResult.Failure("Mã PIN phải là chuỗi 4 chữ số.");
-            }
-
-            var staff = await _repository.GetStaffByAccountIdAsync(accountId);
-            if (staff == null)
-            {
-                return ServiceResult.Failure("Không tìm thấy hồ sơ nhân viên.");
-            }
-
-            // Hashing using BCrypt
-            staff.PinHash = BCrypt.Net.BCrypt.HashPassword(pin);
-            await _repository.UpdateStaffAsync(staff);
-
-            return ServiceResult.Success("Cập nhật mã PIN thành công.");
+            // Phase 3 (#140): PIN management UI/API disabled. PinHash cleanup is #143.
+            return Task.FromResult(ServiceResult.Failure(
+                CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.UpdatePin,
+                errorCode: CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable));
         }
     }
 }

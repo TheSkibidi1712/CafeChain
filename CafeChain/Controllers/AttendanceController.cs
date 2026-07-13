@@ -106,12 +106,15 @@ namespace CafeChain.Controllers
             if (!TryGetAccountId(out int accountId))
                 return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
 
+            // Phase 3 (#140): PIN management disabled (FEATURE_NOT_AVAILABLE).
             var result = await _securityService.UpdatePinAsync(accountId, pin);
 
-            if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
-
-            return Ok(new { success = true, message = result.Message });
+            return BadRequest(new
+            {
+                success = false,
+                message = result.Message,
+                errorCode = result.ErrorCode
+            });
         }
 
         /// <summary>
@@ -158,32 +161,19 @@ namespace CafeChain.Controllers
         }
 
         // ============================================================
-        // API: Authorize Bypass (PIN Trưởng ca)
+        // API: Authorize Bypass — DISABLED Phase 3 (#140)
+        // No active business mutation callers; generic PIN→audit bool removed.
         // ============================================================
         [HttpPost("AuthorizeBypass")]
-        public async Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request)
+        public Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request)
         {
-            if (!TryGetAccountId(out int accountId))
-                return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
-
-            // Trích xuất storeId từ kiosk data
-            var kioskDataResult = await _actionService.GetKioskDataAsync(accountId);
-            if (!kioskDataResult.IsSuccess)
-                return BadRequest(new { success = false, message = kioskDataResult.Message });
-
-            dynamic data = kioskDataResult.Data;
-            int storeId = data.storeId ?? 0;
-            int cashierId = data.staffId ?? accountId;
-
-            var result = await _supervisorAuthService.AuthorizePinAsync(
-                request.Pin, cashierId, storeId, request.ActionName, 
-                request.TargetId ?? 0, request.Reason, request.DiscountValue);
-
-            if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
-
-            var remaining = await _supervisorAuthService.GetRemainingAttemptsAsync(storeId);
-            return Ok(new { success = true, message = result.Message, remainingAttempts = remaining });
+            // Reject non-empty PIN and all payloads — no dual mode, no InvoiceAuditLog write.
+            return Task.FromResult<IActionResult>(BadRequest(new
+            {
+                success = false,
+                message = CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.SupervisorPinAuth,
+                errorCode = CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable
+            }));
         }
     }
 

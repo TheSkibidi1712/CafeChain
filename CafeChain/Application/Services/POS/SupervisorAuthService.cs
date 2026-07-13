@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
@@ -12,8 +13,8 @@ using System.Threading.Tasks;
 namespace CafeChain.Application.Services.POS
 {
     /// <summary>
-    /// Service xử lý nghiệp vụ Supervisor PIN Auth
-    /// Inject ISupervisorRepository thay vì AppDbContext — đúng pattern Repository
+    /// Legacy Supervisor PIN Auth — Phase 3 (#140) disables active PIN authorization.
+    /// Methods remain for #143 cleanup; they must not grant authority or write auth evidence.
     /// </summary>
     public class SupervisorAuthService : ISupervisorAuthService
     {
@@ -30,45 +31,20 @@ namespace CafeChain.Application.Services.POS
             _cache = cache;
         }
 
-        public async Task<ServiceResult> AuthorizePinAsync(string pin, int cashierId, int storeId, string actionName, int targetId, string reason, decimal? discountValue = null)
+        public Task<ServiceResult> AuthorizePinAsync(
+            string pin, int cashierId, int storeId, string actionName, int targetId, string reason, decimal? discountValue = null)
         {
-            var supervisorResult = await FindSupervisorByPinAsync(pin, storeId);
-            if (!supervisorResult.IsSuccess)
-                return ServiceResult.Failure(supervisorResult.Message);
-
-            var matchedSupervisor = supervisorResult.Data!;
-
-            // 4. Success — reset attempts & create audit log via Repository
-            _cache.Remove($"{CACHE_KEY_PREFIX}{storeId}");
-
-            await _repository.CreateAuditLogAsync(new InvoiceAuditLog
-            {
-                OrderId = targetId > 0 ? targetId : null,
-                CashierId = cashierId,
-                SupervisorId = matchedSupervisor.StaffId,
-                ActionName = actionName,
-                Reason = reason,
-                DiscountValue = discountValue,
-                CreatedAt = DateTime.Now
-            });
-
-            return ServiceResult.Success($"Trưởng ca {matchedSupervisor.FullName} đã xác nhận thành công.");
+            // Phase 3: generic PIN → audit/approval bool is removed (no dual mode, no silent accept).
+            return Task.FromResult(ServiceResult.Failure(
+                OtpConstants.PinDisabledMessages.SupervisorPinAuth,
+                errorCode: OtpConstants.ErrorCodes.FeatureNotAvailable));
         }
 
-        public async Task<ServiceResult<SupervisorPinAuthorizationDto>> VerifySupervisorPinAsync(string pin, int storeId)
+        public Task<ServiceResult<SupervisorPinAuthorizationDto>> VerifySupervisorPinAsync(string pin, int storeId)
         {
-            var supervisorResult = await FindSupervisorByPinAsync(pin, storeId);
-            if (!supervisorResult.IsSuccess)
-                return ServiceResult<SupervisorPinAuthorizationDto>.Failure(supervisorResult.Message);
-
-            var matchedSupervisor = supervisorResult.Data!;
-            _cache.Remove($"{CACHE_KEY_PREFIX}{storeId}");
-
-            return ServiceResult<SupervisorPinAuthorizationDto>.Success(new SupervisorPinAuthorizationDto
-            {
-                SupervisorStaffId = matchedSupervisor.StaffId,
-                SupervisorName = matchedSupervisor.FullName
-            }, $"Supervisor/manager {matchedSupervisor.FullName} đã xác nhận thành công.");
+            return Task.FromResult(ServiceResult<SupervisorPinAuthorizationDto>.Failure(
+                OtpConstants.PinDisabledMessages.SupervisorPinAuth,
+                errorCode: OtpConstants.ErrorCodes.FeatureNotAvailable));
         }
 
         public Task<int> GetRemainingAttemptsAsync(int storeId)

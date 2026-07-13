@@ -456,46 +456,32 @@ async function confirmCloseShift() {
 }
 
 // ==========================================
-// 10. PIN AUTH
+// 10. PIN AUTH — DISABLED Phase 3 (#140)
+// Generic PIN approval bool removed. Sensitive flows use OTP (React POS).
 // ==========================================
 function openPinModal(actionName, targetId, actionLabel) {
-    pinValue = ''; pinActionName = actionName; pinTargetId = targetId;
-    updatePinDots();
-    $('#pinActionBadge').html(`⊘ ${actionLabel}`);
-    $('#pinWarning').text('⚠ Còn 5 lần thử. Sai 5 lần sẽ khóa 15 phút.');
-    $('#btnPinConfirm').removeClass('ready');
-    $('#pinOverlay').addClass('active');
-    return new Promise(resolve => { pinResolve = resolve; });
+    Swal.fire({
+        icon: 'info',
+        title: 'PIN không còn hỗ trợ',
+        text: 'Xác thực PIN supervisor không còn được hỗ trợ. Dùng OTP phê duyệt online trên POS React cho các thao tác nhạy cảm.',
+        confirmButtonColor: '#F97316'
+    });
+    return Promise.resolve(null);
 }
-function closePinModal() { $('#pinOverlay').removeClass('active'); if (pinResolve) { pinResolve(null); pinResolve = null; } }
-function pinInput(key) {
-    if (key === 'back') { pinValue = pinValue.slice(0, -1); }
-    else if (pinValue.length < 4) { pinValue += key; }
-    updatePinDots();
-    if (pinValue.length === 4) $('#btnPinConfirm').addClass('ready');
-    else $('#btnPinConfirm').removeClass('ready');
+function closePinModal() {
+    $('#pinOverlay').removeClass('active');
+    if (pinResolve) { pinResolve(null); pinResolve = null; }
 }
-function updatePinDots() {
-    for (let i = 0; i < 4; i++) {
-        if (i < pinValue.length) $(`#pinDot${i}`).addClass('filled');
-        else $(`#pinDot${i}`).removeClass('filled');
-    }
-}
+function pinInput(key) { /* disabled */ }
+function updatePinDots() { /* disabled */ }
 async function submitPin() {
-    if (pinValue.length !== 4) return;
-    try {
-        const res = await $.ajax({ url: '/Admin/AdminPOS/AuthorizeSupervisor', type: 'POST', contentType: 'application/json',
-            data: JSON.stringify({ pin: pinValue, actionName: pinActionName, targetId: pinTargetId, reason: '' }) });
-        if (res.success) {
-            $('#pinOverlay').removeClass('active');
-            if (pinResolve) { pinResolve(true); pinResolve = null; }
-            Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.message, showConfirmButton: false, timer: 2000 });
-        } else {
-            pinValue = ''; updatePinDots(); $('#btnPinConfirm').removeClass('ready');
-            const remain = res.remainingAttempts != null ? res.remainingAttempts : '?';
-            $('#pinWarning').text(`⚠ ${res.message}`);
-        }
-    } catch { Swal.fire('Lỗi', 'Mất kết nối', 'error'); }
+    Swal.fire({
+        icon: 'error',
+        title: 'FEATURE_NOT_AVAILABLE',
+        text: 'Xác thực PIN supervisor không còn được hỗ trợ.',
+        confirmButtonColor: '#F97316'
+    });
+    if (pinResolve) { pinResolve(null); pinResolve = null; }
 }
 
 // ==========================================

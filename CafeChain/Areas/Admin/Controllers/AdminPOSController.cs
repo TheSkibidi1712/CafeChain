@@ -256,26 +256,21 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ============================================================
-        // API: Supervisor PIN Authorization — delegate to SupervisorAuthService
+        // API: Supervisor PIN Authorization — DISABLED Phase 3 (#140)
+        // Legacy generic success-bool approval is not migratable to bound OTP.
+        // React POS + OTP challenges replace sensitive shift approvals.
         // ============================================================
         [HttpPost]
-        public async Task<IActionResult> AuthorizeSupervisor([FromBody] SupervisorAuthRequestDto request)
+        public IActionResult AuthorizeSupervisor([FromBody] SupervisorAuthRequestDto request)
         {
-            try
+            // Non-empty PIN and empty PIN alike: feature removed (no audit, no success bool).
+            return Json(new
             {
-                var (userId, storeId) = await ResolveUserStoreAsync();
-                if (userId == 0) return Json(new { success = false, message = "Không xác định được tài khoản." });
-
-                var result = await _supervisorAuthService.AuthorizePinAsync(
-                    request.Pin, userId, storeId, request.ActionName, request.TargetId, request.Reason);
-
-                var remaining = await _supervisorAuthService.GetRemainingAttemptsAsync(storeId);
-                return Json(new { success = result.IsSuccess, message = result.Message, remainingAttempts = remaining });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
-            }
+                success = false,
+                message = CafeChain.Application.Constants.OtpConstants.PinDisabledMessages.SupervisorPinAuth,
+                errorCode = CafeChain.Application.Constants.OtpConstants.ErrorCodes.FeatureNotAvailable,
+                remainingAttempts = 0
+            });
         }
 
         // ============================================================
