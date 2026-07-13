@@ -16,7 +16,6 @@ import {
   OTP_ACTION_CLOSE_SHIFT_EXCEPTION,
   OTP_ACTION_OPEN_SHIFT_LATE,
   OTP_TARGET_SHIFTS,
-  isOtpRequiredError,
   requestOtp,
   resendOtp,
   verifyOtp,
