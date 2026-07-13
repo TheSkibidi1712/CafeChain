@@ -18,6 +18,7 @@ namespace CafeChain.Tests
     /// Issue #122 — SQL Server race proof for OPEN PreparedItem alert uniqueness.
     /// DB: CafeChain_Issue122Tests on local SQLEXPRESS.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class StockAlertOpenPreparedItemSqlServerIssue122Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";

@@ -21,6 +21,7 @@ namespace CafeChain.Tests
     /// Uses dedicated database CafeChain_Issue120Tests on local SQLEXPRESS.
     /// Seeds rely on EnsureCreated HasData (units/stores/staff/ingredients) and auto-identity for new rows.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class ProductionRunExecutionSqlServerIssue120Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";
