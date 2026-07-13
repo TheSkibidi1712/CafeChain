@@ -332,6 +332,12 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
             }
         }
 
+        public async Task CreateAuditLogAsync(InvoiceAuditLog log)
+        {
+            _context.InvoiceAuditLogs.Add(log);
+            await _context.SaveChangesAsync();
+        }
+
         // === CUSTOMER REGISTRATION ===
         public async Task<bool> HasDuplicatePhoneAsync(string phone)
         {

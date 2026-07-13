@@ -13,7 +13,10 @@ import {
   isOtpRequiredError,
   mapOtpUserMessage,
   OTP_ACTION_CASH_DIFFERENCE,
+  OTP_ACTION_CLOSE_SHIFT_EXCEPTION,
+  OTP_ACTION_OPEN_SHIFT_LATE,
   OTP_TARGET_SHIFTS,
+  isOtpRequiredError,
   requestOtp,
   resendOtp,
   verifyOtp,
@@ -136,7 +139,13 @@ export default function ShiftSummary() {
   const [actualEndingCash, setActualEndingCash] = useState<number | ''>('')
   const [discrepancyReason, setDiscrepancyReason] = useState('')
   const [exceptionReason, setExceptionReason] = useState('')
-  const [supervisorPin, setSupervisorPin] = useState('')
+  const [lateOpeningReason, setLateOpeningReason] = useState('')
+  const [showLateOtpPanel, setShowLateOtpPanel] = useState(false)
+  const [exceptionOtpChallengePublicId, setExceptionOtpChallengePublicId] = useState<string | null>(null)
+  const [verifiedExceptionOtpId, setVerifiedExceptionOtpId] = useState<string | null>(null)
+  const [exceptionOtpCode, setExceptionOtpCode] = useState('')
+  const [exceptionOtpMessage, setExceptionOtpMessage] = useState<string | null>(null)
+  const [exceptionOtpBusy, setExceptionOtpBusy] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -344,7 +353,7 @@ export default function ShiftSummary() {
     }
   }, [])
 
-  const handleOpenShift = async (event: FormEvent) => {
+  const handleOpenShift = async (event: FormEvent, otpPublicId?: string | null) => {
     event.preventDefault()
     if (startingCash === '') return
 
@@ -354,12 +363,22 @@ export default function ShiftSummary() {
       const response = await apiClient.post<ShiftActionResponse>('/api/v1/pos/shifts/open', {
         startingCash,
         posTerminalId: getPosTerminalId(),
+        ...(otpPublicId ? { otpChallengePublicId: otpPublicId, lateOpeningReason: lateOpeningReason.trim() } : {}),
+        ...(lateOpeningReason.trim() ? { lateOpeningReason: lateOpeningReason.trim() } : {}),
       })
 
       if (response.ok && response.data?.status === 'Open') {
         setShift(response.data as ShiftSummaryDto)
         setStartingCash('')
+        setLateOpeningReason('')
+        setShowLateOtpPanel(false)
         setMessage({ type: 'success', text: 'Mở ca thành công.' })
+      } else if (isOtpRequiredError(response)) {
+        setShowLateOtpPanel(true)
+        setMessage({
+          type: 'error',
+          text: 'Cần OTP phê duyệt online để mở ca trễ. Cần kết nối mạng để gửi và xác nhận OTP.',
+        })
       } else {
         setMessage({
           type: 'error',
@@ -626,6 +645,77 @@ export default function ShiftSummary() {
     }
   }
 
+  const requestExceptionOtp = async () => {
+    if (!shift?.shiftId || actualEndingCash === '') return
+    if (exceptionReason.trim().length === 0) {
+      setExceptionOtpMessage('Vui lòng nhập lý do đóng ngoại lệ trước khi gửi OTP.')
+      return
+    }
+    if (!navigator.onLine) {
+      setExceptionOtpMessage('Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt.')
+      return
+    }
+    setExceptionOtpBusy(true)
+    setExceptionOtpMessage(null)
+    try {
+      const response = await requestOtp({
+        actionType: OTP_ACTION_CLOSE_SHIFT_EXCEPTION,
+        targetType: OTP_TARGET_SHIFTS,
+        targetId: shift.shiftId,
+        workShiftId: shift.shiftId,
+        reason: exceptionReason.trim(),
+        exceptionReason: exceptionReason.trim(),
+        discrepancyReason: discrepancyReason.trim() || null,
+        actualEndingCash: Number(actualEndingCash),
+        offlineQueueSummary: {
+          offlineOrderCount: offlineBlockerCount,
+          estimatedTotal: offlineEstimatedTotal,
+          localCashTotal: offlineCashTotal,
+        },
+      })
+      const envelope = extractOtpEnvelope(response)
+      if (response.ok && envelope.data?.otpChallengePublicId) {
+        setExceptionOtpChallengePublicId(envelope.data.otpChallengePublicId)
+        setVerifiedExceptionOtpId(null)
+        setExceptionOtpCode('')
+        setExceptionOtpMessage(envelope.message || 'OTP đã được gửi đến người phê duyệt.')
+      } else {
+        setExceptionOtpMessage(
+          mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP. Kiểm tra mạng/cấu hình.')
+        )
+      }
+    } catch {
+      setExceptionOtpMessage('Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt.')
+    } finally {
+      setExceptionOtpBusy(false)
+    }
+  }
+
+  const verifyExceptionOtp = async () => {
+    if (!exceptionOtpChallengePublicId) return
+    const normalized = exceptionOtpCode.trim().toUpperCase().replace(/\s+/g, '')
+    if (!/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/.test(normalized)) {
+      setExceptionOtpMessage('Nhập đủ 6 ký tự OTP (chữ in hoa và số, không O/0/I/1).')
+      return
+    }
+    setExceptionOtpBusy(true)
+    try {
+      const response = await verifyOtp({
+        otpChallengePublicId: exceptionOtpChallengePublicId,
+        otpCode: normalized,
+      })
+      const envelope = extractOtpEnvelope(response)
+      if (response.ok && envelope.data?.otpChallengePublicId) {
+        setVerifiedExceptionOtpId(envelope.data.otpChallengePublicId)
+        setExceptionOtpMessage(envelope.message || 'OTP đã xác nhận. Có thể đóng ca ngoại lệ.')
+      } else {
+        setExceptionOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không xác nhận được OTP.'))
+      }
+    } finally {
+      setExceptionOtpBusy(false)
+    }
+  }
+
   const handleExceptionCloseShift = async () => {
     if (!shift?.shiftId || actualEndingCash === '') return
     if (!hasOfflineQueueBlockers) {
@@ -643,7 +733,15 @@ export default function ShiftSummary() {
       return
     }
     if (needsReason && discrepancyReason.trim().length === 0) return
-    if (exceptionReason.trim().length === 0 || supervisorPin.trim().length === 0) return
+    if (exceptionReason.trim().length === 0) return
+    if (!verifiedExceptionOtpId) {
+      setMessage({ type: 'error', text: 'Vui lòng gửi và xác nhận OTP phê duyệt (online) trước khi đóng ca ngoại lệ.' })
+      return
+    }
+    if (!navigator.onLine) {
+      setMessage({ type: 'error', text: 'Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt.' })
+      return
+    }
 
     setIsSubmitting(true)
     setMessage(null)
@@ -652,7 +750,7 @@ export default function ShiftSummary() {
         actualEndingCash,
         discrepancyReason: discrepancyReason.trim() || null,
         exceptionReason: exceptionReason.trim(),
-        supervisorPin: supervisorPin.trim(),
+        otpChallengePublicId: verifiedExceptionOtpId,
         offlineQueueSummary: {
           offlineOrderCount: offlineBlockerCount,
           estimatedTotal: offlineEstimatedTotal,
@@ -665,7 +763,9 @@ export default function ShiftSummary() {
         setActualEndingCash('')
         setDiscrepancyReason('')
         setExceptionReason('')
-        setSupervisorPin('')
+        setExceptionOtpChallengePublicId(null)
+        setVerifiedExceptionOtpId(null)
+        setExceptionOtpCode('')
         setMessage({ type: 'success', text: 'Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi đồng bộ offline.' })
       } else {
         setMessage({
@@ -753,6 +853,91 @@ export default function ShiftSummary() {
                 </button>
               ))}
             </div>
+            {showLateOtpPanel && (
+              <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 space-y-3 text-xs text-amber-900">
+                <p className="font-extrabold">Mở ca trễ — cần OTP phê duyệt online</p>
+                <p className="font-semibold">
+                  Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt. Không dùng PIN cố định.
+                </p>
+                <label className="block font-semibold text-text-secondary mb-1">Lý do mở ca trễ</label>
+                <textarea
+                  value={lateOpeningReason}
+                  onChange={(e) => setLateOpeningReason(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs font-semibold bg-white"
+                  placeholder="Ví dụ: tắc đường, hỗ trợ cửa hàng khác..."
+                />
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={otpBusy || startingCash === '' || lateOpeningReason.trim().length === 0}
+                    onClick={async () => {
+                      if (startingCash === '' || !session.staffId) return
+                      setOtpBusy(true)
+                      setOtpMessage(null)
+                      try {
+                        const response = await requestOtp({
+                          actionType: OTP_ACTION_OPEN_SHIFT_LATE,
+                          targetType: OTP_TARGET_SHIFTS,
+                          targetId: Number(session.staffId),
+                          reason: lateOpeningReason.trim(),
+                          startingCash: Number(startingCash),
+                        })
+                        const envelope = extractOtpEnvelope(response)
+                        if (response.ok && envelope.data?.otpChallengePublicId) {
+                          applyOtpChallengeData(envelope.data)
+                          setOtpMessage(envelope.message || 'OTP mở ca trễ đã gửi.')
+                        } else {
+                          setOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'Không gửi được OTP.'))
+                        }
+                      } finally {
+                        setOtpBusy(false)
+                      }
+                    }}
+                    className="px-3 py-2 bg-white border border-amber-300 rounded-lg font-bold disabled:opacity-40"
+                  >
+                    Gửi OTP mở ca trễ
+                  </button>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={otpCode}
+                    onChange={(e) => setOtpCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                    className="w-28 px-3 py-2 border rounded-lg font-extrabold tracking-widest uppercase"
+                    placeholder="OTP"
+                  />
+                  <button
+                    type="button"
+                    disabled={!otpChallengePublicId || otpBusy || otpCode.trim().length !== 6}
+                    onClick={async () => {
+                      if (!otpChallengePublicId) return
+                      const code = otpCode.trim().toUpperCase()
+                      setOtpBusy(true)
+                      try {
+                        const response = await verifyOtp({ otpChallengePublicId, otpCode: code })
+                        const envelope = extractOtpEnvelope(response)
+                        if (response.ok && envelope.data?.otpChallengePublicId) {
+                          setVerifiedOtpChallengePublicId(envelope.data.otpChallengePublicId)
+                          setOtpMessage('OTP đã xác nhận. Nhấn mở ca lại.')
+                          await handleOpenShift(
+                            { preventDefault() {} } as FormEvent,
+                            envelope.data.otpChallengePublicId
+                          )
+                        } else {
+                          setOtpMessage(mapOtpUserMessage(envelope.message ?? response.error, 'OTP không hợp lệ.'))
+                        }
+                      } finally {
+                        setOtpBusy(false)
+                      }
+                    }}
+                    className="px-3 py-2 bg-amber-100 border border-amber-300 rounded-lg font-bold disabled:opacity-40"
+                  >
+                    Xác nhận OTP & mở ca
+                  </button>
+                </div>
+                {otpMessage && <p className="font-semibold">{otpMessage}</p>}
+              </div>
+            )}
             <button
               type="submit"
               disabled={isSubmitting || startingCash === ''}
@@ -852,38 +1037,61 @@ export default function ShiftSummary() {
                       </p>
                     )}
 
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-3">
                       <div>
                         <label className="block text-xs font-semibold text-text-secondary mb-1">
                           Lý do đóng ngoại lệ
                         </label>
                         <textarea
                           value={exceptionReason}
-                          onChange={(event) => setExceptionReason(event.target.value)}
+                          onChange={(event) => {
+                            setExceptionReason(event.target.value)
+                            setVerifiedExceptionOtpId(null)
+                          }}
                           rows={3}
                           className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs outline-none focus:border-brand-orange text-text-primary bg-white font-semibold resize-none"
                           placeholder="Ví dụ: mất mạng kéo dài, còn đơn offline chưa đồng bộ..."
                           disabled={!canUseExceptionClose || isSubmitting}
                         />
                       </div>
-                      <div>
-                        <label className="block text-xs font-semibold text-text-secondary mb-1">
-                          PIN supervisor/manager
-                        </label>
+                      <p className="font-semibold text-amber-800">
+                        Cần kết nối mạng để gửi và xác nhận OTP của người phê duyệt. Không dùng PIN cố định.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={requestExceptionOtp}
+                          disabled={exceptionOtpBusy || !canUseExceptionClose || actualEndingCash === '' || exceptionReason.trim().length === 0}
+                          className="px-3 py-2 bg-white border border-amber-300 text-amber-900 text-xs font-bold rounded-lg disabled:opacity-40"
+                        >
+                          {exceptionOtpBusy ? 'Đang gửi OTP...' : 'Gửi OTP phê duyệt'}
+                        </button>
                         <input
-                          type="password"
-                          inputMode="numeric"
-                          maxLength={4}
-                          value={supervisorPin}
-                          onChange={(event) => setSupervisorPin(event.target.value.replace(/\D/g, '').slice(0, 4))}
-                          className="w-full px-3 py-2 border border-amber-200 rounded-lg text-xs outline-none focus:border-brand-orange text-text-primary bg-white font-semibold"
-                          placeholder="••••"
-                          disabled={!canUseExceptionClose || isSubmitting}
+                          type="text"
+                          maxLength={6}
+                          autoCapitalize="characters"
+                          autoComplete="one-time-code"
+                          value={exceptionOtpCode}
+                          onChange={(e) => setExceptionOtpCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6))}
+                          className="w-28 px-3 py-2 border border-amber-200 rounded-lg text-xs font-extrabold tracking-widest uppercase"
+                          placeholder="OTP"
+                          disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy}
                         />
-                        <p className="mt-2 font-semibold text-amber-700">
-                          Đơn offline không bị xóa khỏi máy này và sẽ sync lại vào WorkShift cũ.
-                        </p>
+                        <button
+                          type="button"
+                          onClick={verifyExceptionOtp}
+                          disabled={!exceptionOtpChallengePublicId || exceptionOtpBusy || exceptionOtpCode.trim().length !== 6}
+                          className="px-3 py-2 bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-lg disabled:opacity-40"
+                        >
+                          Xác nhận OTP
+                        </button>
                       </div>
+                      {exceptionOtpMessage && (
+                        <p className="text-xs font-semibold text-amber-900">{exceptionOtpMessage}</p>
+                      )}
+                      <p className="font-semibold text-amber-700">
+                        Đơn offline không bị xóa khỏi máy này và sẽ sync lại vào WorkShift cũ.
+                      </p>
                     </div>
 
                     <button
@@ -894,7 +1102,7 @@ export default function ShiftSummary() {
                         actualEndingCash === '' ||
                         !canUseExceptionClose ||
                         exceptionReason.trim().length === 0 ||
-                        supervisorPin.trim().length !== 4 ||
+                        !verifiedExceptionOtpId ||
                         (needsReason && discrepancyReason.trim().length === 0)
                       }
                       className="px-4 py-2.5 bg-amber-600 text-white text-xs font-bold rounded-lg cursor-pointer hover:bg-amber-700 disabled:opacity-40 disabled:cursor-not-allowed active:scale-95 transition-all"

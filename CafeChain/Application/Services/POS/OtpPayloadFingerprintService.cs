@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.POS;
 
 namespace CafeChain.Application.Services.POS
@@ -16,9 +17,8 @@ namespace CafeChain.Application.Services.POS
             string reason)
         {
             var normalizedReason = NormalizeReason(reason);
-            var cash = actualEndingCash.ToString("0.00", CultureInfo.InvariantCulture);
+            var cash = FormatDecimal(actualEndingCash);
 
-            // Canonical lines — fixed order, invariant culture, no raw JSON.
             var canonical = string.Join('\n', new[]
             {
                 "version=1",
@@ -32,9 +32,72 @@ namespace CafeChain.Application.Services.POS
                 $"reason={normalizedReason}"
             });
 
-            var bytes = Encoding.UTF8.GetBytes(canonical);
-            var hash = SHA256.HashData(bytes);
-            return Convert.ToHexString(hash);
+            return Sha256Hex(canonical);
+        }
+
+        public string BuildCloseShiftExceptionFingerprint(
+            int storeId,
+            int actorStaffId,
+            int workShiftId,
+            decimal actualEndingCash,
+            string exceptionReason,
+            string? discrepancyReason,
+            OfflineQueueSummaryDto offlineSummary)
+        {
+            offlineSummary ??= new OfflineQueueSummaryDto();
+            var cash = FormatDecimal(actualEndingCash);
+            var estimated = FormatDecimal(offlineSummary.EstimatedTotal);
+            var localCash = FormatDecimal(offlineSummary.LocalCashTotal);
+
+            var canonical = string.Join('\n', new[]
+            {
+                "version=1",
+                $"action={OtpConstants.ActionTypes.CloseShiftException}",
+                $"store={storeId}",
+                $"actor={actorStaffId}",
+                $"targetType={OtpConstants.TargetTypes.Shifts}",
+                $"targetId={workShiftId}",
+                $"workShiftId={workShiftId}",
+                $"actualEndingCash={cash}",
+                $"exceptionReason={NormalizeReason(exceptionReason)}",
+                $"discrepancyReason={NormalizeReason(discrepancyReason)}",
+                $"offlineOrderCount={offlineSummary.OfflineOrderCount}",
+                $"estimatedTotal={estimated}",
+                $"localCashTotal={localCash}"
+            });
+
+            return Sha256Hex(canonical);
+        }
+
+        public string BuildOpenShiftLateFingerprint(
+            int storeId,
+            int actorStaffId,
+            decimal startingCash,
+            string reason,
+            string scheduledStartCanonical)
+        {
+            var cash = FormatDecimal(startingCash);
+            var scheduled = string.IsNullOrWhiteSpace(scheduledStartCanonical)
+                ? string.Empty
+                : scheduledStartCanonical.Trim();
+
+            // targetId = actor staff (no WorkShift yet at request time).
+            var canonical = string.Join('\n', new[]
+            {
+                "version=1",
+                $"action={OtpConstants.ActionTypes.OpenShiftLate}",
+                $"store={storeId}",
+                $"actor={actorStaffId}",
+                $"targetType={OtpConstants.TargetTypes.Shifts}",
+                $"targetId={actorStaffId}",
+                $"staffId={actorStaffId}",
+                $"startingCash={cash}",
+                $"reason={NormalizeReason(reason)}",
+                $"scheduledStart={scheduled}",
+                $"lateThresholdMinutes={OtpConstants.LateOpenThresholdMinutes}"
+            });
+
+            return Sha256Hex(canonical);
         }
 
         public bool FixedTimeEquals(string? a, string? b)
@@ -50,12 +113,21 @@ namespace CafeChain.Application.Services.POS
             return CryptographicOperations.FixedTimeEquals(ba, bb);
         }
 
+        private static string FormatDecimal(decimal value)
+            => value.ToString("0.00", CultureInfo.InvariantCulture);
+
+        private static string Sha256Hex(string canonical)
+        {
+            var bytes = Encoding.UTF8.GetBytes(canonical);
+            var hash = SHA256.HashData(bytes);
+            return Convert.ToHexString(hash);
+        }
+
         private static string NormalizeReason(string? reason)
         {
             if (string.IsNullOrWhiteSpace(reason))
                 return string.Empty;
 
-            // Trim ends; collapse internal whitespace runs to single space; keep case as-is after trim.
             var trimmed = reason.Trim();
             var sb = new StringBuilder(trimmed.Length);
             var prevSpace = false;

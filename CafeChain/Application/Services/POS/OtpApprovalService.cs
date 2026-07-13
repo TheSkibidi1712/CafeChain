@@ -15,6 +15,7 @@ namespace CafeChain.Application.Services.POS
     public class OtpApprovalService : IOtpApprovalService
     {
         private readonly IOtpChallengeRepository _repository;
+        private readonly IWorkShiftRepository _workShiftRepository;
         private readonly IEmailService _emailService;
         private readonly IOtpCodeGenerator _codeGenerator;
         private readonly IOtpPayloadFingerprintService _fingerprint;
@@ -23,6 +24,7 @@ namespace CafeChain.Application.Services.POS
 
         public OtpApprovalService(
             IOtpChallengeRepository repository,
+            IWorkShiftRepository workShiftRepository,
             IEmailService emailService,
             IOtpCodeGenerator codeGenerator,
             IOtpPayloadFingerprintService fingerprint,
@@ -30,6 +32,7 @@ namespace CafeChain.Application.Services.POS
             IWebHostEnvironment environment)
         {
             _repository = repository;
+            _workShiftRepository = workShiftRepository;
             _emailService = emailService;
             _codeGenerator = codeGenerator;
             _fingerprint = fingerprint;
@@ -45,31 +48,38 @@ namespace CafeChain.Application.Services.POS
             if (request == null)
                 return ServiceResult<OtpChallengeResponseDto>.Failure("Thiếu dữ liệu yêu cầu OTP.");
 
-            var validation = ValidateFoundationRequest(request);
-            if (validation != null)
-                return ServiceResult<OtpChallengeResponseDto>.Failure(validation);
+            var actionType = NormalizeActionType(request.ActionType);
+            if (actionType == null)
+                return ServiceResult<OtpChallengeResponseDto>.Failure(
+                    "ActionType không hỗ trợ. Dùng CASH_DIFFERENCE, CLOSE_SHIFT_EXCEPTION hoặc OPEN_SHIFT_LATE.");
 
-            var workShiftId = request.WorkShiftId ?? request.TargetId;
-            if (!workShiftId.HasValue || workShiftId.Value <= 0)
-                return ServiceResult<OtpChallengeResponseDto>.Failure("WorkShiftId/TargetId không hợp lệ cho CASH_DIFFERENCE.");
+            if (!string.Equals(request.TargetType?.Trim(), OtpConstants.TargetTypes.Shifts, StringComparison.OrdinalIgnoreCase))
+                return ServiceResult<OtpChallengeResponseDto>.Failure("Chỉ hỗ trợ TargetType shifts.");
+
+            if (string.IsNullOrWhiteSpace(request.Reason))
+                return ServiceResult<OtpChallengeResponseDto>.Failure("Vui lòng nhập lý do yêu cầu OTP.");
+
+            var build = await BuildChallengeContextAsync(request, actionType, requestedByStaffId, storeId);
+            if (build.Error != null)
+                return ServiceResult<OtpChallengeResponseDto>.Failure(build.Error);
 
             var requester = await _repository.GetRequestingStaffAsync(requestedByStaffId, storeId);
             if (requester == null)
                 return ServiceResult<OtpChallengeResponseDto>.Failure("Không tìm thấy nhân viên yêu cầu hợp lệ tại cửa hàng này.");
 
             var nowUtc = DateTime.UtcNow;
+            var targetId = build.TargetId!.Value;
+            var workShiftId = build.WorkShiftId;
 
-            // Serialize create vs create under one transaction (SQL UPDLOCK on lookup).
             await _repository.BeginTransactionAsync();
             try
             {
-                // One active challenge: return existing metadata (caller uses Resend to rotate).
                 var existing = await _repository.FindActiveChallengeAsync(
                     storeId,
                     requestedByStaffId,
-                    OtpConstants.ActionTypes.CashDifference,
+                    actionType,
                     OtpConstants.TargetTypes.Shifts,
-                    workShiftId.Value,
+                    targetId,
                     nowUtc);
 
                 if (existing != null)
@@ -114,26 +124,19 @@ namespace CafeChain.Application.Services.POS
                 }
 
                 var reason = request.Reason.Trim();
-                var fingerprint = _fingerprint.BuildCashDifferenceFingerprint(
-                    storeId,
-                    requestedByStaffId,
-                    workShiftId.Value,
-                    request.ActualEndingCash,
-                    reason);
-
                 var otpCode = _codeGenerator.Generate();
                 var challenge = new OtpChallenge
                 {
                     PublicId = Guid.NewGuid(),
                     StoreId = storeId,
-                    WorkShiftId = workShiftId.Value,
+                    WorkShiftId = workShiftId,
                     RequestedByStaffId = requestedByStaffId,
                     ApproverStaffId = approver.StaffId,
-                    ActionType = OtpConstants.ActionTypes.CashDifference,
+                    ActionType = actionType,
                     TargetType = OtpConstants.TargetTypes.Shifts,
-                    TargetId = workShiftId.Value,
+                    TargetId = targetId,
                     Reason = reason,
-                    PayloadFingerprint = fingerprint,
+                    PayloadFingerprint = build.Fingerprint!,
                     OtpHash = BCrypt.Net.BCrypt.HashPassword(otpCode),
                     ExpiresAt = nowUtc.AddMinutes(OtpConstants.TtlMinutes),
                     LastSentAt = nowUtc,
@@ -151,12 +154,9 @@ namespace CafeChain.Application.Services.POS
                 catch (DbUpdateException)
                 {
                     await _repository.RollbackTransactionAsync();
-                    // Concurrent create race — return existing active if any.
                     var raced = await _repository.FindActiveChallengeAsync(
-                        storeId, requestedByStaffId,
-                        OtpConstants.ActionTypes.CashDifference,
-                        OtpConstants.TargetTypes.Shifts,
-                        workShiftId.Value, nowUtc);
+                        storeId, requestedByStaffId, actionType,
+                        OtpConstants.TargetTypes.Shifts, targetId, nowUtc);
                     if (raced != null)
                     {
                         return ServiceResult<OtpChallengeResponseDto>.Success(
@@ -168,13 +168,14 @@ namespace CafeChain.Application.Services.POS
                 }
 
                 var approverRoleLabel = ResolveApproverRoleLabel(approver);
-                var subject = $"[Xác nhận {approverRoleLabel}] Lệch két cần xác nhận - {store.Name}";
+                var actionLabel = ResolveActionLabel(actionType);
+                var subject = $"[Xác nhận {approverRoleLabel}] {actionLabel} - {store.Name}";
                 var body = _emailService.BuildOperationalOtpEmail(
                     otpCode,
                     store.Name,
-                    $"WorkShift #{workShiftId.Value}",
+                    build.TargetLabel!,
                     requester.FullName,
-                    "Xác nhận đóng ca có chênh lệch",
+                    actionLabel,
                     challenge.Reason,
                     nowUtc,
                     OtpConstants.TtlMinutes);
@@ -362,13 +363,13 @@ namespace CafeChain.Application.Services.POS
                 }
 
                 var otpCode = _codeGenerator.Generate();
-                var subject = $"[Xác nhận ca trưởng] Lệch két cần xác nhận - {challenge.Store.Name}";
+                var subject = $"[Xác nhận ca trưởng] {ResolveActionLabel(challenge.ActionType)} - {challenge.Store.Name}";
                 var body = _emailService.BuildOperationalOtpEmail(
                     otpCode,
                     challenge.Store.Name,
                     BuildTargetLabel(challenge),
                     challenge.RequestedByStaff?.FullName ?? $"Staff #{challenge.RequestedByStaffId}",
-                    "Xác nhận đóng ca có chênh lệch",
+                    ResolveActionLabel(challenge.ActionType),
                     challenge.Reason,
                     nowUtc,
                     OtpConstants.TtlMinutes);
@@ -426,21 +427,103 @@ namespace CafeChain.Application.Services.POS
             }
         }
 
-        private static string? ValidateFoundationRequest(OtpRequestDto request)
+        private async Task<(string? Error, string? Fingerprint, int? TargetId, int? WorkShiftId, string? TargetLabel)>
+            BuildChallengeContextAsync(
+                OtpRequestDto request,
+                string actionType,
+                int requestedByStaffId,
+                int storeId)
         {
-            var actionType = request.ActionType?.Trim();
-            var targetType = request.TargetType?.Trim();
+            if (actionType == OtpConstants.ActionTypes.CashDifference)
+            {
+                var workShiftId = request.WorkShiftId ?? request.TargetId;
+                if (!workShiftId.HasValue || workShiftId.Value <= 0)
+                    return ("WorkShiftId/TargetId không hợp lệ cho CASH_DIFFERENCE.", null, null, null, null);
 
-            if (!string.Equals(actionType, OtpConstants.ActionTypes.CashDifference, StringComparison.OrdinalIgnoreCase))
-                return "Phase 1 chỉ hỗ trợ ActionType CASH_DIFFERENCE.";
+                var fingerprint = _fingerprint.BuildCashDifferenceFingerprint(
+                    storeId, requestedByStaffId, workShiftId.Value,
+                    request.ActualEndingCash, request.Reason);
 
-            if (!string.Equals(targetType, OtpConstants.TargetTypes.Shifts, StringComparison.OrdinalIgnoreCase))
-                return "Phase 1 chỉ hỗ trợ TargetType shifts.";
+                return (null, fingerprint, workShiftId.Value, workShiftId.Value, $"WorkShift #{workShiftId.Value}");
+            }
 
-            if (string.IsNullOrWhiteSpace(request.Reason))
-                return "Vui lòng nhập lý do yêu cầu OTP.";
+            if (actionType == OtpConstants.ActionTypes.CloseShiftException)
+            {
+                var workShiftId = request.WorkShiftId ?? request.TargetId;
+                if (!workShiftId.HasValue || workShiftId.Value <= 0)
+                    return ("WorkShiftId/TargetId không hợp lệ cho CLOSE_SHIFT_EXCEPTION.", null, null, null, null);
 
+                if (string.IsNullOrWhiteSpace(request.ExceptionReason))
+                    return ("Vui lòng nhập lý do đóng ca ngoại lệ cho OTP.", null, null, null, null);
+
+                var offline = request.OfflineQueueSummary ?? new OfflineQueueSummaryDto();
+                if (offline.OfflineOrderCount < 0 || offline.EstimatedTotal < 0 || offline.LocalCashTotal < 0)
+                    return ("Tóm tắt đơn offline không hợp lệ.", null, null, null, null);
+
+                var fingerprint = _fingerprint.BuildCloseShiftExceptionFingerprint(
+                    storeId,
+                    requestedByStaffId,
+                    workShiftId.Value,
+                    request.ActualEndingCash,
+                    request.ExceptionReason,
+                    request.DiscrepancyReason,
+                    offline);
+
+                return (null, fingerprint, workShiftId.Value, workShiftId.Value, $"WorkShift #{workShiftId.Value}");
+            }
+
+            if (actionType == OtpConstants.ActionTypes.OpenShiftLate)
+            {
+                // No WorkShift yet — target is the actor staff id.
+                var scheduled = await ResolveScheduledStartCanonicalAsync(requestedByStaffId);
+                var reason = request.Reason;
+                var fingerprint = _fingerprint.BuildOpenShiftLateFingerprint(
+                    storeId,
+                    requestedByStaffId,
+                    request.StartingCash,
+                    reason,
+                    scheduled);
+
+                return (null, fingerprint, requestedByStaffId, null, $"Staff #{requestedByStaffId}");
+            }
+
+            return ("ActionType không hỗ trợ.", null, null, null, null);
+        }
+
+        private async Task<string> ResolveScheduledStartCanonicalAsync(int staffId)
+        {
+            var staffShift = await _workShiftRepository.GetTodayStaffShiftAsync(staffId);
+            if (staffShift?.Shift == null)
+                return "none";
+
+            var start = DateTime.Today.Add(staffShift.Shift.StartTime);
+            return start.ToString("yyyy-MM-dd'T'HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string? NormalizeActionType(string? actionType)
+        {
+            if (string.IsNullOrWhiteSpace(actionType))
+                return null;
+
+            var value = actionType.Trim();
+            if (string.Equals(value, OtpConstants.ActionTypes.CashDifference, StringComparison.OrdinalIgnoreCase))
+                return OtpConstants.ActionTypes.CashDifference;
+            if (string.Equals(value, OtpConstants.ActionTypes.CloseShiftException, StringComparison.OrdinalIgnoreCase))
+                return OtpConstants.ActionTypes.CloseShiftException;
+            if (string.Equals(value, OtpConstants.ActionTypes.OpenShiftLate, StringComparison.OrdinalIgnoreCase))
+                return OtpConstants.ActionTypes.OpenShiftLate;
             return null;
+        }
+
+        private static string ResolveActionLabel(string actionType)
+        {
+            return actionType switch
+            {
+                OtpConstants.ActionTypes.CashDifference => "Xác nhận đóng ca có chênh lệch",
+                OtpConstants.ActionTypes.CloseShiftException => "Xác nhận đóng ca ngoại lệ",
+                OtpConstants.ActionTypes.OpenShiftLate => "Xác nhận mở ca trễ",
+                _ => "Xác nhận OTP"
+            };
         }
 
         private static string? EnsurePendingChallenge(OtpChallenge challenge, DateTime nowUtc)

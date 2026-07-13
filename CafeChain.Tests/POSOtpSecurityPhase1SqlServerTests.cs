@@ -517,6 +517,7 @@ IF DB_ID(N'{Database}') IS NULL
 
             return new OtpApprovalService(
                 new OtpChallengeRepository(ctx),
+                new WorkShiftRepository(ctx),
                 email.Object,
                 new FixedCodeGenerator(fixedCode, _codeGenerator),
                 _fingerprint,

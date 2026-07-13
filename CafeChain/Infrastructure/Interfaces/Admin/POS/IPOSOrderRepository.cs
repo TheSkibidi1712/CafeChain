@@ -67,6 +67,8 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
         // === AUDIT LOG ===
         Task<InvoiceAuditLog?> GetPendingAuditLogAsync(int cashierId, string actionName, int windowMinutes);
         Task UpdateAuditLogOrderIdAsync(int auditLogId, int orderId);
+        /// <summary>Post-success audit only — not an authorization token.</summary>
+        Task CreateAuditLogAsync(InvoiceAuditLog log);
 
         // === CUSTOMER REGISTRATION ===
         Task<bool> HasDuplicatePhoneAsync(string phone);

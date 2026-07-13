@@ -5,9 +5,11 @@ using CafeChain.Application.Interfaces.POS;
 using CafeChain.Application.Results;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Operations;
+using CafeChain.Models.Orders;
 using CafeChain.Models.Stores;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Globalization;
 using System.Threading.Tasks;
 
 namespace CafeChain.Application.Services.POS
@@ -40,87 +42,160 @@ namespace CafeChain.Application.Services.POS
             _logger = logger;
         }
 
-        public async Task<ServiceResult> OpenShiftAsync(int userId, int storeId, decimal startingCash, string? posTerminalId = null)
+        public async Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request)
         {
             try
             {
-                // 1. HR INTERLOCK CHECK (The Gatekeeper)
-                bool hasValidCheckIn = await _hrAttendanceService.VerifyRecentCheckInAsync(userId, storeId);
-                
-                if (!hasValidCheckIn)
+                request ??= new OpenShiftRequestDto();
+                var startingCash = request.StartingCash;
+                var posTerminalId = request.PosTerminalId;
+
+                if (!await _hrAttendanceService.VerifyRecentCheckInAsync(userId, storeId))
                 {
-                    return ServiceResult.Failure("Từ chối truy cập: Vui lòng sử dụng điện thoại cá nhân kết nối Wifi quán và quét khuôn mặt để Chấm công trước khi Nhận ca POS!");
+                    return ServiceResult.Failure(
+                        "Từ chối truy cập: Vui lòng sử dụng điện thoại cá nhân kết nối Wifi quán và quét khuôn mặt để Chấm công trước khi Nhận ca POS!");
                 }
 
-                // 2. STATE CHECK: Prevent multiple open shifts for the same user/store
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
-
                 if (activeShift != null)
                 {
                     return ServiceResult.Failure("Bạn đang có một ca làm việc chưa được đóng. Vui lòng đóng ca trước khi nhận ca mới.");
                 }
 
-                // 3. LATE OPENING GUARD: Kiểm tra mở ca trễ > 30 phút
                 var staffShiftToday = await _shiftRepo.GetTodayStaffShiftAsync(userId);
+                var isLate = false;
+                string scheduledCanonical = "none";
+                string? lateScheduleMessage = null;
 
-                if (staffShiftToday != null && staffShiftToday.Shift != null)
+                if (staffShiftToday?.Shift != null)
                 {
                     var today = DateTime.Today;
                     var shiftStartTime = today.Add(staffShiftToday.Shift.StartTime);
+                    scheduledCanonical = shiftStartTime.ToString(
+                        "yyyy-MM-dd'T'HH:mm:ss", CultureInfo.InvariantCulture);
                     var minutesLate = (DateTime.Now - shiftStartTime).TotalMinutes;
 
-                    if (minutesLate > 30)
+                    if (minutesLate > OtpConstants.LateOpenThresholdMinutes)
                     {
-                        var pendingBypass = await _posRepo.GetPendingAuditLogAsync(userId, "OPEN_SHIFT_LATE", 5);
-                        if (pendingBypass == null)
+                        isLate = true;
+                        lateScheduleMessage =
+                            $"Ca của bạn bắt đầu lúc {staffShiftToday.Shift.StartTime:hh\\:mm}. Bạn đã trễ hơn {OtpConstants.LateOpenThresholdMinutes} phút.";
+                    }
+                }
+
+                OtpChallenge? otpChallenge = null;
+                var ownsTransaction = false;
+
+                try
+                {
+                    if (isLate)
+                    {
+                        if (request.OtpChallengePublicId == null)
                         {
                             return ServiceResult.Failure(
-                                $"LATE_OPENING_REQUIRES_BYPASS|Ca của bạn bắt đầu lúc {staffShiftToday.Shift.StartTime:hh\\:mm}. Bạn đã trễ hơn 30 phút. Yêu cầu Trưởng ca xác thực mã PIN để mở ca trễ.");
+                                $"LATE_OPENING_REQUIRES_OTP|{lateScheduleMessage} Cần OTP từ Ca trưởng/QL chi nhánh để mở ca trễ (online).",
+                                errorCode: OtpConstants.ErrorCodes.LateOpeningRequiresOtp);
                         }
-                    }
-                }
 
-                // 4. Ensure POS terminal exists before WorkShift FK insert
-                var normalizedTerminalId = string.IsNullOrWhiteSpace(posTerminalId)
-                    ? null
-                    : posTerminalId.Trim();
-
-                if (normalizedTerminalId != null)
-                {
-                    var terminalName = $"POS-Store{storeId}-{DateTime.Now:MMdd-HHmm}";
-                    await _shiftRepo.EnsurePosTerminalAsync(normalizedTerminalId, storeId, terminalName);
-                }
-
-                // 5. EXECUTION: Open Financial Shift
-                var newShift = new WorkShift
-                {
-                    UserId = userId,
-                    StoreId = storeId,
-                    StartTime = DateTime.Now,
-                    StartingCash = startingCash,
-                    ExpectedEndingCash = startingCash,
-                    Status = "Open",
-                    PosTerminalId = normalizedTerminalId
-                };
-
-                await _shiftRepo.CreateShiftAsync(newShift);
-
-                // 6. Nếu có pending bypass mở ca trễ, liên kết ShiftId vào audit log
-                if (staffShiftToday != null && staffShiftToday.Shift != null)
-                {
-                    var today = DateTime.Today;
-                    var shiftStartTime = today.Add(staffShiftToday.Shift.StartTime);
-                    if ((DateTime.Now - shiftStartTime).TotalMinutes > 30)
-                    {
-                        var pendingBypass = await _posRepo.GetPendingAuditLogAsync(userId, "OPEN_SHIFT_LATE", 5);
-                        if (pendingBypass != null)
+                        var lateReason = request.LateOpeningReason?.Trim();
+                        if (string.IsNullOrWhiteSpace(lateReason))
                         {
-                            await _posRepo.UpdateAuditLogOrderIdAsync(pendingBypass.Id, newShift.ShiftId);
+                            return ServiceResult.Failure("Vui lòng nhập lý do mở ca trễ (khớp yêu cầu OTP).");
+                        }
+
+                        await _otpChallengeRepo.BeginTransactionAsync();
+                        ownsTransaction = true;
+
+                        otpChallenge = await _otpChallengeRepo.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId.Value);
+                        var expectedFingerprint = _otpFingerprint.BuildOpenShiftLateFingerprint(
+                            storeId,
+                            userId,
+                            startingCash,
+                            lateReason,
+                            scheduledCanonical);
+
+                        var otpError = await ValidateAndPrepareOtpConsumeAsync(
+                            otpChallenge,
+                            expectedActionType: OtpConstants.ActionTypes.OpenShiftLate,
+                            workShiftId: null,
+                            storeId: storeId,
+                            actorStaffId: userId,
+                            expectedFingerprint: expectedFingerprint,
+                            expectedTargetId: userId);
+
+                        if (otpError != null)
+                        {
+                            await _otpChallengeRepo.RollbackTransactionAsync();
+                            return ServiceResult.Failure(otpError.Value.message, errorCode: otpError.Value.code);
                         }
                     }
-                }
 
-                return ServiceResult.Success("Mở ca thành công! Chào mừng bạn.");
+                    var normalizedTerminalId = string.IsNullOrWhiteSpace(posTerminalId)
+                        ? null
+                        : posTerminalId.Trim();
+
+                    if (normalizedTerminalId != null)
+                    {
+                        var terminalName = $"POS-Store{storeId}-{DateTime.Now:MMdd-HHmm}";
+                        await _shiftRepo.EnsurePosTerminalAsync(normalizedTerminalId, storeId, terminalName);
+                    }
+
+                    var newShift = new WorkShift
+                    {
+                        UserId = userId,
+                        StoreId = storeId,
+                        StartTime = DateTime.Now,
+                        StartingCash = startingCash,
+                        ExpectedEndingCash = startingCash,
+                        Status = "Open",
+                        PosTerminalId = normalizedTerminalId
+                    };
+
+                    await _shiftRepo.CreateShiftAsync(newShift);
+
+                    if (otpChallenge != null)
+                    {
+                        otpChallenge.Status = OtpConstants.Statuses.Used;
+                        otpChallenge.UsedAt = DateTime.UtcNow;
+                        otpChallenge.WorkShiftId = newShift.ShiftId;
+                        await _otpChallengeRepo.SaveChangesAsync();
+                    }
+
+                    if (ownsTransaction)
+                        await _otpChallengeRepo.CommitTransactionAsync();
+
+                    if (otpChallenge != null)
+                    {
+                        // Audit after successful mutation+consume — never authorization authority.
+                        try
+                        {
+                            await _posRepo.CreateAuditLogAsync(new InvoiceAuditLog
+                            {
+                                OrderId = newShift.ShiftId,
+                                CashierId = userId,
+                                SupervisorId = otpChallenge.ApproverStaffId,
+                                ActionName = OtpConstants.ActionTypes.OpenShiftLate,
+                                Reason = Truncate(
+                                    $"OTP {otpChallenge.PublicId:N}; {request.LateOpeningReason}", 500),
+                                CreatedAt = DateTime.Now
+                            });
+                        }
+                        catch (Exception auditEx)
+                        {
+                            _logger.LogWarning(auditEx,
+                                "OPEN_SHIFT_LATE audit write failed after successful open | ShiftId={ShiftId}",
+                                newShift.ShiftId);
+                        }
+                    }
+
+                    return ServiceResult.Success("Mở ca thành công! Chào mừng bạn.");
+                }
+                catch
+                {
+                    if (ownsTransaction)
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -138,29 +213,14 @@ namespace CafeChain.Application.Services.POS
             return await _shiftRepo.GetShiftByIdAsync(shiftId, userId, storeId);
         }
 
-        // ============================================================
-        // CLOSE SHIFT + RECONCILIATION: Đối soát két tiền cuối ca
-        // ============================================================
-        /// <summary>
-        /// Đóng ca POS + đối soát két tiền:
-        ///   1. Tính ExpectedEndingCash = StartingCash + Σ Cash Sales trong ca
-        ///   2. CashDiscrepancy = ActualEndingCash - ExpectedEndingCash
-        ///   3. Nếu lệch != 0 → ghi Warning log cho Web Admin đối soát
-        ///   4. Persist toàn bộ lên WorkShift
-        /// </summary>
         public async Task<ServiceResult> CloseShiftAsync(int userId, int storeId, CloseShiftRequestDto request)
         {
             try
             {
-                // 1. Find active shift
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
-
                 if (activeShift == null)
-                {
                     return ServiceResult.Failure("Không tìm thấy ca két tiền đang mở.");
-                }
 
-                // 2. Backend-known PayOS/VietQR pending orders block normal close.
                 if (await _shiftRepo.HasOpenPosPaymentAsync(activeShift.ShiftId, storeId))
                 {
                     return ServiceResult.Failure(
@@ -168,13 +228,8 @@ namespace CafeChain.Application.Services.POS
                         "Vui lòng hoàn tất hoặc hủy giao dịch trước khi đóng ca.");
                 }
 
-                // 3. Calculate Expected Ending Cash via Repository
                 var totalCashSales = await _shiftRepo.GetTotalCashSalesAsync(activeShift.ShiftId);
-
-                // ExpectedEndingCash = StartingCash + tổng doanh thu tiền mặt trong ca
                 var expectedEndingCash = activeShift.StartingCash + totalCashSales;
-
-                // 4. Calculate Discrepancy
                 var discrepancy = request.ActualEndingCash - expectedEndingCash;
 
                 if (discrepancy != 0 && string.IsNullOrWhiteSpace(request.DiscrepancyReason))
@@ -182,7 +237,6 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult.Failure($"Phát hiện chênh lệch {discrepancy:N0}đ. Vui lòng nhập lý do chênh lệch.");
                 }
 
-                // 4b. OTP threshold check for cash discrepancy (Phase 1 hardened consume)
                 OtpChallenge? otpChallenge = null;
                 var absDiscrepancy = Math.Abs(discrepancy);
                 var otpRequired = absDiscrepancy > OtpConstants.Thresholds.AbsoluteAmountVnd
@@ -213,10 +267,13 @@ namespace CafeChain.Application.Services.POS
 
                         var otpError = await ValidateAndPrepareOtpConsumeAsync(
                             otpChallenge,
+                            OtpConstants.ActionTypes.CashDifference,
                             activeShift.ShiftId,
                             storeId,
                             userId,
-                            expectedFingerprint);
+                            expectedFingerprint,
+                            expectedTargetId: activeShift.ShiftId);
+
                         if (otpError != null)
                         {
                             await _otpChallengeRepo.RollbackTransactionAsync();
@@ -224,7 +281,6 @@ namespace CafeChain.Application.Services.POS
                         }
                     }
 
-                    // 5. Close Shift — persist reconciliation data
                     activeShift.ExpectedEndingCash = expectedEndingCash;
                     activeShift.ActualEndingCash = request.ActualEndingCash;
                     activeShift.CashDiscrepancy = discrepancy;
@@ -232,7 +288,6 @@ namespace CafeChain.Application.Services.POS
                     activeShift.EndTime = DateTime.Now;
                     activeShift.Status = "Closed";
 
-                    // 5b. Consume OTP atomically with close mutation
                     if (otpChallenge != null)
                     {
                         otpChallenge.Status = OtpConstants.Statuses.Used;
@@ -285,12 +340,24 @@ namespace CafeChain.Application.Services.POS
                 if (request == null)
                     return ServiceResult.Failure("Thiếu dữ liệu đóng ca ngoại lệ.");
 
+                // Phase 2: PIN no longer authorizes this flow.
+                if (!string.IsNullOrWhiteSpace(request.SupervisorPin))
+                {
+                    return ServiceResult.Failure(
+                        "Đóng ca ngoại lệ không còn dùng PIN supervisor. Vui lòng gửi và xác nhận OTP online.",
+                        errorCode: OtpConstants.ErrorCodes.FeatureNotAvailable);
+                }
+
                 var exceptionReason = request.ExceptionReason?.Trim();
                 if (string.IsNullOrWhiteSpace(exceptionReason))
                     return ServiceResult.Failure("Vui lòng nhập lý do đóng ca ngoại lệ.");
 
-                if (string.IsNullOrWhiteSpace(request.SupervisorPin))
-                    return ServiceResult.Failure("Vui lòng nhập mã PIN supervisor/manager.");
+                if (request.OtpChallengePublicId == null || request.OtpChallengePublicId == Guid.Empty)
+                {
+                    return ServiceResult.Failure(
+                        "Cần OTP phê duyệt (online) để đóng ca ngoại lệ.",
+                        errorCode: OtpConstants.ErrorCodes.Required);
+                }
 
                 var activeShift = await _shiftRepo.GetActiveShiftAsync(userId, storeId);
                 if (activeShift == null || activeShift.ShiftId != shiftId)
@@ -302,12 +369,6 @@ namespace CafeChain.Application.Services.POS
                         "Không thể đóng ca ngoại lệ. Đang có giao dịch thanh toán chưa hoàn tất. " +
                         "Vui lòng hoàn tất hoặc hủy giao dịch trước khi đóng ca.");
                 }
-
-                var supervisorResult = await _supervisorAuthService.VerifySupervisorPinAsync(
-                    request.SupervisorPin, storeId);
-
-                if (!supervisorResult.IsSuccess || supervisorResult.Data == null)
-                    return ServiceResult.Failure(supervisorResult.Message);
 
                 var offlineSummary = request.OfflineQueueSummary ?? new OfflineQueueSummaryDto();
                 if (offlineSummary.OfflineOrderCount < 0 ||
@@ -326,28 +387,87 @@ namespace CafeChain.Application.Services.POS
                     return ServiceResult.Failure($"Phát hiện chênh lệch {discrepancy:N0}đ. Vui lòng nhập lý do chênh lệch.");
                 }
 
-                var closedAt = DateTime.Now;
-                activeShift.ExpectedEndingCash = expectedEndingCash;
-                activeShift.ActualEndingCash = request.ActualEndingCash;
-                activeShift.CashDiscrepancy = discrepancy;
-                activeShift.DiscrepancyReason = request.DiscrepancyReason;
-                activeShift.EndTime = closedAt;
-                activeShift.Status = "Closed";
-                activeShift.IsExceptionClosed = true;
-                activeShift.ExceptionCloseReason = exceptionReason;
-                activeShift.ExceptionClosedByStaffId = supervisorResult.Data.SupervisorStaffId;
-                activeShift.ExceptionClosedAt = closedAt;
-                activeShift.OfflineOrderCountAtClose = offlineSummary.OfflineOrderCount;
-                activeShift.OfflineEstimatedTotalAtClose = offlineSummary.EstimatedTotal;
-                activeShift.OfflineCashTotalAtClose = offlineSummary.LocalCashTotal;
-                activeShift.RequiresReconciliation = true;
+                await _otpChallengeRepo.BeginTransactionAsync();
+                try
+                {
+                    var otpChallenge = await _otpChallengeRepo.GetByPublicIdForUpdateAsync(request.OtpChallengePublicId.Value);
+                    var expectedFingerprint = _otpFingerprint.BuildCloseShiftExceptionFingerprint(
+                        storeId,
+                        userId,
+                        shiftId,
+                        request.ActualEndingCash,
+                        exceptionReason,
+                        request.DiscrepancyReason,
+                        offlineSummary);
 
-                await _shiftRepo.UpdateShiftAsync(activeShift);
+                    var otpError = await ValidateAndPrepareOtpConsumeAsync(
+                        otpChallenge,
+                        OtpConstants.ActionTypes.CloseShiftException,
+                        shiftId,
+                        storeId,
+                        userId,
+                        expectedFingerprint,
+                        expectedTargetId: shiftId);
 
-                return ServiceResult.Success(
-                    $"Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi các đơn offline đồng bộ. " +
-                    $"Offline chưa sync: {offlineSummary.OfflineOrderCount} đơn, " +
-                    $"ước tính {offlineSummary.EstimatedTotal:N0}đ.");
+                    if (otpError != null)
+                    {
+                        await _otpChallengeRepo.RollbackTransactionAsync();
+                        return ServiceResult.Failure(otpError.Value.message, errorCode: otpError.Value.code);
+                    }
+
+                    var closedAt = DateTime.Now;
+                    activeShift.ExpectedEndingCash = expectedEndingCash;
+                    activeShift.ActualEndingCash = request.ActualEndingCash;
+                    activeShift.CashDiscrepancy = discrepancy;
+                    activeShift.DiscrepancyReason = request.DiscrepancyReason;
+                    activeShift.EndTime = closedAt;
+                    activeShift.Status = "Closed";
+                    activeShift.IsExceptionClosed = true;
+                    activeShift.ExceptionCloseReason = exceptionReason;
+                    activeShift.ExceptionClosedByStaffId = otpChallenge!.ApproverStaffId;
+                    activeShift.ExceptionClosedAt = closedAt;
+                    activeShift.OfflineOrderCountAtClose = offlineSummary.OfflineOrderCount;
+                    activeShift.OfflineEstimatedTotalAtClose = offlineSummary.EstimatedTotal;
+                    activeShift.OfflineCashTotalAtClose = offlineSummary.LocalCashTotal;
+                    activeShift.RequiresReconciliation = true;
+
+                    otpChallenge.Status = OtpConstants.Statuses.Used;
+                    otpChallenge.UsedAt = DateTime.UtcNow;
+                    await _otpChallengeRepo.SaveChangesAsync();
+                    await _shiftRepo.UpdateShiftAsync(activeShift);
+                    await _otpChallengeRepo.CommitTransactionAsync();
+
+                    try
+                    {
+                        await _posRepo.CreateAuditLogAsync(new InvoiceAuditLog
+                        {
+                            OrderId = shiftId,
+                            CashierId = userId,
+                            SupervisorId = otpChallenge.ApproverStaffId,
+                            ActionName = OtpConstants.ActionTypes.CloseShiftException,
+                            Reason = Truncate(
+                                $"OTP {otpChallenge.PublicId:N}; offline={offlineSummary.OfflineOrderCount}; {exceptionReason}",
+                                500),
+                            CreatedAt = DateTime.Now
+                        });
+                    }
+                    catch (Exception auditEx)
+                    {
+                        _logger.LogWarning(auditEx,
+                            "CLOSE_SHIFT_EXCEPTION audit write failed after successful close | ShiftId={ShiftId}",
+                            shiftId);
+                    }
+
+                    return ServiceResult.Success(
+                        $"Đóng ca ngoại lệ thành công. Ca cần đối soát lại sau khi các đơn offline đồng bộ. " +
+                        $"Offline chưa sync: {offlineSummary.OfflineOrderCount} đơn, " +
+                        $"ước tính {offlineSummary.EstimatedTotal:N0}đ.");
+                }
+                catch
+                {
+                    await _otpChallengeRepo.RollbackTransactionAsync();
+                    throw;
+                }
             }
             catch (Exception ex)
             {
@@ -356,15 +476,16 @@ namespace CafeChain.Application.Services.POS
         }
 
         /// <summary>
-        /// Validates an approved OTP challenge for close consume (Phase 1).
-        /// Returns null if valid, or (message, errorCode).
+        /// Validates an approved OTP challenge for consume. Returns null if valid.
         /// </summary>
         private async Task<(string message, string? code)?> ValidateAndPrepareOtpConsumeAsync(
             OtpChallenge? challenge,
-            int shiftId,
+            string expectedActionType,
+            int? workShiftId,
             int storeId,
             int actorStaffId,
-            string expectedFingerprint)
+            string expectedFingerprint,
+            int? expectedTargetId)
         {
             if (challenge == null)
                 return ("Mã OTP không tồn tại hoặc đã hết hạn.", null);
@@ -386,23 +507,31 @@ namespace CafeChain.Application.Services.POS
             if (challenge.ExpiresAt < DateTime.UtcNow)
                 return ("Mã OTP đã hết hạn.", null);
 
-            if (challenge.ActionType != OtpConstants.ActionTypes.CashDifference)
-                return ("Mã OTP không dùng cho thao tác chênh lệch két tiền.", null);
+            if (!string.Equals(challenge.ActionType, expectedActionType, StringComparison.Ordinal))
+                return ($"Mã OTP không dùng cho thao tác {expectedActionType}.", null);
 
             if (challenge.TargetType != OtpConstants.TargetTypes.Shifts)
                 return ("Mã OTP không dùng cho ca két tiền.", null);
 
-            if (challenge.WorkShiftId != shiftId)
-                return ("Mã OTP không thuộc ca két tiền hiện tại.", null);
+            if (workShiftId.HasValue)
+            {
+                if (challenge.WorkShiftId != workShiftId)
+                    return ("Mã OTP không thuộc ca két tiền hiện tại.", null);
+
+                if (challenge.TargetId != null && challenge.TargetId != workShiftId)
+                    return ("Mã OTP chỉ định ca két tiền khác, không khớp ca hiện tại.", null);
+            }
+            else if (expectedTargetId.HasValue)
+            {
+                if (challenge.TargetId != expectedTargetId)
+                    return ("Mã OTP không khớp đối tượng mở ca.", null);
+            }
 
             if (challenge.StoreId != storeId)
                 return ("Mã OTP không thuộc chi nhánh hiện tại.", null);
 
-            if (challenge.TargetId != null && challenge.TargetId != shiftId)
-                return ("Mã OTP chỉ định ca két tiền khác, không khớp ca hiện tại.", null);
-
             if (challenge.RequestedByStaffId != actorStaffId)
-                return ("Mã OTP không thuộc nhân viên đang đóng ca.", null);
+                return ("Mã OTP không thuộc nhân viên đang thao tác.", null);
 
             if (challenge.ApproverStaffId == actorStaffId
                 || challenge.ApproverStaffId == challenge.RequestedByStaffId)
@@ -413,7 +542,7 @@ namespace CafeChain.Application.Services.POS
             if (!_otpFingerprint.FixedTimeEquals(challenge.PayloadFingerprint, expectedFingerprint))
             {
                 return (
-                    "Dữ liệu đóng ca không khớp yêu cầu OTP (số tiền/lý do đã đổi). Vui lòng gửi OTP mới.",
+                    "Dữ liệu thao tác không khớp yêu cầu OTP. Vui lòng gửi OTP mới.",
                     OtpConstants.ErrorCodes.PayloadMismatch);
             }
 
@@ -428,6 +557,12 @@ namespace CafeChain.Application.Services.POS
 
             return null;
         }
+
+        private static string Truncate(string value, int max)
+        {
+            if (string.IsNullOrEmpty(value) || value.Length <= max)
+                return value;
+            return value.Substring(0, max);
+        }
     }
 }
-

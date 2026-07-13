@@ -102,13 +102,16 @@ namespace CafeChain.Application.DTOs.POS
 
     /// <summary>
     /// DTO request đóng WorkShift ngoại lệ khi còn Offline Order local chưa sync.
+    /// Phase 2: OtpChallengePublicId (inherited) required; SupervisorPin rejected if non-empty.
     /// </summary>
     public class CloseShiftExceptionRequestDto : CloseShiftRequestDto
     {
         /// <summary>Lý do đóng ngoại lệ, bắt buộc.</summary>
         public string? ExceptionReason { get; set; }
 
-        /// <summary>PIN supervisor/manager duyệt thao tác.</summary>
+        /// <summary>
+        /// Legacy PIN field — Phase 2 no longer authorizes. Non-empty values are rejected.
+        /// </summary>
         public string? SupervisorPin { get; set; }
 
         /// <summary>Tóm tắt Offline Order local tại POS, không làm nguồn sự thật backend.</summary>

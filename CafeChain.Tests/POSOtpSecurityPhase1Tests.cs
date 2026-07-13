@@ -647,6 +647,7 @@ namespace CafeChain.Tests.POS
             var codeGen = new FixedOtpCodeGenerator(fixedCode, _codeGenerator);
             return new OtpApprovalService(
                 new OtpChallengeRepository(ctx),
+                new WorkShiftRepository(ctx),
                 email.Object,
                 codeGen,
                 _fingerprint,

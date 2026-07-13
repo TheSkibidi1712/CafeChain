@@ -112,7 +112,14 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
-                var result = await _workShiftService.OpenShiftAsync(userId, storeId, request?.StartingCash ?? 0, request?.PosTerminalId);
+                var result = await _workShiftService.OpenShiftAsync(
+                    userId,
+                    storeId,
+                    new OpenShiftRequestDto
+                    {
+                        StartingCash = request?.StartingCash ?? 0,
+                        PosTerminalId = request?.PosTerminalId
+                    });
                 return Json(new { success = result.IsSuccess, message = result.Message });
             }
             catch (Exception ex)

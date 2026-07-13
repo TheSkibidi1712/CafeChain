@@ -422,30 +422,14 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task CloseShiftByException_WithPin_StillWorks()
+        public async Task CloseShiftByException_WithLegacyPin_IsRejected()
         {
             var shift = CreateOpenShift();
             var shiftRepo = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
             shiftRepo.Setup(r => r.GetActiveShiftAsync(UserId, StoreId))
                 .ReturnsAsync(shift);
-            shiftRepo.Setup(r => r.HasOpenPosPaymentAsync(ShiftId, StoreId))
-                .ReturnsAsync(false);
-            shiftRepo.Setup(r => r.GetTotalCashSalesAsync(ShiftId))
-                .ReturnsAsync(0m);
-            shiftRepo.Setup(r => r.UpdateShiftAsync(It.IsAny<WorkShift>()))
-                .Returns(Task.CompletedTask);
 
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
-            supervisorAuth
-                .Setup(a => a.VerifySupervisorPinAsync("9999", StoreId))
-                .ReturnsAsync(ServiceResult<SupervisorPinAuthorizationDto>.Success(
-                    new SupervisorPinAuthorizationDto
-                    {
-                        SupervisorStaffId = ApproverStaffId
-                    },
-                    "PIN hợp lệ."));
-
-            var service = CreateService(shiftRepo, supervisorAuth: supervisorAuth);
+            var service = CreateService(shiftRepo);
 
             var result = await service.CloseShiftByExceptionAsync(UserId, StoreId, ShiftId,
                 new CloseShiftExceptionRequestDto
@@ -456,9 +440,9 @@ namespace CafeChain.Tests.POS
                     SupervisorPin = "9999"
                 });
 
-            Assert.True(result.IsSuccess, result.Message);
-            Assert.Equal("Closed", shift.Status);
-            Assert.True(shift.IsExceptionClosed);
+            Assert.False(result.IsSuccess);
+            Assert.Equal(OtpConstants.ErrorCodes.FeatureNotAvailable, result.ErrorCode);
+            Assert.NotEqual("Closed", shift.Status);
         }
     }
 }
