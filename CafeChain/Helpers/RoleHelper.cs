@@ -14,6 +14,8 @@ namespace CafeChain.Helpers
             RoleConstants.BusinessOwner + "," +
             RoleConstants.AccountantWarehouse;
 
+        public const string RecipeWriteRoles = PreparedItemWriteRoles;
+
         public static bool IsAdminGroup(ClaimsPrincipal user)
         {
             return user.IsInRole(RoleConstants.BusinessOwner)
@@ -29,6 +31,11 @@ namespace CafeChain.Helpers
             return user.IsInRole(RoleConstants.SystemAdmin)
                 || user.IsInRole(RoleConstants.BusinessOwner)
                 || user.IsInRole(RoleConstants.AccountantWarehouse);
+        }
+
+        public static bool CanWriteRecipes(ClaimsPrincipal user)
+        {
+            return CanWritePreparedItems(user);
         }
     }
 }

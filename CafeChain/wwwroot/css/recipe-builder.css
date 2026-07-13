@@ -10,7 +10,7 @@
     --rb-text: #1e293b;
     --rb-muted: #94a3b8;
     --rb-success: #10b981;
-    --rb-radius: 16px;
+    --rb-radius: 8px;
     --rb-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.06);
 }
 .rb-page { background: var(--rb-bg); min-height: 100vh; padding-bottom: 100px; }
@@ -42,7 +42,7 @@
 
 /* COGS Highlight Box */
 .rb-cogs-box {
-    background: linear-gradient(135deg, #fff7ed, #ffedd5);
+    background: #fff7ed;
     border: 1px solid #fed7aa;
     border-radius: 12px;
     padding: 16px 20px;
@@ -171,7 +171,7 @@
 .rb-cost-issues li { margin-bottom: 6px; }
 .rb-dup-warn { border: 1px solid #fcd34d; background: #fffbeb; border-radius: 8px; padding: 8px 12px; margin-top: 6px; font-size: 0.85rem; }
 .rb-section-title { font-size: 0.95rem; font-weight: 700; color: var(--rb-text); margin: 0; }
-.rb-modal .modal-content { border-radius: 12px; border: 1px solid var(--rb-border); }
+.rb-modal .modal-content { border-radius: 8px; border: 1px solid var(--rb-border); }
 .rb-modal .modal-header { border-bottom: 1px solid var(--rb-border); background: #fff; }
 .rb-modal .modal-footer { border-top: 1px solid var(--rb-border); background: #fff; }
 
@@ -210,6 +210,45 @@
 .rb-health-reason code { display: block; width: fit-content; margin-bottom: 3px; color: #9a3412; }
 .rb-health-reason span { display: block; color: #475569; line-height: 1.35; overflow-wrap: anywhere; }
 
+/* Type-specific BOM list */
+.rb-recipe-tabs {
+    display: flex;
+    gap: 24px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid var(--rb-border);
+}
+.rb-recipe-tab {
+    padding: 10px 2px;
+    border-bottom: 2px solid transparent;
+    color: #64748b;
+    font-weight: 700;
+    text-decoration: none;
+}
+.rb-recipe-tab:hover, .rb-recipe-tab.active { color: #c2410c; border-bottom-color: var(--rb-primary); }
+.rb-list-filters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1fr) minmax(180px, 240px) auto;
+    gap: 8px;
+    max-width: 920px;
+}
+.rb-list-meta { color: #64748b; font-size: 0.85rem; }
+.rb-recipe-table { min-width: 940px; }
+.rb-actions-cell { min-width: 210px; }
+.rb-actions-cell .btn { margin: 2px 2px 2px 0; }
+.rb-pagination { display: flex; flex-wrap: wrap; gap: 6px; }
+.rb-page-link {
+    min-width: 34px;
+    padding: 6px 10px;
+    border: 1px solid var(--rb-border);
+    border-radius: 6px;
+    background: #fff;
+    color: #475569;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+}
+.rb-page-link:hover, .rb-page-link.active { border-color: var(--rb-primary); background: #fff7ed; color: #c2410c; }
+
 /* Light theme only — no dark page headers */
 .rb-page .bom-header-dark { display: none !important; }
 
@@ -224,6 +263,10 @@
     .rb-health-metric { border-bottom: 1px solid var(--rb-border); }
     .rb-health-metric:nth-child(2n) { border-right: 0; }
     .rb-health-metric:last-child { border-bottom: 0; }
+    .rb-list-filters { grid-template-columns: 1fr; }
+    .rb-list-filters .btn { width: 100%; }
+    .rb-recipe-tabs { gap: 16px; overflow-x: auto; }
+    .rb-recipe-tab { white-space: nowrap; }
 }
 
 /* Toggle buttons */

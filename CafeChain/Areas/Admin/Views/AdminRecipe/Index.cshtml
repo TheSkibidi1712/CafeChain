@@ -2,166 +2,282 @@
 @using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Công thức BOM";
-    var filter = Model?.TypeFilter ?? "ALL";
-    var items = Model?.Items ?? new List<CafeChain.ViewModels.Admin.Recipes.AdminRecipeListItemVM>();
+    var type = Model.TypeFilter ?? "POS";
+    var items = Model.Items;
+    var typeLabel = type switch
+    {
+        "TOPPING" => "Topping",
+        "SUBRECIPE" => "Bán thành phẩm",
+        _ => "Món bán"
+    };
 }
 
 <link rel="stylesheet" href="~/css/recipe-builder.css" asp-append-version="true" />
 @Html.AntiForgeryToken()
 
 <div class="rb-page">
-<div class="container-fluid px-4 pt-4 pb-5">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
-        <div>
-            <nav class="rb-breadcrumb" aria-label="breadcrumb">
-                <span>Sản xuất / BOM</span> &gt; <span>Công thức BOM</span>
-            </nav>
-            <h1 class="rb-page-title mb-1">Công thức BOM</h1>
-            <p class="text-muted mb-0">Định mức nguyên liệu cho món bán, topping và bán thành phẩm.</p>
-        </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a asp-action="DataHealth" class="btn btn-rb-ghost">
-                <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
-            </a>
-            <a asp-action="Create" class="btn btn-rb-save">
-                <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
-            </a>
-        </div>
-    </div>
-
-    <div class="rb-filter-chips mb-3" role="tablist" aria-label="Lọc loại công thức">
-        @{
-            string Chip(string key, string label) =>
-                $"<a class=\"rb-chip {(filter == key ? "active" : "")}\" href=\"{Url.Action("Index", new { type = key == "ALL" ? null : key })}\">{label}</a>";
-        }
-        @Html.Raw(Chip("ALL", "Tất cả"))
-        @Html.Raw(Chip("POS", "Món bán"))
-        @Html.Raw(Chip("TOPPING", "Topping"))
-        @Html.Raw(Chip("SUBRECIPE", "Bán thành phẩm"))
-    </div>
-
-    <div class="rb-card">
-        <div class="table-responsive">
-            <table class="table rb-table mb-0" aria-label="Danh sách công thức">
-                <thead>
-                    <tr>
-                        <th>Loại</th>
-                        <th>Định danh</th>
-                        <th>Phiên bản</th>
-                        <th>Sản lượng mỗi mẻ</th>
-                        <th>Sản lượng chuẩn hóa</th>
-                        <th>Trạng thái</th>
-                        <th>Giá vốn</th>
-                        <th>Cập nhật</th>
-                        <th>Thao tác</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @if (!items.Any())
+    <div class="container-fluid px-4 pt-4 pb-5">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+            <div>
+                <nav class="rb-breadcrumb" aria-label="breadcrumb">
+                    <span>Sản xuất / BOM</span> &gt; <span>Công thức BOM</span>
+                </nav>
+                <h1 class="rb-page-title mb-1">Công thức BOM</h1>
+                <p class="text-muted mb-0">Quản lý định mức theo đúng nghiệp vụ món bán, topping và bán thành phẩm.</p>
+            </div>
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-action="DataHealth" class="btn btn-rb-ghost">
+                    <i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Tình trạng dữ liệu
+                </a>
+                @if (Model.CanWrite)
                 {
-                    <tr>
-                        <td colspan="9" class="text-center py-5">
-                            <partial name="_EmptyState" model='("Chưa có công thức", "Tạo định mức đầu tiên cho món bán hoặc BTP.", "Thêm công thức", Url.Action("Create"), (string?)null, true)' />
-                        </td>
-                    </tr>
+                    <a asp-action="Create" class="btn btn-rb-save">
+                        <i class="fas fa-plus me-2" aria-hidden="true"></i>Thêm công thức
+                    </a>
                 }
-                else
-                {
-                    foreach (var r in items)
-                    {
-                        var typeClass = r.RecipeType switch
+            </div>
+        </div>
+
+        <nav class="rb-recipe-tabs" aria-label="Loại công thức">
+            <a class="rb-recipe-tab @(type == "POS" ? "active" : "")"
+               href="@Url.Action("Index", new { type = "POS", search = Model.Search, status = Model.StatusFilter, page = 1 })">
+                Món bán
+            </a>
+            <a class="rb-recipe-tab @(type == "TOPPING" ? "active" : "")"
+               href="@Url.Action("Index", new { type = "TOPPING", search = Model.Search, status = Model.StatusFilter, page = 1 })">
+                Topping
+            </a>
+            <a class="rb-recipe-tab @(type == "SUBRECIPE" ? "active" : "")"
+               href="@Url.Action("Index", new { type = "SUBRECIPE", search = Model.Search, status = Model.StatusFilter, page = 1 })">
+                Bán thành phẩm
+            </a>
+        </nav>
+
+        <form method="get" class="rb-list-filters mb-3">
+            <input type="hidden" name="type" value="@type" />
+            <label class="visually-hidden" for="recipeSearch">Tìm công thức</label>
+            <input id="recipeSearch"
+                   class="form-control"
+                   type="search"
+                   name="search"
+                   value="@Model.Search"
+                   placeholder="Tìm tên, mã công thức hoặc mã BTP..." />
+            <label class="visually-hidden" for="recipeStatus">Trạng thái</label>
+            <select id="recipeStatus" class="form-select" name="status">
+                <option value="ALL" selected="@(Model.StatusFilter == "ALL" ? "selected" : null)">Tất cả trạng thái</option>
+                <option value="ACTIVE" selected="@(Model.StatusFilter == "ACTIVE" ? "selected" : null)">Đang hoạt động</option>
+                <option value="INACTIVE" selected="@(Model.StatusFilter == "INACTIVE" ? "selected" : null)">Không hoạt động</option>
+            </select>
+            <button class="btn btn-rb-save" type="submit">
+                <i class="fas fa-search me-2" aria-hidden="true"></i>Lọc
+            </button>
+        </form>
+
+        <div class="rb-list-meta mb-2">
+            <strong>@Model.TotalCount</strong> công thức @typeLabel.ToLowerInvariant()
+        </div>
+
+        <div class="rb-card">
+            <div class="table-responsive">
+                <table class="table rb-table rb-recipe-table mb-0" aria-label="Danh sách công thức @typeLabel">
+                    <thead>
+                        @if (type == "SUBRECIPE")
                         {
-                            "POS" => "rb-badge-raw",
-                            "TOPPING" => "rb-badge-topping",
-                            _ => "rb-badge-sub"
-                        };
-                        var activeDesc = AdminStatusDisplay.RecipeActive(r.Active);
-                        var costDesc = AdminStatusDisplay.RecipeCost(r.CostComplete, r.CostStatus);
-                        <tr data-recipe-type="@r.RecipeType" data-recipe-id="@r.RecipeId">
-                            <td><span class="@typeClass">@r.TypeLabel</span></td>
-                            <td>
-                                <div class="fw-semibold">@r.IdentityDisplay</div>
-                                <div class="text-muted small">@r.Name</div>
-                            </td>
-                            <td>
-                                <span class="font-monospace">#@r.RecipeId</span>
-                                @if (!string.IsNullOrWhiteSpace(r.RecipeCode))
-                                {
-                                    <div class="text-muted small">@r.RecipeCode</div>
-                                }
-                            </td>
-                            <td class="font-monospace">@r.OutputPerBatchDisplay</td>
-                            <td class="font-monospace">@r.NormalizedOutputDisplay</td>
-                            <td>
-                                <partial name="_StatusBadge" model="activeDesc" />
-                            </td>
-                            <td>
-                                <partial name="_StatusBadge" model="costDesc" />
-                                @if (r.CostComplete == true && r.EstimatedCost.HasValue)
-                                {
-                                    <div class="small text-muted font-monospace">
-                                        @r.EstimatedCost.Value.ToString("N0") VND
-                                    </div>
-                                }
-                            </td>
-                            <td class="small text-muted">
-                                @(r.EffectiveDate?.ToString("dd/MM/yyyy") ?? "—")
-                            </td>
-                            <td>
-                                <div class="d-flex flex-wrap gap-1">
-                                    <a class="btn btn-sm btn-outline-primary"
-                                       asp-action="Edit" asp-route-id="@r.RecipeId">
-                                        @(r.RecipeType == "SUBRECIPE" ? "Tạo phiên bản mới" : "Sửa")
-                                    </a>
-                                    <a class="btn btn-sm btn-outline-secondary"
-                                       asp-action="Visualize" asp-route-recipeId="@r.RecipeId">
-                                        Xem cấu trúc BOM
-                                    </a>
-                                    <button type="button"
-                                            class="btn btn-sm btn-outline-danger btn-delete-recipe"
-                                            data-id="@r.RecipeId"
-                                            data-name="@r.Name"
-                                            aria-label="Xóa công thức @r.Name">
-                                        Xóa
-                                    </button>
+                            <tr>
+                                <th>BTP</th>
+                                <th>Phiên bản</th>
+                                <th title="Sản lượng mỗi mẻ">Sản lượng/mẻ</th>
+                                <th>Sản lượng quy đổi</th>
+                                <th>Giá vốn/mẻ</th>
+                                <th>Giá vốn/đơn vị</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        }
+                        else if (type == "TOPPING")
+                        {
+                            <tr>
+                                <th>Topping</th>
+                                <th>Nguồn tiêu hao</th>
+                                <th>Định mức/phần</th>
+                                <th>Cấu hình</th>
+                                <th>Giá vốn/phần</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        }
+                        else
+                        {
+                            <tr>
+                                <th>Định danh</th>
+                                <th>Phiên bản</th>
+                                <th>Định mức/phần</th>
+                                <th>Cấu hình</th>
+                                <th>Giá vốn/phần</th>
+                                <th>Trạng thái</th>
+                                <th>Thao tác</th>
+                            </tr>
+                        }
+                    </thead>
+                    <tbody>
+                    @if (!items.Any())
+                    {
+                        <tr>
+                            <td colspan="8" class="text-center py-5">
+                                <div class="rb-empty-state">
+                                    <h2 class="h6">Chưa có công thức @typeLabel.ToLowerInvariant()</h2>
+                                    <p class="text-muted mb-3">Thử đổi từ khóa hoặc trạng thái lọc.</p>
+                                    @if (Model.CanWrite)
+                                    {
+                                        <a asp-action="Create" class="btn btn-rb-save">Thêm công thức</a>
+                                    }
                                 </div>
                             </td>
                         </tr>
                     }
-                }
-                </tbody>
-            </table>
+                    else
+                    {
+                        foreach (var recipe in items)
+                        {
+                            var activeDesc = AdminStatusDisplay.RecipeActive(recipe.Active);
+                            var configClass = recipe.ConfigurationHealth.IsComplete ? "rb-status-complete" : "rb-status-incomplete";
+                            var costClass = recipe.CostingHealth.IsComplete ? "rb-status-complete" : "rb-status-error";
+                            var costReasons = string.Join(" | ", recipe.CostingHealth.Reasons.Select(x => $"{x.Code}: {x.Message}"));
+                            <tr data-recipe-type="@recipe.RecipeType" data-recipe-id="@recipe.RecipeId">
+                                <td>
+                                    <div class="fw-semibold text-break">@recipe.IdentityDisplay</div>
+                                    <div class="small text-muted font-monospace text-break">@recipe.RecipeCode</div>
+                                </td>
+                                @if (type == "SUBRECIPE")
+                                {
+                                    <td>
+                                        <strong>#@recipe.RecipeId</strong>
+                                        <div class="small text-muted">PreparedItem #@(recipe.PreparedItemId?.ToString() ?? "chưa chọn")</div>
+                                    </td>
+                                    <td class="font-monospace">@recipe.OutputPerBatchDisplay</td>
+                                    <td class="font-monospace">@recipe.NormalizedOutputDisplay</td>
+                                    <td>
+                                        @if (recipe.EstimatedCost.HasValue)
+                                        {
+                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") đ/mẻ</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="rb-status-badge @costClass" title="@costReasons">@recipe.CostingHealth.Label</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (recipe.EstimatedUnitCost.HasValue)
+                                        {
+                                            <span class="font-monospace">@recipe.EstimatedUnitCost.Value.ToString("N2") đ/@recipe.BaseUnitCode</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">Chưa tính được</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="rb-status-badge @configClass">@recipe.ConfigurationHealth.Label</span>
+                                        <div class="mt-1"><partial name="_StatusBadge" model="activeDesc" /></div>
+                                    </td>
+                                }
+                                else
+                                {
+                                    @if (type == "TOPPING")
+                                    {
+                                        <td>@recipe.ConsumptionSourceDisplay</td>
+                                    }
+                                    else
+                                    {
+                                        <td>
+                                            <strong>#@recipe.RecipeId</strong>
+                                            <div class="small text-muted">Phiên bản công thức</div>
+                                        </td>
+                                    }
+                                    <td>@recipe.PortionDefinitionDisplay</td>
+                                    <td><span class="rb-status-badge @configClass">@recipe.ConfigurationHealth.Label</span></td>
+                                    <td>
+                                        @if (recipe.EstimatedCost.HasValue)
+                                        {
+                                            <span class="font-monospace">@recipe.EstimatedCost.Value.ToString("N0") đ/phần</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="rb-status-badge @costClass" title="@costReasons">@recipe.CostingHealth.Label</span>
+                                        }
+                                    </td>
+                                    <td><partial name="_StatusBadge" model="activeDesc" /></td>
+                                }
+                                <td class="rb-actions-cell">
+                                    <a class="btn btn-sm btn-outline-secondary"
+                                       asp-action="Visualize"
+                                       asp-route-recipeId="@recipe.RecipeId">Xem cấu trúc BOM</a>
+                                    @if (Model.CanWrite)
+                                    {
+                                        <a class="btn btn-sm btn-outline-primary"
+                                           asp-action="Edit"
+                                           asp-route-id="@recipe.RecipeId">
+                                            @(type == "SUBRECIPE" ? "Tạo phiên bản" : "Sửa")
+                                        </a>
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-danger btn-delete-recipe"
+                                                data-id="@recipe.RecipeId"
+                                                data-name="@recipe.Name">
+                                            Xóa
+                                        </button>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                    </tbody>
+                </table>
+            </div>
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <nav class="rb-pagination mt-3" aria-label="Phân trang công thức">
+                @for (var number = 1; number <= Model.TotalPages; number++)
+                {
+                    <a class="rb-page-link @(number == Model.Page ? "active" : "")"
+                       href="@Url.Action("Index", new { type, search = Model.Search, status = Model.StatusFilter, page = number })">
+                        @number
+                    </a>
+                }
+            </nav>
+        }
     </div>
-</div>
 </div>
 
 @section Scripts {
-<script>
-(function () {
-    function token() {
-        return document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-    }
-    document.querySelectorAll('.btn-delete-recipe').forEach(function (btn) {
-        btn.addEventListener('click', function () {
-            const id = this.getAttribute('data-id');
-            const name = this.getAttribute('data-name') || '';
-            if (!confirm('Xóa công thức "' + name + '" (#' + id + ')? Thao tác có thể lưu trữ / gỡ theo rule backend.')) return;
-            fetch('@Url.Action("Delete", "AdminRecipe", new { area = "Admin" })?id=' + id, {
-                method: 'POST',
-                headers: {
-                    'RequestVerificationToken': token(),
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) location.reload();
-                else alert(res.message || 'Không xóa được');
-            })
-            .catch(() => alert('Lỗi kết nối'));
+    @if (Model.CanWrite)
+    {
+    <script>
+    (function () {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+        document.querySelectorAll('.btn-delete-recipe').forEach(function (button) {
+            button.addEventListener('click', function () {
+                const id = this.dataset.id;
+                const name = this.dataset.name || '';
+                if (!confirm('Xóa công thức "' + name + '" (#' + id + ')?')) return;
+
+                fetch('@Url.Action("Delete", "AdminRecipe", new { area = "Admin" })?id=' + id, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': token,
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) location.reload();
+                    else alert(result.message || 'Không thể xóa công thức.');
+                })
+                .catch(() => alert('Không thể kết nối máy chủ.'));
+            });
         });
-    });
-})();
-</script>
+    })();
+    </script>
+    }
 }

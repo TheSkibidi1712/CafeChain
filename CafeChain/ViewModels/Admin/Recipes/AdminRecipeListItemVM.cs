@@ -41,6 +41,18 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public bool? CostComplete { get; set; }
         public decimal? EstimatedCost { get; set; }
 
+        public decimal? EstimatedUnitCost { get; set; }
+
+        public int ComponentCount { get; set; }
+
+        public string PortionDefinitionDisplay { get; set; } = "Chưa có thành phần";
+
+        public string ConsumptionSourceDisplay { get; set; } = "Chưa cấu hình";
+
+        public BomHealthStatusVM ConfigurationHealth { get; set; } = new();
+
+        public BomHealthStatusVM CostingHealth { get; set; } = new();
+
         public string OutputPerBatchDisplay { get; set; } = "—";
         public string NormalizedOutputDisplay { get; set; } = "—";
     }
@@ -48,6 +60,12 @@ namespace CafeChain.ViewModels.Admin.Recipes
     public class AdminRecipeListPageVM
     {
         public string? TypeFilter { get; set; }
+        public string? Search { get; set; }
+        public string StatusFilter { get; set; } = "ALL";
+        public int Page { get; set; } = 1;
+        public int TotalPages { get; set; } = 1;
+        public int TotalCount { get; set; }
+        public bool CanWrite { get; set; }
         public List<AdminRecipeListItemVM> Items { get; set; } = new();
     }
 }

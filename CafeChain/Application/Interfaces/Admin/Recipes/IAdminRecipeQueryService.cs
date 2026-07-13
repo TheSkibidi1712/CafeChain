@@ -6,7 +6,12 @@ namespace CafeChain.Application.Interfaces.Admin.Recipes
 {
     public interface IAdminRecipeQueryService
     {
-        Task<AdminRecipeListPageVM> GetIndexPageAsync(string? typeFilter = null);
+        Task<AdminRecipeListPageVM> GetIndexPageAsync(
+            string? typeFilter = null,
+            string? search = null,
+            string? status = null,
+            int page = 1,
+            int pageSize = 15);
 
         Task<BomDataHealthPageVM> GetDataHealthPageAsync();
 

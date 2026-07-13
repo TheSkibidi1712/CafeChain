@@ -1,6 +1,8 @@
 using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.ViewModels.Admin.Recipes;
+using CafeChain.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
 using System.Threading.Tasks;
@@ -31,10 +33,15 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? type = null)
+        public async Task<IActionResult> Index(
+            string? type = null,
+            string? search = null,
+            string? status = null,
+            int page = 1)
         {
-            var page = await _queryService.GetIndexPageAsync(type);
-            return View(page);
+            var model = await _queryService.GetIndexPageAsync(type, search, status, page);
+            model.CanWrite = RoleHelper.CanWriteRecipes(User);
+            return View(model);
         }
 
         [HttpGet]
@@ -64,6 +71,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create()
         {
             var page = await _queryService.GetCreatePageAsync();
@@ -72,6 +80,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -163,6 +172,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id)
         {
             var page = await _queryService.GetEditPageAsync(id);
@@ -177,6 +187,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id, RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -213,6 +224,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteRecipeAsync(id);
