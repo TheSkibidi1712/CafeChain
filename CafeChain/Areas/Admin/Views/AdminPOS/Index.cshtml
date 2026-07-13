@@ -93,7 +93,7 @@
 
 <!-- RIGHT: Cart & Payment Panel -->
 <div class="pos-cart-panel">
-    <!-- Customer & Voucher Section -->
+    <!-- Customer section (voucher/điểm thưởng removed from product scope) -->
     <div class="cart-customer-section">
         <div class="cust-input-row">
             <input type="text" id="customerPhone" placeholder="📱 SĐT khách hàng...">
@@ -103,13 +103,9 @@
         <div class="customer-info-badge" id="customerBadge">
             <div style="display:flex;align-items:center;gap:8px;">
                 <div class="cust-avatar" id="custAvatar">KH</div>
-                <div><span class="cust-name" id="custName"></span> — <span class="cust-points" id="custPoints"></span> điểm</div>
+                <div><span class="cust-name" id="custName"></span></div>
             </div>
             <button class="btn-remove-cust" onclick="clearCustomer()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="voucher-row">
-            <input type="text" id="voucherCode" placeholder="🎟️ Nhập mã voucher">
-            <button class="btn-apply-voucher" onclick="applyVoucher()"><i class="fas fa-tag"></i></button>
         </div>
     </div>
 
@@ -142,12 +138,6 @@
         <div class="payment-summary">
             <div class="summary-row">
                 <span>Tạm tính</span><span id="sumSubTotal">0đ</span>
-            </div>
-            <div class="summary-row" id="rowVoucher" style="display:none;">
-                <span>Voucher giảm</span><span class="discount" id="sumVoucher">-0đ</span>
-            </div>
-            <div class="summary-row" id="rowPoints" style="display:none;">
-                <span>Điểm tích lũy</span><span class="discount" id="sumPoints">-0đ</span>
             </div>
             <div class="summary-row total-row">
                 <span>Tổng cộng</span><span id="sumTotal">0đ</span>
@@ -385,9 +375,7 @@
             <div class="change-title">TIỀN THỐI LẠI</div>
             <div class="change-value" id="successChangeAmount">0đ</div>
         </div>
-        <div class="loyalty-banner" id="successLoyalty" style="display:none;">
-            <span>★</span> <span id="successLoyaltyText"></span>
-        </div>
+
         <div class="auto-redirect" id="successCountdown">Tự động chuyển sau <b id="countdownSec">10</b> giây</div>
         <div class="success-actions">
             <button class="btn-print" onclick="printReceipt()"><i class="fas fa-print"></i> In hóa đơn</button>

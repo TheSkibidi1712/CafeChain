@@ -6,6 +6,7 @@
 let menuData = { categories: [], storeToppings: [] };
 let cart = [];
 let selectedCustomer = null;
+// Soft-removal: voucher/điểm thưởng out of product scope (kept zero for offline legacy local vars).
 let appliedVoucher = { code: '', discount: 0 };
 let pointsToUse = 0;
 let orderType = 1;
@@ -245,12 +246,9 @@ function removeItem(idx) { cart.splice(idx, 1); renderCart(); }
 
 function updateSummary() {
     const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    const vDisc = appliedVoucher.discount || 0;
-    const pDisc = pointsToUse * 1000;
-    let total = subTotal - vDisc - pDisc; if (total < 0) total = 0;
+    // Soft-removal: Total = line prices only (no voucher/points).
+    const total = Math.max(0, subTotal);
     $('#sumSubTotal').text(fmt(subTotal));
-    if (vDisc > 0) { $('#rowVoucher').show(); $('#sumVoucher').text('-' + fmt(vDisc)); } else { $('#rowVoucher').hide(); }
-    if (pDisc > 0) { $('#rowPoints').show(); $('#sumPoints').text('-' + fmt(pDisc)); } else { $('#rowPoints').hide(); }
     $('#sumTotal').text(fmt(total));
 }
 
@@ -264,35 +262,20 @@ async function searchCustomer() {
         const res = await $.get('/Admin/AdminPOS/SearchCustomer', { phone });
         if (res.success) {
             selectedCustomer = res.customer;
+            pointsToUse = 0;
+            appliedVoucher = { code: '', discount: 0 };
             $('#custName').text(res.customer.fullName);
-            $('#custPoints').text(res.customer.currentPoints.toLocaleString());
             const initials = res.customer.fullName.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
             $('#custAvatar').text(initials);
             $('#customerBadge').css('display', 'flex');
-            if (res.customer.currentPoints > 0) {
-                const { value } = await Swal.fire({
-                    title: 'Dùng điểm tích lũy?',
-                    html: `Khách <b>${res.customer.fullName}</b> có <b>${res.customer.currentPoints.toLocaleString()}</b> điểm.<br>1 điểm = 1.000đ. Nhập số điểm muốn dùng:`,
-                    input: 'number', inputAttributes: { min: 0, max: res.customer.currentPoints },
-                    showCancelButton: true, cancelButtonText: 'Không dùng', confirmButtonText: 'Áp dụng', confirmButtonColor: '#F97316'
-                });
-                if (value && parseInt(value) > 0) { pointsToUse = Math.min(parseInt(value), res.customer.currentPoints); updateSummary(); }
-            }
+            updateSummary();
         } else { Swal.fire({ icon: 'info', title: 'Không tìm thấy', text: res.message, confirmButtonColor: '#F97316' }); }
     } catch { Swal.fire('Lỗi', 'Không thể tìm khách hàng', 'error'); }
 }
-function clearCustomer() { selectedCustomer = null; pointsToUse = 0; $('#customerBadge').css('display', 'none'); $('#customerPhone').val(''); updateSummary(); }
+function clearCustomer() { selectedCustomer = null; pointsToUse = 0; appliedVoucher = { code: '', discount: 0 }; $('#customerBadge').css('display', 'none'); $('#customerPhone').val(''); updateSummary(); }
 
-async function applyVoucher() {
-    const code = $('#voucherCode').val().trim();
-    if (!code) { Swal.fire({ icon: 'info', title: 'Nhập mã', text: 'Vui lòng nhập mã voucher', confirmButtonColor: '#F97316' }); return; }
-    const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    try {
-        const res = await $.ajax({ url: '/api/Pos/validate-voucher', type: 'POST', contentType: 'application/json', data: JSON.stringify({ code, customerId: selectedCustomer?.customerId || 0, subTotal }) });
-        if (res.success) { appliedVoucher = { code, discount: res.discountAmount }; updateSummary(); Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: `Giảm ${fmt(res.discountAmount)}`, showConfirmButton: false, timer: 2000 }); }
-        else { Swal.fire({ icon: 'error', title: 'Voucher không hợp lệ', text: res.message, confirmButtonColor: '#F97316' }); }
-    } catch { Swal.fire('Lỗi', 'Không thể kiểm tra voucher', 'error'); }
-}
+// Soft-removal: voucher apply removed from UI; keep no-op for any residual callers.
+function applyVoucher() { /* no-op */ }
 function setOrderType(type, el) { orderType = type; $('.order-type-btn').removeClass('active'); $(el).addClass('active'); }
 
 // ==========================================
@@ -301,7 +284,8 @@ function setOrderType(type, el) { orderType = type; $('.order-type-btn').removeC
 function openCheckoutModal() {
     if (cart.length === 0) return;
     const subTotal = cart.reduce((s, i) => s + i.unitPrice * i.quantity, 0);
-    ckTotal = Math.max(0, subTotal - (appliedVoucher.discount || 0) - (pointsToUse * 1000));
+    // Soft-removal: no voucher/points adjustment.
+    ckTotal = Math.max(0, subTotal);
     ckCashAmount = 0;
     $('#ckTotalBadge').text(fmt(ckTotal));
     $('#ckCashDisplay').text('0đ');
@@ -338,8 +322,9 @@ async function confirmPayment() {
     const dto = {
         items: cart.map(c => ({ drinkId: c.drinkId, sizeId: c.sizeId, quantity: c.quantity, note: c.note, toppings: c.toppings.map(t => ({ toppingId: t.toppingId })) })),
         customerId: selectedCustomer?.customerId || null,
-        voucherCode: appliedVoucher.code || null,
-        pointsUsed: pointsToUse,
+        // Soft-removal: never send voucher/points on new commits.
+        voucherCode: null,
+        pointsUsed: 0,
         payments: [{ paymentMethodId: 1, amount: ckTotal }],
         orderTypeId: orderType,
         receivedAmount: ckCashAmount,
@@ -349,7 +334,7 @@ async function confirmPayment() {
     // Offline mode
     if (!navigator.onLine) {
         saveOfflineOrder(dto); closeCheckoutModal();
-        showSuccessModal({ orderId: 'OFFLINE', subTotal, voucherDiscount: appliedVoucher.discount || 0, pointDiscount: pointsToUse * 1000, total: ckTotal, receivedAmount: ckCashAmount, changeAmount: ckCashAmount - ckTotal, earnedPoints: 0 });
+        showSuccessModal({ orderId: 'OFFLINE', subTotal, voucherDiscount: 0, pointDiscount: 0, total: ckTotal, receivedAmount: ckCashAmount, changeAmount: ckCashAmount - ckTotal, earnedPoints: 0 });
         return;
     }
 
@@ -377,19 +362,13 @@ function showSuccessModal(res) {
         itemsHtml += `<div class="order-item-row"><span><span class="item-qty">${item.quantity}x</span> ${item.name} ${item.sizeName ? '(' + item.sizeName + ')' : ''}</span><span>${fmt(item.unitPrice * item.quantity)}</span></div>`;
     });
     $('#successOrderItems').html(itemsHtml);
-    // Financial
+    // Financial (no voucher/điểm thưởng lines)
     let finHtml = `<div class="fin-row"><span>Tạm tính</span><span>${fmt(res.subTotal)}</span></div>`;
-    if (res.voucherDiscount > 0) finHtml += `<div class="fin-row"><span>Voucher giảm</span><span style="color:#16a34a">-${fmt(res.voucherDiscount)}</span></div>`;
-    if (res.pointDiscount > 0) finHtml += `<div class="fin-row"><span>Điểm tích lũy</span><span style="color:#16a34a">-${fmt(res.pointDiscount)}</span></div>`;
     finHtml += `<div class="fin-row fin-total"><span>Tổng thanh toán</span><span>${fmt(res.total)}</span></div>`;
     $('#successFinSummary').html(finHtml);
     // Change
     $('#successCashPaid').text(fmt(res.receivedAmount || ckCashAmount));
     $('#successChangeAmount').text(fmt(change));
-    // Loyalty
-    const earned = res.earnedPoints || Math.floor((res.total || 0) / 10000);
-    if (earned > 0 && selectedCustomer) { $('#successLoyalty').show(); $('#successLoyaltyText').text(`Khách hàng tích được +${earned} điểm từ đơn hàng này`); }
-    else { $('#successLoyalty').hide(); }
     // Countdown
     let sec = 10;
     $('#countdownSec').text(sec);
@@ -402,7 +381,7 @@ function nextOrder() {
     if (successCountdownTimer) clearInterval(successCountdownTimer);
     $('#successOverlay').removeClass('active');
     cart = []; selectedCustomer = null; appliedVoucher = { code: '', discount: 0 }; pointsToUse = 0;
-    $('#voucherCode').val(''); $('#customerPhone').val(''); $('#customerBadge').css('display', 'none');
+    $('#customerPhone').val(''); $('#customerBadge').css('display', 'none');
     renderCart();
 }
 function printReceipt() { Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Đang in hóa đơn...', showConfirmButton: false, timer: 2000 }); }

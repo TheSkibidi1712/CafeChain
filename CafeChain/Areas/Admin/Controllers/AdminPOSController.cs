@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
@@ -309,6 +310,23 @@ namespace CafeChain.Areas.Admin.Controllers
                             });
                             continue;
                         }
+                    }
+
+                    // Soft-removal: legacy offline voucher/loyalty payload → fail closed.
+                    if (!string.IsNullOrWhiteSpace(orderDto.VoucherCode)
+                        || orderDto.PointsUsed > 0
+                        || orderDto.VoucherDiscount > 0
+                        || orderDto.PointDiscount > 0)
+                    {
+                        results.Add(new
+                        {
+                            localId = orderDto.LocalId,
+                            clientOrderId = orderDto.ClientOrderId,
+                            status = "failed",
+                            errorCode = ProductScopeErrorCodes.FeatureNotAvailable,
+                            reason = ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage
+                        });
+                        continue;
                     }
 
                     // Chuyển OfflineOrderSyncDTO → POSOrderCommitDto

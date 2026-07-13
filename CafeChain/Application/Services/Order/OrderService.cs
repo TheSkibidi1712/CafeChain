@@ -214,100 +214,21 @@ namespace CafeChain.Application.Services.Cart
 
                 order.SubTotal = subTotal;
 
-                // 6. Voucher Validation (Zero-Trust)
-                decimal voucherDiscount = 0;
-                if (model.SelectedVoucherId.HasValue)
+                // Soft-removal: voucher + loyalty out of product scope — reject non-empty payload.
+                if (model.SelectedVoucherId.HasValue || (model.PointsUsed.HasValue && model.PointsUsed.Value > 0))
                 {
-                    var customerVoucher = await _context.CustomerVouchers
-                        .Include(cv => cv.Voucher)
-                        .FirstOrDefaultAsync(cv => cv.VoucherId == model.SelectedVoucherId.Value && cv.CustomerId == customerId.Value);
-
-                    if (customerVoucher == null || customerVoucher.IsUsed || !customerVoucher.Voucher.Active || customerVoucher.Voucher.EndDate < DateTime.Now)
-                        throw new Exception("Mã giảm giá không hợp lệ, đã được sử dụng hoặc đã hết hạn.");
-
-                    var voucher = customerVoucher.Voucher;
-
-                    // [FIX Voucher Strict SubTotal] Kiểm tra ngưỡng mua hàng CHỈ dựa vào tiền hàng (subTotal)
-                    if (voucher.MinOrderValue.HasValue && subTotal < voucher.MinOrderValue.Value)
-                        throw new Exception($"Giá trị các món nước phải đạt từ {voucher.MinOrderValue.Value:N0}đ (chưa tính ship) để áp mã này.");
-
-                    if (voucher.DiscountAmount.HasValue)
-                    {
-                        voucherDiscount = voucher.DiscountAmount.Value;
-                    }
-                    else if (voucher.DiscountPercent.HasValue)
-                    {
-                        // [FIX Voucher %] Tính % chiết khấu trên tiền hàng thuần (subTotal)
-                        voucherDiscount = (subTotal * voucher.DiscountPercent.Value) / 100;
-                        if (voucher.MaxDiscount.HasValue && voucherDiscount > voucher.MaxDiscount.Value)
-                            voucherDiscount = voucher.MaxDiscount.Value;
-                    }
-
-                    // Zero-Trust: Tiền Voucher giảm trừ KHÔNG ĐƯỢC cao hơn tiền hàng
-                    if (voucherDiscount > subTotal) voucherDiscount = subTotal;
-
-                    order.VoucherDiscount = voucherDiscount;
-
-                    _context.OrderVouchers.Add(new OrderVoucher
-                    {
-                        Order = order,
-                        VoucherId = voucher.VoucherId,
-                        DiscountValue = voucherDiscount
-                    });
-
-                    // Cập nhật ví voucher của user
-                    customerVoucher.IsUsed = true;
-                    customerVoucher.UsedDate = DateTime.Now;
-
-                    // Lưu lịch sử sử dụng
-                    _context.VoucherUsages.Add(new VoucherUsage
-                    {
-                        VoucherId = voucher.VoucherId,
-                        CustomerId = customerId.Value,
-                        UsedAt = DateTime.Now
-                    });
+                    throw new Exception(ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage);
                 }
 
-                // Tính Total tạm thời trước Point
-                decimal totalBeforePoint = subTotal + order.ShippingFee - voucherDiscount;
+                order.VoucherDiscount = 0;
+                order.PointDiscount = 0;
+                order.PointsUsed = 0;
+
+                // Total = line goods + shipping only (no voucher/points).
+                var totalBeforePoint = subTotal + order.ShippingFee;
                 if (totalBeforePoint < 0) totalBeforePoint = 0;
 
-                // [LOYALTY POINTS - TẠM THỜI DISABLED]
-                // Models CustomerPointWallet và PointTransaction chưa được tạo migration.
-                // Bỏ comment khi đã chạy: Add-Migration AddLoyaltyTables + Update-Database
-                decimal pointDiscount = 0;
-
-                /* === BẬT LẠI KHI CÓ MIGRATION ===
-                if (model.PointsUsed.HasValue && model.PointsUsed.Value > 0 && customerId.HasValue)
-                {
-                    const decimal POINT_RATE = 1000m;
-                    
-                    var wallet = await _context.CustomerPointWallets
-                        .FromSqlRaw("SELECT * FROM CustomerPointWallets WITH (UPDLOCK) WHERE CustomerId = {0}", customerId.Value)
-                        .FirstOrDefaultAsync();
-
-                    if (wallet == null || wallet.Balance < model.PointsUsed.Value)
-                        throw new Exception("Số dư Điểm thưởng không đủ hoặc đã thay đổi. Vui lòng kiểm tra lại.");
-
-                    decimal requestedDiscount = model.PointsUsed.Value * POINT_RATE;
-                    pointDiscount = Math.Min(requestedDiscount, totalBeforePoint);
-                    int actualPointsDeducted = (int)Math.Ceiling(pointDiscount / POINT_RATE);
-
-                    wallet.Balance -= actualPointsDeducted;
-
-                    _context.PointTransactions.Add(new PointTransaction
-                    {
-                        CustomerId = customerId.Value,
-                        ChangeAmount = -actualPointsDeducted,
-                        TransactionType = "RedeemOrder",
-                        Note = $"Đổi {actualPointsDeducted} điểm giảm {pointDiscount:N0}đ (CheckoutToken: {model.CheckoutToken}). Yêu cầu: {model.PointsUsed.Value} điểm."
-                    });
-
-                    order.PointDiscount = pointDiscount;
-                }
-                === HẾT BLOCK LOYALTY === */
-
-                order.Total = Math.Round(totalBeforePoint - pointDiscount, 0, MidpointRounding.AwayFromZero);
+                order.Total = Math.Round(totalBeforePoint, 0, MidpointRounding.AwayFromZero);
                 if (order.Total < 0) order.Total = 0;
 
 
@@ -377,27 +298,11 @@ namespace CafeChain.Application.Services.Cart
             }).ToList();
         }
 
-        public async Task<List<Voucher>> GetAvailableVouchersAsync()
-        {
-            return await _context.Vouchers
-                .Where(v => v.Active && 
-                            v.StartDate <= DateTime.Now && 
-                            v.EndDate >= DateTime.Now &&
-                            (!v.MaxUsage.HasValue || v.VoucherUsages.Count < v.MaxUsage))
-                .ToListAsync();
-        }
+        public Task<List<Voucher>> GetAvailableVouchersAsync()
+            => Task.FromResult(new List<Voucher>());
 
-        public async Task<List<Voucher>> GetCustomerValidVouchersAsync(int customerId)
-        {
-            return await _context.CustomerVouchers
-                .Include(cv => cv.Voucher)
-                .Where(cv => cv.CustomerId == customerId && 
-                             !cv.IsUsed && 
-                             cv.Voucher.Active &&
-                             cv.Voucher.EndDate >= DateTime.Now)
-                .Select(cv => cv.Voucher)
-                .ToListAsync();
-        }
+        public Task<List<Voucher>> GetCustomerValidVouchersAsync(int customerId)
+            => Task.FromResult(new List<Voucher>());
 
         public async Task<PagedResult<OrderHistoryViewModel>> GetCustomerOrdersAsync(int customerId, int pageIndex = 1, int pageSize = 10, string statusGroup = null)
         {
@@ -631,7 +536,7 @@ namespace CafeChain.Application.Services.Cart
                                 payment.PaidAt = DateTime.Now;
                             }
 
-                            // Cộng điểm thưởng cho khách hàng (10,000 VND = 1 điểm)
+                            // Soft-removal: no loyalty earn. Customer purchase stats only.
                             if (order.CustomerId.HasValue && order.Total > 0)
                             {
                                 var customer = await context.Customers
@@ -639,19 +544,10 @@ namespace CafeChain.Application.Services.Cart
 
                                 if (customer != null)
                                 {
-                                    int earnedPoints = (int)(order.Total / 10000);
-
-                                    // Update thông tin mua hàng
                                     customer.TotalSpent += order.Total;
                                     customer.TotalOrders += 1;
                                     customer.LastOrderDate = DateTime.UtcNow;
                                     customer.UpdatedAt = DateTime.UtcNow;
-
-                                    // Chỉ cộng điểm nếu đủ điều kiện
-                                    if (earnedPoints > 0)
-                                    {
-                                        customer.CurrentPoints += earnedPoints;
-                                    }
                                 }
                             }
 

@@ -342,19 +342,7 @@
                     </div>
                 </div>
 
-                <!-- ━━━ 🎁 KHUYẾN MÃI & MARKETING ━━━ -->
-                <a href="#collapsePromo" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminVoucher,AdminWheel") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminVoucher,AdminWheel")">
-                    <i class="fas fa-tags section-icon"></i> Khuyến mãi
-                    <i class="fas fa-chevron-down chevron"></i>
-                </a>
-                <div class="collapse @Html.IsActive("AdminVoucher,AdminWheel", cssClass: "show")" id="collapsePromo">
-                    <div class="sidebar-sub">
-                        <a asp-area="Admin" asp-controller="AdminVoucher" asp-action="Index" class="@Html.IsActive("AdminVoucher")"><i class="fas fa-circle"></i> Voucher</a>
-                        <a asp-area="Admin" asp-controller="AdminWheel" asp-action="Index" class="@Html.IsActive("AdminWheel")"><i class="fas fa-circle"></i> Vòng quay may mắn</a>
-                    </div>
-                </div>
+                @* Soft-removal: Voucher / vòng quay may mắn (loyalty) removed from active product scope. *@
             }
 
             <div class="sidebar-divider"></div>

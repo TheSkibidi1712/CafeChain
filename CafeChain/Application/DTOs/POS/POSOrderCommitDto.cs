@@ -18,10 +18,16 @@ namespace CafeChain.Application.DTOs.POS
         /// </summary>
         public Guid? ClientOrderId { get; set; }
 
-        /// <summary>Mã voucher giảm giá (nullable)</summary>
+        /// <summary>
+        /// Compatibility only — voucher out of product scope.
+        /// Non-empty values are rejected with FEATURE_NOT_AVAILABLE (not silently ignored).
+        /// </summary>
         public string? VoucherCode { get; set; }
 
-        /// <summary>Số điểm loyalty khách muốn dùng</summary>
+        /// <summary>
+        /// Compatibility only — loyalty/điểm thưởng out of product scope.
+        /// Values &gt; 0 are rejected with FEATURE_NOT_AVAILABLE (not silently ignored).
+        /// </summary>
         public int PointsUsed { get; set; }
 
         /// <summary>Danh sách các dòng thanh toán hỗn hợp (Split Payments)</summary>

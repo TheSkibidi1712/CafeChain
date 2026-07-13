@@ -299,40 +299,15 @@ namespace CafeChain.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CalculateDiscount([FromBody] CalculateDiscountRequest request, [FromServices] AppDbContext context)
+        public IActionResult CalculateDiscount([FromBody] CalculateDiscountRequest? request)
         {
-            var customerIdStr = User.FindFirstValue("CustomerId");
-            if (!int.TryParse(customerIdStr, out int customerId))
-                return Json(new { success = false, message = "Bạn cần đăng nhập để sử dụng mã giảm giá." });
-
-            var customerVoucher = await context.CustomerVouchers
-                .Include(cv => cv.Voucher)
-                .FirstOrDefaultAsync(cv => cv.VoucherId == request.VoucherId && cv.CustomerId == customerId);
-
-            if (customerVoucher == null || customerVoucher.IsUsed || !customerVoucher.Voucher.Active || customerVoucher.Voucher.EndDate < DateTime.Now)
-                return Json(new { success = false, message = "Mã giảm giá không hợp lệ hoặc đã hết hạn." });
-
-            var voucher = customerVoucher.Voucher;
-
-            if (voucher.MinOrderValue.HasValue && request.SubTotal < voucher.MinOrderValue.Value)
-                return Json(new { success = false, message = $"Giá trị các món nước phải đạt từ {voucher.MinOrderValue.Value:N0}đ để áp mã này." });
-
-            decimal discountValue = 0;
-            if (voucher.DiscountAmount.HasValue)
+            // Soft-removal: voucher discount API disabled.
+            return Json(new
             {
-                discountValue = voucher.DiscountAmount.Value;
-            }
-            else if (voucher.DiscountPercent.HasValue)
-            {
-                discountValue = (request.SubTotal * voucher.DiscountPercent.Value) / 100;
-                if (voucher.MaxDiscount.HasValue && discountValue > voucher.MaxDiscount.Value)
-                    discountValue = voucher.MaxDiscount.Value;
-            }
-
-            if (discountValue > request.SubTotal)
-                discountValue = request.SubTotal;
-
-            return Json(new { success = true, discountValue = discountValue, message = "Áp dụng mã thành công!" });
+                success = false,
+                errorCode = CafeChain.Application.Constants.ProductScopeErrorCodes.FeatureNotAvailable,
+                message = CafeChain.Application.Constants.ProductScopeErrorCodes.VoucherNotAvailableMessage
+            });
         }
     }
 
