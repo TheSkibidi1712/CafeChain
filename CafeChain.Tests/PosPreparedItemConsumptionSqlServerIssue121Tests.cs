@@ -22,6 +22,7 @@ namespace CafeChain.Tests
     /// Issue #121 — SQL Server concurrency proof for POS PreparedItem deduction.
     /// Database: CafeChain_Issue121Tests on local SQLEXPRESS.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class PosPreparedItemConsumptionSqlServerIssue121Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";

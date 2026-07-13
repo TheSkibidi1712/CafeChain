@@ -29,6 +29,7 @@ namespace CafeChain.Tests
     /// Issue #128 — SQL Server concurrency for BranchReceipt confirm (UPDLOCK + unique line index).
     /// Database: CafeChain_Issue128Tests on local SQLEXPRESS.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class BranchReceiptSqlServerIssue128Tests : IAsyncLifetime
     {
         private const string Server = @"DESKTOP-K038H12\SQLEXPRESS";
