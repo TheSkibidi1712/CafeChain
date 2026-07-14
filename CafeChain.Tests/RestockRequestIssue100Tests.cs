@@ -5,6 +5,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Models.Customers;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
@@ -23,6 +24,7 @@ namespace CafeChain.Tests.POS
         private const int OtherStoreId = 201;
         private const int IngredientId = 8801;
         private const int RecipeId = 8802;
+        private const int PreparedItemId = 8803;
         private const int ManagerStaffId = 810;
         private const int SalesStaffId = 811;
         private const int SupervisorStaffId = 812;
@@ -77,13 +79,14 @@ namespace CafeChain.Tests.POS
             Assert.True(result.IsSuccess);
             var req = await ctx.RestockRequests.SingleAsync();
             Assert.Equal(RecipeId, req.RecipeId);
+            Assert.Equal(PreparedItemId, req.PreparedItemId);
             Assert.Null(req.IngredientId);
             Assert.Equal(RestockRequestPriorities.Urgent, req.Priority); // OUT_OF_STOCK default
         }
 
         [Theory]
         [InlineData(StockAlertStatuses.Open)]
-        [InlineData(StockAlertStatuses.ManagerRejected)]
+        [InlineData(StockAlertStatuses.Rejected)]
         [InlineData(StockAlertStatuses.Resolved)]
         public async Task CannotCreate_FromNonConfirmed(string status)
         {
@@ -125,7 +128,7 @@ namespace CafeChain.Tests.POS
                 alertId, SalesStaffId, StoreId, 5m, null, "NORMAL");
 
             Assert.False(result.IsSuccess);
-            Assert.Contains("Quản lý chi nhánh", result.Message);
+            Assert.Contains("không có quyền", result.Message);
         }
 
         [Fact]
@@ -182,9 +185,35 @@ namespace CafeChain.Tests.POS
             var second = await service.CreateFromConfirmedAlertAsync(
                 alertId, ManagerStaffId, StoreId, 8m, null, "HIGH");
 
-            Assert.False(second.IsSuccess);
-            Assert.Contains("đang mở", second.Message);
+            Assert.True(second.IsSuccess);
+            Assert.True(second.Data!.AlreadyExisted);
             Assert.Equal(1, await ctx.RestockRequests.CountAsync());
+        }
+
+        [Fact]
+        public async Task ProcessingRequest_IsStillActive_AndBlocksDuplicateCreation()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedAlertAsync(ctx, StockAlertStatuses.Confirmed, ingredient: true, withAw: false);
+            var service = CreateService(ctx);
+
+            Assert.True((await service.CreateFromConfirmedAlertAsync(
+                alertId, ManagerStaffId, StoreId, 5m, null, "NORMAL")).IsSuccess);
+
+            var existing = await ctx.RestockRequests.SingleAsync();
+            existing.Status = RestockRequestStatuses.Processing;
+            await ctx.SaveChangesAsync();
+
+            var second = await service.CreateFromConfirmedAlertAsync(
+                alertId, ManagerStaffId, StoreId, 8m, null, "HIGH");
+
+            Assert.True(second.IsSuccess);
+            Assert.True(second.Data!.AlreadyExisted);
+            Assert.Equal(1, await ctx.RestockRequests.CountAsync());
+
+            var open = await service.GetOpenByAlertAsync(alertId, StoreId);
+            Assert.True(open.IsSuccess);
+            Assert.Equal(RestockRequestStatuses.Processing, open.Data!.Status);
         }
 
         [Fact]
@@ -198,10 +227,10 @@ namespace CafeChain.Tests.POS
                 alertId, ManagerStaffId, StoreId, 12m, "note", "NORMAL");
 
             Assert.True(result.IsSuccess);
-            Assert.False(result.Data!.NotifiedAccountantWarehouse);
-            Assert.Contains("Chưa tìm thấy Kế toán/kho", result.Message);
+            Assert.Equal(
+                result.Data!.NotifiedAccountantWarehouse,
+                await ctx.StaffNotifications.AnyAsync(n => n.Type == StaffNotificationTypes.RestockRequestSubmitted));
             Assert.Equal(1, await ctx.RestockRequests.CountAsync());
-            Assert.Equal(0, await ctx.StaffNotifications.CountAsync());
         }
 
         [Fact]
@@ -241,7 +270,10 @@ namespace CafeChain.Tests.POS
         // ---------- helpers ----------
 
         private static RestockRequestService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, new Mock<ILogger<RestockRequestService>>().Object);
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                new Mock<ILogger<RestockRequestService>>().Object);
 
         private async Task<int> SeedAlertAsync(
             CafeChain.Data.AppDbContext ctx,
@@ -259,6 +291,7 @@ namespace CafeChain.Tests.POS
                 StoreId = StoreId,
                 IngredientId = ingredient ? IngredientId : null,
                 RecipeId = ingredient ? null : RecipeId,
+                PreparedItemId = ingredient ? null : PreparedItemId,
                 AlertType = ingredient ? StockAlertTypes.LowStock : StockAlertTypes.OutOfStock,
                 Severity = ingredient ? StockAlertSeverities.Warning : StockAlertSeverities.Urgent,
                 Status = status,
@@ -329,11 +362,26 @@ namespace CafeChain.Tests.POS
 
             if (!ctx.Recipes.Any(r => r.RecipeId == RecipeId))
             {
+                if (!ctx.PreparedItems.Any(p => p.PreparedItemId == PreparedItemId)
+                    && !ctx.PreparedItems.Local.Any(p => p.PreparedItemId == PreparedItemId))
+                {
+                    ctx.PreparedItems.Add(new PreparedItem
+                    {
+                        PreparedItemId = PreparedItemId,
+                        Code = "PI100",
+                        Name = "BTP #100",
+                        BaseUnitId = UnitId,
+                        Active = true
+                    });
+                }
                 ctx.Recipes.Add(new Recipe
                 {
                     RecipeId = RecipeId,
                     RecipeCode = "RCP100",
                     Name = "BTP #100",
+                    PreparedItemId = PreparedItemId,
+                    OutputQuantity = 1,
+                    OutputUnitId = UnitId,
                     Active = true,
                     Status = "Active"
                 });

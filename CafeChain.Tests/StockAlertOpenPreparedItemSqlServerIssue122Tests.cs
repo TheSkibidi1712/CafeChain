@@ -59,7 +59,7 @@ IF DB_ID(N'{Database}') IS NULL
         public Task DisposeAsync() => Task.CompletedTask;
 
         [Fact]
-        public async Task SqlServer_ConcurrentEvaluate_SamePreparedItem_OneOpenAlert()
+        public async Task SqlServer_ConcurrentStockEvents_CreateOneAlert()
         {
             int preparedItemId;
             await using (var seed = CreateContext())
@@ -86,6 +86,83 @@ IF DB_ID(N'{Database}') IS NULL
             Assert.Null(opens[0].IngredientId);
         }
 
+        [Fact]
+        public async Task SqlServer_LowToOut_EscalatesSameAlert()
+        {
+            int preparedItemId;
+            await using (var seed = CreateContext())
+            {
+                preparedItemId = await SeedCanonicalLowStockAsync(seed, availableQty: 5m);
+                Assert.True((await CreateService(seed).EvaluateStoreAsync(
+                    StoreId, StockAlertSources.ManualCheck)).IsSuccess);
+            }
+
+            int alertId;
+            await using (var lower = CreateContext())
+            {
+                alertId = await lower.StockAlerts
+                    .Where(a => a.StoreId == StoreId && a.PreparedItemId == preparedItemId)
+                    .Select(a => a.StockAlertId)
+                    .SingleAsync();
+                var inventory = await lower.StoreInventories.SingleAsync(i =>
+                    i.StoreId == StoreId && i.PreparedItemId == preparedItemId);
+                inventory.AvailableQty = 0m;
+                inventory.LastUpdated = DateTime.UtcNow;
+                await lower.SaveChangesAsync();
+                Assert.True((await CreateService(lower).EvaluateStoreInventoryItemAsync(
+                    inventory.StoreInventoryId, StockAlertSources.PosSale)).IsSuccess);
+            }
+
+            await using var verify = CreateContext();
+            var alert = await verify.StockAlerts.SingleAsync(a => a.StockAlertId == alertId);
+            Assert.Equal(StockAlertTypes.OutOfStock, alert.AlertType);
+            Assert.Equal(StockAlertSeverities.Urgent, alert.Severity);
+            Assert.Equal(StockAlertStatuses.Open, alert.Status);
+            Assert.Contains(await verify.StockAlertTransitions
+                .Where(t => t.StockAlertId == alertId)
+                .ToListAsync(), t => t.PreviousAlertType == StockAlertTypes.LowStock
+                                   && t.NewAlertType == StockAlertTypes.OutOfStock);
+        }
+
+        [Fact]
+        public async Task SqlServer_AlertRecovery_ResolvesOnce()
+        {
+            int preparedItemId;
+            await using (var seed = CreateContext())
+            {
+                preparedItemId = await SeedCanonicalLowStockAsync(seed, availableQty: 2m);
+                Assert.True((await CreateService(seed).EvaluateStoreAsync(
+                    StoreId, StockAlertSources.ManualCheck)).IsSuccess);
+            }
+
+            int inventoryId;
+            await using (var recover = CreateContext())
+            {
+                var inventory = await recover.StoreInventories.SingleAsync(i =>
+                    i.StoreId == StoreId && i.PreparedItemId == preparedItemId);
+                inventory.AvailableQty = 20m;
+                inventory.LastUpdated = DateTime.UtcNow;
+                await recover.SaveChangesAsync();
+                inventoryId = inventory.StoreInventoryId;
+                Assert.True((await CreateService(recover).EvaluateStoreInventoryItemAsync(
+                    inventoryId, "TRANSFER_COMPLETED")).IsSuccess);
+            }
+
+            await using (var replay = CreateContext())
+            {
+                Assert.True((await CreateService(replay).EvaluateStoreInventoryItemAsync(
+                    inventoryId, "SCHEDULED_RECHECK")).IsSuccess);
+            }
+
+            await using var verify = CreateContext();
+            var alert = await verify.StockAlerts.SingleAsync(a =>
+                a.StoreId == StoreId && a.PreparedItemId == preparedItemId);
+            Assert.Equal(StockAlertStatuses.Resolved, alert.Status);
+            Assert.Equal(1, await verify.StockAlertTransitions.CountAsync(t =>
+                t.StockAlertId == alert.StockAlertId
+                && t.NewStatus == StockAlertStatuses.Resolved));
+        }
+
         private static AppDbContext CreateContext()
         {
             var options = new DbContextOptionsBuilder<AppDbContext>()
@@ -107,7 +184,9 @@ IF DB_ID(N'{Database}') IS NULL
             return new StockAlertService(ctx, NullLogger<StockAlertService>.Instance, writer);
         }
 
-        private static async Task<int> SeedCanonicalLowStockAsync(AppDbContext ctx)
+        private static async Task<int> SeedCanonicalLowStockAsync(
+            AppDbContext ctx,
+            decimal availableQty = 0m)
         {
             var cfg = await ctx.StoreInventoryWriterConfigurations.SingleAsync(x => x.StoreId == StoreId);
             cfg.WriterMode = InventoryWriterMode.PreparedItem;
@@ -135,7 +214,7 @@ IF DB_ID(N'{Database}') IS NULL
                 QuantitySemanticsEvidenceReference = "sql-122",
                 QuantitySemanticsReviewedAt = DateTime.UtcNow,
                 QuantitySemanticsReviewedByAccountId = 1,
-                AvailableQty = 0m,
+                AvailableQty = availableQty,
                 MinStockLevel = 10m,
                 ReservedQty = 0,
                 LastUpdated = DateTime.UtcNow

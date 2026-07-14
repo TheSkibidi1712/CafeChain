@@ -81,6 +81,22 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task StockStatus_UsesOnHandMinusReserved()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredientInventory(ctx, qty: 12m, min: 5m, reserved: 8m);
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateService(ctx)
+                .EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
+
+            Assert.True(result.IsSuccess);
+            var alert = await ctx.StockAlerts.SingleAsync();
+            Assert.Equal(StockAlertTypes.LowStock, alert.AlertType);
+            Assert.Equal(4m, alert.CurrentQtySnapshot);
+        }
+
+        [Fact]
         public async Task AvailableQtyAboveMin_DoesNotCreateAlert()
         {
             using var ctx = CreateDbContext();
@@ -140,7 +156,7 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public async Task SupportsRecipeIdBtp_Target()
+        public async Task UnmappedRecipeBtp_RequiresReviewInsteadOfCreatingLegacyAlert()
         {
             using var ctx = CreateDbContext();
             SeedRecipeInventory(ctx, qty: 2m, min: 5m);
@@ -154,12 +170,9 @@ namespace CafeChain.Tests.POS
                 StockAlertSources.InventoryTransaction);
 
             Assert.True(result.IsSuccess);
-            Assert.Equal(1, result.Data!.CreatedCount);
-
-            var alert = await ctx.StockAlerts.SingleAsync();
-            Assert.Equal(RecipeId, alert.RecipeId);
-            Assert.Null(alert.IngredientId);
-            Assert.Equal(StockAlertTypes.LowStock, alert.AlertType);
+            Assert.Equal(0, result.Data!.CreatedCount);
+            Assert.Equal(1, result.Data.ReviewCount);
+            Assert.Empty(await ctx.StockAlerts.ToListAsync());
         }
 
         [Fact]
@@ -190,6 +203,31 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task ConfirmedAlert_RemainsActive_AndResolvesAfterRecovery()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredientInventory(ctx, qty: 2m, min: 10m);
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx);
+            await service.EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
+            var alert = await ctx.StockAlerts.SingleAsync();
+            alert.Status = StockAlertStatuses.Confirmed;
+            await ctx.SaveChangesAsync();
+
+            var inventory = await ctx.StoreInventories.SingleAsync(i => i.StoreId == StoreId);
+            inventory.AvailableQty = 20m;
+            await ctx.SaveChangesAsync();
+
+            var result = await service.EvaluateStoreAsync(StoreId, StockAlertSources.InventoryTransaction);
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(1, result.Data!.ResolvedCount);
+            Assert.Equal(1, await ctx.StockAlerts.CountAsync());
+            Assert.Equal(StockAlertStatuses.Resolved, (await ctx.StockAlerts.SingleAsync()).Status);
+        }
+
+        [Fact]
         public async Task ManualStoreCheck_ReturnsCounts()
         {
             using var ctx = CreateDbContext();
@@ -203,7 +241,7 @@ namespace CafeChain.Tests.POS
             Assert.True(result.IsSuccess);
             Assert.Equal(StoreId, result.Data!.StoreId);
             Assert.Equal(1, result.Data.CreatedCount);
-            Assert.True(result.Data.SkippedUnconfiguredCount >= 1);
+            Assert.True(result.Data.ReviewCount >= 1);
             Assert.Equal(StockAlertSources.ManualCheck, result.Data.Source);
             Assert.Equal(2, result.Data.EvaluatedCount);
         }
@@ -243,7 +281,8 @@ namespace CafeChain.Tests.POS
         private static void SeedIngredientInventory(
             CafeChain.Data.AppDbContext ctx,
             decimal qty,
-            decimal? min)
+            decimal? min,
+            decimal reserved = 0m)
         {
             EnsureUnit(ctx);
             if (!ctx.Ingredients.Any(i => i.IngredientId == IngredientId))
@@ -266,7 +305,7 @@ namespace CafeChain.Tests.POS
                     StoreId = StoreId,
                     IngredientId = IngredientId,
                     AvailableQty = qty,
-                    ReservedQty = 0,
+                    ReservedQty = reserved,
                     MinStockLevel = min,
                     LastUpdated = System.DateTime.UtcNow,
                     RowVersion = new byte[] { 0 }
@@ -277,6 +316,7 @@ namespace CafeChain.Tests.POS
                 var row = ctx.StoreInventories.Local
                     .First(i => i.StoreId == StoreId && i.IngredientId == IngredientId);
                 row.AvailableQty = qty;
+                row.ReservedQty = reserved;
                 row.MinStockLevel = min;
             }
         }

@@ -67,6 +67,9 @@ namespace CafeChain.Tests.POS
 
             Assert.Equal(IngredientId, ingredient.ItemId);
             Assert.Equal("Sữa tươi test", ingredient.ItemName);
+            Assert.Equal(12m, ingredient.OnHandQty);
+            Assert.Equal(1m, ingredient.ReservedQty);
+            Assert.Equal(11m, ingredient.UsableQty);
             // BaseUnitId=1 comes from seed data (UnitCode may be g/ml depending on seed).
             Assert.False(string.IsNullOrWhiteSpace(ingredient.UnitName));
             Assert.NotEqual("—", ingredient.UnitName);
@@ -107,6 +110,13 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public void CalculateUsableQuantity_SubtractsReservedFromOnHand()
+        {
+            Assert.Equal(4m, PosBranchInventoryService.CalculateUsableQuantity(12m, 8m));
+            Assert.Equal(-2m, PosBranchInventoryService.CalculateUsableQuantity(3m, 5m));
+        }
+
+        [Fact]
         public async Task GetBranchInventory_Search_MatchesIngredientAndRecipe()
         {
             using var ctx = CreateDbContext();
@@ -144,6 +154,21 @@ namespace CafeChain.Tests.POS
             Assert.True(result.IsSuccess);
             Assert.Single(result.Data!.Items);
             Assert.Equal("Recipe", result.Data.Items[0].ItemType);
+        }
+
+        [Fact]
+        public async Task GetBranchInventory_StockStatusFilter_UsesUsableQuantity()
+        {
+            using var ctx = CreateDbContext();
+            SeedCatalog(ctx);
+            await ctx.SaveChangesAsync();
+
+            var result = await new PosBranchInventoryService(ctx)
+                .GetBranchInventoryAsync(StoreA, null, null, 1, 50, "OUT");
+
+            Assert.True(result.IsSuccess);
+            Assert.Equal(2, result.Data!.Total);
+            Assert.All(result.Data.Items, item => Assert.True(item.UsableQty <= 0));
         }
 
         [Fact]

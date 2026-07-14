@@ -14,6 +14,7 @@ using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Stock;
+using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -158,7 +159,7 @@ IF DB_ID(N'{Database}') IS NULL
         }
 
         [Fact]
-        public async Task SqlServer_ConfirmReplay_NoSecondMovement()
+        public async Task SqlServer_BranchReceiptReplay_DoesNotDuplicatePosting()
         {
             int receiptId;
             await using (var seed = CreateContext())
@@ -184,6 +185,184 @@ IF DB_ID(N'{Database}') IS NULL
             var transitionCount = await verify.RestockRequestTransitions.CountAsync(t =>
                 t.BranchReceiptId == receiptId);
             Assert.Equal(1, transitionCount);
+            Assert.Equal(1, await verify.RestockFulfillmentPostings.CountAsync(p =>
+                p.SourceDocumentType == RestockFulfillmentDocumentTypes.BranchReceipt
+                && p.SourceDocumentId == receiptId));
+        }
+
+        [Fact]
+        public async Task SqlServer_TransferReplay_DoesNotDuplicatePosting()
+        {
+            await using var ctx = CreateContext();
+            var requestId = await SeedRequestAsync(ctx, requested: 100m);
+            var posting = new RestockFulfillmentPostingService(ctx);
+            var command = await PostingCommandAsync(
+                ctx, requestId, RestockFulfillmentDocumentTypes.InventoryTransfer, 7001, 1, 40m);
+
+            var first = await posting.RegisterAsync(command);
+            Assert.True(first.IsSuccess, first.Message);
+            await ctx.SaveChangesAsync();
+            var replay = await posting.RegisterAsync(command);
+
+            Assert.True(replay.IsSuccess, replay.Message);
+            Assert.True(replay.Data!.WasReplay);
+            Assert.Equal(1, await ctx.RestockFulfillmentPostings.CountAsync(p =>
+                p.RestockRequestId == requestId));
+        }
+
+        [Fact]
+        public async Task SqlServer_BranchReceiptAndTransfer_CannotOverFulfill()
+        {
+            await using var ctx = CreateContext();
+            var requestId = await SeedRequestAsync(ctx, requested: 100m);
+            var posting = new RestockFulfillmentPostingService(ctx);
+            var receipt = await PostingCommandAsync(
+                ctx, requestId, RestockFulfillmentDocumentTypes.BranchReceipt, 7101, 1, 70m);
+            var transfer = await PostingCommandAsync(
+                ctx, requestId, RestockFulfillmentDocumentTypes.InventoryTransfer, 7102, 1, 40m);
+
+            Assert.True((await posting.RegisterAsync(receipt)).IsSuccess);
+            await ctx.SaveChangesAsync();
+            var over = await posting.RegisterAsync(transfer);
+
+            Assert.False(over.IsSuccess);
+            Assert.Contains("vượt mục tiêu", over.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(70m, (await ctx.RestockFulfillmentPostings
+                .Where(p => p.RestockRequestId == requestId)
+                .Select(p => p.Quantity)
+                .ToListAsync()).Sum());
+        }
+
+        [Fact]
+        public async Task SqlServer_PartialFulfillment_SetsPartiallyReceived()
+        {
+            await using var ctx = CreateContext();
+            var requestId = await SeedRequestAsync(ctx, requested: 100m);
+            var posting = new RestockFulfillmentPostingService(ctx);
+            var command = await PostingCommandAsync(
+                ctx, requestId, RestockFulfillmentDocumentTypes.InventoryTransfer, 7201, 1, 30m);
+
+            var result = await posting.RegisterAsync(command);
+            Assert.True(result.IsSuccess, result.Message);
+            await ctx.SaveChangesAsync();
+
+            var request = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
+            Assert.Equal(RestockRequestStatuses.PartiallyReceived, request.Status);
+            Assert.Equal(30m, result.Data!.FulfilledQuantity);
+        }
+
+        [Fact]
+        public async Task SqlServer_FullFulfillment_SetsCompleted()
+        {
+            await using var ctx = CreateContext();
+            var requestId = await SeedRequestAsync(ctx, requested: 100m);
+            var posting = new RestockFulfillmentPostingService(ctx);
+            var command = await PostingCommandAsync(
+                ctx, requestId, RestockFulfillmentDocumentTypes.BranchReceipt, 7301, 1, 100m);
+
+            var result = await posting.RegisterAsync(command);
+            Assert.True(result.IsSuccess, result.Message);
+            await ctx.SaveChangesAsync();
+
+            var request = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
+            Assert.Equal(RestockRequestStatuses.Completed, request.Status);
+            Assert.Equal(100m, result.Data!.FulfilledQuantity);
+        }
+
+        [Fact]
+        public async Task SqlServer_ExternalRecovery_DoesNotCompleteRequest()
+        {
+            int requestId;
+            int inventoryId;
+            await using (var seed = CreateContext())
+            {
+                requestId = await SeedRequestAsync(seed, requested: 100m);
+                var request = await seed.RestockRequests
+                    .Include(r => r.StockAlert)
+                    .SingleAsync(r => r.RestockRequestId == requestId);
+                var inventory = new StoreInventory
+                {
+                    StoreId = _storeId,
+                    IngredientId = request.IngredientId,
+                    AvailableQty = 20m,
+                    ReservedQty = 0m,
+                    MinStockLevel = 10m,
+                    LastUpdated = DateTime.UtcNow
+                };
+                seed.StoreInventories.Add(inventory);
+                await seed.SaveChangesAsync();
+                inventoryId = inventory.StoreInventoryId;
+            }
+
+            await using (var evaluate = CreateContext())
+            {
+                var result = await new StockAlertService(
+                    evaluate,
+                    NullLogger<StockAlertService>.Instance)
+                    .EvaluateStoreInventoryItemAsync(inventoryId, "EXTERNAL_RECEIPT");
+                Assert.True(result.IsSuccess, result.Message);
+            }
+
+            await using var verify = CreateContext();
+            var persisted = await verify.RestockRequests
+                .Include(r => r.StockAlert)
+                .SingleAsync(r => r.RestockRequestId == requestId);
+            Assert.Equal(StockAlertStatuses.Resolved, persisted.StockAlert.Status);
+            Assert.Equal(RestockRequestStatuses.Processing, persisted.Status);
+            Assert.False(await verify.RestockFulfillmentPostings.AnyAsync(p =>
+                p.RestockRequestId == requestId));
+        }
+
+        [Fact]
+        public async Task SqlServer_ConcurrentAlertConfirm_AllowsOneWinner()
+        {
+            int alertId;
+            await using (var seed = CreateContext())
+            {
+                alertId = await SeedAlertOnlyAsync(seed, StockAlertStatuses.Open);
+            }
+
+            await using var firstContext = CreateContext();
+            await using var secondContext = CreateContext();
+            var results = await Task.WhenAll(
+                CreateAlertManager(firstContext).ConfirmAsync(
+                    alertId, _managerStaffId, _storeId, "confirm-a"),
+                CreateAlertManager(secondContext).ConfirmAsync(
+                    alertId, _managerStaffId, _storeId, "confirm-b"));
+
+            Assert.Equal(1, results.Count(r => r.IsSuccess));
+            await using var verify = CreateContext();
+            Assert.Equal(StockAlertStatuses.Confirmed,
+                (await verify.StockAlerts.SingleAsync(a => a.StockAlertId == alertId)).Status);
+            Assert.Equal(1, await verify.StockAlertTransitions.CountAsync(t =>
+                t.StockAlertId == alertId && t.NewStatus == StockAlertStatuses.Confirmed));
+        }
+
+        [Fact]
+        public async Task SqlServer_ConcurrentRestockCreation_CreatesOneRequest()
+        {
+            int alertId;
+            await using (var seed = CreateContext())
+            {
+                alertId = await SeedAlertOnlyAsync(seed, StockAlertStatuses.Confirmed);
+            }
+
+            await using var firstContext = CreateContext();
+            await using var secondContext = CreateContext();
+            var results = await Task.WhenAll(
+                CreateRestockService(firstContext).CreateFromConfirmedAlertAsync(
+                    alertId, _managerStaffId, _storeId, 100m, "request-a", RestockRequestPriorities.Normal),
+                CreateRestockService(secondContext).CreateFromConfirmedAlertAsync(
+                    alertId, _managerStaffId, _storeId, 100m, "request-b", RestockRequestPriorities.Normal));
+
+            Assert.All(results, r => Assert.True(r.IsSuccess, r.Message));
+            await using var verify = CreateContext();
+            var requests = await verify.RestockRequests
+                .Where(r => r.StockAlertId == alertId
+                            && RestockRequestStatuses.ActiveValues.Contains(r.Status))
+                .ToListAsync();
+            Assert.Single(requests);
+            Assert.All(results, r => Assert.Equal(requests[0].RestockRequestId, r.Data!.RestockRequestId));
         }
 
         [Fact]
@@ -502,7 +681,9 @@ IF DB_ID(N'{Database}') IS NULL
                 .Setup(s => s.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
                 .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new StockAlertEvaluationResultDto()));
             return new BranchReceiptService(
-                ctx, unit, physical, mode.Object, resolver.Object, alerts.Object,
+                ctx, unit, physical, mode.Object, resolver.Object,
+                new RestockFulfillmentPostingService(ctx), alerts.Object,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 NullLogger<BranchReceiptService>.Instance);
         }
 
@@ -518,12 +699,29 @@ IF DB_ID(N'{Database}') IS NULL
                 .Setup(s => s.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
                 .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new StockAlertEvaluationResultDto()));
             return new BranchReceiptService(
-                ctx, unit, physical, mode, resolver, alerts.Object,
+                ctx, unit, physical, mode, resolver,
+                new RestockFulfillmentPostingService(ctx), alerts.Object,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 NullLogger<BranchReceiptService>.Instance);
         }
 
         private static RestockRequestWorkflowService CreateWorkflow(AppDbContext ctx) =>
-            new(ctx, NullLogger<RestockRequestWorkflowService>.Instance);
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<RestockRequestWorkflowService>.Instance);
+
+        private static StockAlertManagerService CreateAlertManager(AppDbContext ctx) =>
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<StockAlertManagerService>.Instance);
+
+        private static RestockRequestService CreateRestockService(AppDbContext ctx) =>
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<RestockRequestService>.Instance);
 
         private static AppDbContext CreateContext() =>
             new AppDbContext(new DbContextOptionsBuilder<AppDbContext>()
@@ -576,6 +774,16 @@ IF DB_ID(N'{Database}') IS NULL
                 .FirstOrDefaultAsync();
             if (existingStaff != null)
             {
+                if (!await ctx.AccountRoles.AnyAsync(ar =>
+                        ar.AccountId == existingStaff.AccountId && ar.RoleId == roleId))
+                {
+                    ctx.AccountRoles.Add(new AccountRole
+                    {
+                        AccountId = existingStaff.AccountId,
+                        RoleId = roleId
+                    });
+                    await ctx.SaveChangesAsync();
+                }
                 _managerStaffId = existingStaff.StaffId;
                 return;
             }
@@ -602,6 +810,42 @@ IF DB_ID(N'{Database}') IS NULL
             ctx.Staffs.Add(staff);
             await ctx.SaveChangesAsync();
             _managerStaffId = staff.StaffId;
+        }
+
+        private async Task<int> SeedAlertOnlyAsync(AppDbContext ctx, string status)
+        {
+            if (_managerStaffId <= 0)
+                await SeedStaffAndLookupsAsync(ctx);
+
+            var ingredient = new Ingredient
+            {
+                Code = "ING-ALERT-SQL-" + Guid.NewGuid().ToString("N")[..8],
+                Name = "Alert SQL ingredient",
+                BaseUnitId = _unitId,
+                Active = true
+            };
+            ctx.Ingredients.Add(ingredient);
+            await ctx.SaveChangesAsync();
+
+            var now = DateTime.UtcNow;
+            var alert = new StockAlert
+            {
+                StoreId = _storeId,
+                IngredientId = ingredient.IngredientId,
+                AlertType = StockAlertTypes.LowStock,
+                Severity = StockAlertSeverities.Warning,
+                Status = status,
+                Source = StockAlertSources.ManualCheck,
+                CurrentQtySnapshot = 0m,
+                ThresholdSnapshot = 10m,
+                CreatedAt = now,
+                UpdatedAt = now,
+                ConfirmedByStaffId = status == StockAlertStatuses.Confirmed ? _managerStaffId : null,
+                ConfirmedAt = status == StockAlertStatuses.Confirmed ? now : null
+            };
+            ctx.StockAlerts.Add(alert);
+            await ctx.SaveChangesAsync();
+            return alert.StockAlertId;
         }
 
         private async Task<int> SeedRequestAsync(AppDbContext ctx, decimal requested)
@@ -652,6 +896,117 @@ IF DB_ID(N'{Database}') IS NULL
             ctx.RestockRequests.Add(req);
             await ctx.SaveChangesAsync();
             return req.RestockRequestId;
+        }
+
+        private async Task<RegisterRestockFulfillmentPostingCommand> PostingCommandAsync(
+            AppDbContext ctx,
+            int requestId,
+            string sourceType,
+            int sourceId,
+            int sourceLineId,
+            decimal quantity)
+        {
+            var request = await ctx.RestockRequests
+                .AsNoTracking()
+                .Include(r => r.Ingredient)
+                .Include(r => r.PreparedItem)
+                .SingleAsync(r => r.RestockRequestId == requestId);
+
+            if (sourceType == RestockFulfillmentDocumentTypes.BranchReceipt)
+            {
+                var receipt = new BranchReceipt
+                {
+                    ReceiptCode = $"SQL-POST-{Guid.NewGuid().ToString("N")[..24]}",
+                    StoreId = request.StoreId,
+                    Status = BranchReceiptStatuses.Confirmed,
+                    ReceiptKey = $"sql-post-{Guid.NewGuid():N}",
+                    ReceivedAt = DateTime.UtcNow,
+                    ReceivedByStaffId = _managerStaffId,
+                    ConfirmedAt = DateTime.UtcNow,
+                    ConfirmedByStaffId = _managerStaffId,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByStaffId = _managerStaffId
+                };
+                ctx.BranchReceipts.Add(receipt);
+                await ctx.SaveChangesAsync();
+
+                var line = new BranchReceiptLine
+                {
+                    BranchReceiptId = receipt.BranchReceiptId,
+                    RestockRequestId = requestId,
+                    IngredientId = request.IngredientId,
+                    PreparedItemId = request.PreparedItemId,
+                    InputQuantity = quantity,
+                    InputUnitId = request.Ingredient?.BaseUnitId ?? request.PreparedItem?.BaseUnitId ?? _unitId,
+                    ReceivedBaseQuantity = quantity,
+                    BaseUnitId = request.Ingredient?.BaseUnitId ?? request.PreparedItem?.BaseUnitId ?? _unitId,
+                    ActualPackagePrice = quantity,
+                    BaseUnitCostSnapshot = 1m,
+                    LineTotalCost = quantity,
+                    CreatedAt = DateTime.UtcNow
+                };
+                ctx.BranchReceiptLines.Add(line);
+                await ctx.SaveChangesAsync();
+                sourceId = receipt.BranchReceiptId;
+                sourceLineId = line.BranchReceiptLineId;
+            }
+            else if (sourceType == RestockFulfillmentDocumentTypes.InventoryTransfer)
+            {
+                var sourceStoreId = await ctx.Stores.AsNoTracking()
+                    .Where(s => s.StoreId != request.StoreId)
+                    .Select(s => s.StoreId)
+                    .FirstAsync();
+                var transfer = new InventoryTransfer
+                {
+                    Code = $"SQL-TR-{Guid.NewGuid():N}",
+                    RequestKey = $"sql-tr-{Guid.NewGuid():N}",
+                    FromStoreId = sourceStoreId,
+                    ToStoreId = request.StoreId,
+                    Type = InventoryTransferType.STORE_TO_STORE,
+                    Purpose = InventoryTransferPurpose.REPLENISHMENT,
+                    Status = InventoryTransferStatus.COMPLETED,
+                    DocumentDate = DateTime.UtcNow,
+                    CreatedByStaffId = _managerStaffId,
+                    ConfirmedByStaffId = _managerStaffId,
+                    ConfirmedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow
+                };
+                ctx.InventoryTransfers.Add(transfer);
+                await ctx.SaveChangesAsync();
+
+                var detail = new InventoryTransferDetail
+                {
+                    InventoryTransferId = transfer.InventoryTransferId,
+                    IngredientId = request.IngredientId,
+                    PreparedItemId = request.PreparedItemId,
+                    RestockRequestId = requestId,
+                    UnitId = request.Ingredient?.BaseUnitId ?? request.PreparedItem?.BaseUnitId ?? _unitId,
+                    Quantity = quantity,
+                    BaseQuantity = quantity,
+                    UnitPrice = 1m
+                };
+                ctx.InventoryTransferDetails.Add(detail);
+                await ctx.SaveChangesAsync();
+                sourceId = transfer.InventoryTransferId;
+                sourceLineId = detail.InventoryTransferDetailId;
+            }
+
+            return new RegisterRestockFulfillmentPostingCommand
+            {
+                RestockRequestId = requestId,
+                DestinationStoreId = request.StoreId,
+                SourceDocumentType = sourceType,
+                SourceDocumentId = sourceId,
+                SourceDocumentLineId = sourceLineId,
+                IngredientId = request.IngredientId,
+                PreparedItemId = request.PreparedItemId,
+                Quantity = quantity,
+                BaseUnitId = request.Ingredient?.BaseUnitId
+                    ?? request.PreparedItem?.BaseUnitId
+                    ?? _unitId,
+                ActorStaffId = _managerStaffId,
+                Reason = "SQL hardening test"
+            };
         }
 
         private async Task EnsureWarehouseStaffAsync(AppDbContext ctx)

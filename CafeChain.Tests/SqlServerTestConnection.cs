@@ -16,7 +16,7 @@ namespace CafeChain.Tests
         /// Default local instance when env var is unset (Windows Trusted Connection, no credentials).
         /// </summary>
         public const string DefaultServerTemplate =
-            "Server=localhost\\SQLEXPRESS;Database={Database};Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true";
+            "Server=localhost\\SQLEXPRESS;Database={Database};Trusted_Connection=True;Encrypt=False;TrustServerCertificate=True;MultipleActiveResultSets=true";
 
         public static string Create(string databaseName)
         {

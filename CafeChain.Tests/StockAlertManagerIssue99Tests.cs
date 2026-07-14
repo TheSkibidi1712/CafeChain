@@ -73,7 +73,7 @@ namespace CafeChain.Tests.POS
 
             Assert.True(result.IsSuccess);
             var alert = await ctx.StockAlerts.SingleAsync(a => a.StockAlertId == alertId);
-            Assert.Equal(StockAlertStatuses.ManagerRejected, alert.Status);
+            Assert.Equal(StockAlertStatuses.Rejected, alert.Status);
             Assert.Equal(ManagerStaffId, alert.RejectedByStaffId);
             Assert.NotNull(alert.RejectedAt);
             Assert.Equal("Kho vật lý vẫn còn đủ.", alert.RejectReason);
@@ -106,7 +106,7 @@ namespace CafeChain.Tests.POS
 
             var result = await service.ConfirmAsync(alertId, SalesStaffId, StoreId, "Ghi chú đủ dài.");
             Assert.False(result.IsSuccess);
-            Assert.Contains("Quản lý chi nhánh", result.Message);
+            Assert.Contains("không có quyền", result.Message);
         }
 
         [Fact]
@@ -160,7 +160,7 @@ namespace CafeChain.Tests.POS
             var confirmedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.Confirmed);
             Assert.False((await service.RejectAsync(confirmedId, ManagerStaffId, StoreId, "Lý do.")).IsSuccess);
 
-            var rejectedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.ManagerRejected);
+            var rejectedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.Rejected);
             Assert.False((await service.ConfirmAsync(rejectedId, ManagerStaffId, StoreId, "Ghi chú.")).IsSuccess);
         }
 
@@ -189,7 +189,10 @@ namespace CafeChain.Tests.POS
         // ---------- helpers ----------
 
         private static StockAlertManagerService CreateService(CafeChain.Data.AppDbContext ctx) =>
-            new(ctx, new Mock<ILogger<StockAlertManagerService>>().Object);
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                new Mock<ILogger<StockAlertManagerService>>().Object);
 
         private async Task<int> SeedOpenAlertAsync(
             CafeChain.Data.AppDbContext ctx,

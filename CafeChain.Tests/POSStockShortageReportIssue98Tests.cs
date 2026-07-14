@@ -79,6 +79,38 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task ManualReport_UsesUsableQuantity_AndReusesConfirmedAlert()
+        {
+            using var ctx = CreateDbContext();
+            SeedRolesAndInventory(ctx, ingredientQty: 12m, min: 5m, ingredientReserved: 8m);
+            SeedStaffWithRole(ctx, SalesStaffId, 9001, RoleConstants.SalesStaff, "sales@test.local");
+            await ctx.SaveChangesAsync();
+
+            var service = CreateService(ctx, CreateEmailMock(false).Object);
+            var request = new StockShortageReportRequestDto
+            {
+                StoreInventoryId = await IngredientInventoryIdAsync(ctx),
+                Note = "Quầy chỉ còn lượng khả dụng thấp."
+            };
+
+            var first = await service.ReportShortageAsync(StoreId, SalesStaffId, request);
+            Assert.True(first.IsSuccess);
+            var alert = await ctx.StockAlerts.SingleAsync();
+            Assert.Equal(4m, alert.CurrentQtySnapshot);
+
+            alert.Status = StockAlertStatuses.Confirmed;
+            await ctx.SaveChangesAsync();
+            request.Note = "Báo lại sau khi kiểm tra lượng giữ chỗ.";
+
+            var second = await service.ReportShortageAsync(StoreId, SalesStaffId, request);
+
+            Assert.True(second.IsSuccess);
+            Assert.Equal("updated", second.Data!.CreatedOrUpdated);
+            Assert.Equal(1, await ctx.StockAlerts.CountAsync());
+            Assert.Equal(StockAlertStatuses.Confirmed, (await ctx.StockAlerts.SingleAsync()).Status);
+        }
+
+        [Fact]
         public async Task ShiftSupervisor_ReportsRecipeBtp_CreatesAlert()
         {
             using var ctx = CreateDbContext();
@@ -378,7 +410,8 @@ namespace CafeChain.Tests.POS
             CafeChain.Data.AppDbContext ctx,
             decimal ingredientQty,
             decimal? min,
-            decimal recipeQty = 5m)
+            decimal recipeQty = 5m,
+            decimal ingredientReserved = 0m)
         {
             // Roles may already exist from EnsureCreated seed
             EnsureRole(ctx, 3, RoleConstants.StoreManager, true);
@@ -452,7 +485,7 @@ namespace CafeChain.Tests.POS
                 StoreId = StoreId,
                 IngredientId = IngredientId,
                 AvailableQty = ingredientQty,
-                ReservedQty = 0,
+                ReservedQty = ingredientReserved,
                 MinStockLevel = min,
                 LastUpdated = System.DateTime.UtcNow,
                 RowVersion = new byte[] { 0 }

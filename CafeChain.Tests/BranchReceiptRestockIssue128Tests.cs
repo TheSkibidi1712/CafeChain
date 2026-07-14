@@ -97,6 +97,10 @@ namespace CafeChain.Tests
             var req = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
             Assert.Equal(RestockRequestStatuses.PartiallyReceived, req.Status);
 
+            var posting = await ctx.RestockFulfillmentPostings.SingleAsync();
+            Assert.Equal(RestockFulfillmentDocumentTypes.BranchReceipt, posting.SourceDocumentType);
+            Assert.Equal(400m, posting.Quantity);
+
             Assert.True(await ctx.RestockRequestTransitions.AnyAsync(t =>
                 t.RestockRequestId == requestId && t.BranchReceiptId == draft.Data.BranchReceiptId));
         }
@@ -131,6 +135,11 @@ namespace CafeChain.Tests
             Assert.Equal(1000m, inv.AvailableQty);
             Assert.Equal(2, await ctx.InventoryTransactions.CountAsync(t =>
                 t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN));
+            var postedQuantities = await ctx.RestockFulfillmentPostings
+                .Where(p => p.RestockRequestId == requestId)
+                .Select(p => p.Quantity)
+                .ToListAsync();
+            Assert.Equal(1000m, postedQuantities.Sum());
         }
 
         [Fact]
@@ -187,6 +196,7 @@ namespace CafeChain.Tests
 
             Assert.Equal(1, await ctx.InventoryTransactions.CountAsync(t =>
                 t.Type == InventoryTransactionTypeEnum.BRANCH_RECEIPT_IN));
+            Assert.Equal(1, await ctx.RestockFulfillmentPostings.CountAsync());
             var inv = await ctx.StoreInventories.SingleAsync(i =>
                 i.StoreId == StoreId && i.IngredientId == IngredientId);
             Assert.Equal(200m, inv.AvailableQty);
@@ -240,7 +250,7 @@ namespace CafeChain.Tests
         }
 
         [Fact]
-        public async Task Warehouse_CannotConfirm_ByDefault()
+        public async Task Warehouse_CanConfirm_AsGlobalDocumentProcessor()
         {
             using var ctx = CreateDbContext();
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
@@ -252,12 +262,11 @@ namespace CafeChain.Tests
 
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, WarehouseStaffId, StoreId, WarehouseRoles);
-            Assert.False(confirm.IsSuccess);
-            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, confirm.ErrorCode);
+            Assert.True(confirm.IsSuccess, confirm.Message);
         }
 
         [Fact]
-        public async Task ShiftSupervisor_CanConfirm()
+        public async Task ShiftSupervisor_CanReadOwnStore_ButCannotCreateOrConfirm()
         {
             using var ctx = CreateDbContext();
             EnsureStaff(ctx, SupervisorStaffId, RoleConstants.ShiftSupervisor, "ss128@test.local");
@@ -266,12 +275,33 @@ namespace CafeChain.Tests
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
             var service = CreateReceiptService(ctx);
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
-                requestId, 50m, UnitGram, 5_000m, "k-ss"), SupervisorStaffId, SupervisorRoles);
+                requestId, 50m, UnitGram, 5_000m, "k-ss"), ManagerStaffId, ManagerRoles);
             Assert.True(draft.IsSuccess, draft.Message);
+
+            var detail = await service.GetDetailAsync(
+                draft.Data!.BranchReceiptId, SupervisorStaffId, StoreId, SupervisorRoles);
+            Assert.True(detail.IsSuccess, detail.Message);
 
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, SupervisorStaffId, StoreId, SupervisorRoles);
-            Assert.True(confirm.IsSuccess, confirm.Message);
+            Assert.False(confirm.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, confirm.ErrorCode);
+        }
+
+        [Fact]
+        public async Task SystemAdmin_DoesNotReceiveImplicitReceiptMutationPermission()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            var service = CreateReceiptService(ctx);
+
+            var draft = await service.CreateDraftAsync(
+                NewReceiptRequest(requestId, 50m, UnitGram, 5_000m, "k-system-admin"),
+                ManagerStaffId,
+                new[] { RoleConstants.SystemAdmin });
+
+            Assert.False(draft.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, draft.ErrorCode);
         }
 
         [Fact]
@@ -445,12 +475,17 @@ namespace CafeChain.Tests
             }
 
             return new BranchReceiptService(
-                ctx, unit, physical, mode.Object, resolver.Object, alerts,
+                ctx, unit, physical, mode.Object, resolver.Object,
+                new RestockFulfillmentPostingService(ctx), alerts,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 NullLogger<BranchReceiptService>.Instance);
         }
 
         private static RestockRequestWorkflowService CreateWorkflowService(AppDbContext ctx) =>
-            new(ctx, NullLogger<RestockRequestWorkflowService>.Instance);
+            new(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<RestockRequestWorkflowService>.Instance);
 
         private async Task<int> SeedProcessingRequestAsync(AppDbContext ctx, decimal requested)
         {
@@ -469,12 +504,25 @@ namespace CafeChain.Tests
             EnsureBase(ctx);
             EnsureStaff(ctx, ManagerStaffId, RoleConstants.StoreManager, "mgr128@test.local");
             EnsureStaff(ctx, WarehouseStaffId, RoleConstants.AccountantWarehouse, "aw128@test.local");
+            var ingredientId = IngredientId + alertSuffix - 1;
+            if (!ctx.Ingredients.Any(i => i.IngredientId == ingredientId)
+                && !ctx.Ingredients.Local.Any(i => i.IngredientId == ingredientId))
+            {
+                ctx.Ingredients.Add(new Ingredient
+                {
+                    IngredientId = ingredientId,
+                    Code = $"ING128-{alertSuffix}",
+                    Name = $"Nguyên liệu 128-{alertSuffix}",
+                    BaseUnitId = UnitGram,
+                    Active = true
+                });
+            }
             await ctx.SaveChangesAsync();
 
             var alert = new StockAlert
             {
                 StoreId = StoreId,
-                IngredientId = IngredientId,
+                IngredientId = ingredientId,
                 AlertType = StockAlertTypes.LowStock,
                 Severity = StockAlertSeverities.Warning,
                 Status = StockAlertStatuses.Confirmed,
@@ -493,7 +541,7 @@ namespace CafeChain.Tests
             {
                 StockAlertId = alert.StockAlertId,
                 StoreId = StoreId,
-                IngredientId = IngredientId,
+                IngredientId = ingredientId,
                 RequestedQuantity = requested,
                 Status = RestockRequestStatuses.Submitted,
                 Priority = RestockRequestPriorities.Normal,

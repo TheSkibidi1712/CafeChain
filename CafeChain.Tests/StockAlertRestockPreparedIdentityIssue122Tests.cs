@@ -140,7 +140,7 @@ namespace CafeChain.Tests
         }
 
         [Fact]
-        public async Task LegacyMode_RecipeAlert_RemainsReadableAfterSchema()
+        public async Task LegacyMode_RecipeInventory_CreatesCanonicalPreparedItemAlert()
         {
             using var ctx = CreateDbContext();
             await SeedStoreAsync(ctx, InventoryWriterMode.LegacyRecipe);
@@ -149,6 +149,8 @@ namespace CafeChain.Tests
             {
                 StoreId = StoreId,
                 RecipeId = RecipeId,
+                BtpIdentityState = BtpIdentityState.Legacy,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
                 AvailableQty = 0m,
                 MinStockLevel = 5m,
                 ReservedQty = 0,
@@ -159,13 +161,13 @@ namespace CafeChain.Tests
 
             await CreateAlertService(ctx).EvaluateStoreAsync(StoreId, StockAlertSources.Auto);
             var alert = await ctx.StockAlerts.SingleAsync();
-            Assert.Equal(RecipeId, alert.RecipeId);
-            Assert.Null(alert.PreparedItemId);
+            Assert.Null(alert.RecipeId);
+            Assert.Equal(PreparedItemId, alert.PreparedItemId);
         }
 
         [Fact]
-        public async Task LegacyMode_BtpRecipeRow_CreatesRecipeKeyedOpenAlert()
-            => await LegacyMode_RecipeAlert_RemainsReadableAfterSchema();
+        public async Task LegacyMode_BtpRecipeRow_UsesMappedPreparedItemIdentity()
+            => await LegacyMode_RecipeInventory_CreatesCanonicalPreparedItemAlert();
 
         [Fact]
         public async Task PreparedMode_DuplicateOpenPreparedItem_ReusesSameAlert()
@@ -193,7 +195,10 @@ namespace CafeChain.Tests
             alert.Status = StockAlertStatuses.Confirmed;
             await ctx.SaveChangesAsync();
 
-            var restock = new RestockRequestService(ctx, NullLogger<RestockRequestService>.Instance);
+            var restock = new RestockRequestService(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<RestockRequestService>.Instance);
             var result = await restock.CreateFromConfirmedAlertAsync(
                 alert.StockAlertId, StaffId, StoreId, 20m, null, null);
             Assert.True(result.IsSuccess, result.Message);
@@ -220,7 +225,10 @@ namespace CafeChain.Tests
             var before = await ctx.StoreInventories.Where(x => x.PreparedItemId == PreparedItemId)
                 .Select(x => x.AvailableQty).SingleAsync();
 
-            var rr = await new RestockRequestService(ctx, NullLogger<RestockRequestService>.Instance)
+            var rr = await new RestockRequestService(
+                    ctx,
+                    new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                    NullLogger<RestockRequestService>.Instance)
                 .CreateFromConfirmedAlertAsync(alert.StockAlertId, StaffId, StoreId, 5m, null, null);
             Assert.True(rr.IsSuccess, rr.Message);
 
@@ -368,10 +376,14 @@ namespace CafeChain.Tests
             alert.Status = StockAlertStatuses.Confirmed;
             await ctx.SaveChangesAsync();
 
-            var svc = new RestockRequestService(ctx, NullLogger<RestockRequestService>.Instance);
+            var svc = new RestockRequestService(
+                ctx,
+                new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
+                NullLogger<RestockRequestService>.Instance);
             Assert.True((await svc.CreateFromConfirmedAlertAsync(alert.StockAlertId, StaffId, StoreId, 1m, null, null)).IsSuccess);
             var second = await svc.CreateFromConfirmedAlertAsync(alert.StockAlertId, StaffId, StoreId, 1m, null, null);
-            Assert.False(second.IsSuccess);
+            Assert.True(second.IsSuccess);
+            Assert.Contains("đã tồn tại", second.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(1, await ctx.RestockRequests.CountAsync());
         }
 
