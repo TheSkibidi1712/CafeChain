@@ -76,6 +76,9 @@ namespace CafeChain.Extensions.Services
         {
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
+            services.AddScoped<IAIImagePipelineService, AIImagePipelineService>();
+            services.AddSingleton<IVisualSpecificationBuilder, VisualSpecificationBuilder>();
+            services.AddSingleton<IPexelsMetadataScorer, PexelsMetadataScorer>();
 
             // Account
             services.AddScoped<IAccountService, AccountService>();

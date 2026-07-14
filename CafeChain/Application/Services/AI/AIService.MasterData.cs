@@ -125,7 +125,8 @@ public sealed partial class AIService
                     ProductTypeId = productType.ProductTypeId,
                     ProductTypeName = productType.Name,
                     ImagePrompt = imagePrompt
-                }
+                },
+                VisualSpecification = _visualSpecificationBuilder.BuildDrink(name, description, imagePrompt)
             });
             usedOllama |= candidate.FromOllama;
             usedFallback |= !candidate.FromOllama;
@@ -135,6 +136,7 @@ public sealed partial class AIService
         var result = new DrinkSuggestionResultDTO
         {
             Success = true,
+            RequestId = Guid.NewGuid(),
             Message = $"Đã tạo {options.Count} gợi ý đồ uống.",
             Options = options,
             UsedOllama = usedOllama,
@@ -275,7 +277,8 @@ public sealed partial class AIService
                     Active = true,
                     ImagePrompt = CleanSuggestionText(candidate.Value.ImagePrompt, 500)
                         ?? $"{name}, premium cafe topping, appetizing close-up"
-                }
+                },
+                VisualSpecification = _visualSpecificationBuilder.BuildTopping(name, candidate.Value.ImagePrompt)
             });
             usedOllama |= candidate.FromOllama;
             usedFallback |= !candidate.FromOllama;
@@ -284,6 +287,7 @@ public sealed partial class AIService
         var result = new ToppingSuggestionResultDTO
         {
             Success = true,
+            RequestId = Guid.NewGuid(),
             Message = $"Đã tạo {options.Count} gợi ý topping.",
             Options = options,
             UsedOllama = usedOllama,
@@ -293,72 +297,6 @@ public sealed partial class AIService
         if (!toppings.Any(x => x.Active && x.Price > 0) && request.CurrentPrice is not >= 1000)
             result.Warnings.Add("Chưa có lịch sử giá; C# dùng giá fallback 7.000đ.");
         return result;
-    }
-
-    public async Task<AIImageSuggestionResultDTO> GenerateMasterImageAsync(
-        AIImageSuggestionRequestDTO request,
-        CancellationToken cancellationToken = default)
-    {
-        var prompt = request.ImagePrompt?.Trim() ?? string.Empty;
-        if (prompt.Length is < 2 or > 500)
-            return new AIImageSuggestionResultDTO { Message = "Prompt ảnh phải từ 2 đến 500 ký tự." };
-
-        string? pexelsError = null;
-        if (_imageOptions.PreferOnlineSource)
-        {
-            var stockImage = await _pexels.FindImageAsync(new PexelsImageRequestDTO
-            {
-                Query = prompt,
-                ExcludedPhotoIds = request.ExcludedExternalImageIds
-            }, cancellationToken);
-            if (stockImage.Success && stockImage.Bytes != null)
-            {
-                var photographer = string.IsNullOrWhiteSpace(stockImage.Photographer)
-                    ? "Pexels contributor"
-                    : stockImage.Photographer.Trim();
-                return new AIImageSuggestionResultDTO
-                {
-                    Success = true,
-                    ImageGenerated = false,
-                    ImageSource = "Pexels",
-                    Message = "Đã tìm thấy ảnh Pexels. Ảnh chỉ được upload khi người dùng bấm Lưu.",
-                    Base64Data = Convert.ToBase64String(stockImage.Bytes),
-                    ContentType = stockImage.ContentType,
-                    FileName = stockImage.FileName,
-                    ExternalImageId = stockImage.PhotoId,
-                    AttributionText = $"Photo by {photographer} on Pexels",
-                    PhotoUrl = stockImage.PhotoUrl,
-                    Photographer = stockImage.Photographer,
-                    PhotographerUrl = stockImage.PhotographerUrl
-                };
-            }
-            pexelsError = stockImage.ErrorMessage;
-            if (!_imageOptions.FallbackToComfyUI)
-                return new AIImageSuggestionResultDTO { Message = pexelsError ?? "Pexels hiện không khả dụng." };
-        }
-
-        var image = await _comfyUI.GenerateImageAsync(new ComfyUIImageRequestDTO
-        {
-            Prompt = prompt,
-            FileNamePrefix = request.FileNamePrefix
-        }, cancellationToken);
-        if (!image.Success || image.Bytes == null)
-        {
-            var message = image.ErrorMessage ?? "Không thể tạo ảnh bằng ComfyUI.";
-            if (!string.IsNullOrWhiteSpace(pexelsError))
-                message = $"Pexels không khả dụng và {message}";
-            return new AIImageSuggestionResultDTO { Message = message };
-        }
-        return new AIImageSuggestionResultDTO
-        {
-            Success = true,
-            ImageGenerated = true,
-            ImageSource = "ComfyUI",
-            Message = "Đã tạo ảnh gợi ý. Ảnh chỉ được upload khi người dùng bấm Lưu.",
-            Base64Data = Convert.ToBase64String(image.Bytes),
-            ContentType = image.ContentType,
-            FileName = image.FileName
-        };
     }
 
     private async Task<List<DrinkOllamaSuggestionDTO>> RequestDrinkOptionsAsync(

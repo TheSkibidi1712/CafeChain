@@ -27,10 +27,8 @@ public sealed partial class AIService : IAIService
     private readonly IAdminToppingRepository _toppingRepository;
     private readonly IUnitConversionService _conversion;
     private readonly IOllamaClient _ollama;
-    private readonly IComfyUIClient _comfyUI;
-    private readonly IPexelsClient _pexels;
+    private readonly IVisualSpecificationBuilder _visualSpecificationBuilder;
     private readonly AIOptions _options;
-    private readonly AIImageOptions _imageOptions;
     private readonly ILogger<AIService> _logger;
 
     public AIService(
@@ -41,10 +39,8 @@ public sealed partial class AIService : IAIService
         IAdminToppingRepository toppingRepository,
         IUnitConversionService conversion,
         IOllamaClient ollama,
-        IComfyUIClient comfyUI,
-        IPexelsClient pexels,
+        IVisualSpecificationBuilder visualSpecificationBuilder,
         IOptions<AIOptions> options,
-        IOptions<AIImageOptions> imageOptions,
         ILogger<AIService> logger)
     {
         _repository = repository;
@@ -54,10 +50,8 @@ public sealed partial class AIService : IAIService
         _toppingRepository = toppingRepository;
         _conversion = conversion;
         _ollama = ollama;
-        _comfyUI = comfyUI;
-        _pexels = pexels;
+        _visualSpecificationBuilder = visualSpecificationBuilder;
         _options = options.Value;
-        _imageOptions = imageOptions.Value;
         _logger = logger;
     }
 

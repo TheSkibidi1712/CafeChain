@@ -24,6 +24,7 @@
 
 
 <link rel="stylesheet" href="~/css/Admin/Topping/topping.css" />
+<link rel="stylesheet" href="~/css/Admin/AI/ai-image-pipeline.css" asp-append-version="true" />
 
 <div class="container-fluid p-4">
 
@@ -409,12 +410,18 @@
                                 <span id="toppingAiSource" class="badge bg-secondary"></span>
                             </div>
                             <div id="toppingAiOptionList" class="ai-option-grid"></div>
+                            <div id="toppingAiStatus" class="ai-pipeline-status mt-2" aria-live="polite"></div>
+                            <div class="mt-2"><small class="fw-semibold">1. Chọn ảnh tham chiếu Pexels</small></div>
+                            <div id="toppingAiReferenceList" class="ai-image-grid"></div>
+                            <div class="mt-2"><small class="fw-semibold">2. Chọn ảnh cuối từ Pexels hoặc ComfyUI</small></div>
+                            <div id="toppingAiGeneratedList" class="ai-image-grid"></div>
                             <div id="toppingAiWarnings" class="small text-warning mt-1"></div>
-                            <img id="toppingAiImage" class="img-thumbnail d-none mt-2" style="max-width:160px" alt="Ảnh AI gợi ý" />
-                            <div id="toppingAiImageAttribution" class="small text-muted mt-1 d-none"></div>
                             <div class="d-flex gap-2 mt-2">
                                 <button type="button" id="btnApplyToppingAi" class="btn btn-primary btn-sm" disabled>Áp dụng</button>
-                                <button type="button" id="btnRegenerateToppingAiImage" class="btn btn-outline-secondary btn-sm" disabled>Tạo lại ảnh</button>
+                                <button type="button" id="btnUseToppingPexels" class="btn btn-outline-success btn-sm" disabled>Dùng ảnh Pexels</button>
+                                <button type="button" id="btnGenerateToppingAi" class="btn btn-outline-primary btn-sm" disabled>Tạo lại bằng ComfyUI</button>
+                                <button type="button" id="btnGenerateToppingAiWithoutReference" class="btn btn-outline-warning btn-sm d-none">Tạo ảnh bằng ComfyUI không dùng Pexels</button>
+                                <button type="button" id="btnRetryToppingAiSearch" class="btn btn-outline-secondary btn-sm" disabled>Tìm lại Pexels</button>
                                 <button type="button" id="btnDismissToppingAi" class="btn btn-light btn-sm">Bỏ qua</button>
                             </div>
                         </div>
@@ -823,5 +830,6 @@
 {
     <partial name="_ValidationScriptsPartial" />
 
+    <script src="~/js/Admin/AI/ai-image-pipeline.js" asp-append-version="true"></script>
     <script src="~/js/Admin/Topping/topping.js" asp-append-version="true"></script>
 }

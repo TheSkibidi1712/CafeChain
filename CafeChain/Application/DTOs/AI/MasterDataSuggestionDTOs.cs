@@ -29,6 +29,7 @@ public sealed class DrinkSuggestionRequestDTO
 public sealed class DrinkSuggestionResultDTO
 {
     public bool Success { get; set; }
+    public Guid RequestId { get; set; }
     public string Message { get; set; } = string.Empty;
     public List<DrinkSuggestionOptionDTO> Options { get; set; } = [];
     public List<string> Warnings { get; set; } = [];
@@ -45,9 +46,12 @@ public sealed class DrinkSuggestionResultDTO
 
 public sealed class DrinkSuggestionOptionDTO
 {
+    public Guid SuggestionId { get; set; } = Guid.NewGuid();
+    public string EntityType { get; set; } = "Drink";
     public string Title { get; set; } = string.Empty;
     public bool CanApply { get; set; }
     public DrinkSuggestionFieldsDTO Fields { get; set; } = new();
+    public VisualSpecificationDTO VisualSpecification { get; set; } = new();
 }
 
 public sealed class DrinkSuggestionFieldsDTO
@@ -117,6 +121,7 @@ public sealed class ToppingSuggestionRequestDTO
 public sealed class ToppingSuggestionResultDTO
 {
     public bool Success { get; set; }
+    public Guid RequestId { get; set; }
     public string Message { get; set; } = string.Empty;
     public List<ToppingSuggestionOptionDTO> Options { get; set; } = [];
     public List<string> Warnings { get; set; } = [];
@@ -129,9 +134,12 @@ public sealed class ToppingSuggestionResultDTO
 
 public sealed class ToppingSuggestionOptionDTO
 {
+    public Guid SuggestionId { get; set; } = Guid.NewGuid();
+    public string EntityType { get; set; } = "Topping";
     public string Title { get; set; } = string.Empty;
     public bool CanApply { get; set; }
     public ToppingSuggestionFieldsDTO Fields { get; set; } = new();
+    public VisualSpecificationDTO VisualSpecification { get; set; } = new();
 }
 
 public sealed class ToppingSuggestionFieldsDTO
@@ -141,29 +149,6 @@ public sealed class ToppingSuggestionFieldsDTO
     public decimal Price { get; set; }
     public bool Active { get; set; } = true;
     public string ImagePrompt { get; set; } = string.Empty;
-}
-
-public sealed class AIImageSuggestionRequestDTO
-{
-    [Required, StringLength(500, MinimumLength = 2)] public string ImagePrompt { get; set; } = string.Empty;
-    [Required, StringLength(100)] public string FileNamePrefix { get; set; } = string.Empty;
-    [MaxLength(50)] public List<long> ExcludedExternalImageIds { get; set; } = [];
-}
-
-public sealed class AIImageSuggestionResultDTO
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = string.Empty;
-    public string? Base64Data { get; set; }
-    public string? ContentType { get; set; }
-    public string? FileName { get; set; }
-    public bool ImageGenerated { get; set; }
-    public string? ImageSource { get; set; }
-    public long? ExternalImageId { get; set; }
-    public string? AttributionText { get; set; }
-    public string? PhotoUrl { get; set; }
-    public string? Photographer { get; set; }
-    public string? PhotographerUrl { get; set; }
 }
 
 internal sealed class DrinkOllamaOptionsDTO { public List<DrinkOllamaSuggestionDTO> Options { get; set; } = []; }

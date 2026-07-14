@@ -1,16 +1,30 @@
 {
+  "1": {
+    "inputs": { "image": "reference.png", "upload": "image" },
+    "class_type": "LoadImage"
+  },
+  "2": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 1024,
+      "height": 1024,
+      "crop": "center",
+      "image": ["1", 0]
+    },
+    "class_type": "ImageScale"
+  },
   "3": {
     "inputs": {
       "seed": 1,
-      "steps": 24,
+      "steps": 28,
       "cfg": 7.0,
       "sampler_name": "euler",
       "scheduler": "normal",
-      "denoise": 1.0,
+      "denoise": 0.55,
       "model": ["4", 0],
       "positive": ["6", 0],
       "negative": ["7", 0],
-      "latent_image": ["5", 0]
+      "latent_image": ["10", 0]
     },
     "class_type": "KSampler"
   },
@@ -19,8 +33,8 @@
     "class_type": "CheckpointLoaderSimple"
   },
   "5": {
-    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 },
-    "class_type": "EmptyLatentImage"
+    "inputs": { "pixels": ["2", 0], "vae": ["4", 2] },
+    "class_type": "VAEEncode"
   },
   "6": {
     "inputs": { "text": "positive prompt", "clip": ["4", 1] },
@@ -35,7 +49,11 @@
     "class_type": "VAEDecode"
   },
   "9": {
-    "inputs": { "images": ["8", 0] },
-    "class_type": "PreviewImage"
+    "inputs": { "filename_prefix": "cafechain_ai", "images": ["8", 0] },
+    "class_type": "SaveImage"
+  },
+  "10": {
+    "inputs": { "amount": 3, "samples": ["5", 0] },
+    "class_type": "RepeatLatentBatch"
   }
 }

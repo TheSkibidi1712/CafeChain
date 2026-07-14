@@ -44,6 +44,7 @@ namespace CafeChain.Extensions.Services
         {
             services.Configure<PexelsOptions>(configuration.GetSection(PexelsOptions.SectionName));
             services.Configure<AIImageOptions>(configuration.GetSection(AIImageOptions.SectionName));
+            services.Configure<AIImagePipelineOptions>(configuration.GetSection(AIImagePipelineOptions.SectionName));
             var options = configuration.GetSection(PexelsOptions.SectionName).Get<PexelsOptions>() ?? new();
             if (!Uri.TryCreate(options.BaseUrl, UriKind.Absolute, out var baseUri))
                 throw new InvalidOperationException("Pexels:BaseUrl phải là URL tuyệt đối hợp lệ.");

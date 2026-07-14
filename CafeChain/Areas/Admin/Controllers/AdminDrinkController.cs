@@ -16,15 +16,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminDrinkService _drinkService;
         private readonly IAdminPermissionService _permissionService;
         private readonly IAIService _aiService;
+        private readonly IAIImagePipelineService _aiImagePipeline;
 
         public AdminDrinkController(
             IAdminDrinkService drinkService,
             IAdminPermissionService permissionService,
-            IAIService aiService)
+            IAIService aiService,
+            IAIImagePipelineService aiImagePipeline)
         {
             _drinkService = drinkService;
             _permissionService = permissionService;
             _aiService = aiService;
+            _aiImagePipeline = aiImagePipeline;
         }
 
         [HttpGet]
@@ -390,6 +393,7 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 success = result.Success,
                 message = result.Message,
+                requestId = result.RequestId,
                 options = result.Options,
                 warnings = result.Warnings,
                 usedOllama = result.UsedOllama,
@@ -399,14 +403,61 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AiImageSuggestion([FromBody] AIImageSuggestionRequestDTO request)
+        public async Task<IActionResult> AiReferenceImages([FromBody] AIReferenceSearchRequestDTO request)
         {
             var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
             if (guard != null) return guard;
             if (!ModelState.IsValid)
-                return ApiError("Prompt tạo ảnh không hợp lệ.", StatusCodes.Status400BadRequest);
-            var result = await _aiService.GenerateMasterImageAsync(request, HttpContext.RequestAborted);
-            if (!result.Success) Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+                return ApiError("Yêu cầu tìm ảnh tham chiếu không hợp lệ.", StatusCodes.Status400BadRequest);
+            request.EntityType = "Drink";
+            var result = await _aiImagePipeline.SearchReferenceImagesAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = result.Retryable
+                ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
+            return Json(new { success = result.Success, message = result.Message, data = result });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiGenerateFromReference([FromBody] AIGenerateFromReferenceRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Yêu cầu tạo ảnh không hợp lệ.", StatusCodes.Status400BadRequest);
+            request.EntityType = "Drink";
+            var result = await _aiImagePipeline.GenerateFromReferenceAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = result.Retryable
+                ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
+            return Json(new { success = result.Success, message = result.Message, data = result });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiUsePexelsImage([FromBody] AIUsePexelsImageRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Yêu cầu dùng ảnh Pexels không hợp lệ.", StatusCodes.Status400BadRequest);
+            request.EntityType = "Drink";
+            var result = await _aiImagePipeline.UsePexelsImageAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = result.Retryable
+                ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
+            return Json(new { success = result.Success, message = result.Message, data = result });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AiGenerateWithoutReference([FromBody] AIGenerateFromPromptRequestDTO request)
+        {
+            var guard = await EnsurePermissionAsync(PermissionConstants.DrinkCreate);
+            if (guard != null) return guard;
+            if (!ModelState.IsValid)
+                return ApiError("Yêu cầu tạo ảnh không dùng Pexels không hợp lệ.", StatusCodes.Status400BadRequest);
+            request.EntityType = "Drink";
+            var result = await _aiImagePipeline.GenerateFromPromptAsync(request, HttpContext.RequestAborted);
+            if (!result.Success) Response.StatusCode = result.Retryable
+                ? StatusCodes.Status503ServiceUnavailable : StatusCodes.Status422UnprocessableEntity;
             return Json(new { success = result.Success, message = result.Message, data = result });
         }
 

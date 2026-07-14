@@ -874,210 +874,72 @@ $(document).ready(function () {
         code: document.getElementById('DrinkCreateDTO_DrinkCode'),
         description: document.getElementById('DrinkCreateDTO_Description')
     };
-    const panel = document.getElementById('drinkAiSuggestionPanel');
-    const image = document.getElementById('drinkAiImage');
-    const attribution = document.getElementById('drinkAiImageAttribution');
-    const retryImage = document.getElementById('btnRegenerateDrinkAiImage');
-    const optionList = document.getElementById('drinkAiOptionList');
-    const applyButton = document.getElementById('btnApplyDrinkAi');
-    const warnings = document.getElementById('drinkAiWarnings');
-    let options = [];
-    let selectedOption = null;
-    let generatedImageFile = null;
-    let generatedImageUrl = null;
-    let textController = null;
-    let imageController = null;
-    const token = () => form.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-    const notify = (message, type = 'success') => typeof toast === 'function' ? toast(message, type) : alert(message);
-    const clearImage = () => {
-        imageController?.abort();
-        imageController = null;
-        generatedImageFile = null;
-        if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
-        generatedImageUrl = null;
-        image.removeAttribute('src');
-        image.classList.add('d-none');
-        attribution.replaceChildren();
-        attribution.classList.add('d-none');
-    };
-    const clear = () => {
-        clearImage();
-        options = [];
-        selectedOption = null;
-        optionList.replaceChildren();
-        warnings.textContent = '';
-        applyButton.disabled = true;
-        retryImage.disabled = true;
-        panel.classList.add('d-none');
-    };
-    const requestJson = async (url, body, timeoutMs, controller) => {
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token() },
-                body: JSON.stringify(body), signal: controller.signal
-            });
-            const result = await response.json();
-            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
-            return result;
-        } finally { clearTimeout(timeout); }
-    };
-    const base64File = data => {
-        const bytes = atob(data.base64Data);
-        const array = new Uint8Array(bytes.length);
-        for (let index = 0; index < bytes.length; index++) array[index] = bytes.charCodeAt(index);
-        return new File([array], data.fileName || 'drink-ai.png', { type: data.contentType || 'image/png' });
-    };
-    const safePexelsUrl = value => {
-        try {
-            const url = new URL(value);
-            return url.protocol === 'https:' && (url.hostname === 'pexels.com' || url.hostname.endsWith('.pexels.com'))
-                ? url.href : null;
-        } catch { return null; }
-    };
-    const renderAttribution = data => {
-        attribution.replaceChildren();
-        if (data.imageSource === 'Pexels') {
-            attribution.append(document.createTextNode('Photo by '));
-            const photographerUrl = safePexelsUrl(data.photographerUrl);
-            if (photographerUrl) {
-                const photographerLink = document.createElement('a');
-                photographerLink.href = photographerUrl;
-                photographerLink.target = '_blank';
-                photographerLink.rel = 'noopener noreferrer';
-                photographerLink.textContent = data.photographer || 'Pexels contributor';
-                attribution.append(photographerLink);
-            } else {
-                attribution.append(document.createTextNode(data.photographer || 'Pexels contributor'));
-            }
-            attribution.append(document.createTextNode(' on '));
-            const photoLink = document.createElement('a');
-            photoLink.href = safePexelsUrl(data.photoUrl) || 'https://www.pexels.com';
-            photoLink.target = '_blank';
-            photoLink.rel = 'noopener noreferrer';
-            photoLink.textContent = 'Pexels';
-            attribution.append(photoLink);
-        } else {
-            attribution.textContent = 'Ảnh được tạo local bằng ComfyUI.';
-        }
-        attribution.classList.remove('d-none');
-    };
-    const generateImage = async () => {
-        if (!selectedOption?.fields?.imagePrompt) return;
-        clearImage();
-        imageController = new AbortController();
-        const activeImageController = imageController;
-        applyButton.disabled = true;
-        retryImage.disabled = true;
-        retryImage.textContent = 'Đang tạo ảnh...';
-        try {
-            const result = await requestJson('/Admin/AdminDrink/AiImageSuggestion', {
-                imagePrompt: selectedOption.fields.imagePrompt,
-                fileNamePrefix: selectedOption.fields.drinkCode || 'drink_ai',
-                excludedExternalImageIds: selectedOption.excludedExternalImageIds || []
-            }, 190000, activeImageController);
-            if (result.data.externalImageId) {
-                selectedOption.excludedExternalImageIds = [
-                    ...(selectedOption.excludedExternalImageIds || []),
-                    Number(result.data.externalImageId)
-                ];
-            }
-            generatedImageFile = base64File(result.data);
-            generatedImageUrl = URL.createObjectURL(generatedImageFile);
-            image.src = generatedImageUrl;
-            image.classList.remove('d-none');
-            renderAttribution(result.data);
-        } catch (error) {
-            if (error.name !== 'AbortError') notify(`${error.message} Bạn vẫn có thể áp dụng phần nội dung.`, 'error');
-        } finally {
-            if (imageController === activeImageController) {
-                applyButton.disabled = !selectedOption?.canApply;
-                retryImage.disabled = !selectedOption;
-                retryImage.textContent = 'Tạo lại ảnh';
-            }
-        }
-    };
-    const selectOption = (option, card) => {
-        selectedOption = option;
-        optionList.querySelectorAll('.ai-option-card').forEach(x => x.classList.remove('is-selected'));
-        card.classList.add('is-selected');
-        applyButton.disabled = !option.canApply;
-        retryImage.disabled = false;
-        generateImage();
-    };
-    const renderOptions = result => {
-        options = Array.isArray(result.options) ? result.options.slice(0, 3) : [];
-        optionList.replaceChildren();
-        options.forEach(option => {
-            const f = option.fields || {};
-            const card = document.createElement('button');
-            card.type = 'button';
-            card.className = 'ai-option-card text-start';
-            const title = document.createElement('strong');
-            title.textContent = option.title || f.name || 'Gợi ý đồ uống';
-            const meta = document.createElement('div');
-            meta.className = 'small text-muted mt-1';
-            meta.textContent = `${f.drinkCode || ''} · ${f.categoryName || ''} · ${f.productTypeName || ''}`;
-            const description = document.createElement('div');
-            description.className = 'small mt-2';
-            description.textContent = f.description || '';
-            card.append(title, meta, description);
-            card.addEventListener('click', () => selectOption(option, card));
-            optionList.appendChild(card);
-        });
-        warnings.textContent = (result.warnings || []).join(' ');
-        document.getElementById('drinkAiSource').textContent = result.usedOllama ? 'Ollama + C#' : 'C# fallback';
-        panel.classList.remove('d-none');
-    };
-
-    button.addEventListener('click', async () => {
-        textController?.abort();
-        textController = new AbortController();
-        const activeTextController = textController;
-        const original = button.innerHTML;
-        button.disabled = true;
-        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Đang gợi ý...';
-        clear();
-        try {
-            const result = await requestJson('/Admin/AdminDrink/AiSuggestion', {
+    if (window.CafeChainAIImagePipeline) {
+        window.CafeChainAIImagePipeline.create({
+            ids: {
+                button: 'btnDrinkAiSuggestion', form: 'drinkCreateForm', idea: 'drinkAiIdea',
+                panel: 'drinkAiSuggestionPanel', optionList: 'drinkAiOptionList',
+                referenceList: 'drinkAiReferenceList', generatedList: 'drinkAiGeneratedList',
+                status: 'drinkAiStatus', warnings: 'drinkAiWarnings', source: 'drinkAiSource',
+                usePexels: 'btnUseDrinkPexels', generate: 'btnGenerateDrinkAi',
+                fallback: 'btnGenerateDrinkAiWithoutReference', retrySearch: 'btnRetryDrinkAiSearch',
+                apply: 'btnApplyDrinkAi', dismiss: 'btnDismissDrinkAi'
+            },
+            urls: {
+                suggestions: '/Admin/AdminDrink/AiSuggestion',
+                references: '/Admin/AdminDrink/AiReferenceImages',
+                usePexels: '/Admin/AdminDrink/AiUsePexelsImage',
+                generate: '/Admin/AdminDrink/AiGenerateFromReference',
+                generateWithoutReference: '/Admin/AdminDrink/AiGenerateWithoutReference'
+            },
+            defaultFileName: 'drink-ai.png',
+            notify: (message, type) => typeof toast === 'function' ? toast(message, type) : alert(message),
+            suggestionPayload: () => ({
                 idea: idea.value.trim() || null,
                 currentDrinkCode: fields.code.value.trim() || null,
                 currentName: fields.name.value.trim() || null,
                 currentDescription: fields.description.value.trim() || null,
                 currentCategoryId: fields.category.value ? Number(fields.category.value) : null,
                 currentProductTypeId: fields.productType.value ? Number(fields.productType.value) : null
-            }, 130000, activeTextController);
-            renderOptions(result);
-        } catch (error) {
-            if (error.name !== 'AbortError') notify(error.message, 'error');
-        } finally {
-            if (textController === activeTextController) {
-                button.disabled = false;
-                button.innerHTML = original;
+            }),
+            renderSuggestion: (card, option) => {
+                const value = option.fields || {};
+                const title = document.createElement('strong');
+                title.textContent = option.title || value.name || 'Gợi ý đồ uống';
+                const meta = document.createElement('div');
+                meta.className = 'small text-muted mt-1';
+                meta.textContent = `${value.drinkCode || ''} · ${value.categoryName || ''} · ${value.productTypeName || ''}`;
+                const description = document.createElement('div');
+                description.className = 'small mt-2';
+                description.textContent = value.description || '';
+                card.append(title, meta, description);
+            },
+            fileNamePrefix: option => option.fields?.drinkCode || 'drink_ai',
+            invalidateElements: () => [idea, ...Object.values(fields)],
+            willOverwrite: () => Object.values(fields).some(x => x.value?.trim()) ||
+                Boolean(document.querySelector('#createImagePreview .image-preview-card')),
+            apply: async (option, file) => {
+                const value = option.fields || {};
+                const hasCategory = Array.from(fields.category.options).some(x => x.value === String(value.categoryId));
+                const hasProductType = Array.from(fields.productType.options).some(x => x.value === String(value.productTypeId));
+                if (!hasCategory || !hasProductType) {
+                    (typeof toast === 'function' ? toast : alert)('Category hoặc ProductType gợi ý không còn hợp lệ.', 'error');
+                    return false;
+                }
+                fields.name.value = value.name || '';
+                fields.category.value = String(value.categoryId);
+                fields.productType.value = String(value.productTypeId);
+                fields.code.value = value.drinkCode || '';
+                fields.description.value = value.description || '';
+                const applied = await new Promise(resolve => document.dispatchEvent(
+                    new CustomEvent('drink-ai-image-ready', { detail: { file, complete: resolve } })));
+                if (!applied) {
+                    (typeof toast === 'function' ? toast : alert)('Không thể đưa ảnh AI vào trình xử lý ảnh.', 'error');
+                    return false;
+                }
+                return true;
             }
-        }
-    });
-    retryImage.addEventListener('click', generateImage);
-    applyButton.addEventListener('click', async () => {
-        if (!selectedOption?.canApply) return notify('Vui lòng chọn một gợi ý hợp lệ.', 'error');
-        const suggestion = selectedOption.fields;
-        const willOverwrite = Object.values(fields).some(x => x.value?.trim()) || document.querySelector('#createImagePreview .image-preview-card');
-        if (willOverwrite && !window.confirm('Một số dữ liệu hoặc ảnh hiện tại sẽ được thay thế. Tiếp tục áp dụng gợi ý AI?')) return;
-        fields.name.value = suggestion.name || '';
-        fields.category.value = String(suggestion.categoryId);
-        fields.productType.value = String(suggestion.productTypeId);
-        fields.code.value = suggestion.drinkCode;
-        fields.description.value = suggestion.description;
-        if (generatedImageFile) {
-            const imageApplied = await new Promise(resolve => document.dispatchEvent(
-                new CustomEvent('drink-ai-image-ready', { detail: { file: generatedImageFile, complete: resolve } })));
-            if (!imageApplied) notify('Không thể đưa ảnh AI vào trình xử lý ảnh; các trường văn bản vẫn đã được điền.', 'error');
-        }
-        clear();
-        notify('Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.');
-    });
-    document.getElementById('btnDismissDrinkAi').addEventListener('click', clear);
-    const invalidate = () => { textController?.abort(); clear(); };
-    [idea, ...Object.values(fields)].forEach(x => x.addEventListener(x.tagName === 'SELECT' ? 'change' : 'input', invalidate));
+        });
+        return;
+    }
 })();

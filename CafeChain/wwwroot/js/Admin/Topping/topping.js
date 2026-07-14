@@ -152,188 +152,59 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
     const code = form.querySelector('[name="ToppingCode"]');
     const price = form.querySelector('[name="Price"]');
     const imageInput = document.getElementById('create-image-input');
-    const panel = document.getElementById('toppingAiSuggestionPanel');
-    const preview = document.getElementById('toppingAiImage');
-    const attribution = document.getElementById('toppingAiImageAttribution');
-    const retryImage = document.getElementById('btnRegenerateToppingAiImage');
-    const optionList = document.getElementById('toppingAiOptionList');
-    const applyButton = document.getElementById('btnApplyToppingAi');
-    const warnings = document.getElementById('toppingAiWarnings');
-    let selectedOption = null;
-    let generatedImageFile = null;
-    let generatedImageUrl = null;
-    let textController = null;
-    let imageController = null;
-    const clearImage = () => {
-        imageController?.abort(); imageController = null; generatedImageFile = null;
-        if (generatedImageUrl) URL.revokeObjectURL(generatedImageUrl);
-        generatedImageUrl = null;
-        preview.removeAttribute('src'); preview.classList.add('d-none');
-        attribution.replaceChildren(); attribution.classList.add('d-none');
-    };
-    const clear = () => {
-        clearImage(); selectedOption = null; optionList.replaceChildren(); warnings.textContent = '';
-        applyButton.disabled = true; retryImage.disabled = true; panel.classList.add('d-none');
-    };
-    const postJson = async (url, body, timeoutMs, controller) => {
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
-        try {
-            const response = await fetch(url, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getAntiForgeryToken() },
-                body: JSON.stringify(body), signal: controller.signal
-            });
-            const result = await readJsonResult(response);
-            if (!response.ok || !result.success) throw new Error(result.message || 'Không thể tạo gợi ý.');
-            return result;
-        } finally { clearTimeout(timeout); }
-    };
-    const base64File = data => {
-        const bytes = atob(data.base64Data); const array = new Uint8Array(bytes.length);
-        for (let index = 0; index < bytes.length; index++) array[index] = bytes.charCodeAt(index);
-        return new File([array], data.fileName || 'topping-ai.png', { type: data.contentType || 'image/png' });
-    };
-    const safePexelsUrl = value => {
-        try {
-            const url = new URL(value);
-            return url.protocol === 'https:' && (url.hostname === 'pexels.com' || url.hostname.endsWith('.pexels.com'))
-                ? url.href : null;
-        } catch { return null; }
-    };
-    const renderAttribution = data => {
-        attribution.replaceChildren();
-        if (data.imageSource === 'Pexels') {
-            attribution.append(document.createTextNode('Photo by '));
-            const photographerUrl = safePexelsUrl(data.photographerUrl);
-            if (photographerUrl) {
-                const photographerLink = document.createElement('a');
-                photographerLink.href = photographerUrl;
-                photographerLink.target = '_blank';
-                photographerLink.rel = 'noopener noreferrer';
-                photographerLink.textContent = data.photographer || 'Pexels contributor';
-                attribution.append(photographerLink);
-            } else {
-                attribution.append(document.createTextNode(data.photographer || 'Pexels contributor'));
-            }
-            attribution.append(document.createTextNode(' on '));
-            const photoLink = document.createElement('a');
-            photoLink.href = safePexelsUrl(data.photoUrl) || 'https://www.pexels.com';
-            photoLink.target = '_blank';
-            photoLink.rel = 'noopener noreferrer';
-            photoLink.textContent = 'Pexels';
-            attribution.append(photoLink);
-        } else {
-            attribution.textContent = 'Ảnh được tạo local bằng ComfyUI.';
-        }
-        attribution.classList.remove('d-none');
-    };
-    const squareJpeg = file => new Promise((resolve, reject) => {
-        const objectUrl = URL.createObjectURL(file); const img = new Image();
-        img.onload = () => {
-            const canvas = document.createElement('canvas'); canvas.width = canvas.height = 1000;
-            const context = canvas.getContext('2d'); const side = Math.min(img.width, img.height);
-            context.drawImage(img, (img.width - side) / 2, (img.height - side) / 2, side, side, 0, 0, 1000, 1000);
-            URL.revokeObjectURL(objectUrl);
-            canvas.toBlob(blob => blob ? resolve(new File([blob], 'topping-ai.jpg', { type: 'image/jpeg' })) : reject(new Error('Không thể xử lý ảnh AI.')), 'image/jpeg', 0.86);
-        };
-        img.onerror = () => { URL.revokeObjectURL(objectUrl); reject(new Error('Ảnh AI không hợp lệ.')); };
-        img.src = objectUrl;
-    });
-    const generateImage = async () => {
-        if (!selectedOption?.fields?.imagePrompt) return;
-        clearImage(); imageController = new AbortController();
-        const activeImageController = imageController;
-        applyButton.disabled = true;
-        retryImage.disabled = true; retryImage.textContent = 'Đang tạo ảnh...';
-        try {
-            const result = await postJson('/Admin/AdminTopping/AiImageSuggestion', {
-                imagePrompt: selectedOption.fields.imagePrompt,
-                fileNamePrefix: selectedOption.fields.toppingCode || 'topping_ai',
-                excludedExternalImageIds: selectedOption.excludedExternalImageIds || []
-            }, 190000, activeImageController);
-            if (result.data.externalImageId) {
-                selectedOption.excludedExternalImageIds = [
-                    ...(selectedOption.excludedExternalImageIds || []),
-                    Number(result.data.externalImageId)
-                ];
-            }
-            generatedImageFile = await squareJpeg(base64File(result.data));
-            if (generatedImageFile.size > MAX_FILE_SIZE) throw new Error('Ảnh sau xử lý vượt quá 3MB.');
-            generatedImageUrl = URL.createObjectURL(generatedImageFile);
-            preview.src = generatedImageUrl; preview.classList.remove('d-none');
-            renderAttribution(result.data);
-        } catch (error) {
-            if (error.name !== 'AbortError') showToast(`${error.message} Bạn vẫn có thể áp dụng phần nội dung.`, 'error');
-        } finally {
-            if (imageController === activeImageController) {
-                applyButton.disabled = !selectedOption?.canApply;
-                retryImage.disabled = !selectedOption;
-                retryImage.textContent = 'Tạo lại ảnh';
-            }
-        }
-    };
-    const selectOption = (option, card) => {
-        selectedOption = option;
-        optionList.querySelectorAll('.ai-option-card').forEach(x => x.classList.remove('is-selected'));
-        card.classList.add('is-selected');
-        applyButton.disabled = !option.canApply;
-        retryImage.disabled = false;
-        generateImage();
-    };
-    const renderOptions = result => {
-        optionList.replaceChildren();
-        (result.options || []).slice(0, 3).forEach(option => {
-            const fields = option.fields || {};
-            const card = document.createElement('button');
-            card.type = 'button'; card.className = 'ai-option-card text-start';
-            const title = document.createElement('strong');
-            title.textContent = option.title || fields.name || 'Gợi ý topping';
-            const meta = document.createElement('div');
-            meta.className = 'small text-muted mt-1';
-            meta.textContent = `${fields.toppingCode || ''} · ${Number(fields.price || 0).toLocaleString('vi-VN')} đ`;
-            card.append(title, meta);
-            card.addEventListener('click', () => selectOption(option, card));
-            optionList.appendChild(card);
-        });
-        warnings.textContent = (result.warnings || []).join(' ');
-        document.getElementById('toppingAiSource').textContent = result.usedOllama ? 'Ollama + C#' : 'C# fallback';
-        panel.classList.remove('d-none');
-    };
-
-    button.addEventListener('click', async () => {
-        if (price.value && Number(price.value) <= 0) return showToast('Giá topping không hợp lệ.', 'error');
-        textController?.abort(); textController = new AbortController();
-        const activeTextController = textController;
-        const original = button.innerHTML; lockButton(button, 'Đang gợi ý...'); clear();
-        try {
-            const result = await postJson('/Admin/AdminTopping/AiSuggestion', {
+    if (window.CafeChainAIImagePipeline) {
+        window.CafeChainAIImagePipeline.create({
+            ids: {
+                button: 'btnToppingAiSuggestion', form: 'createToppingForm', idea: 'toppingAiIdea',
+                panel: 'toppingAiSuggestionPanel', optionList: 'toppingAiOptionList',
+                referenceList: 'toppingAiReferenceList', generatedList: 'toppingAiGeneratedList',
+                status: 'toppingAiStatus', warnings: 'toppingAiWarnings', source: 'toppingAiSource',
+                usePexels: 'btnUseToppingPexels', generate: 'btnGenerateToppingAi',
+                fallback: 'btnGenerateToppingAiWithoutReference', retrySearch: 'btnRetryToppingAiSearch',
+                apply: 'btnApplyToppingAi', dismiss: 'btnDismissToppingAi'
+            },
+            urls: {
+                suggestions: '/Admin/AdminTopping/AiSuggestion',
+                references: '/Admin/AdminTopping/AiReferenceImages',
+                usePexels: '/Admin/AdminTopping/AiUsePexelsImage',
+                generate: '/Admin/AdminTopping/AiGenerateFromReference',
+                generateWithoutReference: '/Admin/AdminTopping/AiGenerateWithoutReference'
+            },
+            defaultFileName: 'topping-ai.png',
+            notify: (message, type) => showToast(message, type),
+            suggestionPayload: () => ({
                 idea: idea.value.trim() || null,
                 currentToppingCode: code.value.trim() || null,
                 currentName: name.value.trim() || null,
                 currentPrice: price.value ? Number(price.value) : null
-            }, 130000, activeTextController);
-            renderOptions(result);
-        } catch (error) {
-            if (error.name !== 'AbortError') showToast(error.message, 'error');
-        } finally { if (textController === activeTextController) unlockButton(button, original); }
-    });
-    retryImage.addEventListener('click', generateImage);
-    applyButton.addEventListener('click', () => {
-        if (!selectedOption?.canApply) return showToast('Vui lòng chọn một gợi ý hợp lệ.', 'error');
-        const suggestion = selectedOption.fields;
-        if ((name.value.trim() || code.value.trim() || price.value || imageInput.files.length) &&
-            !window.confirm('Một số dữ liệu hoặc ảnh hiện tại sẽ được thay thế. Tiếp tục áp dụng?')) return;
-        name.value = suggestion.name; code.value = suggestion.toppingCode; price.value = suggestion.price;
-        if (generatedImageFile) {
-            const transfer = new DataTransfer(); transfer.items.add(generatedImageFile); imageInput.files = transfer.files;
-            previewCreateImage({ target: imageInput });
-        }
-        clear(); showToast('Đã áp dụng gợi ý vào form. Vui lòng kiểm tra trước khi lưu.');
-    });
-    document.getElementById('btnDismissToppingAi').addEventListener('click', clear);
-    const invalidate = () => { textController?.abort(); clear(); };
-    [idea, name, code, price].forEach(x => x.addEventListener('input', invalidate));
+            }),
+            renderSuggestion: (card, option) => {
+                const value = option.fields || {};
+                const title = document.createElement('strong');
+                title.textContent = option.title || value.name || 'Gợi ý topping';
+                const meta = document.createElement('div');
+                meta.className = 'small text-muted mt-1';
+                meta.textContent = `${value.toppingCode || ''} · ${Number(value.price || 0).toLocaleString('vi-VN')} đ`;
+                card.append(title, meta);
+            },
+            fileNamePrefix: option => option.fields?.toppingCode || 'topping_ai',
+            invalidateElements: () => [idea, name, code, price],
+            willOverwrite: () => Boolean(name.value.trim() || code.value.trim() || price.value || imageInput.files.length),
+            apply: async (option, file) => {
+                const value = option.fields || {};
+                name.value = value.name || '';
+                code.value = value.toppingCode || '';
+                price.value = value.price || '';
+                const transfer = new DataTransfer();
+                transfer.items.add(file);
+                imageInput.files = transfer.files;
+                previewCreateImage({ target: imageInput });
+                return true;
+            }
+        });
+        return;
+    }
 });
-
 // =====================================================
 // BUSINESS VALIDATION
 // =====================================================
