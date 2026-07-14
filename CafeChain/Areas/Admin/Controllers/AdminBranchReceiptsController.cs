@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace CafeChain.Areas.Admin.Controllers
 {
     /// <summary>
-    /// Issue #128 — Branch receipt draft / confirm for StoreManager & ShiftSupervisor (own store).
+    /// Issue #128 — Branch receipt draft / confirm with server-side business scope enforcement.
     /// Controller does not mutate inventory; BranchReceiptService owns posting.
     /// </summary>
     public class AdminBranchReceiptsController : AdminBaseController
@@ -24,7 +24,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? status = null)
+        public async Task<IActionResult> Index(string? status = null, int? storeId = null)
         {
             if (!CanViewReceipts())
             {
@@ -33,19 +33,26 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            if (ctx.StoreId <= 0 && !IsGlobalRole())
+            var targetStoreId = HasCrossStoreDocumentRole()
+                ? storeId.GetValueOrDefault()
+                : ctx.StoreId;
+            if (targetStoreId <= 0 && !HasCrossStoreDocumentRole())
                 return Unauthorized();
 
-            if (ctx.StoreId <= 0)
+            if (targetStoreId <= 0)
             {
                 TempData["ErrorMessage"] = "Chọn cửa hàng để xem phiếu nhận.";
+                ViewBag.CanCreate = false;
                 return View(new List<BranchReceiptListItemDto>());
             }
 
             var result = await _receiptService.ListForStoreAsync(
-                ctx.StoreId, ctx.StaffId, ctx.StoreId, ctx.RoleNames, status);
+                targetStoreId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, status);
+            if (!result.IsSuccess)
+                return Forbid();
             ViewBag.StatusFilter = status;
-            ViewBag.StoreId = ctx.StoreId;
+            ViewBag.StoreId = targetStoreId;
+            ViewBag.CanCreate = CanConfirmReceipts();
             return View(result.Data ?? new List<BranchReceiptListItemDto>());
         }
 
@@ -72,7 +79,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public IActionResult Create(int? restockRequestId = null)
+        public IActionResult Create(int? restockRequestId = null, int? storeId = null)
         {
             if (!CanConfirmReceipts())
             {
@@ -81,11 +88,19 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
+            var targetStoreId = HasCrossStoreDocumentRole()
+                ? storeId.GetValueOrDefault()
+                : ctx.StoreId;
+            if (targetStoreId <= 0)
+            {
+                TempData["ErrorMessage"] = "Cần chọn cửa hàng trước khi tạo phiếu nhận.";
+                return RedirectToAction(nameof(Index));
+            }
             ViewBag.RestockRequestId = restockRequestId;
-            ViewBag.StoreId = ctx.StoreId;
+            ViewBag.StoreId = targetStoreId;
             return View(new CreateBranchReceiptRequest
             {
-                StoreId = ctx.StoreId,
+                StoreId = targetStoreId,
                 ReceiptKey = $"RCPT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6]}",
                 Lines = restockRequestId.HasValue
                     ? new List<CreateBranchReceiptLineInput>
@@ -107,7 +122,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            if (ctx.StoreId > 0)
+            if (!HasCrossStoreDocumentRole() && ctx.StoreId > 0)
                 model.StoreId = ctx.StoreId;
 
             var result = await _receiptService.CreateDraftAsync(model, ctx.StaffId, ctx.RoleNames);
@@ -154,21 +169,19 @@ namespace CafeChain.Areas.Admin.Controllers
         private bool CanViewReceipts() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SalesStaff)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanConfirmReceipts() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager);
 
-        private bool IsGlobalRole() =>
+        private bool HasCrossStoreDocumentRole() =>
             User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse);
     }

@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -14,19 +15,25 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IRestockRequestService _service;
         private readonly IRestockRequestWorkflowService _workflow;
         private readonly IAdminActorContextAccessor _actor;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
             IRestockRequestWorkflowService workflow,
-            IAdminActorContextAccessor actor)
+            IAdminActorContextAccessor actor,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _service = service;
             _workflow = workflow;
             _actor = actor;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? status = "SUBMITTED", int page = 1)
+        public async Task<IActionResult> Index(
+            string? status = "SUBMITTED",
+            int page = 1,
+            int? storeId = null)
         {
             if (!CanViewRestockRequests())
             {
@@ -35,10 +42,14 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            if (ctx.StoreId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(ctx.StaffId, ctx.StoreId, storeId);
+            if (targetStoreId <= 0)
+            {
+                TempData["ErrorMessage"] = "Vui lòng chọn cửa hàng nằm trong phạm vi được phân quyền.";
                 return Unauthorized();
+            }
 
-            var result = await _service.ListForStoreAsync(ctx.StoreId, status, page, 20);
+            var result = await _service.ListForStoreAsync(targetStoreId, status, page, 20);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tải được danh sách yêu cầu.";
@@ -46,6 +57,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
+            ViewBag.SelectedStoreId = targetStoreId;
             ViewBag.CanWarehouse = CanWarehouseActions();
             ViewBag.CanCreateReceipt = CanCreateReceipt();
             return View(result.Data);
@@ -189,24 +201,43 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor);
+            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SalesStaff);
 
         private bool CanWarehouseActions() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanCreateReceipt() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.SystemAdmin)
             || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanCancel() =>
             CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
+
+        private async Task<int> ResolveAuthorizedStoreIdAsync(
+            int staffId,
+            int actorStoreId,
+            int? requestedStoreId)
+        {
+            if (User.IsInRole(RoleConstants.StoreManager)
+                || User.IsInRole(RoleConstants.ShiftSupervisor)
+                || User.IsInRole(RoleConstants.SalesStaff))
+                return actorStoreId > 0 && (!requestedStoreId.HasValue || requestedStoreId == actorStoreId)
+                    ? actorStoreId
+                    : 0;
+            if (User.IsInRole(RoleConstants.BusinessOwner)
+                || User.IsInRole(RoleConstants.AccountantWarehouse))
+                return requestedStoreId.GetValueOrDefault();
+            if (User.IsInRole(RoleConstants.AreaManager)
+                && requestedStoreId.GetValueOrDefault() > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(staffId, requestedStoreId.Value))
+                return requestedStoreId.Value;
+            return 0;
+        }
     }
 }

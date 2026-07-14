@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -12,30 +13,33 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IStockAlertManagerService _service;
         private readonly IRestockRequestService _restockService;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
         public AdminStockAlertsController(
             IStockAlertManagerService service,
-            IRestockRequestService restockService)
+            IRestockRequestService restockService,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _service = service;
             _restockService = restockService;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? status = "OPEN", int page = 1)
+        public async Task<IActionResult> Index(string? status = "OPEN", int page = 1, int? storeId = null)
         {
-            if (!IsStoreManager())
+            if (!CanView())
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xem/xử lý cảnh báo kho.";
                 return RedirectToAction("Index", "AdminNotifications");
             }
 
-            var storeId = ResolveStoreId();
             var staffId = ResolveStaffId();
-            if (storeId <= 0 || staffId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: false);
+            if (targetStoreId <= 0 || staffId <= 0)
                 return Unauthorized();
 
-            var result = await _service.ListForStoreAsync(storeId, status, page, 20);
+            var result = await _service.ListForStoreAsync(targetStoreId, status, page, 20);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tải được danh sách cảnh báo.";
@@ -43,82 +47,103 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.IsStoreManager = true;
+            ViewBag.SelectedStoreId = targetStoreId;
+            ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
 
         [HttpGet]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id, int? storeId = null)
         {
-            if (!IsStoreManager())
+            if (!CanView())
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xem/xử lý cảnh báo kho.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var storeId = ResolveStoreId();
-            if (storeId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(ResolveStaffId(), storeId, mutation: false);
+            if (targetStoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.GetDetailAsync(id, storeId);
+            var result = await _service.GetDetailAsync(id, targetStoreId);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tìm thấy cảnh báo.";
                 return RedirectToAction(nameof(Index));
             }
 
-            var openRestock = await _restockService.GetOpenByAlertAsync(id, storeId);
+            var openRestock = await _restockService.GetOpenByAlertAsync(id, targetStoreId);
             ViewBag.OpenRestockRequest = openRestock.IsSuccess ? openRestock.Data : null;
-            ViewBag.IsStoreManager = true;
+            ViewBag.SelectedStoreId = targetStoreId;
+            ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Confirm(int id, string managerNote)
+        public async Task<IActionResult> Confirm(int id, string managerNote, int? storeId = null)
         {
-            if (!IsStoreManager())
+            if (!CanManage())
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được xác nhận cảnh báo.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
             var staffId = ResolveStaffId();
-            var storeId = ResolveStoreId();
-            if (staffId <= 0 || storeId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
+            if (staffId <= 0 || targetStoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.ConfirmAsync(id, staffId, storeId, managerNote ?? string.Empty);
+            var result = await _service.ConfirmAsync(id, staffId, targetStoreId, managerNote ?? string.Empty);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
                 TempData["SuccessMessage"] = result.Message ?? "Đã xác nhận cảnh báo kho.";
 
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reject(int id, string rejectReason)
+        public async Task<IActionResult> Reject(int id, string rejectReason, int? storeId = null)
         {
-            if (!IsStoreManager())
+            if (!CanManage())
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được báo sai cảnh báo.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
             var staffId = ResolveStaffId();
-            var storeId = ResolveStoreId();
-            if (staffId <= 0 || storeId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
+            if (staffId <= 0 || targetStoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.RejectAsync(id, staffId, storeId, rejectReason ?? string.Empty);
+            var result = await _service.RejectAsync(id, staffId, targetStoreId, rejectReason ?? string.Empty);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
                 TempData["SuccessMessage"] = result.Message ?? "Đã báo sai cảnh báo kho.";
 
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Close(int id, string closeReason, int? storeId = null)
+        {
+            if (!CanManage())
+                return Forbid();
+            var staffId = ResolveStaffId();
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
+            if (staffId <= 0 || targetStoreId <= 0)
+                return Unauthorized();
+            var result = await _service.CloseAsync(
+                id,
+                staffId,
+                targetStoreId,
+                closeReason ?? string.Empty);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }
 
         [HttpPost]
@@ -127,32 +152,41 @@ namespace CafeChain.Areas.Admin.Controllers
             int id,
             decimal requestedQuantity,
             string? priority,
-            string? note)
+            string? note,
+            int? storeId = null)
         {
-            if (!IsStoreManager())
+            if (!CanManage())
             {
                 TempData["ErrorMessage"] = "Chỉ Quản lý chi nhánh được tạo yêu cầu nhập hàng.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 
             var staffId = ResolveStaffId();
-            var storeId = ResolveStoreId();
-            if (staffId <= 0 || storeId <= 0)
+            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
+            if (staffId <= 0 || targetStoreId <= 0)
                 return Unauthorized();
 
             var result = await _restockService.CreateFromConfirmedAlertAsync(
-                id, staffId, storeId, requestedQuantity, note, priority);
+                id, staffId, targetStoreId, requestedQuantity, note, priority);
 
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
                 TempData["SuccessMessage"] = result.Message ?? "Đã gửi yêu cầu nhập hàng cho Kế toán/kho.";
 
-            return RedirectToAction(nameof(Details), new { id });
+            return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }
 
-        private bool IsStoreManager() =>
-            User.IsInRole(RoleConstants.StoreManager);
+        private bool CanView() =>
+            CanManage()
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.ShiftSupervisor)
+            || User.IsInRole(RoleConstants.SalesStaff);
+
+        private bool CanManage() =>
+            User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.BusinessOwner);
 
         private int ResolveStaffId()
         {
@@ -164,6 +198,28 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var claim = User.FindFirst("StoreId")?.Value;
             return int.TryParse(claim, out var id) && id > 0 ? id : 0;
+        }
+
+        private async Task<int> ResolveAuthorizedStoreIdAsync(
+            int staffId,
+            int? requestedStoreId,
+            bool mutation)
+        {
+            var actorStoreId = ResolveStoreId();
+            if (User.IsInRole(RoleConstants.StoreManager)
+                || User.IsInRole(RoleConstants.ShiftSupervisor)
+                || User.IsInRole(RoleConstants.SalesStaff))
+                return actorStoreId > 0 && (!requestedStoreId.HasValue || requestedStoreId == actorStoreId)
+                    ? actorStoreId
+                    : 0;
+            if (User.IsInRole(RoleConstants.BusinessOwner)
+                || (!mutation && User.IsInRole(RoleConstants.AccountantWarehouse)))
+                return requestedStoreId.GetValueOrDefault();
+            if (User.IsInRole(RoleConstants.AreaManager)
+                && requestedStoreId.GetValueOrDefault() > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(staffId, requestedStoreId.Value))
+                return requestedStoreId.Value;
+            return 0;
         }
     }
 }
