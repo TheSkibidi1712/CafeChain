@@ -15,8 +15,11 @@ if (args.Length > 0
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Per-machine overrides (connection strings, secrets) — never commit appsettings.Local.json.
-// See appsettings.Local.json.example. Prevents merge conflicts on Server=DESKTOP-... paths.
+// Per-machine overrides (connection strings) — never commit appsettings.Local.json.
+// Loaded AFTER default config + User Secrets. Do NOT put empty Email:Password here —
+// an empty value overrides User Secrets / Email__Password and breaks SMTP.
+// Prefer: dotnet user-secrets set "Email:Password" "..." or env Email__Password.
+// See appsettings.Local.json.example and docs/testing/email-otp-local-setup.md.
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
 
 builder.AddCafeChainSerilog();

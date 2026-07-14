@@ -53,7 +53,10 @@ Project already has `UserSecretsId` so secrets load automatically in Development
 ### Option C — gitignored Local file (optional)
 
 Copy `appsettings.Local.json.example` → `appsettings.Local.json`  
-(file is gitignored). Prefer User Secrets for the password; leave `"Password": ""` in Local if using env/secrets.
+(file is gitignored). Use Local **only for connection string / non-secret overrides**.
+
+**Important:** `appsettings.Local.json` is loaded **after** User Secrets.  
+Do **not** put `"Email:Password": ""` in Local — an empty string will **wipe** the App Password from User Secrets / environment.
 
 ## 4. Verify effective config
 

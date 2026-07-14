@@ -1,12 +1,6 @@
 {
   "ConnectionStrings": {
     "DefaultConnection": "Server=YOUR_PC_NAME\\SQLEXPRESS;Database=CafeChain;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-  },
-  "Email": {
-    "DeliveryMode": "Smtp",
-    "SmtpHost": "smtp.gmail.com",
-    "SmtpPort": "587",
-    "Address": "cafechain8386@gmail.com",
-    "Password": ""
   }
 }
+
