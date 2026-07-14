@@ -40,6 +40,7 @@ namespace CafeChain.Controllers.Api.v1
         public async Task<IActionResult> GetBranchInventory(
             [FromQuery] string? search = null,
             [FromQuery] string? itemType = null,
+            [FromQuery] string? stockStatus = null,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 50)
         {
@@ -60,7 +61,8 @@ namespace CafeChain.Controllers.Api.v1
                 search,
                 itemType,
                 page,
-                pageSize);
+                pageSize,
+                stockStatus);
 
             if (!result.IsSuccess)
             {

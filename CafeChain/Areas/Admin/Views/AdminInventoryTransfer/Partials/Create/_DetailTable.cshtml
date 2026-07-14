@@ -5,9 +5,9 @@
         <div>
             <span class="section-kicker">
                 <i class="fas fa-boxes-stacked"></i>
-                Chi tiết nguyên liệu chuyển
+                Chi tiết hàng chuyển
             </span>
-            <p id="transferStockStatus">Chọn kho nguồn để tải nguyên liệu.</p>
+            <p id="transferStockStatus">Chọn kho nguồn để tải nguyên liệu và bán thành phẩm.</p>
         </div>
 
         <button class="transfer-outline-button" type="button" id="btnAddTransferIngredient" disabled>
@@ -21,10 +21,11 @@
             <thead>
                 <tr>
                     <th class="col-index">#</th>
-                    <th>Nguyên liệu</th>
+                    <th>Hàng hóa</th>
                     <th>ĐVT</th>
                     <th>Tồn kho nguồn</th>
                     <th>Số chuyển</th>
+                    <th>Yêu cầu nhập</th>
                     <th>Chênh lệch</th>
                     <th>Trạng thái</th>
                     <th class="col-action"></th>
@@ -32,7 +33,7 @@
             </thead>
             <tbody id="transferDetailBody">
                 <tr class="transfer-empty-row">
-                    <td colspan="8">Chưa có nguyên liệu.</td>
+                    <td colspan="9">Chưa có hàng hóa.</td>
                 </tr>
             </tbody>
         </table>

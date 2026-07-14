@@ -14,6 +14,8 @@ namespace CafeChain.ViewModels.Admin.InventoryTransfers
         public DateTime CreatedAt { get; set; }
         public DateTime? ConfirmedAt { get; set; }
         public DateTime? CancelledAt { get; set; }
+        public int FromStoreId { get; set; }
+        public int ToStoreId { get; set; }
         public string FromStoreName { get; set; } = string.Empty;
         public string ToStoreName { get; set; } = string.Empty;
         public string CreatedByName { get; set; } = string.Empty;
@@ -26,7 +28,11 @@ namespace CafeChain.ViewModels.Admin.InventoryTransfers
     public class AdminInventoryTransferDetailItemVM
     {
         public int InventoryTransferDetailId { get; set; }
-        public string IngredientName { get; set; } = string.Empty;
+        public int? IngredientId { get; set; }
+        public int? PreparedItemId { get; set; }
+        public int? RestockRequestId { get; set; }
+        public string ItemType { get; set; } = string.Empty;
+        public string ItemName { get; set; } = string.Empty;
         public string UnitName { get; set; } = string.Empty;
         public string UnitCode { get; set; } = string.Empty;
         public string BaseUnitCode { get; set; } = string.Empty;

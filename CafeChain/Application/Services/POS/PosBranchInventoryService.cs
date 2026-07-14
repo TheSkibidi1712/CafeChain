@@ -22,6 +22,10 @@ namespace CafeChain.Application.Services.POS
         public const string ItemTypeIngredient = "Ingredient";
         public const string ItemTypeRecipe = "Recipe";
         public const string ItemTypePreparedItem = "PreparedItem";
+        public const string StockFilterOut = "OUT";
+        public const string StockFilterLow = "LOW";
+        public const string StockFilterNormal = "NORMAL";
+        public const string StockFilterUnconfigured = "UNCONFIGURED";
 
         private readonly AppDbContext _context;
 
@@ -35,7 +39,8 @@ namespace CafeChain.Application.Services.POS
             string? search,
             string? itemType,
             int page,
-            int pageSize)
+            int pageSize,
+            string? stockStatus = null)
         {
             if (storeId <= 0)
                 return ServiceResult<POSBranchInventoryListDto>.Failure("StoreId không hợp lệ.");
@@ -55,6 +60,13 @@ namespace CafeChain.Application.Services.POS
                 .AsNoTracking()
                 .Where(i => i.StoreId == storeId);
 
+            var normalizedStockStatus = NormalizeStockStatus(stockStatus);
+            if (!string.IsNullOrWhiteSpace(stockStatus) && normalizedStockStatus == null)
+            {
+                return ServiceResult<POSBranchInventoryListDto>.Failure(
+                    "stockStatus phải là OUT, LOW, NORMAL, UNCONFIGURED, hoặc để trống.");
+            }
+
             if (normalizedType == ItemTypeIngredient)
             {
                 query = query.Where(i => i.IngredientId != null);
@@ -66,6 +78,28 @@ namespace CafeChain.Application.Services.POS
             else if (normalizedType == ItemTypePreparedItem)
             {
                 query = query.Where(i => i.IngredientId == null && i.PreparedItemId != null);
+            }
+
+            if (normalizedStockStatus == StockFilterOut)
+            {
+                query = query.Where(i => i.AvailableQty - i.ReservedQty <= 0);
+            }
+            else if (normalizedStockStatus == StockFilterLow)
+            {
+                query = query.Where(i =>
+                    i.MinStockLevel.HasValue &&
+                    i.AvailableQty - i.ReservedQty > 0 &&
+                    i.AvailableQty - i.ReservedQty <= i.MinStockLevel.Value);
+            }
+            else if (normalizedStockStatus == StockFilterNormal)
+            {
+                query = query.Where(i =>
+                    i.MinStockLevel.HasValue &&
+                    i.AvailableQty - i.ReservedQty > i.MinStockLevel.Value);
+            }
+            else if (normalizedStockStatus == StockFilterUnconfigured)
+            {
+                query = query.Where(i => !i.MinStockLevel.HasValue);
             }
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -177,13 +211,18 @@ namespace CafeChain.Application.Services.POS
                             : QuantitySemanticsStatuses.BaseUnitQuantityConfirmed,
                     ItemName = itemName,
                     ItemCode = itemCode,
+                    OnHandQty = r.AvailableQty,
                     AvailableQty = r.AvailableQty,
                     ReservedQty = r.ReservedQty,
+                    UsableQty = CalculateUsableQuantity(r.AvailableQty, r.ReservedQty),
                     UnitName = unitName,
                     MinStockLevel = r.MinStockLevel,
                     ThresholdConfigured = r.MinStockLevel.HasValue,
-                    ThresholdStatus = MapThresholdStatus(r.AvailableQty, r.MinStockLevel),
-                    QuantityStatus = MapQuantityStatus(r.AvailableQty),
+                    ThresholdStatus = MapThresholdStatus(
+                        CalculateUsableQuantity(r.AvailableQty, r.ReservedQty),
+                        r.MinStockLevel),
+                    QuantityStatus = MapQuantityStatus(
+                        CalculateUsableQuantity(r.AvailableQty, r.ReservedQty)),
                     LastUpdated = r.LastUpdated
                 };
             }).ToList();
@@ -219,6 +258,9 @@ namespace CafeChain.Application.Services.POS
             return ThresholdStatusNormal;
         }
 
+        public static decimal CalculateUsableQuantity(decimal onHandQty, decimal reservedQty) =>
+            onHandQty - reservedQty;
+
         private static string? NormalizeItemType(string? itemType)
         {
             if (string.IsNullOrWhiteSpace(itemType))
@@ -232,6 +274,17 @@ namespace CafeChain.Application.Services.POS
                 return ItemTypePreparedItem;
 
             return null;
+        }
+
+        private static string? NormalizeStockStatus(string? stockStatus)
+        {
+            if (string.IsNullOrWhiteSpace(stockStatus))
+                return null;
+
+            var value = stockStatus.Trim().ToUpperInvariant();
+            return value is StockFilterOut or StockFilterLow or StockFilterNormal or StockFilterUnconfigured
+                ? value
+                : null;
         }
     }
 }

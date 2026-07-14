@@ -19,8 +19,15 @@ namespace CafeChain.Application.DTOs.POS
         public string ItemName { get; set; } = string.Empty;
         public string? ItemCode { get; set; }
 
+        /// <summary>Physical quantity currently recorded in StoreInventory.</summary>
+        public decimal OnHandQty { get; set; }
+
+        /// <summary>Legacy compatibility alias for OnHandQty.</summary>
         public decimal AvailableQty { get; set; }
         public decimal ReservedQty { get; set; }
+
+        /// <summary>Quantity available for operations: OnHandQty - ReservedQty.</summary>
+        public decimal UsableQty { get; set; }
         public string UnitName { get; set; } = "—";
 
         /// <summary>Always null in #96 — MinStockLevel not in schema yet.</summary>

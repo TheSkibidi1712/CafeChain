@@ -13,6 +13,7 @@ namespace CafeChain.Application.Interfaces.POS
             string? search,
             string? itemType,
             int page,
-            int pageSize);
+            int pageSize,
+            string? stockStatus = null);
     }
 }

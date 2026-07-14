@@ -6,168 +6,251 @@
     var isOpen = Model.Status == "OPEN";
     var isConfirmed = Model.Status == "CONFIRMED";
     var openRestock = ViewBag.OpenRestockRequest as RestockRequestListItemDto;
-    decimal? suggested = null;
-    if (Model.ThresholdSnapshot.HasValue)
-        suggested = Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot);
-    var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : Model.AlertType == "LOW_STOCK" ? "HIGH" : "NORMAL";
+    var suggested = Model.ThresholdSnapshot.HasValue
+        ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
+        : (decimal?)null;
+    var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : "HIGH";
+    string StatusLabel(string value) => value switch
+    {
+        "OPEN" => "Chờ quản lý",
+        "CONFIRMED" => "Đã xác nhận",
+        "REJECTED" => "Đã báo sai",
+        "RESOLVED" => "Đã khôi phục",
+        "CLOSED" => "Đã đóng",
+        _ => value
+    };
+    string RestockStatusLabel(string value) => value switch
+    {
+        "SUBMITTED" => "Chờ tiếp nhận",
+        "PROCESSING" => "Đang xử lý",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
+        "COMPLETED" => "Hoàn tất",
+        "REJECTED" => "Đã từ chối",
+        "CANCELLED" => "Đã hủy",
+        _ => value
+    };
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <h4 class="mb-0">Cảnh báo #@Model.StockAlertId</h4>
-            <small class="text-muted">@Model.ItemName · @Model.ItemTypeLabel</small>
+            <div class="ops-eyebrow">Cảnh báo #@Model.StockAlertId · @Model.ItemTypeLabel</div>
+            <h1 class="ops-title">@Model.ItemName</h1>
+            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"). Số liệu hiện tại được tách riêng khỏi snapshot để tránh nhầm lẫn khi kho đã thay đổi.</p>
         </div>
-        <a class="btn btn-sm btn-outline-secondary"
-           asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index">← Danh sách</a>
-    </div>
+        <div class="ops-actions">
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">
+                <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách
+            </a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index">
+                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Tồn kho
+            </a>
+        </div>
+    </header>
 
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div>
+    }
+    @if (Model.Status == "RESOLVED" && openRestock != null)
+    {
+        <div class="ops-notice ops-notice-info"><strong>Tồn kho đã phục hồi nhưng yêu cầu nhập vẫn đang mở.</strong> Người phụ trách cần kiểm tra và quyết định tiếp tục hoặc hủy yêu cầu.</div>
     }
 
-    <div class="card border-0 shadow-sm mb-3">
-        <div class="card-body">
-            <div class="row g-3">
-                <div class="col-md-6">
-                    <div><strong>Trạng thái:</strong> <span class="badge bg-dark">@Model.Status</span></div>
-                    <div><strong>Loại cảnh báo:</strong> @Model.AlertType / @Model.Severity</div>
-                    <div><strong>Nguồn:</strong> @Model.Source</div>
-                    <div><strong>Tồn snapshot:</strong> @Model.CurrentQtySnapshot.ToString("N3")</div>
-                    <div><strong>Ngưỡng snapshot:</strong> @(Model.ThresholdSnapshot?.ToString("N3") ?? "—")</div>
-                    <div><strong>Tạo lúc:</strong> @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                </div>
-                <div class="col-md-6">
-                    <div><strong>Người báo:</strong> @(Model.ReporterName ?? "—")</div>
-                    <div><strong>Thời gian báo:</strong> @(Model.ReportedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
-                    <div><strong>Ghi chú báo cáo:</strong></div>
-                    <div class="border rounded p-2 bg-light small" style="white-space: pre-wrap;">@(Model.ReporterNote ?? "—")</div>
-                </div>
-            </div>
+    <section class="ops-metrics" aria-label="Số liệu tồn kho">
+        <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty?.ToString("N3") ?? "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty?.ToString("N3") ?? "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty?.ToString("N3") ?? "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu</span><strong class="ops-metric-value">@(Model.ThresholdSnapshot?.ToString("N3") ?? "Chưa đặt")</strong></div>
+    </section>
 
-            @if (Model.Status == "CONFIRMED")
-            {
-                <hr />
-                <div class="small">
-                    <div><strong>Xác nhận bởi:</strong> @(Model.ConfirmedByName ?? $"#{Model.ConfirmedByStaffId}")</div>
-                    <div><strong>Lúc:</strong> @(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
-                    <div><strong>Ghi chú quản lý:</strong> @(Model.ManagerNote ?? "—")</div>
+    <div class="ops-detail-grid">
+        <div>
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Tóm tắt cảnh báo</h2></div>
+                <div class="ops-panel-body">
+                    <div class="ops-inline-actions mb-3">
+                        <span class="ops-badge @(Model.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
+                            <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                            @(Model.AlertType == "OUT_OF_STOCK" ? "Hết hàng" : "Sắp hết")
+                        </span>
+                        <span class="ops-badge @(Model.Status == "RESOLVED" ? "ops-badge-success" : Model.Status == "CONFIRMED" ? "ops-badge-info" : "ops-badge-warning")">@StatusLabel(Model.Status)</span>
+                    </div>
+                    <div class="ops-data-grid">
+                        <div><span class="ops-data-label">Khả dụng lúc cảnh báo</span><span class="ops-data-value">@Model.CurrentQtySnapshot.ToString("N3")</span></div>
+                        <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot?.ToString("N3") ?? "Chưa cấu hình")</span></div>
+                        <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@(Model.Source == "SALES_REPORT" ? "Nhân viên báo thiếu" : "Hệ thống đánh giá tồn")</span></div>
+                        <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
+                        <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
+                        <div><span class="ops-data-label">Mã định danh kho</span><span class="ops-data-value">@(Model.IngredientId.HasValue ? $"Ingredient #{Model.IngredientId}" : Model.PreparedItemId.HasValue ? $"PreparedItem #{Model.PreparedItemId}" : $"Recipe legacy #{Model.RecipeId}")</span></div>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.ReporterNote))
+                    {
+                        <div class="mt-3"><span class="ops-data-label">Ghi chú báo cáo</span><div class="ops-notice mt-1 mb-0">@Model.ReporterNote</div></div>
+                    }
                 </div>
-            }
-            @if (Model.Status == "MANAGER_REJECTED")
-            {
-                <hr />
-                <div class="small">
-                    <div><strong>Báo sai bởi:</strong> @(Model.RejectedByName ?? $"#{Model.RejectedByStaffId}")</div>
-                    <div><strong>Lúc:</strong> @(Model.RejectedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
-                    <div><strong>Lý do:</strong> @(Model.RejectReason ?? "—")</div>
+            </section>
+
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Dòng thời gian xử lý</h2></div>
+                <div class="ops-panel-body">
+                    <ol class="ops-timeline">
+                        @if (Model.Transitions.Count == 0)
+                        {
+                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · Khả dụng @Model.CurrentQtySnapshot.ToString("N3")</div></li>
+                        }
+                        @foreach (var transition in Model.Transitions)
+                        {
+                            <li>
+                                <strong>@StatusLabel(transition.NewStatus) · @transition.NewAlertType.Replace("_", " ")</strong>
+                                <div class="ops-secondary">@transition.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
+                                <div>On hand @transition.OnHandSnapshot.ToString("N3") · Reserved @transition.ReservedSnapshot.ToString("N3") · Available @transition.AvailableSnapshot.ToString("N3")</div>
+                                @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }
+                            </li>
+                        }
+                        @if (openRestock != null)
+                        {
+                            <li><strong>Đã tạo yêu cầu nhập #@openRestock.RestockRequestId</strong><div class="ops-secondary">@openRestock.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @RestockStatusLabel(openRestock.Status)</div></li>
+                        }
+                        @if (Model.ResolvedAt.HasValue)
+                        {
+                            <li><strong>Tồn kho đã phục hồi</strong><div class="ops-secondary">@Model.ResolvedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div><div>@Model.ResolvedReason</div></li>
+                        }
+                    </ol>
                 </div>
-            }
-            @if (Model.Status == "RESOLVED")
-            {
-                <hr />
-                <div class="small">
-                    <div><strong>Tự động RESOLVED:</strong> @(Model.ResolvedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</div>
-                    <div>@(Model.ResolvedReason ?? "")</div>
+            </section>
+
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Biến động kho gần nhất</h2></div>
+                <div class="ops-panel-body p-0">
+                    @if (Model.RecentMovements.Count == 0)
+                    {
+                        <div class="p-3 ops-secondary">Chưa có biến động kho để đối chiếu.</div>
+                    }
+                    else
+                    {
+                        <div class="ops-table-scroll">
+                            <table class="ops-table" style="min-width:680px">
+                                <thead><tr><th>Thời gian</th><th>Loại biến động</th><th class="number">Thay đổi</th><th class="number">Trước</th><th class="number">Sau</th><th>Chứng từ</th></tr></thead>
+                                <tbody>
+                                @foreach (var movement in Model.RecentMovements)
+                                {
+                                    var reference = movement.BranchReceiptLineId.HasValue ? $"Phiếu nhận · dòng #{movement.BranchReceiptLineId}" : movement.InventoryTransferId.HasValue ? $"Điều chuyển #{movement.InventoryTransferId}" : movement.ReferenceOrderId.HasValue ? $"Đơn hàng #{movement.ReferenceOrderId}" : movement.ProductionRunId.HasValue ? $"Lệnh sơ chế #{movement.ProductionRunId}" : movement.InventoryDocumentId.HasValue ? $"Chứng từ kho #{movement.InventoryDocumentId}" : "Biến động trực tiếp";
+                                    <tr>
+                                        <td class="text-nowrap">@movement.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                        <td>@movement.Type.Replace("_", " ")</td>
+                                        <td class="number fw-bold @(movement.Quantity < 0 ? "text-danger" : "text-success")">@(movement.Quantity > 0 ? "+" : "")@movement.Quantity.ToString("N3")</td>
+                                        <td class="number">@movement.BeforeQty.ToString("N3")</td>
+                                        <td class="number">@movement.AfterQty.ToString("N3")</td>
+                                        <td><span class="ops-secondary">@reference</span></td>
+                                    </tr>
+                                }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
                 </div>
-            }
+            </section>
         </div>
-    </div>
 
-    @if (isOpen)
-    {
-        <div class="row g-3">
-            <div class="col-md-6">
-                <div class="card border-success shadow-sm">
-                    <div class="card-header bg-success text-white">Xác nhận cảnh báo</div>
-                    <div class="card-body">
-                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Confirm" method="post">
+        <aside>
+            @if (isOpen)
+            {
+                <section class="ops-panel">
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">Quyết định của quản lý</h2></div>
+                    <div class="ops-panel-body">
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Confirm" method="post" class="mb-4">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <label class="form-label">Ghi chú xác nhận <span class="text-danger">*</span></label>
-                            <textarea name="managerNote" class="form-control mb-2" rows="3" maxlength="500" required
-                                      placeholder="Nhập ghi chú xác nhận..."></textarea>
-                            <button type="submit" class="btn btn-success">Xác nhận</button>
+                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <div class="ops-form-group">
+                                <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="text-danger">*</span></label>
+                                <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="Nêu kết quả kiểm tra và hướng xử lý..."></textarea>
+                            </div>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận cảnh báo</button>
                         </form>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6">
-                <div class="card border-secondary shadow-sm">
-                    <div class="card-header bg-secondary text-white">Báo sai cảnh báo</div>
-                    <div class="card-body">
                         <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Reject" method="post">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
-                            <label class="form-label">Lý do báo sai <span class="text-danger">*</span></label>
-                            <textarea name="rejectReason" class="form-control mb-2" rows="3" maxlength="500" required
-                                      placeholder="Nhập lý do báo sai..."></textarea>
-                            <button type="submit" class="btn btn-outline-secondary">Báo sai</button>
+                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <div class="ops-form-group">
+                                <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="text-danger">*</span></label>
+                                <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
+                            </div>
+                            <button type="submit" class="ops-btn ops-btn-danger w-100"><i class="fa-solid fa-xmark" aria-hidden="true"></i> Đánh dấu báo sai</button>
+                        </form>
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.StockAlertId" />
+                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <label class="ops-form-label" for="closeReason">Đóng thủ công</label>
+                            <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
                         </form>
                     </div>
-                </div>
-            </div>
-        </div>
-    }
+                </section>
+            }
 
-    @if (isConfirmed)
-    {
-        if (openRestock != null)
-        {
-            <div class="card border-info shadow-sm mt-3">
-                <div class="card-header bg-info text-white">Yêu cầu nhập hàng đang mở</div>
-                <div class="card-body">
-                    <div><strong>Mã yêu cầu:</strong> #@openRestock.RestockRequestId</div>
-                    <div><strong>Số lượng:</strong> @openRestock.RequestedQuantity.ToString("N3")</div>
-                    <div><strong>Ưu tiên:</strong> @openRestock.Priority</div>
-                    <div><strong>Trạng thái:</strong> @openRestock.Status</div>
-                    <div><strong>Tạo lúc:</strong> @openRestock.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div>
-                    <a class="btn btn-sm btn-outline-primary mt-2"
-                       asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
-                       asp-route-id="@openRestock.RestockRequestId">Xem chi tiết yêu cầu</a>
-                </div>
-            </div>
-        }
-        else
-        {
-            <div class="card border-primary shadow-sm mt-3">
-                <div class="card-header bg-primary text-white">Tạo yêu cầu nhập hàng</div>
-                <div class="card-body">
-                    <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="CreateRestockRequest" method="post">
-                        @Html.AntiForgeryToken()
-                        <input type="hidden" name="id" value="@Model.StockAlertId" />
-                        <div class="mb-2">
-                            <label class="form-label">Số lượng yêu cầu <span class="text-danger">*</span></label>
-                            <input type="number" name="requestedQuantity" class="form-control" step="0.001" min="0.001" required
-                                   value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")"
-                                   placeholder="Nhập số lượng > 0" />
-                            @if (suggested.HasValue)
-                            {
-                                <div class="form-text">Gợi ý: @suggested.Value.ToString("N3") (ngưỡng − tồn snapshot)</div>
-                            }
+            @if (openRestock != null)
+            {
+                <section class="ops-panel">
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">Yêu cầu nhập đang mở</h2></div>
+                    <div class="ops-panel-body">
+                        <div class="ops-data-grid">
+                            <div><span class="ops-data-label">Mã yêu cầu</span><span class="ops-data-value">#@openRestock.RestockRequestId</span></div>
+                            <div><span class="ops-data-label">Trạng thái</span><span class="ops-data-value">@RestockStatusLabel(openRestock.Status)</span></div>
+                            <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@openRestock.RequestedQuantity.ToString("N3")</span></div>
+                            <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@openRestock.Priority</span></div>
                         </div>
-                        <div class="mb-2">
-                            <label class="form-label">Mức độ ưu tiên</label>
-                            <select name="priority" class="form-select">
-                                <option value="NORMAL" selected="@(defaultPriority == "NORMAL")">NORMAL</option>
-                                <option value="HIGH" selected="@(defaultPriority == "HIGH")">HIGH</option>
-                                <option value="URGENT" selected="@(defaultPriority == "URGENT")">URGENT</option>
-                            </select>
-                        </div>
-                        <div class="mb-2">
-                            <label class="form-label">Ghi chú</label>
-                            <textarea name="note" class="form-control" rows="2" maxlength="500"
-                                      placeholder="Ghi chú tùy chọn..."></textarea>
-                        </div>
-                        <button type="submit" class="btn btn-primary">Tạo yêu cầu nhập hàng</button>
-                    </form>
-                </div>
-            </div>
-        }
-    }
-</div>
+                        <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở yêu cầu nhập</a>
+                    </div>
+                </section>
+            }
+            else if (isConfirmed)
+            {
+                <section class="ops-panel">
+                    <div class="ops-panel-header"><h2 class="ops-panel-title">Tạo yêu cầu nhập hàng</h2></div>
+                    <div class="ops-panel-body">
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="CreateRestockRequest" method="post">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.StockAlertId" />
+                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <div class="ops-form-group">
+                                <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu <span class="text-danger">*</span></label>
+                                <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" required value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
+                                <div class="ops-help">Gợi ý có thể kiểm chứng: max(0, ngưỡng − khả dụng) = @(suggested?.ToString("N3") ?? "chưa đủ dữ liệu").</div>
+                            </div>
+                            <div class="ops-form-group">
+                                <label class="ops-form-label" for="priority">Mức ưu tiên</label>
+                                <select id="priority" name="priority" class="ops-select w-100">
+                                    <option value="NORMAL">Bình thường</option>
+                                    <option value="HIGH" selected="@(defaultPriority == "HIGH")">Cao</option>
+                                    <option value="URGENT" selected="@(defaultPriority == "URGENT")">Khẩn cấp</option>
+                                </select>
+                            </div>
+                            <div class="ops-form-group">
+                                <label class="ops-form-label" for="note">Ghi chú</label>
+                                <textarea id="note" name="note" class="ops-textarea" maxlength="500" placeholder="Thông tin cần lưu ý cho bộ phận kho..."></textarea>
+                            </div>
+                            <button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button>
+                        </form>
+                        <form asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Close" method="post" class="mt-4">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@Model.StockAlertId" />
+                            <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <label class="ops-form-label" for="confirmedCloseReason">Đóng cảnh báo không tạo yêu cầu</label>
+                            <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
+                            <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
+                        </form>
+                    </div>
+                </section>
+            }
+        </aside>
+    </div>
+</main>

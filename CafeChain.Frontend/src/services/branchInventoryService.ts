@@ -3,6 +3,7 @@ import { apiClient } from './apiClient'
 export type BranchInventoryItemType = 'Ingredient' | 'Recipe' | 'PreparedItem'
 
 export type QuantityStatus = 'Tồn âm' | 'Hết hàng' | 'Còn hàng'
+export type BranchInventoryStockFilter = '' | 'OUT' | 'LOW' | 'NORMAL' | 'UNCONFIGURED'
 
 export interface BranchInventoryItem {
   storeInventoryId: number
@@ -15,8 +16,10 @@ export interface BranchInventoryItem {
   quantitySemanticsStatus?: string
   itemName: string
   itemCode?: string | null
+  onHandQty?: number
   availableQty: number
   reservedQty: number
+  usableQty?: number
   unitName: string
   minStockLevel: number | null
   thresholdConfigured: boolean
@@ -42,6 +45,7 @@ interface BranchInventoryApiResponse {
 export interface FetchBranchInventoryParams {
   search?: string
   itemType?: '' | BranchInventoryItemType
+  stockStatus?: BranchInventoryStockFilter
   page?: number
   pageSize?: number
 }
@@ -50,6 +54,7 @@ function buildQuery(params: FetchBranchInventoryParams): string {
   const query = new URLSearchParams()
   if (params.search?.trim()) query.set('search', params.search.trim())
   if (params.itemType) query.set('itemType', params.itemType)
+  if (params.stockStatus) query.set('stockStatus', params.stockStatus)
   if (params.page && params.page > 0) query.set('page', String(params.page))
   if (params.pageSize && params.pageSize > 0) query.set('pageSize', String(params.pageSize))
   const qs = query.toString()

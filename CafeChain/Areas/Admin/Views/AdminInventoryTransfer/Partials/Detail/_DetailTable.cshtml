@@ -5,9 +5,9 @@
         <div>
             <span class="section-kicker">
                 <i class="fas fa-boxes-stacked"></i>
-                Chi tiết nguyên liệu
+                Chi tiết hàng chuyển
             </span>
-            <h2>Danh sách nguyên liệu chuyển</h2>
+            <h2>Danh sách nguyên liệu và bán thành phẩm</h2>
             <p>Snapshot tồn kho trước và sau khi xác nhận phiếu.</p>
         </div>
     </div>
@@ -17,7 +17,7 @@
             <thead>
                 <tr>
                     <th class="col-index">#</th>
-                    <th>Nguyên liệu</th>
+                    <th>Hàng hóa</th>
                     <th>ĐVT</th>
                     <th class="text-end">Số chuyển</th>
                     <th class="text-end">Quy đổi</th>
@@ -33,7 +33,7 @@
                 @if (!Model.Details.Any())
                 {
                     <tr class="transfer-empty-row">
-                        <td colspan="10">Phiếu chưa có nguyên liệu.</td>
+                        <td colspan="10">Phiếu chưa có hàng hóa.</td>
                     </tr>
                 }
                 else
@@ -46,7 +46,13 @@
                             <td>@index</td>
 
                             <td>
-                                <strong>@item.IngredientName</strong>
+                                <strong>@item.ItemName</strong>
+                                <span class="readonly-pill">@item.ItemType</span>
+
+                                @if (item.RestockRequestId.HasValue)
+                                {
+                                    <span class="transfer-detail-note">Yêu cầu #@item.RestockRequestId</span>
+                                }
 
                                 @if (!string.IsNullOrWhiteSpace(item.Note))
                                 {

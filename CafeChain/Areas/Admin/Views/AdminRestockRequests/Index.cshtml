@@ -3,110 +3,97 @@
     ViewData["Title"] = "Yêu cầu nhập hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var statusFilter = ViewBag.StatusFilter as string ?? "SUBMITTED";
-    int page = Model.Page;
-    int totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var currentPage = Model.Page;
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var urgent = Model.Items.Count(x => x.Priority == "URGENT");
+    var high = Model.Items.Count(x => x.Priority == "HIGH");
+    string StatusLabel(string value) => value switch
+    {
+        "SUBMITTED" => "Chờ tiếp nhận",
+        "PROCESSING" => "Đang xử lý",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
+        "COMPLETED" => "Hoàn tất",
+        "REJECTED" => "Đã từ chối",
+        "CANCELLED" => "Đã hủy",
+        _ => value
+    };
+    string StatusClass(string value) => value switch
+    {
+        "SUBMITTED" => "ops-badge-warning",
+        "PROCESSING" => "ops-badge-info",
+        "PARTIALLY_RECEIVED" => "ops-badge-warning",
+        "COMPLETED" => "ops-badge-success",
+        _ => "ops-badge-neutral"
+    };
+    string PriorityLabel(string value) => value switch { "URGENT" => "Khẩn cấp", "HIGH" => "Cao", _ => "Bình thường" };
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <h4 class="mb-0" style="color:#c2410c;">Yêu cầu nhập hàng</h4>
-            <small class="text-muted">Cửa hàng #@Model.StoreId · intent-only · tồn chỉ đổi khi phiếu nhận CONFIRMED</small>
+            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
+            <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng</h1>
+            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho cửa hàng #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
-        <a class="btn btn-sm btn-outline-primary"
-           asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">Phiếu nhận hàng</a>
-    </div>
+        <div class="ops-actions">
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+        </div>
+    </header>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
+    @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
+    @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
 
-    <form method="get" class="row g-2 mb-3">
-        <div class="col-auto">
-            <select name="status" class="form-select form-select-sm">
-                <option value="SUBMITTED" selected="@(statusFilter == "SUBMITTED")">SUBMITTED</option>
-                <option value="PROCESSING" selected="@(statusFilter == "PROCESSING")">PROCESSING</option>
-                <option value="PARTIALLY_RECEIVED" selected="@(statusFilter == "PARTIALLY_RECEIVED")">PARTIALLY_RECEIVED</option>
-                <option value="COMPLETED" selected="@(statusFilter == "COMPLETED")">COMPLETED</option>
-                <option value="REJECTED" selected="@(statusFilter == "REJECTED")">REJECTED</option>
-                <option value="CANCELLED" selected="@(statusFilter == "CANCELLED")">CANCELLED</option>
-                <option value="" selected="@(string.IsNullOrEmpty(statusFilter))">Tất cả</option>
-            </select>
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
-        </div>
-    </form>
+    <section class="ops-metrics" aria-label="Tóm tắt yêu cầu trên trang">
+        <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Khẩn cấp trên trang</span><strong class="ops-metric-value danger">@urgent</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ưu tiên cao trên trang</span><strong class="ops-metric-value warning">@high</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tổng lượng yêu cầu</span><strong class="ops-metric-value">@Model.Items.Sum(x => x.RequestedQuantity).ToString("N3")</strong></div>
+    </section>
 
-    @if (Model.Items == null || Model.Items.Count == 0)
+    <nav class="ops-status-tabs" aria-label="Lọc trạng thái yêu cầu nhập">
+        @foreach (var status in new[] { "SUBMITTED", "PROCESSING", "PARTIALLY_RECEIVED", "COMPLETED", "REJECTED", "CANCELLED", "" })
+        {
+            <a class="ops-tab @(statusFilter == status ? "active" : "")" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@status" asp-route-storeId="@Model.StoreId">@(string.IsNullOrEmpty(status) ? "Tất cả" : StatusLabel(status))</a>
+        }
+    </nav>
+
+    @if (Model.Items.Count == 0)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center text-muted py-5">Không có yêu cầu phù hợp.</div>
-        </div>
+        <section class="ops-empty"><div class="fw-bold text-dark">Không có yêu cầu phù hợp</div><div class="mt-1">Chọn trạng thái khác hoặc mở một cảnh báo đã xác nhận để tạo yêu cầu mới.</div></section>
     }
     else
     {
-        <div class="table-responsive shadow-sm bg-white rounded">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>#</th>
-                        <th>Mặt hàng</th>
-                        <th>Loại</th>
-                        <th>SL yêu cầu</th>
-                        <th>Ưu tiên</th>
-                        <th>Trạng thái</th>
-                        <th>Người tạo</th>
-                        <th>Thời gian</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>@item.RestockRequestId</td>
-                        <td>@item.ItemName</td>
-                        <td>@item.ItemTypeLabel</td>
-                        <td>@item.RequestedQuantity.ToString("N3")</td>
-                        <td>
-                            <span class="badge @(item.Priority == "URGENT" ? "bg-danger" : item.Priority == "HIGH" ? "bg-warning text-dark" : "bg-secondary")">
-                                @item.Priority
-                            </span>
-                        </td>
-                        <td><span class="badge bg-primary">@item.Status</span></td>
-                        <td>@(item.CreatedByName ?? "—")</td>
-                        <td class="small">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                        <td>
-                            <a class="btn btn-sm btn-outline-primary"
-                               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
-                               asp-route-id="@item.RestockRequestId">Chi tiết</a>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-
-        @if (totalPages > 1)
-        {
-            <nav class="mt-3">
-                <ul class="pagination pagination-sm">
-                    @for (var p = 1; p <= totalPages; p++)
+        <section class="ops-table-wrap">
+            <div class="ops-table-scroll">
+                <table class="ops-table">
+                    <thead><tr><th>Mã</th><th>Mặt hàng</th><th class="number">Số lượng</th><th>Ưu tiên</th><th>Trạng thái xử lý</th><th>Người tạo</th><th>Thời gian</th><th></th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.Items)
                     {
-                        <li class="page-item @(p == page ? "active" : "")">
-                            <a class="page-link"
-                               asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index"
-                               asp-route-status="@statusFilter" asp-route-page="@p">@p</a>
-                        </li>
+                        <tr>
+                            <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">Cảnh báo #@item.StockAlertId</div></td>
+                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
+                            <td class="number"><strong>@item.RequestedQuantity.ToString("N3")</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @item.SuggestedQuantity.Value.ToString("N3")</div> }</td>
+                            <td><span class="ops-badge @(item.Priority == "URGENT" ? "ops-badge-danger" : item.Priority == "HIGH" ? "ops-badge-warning" : "ops-badge-neutral")">@PriorityLabel(item.Priority)</span></td>
+                            <td><span class="ops-badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
+                            <td>@(item.CreatedByName ?? "—")</td>
+                            <td class="text-nowrap"><span class="ops-secondary">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
+                            <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
+                        </tr>
                     }
-                </ul>
-            </nav>
-        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <div class="ops-pagination">
+            <span>Trang @currentPage / @totalPages · Tổng @Model.Total yêu cầu</span>
+            <div class="ops-page-links">
+                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">Trước</a> }
+                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">Sau</a> }
+            </div>
+        </div>
     }
-</div>
+</main>

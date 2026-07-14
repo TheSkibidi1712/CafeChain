@@ -3,133 +3,99 @@
     ViewData["Title"] = "Chi tiết phiếu nhận";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canConfirm = ViewBag.CanConfirm as bool? ?? false;
+    var isConfirmed = Model.Status == "CONFIRMED";
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <h1 class="h4 mb-1" style="color:#c2410c;">@Model.ReceiptCode</h1>
-            <p class="text-muted small mb-0">
-                <span class="badge @(Model.Status == "CONFIRMED" ? "bg-success" : "bg-secondary")">@Model.Status</span>
-                · Key <code>@Model.ReceiptKey</code>
-                · Cửa hàng #@Model.StoreId
-            </p>
+            <div class="ops-eyebrow">Phiếu nhận #@Model.BranchReceiptId · Cửa hàng #@Model.StoreId</div>
+            <h1 class="ops-title">@Model.ReceiptCode</h1>
+            <p class="ops-subtitle">Khóa chống trùng <code>@Model.ReceiptKey</code> · Nhận lúc @Model.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>
-        <div class="d-flex flex-wrap gap-2">
-            <a class="btn btn-sm btn-outline-secondary"
-               asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index">← Danh sách</a>
+        <div class="ops-actions">
+            <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
             @if (canConfirm)
             {
-                <form method="post" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Confirm"
-                      asp-route-id="@Model.BranchReceiptId"
-                      onsubmit="return confirm('Xác nhận nhập kho? Thao tác không thể hoàn tác.');">
+                <form method="post" asp-action="Confirm" asp-route-id="@Model.BranchReceiptId" onsubmit="return confirm('Xác nhận nhập kho? Thao tác không thể hoàn tác.');">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="btn btn-sm text-white" style="background:#ea580c;">
-                        Xác nhận nhập kho
-                    </button>
+                    <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận nhập kho</button>
                 </form>
             }
         </div>
-    </div>
+    </header>
 
-    @if (TempData["SuccessMessage"] != null)
+    @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
+    @if (TempData["WarningMessage"] != null) { <div class="ops-notice ops-notice-warning" role="status">@TempData["WarningMessage"]</div> }
+    @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
+    @if (Model.AlertEvaluationFailed)
     {
-        <div class="alert alert-success" role="status">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["WarningMessage"] != null)
-    {
-        <div class="alert alert-warning" role="status">@TempData["WarningMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger" role="alert">@TempData["ErrorMessage"]</div>
+        <div class="ops-notice ops-notice-warning" role="status">Kho đã được cập nhật nhưng đánh giá cảnh báo cần thử lại: @Model.AlertEvaluationMessage</div>
     }
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100">
-                <div class="card-body">
-                    <h2 class="h6 text-uppercase text-muted">Phiếu nhận</h2>
-                    <dl class="row mb-0 small">
-                        <dt class="col-5">Nhà cung cấp</dt>
-                        <dd class="col-7">@(Model.SupplierName ?? (Model.SupplierId.HasValue ? $"#{Model.SupplierId}" : "—"))</dd>
-                        <dt class="col-5">Tham chiếu</dt>
-                        <dd class="col-7">@(Model.ReferenceNumber ?? "—")</dd>
-                        <dt class="col-5">Nhận lúc</dt>
-                        <dd class="col-7">@Model.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</dd>
-                        <dt class="col-5">Xác nhận lúc</dt>
-                        <dd class="col-7">@(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</dd>
-                        <dt class="col-5">Ghi chú</dt>
-                        <dd class="col-7" style="white-space:pre-wrap;">@(Model.Notes ?? "—")</dd>
-                    </dl>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card border-0 shadow-sm h-100" style="border-left:4px solid #ea580c !important;">
-                <div class="card-body">
-                    <h2 class="h6 text-uppercase text-muted">Tác động tồn kho</h2>
-                    <div class="display-6 fs-3 fw-semibold" style="color:#c2410c;">@Model.TotalBaseQuantity.ToString("N3")</div>
-                    <div class="small text-muted mb-2">Tổng base quantity · @Model.LineCount dòng</div>
-                    <div class="fw-semibold">@Model.TotalLineCost.ToString("N0") VND</div>
-                    <div class="small text-muted">
-                        @(Model.Status == "CONFIRMED"
-                            ? "Đã post InventoryTransaction BRANCH_RECEIPT_IN + cost layer (ingredient)."
-                            : "DRAFT — chưa thay đổi AvailableQty / ledger.")
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+    <section class="ops-metrics" aria-label="Tóm tắt phiếu nhận">
+        <div class="ops-metric"><span class="ops-metric-label">Trạng thái</span><strong class="ops-metric-value fs-5"><span class="ops-badge @(isConfirmed ? "ops-badge-success" : "ops-badge-neutral")">@(isConfirmed ? "Đã xác nhận" : "Bản nháp")</span></strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Số dòng</span><strong class="ops-metric-value">@Model.LineCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Số lượng quy đổi</span><strong class="ops-metric-value">@Model.TotalBaseQuantity.ToString("N3")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tổng giá trị</span><strong class="ops-metric-value">@Model.TotalLineCost.ToString("N0") đ</strong></div>
+    </section>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <caption class="px-3 pt-2 small text-muted">Chi tiết dòng nhận — snapshot chi phí bền vững</caption>
-                    <thead class="table-light">
-                        <tr>
-                            <th scope="col">Yêu cầu</th>
-                            <th scope="col">Identity</th>
-                            <th scope="col">Input</th>
-                            <th scope="col">Base qty</th>
-                            <th scope="col">Unit cost</th>
-                            <th scope="col">Line total</th>
-                            <th scope="col">Txn</th>
-                        </tr>
-                    </thead>
+    <div class="ops-detail-grid">
+        <section class="ops-panel">
+            <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
+            <div class="ops-table-scroll">
+                <table class="ops-table" style="min-width:900px">
+                    <thead><tr><th>Yêu cầu nhập</th><th>Mặt hàng</th><th class="number">SL nhập</th><th class="number">SL quy đổi</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th></tr></thead>
                     <tbody>
                     @foreach (var line in Model.Lines)
                     {
+                        var identity = line.IngredientId.HasValue ? $"Nguyên liệu #{line.IngredientId}" : line.PreparedItemId.HasValue ? $"Bán thành phẩm #{line.PreparedItemId}" : $"Công thức legacy #{line.RecipeId}";
                         <tr>
-                            <td>
-                                <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details"
-                                   asp-route-id="@line.RestockRequestId">#@line.RestockRequestId</a>
-                            </td>
-                            <td class="small">
-                                @if (line.IngredientId.HasValue)
-                                {
-                                    <span>ING #@line.IngredientId</span>
-                                }
-                                else if (line.PreparedItemId.HasValue)
-                                {
-                                    <span>PI #@line.PreparedItemId</span>
-                                }
-                                else
-                                {
-                                    <span>—</span>
-                                }
-                            </td>
-                            <td>@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
-                            <td class="fw-semibold">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
-                            <td>@line.BaseUnitCostSnapshot.ToString("N4")</td>
-                            <td>@line.LineTotalCost.ToString("N0")</td>
-                            <td class="small">@(line.InventoryTransactionId?.ToString() ?? "—")</td>
+                            <td><a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId" asp-route-storeId="@Model.StoreId">#@line.RestockRequestId</a></td>
+                            <td><strong>@identity</strong><div class="ops-secondary">Dòng #@line.BranchReceiptLineId</div></td>
+                            <td class="number">@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
+                            <td class="number">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
+                            <td class="number">@line.BaseUnitCostSnapshot.ToString("N4")</td>
+                            <td class="number fw-bold">@line.LineTotalCost.ToString("N0") đ</td>
+                            <td>@(line.InventoryTransactionId.HasValue ? $"#{line.InventoryTransactionId}" : "Chưa ghi kho")</td>
                         </tr>
                     }
                     </tbody>
                 </table>
             </div>
-        </div>
+        </section>
+
+        <aside>
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin chứng từ</h2></div>
+                <div class="ops-panel-body">
+                    <div class="ops-data-grid">
+                        <div><span class="ops-data-label">Nhà cung cấp</span><span class="ops-data-value">@(Model.SupplierName ?? (Model.SupplierId.HasValue ? $"#{Model.SupplierId}" : "Chưa gắn"))</span></div>
+                        <div><span class="ops-data-label">Số tham chiếu</span><span class="ops-data-value">@(Model.ReferenceNumber ?? "—")</span></div>
+                        <div><span class="ops-data-label">Người tạo</span><span class="ops-data-value">Nhân viên #@Model.CreatedByStaffId</span></div>
+                        <div><span class="ops-data-label">Người nhận</span><span class="ops-data-value">@(Model.ReceivedByStaffId.HasValue ? $"Nhân viên #{Model.ReceivedByStaffId}" : "—")</span></div>
+                        <div><span class="ops-data-label">Người xác nhận</span><span class="ops-data-value">@(Model.ConfirmedByStaffId.HasValue ? $"Nhân viên #{Model.ConfirmedByStaffId}" : "—")</span></div>
+                        <div><span class="ops-data-label">Xác nhận lúc</span><span class="ops-data-value">@(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+                    </div>
+                    <div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice mt-1 mb-0" style="white-space:pre-wrap">@(Model.Notes ?? "Không có ghi chú")</div></div>
+                </div>
+            </section>
+
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Tác động tồn kho</h2></div>
+                <div class="ops-panel-body">
+                    @if (isConfirmed)
+                    {
+                        <div class="ops-notice ops-notice-success mb-0"><strong>Đã ghi nhận tồn kho.</strong><br />Mỗi dòng đã post giao dịch nhập và lớp giá vốn tương ứng.</div>
+                    }
+                    else
+                    {
+                        <div class="ops-notice ops-notice-warning mb-0"><strong>Chưa thay đổi tồn kho.</strong><br />Phiếu đang là bản nháp; số lượng và giá vốn mới chỉ được lưu để kiểm tra.</div>
+                    }
+                </div>
+            </section>
+        </aside>
     </div>
-</div>
+</main>

@@ -89,7 +89,7 @@ const InventoryTransferCreate = (() => {
 
         try {
             const response = await fetch(
-                `/Admin/AdminInventoryTransfer/Ingredients?fromStoreId=${encodeURIComponent(fromStoreId)}`);
+                `/Admin/AdminInventoryTransfer/Items?fromStoreId=${encodeURIComponent(fromStoreId)}`);
 
             if (!response.ok) {
                 throw new Error(await readResponseMessage(response));
@@ -98,7 +98,7 @@ const InventoryTransferCreate = (() => {
             ingredients = await response.json();
 
             if (status) {
-                status.textContent = `${ingredients.length} nguyên liệu có thể chuyển.`;
+                status.textContent = `${ingredients.length} mặt hàng có thể chuyển.`;
             }
 
             if (addButton) {
@@ -127,7 +127,7 @@ const InventoryTransferCreate = (() => {
             <td class="transfer-row-index"></td>
             <td>
                 <select class="transfer-input transfer-ingredient">
-                    <option value="">Chọn nguyên liệu</option>
+                    <option value="">Chọn hàng hóa</option>
                     ${ingredients.map(toIngredientOption).join("")}
                 </select>
                 <span class="transfer-row-warning" hidden></span>
@@ -138,6 +138,9 @@ const InventoryTransferCreate = (() => {
             <td class="transfer-available">0</td>
             <td>
                 <input class="transfer-input transfer-quantity" type="number" min="0" step="any" value="1" />
+            </td>
+            <td>
+                <input class="transfer-input transfer-restock-request" type="number" min="1" step="1" placeholder="Không gắn" />
             </td>
             <td class="transfer-diff">0</td>
             <td class="transfer-row-status">-</td>
@@ -372,13 +375,16 @@ const InventoryTransferCreate = (() => {
     function buildDto(requestKey, requireRequestKey = true) {
         const details = Array.from(document.querySelectorAll(".transfer-detail-row"))
             .map(row => {
-                const ingredientId = Number(row.querySelector(".transfer-ingredient")?.value || 0);
+                const item = getRowIngredient(row);
                 const unitId = Number(row.querySelector(".transfer-unit")?.value || 0);
                 const quantity = Number(row.querySelector(".transfer-quantity")?.value || 0);
                 const unitPriceValue = row.querySelector(".transfer-price")?.value;
+                const restockRequestId = Number(row.querySelector(".transfer-restock-request")?.value || 0);
 
                 return {
-                    ingredientId,
+                    ingredientId: read(item, "ingredientId", "IngredientId") || null,
+                    preparedItemId: read(item, "preparedItemId", "PreparedItemId") || null,
+                    restockRequestId: restockRequestId > 0 ? restockRequestId : null,
                     unitId,
                     quantity,
                     baseQuantity: 0,
@@ -386,7 +392,7 @@ const InventoryTransferCreate = (() => {
                     note: null
                 };
             })
-            .filter(x => x.ingredientId > 0);
+            .filter(x => x.ingredientId || x.preparedItemId);
 
         const dto = {
             requestKey: requestKey || null,
@@ -421,21 +427,25 @@ const InventoryTransferCreate = (() => {
         }
 
         if (!dto.details.length) {
-            throw new Error("Vui lòng thêm ít nhất một nguyên liệu.");
+            throw new Error("Vui lòng thêm ít nhất một mặt hàng.");
         }
 
         const seen = new Set();
 
         for (const detail of dto.details) {
-            if (!detail.ingredientId) {
-                throw new Error("Vui lòng chọn nguyên liệu.");
+            if ((!detail.ingredientId && !detail.preparedItemId)
+                || (detail.ingredientId && detail.preparedItemId)) {
+                throw new Error("Vui lòng chọn đúng một nguyên liệu hoặc bán thành phẩm.");
             }
 
-            if (seen.has(detail.ingredientId)) {
-                throw new Error("Mỗi nguyên liệu chỉ được xuất hiện một lần.");
+            const identityKey = detail.ingredientId
+                ? `I:${detail.ingredientId}`
+                : `P:${detail.preparedItemId}`;
+            if (seen.has(identityKey)) {
+                throw new Error("Mỗi mặt hàng chỉ được xuất hiện một lần.");
             }
 
-            seen.add(detail.ingredientId);
+            seen.add(identityKey);
 
             if (!detail.unitId) {
                 throw new Error("Vui lòng chọn đơn vị tính.");
@@ -536,7 +546,7 @@ const InventoryTransferCreate = (() => {
             return;
         }
 
-        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="8">Chưa có nguyên liệu.</td></tr>';
+        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="9">Chưa có hàng hóa.</td></tr>';
         syncConfirmState();
     }
 
@@ -622,23 +632,31 @@ const InventoryTransferCreate = (() => {
     }
 
     function getRowIngredient(row) {
-        const ingredientId = Number(row.querySelector(".transfer-ingredient")?.value || 0);
+        const identity = row.querySelector(".transfer-ingredient")?.value || "";
 
-        if (!ingredientId) {
+        if (!identity) {
             return null;
         }
 
-        return ingredients.find(x =>
-            Number(read(x, "ingredientId", "IngredientId")) === ingredientId) || null;
+        return ingredients.find(x => getItemIdentity(x) === identity) || null;
     }
 
     function toIngredientOption(ingredient) {
-        const id = read(ingredient, "ingredientId", "IngredientId");
-        const name = escapeHtml(read(ingredient, "ingredientName", "IngredientName") || "");
+        const id = getItemIdentity(ingredient);
+        const name = escapeHtml(read(ingredient, "itemName", "ItemName") || "");
+        const type = read(ingredient, "itemType", "ItemType") === "PREPARED_ITEM"
+            ? "Bán thành phẩm"
+            : "Nguyên liệu";
         const available = read(ingredient, "availableBaseQuantity", "AvailableBaseQuantity") || 0;
         const unitCode = escapeHtml(read(ingredient, "baseUnitCode", "BaseUnitCode") || "");
 
-        return `<option value="${id}">${name} - tồn ${formatQuantity(available)} ${unitCode}</option>`;
+        return `<option value="${id}">[${type}] ${name} - tồn ${formatQuantity(available)} ${unitCode}</option>`;
+    }
+
+    function getItemIdentity(item) {
+        const ingredientId = Number(read(item, "ingredientId", "IngredientId") || 0);
+        const preparedItemId = Number(read(item, "preparedItemId", "PreparedItemId") || 0);
+        return ingredientId > 0 ? `I:${ingredientId}` : `P:${preparedItemId}`;
     }
 
     function getTransferId() {

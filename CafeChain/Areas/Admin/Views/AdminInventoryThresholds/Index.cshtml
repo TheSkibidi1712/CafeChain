@@ -2,148 +2,115 @@
 @{
     ViewData["Title"] = "Ngưỡng tồn kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    int page = Model.Page;
-    int totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var currentPage = Model.Page;
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
     var search = Model.Search ?? "";
     var canEdit = ViewBag.CanEditThreshold as bool? == true;
+    var configured = Model.Items.Count(x => x.ThresholdConfigured);
+    var low = Model.Items.Count(x => x.MinStockLevel.HasValue && x.UsableQty <= x.MinStockLevel.Value);
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <h4 class="mb-0">Ngưỡng tồn kho</h4>
-            <small class="text-muted">Cấu hình <strong>Ngưỡng tồn tối thiểu</strong> (MinStockLevel) cho cảnh báo kho tự động</small>
+            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
+            <h1 class="ops-title"><i class="fa-solid fa-sliders" aria-hidden="true"></i> Ngưỡng tồn kho</h1>
+            <p class="ops-subtitle">Thiết lập mức tồn tối thiểu theo từng cửa hàng và mặt hàng. Cảnh báo được đánh giá theo <strong>Khả dụng = Tồn vật lý − Giữ chỗ</strong>.</p>
         </div>
-    </div>
-
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
-    }
-    @if (!canEdit)
-    {
-        <div class="alert alert-info py-2">
-            Bạn chỉ có quyền <strong>xem</strong> ngưỡng tồn kho. Chỉ Quản lý chi nhánh / Quản lý vùng / Chủ doanh nghiệp / Quản trị hệ thống được cập nhật.
+        <div class="ops-actions">
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index"><i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Tồn kho</a>
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo</a>
         </div>
-    }
+    </header>
 
-    @if (Model.Stores != null && Model.Stores.Count > 0)
+    @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
+    @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
+    @if (!canEdit) { <div class="ops-notice ops-notice-info">Bạn đang ở chế độ chỉ xem. Chỉ vai trò quản lý có phạm vi phù hợp mới được cập nhật ngưỡng.</div> }
+
+    <section class="ops-metrics" aria-label="Tóm tắt ngưỡng trên trang">
+        <div class="ops-metric"><span class="ops-metric-label">Mặt hàng theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đã cấu hình trên trang</span><strong class="ops-metric-value success">@configured</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Chưa cấu hình trên trang</span><strong class="ops-metric-value warning">@(Model.Items.Count - configured)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đang dưới ngưỡng</span><strong class="ops-metric-value danger">@low</strong></div>
+    </section>
+
+    @if (Model.Stores.Count > 0)
     {
-        <ul class="nav nav-tabs mb-3">
-            @foreach (var s in Model.Stores)
+        <nav class="ops-store-tabs" aria-label="Chọn cửa hàng">
+            @foreach (var store in Model.Stores)
             {
-                <li class="nav-item">
-                    <a class="nav-link @(s.StoreId == Model.SelectedStoreId ? "active" : "")"
-                       asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index"
-                       asp-route-storeId="@s.StoreId" asp-route-search="@search">@s.StoreName</a>
-                </li>
+                <a class="ops-tab @(store.StoreId == Model.SelectedStoreId ? "active" : "")" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@store.StoreId" asp-route-search="@search">@store.StoreName</a>
             }
-        </ul>
+        </nav>
     }
 
-    <form method="get" class="row g-2 mb-3">
+    <form method="get" class="ops-filterbar">
         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
-        <div class="col-auto">
-            <input type="text" name="search" value="@search" class="form-control form-control-sm"
-                   placeholder="Tìm theo tên..." />
+        <div class="ops-filter-group">
+            <label class="visually-hidden" for="thresholdSearch">Tìm mặt hàng</label>
+            <input id="thresholdSearch" type="search" name="search" value="@search" class="ops-input" placeholder="Tìm nguyên liệu hoặc bán thành phẩm..." />
+            <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i> Tìm</button>
         </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-sm btn-outline-primary">Tìm</button>
-        </div>
+        <span class="ops-secondary">Cửa hàng đang chọn: #@Model.SelectedStoreId</span>
     </form>
 
-    @if (Model.Items == null || Model.Items.Count == 0)
+    @if (Model.Items.Count == 0)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center text-muted py-5">Không có dòng tồn kho phù hợp.</div>
-        </div>
+        <section class="ops-empty">Không có dòng tồn kho phù hợp với phạm vi và từ khóa hiện tại.</section>
     }
     else
     {
-        <div class="table-responsive shadow-sm bg-white rounded">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Tên</th>
-                        <th>Loại</th>
-                        <th>Tồn khả dụng</th>
-                        <th>Đang giữ chỗ</th>
-                        <th>Ngưỡng tồn tối thiểu</th>
-                        <th style="min-width: 220px;">Hành động</th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>
-                            <div class="fw-semibold">@item.ItemName</div>
-                            @if (!string.IsNullOrEmpty(item.UnitCode))
-                            {
-                                <small class="text-muted">ĐVT: @item.UnitCode</small>
-                            }
-                        </td>
-                        <td>@item.ItemTypeLabel</td>
-                        <td>@item.AvailableQty.ToString("N3")</td>
-                        <td>@item.ReservedQty.ToString("N3")</td>
-                        <td>
-                            @if (item.ThresholdConfigured)
-                            {
-                                <span>@item.MinStockLevel!.Value.ToString("N3")</span>
-                            }
-                            else
-                            {
-                                <span class="text-muted small">Chưa cấu hình ngưỡng tối thiểu</span>
-                            }
-                        </td>
-                        <td>
-                            @if (canEdit)
-                            {
-                                <form asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Update"
-                                      method="post" class="d-flex flex-wrap gap-1 align-items-center">
-                                    @Html.AntiForgeryToken()
-                                    <input type="hidden" name="storeInventoryId" value="@item.StoreInventoryId" />
-                                    <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
-                                    <input type="hidden" name="search" value="@search" />
-                                    <input type="hidden" name="page" value="@(page)" />
-                                    <input type="number" name="minStockLevel" class="form-control form-control-sm"
-                                           style="width: 110px;" step="0.001" min="0"
-                                           value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")"
-                                           placeholder="Trống = xóa" />
-                                    <button type="submit" class="btn btn-sm btn-primary">Lưu ngưỡng</button>
-                                </form>
-                            }
-                            else
-                            {
-                                <span class="text-muted small">Chỉ xem</span>
-                            }
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-
-        @if (totalPages > 1)
-        {
-            <nav class="mt-3">
-                <ul class="pagination pagination-sm">
-                    @for (var p = 1; p <= totalPages; p++)
+        <section class="ops-table-wrap">
+            <div class="ops-table-scroll">
+                <table class="ops-table">
+                    <thead><tr><th>Mặt hàng</th><th>Loại</th><th class="number">Tồn vật lý</th><th class="number">Giữ chỗ</th><th class="number">Khả dụng</th><th>Trạng thái</th><th>Ngưỡng tối thiểu</th><th>Thao tác</th></tr></thead>
+                    <tbody>
+                    @foreach (var item in Model.Items)
                     {
-                        <li class="page-item @(p == page ? "active" : "")">
-                            <a class="page-link"
-                               asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index"
-                               asp-route-storeId="@Model.SelectedStoreId"
-                               asp-route-search="@search"
-                               asp-route-page="@(p)">@p</a>
-                        </li>
+                        var isOut = item.UsableQty <= 0;
+                        var isLow = item.MinStockLevel.HasValue && item.UsableQty <= item.MinStockLevel.Value;
+                        <tr>
+                            <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">ĐVT: @(item.UnitCode ?? "—")</div></td>
+                            <td>@item.ItemTypeLabel</td>
+                            <td class="number">@item.OnHandQty.ToString("N3")</td>
+                            <td class="number">@item.ReservedQty.ToString("N3")</td>
+                            <td class="number fw-bold @(isOut ? "text-danger" : "")">@item.UsableQty.ToString("N3")</td>
+                            <td>
+                                @if (!item.ThresholdConfigured) { <span class="ops-badge ops-badge-neutral">Chưa cấu hình</span> }
+                                else if (isOut) { <span class="ops-badge ops-badge-danger">Hết khả dụng</span> }
+                                else if (isLow) { <span class="ops-badge ops-badge-warning">Dưới ngưỡng</span> }
+                                else { <span class="ops-badge ops-badge-success">Bình thường</span> }
+                            </td>
+                            <td class="number">@(item.MinStockLevel?.ToString("N3") ?? "—")</td>
+                            <td>
+                                @if (canEdit)
+                                {
+                                    <form asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Update" method="post" class="ops-inline-actions">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="storeInventoryId" value="@item.StoreInventoryId" />
+                                        <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
+                                        <input type="hidden" name="search" value="@search" />
+                                        <input type="hidden" name="page" value="@currentPage" />
+                                        <input type="number" name="minStockLevel" class="ops-input" style="width:112px" step="0.001" min="0" value="@(item.MinStockLevel?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "")" aria-label="Ngưỡng tối thiểu cho @item.ItemName" placeholder="Để trống" />
+                                        <button type="submit" class="ops-btn ops-btn-primary">Lưu</button>
+                                    </form>
+                                }
+                                else { <span class="ops-secondary">Chỉ xem</span> }
+                            </td>
+                        </tr>
                     }
-                </ul>
-            </nav>
-        }
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        <div class="ops-pagination">
+            <span>Trang @currentPage / @totalPages · Tổng @Model.Total mặt hàng</span>
+            <div class="ops-page-links">
+                @if (currentPage > 1) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage - 1)">Trước</a> }
+                @if (currentPage < totalPages) { <a class="ops-btn" asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" asp-route-storeId="@Model.SelectedStoreId" asp-route-search="@search" asp-route-page="@(currentPage + 1)">Sau</a> }
+            </div>
+        </div>
     }
-</div>
+</main>

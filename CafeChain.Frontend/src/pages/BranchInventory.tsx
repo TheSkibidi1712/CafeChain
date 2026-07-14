@@ -4,6 +4,7 @@ import {
   reportShortage,
   type BranchInventoryItem,
   type BranchInventoryItemType,
+  type BranchInventoryStockFilter,
 } from '../services/branchInventoryService'
 import { getPosSession } from '../services/posSession'
 
@@ -13,6 +14,14 @@ const FILTERS: { key: FilterChip; label: string }[] = [
   { key: '', label: 'Tất cả' },
   { key: 'Ingredient', label: 'Nguyên liệu' },
   { key: 'Recipe', label: 'Bán thành phẩm' },
+]
+
+const STOCK_FILTERS: { key: BranchInventoryStockFilter; label: string }[] = [
+  { key: '', label: 'Tất cả trạng thái' },
+  { key: 'OUT', label: 'Hết khả dụng' },
+  { key: 'LOW', label: 'Sắp hết' },
+  { key: 'NORMAL', label: 'Bình thường' },
+  { key: 'UNCONFIGURED', label: 'Chưa đặt ngưỡng' },
 ]
 
 const PAGE_SIZE = 50
@@ -51,6 +60,12 @@ const quantityBadgeClass = (status: string): string => {
   return 'bg-emerald-50 text-emerald-700 border-emerald-200'
 }
 
+const onHandQty = (item: BranchInventoryItem): number =>
+  item.onHandQty ?? item.availableQty
+
+const usableQty = (item: BranchInventoryItem): number =>
+  item.usableQty ?? onHandQty(item) - item.reservedQty
+
 const toDisplayError = (message?: string): string => {
   const raw = message?.trim()
   if (!raw) return 'Không tải được kho chi nhánh.'
@@ -70,6 +85,7 @@ export default function BranchInventory() {
   const [searchInput, setSearchInput] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [itemType, setItemType] = useState<FilterChip>('')
+  const [stockStatus, setStockStatus] = useState<BranchInventoryStockFilter>('')
   const [page, setPage] = useState(1)
   const [items, setItems] = useState<BranchInventoryItem[]>([])
   const [total, setTotal] = useState(0)
@@ -101,6 +117,7 @@ export default function BranchInventory() {
       const result = await fetchBranchInventory({
         search: debouncedSearch || undefined,
         itemType: itemType || undefined,
+        stockStatus: stockStatus || undefined,
         page,
         pageSize: PAGE_SIZE,
       })
@@ -122,9 +139,19 @@ export default function BranchInventory() {
     return () => {
       cancelled = true
     }
-  }, [debouncedSearch, itemType, page, reloadToken])
+  }, [debouncedSearch, itemType, stockStatus, page, reloadToken])
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+  const pageOutCount = items.filter((item) => usableQty(item) <= 0).length
+  const pageLowCount = items.filter(
+    (item) =>
+      usableQty(item) > 0 &&
+      item.minStockLevel != null &&
+      usableQty(item) <= item.minStockLevel
+  ).length
+  const pageNormalCount = items.filter(
+    (item) => item.minStockLevel != null && usableQty(item) > item.minStockLevel
+  ).length
 
   const openReport = (item: BranchInventoryItem) => {
     setReportItem(item)
@@ -181,6 +208,7 @@ export default function BranchInventory() {
       <div className="max-w-7xl mx-auto flex flex-col gap-4">
         <header className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
+            <p className="text-[10px] font-extrabold uppercase text-brand-orange mb-1">Vận hành POS</p>
             <h1 className="text-xl font-bold text-text-primary">Kho chi nhánh</h1>
             <p className="text-xs text-text-muted mt-0.5">
               Xem tồn kho hiện tại tại cửa hàng
@@ -193,9 +221,28 @@ export default function BranchInventory() {
           </div>
         </header>
 
+        <section className="grid grid-cols-2 lg:grid-cols-4 gap-2" aria-label="Tóm tắt tồn kho trên trang">
+          <div className="rounded-lg border border-border bg-surface-white px-4 py-3">
+            <p className="text-[10px] font-bold text-text-muted">KẾT QUẢ THEO BỘ LỌC</p>
+            <p className="mt-1 text-xl font-extrabold text-text-primary tabular-nums">{total}</p>
+          </div>
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-[10px] font-bold text-red-600">HẾT KHẢ DỤNG TRÊN TRANG</p>
+            <p className="mt-1 text-xl font-extrabold text-red-700 tabular-nums">{pageOutCount}</p>
+          </div>
+          <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <p className="text-[10px] font-bold text-amber-700">SẮP HẾT TRÊN TRANG</p>
+            <p className="mt-1 text-xl font-extrabold text-amber-800 tabular-nums">{pageLowCount}</p>
+          </div>
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3">
+            <p className="text-[10px] font-bold text-emerald-700">BÌNH THƯỜNG TRÊN TRANG</p>
+            <p className="mt-1 text-xl font-extrabold text-emerald-800 tabular-nums">{pageNormalCount}</p>
+          </div>
+        </section>
+
         {banner && (
           <div
-            className={`rounded-xl border px-4 py-3 text-sm ${
+            className={`rounded-lg border px-4 py-3 text-sm ${
               banner.kind === 'ok'
                 ? 'bg-emerald-50 border-emerald-200 text-emerald-800'
                 : 'bg-amber-50 border-amber-200 text-amber-900'
@@ -212,7 +259,7 @@ export default function BranchInventory() {
           </div>
         )}
 
-        <div className="bg-surface-white border border-border rounded-xl p-4 shadow-[var(--shadow-card)] flex flex-col gap-3">
+        <div className="bg-surface-white border border-border rounded-lg p-4 shadow-[var(--shadow-card)] flex flex-col gap-3">
           <div className="flex flex-col md:flex-row gap-3 md:items-center">
             <input
               type="search"
@@ -241,7 +288,7 @@ export default function BranchInventory() {
                     setItemType(f.key)
                     setPage(1)
                   }}
-                  className={`px-3 py-1.5 text-xs font-semibold rounded-full border transition-colors ${
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-md border transition-colors ${
                     active
                       ? 'bg-brand-orange text-white border-brand-orange'
                       : 'bg-surface text-text-secondary border-border hover:border-brand-orange-border hover:text-brand-orange'
@@ -252,36 +299,60 @@ export default function BranchInventory() {
               )
             })}
           </div>
+          <div className="flex flex-wrap gap-2 pt-3 border-t border-border-light">
+            {STOCK_FILTERS.map((filter) => {
+              const active = stockStatus === filter.key
+              return (
+                <button
+                  key={filter.label}
+                  type="button"
+                  onClick={() => {
+                    setStockStatus(filter.key)
+                    setPage(1)
+                  }}
+                  className={`px-3 py-2 text-xs font-semibold rounded-lg border transition-colors ${
+                    active
+                      ? 'bg-text-primary text-white border-text-primary'
+                      : 'bg-surface-white text-text-secondary border-border hover:border-brand-orange hover:text-brand-orange'
+                  }`}
+                >
+                  {filter.label}
+                </button>
+              )
+            })}
+          </div>
         </div>
 
         {loading && (
-          <div className="bg-surface-white border border-border rounded-xl p-8 text-center text-sm text-text-secondary">
+          <div className="bg-surface-white border border-border rounded-lg p-8 text-center text-sm text-text-secondary">
             Đang tải kho chi nhánh...
           </div>
         )}
 
         {!loading && error && (
-          <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
-            {error}
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-sm text-red-700 flex items-center justify-between gap-3">
+            <span>{error}</span>
+            <button type="button" onClick={() => setReloadToken((n) => n + 1)} className="shrink-0 rounded-lg border border-red-300 px-3 py-2 text-xs font-bold hover:bg-red-100">Thử lại</button>
           </div>
         )}
 
         {!loading && !error && items.length === 0 && (
-          <div className="bg-surface-white border border-border rounded-xl p-8 text-center text-sm text-text-secondary">
+          <div className="bg-surface-white border border-border rounded-lg p-8 text-center text-sm text-text-secondary">
             Không có mặt hàng tồn kho phù hợp.
           </div>
         )}
 
         {!loading && !error && items.length > 0 && (
-          <div className="bg-surface-white border border-border rounded-xl shadow-[var(--shadow-card)] overflow-hidden">
+          <div className="bg-surface-white border border-border rounded-lg shadow-[var(--shadow-card)] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm min-w-[960px]">
                 <thead className="bg-surface border-b border-border text-xs text-text-muted uppercase tracking-wide">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Tên mặt hàng</th>
                     <th className="px-4 py-3 font-semibold">Loại</th>
-                    <th className="px-4 py-3 font-semibold text-right">Tồn</th>
+                    <th className="px-4 py-3 font-semibold text-right">Tồn vật lý</th>
                     <th className="px-4 py-3 font-semibold text-right">Giữ chỗ</th>
+                    <th className="px-4 py-3 font-semibold text-right">Khả dụng</th>
                     <th className="px-4 py-3 font-semibold">ĐVT</th>
                     <th className="px-4 py-3 font-semibold">Ngưỡng</th>
                     <th className="px-4 py-3 font-semibold">Trạng thái SL</th>
@@ -322,10 +393,13 @@ export default function BranchInventory() {
                         {itemTypeLabel(item.itemType)}
                       </td>
                       <td className="px-4 py-3 text-right font-semibold tabular-nums">
-                        {formatQty(item.availableQty)}
+                        {formatQty(onHandQty(item))}
                       </td>
                       <td className="px-4 py-3 text-right text-text-secondary tabular-nums">
                         {formatQty(item.reservedQty)}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-bold tabular-nums ${usableQty(item) <= 0 ? 'text-red-700' : 'text-text-primary'}`}>
+                        {formatQty(usableQty(item))}
                       </td>
                       <td className="px-4 py-3 text-text-secondary">{item.unitName || '—'}</td>
                       <td className="px-4 py-3 text-xs text-text-muted max-w-[160px]">
@@ -333,7 +407,7 @@ export default function BranchInventory() {
                       </td>
                       <td className="px-4 py-3">
                         <span
-                          className={`inline-flex px-2 py-0.5 rounded-full text-[11px] font-bold border ${quantityBadgeClass(
+                          className={`inline-flex px-2 py-0.5 rounded-md text-[11px] font-bold border ${quantityBadgeClass(
                             item.quantityStatus
                           )}`}
                         >
@@ -389,11 +463,11 @@ export default function BranchInventory() {
 
       {reportItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-md rounded-2xl bg-surface-white border border-border shadow-xl p-5">
-            <h2 className="text-base font-bold text-text-primary">Báo thiếu hàng</h2>
+          <div className="w-full max-w-md rounded-lg bg-surface-white border border-border shadow-xl p-5" role="dialog" aria-modal="true" aria-labelledby="shortage-report-title">
+            <h2 id="shortage-report-title" className="text-base font-bold text-text-primary">Báo thiếu hàng</h2>
             <p className="text-xs text-text-muted mt-1">
               {reportItem.itemName} · {itemTypeLabel(reportItem.itemType)} · Tồn{' '}
-              {formatQty(reportItem.availableQty)} {reportItem.unitName || ''}
+              {formatQty(usableQty(reportItem))} {reportItem.unitName || ''} khả dụng
             </p>
 
             <label className="block mt-4 text-xs font-semibold text-text-secondary">

@@ -3,110 +3,157 @@
     ViewData["Title"] = "Cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var statusFilter = ViewBag.StatusFilter as string ?? "OPEN";
-    int page = Model.Page;
-    int totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var currentPage = Model.Page;
+    var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
+    var outCount = Model.Items.Count(x => x.AlertType == "OUT_OF_STOCK");
+    var lowCount = Model.Items.Count(x => x.AlertType == "LOW_STOCK");
+    var manualCount = Model.Items.Count(x => x.Source == "SALES_REPORT");
+    string StatusLabel(string value) => value switch
+    {
+        "OPEN" => "Chờ quản lý",
+        "CONFIRMED" => "Đã xác nhận",
+        "REJECTED" => "Đã báo sai",
+        "RESOLVED" => "Đã khôi phục",
+        "CLOSED" => "Đã đóng",
+        _ => value
+    };
+    string StatusClass(string value) => value switch
+    {
+        "OPEN" => "ops-badge-warning",
+        "CONFIRMED" => "ops-badge-info",
+        "REJECTED" => "ops-badge-neutral",
+        "RESOLVED" => "ops-badge-success",
+        "CLOSED" => "ops-badge-neutral",
+        _ => "ops-badge-neutral"
+    };
+    string AlertLabel(string value) => value == "OUT_OF_STOCK" ? "Hết hàng" : "Sắp hết";
+    string SourceLabel(string value) => value switch
+    {
+        "SALES_REPORT" => "Nhân viên báo thiếu",
+        "POS_SALE" => "Bán hàng POS",
+        "OFFLINE_SYNC" => "Đồng bộ offline",
+        "MANUAL_CHECK" => "Kiểm tra thủ công",
+        "INVENTORY_TRANSACTION" => "Biến động kho",
+        _ => "Tự động"
+    };
 }
 
-<div class="container-fluid py-3">
-    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
         <div>
-            <h4 class="mb-0">Cảnh báo kho</h4>
-            <small class="text-muted">Cảnh báo tồn kho chi nhánh (cửa hàng #@Model.StoreId)</small>
+            <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
+            <h1 class="ops-title"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</h1>
+            <p class="ops-subtitle">Theo dõi thiếu hụt tại cửa hàng #@Model.StoreId. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</p>
         </div>
-    </div>
+        <div class="ops-actions">
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index">
+                <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Xem tồn kho
+            </a>
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">
+                <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng
+            </a>
+        </div>
+    </header>
 
     @if (TempData["SuccessMessage"] != null)
     {
-        <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div>
     }
     @if (TempData["ErrorMessage"] != null)
     {
-        <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+        <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div>
     }
 
-    <form method="get" class="row g-2 mb-3">
-        <div class="col-auto">
-            <select name="status" class="form-select form-select-sm">
-                <option value="OPEN" selected="@(statusFilter == "OPEN")">OPEN</option>
-                <option value="CONFIRMED" selected="@(statusFilter == "CONFIRMED")">CONFIRMED</option>
-                <option value="MANAGER_REJECTED" selected="@(statusFilter == "MANAGER_REJECTED")">MANAGER_REJECTED</option>
-                <option value="RESOLVED" selected="@(statusFilter == "RESOLVED")">RESOLVED</option>
-                <option value="" selected="@(string.IsNullOrEmpty(statusFilter))">Tất cả</option>
-            </select>
-        </div>
-        <div class="col-auto">
-            <button type="submit" class="btn btn-sm btn-outline-primary">Lọc</button>
-        </div>
-    </form>
+    <section class="ops-metrics" aria-label="Tóm tắt cảnh báo trên trang">
+        <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Hết hàng trên trang</span><strong class="ops-metric-value danger">@outCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Sắp hết trên trang</span><strong class="ops-metric-value warning">@lowCount</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Nhân viên báo thiếu</span><strong class="ops-metric-value">@manualCount</strong></div>
+    </section>
 
-    @if (Model.Items == null || Model.Items.Count == 0)
+    <nav class="ops-status-tabs" aria-label="Lọc theo trạng thái xử lý">
+        @foreach (var status in new[] { "OPEN", "CONFIRMED", "MANAGER_REJECTED", "RESOLVED", "" })
+        {
+            <a class="ops-tab @(statusFilter == status ? "active" : "")"
+               asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"
+               asp-route-status="@status">@(string.IsNullOrEmpty(status) ? "Tất cả" : StatusLabel(status))</a>
+        }
+    </nav>
+
+    @if (Model.Items.Count == 0)
     {
-        <div class="card border-0 shadow-sm">
-            <div class="card-body text-center text-muted py-5">Không có cảnh báo phù hợp.</div>
-        </div>
+        <section class="ops-empty">
+            <i class="fa-regular fa-circle-check fa-xl mb-3" aria-hidden="true"></i>
+            <div class="fw-bold text-dark">Không có cảnh báo phù hợp</div>
+            <div class="mt-1">Thử chọn trạng thái khác hoặc kiểm tra lại sau khi có biến động kho.</div>
+        </section>
     }
     else
     {
-        <div class="table-responsive shadow-sm bg-white rounded">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
-                    <tr>
-                        <th>Mặt hàng</th>
-                        <th>Loại</th>
-                        <th class="text-end">Tồn (snapshot)</th>
-                        <th class="text-end">Ngưỡng</th>
-                        <th>Nguồn</th>
-                        <th>Người báo</th>
-                        <th>Ghi chú báo</th>
-                        <th>Trạng thái</th>
-                        <th>Tạo lúc</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td class="fw-semibold">@item.ItemName</td>
-                        <td>@item.ItemTypeLabel</td>
-                        <td class="text-end">@item.CurrentQtySnapshot.ToString("N3")</td>
-                        <td class="text-end">@(item.ThresholdSnapshot?.ToString("N3") ?? "—")</td>
-                        <td><small>@item.Source</small></td>
-                        <td>@(item.ReporterName ?? "—")</td>
-                        <td><small class="text-muted">@(item.ReporterNote ?? "—")</small></td>
-                        <td>
-                            <span class="badge @(item.Status == "OPEN" ? "bg-warning text-dark" : item.Status == "CONFIRMED" ? "bg-success" : item.Status == "MANAGER_REJECTED" ? "bg-secondary" : "bg-info")">
-                                @item.Status
-                            </span>
-                        </td>
-                        <td><small>@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
-                        <td class="text-end">
-                            <a class="btn btn-sm btn-outline-primary"
-                               asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details"
-                               asp-route-id="@item.StockAlertId">Chi tiết</a>
-                        </td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
+        <section class="ops-table-wrap" aria-label="Danh sách cảnh báo kho">
+            <div class="ops-table-scroll">
+                <table class="ops-table">
+                    <thead>
+                        <tr>
+                            <th>Mặt hàng</th>
+                            <th>Trạng thái tồn</th>
+                            <th class="number">Tồn vật lý</th>
+                            <th class="number">Giữ chỗ</th>
+                            <th class="number">Khả dụng</th>
+                            <th class="number">Ngưỡng</th>
+                            <th>Luồng xử lý</th>
+                            <th>Nguồn</th>
+                            <th>Cập nhật</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="ops-item-name">@item.ItemName</div>
+                                <div class="ops-secondary">@item.ItemTypeLabel@(string.IsNullOrWhiteSpace(item.ReporterName) ? "" : $" · Báo bởi {item.ReporterName}")</div>
+                            </td>
+                            <td>
+                                <span class="ops-badge @(item.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
+                                    <i class="fa-solid @(item.AlertType == "OUT_OF_STOCK" ? "fa-circle-xmark" : "fa-arrow-trend-down")" aria-hidden="true"></i>
+                                    @AlertLabel(item.AlertType)
+                                </span>
+                            </td>
+                            <td class="number">@(item.OnHandQty?.ToString("N3") ?? "—")</td>
+                            <td class="number">@(item.ReservedQty?.ToString("N3") ?? "—")</td>
+                            <td class="number fw-bold @(item.AvailableQty.HasValue && item.AvailableQty.Value <= 0 ? "text-danger" : "")">@(item.AvailableQty?.ToString("N3") ?? item.CurrentQtySnapshot.ToString("N3"))</td>
+                            <td class="number">@(item.ThresholdSnapshot?.ToString("N3") ?? "—")</td>
+                            <td><span class="ops-badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
+                            <td><span class="ops-secondary">@SourceLabel(item.Source)</span></td>
+                            <td class="text-nowrap"><span class="ops-secondary">@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
+                            <td class="text-end">
+                                <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@item.StockAlertId" asp-route-storeId="@item.StoreId">
+                                    Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        </section>
 
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <small class="text-muted">Trang @(page) / @totalPages · Tổng @Model.Total</small>
-            <div class="btn-group">
-                @if (page > 1)
+        <div class="ops-pagination">
+            <span>Trang @currentPage / @totalPages · Tổng @Model.Total cảnh báo</span>
+            <div class="ops-page-links">
+                @if (currentPage > 1)
                 {
-                    <a class="btn btn-sm btn-outline-secondary"
-                       asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"
-                       asp-route-status="@statusFilter" asp-route-page="@(page - 1)">Trước</a>
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage - 1)">Trước</a>
                 }
-                @if (page < totalPages)
+                @if (currentPage < totalPages)
                 {
-                    <a class="btn btn-sm btn-outline-secondary"
-                       asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"
-                       asp-route-status="@statusFilter" asp-route-page="@(page + 1)">Sau</a>
+                    <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-status="@statusFilter" asp-route-storeId="@Model.StoreId" asp-route-page="@(currentPage + 1)">Sau</a>
                 }
             </div>
         </div>
     }
-</div>
+</main>
