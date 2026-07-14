@@ -19,9 +19,10 @@ namespace CafeChain.ViewModels.Cart
         [Required(ErrorMessage = "Vui lòng chọn phương thức thanh toán")]
         public int PaymentMethodId { get; set; }
 
+        /// <summary>Compatibility — non-null rejected server-side (FEATURE_NOT_AVAILABLE).</summary>
         public int? SelectedVoucherId { get; set; }
 
-        /// Số điểm thưởng khách muốn sử dụng (null = không dùng)
+        /// <summary>Compatibility — points &gt; 0 rejected server-side (FEATURE_NOT_AVAILABLE).</summary>
         public int? PointsUsed { get; set; }
 
         public int OrderTypeId { get; set; } = 3; // Default: Delivery
@@ -38,12 +39,13 @@ namespace CafeChain.ViewModels.Cart
 
         public decimal ShippingFee { get; set; } = 15000;
 
+        /// <summary>Historical/display only — always 0 for new checkouts (soft-removal).</summary>
         public decimal VoucherDiscount { get; set; }
 
-        /// [FIX BUG 1] Số tiền giảm từ điểm thưởng - PHẢI được tính vào Total
+        /// <summary>Historical/display only — always 0 for new checkouts (soft-removal).</summary>
         public decimal PointDiscount { get; set; }
 
-        /// [FIX BUG 1] Công thức Total đầy đủ: bao gồm cả Point Discount
-        public decimal Total => SubTotal + ShippingFee - VoucherDiscount - PointDiscount;
+        /// <summary>Selling total without voucher/loyalty: SubTotal + ShippingFee.</summary>
+        public decimal Total => SubTotal + ShippingFee;
     }
 }

@@ -43,20 +43,27 @@ namespace CafeChain.Controllers.Api.v1
         [HttpPost("open")]
         public async Task<IActionResult> OpenShift([FromBody] OpenShiftRequestDto request)
         {
-            var result = await _shiftService.OpenShiftAsync(
-                CurrentStaffId, CurrentStoreId, request.StartingCash, request.PosTerminalId);
+            var result = await _shiftService.OpenShiftAsync(CurrentStaffId, CurrentStoreId, request);
 
             if (!result.IsSuccess)
             {
-                // LATE_OPENING_REQUIRES_BYPASS → 403 Forbidden (cần Supervisor PIN)
-                if (result.Message?.Contains("LATE_OPENING_REQUIRES_BYPASS") == true)
-                    return StatusCode(403, new { success = false, message = result.Message });
+                // LATE_OPENING_REQUIRES_OTP → 403 Forbidden (cần OTP online)
+                if (result.Message?.Contains("LATE_OPENING_REQUIRES_OTP") == true
+                    || result.ErrorCode == "LATE_OPENING_REQUIRES_OTP")
+                {
+                    return StatusCode(403, new
+                    {
+                        success = false,
+                        message = result.Message,
+                        errorCode = result.ErrorCode
+                    });
+                }
 
                 // Ca đang mở → 409 Conflict
                 if (result.Message?.Contains("chưa được đóng") == true)
                     return Conflict(new { success = false, message = result.Message });
 
-                return BadRequest(new { success = false, message = result.Message });
+                return BadRequest(new { success = false, message = result.Message, errorCode = result.ErrorCode });
             }
 
             // Fetch the newly created shift to return summary
@@ -106,7 +113,7 @@ namespace CafeChain.Controllers.Api.v1
 
         /// <summary>
         /// POST /api/v1/pos/shifts/{id}/close-exception
-        /// Đóng ca ngoại lệ bằng PIN supervisor/manager khi còn Offline Order local chưa Sync.
+        /// Đóng ca ngoại lệ bằng OTP phê duyệt (online) khi còn Offline Order local chưa Sync.
         /// </summary>
         [HttpPost("{id}/close-exception")]
         public async Task<IActionResult> CloseShiftByException(int id, [FromBody] CloseShiftExceptionRequestDto request)
@@ -116,7 +123,7 @@ namespace CafeChain.Controllers.Api.v1
 
             if (!result.IsSuccess)
             {
-                return BadRequest(new { success = false, message = result.Message });
+                return BadRequest(new { success = false, message = result.Message, errorCode = result.ErrorCode });
             }
 
             var closedShift = await _context.WorkShifts

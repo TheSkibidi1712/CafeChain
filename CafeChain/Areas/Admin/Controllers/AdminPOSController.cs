@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
@@ -25,20 +26,17 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IWorkShiftService _workShiftService;
         private readonly IPOSOrderService _orderService;
-        private readonly ISupervisorAuthService _supervisorAuthService;
         private readonly IPOSOrderRepository _repository;
         private readonly IInventoryDeductionService _inventoryDeductionService;
 
         public AdminPOSController(
             IWorkShiftService workShiftService,
             IPOSOrderService orderService,
-            ISupervisorAuthService supervisorAuthService,
             IPOSOrderRepository repository,
             IInventoryDeductionService inventoryDeductionService)
         {
             _workShiftService = workShiftService;
             _orderService = orderService;
-            _supervisorAuthService = supervisorAuthService;
             _repository = repository;
             _inventoryDeductionService = inventoryDeductionService;
         }
@@ -111,7 +109,14 @@ namespace CafeChain.Areas.Admin.Controllers
 
             try
             {
-                var result = await _workShiftService.OpenShiftAsync(userId, storeId, request?.StartingCash ?? 0, request?.PosTerminalId);
+                var result = await _workShiftService.OpenShiftAsync(
+                    userId,
+                    storeId,
+                    new OpenShiftRequestDto
+                    {
+                        StartingCash = request?.StartingCash ?? 0,
+                        PosTerminalId = request?.PosTerminalId
+                    });
                 return Json(new { success = result.IsSuccess, message = result.Message });
             }
             catch (Exception ex)
@@ -248,29 +253,6 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // ============================================================
-        // API: Supervisor PIN Authorization — delegate to SupervisorAuthService
-        // ============================================================
-        [HttpPost]
-        public async Task<IActionResult> AuthorizeSupervisor([FromBody] SupervisorAuthRequestDto request)
-        {
-            try
-            {
-                var (userId, storeId) = await ResolveUserStoreAsync();
-                if (userId == 0) return Json(new { success = false, message = "Không xác định được tài khoản." });
-
-                var result = await _supervisorAuthService.AuthorizePinAsync(
-                    request.Pin, userId, storeId, request.ActionName, request.TargetId, request.Reason);
-
-                var remaining = await _supervisorAuthService.GetRemainingAttemptsAsync(storeId);
-                return Json(new { success = result.IsSuccess, message = result.Message, remainingAttempts = remaining });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = "Lỗi hệ thống: " + ex.Message });
-            }
-        }
-
-        // ============================================================
         // API: Sync Offline Orders — delegates to CommitOrderAsync + Inventory Deduction
         // ADR-0002: Idempotency via ClientOrderId — retry-safe, no duplicate orders
         // ============================================================
@@ -309,6 +291,23 @@ namespace CafeChain.Areas.Admin.Controllers
                             });
                             continue;
                         }
+                    }
+
+                    // Soft-removal: legacy offline voucher/loyalty payload → fail closed.
+                    if (!string.IsNullOrWhiteSpace(orderDto.VoucherCode)
+                        || orderDto.PointsUsed > 0
+                        || orderDto.VoucherDiscount > 0
+                        || orderDto.PointDiscount > 0)
+                    {
+                        results.Add(new
+                        {
+                            localId = orderDto.LocalId,
+                            clientOrderId = orderDto.ClientOrderId,
+                            status = "failed",
+                            errorCode = ProductScopeErrorCodes.FeatureNotAvailable,
+                            reason = ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage
+                        });
+                        continue;
                     }
 
                     // Chuyển OfflineOrderSyncDTO → POSOrderCommitDto

@@ -362,18 +362,37 @@ namespace CafeChain.Tests
                 });
             }
 
-            if (!await context.StoreInventoryWriterConfigurations.AnyAsync(x => x.StoreId == StoreId))
+            // #131 — CreateAndConfirm requires PreparedItem writer mode (not Legacy).
+            var cfg = await context.StoreInventoryWriterConfigurations
+                .FirstOrDefaultAsync(x => x.StoreId == StoreId);
+            if (cfg == null)
             {
                 context.StoreInventoryWriterConfigurations.Add(
                     new CafeChain.Models.Inventories.Configuration.StoreInventoryWriterConfiguration
                     {
                         StoreId = StoreId,
-                        WriterMode = CafeChain.Models.Enums.Inventory.InventoryWriterMode.LegacyRecipe,
-                        HasEverActivatedPreparedItem = false,
+                        WriterMode = CafeChain.Models.Enums.Inventory.InventoryWriterMode.PreparedItem,
+                        HasEverActivatedPreparedItem = true,
                         CreatedAt = now,
                         UpdatedAt = now,
                         RowVersion = new byte[] { 0 }
                     });
+            }
+            else
+            {
+                cfg.WriterMode = CafeChain.Models.Enums.Inventory.InventoryWriterMode.PreparedItem;
+                cfg.HasEverActivatedPreparedItem = true;
+            }
+
+            // Recipe must have PreparedItem output contract for create validation.
+            var recipe = await context.Recipes.FirstOrDefaultAsync(r => r.RecipeId == RecipeId);
+            if (recipe != null)
+            {
+                recipe.PreparedItemId = PreparedItemId;
+                recipe.OutputQuantity = recipe.OutputQuantity is > 0 ? recipe.OutputQuantity : 1m;
+                recipe.OutputUnitId ??= 1;
+                recipe.Active = true;
+                recipe.Status = "Active";
             }
 
             const int staffId = 9101;
@@ -405,10 +424,15 @@ namespace CafeChain.Tests
                 physical,
                 Array.Empty<CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider>());
             var scope = new CafeChain.Application.Services.Security.ScopeAuthorizationService(context);
+            var caps = new CafeChain.Application.Interfaces.Inventories.IInventoryWriterCapabilityProvider[]
+            {
+                new CafeChain.Application.Services.Admin.Production.ProductionPreparedWriterCapabilityProvider()
+            };
             var service = new CafeChain.Application.Services.Admin.Production.ProductionRunService(
                 context,
                 scope,
                 writer,
+                caps,
                 new Microsoft.Extensions.Logging.Abstractions.NullLogger<CafeChain.Application.Services.Admin.Production.ProductionRunService>());
 
             var result = await service.CreateAndConfirmAsync(

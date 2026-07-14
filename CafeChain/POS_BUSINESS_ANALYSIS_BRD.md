@@ -32,7 +32,7 @@ Hệ thống POS được vận hành và tương tác bởi nhiều đối tư�
 | Đối tượng | Vai trò trong POS | Mối quan tâm lớn nhất (Core Concerns) |
 | :--- | :--- | :--- |
 | **Thu ngân (`Cashier`)** | Người trực tiếp sử dụng POS để chọn món, thu tiền, in hóa đơn. | - Tốc độ phản hồi cực nhanh (dưới 100ms/click).<br>- Giao diện cảm ứng nút lớn dễ bấm.<br>- Quy trình thối tiền lẻ đơn giản, rõ ràng. |
-| **Ca trưởng (`ShiftSupervisor`)** | Người giám sát ca, duyệt các thao tác nhạy cảm, mở/đóng két. | - Cơ chế duyệt nhanh bằng mã PIN 4 số tại quầy.<br>- Báo cáo chênh lệch tiền mặt cuối ca nhanh để bàn giao ca. |
+| **Ca trưởng (`ShiftSupervisor`)** | Người giám sát ca, duyệt các thao tác nhạy cảm, mở/đóng két. | - Duyệt bằng OTP one-time 6 ký tự (email), không còn PIN cố định (#143).<br>- Báo cáo chênh lệch tiền mặt cuối ca nhanh để bàn giao ca. |
 | **Kế toán (`CFO / Accountant`)** | Người đối soát doanh thu tài chính cuối ngày từ xa. | - Báo cáo lệch két chính xác (Lệch bao nhiêu, ai làm lệch, lý do là gì).<br>- Vết kiểm toán (`InvoiceAuditLog`) rõ ràng cho từng hóa đơn bị hủy/giảm giá. |
 | **Nhân viên Pha chế / Bếp** | Người nhận thông tin order để chuẩn bị đồ uống. | - Món ăn in ra bếp/hiển thị màn hình bếp phải chính xác về Size, Sugar/Ice, Toppings.<br>- Tránh trùng lặp đơn. |
 | **Khách hàng (`Customer`)** | Người chi trả tiền và nhận đồ uống. | - Hóa đơn in ra rõ ràng, chi tiết tiền gốc và tiền giảm.<br>- Tích điểm thành viên chính xác.<br>- Áp voucher khuyến mãi không bị lỗi. |
@@ -136,7 +136,7 @@ BA phân cấp các yêu cầu chức năng theo mô hình **MoSCoW (Must - Shou
 | **FR-POS-03** | Bán hàng | Giỏ hàng & Giá | Tính đơn giá món = (Giá gốc + Giá size + Tổng giá toppings) * Số lượng. | **MUST** |
 | **FR-POS-04** | Bán hàng | Khách hàng thành viên | Tìm kiếm khách hàng qua SĐT. Hiển thị hạng thành viên, tích lũy điểm và áp dụng trừ điểm giảm giá trực tiếp. | **MUST** |
 | **FR-POS-05** | Bán hàng | Áp dụng Voucher | Nhập mã voucher, gọi API kiểm tra tính hợp lệ và tự động trừ tiền giảm giá dựa theo phần trăm/tiền mặt của Voucher. | **MUST** |
-| **FR-POS-06** | Bảo mật | Kiểm soát Trưởng ca | Khóa màn hình POS khi Hủy hóa đơn/Giảm giá tay > 15%, yêu cầu Trưởng ca nhập mã PIN 4 số tại chỗ để mở khóa. | **MUST** |
+| **FR-POS-06** | Bảo mật | Kiểm soát Trưởng ca | OTP one-time cho thao tác nhạy cảm trong scope (chênh lệch két / đóng ngoại lệ / mở ca trễ); generic PIN bypass đã gỡ (#140–#143). | **MUST** |
 | **FR-POS-07** | Vận hành | Ngoại tuyến (Offline) | Tự lưu đơn hàng vào LocalStorage khi mất kết nối mạng, cho phép in hóa đơn offline tạm thời. | **SHOULD** |
 | **FR-POS-08** | Vận hành | Đồng bộ Offline | Gửi danh sách đơn offline lên server khi có mạng lại, mở Transaction lưu DB và tự động kích hoạt khấu trừ kho nguyên liệu. | **SHOULD** |
 | **FR-POS-09** | Bán hàng | Thanh toán hỗn hợp | Hỗ trợ chia tiền thanh toán một đơn hàng bằng cả tiền mặt và chuyển khoản QR cùng lúc. | **SHOULD** |
@@ -155,7 +155,7 @@ BA phân cấp các yêu cầu chức năng theo mô hình **MoSCoW (Must - Shou
 2. **An toàn bảo mật (Security):**
    - **Anti-IDOR:** Mọi API thanh toán, áp voucher bắt buộc phải lấy `AccountId` và `StoreId` từ Claims của Server, tuyệt đối không tin cậy dữ liệu Client gửi lên.
    - **PIN Hashing:** Mã PIN Trưởng ca phải được lưu dạng băm Bcrypt, cấm lưu bản rõ (Plaintext) trong DB để tránh rò rỉ dữ liệu.
-   - **Brute-force Protection:** Nếu nhập mã PIN Trưởng ca sai quá 5 lần liên tiếp tại quầy POS, khóa tính năng bypass trong 15 phút và gửi cảnh báo về Telegram/Email của Cửa hàng trưởng.
+   - **OTP attempt limits:** Sai OTP quá max attempts → challenge Locked; TTL/resend cooldown; anti-self-approval (#139–#143).
 3. **Trải nghiệm người dùng (UX/UI & Usability):**
    - Thiết kế giao diện theo tông màu tối sang trọng (**Dark Mode**) để nhân viên đứng quầy làm việc liên tục 8-12 tiếng không bị mỏi mắt dưới ánh đèn neon của quán.
    - Kích thước các nút chọn món, nút thanh toán phải lớn (tối thiểu **48px x 48px**) phù hợp cho thao tác chạm bằng ngón tay trên màn hình cảm ứng, không yêu cầu dùng chuột.
@@ -179,7 +179,7 @@ Trong thực tế vận hành chuỗi F&B, các tình huống bất ngờ thư�
 * **Giải pháp từ BA:**
   - Thiết lập **Hạn mức lệch két cho phép** (ví dụ: tối đa 50.000đ).
   - Nếu số tiền lệch vượt quá hạn mức cho phép này, hệ thống **không cho phép** thu ngân tự động đóng ca két tiền.
-  - POS hiển thị thông báo: *"Số tiền chênh lệch vượt quá hạn mức cho phép. Vui lòng gọi Trưởng ca hoặc Cửa hàng trưởng nhập mã PIN ủy quyền để xác nhận bàn giao ca đặc biệt."*
+  - POS hiển thị thông báo: *"Số tiền chênh lệch vượt quá hạn mức cho phép. Vui lòng yêu cầu OTP phê duyệt từ Ca trưởng để xác nhận bàn giao ca."*
   - Việc này buộc Quản lý phải vào kiểm tra hộc kéo và camera ngay lập tức thay vì để thu ngân tự đóng ca ra về.
 
 ### 🚨 Tình huống 3: Concurrency két tiền (Hai thiết bị cùng truy cập một hộc kéo)

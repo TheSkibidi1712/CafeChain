@@ -1,4 +1,5 @@
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
@@ -55,6 +56,17 @@ namespace CafeChain.Models.Orders
         public int PointsUsed { get; set; }            // Số điểm dùng
 
         public decimal Total { get; set; }             // Tổng cuối (SubTotal - Discount)
+
+        // ====== ACTUAL SALES COGS (#133) — separate from selling price ======
+        public SalesCostStatus CostStatus { get; set; } = SalesCostStatus.Pending;
+
+        /// <summary>Set only when CostStatus = Complete (never partial known sum).</summary>
+        public decimal? TotalCogs { get; set; }
+
+        /// <summary>Order.Total − TotalCogs when Complete; null otherwise.</summary>
+        public decimal? GrossProfit { get; set; }
+
+        public DateTime? CostedAtUtc { get; set; }
 
         public DateTime CreatedAt { get; set; }
 

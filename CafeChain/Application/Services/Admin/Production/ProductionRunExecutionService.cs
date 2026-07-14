@@ -6,6 +6,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Production;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
@@ -16,6 +17,7 @@ namespace CafeChain.Application.Services.Admin.Production
 {
     /// <summary>
     /// Issue #120 — execute CONFIRMED ProductionRun once: deduct inputs, credit PreparedItem output.
+    /// Issue #132 — actual FIFO cost evidence, durable allocations, output cost layer, fail-closed.
     /// </summary>
     public sealed class ProductionRunExecutionService : IProductionRunExecutionService
     {
@@ -25,6 +27,7 @@ namespace CafeChain.Application.Services.Admin.Production
         private readonly IStoreInventoryWriteResolver _writeResolver;
         private readonly IPhysicalUnitConversionService _physicalConversion;
         private readonly IUnitConversionService _unitConversion;
+        private readonly IInventoryCostLayerConsumptionService _costLayerConsumption;
         private readonly IEnumerable<IInventoryWriterCapabilityProvider> _capabilityProviders;
         private readonly ILogger<ProductionRunExecutionService> _logger;
 
@@ -35,6 +38,7 @@ namespace CafeChain.Application.Services.Admin.Production
             IStoreInventoryWriteResolver writeResolver,
             IPhysicalUnitConversionService physicalConversion,
             IUnitConversionService unitConversion,
+            IInventoryCostLayerConsumptionService costLayerConsumption,
             IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders,
             ILogger<ProductionRunExecutionService> logger)
         {
@@ -44,6 +48,7 @@ namespace CafeChain.Application.Services.Admin.Production
             _writeResolver = writeResolver;
             _physicalConversion = physicalConversion;
             _unitConversion = unitConversion;
+            _costLayerConsumption = costLayerConsumption;
             _capabilityProviders = capabilityProviders;
             _logger = logger;
         }
@@ -65,7 +70,6 @@ namespace CafeChain.Application.Services.Admin.Production
             if (actorAccountId <= 0)
                 return Fail(ProductionRunExecutionFailureCodes.StaffUnauthorized, "Nhân viên không hợp lệ.");
 
-            // Outer retry when concurrent canonical create forces full restart
             for (var attempt = 0; attempt < 3; attempt++)
             {
                 var result = await ExecuteOnceAsync(productionRunId, staffId, staffHomeStoreId, actorAccountId);
@@ -76,7 +80,6 @@ namespace CafeChain.Application.Services.Admin.Production
                     return result;
                 }
 
-                // Full reset: do not reuse failed transaction or poisoned tracker state.
                 _context.ChangeTracker.Clear();
                 _logger.LogWarning(
                     "[ProductionRunExecute] Retry after concurrency ProductionRunId={Id} Attempt={Attempt}",
@@ -161,7 +164,6 @@ namespace CafeChain.Application.Services.Admin.Production
                         "Chế độ ghi kho không hỗ trợ production PreparedItem.");
                 }
 
-                // Only PRODUCTION_PREPARED_WRITER must be Ready (other capabilities still block global mode cutover).
                 var productionCap = _capabilityProviders
                     .Select(p => p.GetStatus())
                     .FirstOrDefault(s => s.CapabilityId == InventoryWriterCapabilityIds.ProductionPreparedWriter);
@@ -224,11 +226,10 @@ namespace CafeChain.Application.Services.Admin.Production
                 {
                     await transaction.RollbackAsync();
                     return Fail(
-                        ProductionRunExecutionFailureCodes.InvalidOutputContract,
+                        ProductionRunExecutionFailureCodes.ZeroOutputRejected,
                         "Sản lượng chuẩn hóa phải > 0.");
                 }
 
-                // Build aggregated input plan
                 var planResult = await BuildInputPlanAsync(run, recipe, snapshotResult.Data);
                 if (!planResult.IsSuccess)
                 {
@@ -238,7 +239,6 @@ namespace CafeChain.Application.Services.Admin.Production
 
                 var inputPlan = planResult.Data!;
 
-                // Resolve/create output inventory
                 var outputResolve = await _writeResolver.ResolveAsync(new StoreInventoryWriteRequest
                 {
                     ModeSnapshot = snapshotResult.Data,
@@ -254,7 +254,8 @@ namespace CafeChain.Application.Services.Admin.Production
                 if (outputResolve.Status == InventoryWriteResolutionStatuses.FoundCanonical
                     && outputResolve.StoreInventory != null)
                 {
-                    outputInv = outputResolve.StoreInventory;
+                    outputInv = await LoadInventoryForUpdateAsync(outputResolve.StoreInventory.StoreInventoryId)
+                        ?? outputResolve.StoreInventory;
                 }
                 else if (outputResolve.Status == InventoryWriteResolutionStatuses.CreateAllowed)
                 {
@@ -280,7 +281,6 @@ namespace CafeChain.Application.Services.Admin.Production
                         outputResolve.Message);
                 }
 
-                // Self-consumption: same inventory as input and output
                 if (inputPlan.Any(i => i.StoreInventoryId == outputInv.StoreInventoryId))
                 {
                     await transaction.RollbackAsync();
@@ -289,32 +289,94 @@ namespace CafeChain.Application.Services.Admin.Production
                         "Đầu vào và đầu ra cùng một dòng tồn — chưa hỗ trợ trong #120.");
                 }
 
-                // Validate usable stock before mutation
+                // Lock inputs ASC then validate usable stock
                 foreach (var line in inputPlan.OrderBy(x => x.StoreInventoryId))
                 {
-                    var inv = line.Inventory;
-                    var usable = inv.AvailableQty - inv.ReservedQty;
+                    var locked = await LoadInventoryForUpdateAsync(line.StoreInventoryId);
+                    if (locked == null)
+                    {
+                        await transaction.RollbackAsync();
+                        return Fail(
+                            ProductionRunExecutionFailureCodes.MissingInputInventory,
+                            $"Không khóa được tồn kho #{line.StoreInventoryId}.");
+                    }
+
+                    line.Inventory = locked;
+                    var usable = locked.AvailableQty - locked.ReservedQty;
                     if (usable < line.RequiredQty)
                     {
                         await transaction.RollbackAsync();
                         return Fail(
                             ProductionRunExecutionFailureCodes.InsufficientStock,
-                            $"Không đủ tồn khả dụng (Available − Reserved) cho StoreInventory #{inv.StoreInventoryId}. Cần {line.RequiredQty}, khả dụng {usable}.");
+                            $"Không đủ tồn khả dụng (Available − Reserved) cho StoreInventory #{locked.StoreInventoryId}. Cần {line.RequiredQty}, khả dụng {usable}.");
                     }
+                }
+
+                // Build full cost plans for ALL inputs before any mutation (fail-closed).
+                var costPlans = new List<(InputPlanLine Line, CostLayerConsumptionPlan Plan)>();
+                var gaps = new List<ProductionCostEvidenceGapDto>();
+
+                foreach (var line in inputPlan.OrderBy(x => x.StoreInventoryId))
+                {
+                    var costPlanResult = await _costLayerConsumption.PlanConsumeAsync(
+                        run.StoreId,
+                        line.IngredientId,
+                        line.PreparedItemId,
+                        line.RequiredQty);
+
+                    if (!costPlanResult.IsSuccess || costPlanResult.Data == null || !costPlanResult.Data.IsFullyCovered)
+                    {
+                        var availableLayer = costPlanResult.Data?.AvailableLayerQuantity ?? 0m;
+                        gaps.Add(new ProductionCostEvidenceGapDto
+                        {
+                            InputCode = line.InputCode,
+                            InputName = line.InputLabel,
+                            RequiredQuantity = line.RequiredQty,
+                            AvailableLayerQuantity = availableLayer,
+                            MissingQuantity = Math.Max(0m, line.RequiredQty - availableLayer)
+                        });
+                        continue;
+                    }
+
+                    costPlans.Add((line, costPlanResult.Data));
+                }
+
+                if (gaps.Count > 0)
+                {
+                    await transaction.RollbackAsync();
+                    var fail = Fail(
+                        ProductionRunExecutionFailureCodes.CostEvidenceIncomplete,
+                        "Không thể hoàn tất lệnh sơ chế vì tồn kho đầu vào chưa có đủ bằng chứng giá vốn.");
+                    fail.Data = new ProductionRunExecutionResultDto
+                    {
+                        ProductionRunId = run.ProductionRunId,
+                        StoreId = run.StoreId,
+                        RecipeId = run.RecipeId,
+                        RequestedRunCount = run.RequestedRunCount,
+                        Status = "CONFIRMED",
+                        StockApplied = false,
+                        ValuationStatus = nameof(ProductionValuationStatus.Pending),
+                        CostEvidenceGaps = gaps,
+                        MessageKey = "ProductionRun.CostEvidenceIncomplete"
+                    };
+                    return fail;
                 }
 
                 var now = DateTime.UtcNow;
                 var movements = new List<InventoryTransaction>();
+                var pendingAllocations = new List<(InventoryTransaction Tx, CostLayerConsumptionPlan Plan)>();
 
-                // Mutate inputs
-                foreach (var line in inputPlan.OrderBy(x => x.StoreInventoryId))
+                // Mutate inputs + PRODUCTION_OUT with actual costs
+                foreach (var (line, plan) in costPlans.OrderBy(x => x.Line.StoreInventoryId))
                 {
+                    _costLayerConsumption.ApplyPlan(plan);
+
                     var inv = line.Inventory;
                     var before = inv.AvailableQty;
                     inv.AvailableQty -= line.RequiredQty;
                     inv.LastUpdated = now;
 
-                    movements.Add(new InventoryTransaction
+                    var tx = new InventoryTransaction
                     {
                         StoreInventoryId = inv.StoreInventoryId,
                         Type = InventoryTransactionTypeEnum.PRODUCTION_OUT,
@@ -322,16 +384,23 @@ namespace CafeChain.Application.Services.Admin.Production
                         Quantity = line.RequiredQty,
                         BeforeQty = before,
                         AfterQty = inv.AvailableQty,
+                        UnitCost = plan.WeightedUnitCost,
+                        TotalCost = plan.TotalCost,
                         ProductionRunId = run.ProductionRunId,
                         CreatedAt = now
-                    });
+                    };
+                    movements.Add(tx);
+                    pendingAllocations.Add((tx, plan));
                 }
 
-                // Credit output
+                decimal totalInputCost = costPlans.Sum(x => x.Plan.TotalCost);
+                // Deterministic unit cost: exact division; monetary TotalCost remains decimal(18,2) precision path.
+                decimal outputUnitCost = totalInputCost / normalizedOutput;
+
                 var outBefore = outputInv.AvailableQty;
                 outputInv.AvailableQty += normalizedOutput;
                 outputInv.LastUpdated = now;
-                movements.Add(new InventoryTransaction
+                var productionIn = new InventoryTransaction
                 {
                     StoreInventoryId = outputInv.StoreInventoryId,
                     Type = InventoryTransactionTypeEnum.PRODUCTION_IN,
@@ -339,15 +408,52 @@ namespace CafeChain.Application.Services.Admin.Production
                     Quantity = normalizedOutput,
                     BeforeQty = outBefore,
                     AfterQty = outputInv.AvailableQty,
+                    UnitCost = outputUnitCost,
+                    TotalCost = totalInputCost,
                     ProductionRunId = run.ProductionRunId,
                     CreatedAt = now
-                });
+                };
+                movements.Add(productionIn);
 
                 _context.InventoryTransactions.AddRange(movements);
+                await _context.SaveChangesAsync(); // materialize transaction ids for allocations
+
+                foreach (var (tx, plan) in pendingAllocations)
+                {
+                    foreach (var slice in plan.Slices)
+                    {
+                        _context.ProductionCostAllocations.Add(new ProductionCostAllocation
+                        {
+                            ProductionRunId = run.ProductionRunId,
+                            InventoryTransactionId = tx.InventoryTransactionId,
+                            InventoryCostLayerId = slice.InventoryCostLayerId,
+                            Quantity = slice.Quantity,
+                            UnitCost = slice.UnitCost,
+                            TotalCost = slice.TotalCost,
+                            CreatedAtUtc = now
+                        });
+                    }
+                }
+
+                _context.InventoryCostLayers.Add(new InventoryCostLayer
+                {
+                    StoreId = run.StoreId,
+                    IngredientId = null,
+                    PreparedItemId = outputPi.PreparedItemId,
+                    Quantity = normalizedOutput,
+                    RemainingQuantity = normalizedOutput,
+                    UnitCost = outputUnitCost,
+                    CreatedAt = now,
+                    SourceProductionRunId = run.ProductionRunId
+                });
 
                 run.Status = ProductionRunStatus.Completed;
                 run.CompletedAt = now;
                 run.CompletedByStaffId = staffId;
+                run.ValuationStatus = ProductionValuationStatus.Complete;
+                run.TotalInputCost = totalInputCost;
+                run.OutputUnitCost = outputUnitCost;
+                run.ValuedAtUtc = now;
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -359,10 +465,11 @@ namespace CafeChain.Application.Services.Admin.Production
                 dto.OutputPreparedItemId = outputPi.PreparedItemId;
 
                 _logger.LogInformation(
-                    "[ProductionRunExecute] Completed ProductionRunId={Id} StoreId={StoreId} OutputQty={Qty}",
+                    "[ProductionRunExecute] Completed ProductionRunId={Id} StoreId={StoreId} OutputQty={Qty} TotalInputCost={Cost}",
                     run.ProductionRunId,
                     run.StoreId,
-                    normalizedOutput);
+                    normalizedOutput,
+                    totalInputCost);
 
                 return ServiceResult<ProductionRunExecutionResultDto>.Success(
                     dto,
@@ -373,7 +480,6 @@ namespace CafeChain.Application.Services.Admin.Production
                 try { await transaction.RollbackAsync(); } catch { /* ignore */ }
                 _context.ChangeTracker.Clear();
 
-                // Unique canonical or movement race → signal outer retry (full re-lock from start)
                 if (IsUniqueViolation(ex))
                 {
                     _logger.LogWarning(ex, "[ProductionRunExecute] Unique violation ProductionRunId={Id}", productionRunId);
@@ -405,9 +511,23 @@ namespace CafeChain.Application.Services.Admin.Production
                     .SingleOrDefaultAsync();
             }
 
-            // SQLite / tests: rely on transaction isolation + unique indexes
             return await _context.ProductionRuns
                 .SingleOrDefaultAsync(r => r.ProductionRunId == productionRunId);
+        }
+
+        private async Task<StoreInventory?> LoadInventoryForUpdateAsync(int storeInventoryId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.StoreInventories
+                    .FromSqlInterpolated(
+                        $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK, HOLDLOCK)
+                           WHERE StoreInventoryId = {storeInventoryId}")
+                    .SingleOrDefaultAsync();
+            }
+
+            return await _context.StoreInventories
+                .SingleOrDefaultAsync(x => x.StoreInventoryId == storeInventoryId);
         }
 
         private async Task<ServiceResult> AuthorizeAsync(int staffId, int staffHomeStoreId, int storeId)
@@ -431,8 +551,12 @@ namespace CafeChain.Application.Services.Admin.Production
         private sealed class InputPlanLine
         {
             public int StoreInventoryId { get; init; }
-            public StoreInventory Inventory { get; init; } = null!;
+            public StoreInventory Inventory { get; set; } = null!;
             public decimal RequiredQty { get; set; }
+            public int? IngredientId { get; init; }
+            public int? PreparedItemId { get; init; }
+            public string InputCode { get; init; } = string.Empty;
+            public string InputLabel { get; init; } = string.Empty;
             public List<int> SourceDetailIds { get; } = new();
         }
 
@@ -449,8 +573,7 @@ namespace CafeChain.Application.Services.Admin.Production
                     errorCode: ProductionRunExecutionFailureCodes.InvalidOutputContract);
             }
 
-            // Temporary lines keyed by identity before inventory id known
-            var normalized = new List<(int? IngredientId, int? PreparedItemId, decimal Qty, int DetailId, string Label)>();
+            var normalized = new List<(int? IngredientId, int? PreparedItemId, decimal Qty, int DetailId, string Code, string Label)>();
 
             foreach (var d in details)
             {
@@ -495,10 +618,17 @@ namespace CafeChain.Application.Services.Admin.Production
                             errorCode: ProductionRunExecutionFailureCodes.ConversionFailed);
                     }
 
-                    normalized.Add((ingredient.IngredientId, null, converted.Data, d.RecipeDetailId, ingredient.Name));
+                    normalized.Add((
+                        ingredient.IngredientId,
+                        null,
+                        converted.Data,
+                        d.RecipeDetailId,
+                        ingredient.Code,
+                        ingredient.Name));
                 }
                 else
                 {
+                    // Exact ChildRecipeId pins formula; inventory/cost identity is child PreparedItemId only.
                     var child = await _context.Recipes
                         .AsNoTracking()
                         .Include(r => r.PreparedItem)
@@ -538,11 +668,16 @@ namespace CafeChain.Application.Services.Admin.Production
                             errorCode: ProductionRunExecutionFailureCodes.ConversionFailed);
                     }
 
-                    normalized.Add((null, childPi.PreparedItemId, converted.Data, d.RecipeDetailId, childPi.Name));
+                    normalized.Add((
+                        null,
+                        childPi.PreparedItemId,
+                        converted.Data,
+                        d.RecipeDetailId,
+                        childPi.Code,
+                        childPi.Name));
                 }
             }
 
-            // Resolve inventories and aggregate by StoreInventoryId
             var planMap = new Dictionary<int, InputPlanLine>();
 
             foreach (var group in normalized.GroupBy(x => new { x.IngredientId, x.PreparedItemId }))
@@ -587,18 +722,22 @@ namespace CafeChain.Application.Services.Admin.Production
                 }
 
                 var inv = resolution.StoreInventory;
-                // Re-load tracked entity for mutation
                 var tracked = await _context.StoreInventories
                     .SingleAsync(x => x.StoreInventoryId == inv.StoreInventoryId);
 
                 var required = group.Sum(x => x.Qty);
+                var sample = group.First();
                 if (!planMap.TryGetValue(tracked.StoreInventoryId, out var line))
                 {
                     line = new InputPlanLine
                     {
                         StoreInventoryId = tracked.StoreInventoryId,
                         Inventory = tracked,
-                        RequiredQty = 0
+                        RequiredQty = 0,
+                        IngredientId = group.Key.IngredientId,
+                        PreparedItemId = group.Key.PreparedItemId,
+                        InputCode = sample.Code,
+                        InputLabel = sample.Label
                     };
                     planMap[tracked.StoreInventoryId] = line;
                 }
@@ -615,7 +754,6 @@ namespace CafeChain.Application.Services.Admin.Production
             int preparedItemId,
             int actorAccountId)
         {
-            // Key-range style: re-query under same transaction before insert
             var existing = await _context.StoreInventories
                 .Where(x =>
                     x.StoreId == run.StoreId
@@ -662,7 +800,6 @@ namespace CafeChain.Application.Services.Admin.Production
             }
             catch (DbUpdateException)
             {
-                // Unique canonical race — signal full execution restart
                 return ServiceResult<StoreInventory>.Failure(
                     "Canonical create conflict.",
                     errorCode: ProductionRunExecutionFailureCodes.ConcurrencyConflict);
@@ -684,7 +821,9 @@ namespace CafeChain.Application.Services.Admin.Production
                     Type = t.Type.ToString(),
                     Quantity = t.Quantity,
                     BeforeQty = t.BeforeQty,
-                    AfterQty = t.AfterQty
+                    AfterQty = t.AfterQty,
+                    UnitCost = t.UnitCost,
+                    TotalCost = t.TotalCost
                 })
                 .ToListAsync();
 
@@ -697,6 +836,7 @@ namespace CafeChain.Application.Services.Admin.Production
                 outInvId = productionIn.StoreInventoryId;
             }
 
+            // Replay: return stored valuation snapshot only (never recompute FIFO).
             return new ProductionRunExecutionResultDto
             {
                 ProductionRunId = run.ProductionRunId,
@@ -709,6 +849,10 @@ namespace CafeChain.Application.Services.Admin.Production
                 CompletedAt = run.CompletedAt,
                 NormalizedOutputQuantity = outQty,
                 OutputStoreInventoryId = outInvId,
+                ValuationStatus = run.ValuationStatus.ToString(),
+                TotalInputCost = run.TotalInputCost,
+                OutputUnitCost = run.OutputUnitCost,
+                ValuedAtUtc = run.ValuedAtUtc,
                 MessageKey = wasReplay ? "ProductionRun.ExecuteReplay" : "ProductionRun.Executed",
                 Movements = movements
             };

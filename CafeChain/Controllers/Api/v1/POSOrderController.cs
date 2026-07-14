@@ -1,3 +1,4 @@
+using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
@@ -274,6 +275,15 @@ namespace CafeChain.Controllers.Api.v1
 
             if (orderDto.Details == null || !orderDto.Details.Any())
                 return "Giỏ hàng offline trống.";
+
+            // Soft-removal: reject legacy offline voucher/loyalty payloads (no silent reprice).
+            if (!string.IsNullOrWhiteSpace(orderDto.VoucherCode)
+                || orderDto.PointsUsed > 0
+                || orderDto.VoucherDiscount > 0
+                || orderDto.PointDiscount > 0)
+            {
+                return $"{ProductScopeErrorCodes.FeatureNotAvailable}: {ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage}";
+            }
 
             return null;
         }

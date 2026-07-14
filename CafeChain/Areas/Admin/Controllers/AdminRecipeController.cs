@@ -1,8 +1,14 @@
 using CafeChain.Application.Interfaces.Admin.Recipes;
+using CafeChain.Application.Interfaces.Admin.Production;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.DTOs.Admin.StoreInventories;
 using CafeChain.ViewModels.Admin.Recipes;
+using CafeChain.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -15,26 +21,43 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IRecipeBomTreeQueryService _bomTreeQuery;
         private readonly IRecipeOutputNormalizer _outputNormalizer;
         private readonly IEstimatedBomCostService _estimatedBomCost;
+        private readonly IProductionReadinessService _productionReadiness;
+        private readonly IAdminStoreInventoryService _storeInventoryService;
 
         public AdminRecipeController(
             IAdminRecipeService recipeService,
             IAdminRecipeQueryService queryService,
             IRecipeBomTreeQueryService bomTreeQuery,
             IRecipeOutputNormalizer outputNormalizer,
-            IEstimatedBomCostService estimatedBomCost)
+            IEstimatedBomCostService estimatedBomCost,
+            IProductionReadinessService productionReadiness,
+            IAdminStoreInventoryService storeInventoryService)
         {
             _recipeService = recipeService;
             _queryService = queryService;
             _bomTreeQuery = bomTreeQuery;
             _outputNormalizer = outputNormalizer;
             _estimatedBomCost = estimatedBomCost;
+            _productionReadiness = productionReadiness;
+            _storeInventoryService = storeInventoryService;
         }
 
         [HttpGet]
-        public async Task<IActionResult> Index(string? type = null)
+        public async Task<IActionResult> Index(
+            string? type = null,
+            string? search = null,
+            string? status = null,
+            int page = 1)
         {
-            var page = await _queryService.GetIndexPageAsync(type);
-            return View(page);
+            var model = await _queryService.GetIndexPageAsync(type, search, status, page);
+            model.CanWrite = RoleHelper.CanWriteRecipes(User);
+            return View(model);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> DataHealth()
+        {
+            return View(await _queryService.GetDataHealthPageAsync());
         }
 
         [HttpGet]
@@ -48,16 +71,68 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Visualize(int recipeId)
+        public async Task<IActionResult> Visualize(
+            int recipeId,
+            int? storeId = null,
+            string? returnUrl = null)
         {
             var page = await _queryService.GetVisualizePageAsync(recipeId);
             if (page == null)
                 return NotFound("Không tìm thấy công thức.");
 
+            page.CanWrite = RoleHelper.CanWriteRecipes(User);
+            page.BackUrl = !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
+                ? returnUrl
+                : Url.Action(nameof(Index), "AdminRecipe", new { area = "Admin" }) ?? "/Admin/AdminRecipe";
+
+            var accountId = GetAccountId();
+            var stores = accountId > 0
+                ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
+                : new List<InventoryStoreDTO>();
+            page.Stores = stores.Select(x => new BomStoreOptionVM
+            {
+                StoreId = x.StoreId,
+                StoreName = x.StoreName
+            }).ToList();
+
+            if (storeId.HasValue && storeId.Value > 0)
+            {
+                var selectedStore = stores.FirstOrDefault(x => x.StoreId == storeId.Value);
+                if (selectedStore == null)
+                    return Forbid();
+
+                page.SelectedStoreId = selectedStore.StoreId;
+                page.SelectedStoreName = selectedStore.StoreName;
+                if (page.IsPreparedItemRecipe)
+                {
+                    page.Operational = await _queryService.GetOperationalDetailAsync(
+                        recipeId,
+                        selectedStore.StoreId);
+                    var readiness = await _productionReadiness.PreviewAsync(
+                        selectedStore.StoreId,
+                        recipeId,
+                        1m);
+                    if (readiness.IsSuccess && readiness.Data != null)
+                    {
+                        page.Operational ??= new BomOperationalDetailVM
+                        {
+                            StoreId = selectedStore.StoreId,
+                            StoreName = selectedStore.StoreName
+                        };
+                        page.Operational.Readiness = readiness.Data;
+                    }
+                    else
+                    {
+                        page.OperationalError = readiness.Message;
+                    }
+                }
+            }
+
             return View(page);
         }
 
         [HttpGet]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create()
         {
             var page = await _queryService.GetCreatePageAsync();
@@ -66,6 +141,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Create([FromBody] RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -157,6 +233,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id)
         {
             var page = await _queryService.GetEditPageAsync(id);
@@ -171,6 +248,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Edit(int id, RecipeCreateVM model)
         {
             if (!ModelState.IsValid)
@@ -207,6 +285,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = RoleHelper.RecipeWriteRoles)]
         public async Task<IActionResult> Delete(int id)
         {
             var result = await _recipeService.DeleteRecipeAsync(id);
@@ -223,6 +302,14 @@ namespace CafeChain.Areas.Admin.Controllers
                 s.SizeName,
                 s.Price
             }));
+        }
+
+        private int GetAccountId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                ?? User.FindFirst("AccountId")
+                ?? User.FindFirst("sub");
+            return claim != null && int.TryParse(claim.Value, out var id) ? id : 0;
         }
     }
 

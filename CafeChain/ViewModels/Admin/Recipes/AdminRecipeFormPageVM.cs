@@ -69,21 +69,6 @@ namespace CafeChain.ViewModels.Admin.Recipes
         public bool IsEdit { get; set; }
     }
 
-    public class AdminRecipeVisualizePageVM
-    {
-        public int RecipeId { get; set; }
-        public string Name { get; set; } = "";
-        public string Status { get; set; } = "";
-        public string TypeLabel { get; set; } = "";
-        public int? PreparedItemId { get; set; }
-        public string? PreparedItemCode { get; set; }
-        public string? PreparedItemName { get; set; }
-        public decimal? OutputQuantity { get; set; }
-        public string? OutputUnitCode { get; set; }
-        public string? OutputUnitName { get; set; }
-        public List<RecipeBomTreeNodeVM> FirstLevelNodes { get; set; } = new();
-    }
-
     public class RecipeSizeOptionVM
     {
         public int SizeId { get; set; }

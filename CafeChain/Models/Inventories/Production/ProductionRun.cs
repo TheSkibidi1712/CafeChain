@@ -7,7 +7,7 @@ using CafeChain.Models.Stores;
 namespace CafeChain.Models.Inventories.Production
 {
     /// <summary>
-    /// Production intent (#119) and stock completion (#120).
+    /// Production intent (#119) and stock completion (#120) with actual valuation snapshot (#132).
     /// StockApplied is derived: Status == Completed.
     /// </summary>
     public class ProductionRun
@@ -38,6 +38,17 @@ namespace CafeChain.Models.Inventories.Production
         public DateTime? CompletedAt { get; set; }
 
         public int? CompletedByStaffId { get; set; }
+
+        /// <summary>Issue #132 — Pending on confirm; Complete after successful valuation.</summary>
+        public ProductionValuationStatus ValuationStatus { get; set; } = ProductionValuationStatus.Pending;
+
+        /// <summary>Sum of actual FIFO input costs (base currency).</summary>
+        public decimal? TotalInputCost { get; set; }
+
+        /// <summary>TotalInputCost / normalized output base quantity.</summary>
+        public decimal? OutputUnitCost { get; set; }
+
+        public DateTime? ValuedAtUtc { get; set; }
 
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();

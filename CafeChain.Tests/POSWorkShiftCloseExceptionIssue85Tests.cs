@@ -3,14 +3,15 @@ using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.Interfaces.Admin.Vouchers;
 using CafeChain.Application.Interfaces.Attendance;
 using CafeChain.Application.Interfaces.POS;
-using CafeChain.Application.Results;
 using CafeChain.Application.Services.PayOSIntegration;
 using CafeChain.Application.Services.POS;
 using CafeChain.Infrastructure.Interfaces.Admin.POS;
 using CafeChain.Models.Drinks;
+using CafeChain.Models.Operations;
 using CafeChain.Models.Orders;
 using CafeChain.Models.Payments;
 using CafeChain.Models.Stores;
+// Size lives under Models.Drinks
 using Microsoft.Extensions.Logging;
 using Moq;
 using System;
@@ -20,68 +21,37 @@ using Xunit;
 
 namespace CafeChain.Tests.POS
 {
+    /// <summary>
+    /// Issue #85 / Phase 2 (#141): exception close uses OTP, not SupervisorPin.
+    /// </summary>
     public class POSWorkShiftCloseExceptionIssue85Tests
     {
+        private static readonly Guid OtpId = Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
+        private static readonly OtpPayloadFingerprintService Fingerprint = new();
+
         [Fact]
         public async Task CloseShiftByExceptionAsync_MissingReason_IsRejectedBeforeMutatingShift()
         {
             var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
-            var service = CreateWorkShiftService(repository, supervisorAuth);
+            var service = CreateWorkShiftService(repository, Mock.Of<IOtpChallengeRepository>());
 
             var result = await service.CloseShiftByExceptionAsync(17, 3, 85, new CloseShiftExceptionRequestDto
             {
                 ActualEndingCash = 500000m,
-                SupervisorPin = "1234"
+                OtpChallengePublicId = OtpId
             });
 
             Assert.False(result.IsSuccess);
             Assert.Contains("lý do đóng ca ngoại lệ", result.Message);
             repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
-            supervisorAuth.Verify(auth => auth.VerifySupervisorPinAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
         }
 
         [Fact]
-        public async Task CloseShiftByExceptionAsync_CashierPinRejected_KeepsShiftOpen()
+        public void CloseShiftExceptionRequestDto_HasNoLegacyPinFields()
         {
-            var shift = CreateOpenShift();
-            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
-            repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
-            repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(false);
-            supervisorAuth
-                .Setup(auth => auth.VerifySupervisorPinAsync("1111", 3))
-                .ReturnsAsync(ServiceResult<SupervisorPinAuthorizationDto>.Failure("Không tìm thấy Supervisor/manager nào có mã PIN tại cửa hàng này."));
-            var service = CreateWorkShiftService(repository, supervisorAuth);
-
-            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequest("1111"));
-
-            Assert.False(result.IsSuccess);
-            Assert.Equal("Open", shift.Status);
-            Assert.False(shift.IsExceptionClosed);
-            Assert.False(shift.RequiresReconciliation);
-            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
-        }
-
-        [Fact]
-        public async Task CloseShiftByExceptionAsync_WrongPin_IsRejected()
-        {
-            var shift = CreateOpenShift();
-            var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
-            repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
-            repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(false);
-            supervisorAuth
-                .Setup(auth => auth.VerifySupervisorPinAsync("0000", 3))
-                .ReturnsAsync(ServiceResult<SupervisorPinAuthorizationDto>.Failure("Mã PIN không đúng."));
-            var service = CreateWorkShiftService(repository, supervisorAuth);
-
-            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequest("0000"));
-
-            Assert.False(result.IsSuccess);
-            Assert.Contains("PIN", result.Message);
-            Assert.Equal("Open", shift.Status);
-            repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("SupervisorPin"));
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("Pin"));
+            Assert.Null(typeof(CloseShiftExceptionRequestDto).GetProperty("PinCode"));
         }
 
         [Fact]
@@ -89,54 +59,44 @@ namespace CafeChain.Tests.POS
         {
             var shift = CreateOpenShift();
             var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
             repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
             repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(true);
-            var service = CreateWorkShiftService(repository, supervisorAuth);
+            var service = CreateWorkShiftService(repository, Mock.Of<IOtpChallengeRepository>());
 
-            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequest("1234"));
+            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequestWithOtp());
 
             Assert.False(result.IsSuccess);
             Assert.Contains("giao dịch thanh toán chưa hoàn tất", result.Message);
             Assert.Equal("Open", shift.Status);
-            supervisorAuth.Verify(auth => auth.VerifySupervisorPinAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
             repository.Verify(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>()), Times.Never);
         }
 
         [Fact]
-        public async Task CloseShiftByExceptionAsync_SupervisorPinAndReason_ClosesAndPersistsReconciliationFields()
+        public async Task CloseShiftException_ValidOtp_ClosesShift()
         {
             var shift = CreateOpenShift();
             var repository = new Mock<IWorkShiftRepository>(MockBehavior.Strict);
-            var supervisorAuth = new Mock<ISupervisorAuthService>(MockBehavior.Strict);
             repository.Setup(repo => repo.GetActiveShiftAsync(17, 3)).ReturnsAsync(shift);
             repository.Setup(repo => repo.HasOpenPosPaymentAsync(85, 3)).ReturnsAsync(false);
             repository.Setup(repo => repo.GetTotalCashSalesAsync(85)).ReturnsAsync(0m);
             repository.Setup(repo => repo.UpdateShiftAsync(It.IsAny<WorkShift>())).Returns(Task.CompletedTask);
-            supervisorAuth
-                .Setup(auth => auth.VerifySupervisorPinAsync("1234", 3))
-                .ReturnsAsync(ServiceResult<SupervisorPinAuthorizationDto>.Success(new SupervisorPinAuthorizationDto
-                {
-                    SupervisorStaffId = 22,
-                    SupervisorName = "Ca trưởng"
-                }));
-            var service = CreateWorkShiftService(repository, supervisorAuth);
 
-            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequest("1234"));
+            var challenge = CreateApprovedExceptionChallenge();
+            var otpRepo = SetupOtpRepo(challenge);
+            var posRepo = new Mock<IPOSOrderRepository>(MockBehavior.Loose);
+            posRepo.Setup(r => r.CreateAuditLogAsync(It.IsAny<InvoiceAuditLog>())).Returns(Task.CompletedTask);
+
+            var service = CreateWorkShiftService(repository, otpRepo.Object, posRepo.Object);
+            var result = await service.CloseShiftByExceptionAsync(17, 3, 85, CreateExceptionRequestWithOtp());
 
             Assert.True(result.IsSuccess, result.Message);
             Assert.Equal("Closed", shift.Status);
             Assert.True(shift.IsExceptionClosed);
             Assert.True(shift.RequiresReconciliation);
-            Assert.Equal("Mất mạng kéo dài, còn đơn offline chưa sync.", shift.ExceptionCloseReason);
-            Assert.Equal(22, shift.ExceptionClosedByStaffId);
-            Assert.NotNull(shift.ExceptionClosedAt);
-            Assert.NotNull(shift.EndTime);
-            Assert.Equal(2, shift.OfflineOrderCountAtClose);
-            Assert.Equal(90000m, shift.OfflineEstimatedTotalAtClose);
-            Assert.Equal(90000m, shift.OfflineCashTotalAtClose);
-            Assert.Equal(500000m, shift.ActualEndingCash);
+            Assert.Equal(200, shift.ExceptionClosedByStaffId);
+            Assert.Equal(OtpConstants.Statuses.Used, challenge.Status);
             repository.Verify(repo => repo.UpdateShiftAsync(shift), Times.Once);
+            otpRepo.Verify(r => r.CommitTransactionAsync(), Times.Once);
         }
 
         [Fact]
@@ -197,15 +157,59 @@ namespace CafeChain.Tests.POS
 
         private static WorkShiftService CreateWorkShiftService(
             Mock<IWorkShiftRepository> repository,
-            Mock<ISupervisorAuthService> supervisorAuth)
+            IOtpChallengeRepository otpRepo,
+            IPOSOrderRepository? posRepo = null)
         {
             return new WorkShiftService(
                 repository.Object,
                 Mock.Of<IHrAttendanceService>(),
-                Mock.Of<IPOSOrderRepository>(),
-                supervisorAuth.Object,
-                Mock.Of<IOtpChallengeRepository>(),
+                posRepo ?? Mock.Of<IPOSOrderRepository>(),
+                otpRepo,
+                Fingerprint,
                 Mock.Of<ILogger<WorkShiftService>>());
+        }
+
+        private static Mock<IOtpChallengeRepository> SetupOtpRepo(OtpChallenge challenge)
+        {
+            var otpRepo = new Mock<IOtpChallengeRepository>(MockBehavior.Strict);
+            otpRepo.Setup(r => r.BeginTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.CommitTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.RollbackTransactionAsync()).Returns(Task.CompletedTask);
+            otpRepo.Setup(r => r.GetByPublicIdForUpdateAsync(OtpId)).ReturnsAsync(challenge);
+            otpRepo.Setup(r => r.IsApproverStillEligibleAsync(200, 3, 17)).ReturnsAsync(true);
+            otpRepo.Setup(r => r.SaveChangesAsync()).Returns(Task.CompletedTask);
+            return otpRepo;
+        }
+
+        private static OtpChallenge CreateApprovedExceptionChallenge()
+        {
+            const string reason = "Mất mạng kéo dài, còn đơn offline chưa sync.";
+            var offline = new OfflineQueueSummaryDto
+            {
+                OfflineOrderCount = 2,
+                EstimatedTotal = 90000m,
+                LocalCashTotal = 90000m
+            };
+            return new OtpChallenge
+            {
+                PublicId = OtpId,
+                StoreId = 3,
+                WorkShiftId = 85,
+                RequestedByStaffId = 17,
+                ApproverStaffId = 200,
+                ActionType = OtpConstants.ActionTypes.CloseShiftException,
+                TargetType = OtpConstants.TargetTypes.Shifts,
+                TargetId = 85,
+                Reason = reason,
+                PayloadFingerprint = Fingerprint.BuildCloseShiftExceptionFingerprint(
+                    3, 17, 85, 500000m, reason, null, offline),
+                OtpHash = "x",
+                ExpiresAt = DateTime.UtcNow.AddMinutes(5),
+                Status = OtpConstants.Statuses.Approved,
+                ApprovedAt = DateTime.UtcNow,
+                CreatedAt = DateTime.UtcNow,
+                LastSentAt = DateTime.UtcNow
+            };
         }
 
         private static POSOrderService CreateOrderService(
@@ -221,13 +225,13 @@ namespace CafeChain.Tests.POS
                 Mock.Of<ILogger<POSOrderService>>());
         }
 
-        private static CloseShiftExceptionRequestDto CreateExceptionRequest(string pin)
+        private static CloseShiftExceptionRequestDto CreateExceptionRequestWithOtp()
         {
             return new CloseShiftExceptionRequestDto
             {
                 ActualEndingCash = 500000m,
                 ExceptionReason = "Mất mạng kéo dài, còn đơn offline chưa sync.",
-                SupervisorPin = pin,
+                OtpChallengePublicId = OtpId,
                 OfflineQueueSummary = new OfflineQueueSummaryDto
                 {
                     OfflineOrderCount = 2,
@@ -261,7 +265,33 @@ namespace CafeChain.Tests.POS
                 StartingCash = 500000m,
                 ExpectedEndingCash = 500000m,
                 ActualEndingCash = 500000m,
-                CashDiscrepancy = 0m
+                IsExceptionClosed = true,
+                RequiresReconciliation = true
+            };
+        }
+
+        private static Drink CreateDrink()
+        {
+            return new Drink
+            {
+                DrinkId = 10,
+                Name = "Americano",
+                DrinkSizes = new List<DrinkSize>
+                {
+                    new()
+                    {
+                        DrinkId = 10,
+                        SizeId = 2,
+                        Price = 45000m,
+                        Active = true,
+                        Size = new Size
+                        {
+                            SizeId = 2,
+                            Name = "M",
+                            Active = true
+                        }
+                    }
+                }
             };
         }
 
@@ -288,31 +318,6 @@ namespace CafeChain.Tests.POS
                 ReceivedAmount = 50000m,
                 OrderTypeId = 1,
                 SkipPrint = true
-            };
-        }
-
-        private static Drink CreateDrink()
-        {
-            return new Drink
-            {
-                DrinkId = 10,
-                Name = "Americano",
-                DrinkSizes = new List<DrinkSize>
-                {
-                    new()
-                    {
-                        DrinkId = 10,
-                        SizeId = 2,
-                        Price = 45000m,
-                        Active = true,
-                        Size = new Size
-                        {
-                            SizeId = 2,
-                            Name = "M",
-                            Active = true
-                        }
-                    }
-                }
             };
         }
     }

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using CafeChain.Application.DTOs.Costing;
 
@@ -15,5 +16,12 @@ namespace CafeChain.Application.Interfaces.Inventories
 
         /// <summary>Recursive recipe EstimatedBomCost with COMPLETE/INCOMPLETE.</summary>
         Task<CostCalculationResult> CalculateRecipeEstimatedCostAsync(int recipeId);
+
+        /// <summary>
+        /// Calculates several recipe roots in one request-scoped pass and reuses child-recipe results.
+        /// Intended for admin read models; it does not change costing authority or mutate data.
+        /// </summary>
+        Task<IReadOnlyDictionary<int, CostCalculationResult>> CalculateRecipesEstimatedCostAsync(
+            IEnumerable<int> recipeIds);
     }
 }

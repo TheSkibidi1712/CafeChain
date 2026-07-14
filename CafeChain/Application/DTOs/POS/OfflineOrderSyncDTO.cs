@@ -25,6 +25,18 @@ namespace CafeChain.Application.DTOs.POS
         public List<OfflineCartSnapshotItemDTO> CartSnapshot { get; set; } = new();
         public OfflinePaymentSnapshotDTO? PaymentSnapshot { get; set; }
         public List<OfflineOrderDetailDTO> Details { get; set; } = new List<OfflineOrderDetailDTO>();
+
+        /// <summary>Legacy offline payload field — non-empty → FEATURE_NOT_AVAILABLE.</summary>
+        public string? VoucherCode { get; set; }
+
+        /// <summary>Legacy offline payload field — &gt; 0 → FEATURE_NOT_AVAILABLE.</summary>
+        public int PointsUsed { get; set; }
+
+        /// <summary>Legacy offline payload field — &gt; 0 → FEATURE_NOT_AVAILABLE.</summary>
+        public decimal VoucherDiscount { get; set; }
+
+        /// <summary>Legacy offline payload field — &gt; 0 → FEATURE_NOT_AVAILABLE.</summary>
+        public decimal PointDiscount { get; set; }
     }
 
     public class OfflineOrderDetailDTO

@@ -24,6 +24,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Index(
             string? search,
             int storeId = 0,
+            string inventoryType = InventoryCatalogTypes.Ingredients,
             int page = 1)
         {
             var accountId = GetAccountId();
@@ -33,10 +34,12 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var stores = await _service.GetStoresByStaffAsync(accountId);
             var selectedStoreId = ResolveSelectedStoreId(storeId, stores);
+            var selectedType = NormalizeInventoryType(inventoryType);
 
             var (data, total) = await _service.GetInventoryByStaffAsync(
                 accountId,
                 selectedStoreId,
+                selectedType,
                 search,
                 page,
                 PageSize);
@@ -44,13 +47,18 @@ namespace CafeChain.Areas.Admin.Controllers
             var vm = BuildIndexViewModel(
                 selectedStoreId,
                 stores,
-                data);
+                data,
+                selectedType,
+                search,
+                page,
+                total);
 
             SetPagingViewBag(
                 page,
                 total,
                 search,
-                selectedStoreId);
+                selectedStoreId,
+                selectedType);
 
             return View(vm);
         }
@@ -97,13 +105,22 @@ namespace CafeChain.Areas.Admin.Controllers
         private static InventoryIndexVM BuildIndexViewModel(
             int selectedStoreId,
             List<InventoryStoreDTO> stores,
-            List<InventoryDTO> data)
+            List<InventoryDTO> data,
+            string selectedType,
+            string? search,
+            int page,
+            int total)
         {
             return new InventoryIndexVM
             {
                 StoreId = selectedStoreId,
                 Stores = ToStoreTabs(stores),
-                Items = ToInventoryItemViewModels(data)
+                Items = ToInventoryItemViewModels(data),
+                ActiveTab = selectedType,
+                Search = search,
+                Page = page < 1 ? 1 : page,
+                TotalPages = CalculateTotalPages(total),
+                TotalCount = total
             };
         }
 
@@ -131,6 +148,8 @@ namespace CafeChain.Areas.Admin.Controllers
                     StoreName = x.StoreName,
 
                     IngredientName = x.IngredientName,
+                    ItemCode = x.ItemCode,
+                    ItemType = x.ItemType,
                     IdentityBadge = x.IdentityBadge,
                     LegacyRecipeId = x.LegacyRecipeId,
                     PreparedItemId = x.PreparedItemId,
@@ -144,7 +163,11 @@ namespace CafeChain.Areas.Admin.Controllers
                     UnitCode = x.UnitCode,
 
                     LastUnitPrice = x.LastUnitPrice,
-                    LastSupplierName = x.LastSupplierName
+                    LastSupplierName = x.LastSupplierName,
+                    LatestCostLayerId = x.LatestCostLayerId,
+                    LatestCostLayerAt = x.LatestCostLayerAt,
+                    SourceProductionRunId = x.SourceProductionRunId,
+                    CostEvidenceStatus = x.CostEvidenceStatus
                 })
                 .ToList();
         }
@@ -221,12 +244,14 @@ namespace CafeChain.Areas.Admin.Controllers
             int page,
             int total,
             string? search,
-            int selectedStoreId)
+            int selectedStoreId,
+            string inventoryType)
         {
             ViewBag.Page = page < 1 ? 1 : page;
             ViewBag.TotalPages = CalculateTotalPages(total);
             ViewBag.Search = search;
             ViewBag.StoreId = selectedStoreId;
+            ViewBag.InventoryType = inventoryType;
         }
 
         private void SetTransactionViewBag(
@@ -245,6 +270,16 @@ namespace CafeChain.Areas.Admin.Controllers
             int total)
         {
             return (int)Math.Ceiling((double)total / PageSize);
+        }
+
+        private static string NormalizeInventoryType(string? inventoryType)
+        {
+            return string.Equals(
+                inventoryType,
+                InventoryCatalogTypes.PreparedItems,
+                StringComparison.OrdinalIgnoreCase)
+                ? InventoryCatalogTypes.PreparedItems
+                : InventoryCatalogTypes.Ingredients;
         }
 
         // =====================================================

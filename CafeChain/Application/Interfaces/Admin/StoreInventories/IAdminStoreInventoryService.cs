@@ -7,6 +7,7 @@ namespace CafeChain.Application.Interfaces.Admin.StoreInventories
         Task<(List<InventoryDTO> data, int total)> GetInventoryByStaffAsync(
             int accountId,
             int storeId,
+            string inventoryType,
             string? search,
             int page,
             int pageSize);

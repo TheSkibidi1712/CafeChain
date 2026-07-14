@@ -2,11 +2,15 @@
 
 <link rel="stylesheet" href="~/css/Admin/StoreInventory/storeinventory.css" />
 
+@{
+    var isPreparedItems = Model.ActiveTab == CafeChain.Application.DTOs.Admin.StoreInventories.InventoryCatalogTypes.PreparedItems;
+}
+
 <div class="inventory-container">
 
     <div class="inventory-header">
         <div>
-            <h2>📦 Quản lý tồn kho</h2>
+            <h2><i class="fas fa-boxes-stacked" aria-hidden="true"></i> Tồn kho cửa hàng</h2>
             <p class="inventory-subtitle">
                 Danh sách kho đang được lọc theo phạm vi được cấp cho nhân viên.
             </p>
@@ -16,12 +20,16 @@
             <form method="get" class="search-form">
                 <input type="text"
                        name="search"
-                       value="@ViewBag.Search"
-                       placeholder="Tìm nguyên liệu..." />
+                       value="@Model.Search"
+                       placeholder="@(isPreparedItems ? "Tìm mã hoặc tên bán thành phẩm..." : "Tìm mã hoặc tên nguyên liệu...")" />
 
                 <input type="hidden"
                        name="storeId"
                        value="@Model.StoreId" />
+
+                <input type="hidden"
+                       name="inventoryType"
+                       value="@Model.ActiveTab" />
 
                 <button type="submit">Tìm</button>
             </form>
@@ -29,14 +37,29 @@
             <button class="btn-view-all"
                     type="button"
                     onclick="openTransactionModal(0)">
-                📜 Xem toàn bộ lịch sử
+                <i class="fas fa-clock-rotate-left" aria-hidden="true"></i> Xem lịch sử
             </button>
         </div>
     </div>
 
     @await Html.PartialAsync("Partials/_StoreTabsPartial", Model)
 
-    @await Html.PartialAsync("Partials/_InventoryTablePartial", Model.Items)
+    <nav class="inventory-kind-tabs" aria-label="Loại tồn kho">
+        <a class="inventory-kind-tab @(!isPreparedItems ? "active" : "")"
+           href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = "ingredients", search = Model.Search, page = 1 })">
+            Nguyên liệu
+        </a>
+        <a class="inventory-kind-tab @(isPreparedItems ? "active" : "")"
+           href="@Url.Action("Index", "AdminStoreInventory", new { area = "Admin", storeId = Model.StoreId, inventoryType = "prepared-items", search = Model.Search, page = 1 })">
+            Bán thành phẩm
+        </a>
+    </nav>
+
+    <div class="inventory-result-meta">
+        <strong>@Model.TotalCount</strong> @(isPreparedItems ? "bán thành phẩm" : "nguyên liệu") trong phạm vi đang chọn
+    </div>
+
+    @await Html.PartialAsync("Partials/_InventoryTablePartial", Model)
 
     @await Html.PartialAsync("Partials/_PaginationPartial", Model)
 

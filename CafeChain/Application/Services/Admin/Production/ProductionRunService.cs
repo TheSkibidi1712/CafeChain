@@ -17,7 +17,8 @@ using Microsoft.Extensions.Logging;
 namespace CafeChain.Application.Services.Admin.Production
 {
     /// <summary>
-    /// Issue #119 — CreateAndConfirm production intent only (no StoreInventory / ledger mutation).
+    /// Issue #119 intent + #131 PreparedItem-only create gate (no StoreInventory / ledger mutation).
+    /// Create and Execute share the same WriterMode authority: PreparedItem only.
     /// </summary>
     public sealed class ProductionRunService : IProductionRunService
     {
@@ -29,17 +30,20 @@ namespace CafeChain.Application.Services.Admin.Production
         private readonly AppDbContext _context;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly IInventoryWriterModeService _writerModeService;
+        private readonly IEnumerable<IInventoryWriterCapabilityProvider> _capabilityProviders;
         private readonly ILogger<ProductionRunService> _logger;
 
         public ProductionRunService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
             IInventoryWriterModeService writerModeService,
+            IEnumerable<IInventoryWriterCapabilityProvider> capabilityProviders,
             ILogger<ProductionRunService> logger)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _writerModeService = writerModeService;
+            _capabilityProviders = capabilityProviders;
             _logger = logger;
         }
 
@@ -90,68 +94,15 @@ namespace CafeChain.Application.Services.Admin.Production
 
             var fingerprint = BuildFingerprint(storeId, request.RecipeId, request.RequestedRunCount);
 
-            // Fast path: existing row (lost-response / retry)
+            // Fast path: existing row (lost-response / retry) — mode re-check not required for replay.
             var existingBefore = await FindByKeyAsync(storeId, requestKey);
             if (existingBefore != null)
                 return await ReplayOrReuseAsync(existingBefore, fingerprint);
-
-            // Writer mode (#118) — intent only; no stock mutation
-            var modeStatus = await _writerModeService.GetStatusAsync(storeId);
-            if (!modeStatus.IsSuccess || modeStatus.Data == null)
-            {
-                return Fail(
-                    ProductionRunFailureCodes.MissingWriterConfiguration,
-                    modeStatus.Message ?? "Cửa hàng chưa có cấu hình chế độ ghi kho BTP.");
-            }
-
-            switch (modeStatus.Data.WriterMode)
-            {
-                case InventoryWriterMode.LegacyRecipe:
-                    break;
-                case InventoryWriterMode.Blocked:
-                    return Fail(
-                        ProductionRunFailureCodes.ModeBlocked,
-                        "Kho BTP của cửa hàng đang bị khóa; không thể ghi nhận lệnh sơ chế.");
-                case InventoryWriterMode.PreparedItem:
-                    return Fail(
-                        ProductionRunFailureCodes.ProductionWriterNotReady,
-                        "Production PreparedItem writer chưa sẵn sàng (114C).");
-                default:
-                    return Fail(
-                        ProductionRunFailureCodes.ProductionWriterNotReady,
-                        "Chế độ ghi kho không hỗ trợ ghi nhận lệnh sơ chế.");
-            }
 
             var staffOk = await _context.Staffs.AsNoTracking()
                 .AnyAsync(s => s.StaffId == staffId && s.Active);
             if (!staffOk)
                 return Fail(ProductionRunFailureCodes.StaffUnauthorized, "Nhân viên không hoạt động.");
-
-            // New create only: same eligibility as production Create dropdown (Active == true).
-            // Replay of an existing RequestKey does not re-check Active (archived-after-confirm OK).
-            var recipeEligible = await _context.Recipes.AsNoTracking()
-                .AnyAsync(r => r.RecipeId == request.RecipeId && r.Active);
-            if (!recipeEligible)
-            {
-                return Fail(
-                    ProductionRunFailureCodes.RecipeNotFound,
-                    "Công thức không hợp lệ hoặc không còn hoạt động để tạo lệnh sơ chế.");
-            }
-
-            var now = DateTime.UtcNow;
-            var run = new ProductionRun
-            {
-                StoreId = storeId,
-                RecipeId = request.RecipeId,
-                RequestedRunCount = request.RequestedRunCount,
-                RequestKey = requestKey,
-                RequestFingerprint = fingerprint,
-                Status = ProductionRunStatus.Confirmed,
-                Notes = notes,
-                CreatedByStaffId = staffId,
-                CreatedAt = now,
-                ConfirmedAt = now
-            };
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
@@ -167,6 +118,107 @@ namespace CafeChain.Application.Services.Admin.Production
                     return await ReplayOrReuseAsync(existingInTx, fingerprint);
                 }
 
+                // #131 — same writer barrier as Execute: UPDLOCK config via AcquireSnapshotAsync
+                var snapshotResult = await _writerModeService.AcquireSnapshotAsync(storeId);
+                if (!snapshotResult.IsSuccess || snapshotResult.Data == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        snapshotResult.ErrorCode == InventoryWriterFailureCodes.MissingConfiguration
+                            || snapshotResult.ErrorCode == InventoryWriterFailureCodes.MissingTransaction
+                            ? ProductionRunFailureCodes.MissingWriterConfiguration
+                            : ProductionRunFailureCodes.InvalidRequest,
+                        snapshotResult.Message
+                        ?? "Cửa hàng chưa có cấu hình chế độ ghi kho BTP.");
+                }
+
+                var mode = snapshotResult.Data.WriterMode;
+                if (mode == InventoryWriterMode.LegacyRecipe)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.ModeLegacy,
+                        "Cửa hàng chưa sử dụng cơ chế tồn kho bán thành phẩm mới. " +
+                        "Hãy hoàn tất chuyển đổi kho trước khi tạo lệnh sơ chế.");
+                }
+
+                if (mode == InventoryWriterMode.Blocked)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.ModeBlocked,
+                        "Cửa hàng đang bị khóa ghi tồn kho bán thành phẩm.");
+                }
+
+                if (mode != InventoryWriterMode.PreparedItem)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.CapabilityNotReady,
+                        "Chế độ ghi kho không hỗ trợ ghi nhận lệnh sơ chế.");
+                }
+
+                var productionCap = _capabilityProviders
+                    .Select(p => p.GetStatus())
+                    .FirstOrDefault(s => s.CapabilityId == InventoryWriterCapabilityIds.ProductionPreparedWriter);
+                if (productionCap == null || !productionCap.Ready)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.CapabilityNotReady,
+                        "PRODUCTION_PREPARED_WRITER chưa sẵn sàng. Không thể ghi nhận lệnh sơ chế.");
+                }
+
+                // New create: Active recipe + PreparedItem output contract (aligned with Execute).
+                var recipe = await _context.Recipes.AsNoTracking()
+                    .Include(r => r.PreparedItem)
+                    .FirstOrDefaultAsync(r => r.RecipeId == request.RecipeId && r.Active);
+
+                if (recipe == null)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.RecipeNotFound,
+                        "Công thức không hợp lệ hoặc không còn hoạt động để tạo lệnh sơ chế.");
+                }
+
+                if (!recipe.PreparedItemId.HasValue
+                    || recipe.OutputQuantity is null or <= 0
+                    || !recipe.OutputUnitId.HasValue)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.InvalidRecipeOutput,
+                        "Công thức thiếu PreparedItemId / OutputQuantity / OutputUnitId — không tạo lệnh sơ chế.");
+                }
+
+                var pi = recipe.PreparedItem
+                    ?? await _context.PreparedItems.AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.PreparedItemId == recipe.PreparedItemId.Value);
+                if (pi == null || !pi.Active)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(
+                        ProductionRunFailureCodes.InvalidRecipeOutput,
+                        "PreparedItem đầu ra không hợp lệ hoặc không Active.");
+                }
+
+                var now = DateTime.UtcNow;
+                var run = new ProductionRun
+                {
+                    StoreId = storeId,
+                    RecipeId = request.RecipeId,
+                    RequestedRunCount = request.RequestedRunCount,
+                    RequestKey = requestKey,
+                    RequestFingerprint = fingerprint,
+                    Status = ProductionRunStatus.Confirmed,
+                    ValuationStatus = ProductionValuationStatus.Pending,
+                    Notes = notes,
+                    CreatedByStaffId = staffId,
+                    CreatedAt = now,
+                    ConfirmedAt = now
+                };
+
                 _context.ProductionRuns.Add(run);
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -179,16 +231,7 @@ namespace CafeChain.Application.Services.Admin.Production
             }
             catch (DbUpdateException ex)
             {
-                // Unique conflict / poisoned tx — rollback then re-query
-                try
-                {
-                    await transaction.RollbackAsync();
-                }
-                catch
-                {
-                    // ignore if already rolled back
-                }
-
+                try { await transaction.RollbackAsync(); } catch { /* ignore */ }
                 DetachAllTracked();
 
                 var raced = await FindByKeyAsync(storeId, requestKey);
@@ -232,7 +275,7 @@ namespace CafeChain.Application.Services.Admin.Production
 
             take = Math.Min(take, 20);
 
-            return await (
+            var items = await (
                 from run in _context.ProductionRuns.AsNoTracking()
                 where run.StoreId == storeId
                 join recipe in _context.Recipes.AsNoTracking() on run.RecipeId equals recipe.RecipeId into recipes
@@ -256,10 +299,38 @@ namespace CafeChain.Application.Services.Admin.Production
                     CreatedByStaffId = run.CreatedByStaffId,
                     ActorName = staff != null ? staff.FullName : null,
                     StockApplied = run.Status == ProductionRunStatus.Completed,
-                    CanApplyStock = run.Status == ProductionRunStatus.Confirmed
+                    CanApplyStock = run.Status == ProductionRunStatus.Confirmed,
+                    ValuationStatus = run.ValuationStatus == ProductionValuationStatus.Complete ? "Complete" : "Pending",
+                    TotalInputCost = run.TotalInputCost,
+                    OutputUnitCost = run.OutputUnitCost
                 })
                 .Take(take)
                 .ToListAsync();
+
+            // Attach PRODUCTION_IN quantity when completed (read-only).
+            if (items.Count == 0)
+                return items;
+
+            var completedIds = items.Where(x => x.StockApplied).Select(x => x.ProductionRunId).ToList();
+            if (completedIds.Count == 0)
+                return items;
+
+            var outputQty = await _context.InventoryTransactions.AsNoTracking()
+                .Where(t => t.ProductionRunId != null
+                            && completedIds.Contains(t.ProductionRunId.Value)
+                            && t.Type == Models.Enums.Inventory.InventoryTransactionTypeEnum.PRODUCTION_IN)
+                .GroupBy(t => t.ProductionRunId!.Value)
+                .Select(g => new { RunId = g.Key, Qty = g.Sum(x => x.Quantity) })
+                .ToListAsync();
+
+            var qtyMap = outputQty.ToDictionary(x => x.RunId, x => x.Qty);
+            foreach (var item in items)
+            {
+                if (qtyMap.TryGetValue(item.ProductionRunId, out var q))
+                    item.NormalizedOutputQuantity = q;
+            }
+
+            return items;
         }
 
         private async Task<ServiceResult> AuthorizeStoreAsync(int staffId, int staffHomeStoreId, int storeId)
@@ -272,7 +343,6 @@ namespace CafeChain.Application.Services.Admin.Production
             if (storeId == staffHomeStoreId)
                 return ServiceResult.Success();
 
-            // Multi-store: only if scope authorization allows
             if (await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId))
                 return ServiceResult.Success();
 
@@ -316,10 +386,10 @@ namespace CafeChain.Application.Services.Admin.Production
                 StoreId = run.StoreId,
                 RecipeId = run.RecipeId,
                 RequestedRunCount = run.RequestedRunCount,
-                Status = "CONFIRMED",
+                Status = run.Status == ProductionRunStatus.Completed ? "COMPLETED" : "CONFIRMED",
                 ConfirmedAt = run.ConfirmedAt,
                 WasReplay = wasReplay,
-                StockApplied = false,
+                StockApplied = run.Status == ProductionRunStatus.Completed,
                 MessageKey = wasReplay ? "ProductionRun.Replay" : "ProductionRun.Confirmed",
                 RecipeName = recipeName
             };
@@ -345,7 +415,7 @@ namespace CafeChain.Application.Services.Admin.Production
 
         /// <summary>
         /// SHA-256 over v1|StoreId|RecipeId|RequestedRunCount(G29 invariant).
-        /// 1, 1.0, 1.00000 produce the same fingerprint.
+        /// WriterMode is intentionally excluded (not business payload of the run).
         /// </summary>
         public static string BuildFingerprint(int storeId, int recipeId, decimal requestedRunCount)
         {

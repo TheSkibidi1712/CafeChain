@@ -22,6 +22,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
         public async Task<(List<InventoryDTO> data, int total)> GetInventoryByStaffAsync(
             int accountId,
             int storeId,
+            string inventoryType,
             string? search,
             int page,
             int pageSize)
@@ -38,6 +39,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             return await _repo.GetPagedAsync(
                 storeIds,
                 storeId,
+                NormalizeInventoryType(inventoryType),
                 NormalizeSearch(search),
                 NormalizePage(page),
                 NormalizePageSize(pageSize));
@@ -291,6 +293,16 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             return string.IsNullOrWhiteSpace(search)
                 ? null
                 : search.Trim();
+        }
+
+        private static string NormalizeInventoryType(string? inventoryType)
+        {
+            return string.Equals(
+                inventoryType,
+                InventoryCatalogTypes.PreparedItems,
+                StringComparison.OrdinalIgnoreCase)
+                ? InventoryCatalogTypes.PreparedItems
+                : InventoryCatalogTypes.Ingredients;
         }
 
         private static int NormalizePage(

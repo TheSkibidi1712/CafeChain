@@ -92,6 +92,28 @@ namespace CafeChain.Application.Services.Inventories
             return await CalculateRecipeInternalAsync(recipeId, path, depth: 0, memo);
         }
 
+        public async Task<IReadOnlyDictionary<int, CostCalculationResult>> CalculateRecipesEstimatedCostAsync(
+            IEnumerable<int> recipeIds)
+        {
+            var requestedIds = recipeIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+            var memo = new Dictionary<int, CostCalculationResult>();
+            var results = new Dictionary<int, CostCalculationResult>();
+
+            foreach (var recipeId in requestedIds)
+            {
+                results[recipeId] = await CalculateRecipeInternalAsync(
+                    recipeId,
+                    new HashSet<int>(),
+                    depth: 0,
+                    memo);
+            }
+
+            return results;
+        }
+
         private async Task<CostCalculationResult> CalculateRecipeInternalAsync(
             int recipeId,
             HashSet<int> path,
@@ -249,26 +271,6 @@ namespace CafeChain.Application.Services.Inventories
                 IngredientSupplierId = i.IngredientSupplierId ?? cost.IngredientSupplierId
             }));
 
-            if (!cost.IsComplete)
-            {
-                return (new CostLineResult
-                {
-                    RecipeDetailId = detail.RecipeDetailId,
-                    ComponentKind = CostComponentKind.Ingredient,
-                    IngredientId = ingredientId,
-                    Quantity = detail.Quantity,
-                    UnitId = detail.UnitId,
-                    UnitCode = detail.Unit?.UnitCode,
-                    BaseUnitCode = cost.BaseUnitCode,
-                    PackagePrice = cost.PackagePrice,
-                    PackageQuantity = cost.PackageQuantity,
-                    PackageUnitCode = cost.PackageUnitCode,
-                    IngredientSupplierId = cost.IngredientSupplierId,
-                    Status = CostCompletenessStatus.Incomplete,
-                    DisplaySummary = "Chưa đủ dữ liệu giá gói / NCC"
-                }, issues);
-            }
-
             var convert = await _unitConversion.ConvertAsync(
                 ingredientId, detail.Quantity, detail.UnitId, cost.BaseUnitId);
 
@@ -298,6 +300,27 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             var qtyBase = convert.Data;
+            if (!cost.IsComplete)
+            {
+                return (new CostLineResult
+                {
+                    RecipeDetailId = detail.RecipeDetailId,
+                    ComponentKind = CostComponentKind.Ingredient,
+                    IngredientId = ingredientId,
+                    Quantity = detail.Quantity,
+                    UnitId = detail.UnitId,
+                    UnitCode = detail.Unit?.UnitCode,
+                    QuantityInBase = qtyBase,
+                    BaseUnitCode = cost.BaseUnitCode,
+                    PackagePrice = cost.PackagePrice,
+                    PackageQuantity = cost.PackageQuantity,
+                    PackageUnitCode = cost.PackageUnitCode,
+                    IngredientSupplierId = cost.IngredientSupplierId,
+                    Status = CostCompletenessStatus.Incomplete,
+                    DisplaySummary = "Định lượng đã chuẩn hóa; chưa đủ dữ liệu giá gói / NCC"
+                }, issues);
+            }
+
             var lineCost = qtyBase * cost.BaseUnitCost!.Value;
             var packageLabel = cost.PackageQuantity.HasValue && !string.IsNullOrEmpty(cost.PackageUnitCode)
                 ? $"{cost.PackagePrice:N0} ₫ / gói {cost.PackageQuantity:0.####} {cost.PackageUnitCode}"

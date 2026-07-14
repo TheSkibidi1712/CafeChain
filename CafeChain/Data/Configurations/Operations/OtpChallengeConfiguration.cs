@@ -31,6 +31,11 @@ namespace CafeChain.Data.Configurations.Operations
                 .IsRequired()
                 .HasMaxLength(255);
 
+            entity.Property(x => x.PayloadFingerprint)
+                .IsRequired()
+                .HasMaxLength(128)
+                .HasDefaultValue(string.Empty);
+
             entity.Property(x => x.Status)
                 .IsRequired()
                 .HasMaxLength(20);
@@ -44,6 +49,9 @@ namespace CafeChain.Data.Configurations.Operations
             entity.Property(x => x.OldValueJson);
             entity.Property(x => x.NewValueJson);
 
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
+
             entity.HasIndex(x => x.PublicId)
                 .IsUnique();
 
@@ -53,6 +61,32 @@ namespace CafeChain.Data.Configurations.Operations
             entity.HasIndex(x => x.RequestedByStaffId);
             entity.HasIndex(x => x.WorkShiftId);
             entity.HasIndex(x => x.CreatedAt);
+
+            // Helps enforce one-open-challenge lookup (application still owns status transitions).
+            entity.HasIndex(x => new
+            {
+                x.StoreId,
+                x.RequestedByStaffId,
+                x.ActionType,
+                x.TargetType,
+                x.TargetId,
+                x.Status
+            });
+
+            // SQL Server: at most one Pending/Approved challenge per actor/action/target.
+            // Status transition to Used/Expired/etc. frees the key for a new request.
+            entity.HasIndex(x => new
+            {
+                x.StoreId,
+                x.RequestedByStaffId,
+                x.ActionType,
+                x.TargetType,
+                x.TargetId
+            })
+                .IsUnique()
+                // Provider-agnostic filter (no N' unicode prefix — breaks SQLite EnsureCreated).
+                .HasFilter("[Status] IN ('Pending', 'Approved')")
+                .HasDatabaseName("UX_OtpChallenges_OneActivePerActorActionTarget");
 
             entity.HasOne(x => x.Store)
                 .WithMany()

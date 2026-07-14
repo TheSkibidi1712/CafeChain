@@ -278,60 +278,21 @@ namespace CafeChain.Application.Services.POS
                     });
                 }
 
-                // 2. Apply Voucher — với tích hợp bypass Trưởng ca
-                decimal voucherDiscount = 0;
-                int? pendingBypassAuditLogId = null;
-
-                if (!string.IsNullOrWhiteSpace(dto.VoucherCode))
+                // Soft-removal: voucher + loyalty out of product scope — reject non-empty payload (no silent ignore).
+                if (!string.IsNullOrWhiteSpace(dto.VoucherCode) || dto.PointsUsed > 0)
                 {
-                    var voucherResult = await _voucherService.ValidateVoucherAsync(dto.VoucherCode, dto.CustomerId ?? 0, subTotal);
-                    if (voucherResult.Success && voucherResult.Voucher != null)
-                    {
-                        // Voucher hợp lệ — áp dụng bình thường
-                        var voucher = voucherResult.Voucher;
-                        if (voucher.DiscountAmount.HasValue) voucherDiscount = voucher.DiscountAmount.Value;
-                        else if (voucher.DiscountPercent.HasValue)
-                        {
-                            voucherDiscount = (subTotal * voucher.DiscountPercent.Value) / 100;
-                            if (voucher.MaxDiscount.HasValue && voucherDiscount > voucher.MaxDiscount.Value)
-                                voucherDiscount = voucher.MaxDiscount.Value;
-                        }
-                    }
-                    else
-                    {
-                        // Voucher không hợp lệ — tìm pending bypass audit log trong 5 phút
-                        var pendingBypass = await _repository.GetPendingAuditLogAsync(userId, "SOFT_VOUCHER_BYPASS", 5);
-                        if (pendingBypass != null && pendingBypass.DiscountValue.HasValue)
-                        {
-                            // Áp dụng giá trị giảm giá được Trưởng ca duyệt
-                            voucherDiscount = pendingBypass.DiscountValue.Value;
-                            pendingBypassAuditLogId = pendingBypass.Id;
-                        }
-                        // Nếu không có bypass, voucher bị bỏ qua (voucherDiscount = 0)
-                    }
+                    await _repository.RollbackTransactionAsync();
+                    return ServiceResult<object>.Failure(
+                        ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage,
+                        errorCode: ProductScopeErrorCodes.FeatureNotAvailable);
                 }
 
-                // 3. Apply Loyalty Points — Safety Guard: max 50% SubTotal
-                decimal pointDiscount = 0;
-                int actualPointsUsed = 0;
-                if (dto.CustomerId.HasValue && dto.PointsUsed > 0)
-                {
-                    var customer = await _repository.GetCustomerByIdAsync(dto.CustomerId.Value);
-                    if (customer != null && customer.CurrentPoints >= dto.PointsUsed)
-                    {
-                        actualPointsUsed = dto.PointsUsed;
-                        pointDiscount = actualPointsUsed * 1000m;
-                        decimal maxPointDiscount = subTotal * 0.50m;
-                        if (pointDiscount > maxPointDiscount)
-                        {
-                            pointDiscount = maxPointDiscount;
-                            actualPointsUsed = (int)(maxPointDiscount / 1000m);
-                        }
-                    }
-                }
-
-                // 4. Calculate Final Total
-                var total = Math.Max(0, subTotal - voucherDiscount - pointDiscount);
+                // Selling total = server-priced lines only (DrinkSize + toppings). No voucher/points.
+                const decimal voucherDiscount = 0m;
+                const decimal pointDiscount = 0m;
+                const int actualPointsUsed = 0;
+                const int earnedPoints = 0;
+                var total = subTotal;
 
                 // 5. Create Order via Repository
                 // ADR-0002: ClientOrderId được gán nguyên tử cùng Order — không tách bước
@@ -418,40 +379,12 @@ namespace CafeChain.Application.Services.POS
                     });
                 }
 
-                // 7. Liên kết bypass audit log với order (nếu có)
-                if (pendingBypassAuditLogId.HasValue)
-                {
-                    await _repository.UpdateAuditLogOrderIdAsync(pendingBypassAuditLogId.Value, newOrder.OrderId);
-                }
-
-                // 8. Handle Loyalty Points via Repository
-                int earnedPoints = 0;
+                // Customer stats only (no earn/redeem points, no voucher usage — soft-removal).
                 if (dto.CustomerId.HasValue)
                 {
                     var customer = await _repository.GetCustomerByIdAsync(dto.CustomerId.Value);
                     if (customer != null)
                     {
-                        if (actualPointsUsed > 0)
-                        {
-                            customer.CurrentPoints -= actualPointsUsed;
-                            await _repository.CreatePointTransactionAsync(new PointTransaction
-                            {
-                                CustomerId = customer.CustomerId, OrderId = newOrder.OrderId,
-                                Points = actualPointsUsed, PointTransactionTypeId = 2,
-                                BalanceAfter = customer.CurrentPoints, CreatedAt = DateTime.Now
-                            });
-                        }
-                        earnedPoints = (int)(total / 10000);
-                        if (earnedPoints > 0)
-                        {
-                            customer.CurrentPoints += earnedPoints;
-                            await _repository.CreatePointTransactionAsync(new PointTransaction
-                            {
-                                CustomerId = customer.CustomerId, OrderId = newOrder.OrderId,
-                                Points = earnedPoints, PointTransactionTypeId = 1,
-                                BalanceAfter = customer.CurrentPoints, CreatedAt = DateTime.Now
-                            });
-                        }
                         customer.TotalSpent += total;
                         customer.TotalOrders += 1;
                         customer.LastOrderDate = DateTime.Now;
@@ -459,23 +392,7 @@ namespace CafeChain.Application.Services.POS
                     }
                 }
 
-                // 9. Handle Voucher Usage via Repository
-                if (!string.IsNullOrWhiteSpace(dto.VoucherCode) && voucherDiscount > 0)
-                {
-                    var voucher = await _repository.GetVoucherByCodeAsync(dto.VoucherCode);
-                    if (voucher != null)
-                    {
-                        await _repository.CreateOrderVoucherAsync(new Models.Vouchers.OrderVoucher
-                        { OrderId = newOrder.OrderId, VoucherId = voucher.VoucherId, DiscountValue = voucherDiscount });
-                        if (dto.CustomerId.HasValue)
-                        {
-                            await _repository.CreateVoucherUsageAsync(new Models.Vouchers.VoucherUsage
-                            { VoucherId = voucher.VoucherId, CustomerId = dto.CustomerId.Value, UsedAt = DateTime.Now });
-                        }
-                    }
-                }
-
-                // 10. Update WorkShift.ExpectedEndingCash — cộng dồn tiền mặt trong cùng transaction
+                // Update WorkShift.ExpectedEndingCash — cộng dồn tiền mặt trong cùng transaction
                 // Chỉ cộng khi PaymentMethodId == 1 (Tiền mặt) → tiền vào két
                 decimal cashAmount = paymentLines
                     .Where(p => p.PaymentMethodId == 1)
@@ -610,6 +527,14 @@ namespace CafeChain.Application.Services.POS
             var originalShift = await _workShiftService.GetShiftByIdAsync(workShiftId, userId, storeId);
             if (originalShift == null)
                 return ServiceResult<object>.Failure("Không tìm thấy WorkShift gốc cho đơn offline hoặc WorkShift không khớp nhân viên/cửa hàng.");
+
+            // Soft-removal: offline must not carry voucher/loyalty effects.
+            if (!string.IsNullOrWhiteSpace(dto.VoucherCode) || dto.PointsUsed > 0)
+            {
+                return ServiceResult<object>.Failure(
+                    ProductScopeErrorCodes.VoucherOrLoyaltyNotAvailableMessage,
+                    errorCode: ProductScopeErrorCodes.FeatureNotAvailable);
+            }
 
             await _repository.BeginTransactionAsync();
             var transactionCommitted = false;

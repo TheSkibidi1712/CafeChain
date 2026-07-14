@@ -130,35 +130,7 @@
                             }
                         </div>
 
-                        <!-- Mã giảm giá -->
-                        <div class="mb-4">
-                            <label class="small fw-bold mb-2">Mã giảm giá</label>
-                            <div class="input-group">
-                                <select asp-for="SelectedVoucherId" class="form-select rounded-pill px-3" id="voucher-select">
-                                    <option value="">-- Chọn mã giảm giá có sẵn --</option>
-                                    @if(ViewBag.AvailableVouchers != null)
-                                    {
-                                        var vouchers = (List<CafeChain.Models.Vouchers.Voucher>)ViewBag.AvailableVouchers;
-                                        foreach (var voucher in vouchers)
-                                        {
-                                            bool isEligible = Model.SubTotal >= (voucher.MinOrderValue ?? 0);
-                                            string text = voucher.DiscountAmount != null ? $"GIẢM {voucher.DiscountAmount:N0}đ" : $"GIẢM {voucher.DiscountPercent}%";
-                                            if (voucher.MinOrderValue != null) text += $" - Đơn từ {voucher.MinOrderValue:N0}đ";
-                                            
-                                            if (isEligible)
-                                            {
-                                                <option value="@voucher.VoucherId">@voucher.Code - @voucher.Title | @text</option>
-                                            }
-                                            else
-                                            {
-                                                <option value="@voucher.VoucherId" disabled>@voucher.Code - @voucher.Title | @text (Chưa đạt đơn tối thiểu)</option>
-                                            }
-                                        }
-                                    }
-                                </select>
-                            </div>
-                            <div id="voucherStatus" class="small mt-2 d-none"></div>
-                        </div>
+                        @* Soft-removal: mã giảm giá / voucher removed from checkout product scope. *@
 
                         <hr class="opacity-10 my-4">
 
@@ -169,10 +141,6 @@
                         <div class="d-flex justify-content-between mb-2">
                             <span class="text-muted small">Phí vận chuyển</span>
                             <span class="fw-bold" id="shippingFeeDisplay">@Model.ShippingFee.ToString("N0")đ</span>
-                        </div>
-                        <div class="d-flex justify-content-between mb-3 d-none" id="voucherRow">
-                            <span class="text-muted small">Giảm giá</span>
-                            <span class="fw-bold text-success">-<span id="voucherValText">0</span>đ</span>
                         </div>
 
                         <div class="d-flex justify-content-between mt-4 align-items-center">

@@ -1,12 +1,13 @@
 using CafeChain.Application.DTOs.Admin.Production;
+using CafeChain.Application.DTOs.Admin.StoreInventories;
 using CafeChain.Application.Interfaces.Admin.Production;
-using CafeChain.Data;
+using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Extensions;
 using CafeChain.ViewModels.Admin.Productions;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -14,78 +15,86 @@ namespace CafeChain.Areas.Admin.Controllers
     [Area("Admin")]
     public class AdminProductionOrderController : AdminBaseController
     {
-        private readonly AppDbContext _context;
         private readonly IProductionRunService _productionRunService;
         private readonly IProductionRunExecutionService _executionService;
+        private readonly IProductionReadinessService _readinessService;
+        private readonly IAdminStoreInventoryService _storeInventoryService;
 
         public AdminProductionOrderController(
-            AppDbContext context,
             IProductionRunService productionRunService,
-            IProductionRunExecutionService executionService)
+            IProductionRunExecutionService executionService,
+            IProductionReadinessService readinessService,
+            IAdminStoreInventoryService storeInventoryService)
         {
-            _context = context;
             _productionRunService = productionRunService;
             _executionService = executionService;
+            _readinessService = readinessService;
+            _storeInventoryService = storeInventoryService;
         }
 
         [HttpGet]
         public IActionResult Index() => RedirectToAction(nameof(Create));
 
         [HttpGet]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(int storeId = 0, int recipeId = 0)
         {
-            PopulateDropdowns();
+            var accountId = GetAccountId();
+            var stores = accountId > 0
+                ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
+                : new List<InventoryStoreDTO>();
+            var homeStoreId = User.GetStoreIdOrDefault();
+            var selectedStoreId = stores.Any(x => x.StoreId == storeId)
+                ? storeId
+                : stores.Any(x => x.StoreId == homeStoreId)
+                    ? homeStoreId
+                    : stores.FirstOrDefault()?.StoreId ?? 0;
+            var recipeOptions = (await _readinessService.GetRecipeOptionsAsync()).ToList();
+            var selectedRecipeId = recipeOptions.Any(x => x.RecipeId == recipeId && x.Selectable)
+                ? recipeId
+                : 0;
+            var model = new ProductionOrderVM
+            {
+                StoreId = selectedStoreId,
+                TargetRecipeId = selectedRecipeId,
+                Stores = stores,
+                RecipeOptions = recipeOptions
+            };
 
-            var storeId = User.GetStoreIdOrDefault();
-            ViewBag.DefaultStoreId = storeId;
-            ViewBag.RecentHistory = storeId > 0
-                ? await _productionRunService.GetRecentAsync(storeId, 5)
+            ViewBag.RecentHistory = selectedStoreId > 0
+                ? await _productionRunService.GetRecentAsync(selectedStoreId, 5)
                 : Array.Empty<ProductionRunHistoryItemDto>();
 
-            return View(new ProductionOrderVM());
+            return View(model);
         }
 
         /// <summary>Read-only BOM preview (no stock mutation).</summary>
         [HttpGet]
-        public async Task<IActionResult> CalculateIngredients(int recipeId, decimal batches)
+        public async Task<IActionResult> CalculateIngredients(int storeId, int recipeId, decimal batches)
         {
-            if (recipeId <= 0 || batches <= 0)
+            if (storeId <= 0 || recipeId <= 0 || batches <= 0)
                 return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
 
-            var recipe = await _context.Recipes
-                .AsNoTracking()
-                .Include(r => r.RecipeDetails).ThenInclude(rd => rd.Ingredient)
-                .Include(r => r.RecipeDetails).ThenInclude(rd => rd.Unit)
-                .Include(r => r.RecipeDetails).ThenInclude(rd => rd.ChildRecipe)
-                .FirstOrDefaultAsync(r => r.RecipeId == recipeId);
-
-            if (recipe == null)
-                return Json(new { success = false, message = "Không tìm thấy công thức" });
-
-            var details = recipe.RecipeDetails.Select(rd =>
+            var accountId = GetAccountId();
+            var accessibleStores = accountId > 0
+                ? await _storeInventoryService.GetStoresByStaffAsync(accountId)
+                : new List<InventoryStoreDTO>();
+            if (!accessibleStores.Any(x => x.StoreId == storeId))
             {
-                var baseQty = rd.Quantity;
-                var totalQty = baseQty * batches;
-                return new ProductionOrderDetailVM
+                return Json(new
                 {
-                    ItemName = rd.IngredientId.HasValue
-                        ? (rd.Ingredient?.Name ?? $"ING_{rd.IngredientId}")
-                        : (rd.ChildRecipe?.Name ?? $"REC_{rd.ChildRecipeId}"),
-                    ItemType = rd.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm",
-                    BaseQuantity = baseQty,
-                    TotalQuantity = totalQty,
-                    UnitName = rd.Unit?.Name ?? "N/A",
-                    YieldPercentage = 100m,
-                    ActualQuantity = Math.Round(totalQty, 2)
-                };
-            }).ToList();
+                    success = false,
+                    message = "Bạn không có quyền xem readiness của cửa hàng này."
+                });
+            }
+
+            var result = await _readinessService.PreviewAsync(storeId, recipeId, batches);
+            if (!result.IsSuccess || result.Data == null)
+                return Json(new { success = false, message = result.Message, errorCode = result.ErrorCode });
 
             return Json(new
             {
                 success = true,
-                recipeName = recipe.Name,
-                data = details,
-                estimatedOutput = batches
+                data = result.Data
             });
         }
 
@@ -213,13 +222,25 @@ namespace CafeChain.Areas.Admin.Controllers
                 staffId,
                 staffHomeStoreId);
 
-            if (!result.IsSuccess || result.Data == null)
+            if (!result.IsSuccess)
             {
                 return Json(new
                 {
                     success = false,
                     message = result.Message,
                     errorCode = result.ErrorCode,
+                    stockApplied = false,
+                    costEvidenceGaps = result.Data?.CostEvidenceGaps
+                });
+            }
+
+            if (result.Data == null)
+            {
+                return Json(new
+                {
+                    success = false,
+                    message = result.Message ?? "Không có dữ liệu kết quả.",
+                    errorCode = result.ErrorCode ?? "EXECUTION_FAILED",
                     stockApplied = false
                 });
             }
@@ -240,19 +261,22 @@ namespace CafeChain.Areas.Admin.Controllers
                 outputBaseUnitId = data.OutputBaseUnitId,
                 outputStoreInventoryId = data.OutputStoreInventoryId,
                 outputPreparedItemId = data.OutputPreparedItemId,
+                valuationStatus = data.ValuationStatus,
+                totalInputCost = data.TotalInputCost,
+                outputUnitCost = data.OutputUnitCost,
+                valuedAtUtc = data.ValuedAtUtc,
                 movements = data.Movements,
                 messageKey = data.MessageKey,
                 message = result.Message
             });
         }
 
-        private void PopulateDropdowns()
+        private int GetAccountId()
         {
-            ViewBag.SubRecipes = _context.Recipes
-                .AsNoTracking()
-                .Where(r => r.Active)
-                .Select(r => new { r.RecipeId, r.Name })
-                .ToList<object>();
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier)
+                ?? User.FindFirst("AccountId")
+                ?? User.FindFirst("sub");
+            return claim != null && int.TryParse(claim.Value, out var id) ? id : 0;
         }
     }
 

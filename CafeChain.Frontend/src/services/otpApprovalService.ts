@@ -1,9 +1,13 @@
 import { apiClient, type ApiResponse } from './apiClient'
 
-/** Issue #89/#91 — OTP approval for cash discrepancy close shift. */
+/** Issue #89/#91/#141 — OTP approval for shift overrides. */
 export const OTP_ACTION_CASH_DIFFERENCE = 'CASH_DIFFERENCE'
+export const OTP_ACTION_CLOSE_SHIFT_EXCEPTION = 'CLOSE_SHIFT_EXCEPTION'
+export const OTP_ACTION_OPEN_SHIFT_LATE = 'OPEN_SHIFT_LATE'
 export const OTP_TARGET_SHIFTS = 'shifts'
 export const OTP_ERROR_REQUIRED = 'OTP_REQUIRED'
+export const OTP_ERROR_LATE_OPENING = 'LATE_OPENING_REQUIRES_OTP'
+export const OTP_ERROR_FEATURE_NOT_AVAILABLE = 'FEATURE_NOT_AVAILABLE'
 
 export interface OtpChallengeData {
   otpChallengePublicId?: string | null
@@ -20,12 +24,24 @@ export interface OtpApiEnvelope {
   data?: OtpChallengeData | null
 }
 
+export interface OtpOfflineQueueSummary {
+  offlineOrderCount: number
+  estimatedTotal: number
+  localCashTotal: number
+}
+
 export interface OtpRequestPayload {
   actionType: string
   targetType: string
   targetId: number
-  workShiftId: number
+  workShiftId?: number
   reason: string
+  /** Bound into OTP fingerprint — must match close payload. */
+  actualEndingCash?: number
+  exceptionReason?: string
+  discrepancyReason?: string | null
+  offlineQueueSummary?: OtpOfflineQueueSummary
+  startingCash?: number
   oldValueJson?: string | null
   newValueJson?: string | null
 }
@@ -114,13 +130,21 @@ const normalizeEnvelope = (record: Record<string, unknown>): OtpApiEnvelope => {
 
 export const isOtpRequiredError = (response: { data: unknown; error?: string }): boolean => {
   const envelope = parseApiJsonBody(response)
-  if (envelope?.errorCode === OTP_ERROR_REQUIRED) return true
+  if (
+    envelope?.errorCode === OTP_ERROR_REQUIRED ||
+    envelope?.errorCode === OTP_ERROR_LATE_OPENING
+  ) {
+    return true
+  }
 
   const message = (envelope?.message ?? response.error ?? '').toLowerCase()
   return (
     message.includes('otp_required') ||
+    message.includes('late_opening_requires_otp') ||
     message.includes('cần xác nhận otp') ||
-    (message.includes('chênh lệch') && message.includes('otp'))
+    message.includes('cần otp') ||
+    (message.includes('chênh lệch') && message.includes('otp')) ||
+    (message.includes('mở ca trễ') && message.includes('otp'))
   )
 }
 

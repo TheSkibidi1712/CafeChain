@@ -25,17 +25,35 @@
 
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label">Tên thành phẩm sơ chế <span class="text-danger">*</span></label>
-                            <select name="TargetRecipeId" id="recipeSelect" class="form-select" required>
-                                <option value="">-- Chọn thành phẩm --</option>
-                                @if (ViewBag.SubRecipes != null)
+                            <label class="form-label" asp-for="StoreId">Cửa hàng <span class="text-danger">*</span></label>
+                            <select asp-for="StoreId" id="storeSelect" class="form-select" required>
+                                <option value="">-- Chọn cửa hàng --</option>
+                                @foreach (var store in Model.Stores)
                                 {
-                                    foreach (dynamic rec in ViewBag.SubRecipes)
-                                    {
-                                        <option value="@rec.RecipeId">@rec.Name</option>
-                                    }
+                                    <option value="@store.StoreId">@store.StoreName</option>
                                 }
                             </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">Tên thành phẩm sơ chế <span class="text-danger">*</span></label>
+                            <select asp-for="TargetRecipeId" id="recipeSelect" class="form-select" required>
+                                <option value="">-- Chọn thành phẩm --</option>
+                                @foreach (var recipe in Model.RecipeOptions)
+                                {
+                                    <option value="@recipe.RecipeId"
+                                            disabled="@(!recipe.Selectable ? "disabled" : null)"
+                                            data-code="@recipe.RecipeCode"
+                                            data-disabled-reason="@recipe.DisabledReason">
+                                        [@recipe.PreparedItemCode] @recipe.PreparedItemName · @recipe.OutputPerRunDisplay/mẻ
+                                        @if (!recipe.Selectable)
+                                        {
+                                            <text> · @recipe.DisabledReason</text>
+                                        }
+                                    </option>
+                                }
+                            </select>
+                            <div class="form-text">Chỉ hiển thị công thức BTP Active; món POS và topping không dùng cho lệnh sơ chế.</div>
                         </div>
 
                         <div class="col-12">
@@ -77,19 +95,29 @@
                         <div class="po-bom-badge">Tính toán tự động theo định mức</div>
                     </div>
 
+                    <div id="readinessSummary" class="po-readiness-summary" aria-live="polite">
+                        <span class="po-readiness-state is-neutral">Chưa có preview</span>
+                        <span class="small text-muted">Chọn cửa hàng, BTP và số mẻ để kiểm tra.</span>
+                    </div>
+
+                    <div id="outputSummary" class="po-output-summary d-none"></div>
+
                     <div class="po-table-wrapper flex-grow-1 bg-white">
                         <table class="table po-table">
                             <thead>
                                 <tr>
-                                    <th width="45%">NGUYÊN LIỆU</th>
-                                    <th width="20%" class="text-center">TỒN KHO</th>
-                                    <th width="20%" class="text-center">YÊU CẦU</th>
-                                    <th width="15%" class="text-center">ĐƠN VỊ</th>
+                                    <th>ĐẦU VÀO</th>
+                                    <th class="text-end">YÊU CẦU</th>
+                                    <th class="text-end">HIỆN CÓ</th>
+                                    <th class="text-end">ĐÃ GIỮ</th>
+                                    <th class="text-end">KHẢ DỤNG</th>
+                                    <th class="text-end">THIẾU</th>
+                                    <th>GIÁ VỐN FIFO</th>
                                 </tr>
                             </thead>
                             <tbody id="resultTableBody">
                                 <tr>
-                                    <td colspan="4" class="text-center text-muted py-5">
+                                    <td colspan="7" class="text-center text-muted py-5">
                                         <i class="fas fa-boxes fa-2x mb-2 text-light"></i><br />
                                         Vui lòng chọn thành phẩm và nhập số lượng
                                     </td>
@@ -134,6 +162,7 @@
                         <th>XÁC NHẬN</th>
                         <th class="text-center">TRẠNG THÁI</th>
                         <th class="text-center">TỒN KHO</th>
+                        <th class="text-center">GIÁ VỐN</th>
                         <th class="text-center">THAO TÁC</th>
                     </tr>
                 </thead>
@@ -159,6 +188,21 @@
                                     {
                                         <br /><span class="small">@hist.CompletedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span>
                                     }
+                                    @if (hist.NormalizedOutputQuantity.HasValue)
+                                    {
+                                        <br /><span class="small">SL ra: @hist.NormalizedOutputQuantity.Value.ToString("0.###")</span>
+                                    }
+                                </td>
+                                <td class="text-center text-muted small">
+                                    <div>@hist.ValuationStatus</div>
+                                    @if (hist.TotalInputCost.HasValue)
+                                    {
+                                        <div>Tổng: @hist.TotalInputCost.Value.ToString("N2")</div>
+                                    }
+                                    @if (hist.OutputUnitCost.HasValue)
+                                    {
+                                        <div>/đv: @hist.OutputUnitCost.Value.ToString("N4")</div>
+                                    }
                                 </td>
                                 <td class="text-center">
                                     @if (hist.CanApplyStock && !hist.StockApplied)
@@ -179,7 +223,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-4">Chưa có lệnh sơ chế nào.</td>
+                            <td colspan="10" class="text-center text-muted py-4">Chưa có lệnh sơ chế nào.</td>
                         </tr>
                     }
                 </tbody>
@@ -192,7 +236,7 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script>
         $(document).ready(function () {
-            const defaultStoreId = @(ViewBag.DefaultStoreId ?? 0);
+            let previewReady = false;
             let requestKey = (window.crypto && crypto.randomUUID)
                 ? crypto.randomUUID()
                 : ('xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
@@ -216,7 +260,20 @@
                 return { 'RequestVerificationToken': token, 'Content-Type': 'application/json' };
             }
 
-            $('#recipeSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm công thức sơ chế --', width: '100%' });
+            $('#storeSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Chọn cửa hàng --', width: '100%' });
+            $('#recipeSelect').select2({ theme: 'bootstrap-5', placeholder: '-- Tìm BTP sơ chế --', width: '100%' });
+
+            function escapeHtml(value) {
+                return $('<div>').text(value == null ? '' : String(value)).html();
+            }
+
+            function formatQty(value) {
+                return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 4 });
+            }
+
+            function formatMoney(value) {
+                return Number(value || 0).toLocaleString('vi-VN', { maximumFractionDigits: 0 }) + ' đ';
+            }
 
             function debounce(func, wait) {
                 let timeout;
@@ -228,9 +285,9 @@
             }
 
             $('#recipeSelect').on('change', function() {
-                const recipeId = $(this).val();
-                if(recipeId) {
-                    $('#skuInput').val('SKU-PREP-' + recipeId.padStart(4, '0'));
+                const selected = $(this).find(':selected');
+                if(selected.val()) {
+                    $('#skuInput').val(selected.data('code') || ('RECIPE-' + selected.val()));
                 } else {
                     $('#skuInput').val('');
                 }
@@ -238,55 +295,90 @@
 
             const fetchBOM = debounce(function () {
                 const recipeId = $('#recipeSelect').val();
+                const storeId = parseInt($('#storeSelect').val(), 10) || 0;
                 const batches = parseFloat($('#batchInput').val()) || 0;
                 const tbody = $('#resultTableBody');
                 const btnComplete = $('#btnComplete');
+                const readiness = $('#readinessSummary');
+                const output = $('#outputSummary');
 
-                if (!recipeId || batches <= 0) {
-                    tbody.html('<tr><td colspan="4" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn thành phẩm và nhập số lượng</td></tr>');
+                previewReady = false;
+                output.addClass('d-none').empty();
+
+                if (!storeId || !recipeId || batches <= 0) {
+                    tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-boxes fa-2x mb-2 text-light"></i><br/>Vui lòng chọn cửa hàng, BTP và nhập số mẻ</td></tr>');
+                    readiness.html('<span class="po-readiness-state is-neutral">Chưa có preview</span><span class="small text-muted">Thiếu dữ liệu đầu vào.</span>');
                     btnComplete.prop('disabled', true);
                     return;
                 }
 
-                tbody.html('<tr><td colspan="4" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br/>Đang tính toán BOM...</td></tr>');
+                tbody.html('<tr><td colspan="7" class="text-center text-muted py-5"><i class="fas fa-spinner fa-spin fa-2x mb-2 text-primary"></i><br/>Đang kiểm tra readiness...</td></tr>');
+                readiness.html('<span class="po-readiness-state is-neutral">Đang kiểm tra</span>');
 
                 $.getJSON('@Url.Action("CalculateIngredients", "AdminProductionOrder", new { area = "Admin" })',
-                    { recipeId: recipeId, batches: batches },
+                    { storeId: storeId, recipeId: recipeId, batches: batches },
                     function (response) {
                         if (!response.success) {
-                            tbody.html(`<tr><td colspan="4" class="text-center text-danger py-4">${response.message}</td></tr>`);
+                            tbody.html(`<tr><td colspan="7" class="text-center text-danger py-4">${escapeHtml(response.message)}</td></tr>`);
+                            readiness.html(`<span class="po-readiness-state is-error">Không thể preview</span><span class="small text-danger">${escapeHtml(response.message)}</span>`);
                             btnComplete.prop('disabled', true);
                             return;
                         }
 
+                        const preview = response.data;
                         tbody.empty();
-
-                        if (response.data.length === 0) {
-                            tbody.append('<tr><td colspan="4" class="text-center text-muted py-4">Công thức chưa có chi tiết BOM</td></tr>');
+                        if (!preview.inputs || preview.inputs.length === 0) {
+                            tbody.append('<tr><td colspan="7" class="text-center text-muted py-4">Công thức chưa có input BOM hợp lệ</td></tr>');
                             btnComplete.prop('disabled', true);
                         } else {
-                            response.data.forEach(function (item) {
-                                const reqClass = item.actualQuantity > 10 ? 'req-val exceeds' : 'req-val';
-                                const stockVisual = '---';
-
+                            preview.inputs.forEach(function (item) {
+                                const shortageClass = item.shortageQuantity > 0 ? 'text-danger fw-bold' : 'text-success';
+                                const costText = item.costEvidenceComplete
+                                    ? formatMoney(item.projectedFifoCost)
+                                    : `Thiếu layer ${formatQty(item.costEvidenceShortage)} ${escapeHtml(item.baseUnitCode)}`;
                                 tbody.append(`
                                     <tr>
-                                        <td class="item-name">${item.itemName}</td>
-                                        <td class="text-center stock-val">${stockVisual}</td>
-                                        <td class="text-center ${reqClass}">${item.actualQuantity}</td>
-                                        <td class="text-center text-muted">${item.unitName}</td>
+                                        <td>
+                                            <div class="item-name">[${escapeHtml(item.itemCode)}] ${escapeHtml(item.itemName)}</div>
+                                            <div class="small text-muted">${escapeHtml(item.sourceType)}${item.childRecipeId ? ' · pin Recipe #' + item.childRecipeId : ''}</div>
+                                        </td>
+                                        <td class="text-end fw-semibold">${formatQty(item.requiredTotal)} ${escapeHtml(item.baseUnitCode)}</td>
+                                        <td class="text-end">${formatQty(item.currentQuantity)}</td>
+                                        <td class="text-end">${formatQty(item.reservedQuantity)}</td>
+                                        <td class="text-end">${formatQty(item.usableQuantity)}</td>
+                                        <td class="text-end ${shortageClass}">${formatQty(item.shortageQuantity)}</td>
+                                        <td class="small ${item.costEvidenceComplete ? 'text-success' : 'text-danger'}">${costText}</td>
                                     </tr>
                                 `);
                             });
-                            btnComplete.prop('disabled', false);
                         }
+
+                        const reasonHtml = (preview.reasons || []).map(function (reason) {
+                            return `<li class="${reason.blocking ? 'text-danger' : 'text-warning'}"><code>${escapeHtml(reason.code)}</code> ${escapeHtml(reason.message)}</li>`;
+                        }).join('');
+                        readiness.html(`
+                            <span class="po-readiness-state ${preview.isReady ? 'is-ready' : 'is-error'}">${escapeHtml(preview.overallStatus)}</span>
+                            <span class="small">Writer: <strong>${escapeHtml(preview.writerMode)}</strong> · Tối đa ${formatQty(preview.maxSupportedRunCount)} mẻ</span>
+                            ${reasonHtml ? '<ul class="po-readiness-reasons">' + reasonHtml + '</ul>' : ''}
+                        `);
+                        output.removeClass('d-none').html(`
+                            <div><span>Đầu ra/mẻ</span><strong>${formatQty(preview.outputQuantityPerRun)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
+                            <div><span>Đầu ra tổng raw</span><strong>${formatQty(preview.rawTotalOutput)} ${escapeHtml(preview.outputUnitCode)}</strong></div>
+                            <div><span>Đầu ra tổng chuẩn hóa</span><strong>${formatQty(preview.normalizedTotalOutput)} ${escapeHtml(preview.outputBaseUnitCode)}</strong></div>
+                            <div><span>Giá vốn BOM ước tính</span><strong>${preview.estimatedBomCostComplete ? formatMoney(preview.estimatedBomCostTotal) : 'Chưa đầy đủ'}</strong></div>
+                            <div><span>FIFO dự kiến trước Complete</span><strong>${preview.costEvidenceComplete ? formatMoney(preview.projectedFifoInputCost) : 'Thiếu bằng chứng'}</strong></div>
+                        `);
+                        previewReady = preview.isReady === true;
+                        btnComplete.prop('disabled', !previewReady);
                     }
                 ).fail(function () {
-                    tbody.html('<tr><td colspan="4" class="text-center text-danger py-4">Lỗi kết nối Server. Không thể tải BOM.</td></tr>');
+                    tbody.html('<tr><td colspan="7" class="text-center text-danger py-4">Lỗi kết nối Server. Không thể tải readiness.</td></tr>');
+                    readiness.html('<span class="po-readiness-state is-error">Lỗi kết nối</span>');
                     btnComplete.prop('disabled', true);
                 });
             }, 400);
 
+            $('#storeSelect').on('change', fetchBOM);
             $('#recipeSelect').on('change', fetchBOM);
             $('#batchInput').on('input', fetchBOM);
 
@@ -324,10 +416,31 @@
                                 }).then(() => window.location.reload());
                             } else {
                                 btn.prop('disabled', false).text('Áp dụng vào kho');
+                                let errTitle = 'Thất bại';
+                                const code = res.errorCode || '';
+                                if (code === 'MODE_LEGACY' || (res.message || '').indexOf('LegacyRecipe') >= 0)
+                                    errTitle = 'Chưa chuyển đổi kho BTP';
+                                if (code === 'MODE_BLOCKED' || code === 'BTP_WRITER_BLOCKED')
+                                    errTitle = 'Kho BTP đang khóa';
+                                if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE')
+                                    errTitle = 'Thiếu bằng chứng giá vốn';
+                                let html = res.message || 'Không áp dụng được kho.';
+                                if (code === 'PRODUCTION_COST_EVIDENCE_INCOMPLETE') {
+                                    html = '<p>Không thể hoàn tất lệnh sơ chế vì tồn kho đầu vào chưa có đủ bằng chứng giá vốn.</p>';
+                                    if (res.costEvidenceGaps && res.costEvidenceGaps.length) {
+                                        html += '<ul style="text-align:left">';
+                                        res.costEvidenceGaps.forEach(function (g) {
+                                            html += '<li><b>' + (g.inputCode || '') + ' ' + (g.inputName || '') + '</b>: cần '
+                                                + g.requiredQuantity + ', layer có ' + g.availableLayerQuantity
+                                                + ', thiếu ' + g.missingQuantity + '</li>';
+                                        });
+                                        html += '</ul>';
+                                    }
+                                }
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'Thất bại',
-                                    text: res.message || 'Không áp dụng được kho.',
+                                    title: errTitle,
+                                    html: html,
                                     confirmButtonColor: '#ef4444'
                                 });
                             }
@@ -343,17 +456,28 @@
             // Issue #119 — confirm durable intent only
             let lastPayloadSignature = null;
 
-            function payloadSignature(recipeId, runCount, notes) {
-                return [recipeId, String(runCount), (notes || '').trim()].join('|');
+            function payloadSignature(storeId, recipeId, runCount, notes) {
+                return [storeId, recipeId, String(runCount), (notes || '').trim()].join('|');
             }
 
             $('#btnComplete').click(function (e) {
                 e.preventDefault();
+                const storeId = parseInt($('#storeSelect').val(), 10) || 0;
                 const recipeId = parseInt($('#recipeSelect').val(), 10) || 0;
                 const runCount = parseFloat($('#batchInput').val());
                 const notes = $('textarea[name="Notes"]').val();
 
-                if (!recipeId || !(runCount > 0) || runCount > 9999 || Number.isNaN(runCount)) {
+                if (!previewReady) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Chưa sẵn sàng',
+                        text: 'Vui lòng xử lý các lý do readiness trước khi ghi nhận lệnh.',
+                        confirmButtonColor: '#ea580c'
+                    });
+                    return;
+                }
+
+                if (!storeId || !recipeId || !(runCount > 0) || runCount > 9999 || Number.isNaN(runCount)) {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Số mẻ không hợp lệ',
@@ -363,7 +487,7 @@
                     return;
                 }
 
-                const sig = payloadSignature(recipeId, runCount, notes);
+                const sig = payloadSignature(storeId, recipeId, runCount, notes);
                 if (lastPayloadSignature !== null && lastPayloadSignature !== sig) {
                     newRequestKey();
                 }
@@ -389,7 +513,7 @@
                         headers: antiforgeryHeaders(),
                         data: JSON.stringify({
                             requestKey: requestKey,
-                            storeId: defaultStoreId > 0 ? defaultStoreId : null,
+                            storeId: storeId,
                             recipeId: recipeId,
                             requestedRunCount: runCount,
                             notes: notes
@@ -407,9 +531,14 @@
                                 }).then(() => window.location.reload());
                             } else {
                                 btn.prop('disabled', false).html(label);
+                                // #131 — surface structured writer-mode messages from server
+                                let errTitle = 'Thất bại!';
+                                const code = res.errorCode || '';
+                                if (code === 'BTP_WRITER_LEGACY') errTitle = 'Chưa chuyển đổi kho BTP';
+                                if (code === 'BTP_WRITER_BLOCKED') errTitle = 'Kho BTP đang khóa';
                                 Swal.fire({
                                     icon: 'error',
-                                    title: 'Thất bại!',
+                                    title: errTitle,
                                     text: res.message || 'Không ghi nhận được lệnh.',
                                     confirmButtonColor: '#ef4444'
                                 });

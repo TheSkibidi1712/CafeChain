@@ -18,6 +18,9 @@ namespace CafeChain.Models.Enums.Inventory
         /// <summary>Issue #123 — consolidate qty onto canonical target row.</summary>
         CONSOLIDATION_IN = 13,
         /// <summary>Issue #128 — branch restock receipt stock-in (only on BranchReceipt confirm).</summary>
-        BRANCH_RECEIPT_IN = 14
+        BRANCH_RECEIPT_IN = 14,
+
+        /// <summary>Issue #134 — full-order cash refund stock return (quantity absolute positive).</summary>
+        SALES_RETURN = 15
     }
 }

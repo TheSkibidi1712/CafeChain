@@ -13,6 +13,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.StoreInventories
         Task<(List<InventoryDTO> data, int total)> GetPagedAsync(
             List<int> storeIds,
             int storeId,
+            string inventoryType,
             string? search,
             int page,
             int pageSize);

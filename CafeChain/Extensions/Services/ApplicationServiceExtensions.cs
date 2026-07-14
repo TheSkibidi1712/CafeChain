@@ -25,6 +25,7 @@ using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
+using CafeChain.Application.Services.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
@@ -102,6 +103,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStoreInventoryWriteResolver, StoreInventoryWriteResolver>();
             services.AddScoped<IInventoryDeductionService, InventoryDeductionService>();
             services.AddScoped<INegativeInventoryService, NegativeInventoryService>();
+            // Issue #132 — shared FIFO cost-layer consumption (production; POS later)
+            services.AddScoped<IInventoryCostLayerConsumptionService, InventoryCostLayerConsumptionService>();
 
             // System
             services.AddScoped<IRequestDeduplicationService, RequestDeduplicationService>();
@@ -150,6 +153,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IAdminRecipeService, AdminRecipeService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IAdminRecipeQueryService,
                 CafeChain.Application.Services.Admin.Recipes.AdminRecipeQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IBomDataHealthEvaluator,
+                CafeChain.Application.Services.Admin.Recipes.BomDataHealthEvaluator>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Recipes.IRecipeBomTreeQueryService,
                 CafeChain.Application.Services.Admin.Recipes.RecipeBomTreeQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Actor.IAdminActorContextAccessor,
@@ -159,6 +164,9 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunService>();
+            services.AddScoped<
+                CafeChain.Application.Interfaces.Admin.Production.IProductionReadinessService,
+                CafeChain.Application.Services.Admin.Production.ProductionReadinessService>();
             services.AddScoped<
                 CafeChain.Application.Interfaces.Admin.Production.IProductionRunExecutionService,
                 CafeChain.Application.Services.Admin.Production.ProductionRunExecutionService>();
@@ -226,15 +234,17 @@ namespace CafeChain.Extensions.Services
             // HR & Attendance
             services.AddScoped<IHrAttendanceService, HrAttendanceService>();
             services.AddScoped<IWorkShiftService, WorkShiftService>();
-            services.AddScoped<ISupervisorAuthService, SupervisorAuthService>();
 
             // POS
             services.AddScoped<IPOSOrderService, POSOrderService>();
+            services.AddScoped<IOrderRefundService, OrderRefundService>();
             services.AddScoped<IPosBranchInventoryService, PosBranchInventoryService>();
             services.AddScoped<IPrintDispatcher, PrintDispatcher>();
             services.AddScoped<IEscPosBuilder, EscPosReceiptBuilder>();
             services.AddScoped<IPayOSWebhookProcessor, PayOSWebhookProcessor>();
             services.AddScoped<IOtpApprovalService, OtpApprovalService>();
+            services.AddSingleton<IOtpCodeGenerator, OtpCodeGenerator>();
+            services.AddSingleton<IOtpPayloadFingerprintService, OtpPayloadFingerprintService>();
 
             // Shared unit conversion (POS catalog + inventory deduction + COGS)
             // Physical (Unit-domain kg↔g, l↔ml) then ingredient-specific — Issue #110

@@ -7,6 +7,22 @@ namespace CafeChain.Application.DTOs.POS
         public int? TargetId { get; set; }
         public int? WorkShiftId { get; set; }
         public string Reason { get; set; } = string.Empty;
+
+        /// <summary>CASH_DIFFERENCE / CLOSE_SHIFT_EXCEPTION cash binding.</summary>
+        public decimal ActualEndingCash { get; set; }
+
+        /// <summary>CLOSE_SHIFT_EXCEPTION reason binding.</summary>
+        public string? ExceptionReason { get; set; }
+
+        /// <summary>Optional discrepancy note for exception close fingerprint.</summary>
+        public string? DiscrepancyReason { get; set; }
+
+        /// <summary>CLOSE_SHIFT_EXCEPTION offline queue binding.</summary>
+        public OfflineQueueSummaryDto? OfflineQueueSummary { get; set; }
+
+        /// <summary>OPEN_SHIFT_LATE starting cash binding.</summary>
+        public decimal StartingCash { get; set; }
+
         public string? OldValueJson { get; set; }
         public string? NewValueJson { get; set; }
     }
@@ -29,5 +45,6 @@ namespace CafeChain.Application.DTOs.POS
         public int ExpiresInSeconds { get; set; }
         public int ResendAvailableInSeconds { get; set; }
         public int RemainingAttempts { get; set; }
+        public bool WasExistingActive { get; set; }
     }
 }

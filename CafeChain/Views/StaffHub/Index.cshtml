@@ -584,11 +584,6 @@
                 </div>
             </div>
             <ul class="sh-settings-list">
-                <li class="sh-settings-item" onclick="openPinModal()">
-                    <i class="bi bi-key-fill" style="color:var(--accent-orange);"></i>
-                    <span>Đổi mã PIN (Ca trưởng)</span>
-                    <span class="sh-arrow"><i class="bi bi-chevron-right"></i></span>
-                </li>
                 <li class="sh-settings-item" id="settingsFaceItem" style="display:none;" onclick="openFaceModal()">
                     <i class="bi bi-person-bounding-box" style="color:var(--accent);"></i>
                     <span>Đăng ký Face ID</span>
@@ -635,25 +630,6 @@
                     Chức vụ <strong>@userRole</strong> không có quyền truy cập POS.
                 </div>
             }
-        </div>
-    </div>
-
-    <!-- MODAL: CHANGE PIN -->
-    <div class="sh-toast-overlay" id="pinModalOverlay">
-        <div class="sh-toast-box" style="max-width: 450px;">
-            <div class="sh-toast-icon warning"><i class="bi bi-key-fill"></i></div>
-            <div class="sh-toast-title">Cập nhật mã PIN</div>
-            <div class="sh-toast-msg">Mã PIN gồm 4 số được sử dụng để xác thực quản lý trên POS.</div>
-            <div style="margin: 16px 0;">
-                <input type="password" id="txtNewPin" maxlength="4" placeholder="PIN mới (4 số)" 
-                       style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-muted); color: var(--text-primary); text-align: center; font-size: 1.5rem; letter-spacing: 10px; font-weight: 700;" />
-                <input type="password" id="txtConfirmPin" maxlength="4" placeholder="Xác nhận PIN" 
-                       style="width: 100%; padding: 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-muted); color: var(--text-primary); text-align: center; font-size: 1.5rem; letter-spacing: 10px; font-weight: 700; margin-top: 10px;" />
-            </div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="sh-toast-btn" style="background: var(--surface-muted); color: var(--text-secondary); flex: 1;" onclick="closePinModal()">Hủy</button>
-                <button class="sh-toast-btn" style="background: var(--accent-orange); flex: 1;" onclick="submitNewPin()">Lưu</button>
-            </div>
         </div>
     </div>
 
@@ -959,36 +935,6 @@
             btn.textContent = 'Đóng';
             if (typeof onConfirm === 'function') onConfirm();
         };
-    }
-
-    // ========= PIN CHANGE AND FACE ID MODALS =========
-    function openPinModal() {
-        document.getElementById('txtNewPin').value = '';
-        document.getElementById('txtConfirmPin').value = '';
-        document.getElementById('pinModalOverlay').classList.add('active');
-    }
-    function closePinModal() {
-        document.getElementById('pinModalOverlay').classList.remove('active');
-    }
-    function submitNewPin() {
-        var pin = document.getElementById('txtNewPin').value;
-        var confirmPin = document.getElementById('txtConfirmPin').value;
-        if (!pin || pin.length !== 4 || !/^\d+$/.test(pin)) {
-            showToast('error', 'Lỗi', 'Mã PIN phải gồm 4 chữ số.');
-            return;
-        }
-        if (pin !== confirmPin) {
-            showToast('error', 'Lỗi', 'Xác nhận mã PIN không khớp.');
-            return;
-        }
-        $.post('/api/Attendance/UpdatePin', { pin: pin })
-            .done(function(res) {
-                closePinModal();
-                showToast('success', 'Thành công', 'Đổi mã PIN thành công.');
-            })
-            .fail(function(xhr) {
-                showToast('error', 'Lỗi', (xhr.responseJSON || {}).message || 'Có lỗi xảy ra.');
-            });
     }
 
     var faceStream = null;

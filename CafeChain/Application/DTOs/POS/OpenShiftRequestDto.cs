@@ -11,5 +11,13 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>GUID thiết bị POS (từ browser localStorage)</summary>
         public string? PosTerminalId { get; set; }
+
+        /// <summary>
+        /// OTP challenge đã duyệt khi mở ca trễ &gt; 30 phút.
+        /// </summary>
+        public Guid? OtpChallengePublicId { get; set; }
+
+        /// <summary>Lý do mở ca trễ — bắt buộc khi OTP late-open (fingerprint).</summary>
+        public string? LateOpeningReason { get; set; }
     }
 }

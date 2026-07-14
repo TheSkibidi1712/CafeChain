@@ -358,7 +358,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .AsNoTracking()
                 .Where(x =>
                     x.StoreId == storeId
-                    && ids.Contains(x.IngredientId)
+                    && x.IngredientId != null
+                    && ids.Contains(x.IngredientId.Value)
                     && x.RemainingQuantity > 0)
                 .OrderBy(x => x.CreatedAt)
                 .ToListAsync();

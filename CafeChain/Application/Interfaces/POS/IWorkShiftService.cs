@@ -11,7 +11,7 @@ namespace CafeChain.Application.Interfaces.POS
         /// Opens a new POS financial shift.
         /// Includes strict HR BYOD Interlock validation.
         /// </summary>
-        Task<ServiceResult> OpenShiftAsync(int userId, int storeId, decimal startingCash, string? posTerminalId = null);
+        Task<ServiceResult> OpenShiftAsync(int userId, int storeId, OpenShiftRequestDto request);
 
         /// <summary>
         /// Gets the currently open WorkShift for a user at a store.

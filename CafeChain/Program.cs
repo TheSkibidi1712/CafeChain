@@ -15,6 +15,10 @@ if (args.Length > 0
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Per-machine overrides (connection strings, secrets) — never commit appsettings.Local.json.
+// See appsettings.Local.json.example. Prevents merge conflicts on Server=DESKTOP-... paths.
+builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
 builder.AddCafeChainSerilog();
 
 builder.Services

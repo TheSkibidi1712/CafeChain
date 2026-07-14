@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
+using CafeChain.ViewModels.Admin.Recipes;
+
 namespace CafeChain.ViewModels.Admin.Toppings
 {
     public class AdminToppingVM
@@ -24,5 +26,7 @@ namespace CafeChain.ViewModels.Admin.Toppings
         public IFormFile? ImageFile { get; set; }
 
         public bool Active { get; set; } = true;
+
+        public ToppingConsumptionSourceVM ConsumptionSource { get; set; } = new();
     }
 }

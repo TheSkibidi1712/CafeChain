@@ -796,7 +796,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             var result =
                 costLayers
-                    .GroupBy(x => x.IngredientId)
+                    .Where(x => x.IngredientId.HasValue)
+                    .GroupBy(x => x.IngredientId!.Value)
                     .Where(x => x.Sum(layer => layer.RemainingQuantity) > 0)
                     .ToDictionary(
                         x => x.Key,

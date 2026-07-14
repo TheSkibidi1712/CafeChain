@@ -270,38 +270,17 @@ namespace CafeChain.Controllers
         }
 
         // =====================================================
-        // MY VOUCHERS
+        // MY VOUCHERS — soft-removal (out of product scope)
         // =====================================================
 
         [HttpGet]
-        public async Task<IActionResult> MyVouchers()
+        public IActionResult MyVouchers()
         {
-            var customerId =
-                GetCustomerId();
-
-            if (!customerId.HasValue)
+            return NotFound(new
             {
-                return Unauthorized();
-            }
-
-            var accountId =
-                User.FindFirstValue(
-                    ClaimTypes.NameIdentifier);
-
-            if (string.IsNullOrEmpty(accountId))
-            {
-                return RedirectToAction(
-                    "Login",
-                    "Account");
-            }
-
-            var viewModel =
-                await _customerService
-                    .GetMyVouchersAsync(
-                        customerId.Value,
-                        accountId);
-
-            return View(viewModel);
+                errorCode = CafeChain.Application.Constants.ProductScopeErrorCodes.FeatureNotAvailable,
+                message = CafeChain.Application.Constants.ProductScopeErrorCodes.VoucherNotAvailableMessage
+            });
         }
 
         // =====================================================

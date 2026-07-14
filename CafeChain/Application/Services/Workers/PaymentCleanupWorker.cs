@@ -45,10 +45,21 @@ namespace CafeChain.Application.Services.Workers
 
             var expiryTime = DateTime.Now.AddMinutes(-2);
 
+            // Project only fields this worker mutates — avoids SQL 207 when schema lags model
+            // (e.g. CostStatus/TotalCogs added in model but not yet on local DB).
+            var expiredOrderIds = await context.Orders
+                .AsNoTracking()
+                .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment
+                            && o.CreatedAt <= expiryTime)
+                .Select(o => o.OrderId)
+                .ToListAsync(stoppingToken);
+
+            if (expiredOrderIds.Count == 0)
+                return;
+
             var expiredOrders = await context.Orders
                 .Include(o => o.Payments)
-                .Where(o => o.OrderStatusId == SystemConstants.OrderStatuses.AwaitingPayment 
-                         && o.CreatedAt <= expiryTime)
+                .Where(o => expiredOrderIds.Contains(o.OrderId))
                 .ToListAsync(stoppingToken);
 
             if (expiredOrders.Any())

@@ -69,6 +69,21 @@ namespace CafeChain.Tests
                     }
                 }
 
+                // OTP Phase 1: SQL Server filtered unique (one active challenge).
+                // Drop uniqueness/filter on SQLite — app-layer enforces one-active there.
+                if (entityType.ClrType.Name == "OtpChallenge")
+                {
+                    foreach (var index in entityType.GetIndexes().ToList())
+                    {
+                        if (index.Name == "UX_OtpChallenges_OneActivePerActorActionTarget"
+                            || (index.IsUnique && !string.IsNullOrEmpty(index.GetFilter())))
+                        {
+                            index.IsUnique = false;
+                            index.SetFilter(null);
+                        }
+                    }
+                }
+
 
             }
         }

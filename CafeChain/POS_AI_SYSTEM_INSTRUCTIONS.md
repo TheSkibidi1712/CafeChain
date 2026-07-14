@@ -37,7 +37,7 @@ public class Staff {
     public decimal ProbationRate { get; set; }
     public decimal OvertimeRate { get; set; }
     public string? FaceDescriptor { get; set; } // Vector 128-dim dạng chuỗi JSON: "[0.12, -0.45, ...]"
-    public string? PinHash { get; set; } // Mã băm PIN 4 số (Bcrypt)
+    // NOTE (#143): Staff.PinHash removed — supervisor approval uses one-time OTP challenges, not fixed PIN.
     public int StoreId { get; set; }
     public string? AvatarUrl { get; set; }
     public bool Active { get; set; }
@@ -204,11 +204,8 @@ public async Task<IActionResult> RegisterCustomer([FromBody] QuickCustomerRegist
     // Logic: Sinh CustomerCode = "KH" + Ticks, lưu Customer & CustomerPhone có IsDefault = true
 }
 
-// POST /api/Attendance/AuthorizeBypass
-[HttpPost]
-public async Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request) {
-    // Logic: Xác thực PIN Trưởng ca qua BCrypt, ghi nhật ký InvoiceAuditLog kèm lý do và số tiền ưu đãi (nếu có)
-}
+// NOTE (#143): AuthorizeBypass / fixed supervisor PIN removed.
+// Supervisor approval uses OTP challenge request/verify/consume (OtpApprovalService + WorkShiftService).
 
 // POST /Admin/AdminPOS/RegisterTerminal
 [HttpPost]
@@ -369,18 +366,11 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
   - Nút Switch bật/tắt chế độ `Chia thanh toán` (Split payment) nhanh ở dưới cùng.
 * **Nút chân:** Nút `Hủy` và Nút `XÁC NHẬN THANH TOÁN` màu cam lớn viền bo cong.
 
-### Hình 5: Modal Xác Thực Quyền Trưởng Ca (Shift Supervisor PIN Authentication Modal)
-* **Giao diện Modal bảo mật đứng bo góc 24px:**
-  - Icon khiên bảo mật màu cam nổi bật trên vòng tròn cam nhạt.
-  - Tiêu đề: **Xác thực Trưởng ca** kèm mô tả yêu cầu quyền quản lý bằng mã PIN 4 chữ số.
-* **Huy hiệu hành động đang kiểm soát (Target Action Badge):**
-  - Hiển thị rõ ràng sự kiện nhạy cảm đang bị chặn cần mở khóa bằng thẻ màu đỏ/hồng nhạt bo góc 12px: `Hủy đơn hàng #1247` (hoặc `Giảm giá tay > 15%`, `Sửa giá đồ uống`, `Mở ca trễ > 30 phút`, `Duyệt Voucher ngoại lệ`).
-* **Ô nhập mã PIN trực quan:**
-  - 4 ô vuông bo góc bo tròn 12px. Khi nhấn phím, tự động chuyển thành **chấm tròn màu cam đất đậm**.
-* **Banner cảnh báo thử mã PIN (Brute-force Warning Banner):**
-  - Thẻ màu vàng viền cam bo góc 10px hiển thị: `Còn 3 lần thử. Sai 5 lần sẽ khóa 15 phút.` nhằm bảo vệ chống dò mã PIN tự động.
-* **Bàn phím số Numpad ảo lớn:** Bố trí 3x4 phím số chạm nhanh dưới chân cùng phím Backspace xóa ký tự.
-* **Nút bấm:** Nút `Hủy` (trắng phẳng) và Nút `Xác nhận` (cam nhạt, tự động sáng cam đậm khi điền đủ 4 chấm PIN).
+### Hình 5: OTP phê duyệt Trưởng ca (one-time OTP — #139–#143)
+* **Giao diện OTP (không còn PIN 4 số cố định):**
+  - Tiêu đề: **OTP phê duyệt** — mã 6 ký tự alphanumeric gửi email Ca trưởng.
+  - Nhập OTP, gửi lại OTP (cooldown), thông báo OTP hết hạn / sai mã.
+  - Không còn keypad PIN 4 số / `Staff.PinHash` / `AuthorizeBypass`.
 
 ### Hình 6: Modal/Màn hình Báo Giao Dịch Thành Công (Payment Success Screen)
 * **Thiết kế giao diện:** Dạng thẻ Card dọc (Vertical Card) bo góc 24px cao cấp.
@@ -452,7 +442,7 @@ Khi tiến hành code dự án, bắt buộc phải sửa triệt để 4 lỗi 
 * **Đăng ký thiết bị:** Trình duyệt sinh một GUID ẩn lưu ở `LocalStorage`. Quản lý chi nhánh có giao diện đặt tên thân thiện (Ví dụ: "POS Quầy 1", "POS Take Away"). Tên này được lưu trong bảng `PosTerminals` và hiển thị trên mọi báo cáo ca két, đối soát két và nhật ký hoạt động.
 * **Logic chặn mở ca trễ (Late Register Opening Guard):**
   * So sánh thời điểm mở ca két thực tế với giờ bắt đầu ca chấm công nhân sự được phân lịch hôm nay (`StaffShift.Shift.StartTime`).
-  * Nếu: `Giờ hiện tại > Shift.StartTime + 30 phút` $\rightarrow$ Khóa màn hình POS và yêu cầu Trưởng ca nhập PIN phê duyệt lý do mở ca trễ mới cho phép Thu ngân bán hàng.
+  * Nếu: `Giờ hiện tại > Shift.StartTime + 30 phút` $\rightarrow$ yêu cầu OTP phê duyệt (`OPEN_SHIFT_LATE`) trước khi cho phép mở ca/bán hàng.
 * **Hạn chế phiên két:** Mỗi ca két `WorkShift` liên kết với một `PosTerminalId` duy nhất trong DB.
 
 ### 5. Ràng buộc Giới Hạn Sử Dụng Điểm Thành Viên (Loyalty Point Safety Guard)

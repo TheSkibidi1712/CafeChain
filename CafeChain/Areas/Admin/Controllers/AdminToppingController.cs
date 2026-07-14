@@ -1,6 +1,7 @@
 using CafeChain.Application.DTOs.Admin.DrinkToppings;
 using CafeChain.Application.DTOs.Admin.Toppings;
 using CafeChain.Application.Interfaces.Admin.DrinkToppings;
+using CafeChain.Application.Interfaces.Admin.Recipes;
 using CafeChain.Application.Interfaces.Admin.Toppings;
 using CafeChain.ViewModels.Admin.DrinkToppings;
 using CafeChain.ViewModels.Admin.Toppings;
@@ -19,18 +20,22 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IAdminDrinkToppingService _drinkToppingService;
         private readonly IAdminPermissionService _permissionService;
         private readonly IAIService _aiService;
+        private readonly IAdminRecipeQueryService _recipeQueryService;
 
         public AdminToppingController(
             IAdminToppingService toppingService,
             IAdminDrinkToppingService drinkToppingService,
             IAdminPermissionService permissionService,
-            IAIService aiService)
+            IAIService aiService,
+            IAdminRecipeQueryService recipeQueryService)
         {
             _toppingService = toppingService;
             _drinkToppingService = drinkToppingService;
             _permissionService = permissionService;
             _aiService = aiService;
+            _recipeQueryService = recipeQueryService;
         }
+
 
         // =====================================================
         // INDEX
@@ -41,8 +46,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var guard = await EnsurePermissionAsync(PermissionConstants.ToppingView, false);
             if (guard != null) return guard;
-            var toppings =
-                await _toppingService.GetAllAsync();
+            var toppings = (await _toppingService.GetAllAsync()).ToList();
+            var sources = await _recipeQueryService.GetToppingConsumptionSourcesAsync(
+                toppings.Select(x => x.ToppingId));
 
             var vm = toppings.Select(x => new AdminToppingVM
             {
@@ -51,8 +57,9 @@ namespace CafeChain.Areas.Admin.Controllers
                 Name = x.Name,
                 Price = x.Price,
                 ImageUrl = x.ImageUrl,
-                Active = x.Active
-            });
+                Active = x.Active,
+                ConsumptionSource = sources[x.ToppingId]
+            }).ToList();
 
             return View(vm);
         }

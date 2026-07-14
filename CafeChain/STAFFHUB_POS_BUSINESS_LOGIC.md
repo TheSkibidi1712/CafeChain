@@ -211,7 +211,7 @@ graph TD
 * **Nhiệm vụ:** Điều phối toàn bộ nhân viên trong ca làm việc, xử lý chênh lệch tiền nong, phê duyệt các yêu cầu đặc biệt và trực tiếp đứng quầy POS nếu cần.
 * **Giao diện & Tính năng khả dụng trên Staff Hub:**
   * **Toàn quyền cổng POS:** Nút *"Đi tới máy POS"* luôn sáng (khi đã check-in).
-  * **Quản lý mã PIN phê duyệt:** Mục cài đặt có thêm phần *"Cập nhật mã PIN"*. Ca trưởng tự tạo mã PIN 4 chữ số (lưu Bcrypt) để phục vụ cho các thao tác mở khóa quyền hạn nhạy cảm ngay trên POS.
+  * **OTP phê duyệt (không còn PIN cố định):** Thao tác nhạy cảm dùng OTP one-time 6 ký tự gửi email Ca trưởng (#139–#143). Không còn UI/API đặt PIN / `Staff.PinHash`.
   * **Phê duyệt ca tự do (Ad-hoc approval):** Màn hình hiển thị danh sách yêu cầu ca tạm thời từ Pha chế/Phục vụ để Ca trưởng bấm phê duyệt trực tiếp.
 
 ---
@@ -365,13 +365,13 @@ sequenceDiagram
     
     Cashier->>POS: Nhấn "Hủy món" / "Giảm giá sâu > 20%" / "Đổi giá gốc"
     POS->>POS: Khóa màn hình bán hàng, hiển thị Popup Xác Thực
-    Supervisor->>POS: Nhập mã PIN 4 số của Trưởng ca (hoặc quét Face ID)
-    POS->>API: POST /api/Attendance/AuthorizeBypass { storeId, leaderPin, actionName }
-    API->>API: Truy vấn Staff có Role >= Ca trưởng tại StoreId & đối chiếu Bcrypt(PinHash)
+    Supervisor->>POS: Nhập OTP phê duyệt 6 ký tự (one-time challenge)
+    POS->>API: OTP request/verify/consume (bound payload + OtpChallengePublicId)
+    API->>API: Verify challenge status/fingerprint/approver eligibility (no Staff.PinHash)
     alt Xác thực sai
-        API-->>POS: Trả về lỗi "Mã PIN Trưởng ca không hợp lệ"
+        API-->>POS: Trả về lỗi OTP (hết hạn / sai mã / attempts)
     else Xác thực đúng
-        API->>API: Ghi log lịch sử kiểm toán (InvoiceAuditLog / StaffShiftId)
+        API->>API: Consume challenge + audit historical evidence (không dùng audit làm auth)
         API-->>POS: Trả về thành công
         POS->>POS: Mở khóa màn hình, thực hiện thao tác nhạy cảm
     end
@@ -424,7 +424,7 @@ Khi làm việc với các model AI trong chế độ **Vibe Coding** (viết co
 >    - Trước khi xử lý CHECK_IN trong `SubmitTimeActionAsync`, phải dùng `AnyAsync` kiểm tra xem nhân viên đã có ca làm việc hoạt động nào trong ngày chưa (`ActualCheckIn != null && ActualCheckOut == null`). Nếu có, trả về lỗi 409 Conflict.
 > 
 > 5. **Ủy quyền Trưởng ca (Shift Leader Override):**
->    - Mọi mã PIN của nhân viên được lưu dạng bcrypt hash trong trường `Staff.PinHash`. Khi so khớp PIN Trưởng ca để duyệt thao tác tại POS, phải dùng thư viện BCrypt để verify (`BCrypt.Net.BCrypt.Verify(request.Pin, staff.PinHash)`)."
+>    - OTP one-time được hash (BCrypt) trên từng challenge; không lưu credential PIN cố định trên Staff. Không log plaintext OTP."
 
 ---
 
@@ -453,7 +453,7 @@ Dành cho các Model AI định vị nhanh các file khi thực hiện thay đ�
  │              └── 📄 AdminPOSController.cs  <-- POS View Controller chính (Mở ca, check ca, sync offline)
  ├── 📂 Models
  │    ├── 📂 Staffs
- │    │    ├── 📄 Staff.cs                    <-- Profile nhân viên (chứa FaceDescriptor, PinHash)
+ │    │    ├── 📄 Staff.cs                    <-- Profile nhân viên (FaceDescriptor; no PinHash #143)
  │    │    └── 📄 StaffShift.cs               <-- Ca chấm công thực tế (ActualCheckIn, ActualCheckOut, PayrollHours)
  │    └── 📂 Stores
  │         └── 📄 WorkShift.cs                <-- Phiên két tiền POS (StartingCash, ExpectedCash, Status)

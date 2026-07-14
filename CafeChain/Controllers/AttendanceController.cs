@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using CafeChain.Application.Interfaces.Attendance;
-using CafeChain.Application.Interfaces.POS;
-using CafeChain.Application.DTOs.POS;
 
 namespace CafeChain.Controllers
 {
@@ -14,16 +12,13 @@ namespace CafeChain.Controllers
     {
         private readonly IAttendanceSecurityService _securityService;
         private readonly IAttendanceActionService _actionService;
-        private readonly ISupervisorAuthService _supervisorAuthService;
 
         public AttendanceController(
-            IAttendanceSecurityService securityService, 
-            IAttendanceActionService actionService,
-            ISupervisorAuthService supervisorAuthService)
+            IAttendanceSecurityService securityService,
+            IAttendanceActionService actionService)
         {
             _securityService = securityService;
             _actionService = actionService;
-            _supervisorAuthService = supervisorAuthService;
         }
 
         /// <summary>
@@ -41,7 +36,7 @@ namespace CafeChain.Controllers
         {
             var clientIp = HttpContext.Connection.RemoteIpAddress?.ToString();
             var result = await _securityService.ValidateStoreIPAsync(storeId, clientIp);
-            
+
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -56,7 +51,7 @@ namespace CafeChain.Controllers
                 return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
 
             var result = await _securityService.ProcessFirstLoginPasswordChangeAsync(accountId, oldPassword, newPassword);
-            
+
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
 
@@ -93,20 +88,6 @@ namespace CafeChain.Controllers
                 return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
 
             var result = await _securityService.RegisterFaceAsync(accountId, request.FaceDescriptor);
-
-            if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
-
-            return Ok(new { success = true, message = result.Message });
-        }
-
-        [HttpPost("UpdatePin")]
-        public async Task<IActionResult> UpdatePin([FromForm] string pin)
-        {
-            if (!TryGetAccountId(out int accountId))
-                return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
-
-            var result = await _securityService.UpdatePinAsync(accountId, pin);
 
             if (!result.IsSuccess)
                 return BadRequest(new { success = false, message = result.Message });
@@ -155,35 +136,6 @@ namespace CafeChain.Controllers
             ViewBag.AccountId = accountId;
 
             return View("~/Views/Attendance/MyBYOD.cshtml");
-        }
-
-        // ============================================================
-        // API: Authorize Bypass (PIN Trưởng ca)
-        // ============================================================
-        [HttpPost("AuthorizeBypass")]
-        public async Task<IActionResult> AuthorizeBypass([FromBody] BypassAuthorizationRequest request)
-        {
-            if (!TryGetAccountId(out int accountId))
-                return Unauthorized(new { success = false, message = "Chưa đăng nhập." });
-
-            // Trích xuất storeId từ kiosk data
-            var kioskDataResult = await _actionService.GetKioskDataAsync(accountId);
-            if (!kioskDataResult.IsSuccess)
-                return BadRequest(new { success = false, message = kioskDataResult.Message });
-
-            dynamic data = kioskDataResult.Data;
-            int storeId = data.storeId ?? 0;
-            int cashierId = data.staffId ?? accountId;
-
-            var result = await _supervisorAuthService.AuthorizePinAsync(
-                request.Pin, cashierId, storeId, request.ActionName, 
-                request.TargetId ?? 0, request.Reason, request.DiscountValue);
-
-            if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
-
-            var remaining = await _supervisorAuthService.GetRemainingAttemptsAsync(storeId);
-            return Ok(new { success = true, message = result.Message, remainingAttempts = remaining });
         }
     }
 

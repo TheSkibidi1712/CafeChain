@@ -1,26 +1,46 @@
 using System.Net;
 using System.Net.Mail;
 using CafeChain.Application.Interfaces.Accounts;
+using Microsoft.Extensions.Logging;
 
 namespace CafeChain.Application.Services.Accounts
 {
     public class EmailService : IEmailService
     {
         private readonly IConfiguration _config;
+        private readonly ILogger<EmailService> _logger;
 
-        public EmailService(IConfiguration config)
+        public EmailService(IConfiguration config, ILogger<EmailService> logger)
         {
             _config = config;
+            _logger = logger;
         }
 
         public async Task SendAsync(string to, string subject, string body)
         {
             try
             {
+                if (string.IsNullOrWhiteSpace(to))
+                    throw new InvalidOperationException("Thiếu địa chỉ email người nhận.");
+
+                // Local/dev: DeliveryMode=Log skips SMTP so OTP/close-shift can be tested without Gmail.
+                var deliveryMode = (_config["Email:DeliveryMode"] ?? "Smtp").Trim();
+                if (string.Equals(deliveryMode, "Log", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning(
+                        "EMAIL_LOG_ONLY | To={To} | Subject={Subject} | BodyPreview={Preview}",
+                        to.Trim(),
+                        subject,
+                        TruncateForLog(body, 500));
+                    await Task.CompletedTask;
+                    return;
+                }
+
                 var smtpHost = _config["Email:SmtpHost"]?.Trim();
                 var smtpPortRaw = _config["Email:SmtpPort"]?.Trim();
                 var email = _config["Email:Address"]?.Trim();
-                var password = _config["Email:Password"];
+                // Gmail App Password may be pasted with spaces — strip them.
+                var password = (_config["Email:Password"] ?? string.Empty).Replace(" ", string.Empty).Trim();
 
                 // Fail fast with actionable messages — never include secrets/OTP in exceptions.
                 if (string.IsNullOrWhiteSpace(smtpHost))
@@ -31,45 +51,65 @@ namespace CafeChain.Application.Services.Accounts
                     throw new InvalidOperationException("Thiếu cấu hình Email:Address (tài khoản SMTP gửi đi).");
                 if (string.IsNullOrWhiteSpace(password))
                     throw new InvalidOperationException("Thiếu cấu hình Email:Password (Gmail cần App Password).");
-                if (string.IsNullOrWhiteSpace(to))
-                    throw new InvalidOperationException("Thiếu địa chỉ email người nhận.");
 
-                using var client = new SmtpClient(smtpHost, smtpPort)
-                {
-                    Credentials = new NetworkCredential(email, password),
-                    EnableSsl = true,
-                    UseDefaultCredentials = false,
-                    DeliveryMethod = SmtpDeliveryMethod.Network,
-                    Timeout = 10000
-                };
+                // IMPORTANT: set UseDefaultCredentials = false BEFORE Credentials.
+                // Object-initializer order Credentials then UseDefaultCredentials=false clears the password
+                // and Gmail returns authentication failure.
+                using var client = new SmtpClient(smtpHost, smtpPort);
+                client.DeliveryMethod = SmtpDeliveryMethod.Network;
+                client.EnableSsl = true;
+                client.Timeout = 30_000;
+                client.UseDefaultCredentials = false;
+                client.Credentials = new NetworkCredential(email, password);
 
-                var mail = new MailMessage()
+                using var mail = new MailMessage
                 {
-                    From = new MailAddress(email, "CafeChain Support"), // 🔥 From name
+                    From = new MailAddress(email, "CafeChain Support"),
                     Subject = subject,
                     Body = body,
                     IsBodyHtml = true
                 };
-
                 mail.To.Add(to);
 
+                _logger.LogInformation(
+                    "EMAIL_SMTP_SEND | Host={Host}:{Port} | From={From} | To={To} | Subject={Subject}",
+                    smtpHost,
+                    smtpPort,
+                    email,
+                    to.Trim(),
+                    subject);
+
                 await client.SendMailAsync(mail);
+
+                _logger.LogInformation("EMAIL_SMTP_OK | To={To}", to.Trim());
             }
             catch (SmtpException ex)
             {
                 // Gmail 5.7.0 / auth failures — config issue, not OTP domain bug.
                 var detail = ex.Message ?? string.Empty;
+                var status = ex.StatusCode.ToString();
+                _logger.LogError(
+                    ex,
+                    "EMAIL_SMTP_FAILED | Status={Status} | Detail={Detail}",
+                    status,
+                    SummarizeSmtp(ex));
+
                 if (detail.Contains("5.7.0", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("5.7.8", StringComparison.OrdinalIgnoreCase)
                     || detail.Contains("Authentication Required", StringComparison.OrdinalIgnoreCase)
-                    || detail.Contains("not authenticated", StringComparison.OrdinalIgnoreCase))
+                    || detail.Contains("not authenticated", StringComparison.OrdinalIgnoreCase)
+                    || detail.Contains("Username and Password not accepted", StringComparison.OrdinalIgnoreCase)
+                    || status.Contains("MustIssueStartTlsFirst", StringComparison.OrdinalIgnoreCase))
                 {
                     throw new InvalidOperationException(
-                        "Xác thực SMTP thất bại (Authentication Required). " +
-                        "Kiểm tra Email:Address và Email:Password — với Gmail cần bật 2FA và dùng App Password 16 ký tự.",
+                        "Xác thực SMTP thất bại. Kiểm tra Email:Address + Email:Password (Gmail App Password 16 ký tự, bật 2FA). " +
+                        "Chi tiết: " + SummarizeSmtp(ex),
                         ex);
                 }
 
-                throw new InvalidOperationException("Lỗi SMTP khi gửi email: " + SummarizeSmtp(ex), ex);
+                throw new InvalidOperationException(
+                    "Lỗi SMTP khi gửi email [" + status + "]: " + SummarizeSmtp(ex),
+                    ex);
             }
             catch (InvalidOperationException)
             {
@@ -79,6 +119,13 @@ namespace CafeChain.Application.Services.Accounts
             {
                 throw new InvalidOperationException("Lỗi gửi email: " + (ex.Message ?? "không xác định"), ex);
             }
+        }
+
+        private static string TruncateForLog(string? text, int max)
+        {
+            if (string.IsNullOrEmpty(text)) return string.Empty;
+            var cleaned = text.Replace('\r', ' ').Replace('\n', ' ');
+            return cleaned.Length <= max ? cleaned : cleaned.Substring(0, max) + "...";
         }
 
         private static string SummarizeSmtp(SmtpException ex)
@@ -176,20 +223,21 @@ namespace CafeChain.Application.Services.Accounts
         </table>
 
         <div style='text-align:center;margin:25px 0'>
-            <p style='font-size:15px;color:#333;margin-bottom:8px'>Mã OTP xác nhận:</p>
+            <p style='font-size:15px;color:#333;margin-bottom:8px'>Mã OTP xác nhận (6 ký tự chữ in hoa và số):</p>
             <div style='font-size:36px;font-weight:bold;
                         letter-spacing:10px;
                         background:#fff3ed;
                         color:#ff4d00;
                         padding:15px 25px;
                         border-radius:10px;
-                        display:inline-block'>
-                {otpCode}
+                        display:inline-block;
+                        font-family:Consolas,monospace'>
+                {System.Net.WebUtility.HtmlEncode(otpCode)}
             </div>
         </div>
 
         <p style='font-size:13px;color:#888;text-align:center'>
-            Mã có hiệu lực trong <b>{ttlMinutes} phút</b>.
+            Mã gồm chữ in hoa và số (không phân biệt hoa thường khi nhập). Hiệu lực <b>{ttlMinutes} phút</b>.
         </p>
 
         <hr style='border:none;border-top:1px solid #eee;margin:20px 0' />

@@ -22,7 +22,7 @@ using Xunit;
 namespace CafeChain.Tests.POS
 {
     /// <summary>
-    /// Issue #94 — Wire Role ShiftSupervisor ("Ca trưởng") for AdminStaff, StaffHub/POS, OTP, PIN.
+    /// Issue #94 — Wire Role ShiftSupervisor ("Ca trưởng") for AdminStaff, StaffHub/POS, OTP approver selection.
     /// </summary>
     public class POSShiftSupervisorRoleWiringIssue94Tests : IntegrationTestBase
     {
@@ -105,7 +105,7 @@ namespace CafeChain.Tests.POS
         // -----------------------------------------------------------------
 
         [Fact]
-        public async Task OtpApprover_PrefersStoreManager_OverShiftSupervisor_AndAccountant()
+        public async Task OtpApprover_PrefersShiftSupervisor_OverStoreManager_AndAccountant()
         {
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
@@ -115,10 +115,30 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            // Phase 1: exclude actor (0 = no self) — still prefers ShiftSupervisor over SM/AW.
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
-            Assert.Equal(101, approver!.StaffId);
+            // Email/OTP must target Ca trưởng assigned at store (DB), not StoreManager first.
+            Assert.Equal(102, approver!.StaffId);
+            Assert.Equal("ss@test.local", approver.Account!.Email);
+        }
+
+        [Fact]
+        public async Task OtpApprover_UsesShiftSupervisorEmail_FromDatabaseAccount()
+        {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            const string liveEmail = "catruong.store50@cafechain.vn";
+            SeedApproverStaff(ctx, staffId: 210, accountId: 2210, roleId: RoleShiftSupervisor, email: liveEmail);
+            await ctx.SaveChangesAsync();
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(210, approver!.StaffId);
+            Assert.Equal(liveEmail, approver.Account!.Email);
         }
 
         [Fact]
@@ -131,25 +151,42 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(202, approver!.StaffId);
         }
 
         [Fact]
-        public async Task OtpApprover_FallsBackToAccountant_WhenOnlyAccountantExists()
+        public async Task OtpApprover_FallsBackToStoreManager_WhenNoShiftSupervisor()
         {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            SeedApproverStaff(ctx, staffId: 301, accountId: 3001, roleId: RoleStoreManager, email: "sm-only@test.local");
+            SeedApproverStaff(ctx, staffId: 303, accountId: 3003, roleId: RoleAccountant, email: "acc@test.local");
+            await ctx.SaveChangesAsync();
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(301, approver!.StaffId);
+            Assert.Equal("sm-only@test.local", approver.Account!.Email);
+        }
+
+        [Fact]
+        public async Task OtpApprover_DoesNotSelectAccountant_WhenOnlyAccountantExists_Phase1()
+        {
+            // Phase 1 anti-self-approval hardening: no AccountantWarehouse default for OTP.
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
             SeedApproverStaff(ctx, staffId: 303, accountId: 3003, roleId: RoleAccountant, email: "acc@test.local");
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
-            Assert.NotNull(approver);
-            Assert.Equal(303, approver!.StaffId);
+            Assert.Null(approver);
         }
 
         [Fact]
@@ -162,52 +199,53 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
 
             var repo = new OtpChallengeRepository(ctx);
-            var approver = await repo.GetOtpApproverAsync(StoreId, DateTime.UtcNow);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
 
             Assert.NotNull(approver);
             Assert.Equal(402, approver!.StaffId);
             Assert.NotEqual(404, approver.StaffId);
         }
 
-        // -----------------------------------------------------------------
-        // PIN supervisor eligibility
-        // -----------------------------------------------------------------
-
         [Fact]
-        public async Task PinSupervisors_IncludeShiftSupervisor_WithPinHash_ExcludeSalesStaff()
+        public async Task OtpApprover_ExcludesActor_AntiSelfApproval()
         {
             using var ctx = CreateDbContext();
             SeedRoles(ctx);
-            SeedApproverStaff(
-                ctx,
-                staffId: 502,
-                accountId: 5002,
-                roleId: RoleShiftSupervisor,
-                email: "ss@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("1234"));
-            SeedApproverStaff(
-                ctx,
-                staffId: 504,
-                accountId: 5004,
-                roleId: RoleSalesStaff,
-                email: "sale@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("9999"));
-            SeedApproverStaff(
-                ctx,
-                staffId: 503,
-                accountId: 5003,
-                roleId: RoleAccountant,
-                email: "acc@test.local",
-                pinHash: BCrypt.Net.BCrypt.HashPassword("4321"));
+            SeedApproverStaff(ctx, staffId: 501, accountId: 5001, roleId: RoleShiftSupervisor, email: "actor-ss@test.local");
+            SeedApproverStaff(ctx, staffId: 502, accountId: 5002, roleId: RoleStoreManager, email: "sm@test.local");
             await ctx.SaveChangesAsync();
 
-            var repo = new SupervisorRepository(ctx);
-            var supervisors = await repo.GetSupervisorsWithPinAsync(StoreId);
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 501, DateTime.UtcNow);
 
-            Assert.Contains(supervisors, s => s.StaffId == 502);
-            Assert.Contains(supervisors, s => s.StaffId == 503);
-            Assert.DoesNotContain(supervisors, s => s.StaffId == 504);
-            Assert.All(supervisors, s => Assert.False(string.IsNullOrEmpty(s.PinHash)));
+            Assert.NotNull(approver);
+            Assert.Equal(502, approver!.StaffId);
+            Assert.NotEqual(501, approver.StaffId);
+        }
+
+        // -----------------------------------------------------------------
+        // OTP approver eligibility (no Staff.PinHash)
+        // -----------------------------------------------------------------
+
+        [Fact]
+        public async Task OtpApprover_IncludesShiftSupervisor_WithoutPinHash_ExcludeSalesStaff()
+        {
+            using var ctx = CreateDbContext();
+            SeedRoles(ctx);
+            SeedApproverStaff(ctx, staffId: 502, accountId: 5002, roleId: RoleShiftSupervisor, email: "ss@test.local");
+            SeedApproverStaff(ctx, staffId: 504, accountId: 5004, roleId: RoleSalesStaff, email: "sale@test.local");
+            SeedApproverStaff(ctx, staffId: 503, accountId: 5003, roleId: RoleAccountant, email: "acc@test.local");
+            await ctx.SaveChangesAsync();
+
+            Assert.Null(typeof(Staff).GetProperty("PinHash"));
+
+            var repo = new OtpChallengeRepository(ctx);
+            var approver = await repo.GetOtpApproverAsync(StoreId, excludeStaffId: 0, DateTime.UtcNow);
+
+            Assert.NotNull(approver);
+            Assert.Equal(502, approver!.StaffId);
+            Assert.NotEqual(504, approver.StaffId);
+            Assert.NotEqual(503, approver.StaffId);
         }
 
         // -----------------------------------------------------------------
@@ -315,8 +353,7 @@ namespace CafeChain.Tests.POS
             int staffId,
             int accountId,
             int roleId,
-            string email,
-            string? pinHash = null)
+            string email)
         {
             ctx.Accounts.Add(new Account
             {
@@ -340,7 +377,6 @@ namespace CafeChain.Tests.POS
                 StoreId = StoreId,
                 FullName = $"Staff {staffId}",
                 Active = true,
-                PinHash = pinHash,
                 CreatedAt = DateTime.UtcNow,
                 BaseSalary = 0,
                 StaffShifts = new List<StaffShift>()

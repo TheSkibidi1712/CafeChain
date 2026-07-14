@@ -18,10 +18,16 @@ namespace CafeChain.Application.DTOs.POS
         /// </summary>
         public Guid? ClientOrderId { get; set; }
 
-        /// <summary>Mã voucher giảm giá (nullable)</summary>
+        /// <summary>
+        /// Compatibility only — voucher out of product scope.
+        /// Non-empty values are rejected with FEATURE_NOT_AVAILABLE (not silently ignored).
+        /// </summary>
         public string? VoucherCode { get; set; }
 
-        /// <summary>Số điểm loyalty khách muốn dùng</summary>
+        /// <summary>
+        /// Compatibility only — loyalty/điểm thưởng out of product scope.
+        /// Values &gt; 0 are rejected with FEATURE_NOT_AVAILABLE (not silently ignored).
+        /// </summary>
         public int PointsUsed { get; set; }
 
         /// <summary>Danh sách các dòng thanh toán hỗn hợp (Split Payments)</summary>
@@ -96,14 +102,12 @@ namespace CafeChain.Application.DTOs.POS
 
     /// <summary>
     /// DTO request đóng WorkShift ngoại lệ khi còn Offline Order local chưa sync.
+    /// Requires OtpChallengePublicId (inherited from CloseShiftRequestDto).
     /// </summary>
     public class CloseShiftExceptionRequestDto : CloseShiftRequestDto
     {
         /// <summary>Lý do đóng ngoại lệ, bắt buộc.</summary>
         public string? ExceptionReason { get; set; }
-
-        /// <summary>PIN supervisor/manager duyệt thao tác.</summary>
-        public string? SupervisorPin { get; set; }
 
         /// <summary>Tóm tắt Offline Order local tại POS, không làm nguồn sự thật backend.</summary>
         public OfflineQueueSummaryDto OfflineQueueSummary { get; set; } = new();
@@ -127,20 +131,6 @@ namespace CafeChain.Application.DTOs.POS
         public string Phone { get; set; } = null!;
         public string FullName { get; set; } = null!;
         public DateTime? DateOfBirth { get; set; }
-    }
-
-    /// <summary>
-    /// DTO yêu cầu bypass ủy quyền Trưởng ca (Voucher, Mở ca trễ, Hủy đơn...)
-    /// </summary>
-    public class BypassAuthorizationRequest
-    {
-        public string Pin { get; set; } = null!;
-        /// <summary>"SOFT_VOUCHER_BYPASS", "OPEN_SHIFT_LATE", "VOID_INVOICE", "PRICE_OVERRIDE"</summary>
-        public string ActionName { get; set; } = null!;
-        public int? TargetId { get; set; }
-        public string Reason { get; set; } = null!;
-        /// <summary>Giá trị voucher/chiết khấu được duyệt bypass (nullable)</summary>
-        public decimal? DiscountValue { get; set; }
     }
 
     /// <summary>
