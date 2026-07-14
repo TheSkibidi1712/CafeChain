@@ -32,6 +32,18 @@ namespace CafeChain.Infrastructure.Interfaces.Admin.POS
             int? targetId,
             DateTime utcNow);
 
+        /// <summary>
+        /// Mark Pending/Approved challenges past ExpiresAt as Expired so the unique
+        /// one-active index can accept a new request for the same actor/action/target.
+        /// </summary>
+        Task<int> ExpireStaleActiveChallengesAsync(
+            int storeId,
+            int requestedByStaffId,
+            string actionType,
+            string targetType,
+            int? targetId,
+            DateTime utcNow);
+
         Task AddAsync(OtpChallenge challenge);
 
         Task SaveChangesAsync();

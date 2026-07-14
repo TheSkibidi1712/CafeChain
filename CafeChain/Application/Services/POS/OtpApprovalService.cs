@@ -74,6 +74,17 @@ namespace CafeChain.Application.Services.POS
             await _repository.BeginTransactionAsync();
             try
             {
+                // Unique index UX_OtpChallenges_OneActivePerActorActionTarget keys on Status only
+                // (Pending/Approved), not ExpiresAt. Expired-but-still-Pending rows block inserts
+                // and must be closed before a new challenge can be created.
+                await _repository.ExpireStaleActiveChallengesAsync(
+                    storeId,
+                    requestedByStaffId,
+                    actionType,
+                    OtpConstants.TargetTypes.Shifts,
+                    targetId,
+                    nowUtc);
+
                 var existing = await _repository.FindActiveChallengeAsync(
                     storeId,
                     requestedByStaffId,
@@ -151,20 +162,43 @@ namespace CafeChain.Application.Services.POS
                     await _repository.AddAsync(challenge);
                     await _repository.CommitTransactionAsync();
                 }
-                catch (DbUpdateException)
+                catch (DbUpdateException ex)
                 {
                     await _repository.RollbackTransactionAsync();
-                    var raced = await _repository.FindActiveChallengeAsync(
-                        storeId, requestedByStaffId, actionType,
-                        OtpConstants.TargetTypes.Shifts, targetId, nowUtc);
-                    if (raced != null)
+
+                    // Concurrent create, or stale Pending/Approved still holding the unique index.
+                    await _repository.BeginTransactionAsync();
+                    try
                     {
-                        return ServiceResult<OtpChallengeResponseDto>.Success(
-                            MapResponse(raced, nowUtc, wasExistingActive: true),
-                            "Đã có yêu cầu OTP đang hiệu lực. Dùng Gửi lại OTP nếu cần mã mới.");
+                        await _repository.ExpireStaleActiveChallengesAsync(
+                            storeId, requestedByStaffId, actionType,
+                            OtpConstants.TargetTypes.Shifts, targetId, nowUtc);
+
+                        var raced = await _repository.FindActiveChallengeAsync(
+                            storeId, requestedByStaffId, actionType,
+                            OtpConstants.TargetTypes.Shifts, targetId, nowUtc);
+                        if (raced != null)
+                        {
+                            await _repository.CommitTransactionAsync();
+                            return ServiceResult<OtpChallengeResponseDto>.Success(
+                                MapResponse(raced, nowUtc, wasExistingActive: true),
+                                "Đã có yêu cầu OTP đang hiệu lực. Dùng Gửi lại OTP nếu cần mã mới.");
+                        }
+
+                        await _repository.CommitTransactionAsync();
+                    }
+                    catch
+                    {
+                        await _repository.RollbackTransactionAsync();
                     }
 
-                    throw;
+                    _logger.LogWarning(
+                        ex,
+                        "OTP_REQUEST_UNIQUE_CONFLICT | StoreId={StoreId} | StaffId={StaffId} | Action={Action} | TargetId={TargetId}",
+                        storeId, requestedByStaffId, actionType, targetId);
+
+                    return ServiceResult<OtpChallengeResponseDto>.Failure(
+                        "Đang có yêu cầu OTP khác cho thao tác này. Vui lòng dùng Gửi lại OTP hoặc thử lại sau vài giây.");
                 }
 
                 var approverRoleLabel = ResolveApproverRoleLabel(approver);

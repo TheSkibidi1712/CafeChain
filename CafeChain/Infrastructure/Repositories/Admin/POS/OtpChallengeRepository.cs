@@ -239,6 +239,47 @@ namespace CafeChain.Infrastructure.Repositories.Admin.POS
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<int> ExpireStaleActiveChallengesAsync(
+            int storeId,
+            int requestedByStaffId,
+            string actionType,
+            string targetType,
+            int? targetId,
+            DateTime utcNow)
+        {
+            var activeStatuses = new[]
+            {
+                OtpConstants.Statuses.Pending,
+                OtpConstants.Statuses.Approved
+            };
+
+            var q = _context.OtpChallenges
+                .Where(c =>
+                    c.StoreId == storeId &&
+                    c.RequestedByStaffId == requestedByStaffId &&
+                    c.ActionType == actionType &&
+                    c.TargetType == targetType &&
+                    activeStatuses.Contains(c.Status) &&
+                    c.ExpiresAt <= utcNow);
+
+            if (targetId.HasValue)
+                q = q.Where(c => c.TargetId == targetId.Value);
+            else
+                q = q.Where(c => c.TargetId == null);
+
+            var stale = await q.ToListAsync();
+            if (stale.Count == 0)
+                return 0;
+
+            foreach (var challenge in stale)
+            {
+                challenge.Status = OtpConstants.Statuses.Expired;
+            }
+
+            await _context.SaveChangesAsync();
+            return stale.Count;
+        }
+
         public async Task AddAsync(OtpChallenge challenge)
         {
             _context.OtpChallenges.Add(challenge);
