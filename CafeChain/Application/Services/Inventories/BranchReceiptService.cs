@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
@@ -25,7 +26,9 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IPhysicalUnitConversionService _physicalConversion;
         private readonly IInventoryWriterModeService _writerModeService;
         private readonly IStoreInventoryWriteResolver _writeResolver;
+        private readonly IRestockFulfillmentPostingService _fulfillmentPostingService;
         private readonly IStockAlertService _stockAlertService;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<BranchReceiptService> _logger;
 
         public BranchReceiptService(
@@ -34,7 +37,9 @@ namespace CafeChain.Application.Services.Inventories
             IPhysicalUnitConversionService physicalConversion,
             IInventoryWriterModeService writerModeService,
             IStoreInventoryWriteResolver writeResolver,
+            IRestockFulfillmentPostingService fulfillmentPostingService,
             IStockAlertService stockAlertService,
+            IScopeAuthorizationService scopeAuthorization,
             ILogger<BranchReceiptService> logger)
         {
             _context = context;
@@ -42,7 +47,9 @@ namespace CafeChain.Application.Services.Inventories
             _physicalConversion = physicalConversion;
             _writerModeService = writerModeService;
             _writeResolver = writeResolver;
+            _fulfillmentPostingService = fulfillmentPostingService;
             _stockAlertService = stockAlertService;
+            _scopeAuthorization = scopeAuthorization;
             _logger = logger;
         }
 
@@ -60,25 +67,21 @@ namespace CafeChain.Application.Services.Inventories
             if (request.StoreId <= 0)
                 return FailDetail("StoreId không hợp lệ.", BranchReceiptErrorCodes.StoreMismatch);
 
+            var createAuth = await AuthorizeReceiptAccessAsync(
+                request.StoreId,
+                actorStaffId,
+                actorStoreId: null,
+                roleNames,
+                mutation: true);
+            if (!createAuth.IsSuccess)
+                return FailDetail(createAuth.Message, createAuth.ErrorCode);
+
             var receiptKey = (request.ReceiptKey ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(receiptKey) || receiptKey.Length > 100)
                 return FailDetail("ReceiptKey bắt buộc (tối đa 100 ký tự).", BranchReceiptErrorCodes.ReceiptKeyRequired);
 
             if (request.Lines == null || request.Lines.Count == 0)
                 return FailDetail("Phiếu nhận cần ít nhất một dòng.", BranchReceiptErrorCodes.QuantityInvalid);
-
-            // StoreManager / ShiftSupervisor: own store only (server-side, not UI-only).
-            if (IsBranchScopedOnly(roleNames))
-            {
-                var staffStoreId = await _context.Staffs.AsNoTracking()
-                    .Where(s => s.StaffId == actorStaffId && s.Active)
-                    .Select(s => (int?)s.StoreId)
-                    .FirstOrDefaultAsync();
-                if (!staffStoreId.HasValue || staffStoreId.Value <= 0)
-                    return FailDetail("Không xác định được cửa hàng của nhân viên.", BranchReceiptErrorCodes.Unauthorized);
-                if (request.StoreId != staffStoreId.Value)
-                    return FailDetail("Chỉ tạo phiếu nhận cho cửa hàng được phân công.", BranchReceiptErrorCodes.StoreMismatch);
-            }
 
             var now = DateTime.UtcNow;
             var receivedAt = request.ReceivedAt?.ToUniversalTime() ?? now;
@@ -112,7 +115,7 @@ namespace CafeChain.Application.Services.Inventories
                         BranchReceiptErrorCodes.StoreMismatch);
                 }
 
-                var confirmed = await SumConfirmedReceivedAsync(req.RestockRequestId);
+                var confirmed = await SumFulfillmentPostingsAsync(req.RestockRequestId);
                 var newSum = g.Sum(x => x.BaseQty);
                 if (confirmed + newSum > req.RequestedQuantity)
                 {
@@ -228,7 +231,8 @@ namespace CafeChain.Application.Services.Inventories
             if (receipt == null)
                 return FailDetail("Không tìm thấy phiếu nhận.", BranchReceiptErrorCodes.ReceiptNotFound);
 
-            var auth = AuthorizeReceiptAccess(receipt.StoreId, actorStoreId, roleNames);
+            var auth = await AuthorizeReceiptAccessAsync(
+                receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: false);
             if (!auth.IsSuccess)
                 return FailDetail(auth.Message, auth.ErrorCode);
 
@@ -242,7 +246,8 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             string? statusFilter = null)
         {
-            var auth = AuthorizeReceiptAccess(storeId, actorStoreId, roleNames);
+            var auth = await AuthorizeReceiptAccessAsync(
+                storeId, actorStaffId, actorStoreId, roleNames, mutation: false);
             if (!auth.IsSuccess)
                 return ServiceResult<List<BranchReceiptListItemDto>>.Failure(auth.Message, errorCode: auth.ErrorCode);
 
@@ -292,7 +297,8 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.ReceiptNotFound);
                 }
 
-                var auth = AuthorizeReceiptAccess(receipt.StoreId, actorStoreId, roleNames);
+                var auth = await AuthorizeReceiptAccessAsync(
+                    receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
                 if (!auth.IsSuccess)
                 {
                     await transaction.RollbackAsync();
@@ -408,21 +414,36 @@ namespace CafeChain.Application.Services.Inventories
                     }
                 }
 
-                // Over-receipt: re-read confirmed sums under lock
-                foreach (var rid in requestIds)
+                // RestockFulfillmentPosting is the only authority for actual fulfilled quantity.
+                // Each source line is idempotent and overfill is checked while the request is locked.
+                var requestUpdates = new Dictionary<int, RestockFulfillmentPostingResult>();
+                foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
-                    var req = requests[rid];
-                    var already = await SumConfirmedReceivedAsync(rid);
-                    var adding = receipt.Lines
-                        .Where(l => l.RestockRequestId == rid)
-                        .Sum(l => l.ReceivedBaseQuantity);
-                    if (already + adding > req.RequestedQuantity)
+                    var posting = await _fulfillmentPostingService.RegisterAsync(new RegisterRestockFulfillmentPostingCommand
+                    {
+                        RestockRequestId = line.RestockRequestId,
+                        DestinationStoreId = receipt.StoreId,
+                        SourceDocumentType = RestockFulfillmentDocumentTypes.BranchReceipt,
+                        SourceDocumentId = receipt.BranchReceiptId,
+                        SourceDocumentLineId = line.BranchReceiptLineId,
+                        IngredientId = line.IngredientId,
+                        PreparedItemId = line.PreparedItemId,
+                        Quantity = line.ReceivedBaseQuantity,
+                        BaseUnitId = line.BaseUnitId,
+                        ActorStaffId = actorStaffId,
+                        Reason = $"BranchReceipt #{receipt.BranchReceiptId} CONFIRMED"
+                    });
+                    if (!posting.IsSuccess || posting.Data == null)
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            $"RESTOCK_OVER_RECEIPT: request #{rid} already={already:N3} adding={adding:N3} requested={req.RequestedQuantity:N3}.",
-                            errorCode: BranchReceiptErrorCodes.RestockOverReceiptNotAllowed);
+                            posting.Message,
+                            errorCode: posting.Message.Contains("vượt mục tiêu", StringComparison.OrdinalIgnoreCase)
+                                ? BranchReceiptErrorCodes.RestockOverReceiptNotAllowed
+                                : BranchReceiptErrorCodes.RequestStateInvalid);
                     }
+
+                    requestUpdates[line.RestockRequestId] = posting.Data;
                 }
 
                 // Resolve / lock inventory rows ASC
@@ -538,8 +559,6 @@ namespace CafeChain.Application.Services.Inventories
 
                 var now = DateTime.UtcNow;
                 var createdTxIds = new List<int>();
-                var requestUpdates = new List<(int RestockRequestId, string NewStatus, decimal ReceivedQty)>();
-
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
                     var inv = inventoryByLine[line.BranchReceiptLineId];
@@ -547,19 +566,16 @@ namespace CafeChain.Application.Services.Inventories
                     inv.AvailableQty += line.ReceivedBaseQuantity;
                     inv.LastUpdated = now;
 
-                    // Cost layer only for Ingredient (schema requires IngredientId).
-                    if (line.IngredientId.HasValue)
+                    _context.InventoryCostLayers.Add(new InventoryCostLayer
                     {
-                        _context.InventoryCostLayers.Add(new InventoryCostLayer
-                        {
-                            StoreId = receipt.StoreId,
-                            IngredientId = line.IngredientId.Value,
-                            Quantity = line.ReceivedBaseQuantity,
-                            RemainingQuantity = line.ReceivedBaseQuantity,
-                            UnitCost = line.BaseUnitCostSnapshot,
-                            CreatedAt = now
-                        });
-                    }
+                        StoreId = receipt.StoreId,
+                        IngredientId = line.IngredientId,
+                        PreparedItemId = line.PreparedItemId,
+                        Quantity = line.ReceivedBaseQuantity,
+                        RemainingQuantity = line.ReceivedBaseQuantity,
+                        UnitCost = line.BaseUnitCostSnapshot,
+                        CreatedAt = now
+                    });
 
                     var tx = new InventoryTransaction
                     {
@@ -584,87 +600,6 @@ namespace CafeChain.Application.Services.Inventories
                 receipt.Status = BranchReceiptStatuses.Confirmed;
                 receipt.ConfirmedAt = now;
                 receipt.ConfirmedByStaffId = actorStaffId;
-
-                // Derive request statuses from confirmed sums
-                foreach (var rid in requestIds)
-                {
-                    var req = requests[rid];
-                    var previous = req.Status;
-                    var totalReceived = await SumConfirmedReceivedIncludingPendingAsync(
-                        rid, receipt.BranchReceiptId);
-                    // Include current receipt lines (now linked, status still DRAFT until save — add explicitly)
-                    var fromThisReceipt = receipt.Lines
-                        .Where(l => l.RestockRequestId == rid)
-                        .Sum(l => l.ReceivedBaseQuantity);
-                    // SumConfirmed may not include current because receipt not yet CONFIRMED in DB read path —
-                    // compute: already confirmed (other receipts) + this receipt
-                    var alreadyOtherQtys = await _context.BranchReceiptLines
-                        .Where(l =>
-                            l.RestockRequestId == rid &&
-                            l.BranchReceiptId != receipt.BranchReceiptId &&
-                            l.BranchReceipt.Status == BranchReceiptStatuses.Confirmed)
-                        .Select(l => l.ReceivedBaseQuantity)
-                        .ToListAsync();
-                    var alreadyOther = alreadyOtherQtys.Sum();
-                    var total = alreadyOther + fromThisReceipt;
-
-                    string newStatus;
-                    if (total <= 0)
-                        newStatus = RestockRequestStatuses.Processing;
-                    else if (total < req.RequestedQuantity)
-                        newStatus = RestockRequestStatuses.PartiallyReceived;
-                    else
-                        newStatus = RestockRequestStatuses.Completed;
-
-                    if (previous == RestockRequestStatuses.Submitted
-                        && newStatus is RestockRequestStatuses.PartiallyReceived or RestockRequestStatuses.Completed)
-                    {
-                        // Allow direct path SUBMITTED → received if operator confirms without explicit StartProcessing
-                        // Spec: SUBMITTED → PROCESSING first preferred; derive as PROCESSING intermediate then received.
-                        if (previous != RestockRequestStatuses.Processing)
-                        {
-                            _context.RestockRequestTransitions.Add(new RestockRequestTransition
-                            {
-                                RestockRequestId = rid,
-                                PreviousStatus = previous,
-                                NewStatus = RestockRequestStatuses.Processing,
-                                ActorStaffId = actorStaffId,
-                                OccurredAtUtc = now,
-                                Reason = "Auto PROCESSING before receipt post",
-                                BranchReceiptId = receipt.BranchReceiptId,
-                                RequestKey = receipt.ReceiptKey
-                            });
-                            previous = RestockRequestStatuses.Processing;
-                        }
-                    }
-
-                    req.Status = newStatus;
-                    req.UpdatedAt = now;
-                    req.HandledByStaffId ??= actorStaffId;
-                    req.HandledAt ??= now;
-
-                    var firstTxId = receipt.Lines
-                        .Where(l => l.RestockRequestId == rid && l.InventoryTransactionId.HasValue)
-                        .Select(l => l.InventoryTransactionId)
-                        .FirstOrDefault();
-
-                    _context.RestockRequestTransitions.Add(new RestockRequestTransition
-                    {
-                        RestockRequestId = rid,
-                        PreviousStatus = previous,
-                        NewStatus = newStatus,
-                        ActorStaffId = actorStaffId,
-                        OccurredAtUtc = now,
-                        Reason = $"BranchReceipt #{receipt.BranchReceiptId} CONFIRMED",
-                        BranchReceiptId = receipt.BranchReceiptId,
-                        InventoryTransactionId = firstTxId,
-                        QuantityBefore = alreadyOther,
-                        QuantityAfter = total,
-                        RequestKey = receipt.ReceiptKey
-                    });
-
-                    requestUpdates.Add((rid, newStatus, total));
-                }
 
                 await _context.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -720,6 +655,8 @@ namespace CafeChain.Application.Services.Inventories
                     AlertEvaluationMessage = alertMsg,
                     InventoryTransactionIds = createdTxIds,
                     RequestUpdates = requestUpdates
+                        .Select(x => (x.Key, x.Value.RequestStatus, x.Value.FulfilledQuantity))
+                        .ToList()
                 }, message);
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
@@ -907,21 +844,16 @@ namespace CafeChain.Application.Services.Inventories
                 (input, request, baseQty, baseUnitId, unitCost, lineTotal));
         }
 
-        private async Task<decimal> SumConfirmedReceivedAsync(int restockRequestId)
+        private async Task<decimal> SumFulfillmentPostingsAsync(int restockRequestId)
         {
             // SQLite cannot Sum(decimal) server-side — load then aggregate client-side.
-            var qtys = await _context.BranchReceiptLines
+            var qtys = await _context.RestockFulfillmentPostings
                 .AsNoTracking()
-                .Where(l =>
-                    l.RestockRequestId == restockRequestId &&
-                    l.BranchReceipt.Status == BranchReceiptStatuses.Confirmed)
-                .Select(l => l.ReceivedBaseQuantity)
+                .Where(p => p.RestockRequestId == restockRequestId)
+                .Select(p => p.Quantity)
                 .ToListAsync();
             return qtys.Sum();
         }
-
-        private Task<decimal> SumConfirmedReceivedIncludingPendingAsync(int restockRequestId, int currentReceiptId) =>
-            SumConfirmedReceivedAsync(restockRequestId);
 
         private async Task<BranchReceipt?> LoadReceiptForUpdateAsync(int branchReceiptId)
         {
@@ -1108,22 +1040,42 @@ namespace CafeChain.Application.Services.Inventories
             return false;
         }
 
-        private static ServiceResult AuthorizeReceiptAccess(
+        private async Task<ServiceResult> AuthorizeReceiptAccessAsync(
             int storeId,
+            int actorStaffId,
             int? actorStoreId,
-            IReadOnlyCollection<string> roleNames)
+            IReadOnlyCollection<string> roleNames,
+            bool mutation)
         {
             if (roleNames.Contains(RoleConstants.BusinessOwner)
-                || roleNames.Contains(RoleConstants.SystemAdmin)
-                || roleNames.Contains(RoleConstants.AreaManager)
                 || roleNames.Contains(RoleConstants.AccountantWarehouse))
                 return ServiceResult.Success();
 
-            if ((roleNames.Contains(RoleConstants.StoreManager)
-                 || roleNames.Contains(RoleConstants.ShiftSupervisor))
-                && actorStoreId.HasValue
-                && actorStoreId.Value == storeId)
-                return ServiceResult.Success();
+            if (roleNames.Contains(RoleConstants.AreaManager))
+            {
+                return actorStaffId > 0
+                       && await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId)
+                    ? ServiceResult.Success()
+                    : ServiceResult.Failure(
+                        "Cửa hàng nằm ngoài phạm vi quản lý vùng.",
+                        errorCode: BranchReceiptErrorCodes.Unauthorized);
+            }
+
+            var allowedBranchRole = roleNames.Contains(RoleConstants.StoreManager)
+                || (!mutation && (roleNames.Contains(RoleConstants.ShiftSupervisor)
+                                   || roleNames.Contains(RoleConstants.SalesStaff)));
+            if (allowedBranchRole)
+            {
+                var staffStoreId = await _context.Staffs
+                    .AsNoTracking()
+                    .Where(s => s.StaffId == actorStaffId && s.Active)
+                    .Select(s => (int?)s.StoreId)
+                    .FirstOrDefaultAsync();
+                if (!staffStoreId.HasValue)
+                    staffStoreId = actorStoreId;
+                if (staffStoreId.HasValue && staffStoreId.Value == storeId)
+                    return ServiceResult.Success();
+            }
 
             return ServiceResult.Failure(
                 "Không có quyền truy cập phiếu nhận cửa hàng này.",
@@ -1132,17 +1084,9 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanCreateOrConfirmReceipt(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.ShiftSupervisor)
             || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin)
-            || roles.Contains(RoleConstants.AreaManager);
-        // AccountantWarehouse: process/reject only — does not post branch stock by default (D8).
-
-        private static bool IsBranchScopedOnly(IReadOnlyCollection<string> roles) =>
-            (roles.Contains(RoleConstants.StoreManager) || roles.Contains(RoleConstants.ShiftSupervisor))
-            && !roles.Contains(RoleConstants.BusinessOwner)
-            && !roles.Contains(RoleConstants.SystemAdmin)
-            && !roles.Contains(RoleConstants.AreaManager);
+            || roles.Contains(RoleConstants.AreaManager)
+            || roles.Contains(RoleConstants.AccountantWarehouse);
 
         private static bool IsUniqueViolation(DbUpdateException ex)
         {

@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Stock;
@@ -19,13 +20,16 @@ namespace CafeChain.Application.Services.Inventories
         private const int MaxNoteLength = 500;
 
         private readonly AppDbContext _context;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestService> _logger;
 
         public RestockRequestService(
             AppDbContext context,
+            IScopeAuthorizationService scopeAuthorization,
             ILogger<RestockRequestService> logger)
         {
             _context = context;
+            _scopeAuthorization = scopeAuthorization;
             _logger = logger;
         }
 
@@ -56,19 +60,10 @@ namespace CafeChain.Application.Services.Inventories
                     "Thiếu thông tin quản lý cửa hàng.");
             }
 
-            var isStoreManager = await _context.Staffs
-                .AsNoTracking()
-                .Where(s => s.StaffId == managerStaffId && s.Active)
-                .SelectMany(s => s.Account.AccountRoles)
-                .AnyAsync(ar =>
-                    ar.Role != null &&
-                    ar.Role.Active &&
-                    ar.Role.Name == RoleConstants.StoreManager);
-
-            if (!isStoreManager)
+            if (!await IsAuthorizedRequesterAsync(managerStaffId, managerStoreId))
             {
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Chỉ Quản lý chi nhánh được tạo yêu cầu nhập hàng.");
+                    "Bạn không có quyền tạo yêu cầu nhập hàng tại cửa hàng này.");
             }
 
             var alert = await _context.StockAlerts
@@ -96,15 +91,34 @@ namespace CafeChain.Application.Services.Inventories
                     $"Chỉ tạo yêu cầu nhập hàng từ cảnh báo đã xác nhận (CONFIRMED). Trạng thái hiện tại: {alert.Status}.");
             }
 
-            var hasOpen = await _context.RestockRequests
-                .AnyAsync(r =>
-                    r.StockAlertId == alertId &&
-                    r.Status == RestockRequestStatuses.Submitted);
-
-            if (hasOpen)
+            var preparedItemId = alert.PreparedItemId ?? alert.Recipe?.PreparedItemId;
+            if (!alert.IngredientId.HasValue && !preparedItemId.HasValue)
             {
                 return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                    "Cảnh báo này đã có yêu cầu nhập hàng đang mở.");
+                    "Cảnh báo chưa có identity Ingredient/PreparedItem hợp lệ.");
+            }
+
+            var existingOpen = await _context.RestockRequests
+                .AsNoTracking()
+                .Where(r => RestockRequestStatuses.ActiveValues.Contains(r.Status))
+                .Where(r =>
+                    r.StockAlertId == alertId ||
+                    (r.StoreId == alert.StoreId &&
+                     (alert.IngredientId.HasValue
+                         ? r.IngredientId == alert.IngredientId
+                         : r.PreparedItemId == preparedItemId)))
+                .OrderBy(r => r.RestockRequestId)
+                .FirstOrDefaultAsync();
+
+            if (existingOpen != null)
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Success(
+                    new CreateRestockRequestResultDto
+                    {
+                        RestockRequestId = existingOpen.RestockRequestId,
+                        AlreadyExisted = true
+                    },
+                    "Yêu cầu nhập hàng đang mở đã tồn tại; hệ thống trả lại bản ghi hiện có.");
             }
 
             var resolvedPriority = ResolvePriority(priority, alert.AlertType);
@@ -119,10 +133,9 @@ namespace CafeChain.Application.Services.Inventories
             {
                 StockAlertId = alert.StockAlertId,
                 StoreId = alert.StoreId,
-                // Issue #122 — copy full transitional identity tuple from confirmed alert (no re-map).
                 IngredientId = alert.IngredientId,
-                RecipeId = alert.RecipeId,
-                PreparedItemId = alert.PreparedItemId,
+                RecipeId = alert.IngredientId.HasValue ? null : alert.RecipeId,
+                PreparedItemId = alert.IngredientId.HasValue ? null : preparedItemId,
                 RequestedQuantity = requestedQuantity,
                 SuggestedQuantity = suggested,
                 Status = RestockRequestStatuses.Submitted,
@@ -133,24 +146,44 @@ namespace CafeChain.Application.Services.Inventories
                 Note = noteText
             };
 
+            request.RowVersion = Array.Empty<byte>();
+            _context.RestockRequestTransitions.Add(new RestockRequestTransition
+            {
+                RestockRequest = request,
+                PreviousStatus = RestockRequestStatuses.Draft,
+                NewStatus = RestockRequestStatuses.Submitted,
+                ActorStaffId = managerStaffId,
+                OccurredAtUtc = now,
+                Reason = "Tạo yêu cầu nhập hàng từ cảnh báo đã xác nhận."
+            });
+
             try
             {
                 _context.RestockRequests.Add(request);
                 await _context.SaveChangesAsync(); // need Id for notifications
             }
-            catch (DbUpdateException)
+            catch (DbUpdateException ex) when (IsActiveRequestUniqueConflict(ex))
             {
                 // Concurrent create for same StockAlert SUBMITTED unique — treat as duplicate.
                 _context.ChangeTracker.Clear();
                 var existing = await _context.RestockRequests
                     .AsNoTracking()
                     .FirstOrDefaultAsync(r =>
-                        r.StockAlertId == alertId &&
-                        r.Status == RestockRequestStatuses.Submitted);
+                        RestockRequestStatuses.ActiveValues.Contains(r.Status)
+                        && (r.StockAlertId == alertId
+                            || (r.StoreId == alert.StoreId
+                                && (alert.IngredientId.HasValue
+                                    ? r.IngredientId == alert.IngredientId
+                                    : r.PreparedItemId == preparedItemId))));
                 if (existing != null)
                 {
-                    return ServiceResult<CreateRestockRequestResultDto>.Failure(
-                        "Cảnh báo này đã có yêu cầu nhập hàng đang mở.");
+                    return ServiceResult<CreateRestockRequestResultDto>.Success(
+                        new CreateRestockRequestResultDto
+                        {
+                            RestockRequestId = existing.RestockRequestId,
+                            AlreadyExisted = true
+                        },
+                        "Yêu cầu nhập hàng đang mở đã tồn tại; hệ thống trả lại bản ghi hiện có.");
                 }
 
                 throw;
@@ -302,7 +335,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(x =>
                     x.StockAlertId == stockAlertId &&
                     x.StoreId == storeId &&
-                    x.Status == RestockRequestStatuses.Submitted)
+                    RestockRequestStatuses.ActiveValues.Contains(x.Status))
                 .OrderByDescending(x => x.CreatedAt)
                 .FirstOrDefaultAsync();
 
@@ -315,7 +348,6 @@ namespace CafeChain.Application.Services.Inventories
             return await _context.Staffs
                 .AsNoTracking()
                 .Where(s =>
-                    s.StoreId == storeId &&
                     s.Active &&
                     s.Account != null &&
                     s.Account.Active &&
@@ -326,6 +358,34 @@ namespace CafeChain.Application.Services.Inventories
                 .Select(s => s.StaffId)
                 .Distinct()
                 .ToListAsync();
+        }
+
+        private static bool IsActiveRequestUniqueConflict(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("UX_RestockRequest_Active_", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("UX_RestockRequest_Open_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task<bool> IsAuthorizedRequesterAsync(int staffId, int storeId)
+        {
+            var staff = await _context.Staffs
+                .AsNoTracking()
+                .Include(s => s.Account)
+                    .ThenInclude(a => a.AccountRoles)
+                        .ThenInclude(ar => ar.Role)
+                .FirstOrDefaultAsync(s => s.StaffId == staffId && s.Active);
+            if (staff == null)
+                return false;
+            var roles = staff.Account.AccountRoles
+                .Where(ar => ar.Role != null && ar.Role.Active)
+                .Select(ar => ar.Role.Name)
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            if (roles.Contains(RoleConstants.BusinessOwner))
+                return true;
+            if (roles.Contains(RoleConstants.AreaManager))
+                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
+            return roles.Contains(RoleConstants.StoreManager) && staff.StoreId == storeId;
         }
 
         private static string ResolvePriority(string? priority, string alertType)

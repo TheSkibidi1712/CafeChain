@@ -10,6 +10,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public DateTime OccurredAtUtc { get; set; }
         public string? Reason { get; set; }
         public int? BranchReceiptId { get; set; }
+        public int? InventoryTransferId { get; set; }
         public int? InventoryTransactionId { get; set; }
         public decimal? QuantityBefore { get; set; }
         public decimal? QuantityAfter { get; set; }
@@ -20,9 +21,24 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     {
         public decimal ReceivedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
+        public decimal TargetQuantity { get; set; }
+        public bool StockRecoveredExternally { get; set; }
         public List<RestockTimelineItemDto> Timeline { get; set; } = new();
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();
         public List<RestockFulfillmentDto> Fulfillments { get; set; } = new();
+        public List<RestockFulfillmentPostingDto> FulfillmentPostings { get; set; } = new();
+    }
+
+    public class RestockFulfillmentPostingDto
+    {
+        public int RestockFulfillmentPostingId { get; set; }
+        public string SourceDocumentType { get; set; } = string.Empty;
+        public int SourceDocumentId { get; set; }
+        public int SourceDocumentLineId { get; set; }
+        public decimal Quantity { get; set; }
+        public int BaseUnitId { get; set; }
+        public string? BaseUnitName { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
     }
 
     public class RestockFulfillmentDto

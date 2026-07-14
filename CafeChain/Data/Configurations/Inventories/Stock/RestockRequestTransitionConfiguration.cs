@@ -54,9 +54,15 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.InventoryTransactionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.InventoryTransfer)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryTransferId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.RestockRequestId);
             entity.HasIndex(x => x.OccurredAtUtc);
             entity.HasIndex(x => new { x.RestockRequestId, x.OccurredAtUtc });
+            entity.HasIndex(x => x.InventoryTransferId);
         }
     }
 }

@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -50,6 +51,9 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>Reserved for future warehouse processing.</summary>
         public DateTime? HandledAt { get; set; }
 
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
         public virtual StockAlert StockAlert { get; set; } = null!;
         public virtual Store Store { get; set; } = null!;
         public virtual Ingredient? Ingredient { get; set; }
@@ -57,5 +61,6 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual PreparedItem? PreparedItem { get; set; }
         public virtual Staff CreatedByStaff { get; set; } = null!;
         public virtual Staff? HandledByStaff { get; set; }
+        public virtual ICollection<RestockFulfillmentPosting> FulfillmentPostings { get; set; } = new List<RestockFulfillmentPosting>();
     }
 }

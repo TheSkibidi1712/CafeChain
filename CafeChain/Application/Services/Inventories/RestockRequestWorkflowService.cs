@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Stock;
@@ -15,13 +16,16 @@ namespace CafeChain.Application.Services.Inventories
     public sealed class RestockRequestWorkflowService : IRestockRequestWorkflowService
     {
         private readonly AppDbContext _context;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestWorkflowService> _logger;
 
         public RestockRequestWorkflowService(
             AppDbContext context,
+            IScopeAuthorizationService scopeAuthorization,
             ILogger<RestockRequestWorkflowService> logger)
         {
             _context = context;
+            _scopeAuthorization = scopeAuthorization;
             _logger = logger;
         }
 
@@ -35,7 +39,7 @@ namespace CafeChain.Application.Services.Inventories
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
 
-            var auth = AuthorizeView(request, actorStaffId, actorStoreId, roleNames);
+            var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
 
@@ -56,7 +60,7 @@ namespace CafeChain.Application.Services.Inventories
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
 
-            var auth = AuthorizeView(request, actorStaffId, actorStoreId, roleNames);
+            var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
 
@@ -102,7 +106,7 @@ namespace CafeChain.Application.Services.Inventories
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
 
-            var auth = AuthorizeView(request, actorStaffId, actorStoreId, roleNames);
+            var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
 
@@ -115,7 +119,7 @@ namespace CafeChain.Application.Services.Inventories
 
             if (request.Status == RestockRequestStatuses.Processing)
             {
-                var hasConfirmed = await HasConfirmedReceiptAsync(request.RestockRequestId);
+                var hasConfirmed = await HasFulfillmentPostingAsync(request.RestockRequestId);
                 if (hasConfirmed)
                 {
                     return Fail(
@@ -174,7 +178,7 @@ namespace CafeChain.Application.Services.Inventories
                 await _context.Entry(request).Reference(r => r.Store).LoadAsync();
                 await _context.Entry(request).Reference(r => r.StockAlert).LoadAsync();
 
-                var auth = AuthorizeView(request, actorStaffId, actorStoreId, roleNames);
+                var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
                 if (!auth.IsSuccess)
                 {
                     await transaction.RollbackAsync();
@@ -192,7 +196,7 @@ namespace CafeChain.Application.Services.Inventories
 
                 if (request.Status == RestockRequestStatuses.Processing)
                 {
-                    var hasConfirmed = await HasConfirmedReceiptAsync(request.RestockRequestId);
+                    var hasConfirmed = await HasFulfillmentPostingAsync(request.RestockRequestId);
                     if (hasConfirmed)
                     {
                         await transaction.RollbackAsync();
@@ -285,7 +289,7 @@ namespace CafeChain.Application.Services.Inventories
                     "Không tìm thấy yêu cầu nhập hàng.",
                     errorCode: BranchReceiptErrorCodes.RequestNotFound);
 
-            var auth = AuthorizeView(request, actorStaffId, actorStoreId, roleNames);
+            var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return ServiceResult<RestockFulfillmentDto>.Failure(auth.Message, errorCode: auth.ErrorCode);
 
@@ -376,12 +380,10 @@ namespace CafeChain.Application.Services.Inventories
                 .SingleOrDefaultAsync(r => r.RestockRequestId == restockRequestId);
         }
 
-        private async Task<bool> HasConfirmedReceiptAsync(int restockRequestId) =>
-            await _context.BranchReceiptLines
+        private async Task<bool> HasFulfillmentPostingAsync(int restockRequestId) =>
+            await _context.RestockFulfillmentPostings
                 .AsNoTracking()
-                .AnyAsync(l =>
-                    l.RestockRequestId == restockRequestId &&
-                    l.BranchReceipt.Status == BranchReceiptStatuses.Confirmed);
+                .AnyAsync(p => p.RestockRequestId == restockRequestId);
 
         private void AddTransition(
             RestockRequest request,
@@ -413,16 +415,18 @@ namespace CafeChain.Application.Services.Inventories
 
         private async Task<RestockRequestWorkflowDetailDto> MapWorkflowDetailAsync(RestockRequest r)
         {
-            var receivedQtys = await _context.BranchReceiptLines
+            var receivedQtys = await _context.RestockFulfillmentPostings
                 .AsNoTracking()
-                .Where(l =>
-                    l.RestockRequestId == r.RestockRequestId &&
-                    l.BranchReceipt.Status == BranchReceiptStatuses.Confirmed)
-                .Select(l => l.ReceivedBaseQuantity)
+                .Where(p => p.RestockRequestId == r.RestockRequestId)
+                .Select(p => p.Quantity)
                 .ToListAsync();
             var received = receivedQtys.Sum();
-
-            var remaining = Math.Max(0m, r.RequestedQuantity - received);
+            var target = r.RequestedQuantity;
+            var remaining = Math.Max(0m, target - received);
+            var stockRecoveredExternally =
+                r.StockAlert?.Status == StockAlertStatuses.Resolved &&
+                RestockRequestStatuses.ActiveValues.Contains(r.Status) &&
+                received < target;
 
             var timeline = await _context.RestockRequestTransitions
                 .AsNoTracking()
@@ -440,10 +444,30 @@ namespace CafeChain.Application.Services.Inventories
                     OccurredAtUtc = t.OccurredAtUtc,
                     Reason = t.Reason,
                     BranchReceiptId = t.BranchReceiptId,
+                    InventoryTransferId = t.InventoryTransferId,
                     InventoryTransactionId = t.InventoryTransactionId,
                     QuantityBefore = t.QuantityBefore,
                     QuantityAfter = t.QuantityAfter,
                     RequestKey = t.RequestKey
+                })
+                .ToListAsync();
+
+            var postings = await _context.RestockFulfillmentPostings
+                .AsNoTracking()
+                .Include(p => p.BaseUnit)
+                .Where(p => p.RestockRequestId == r.RestockRequestId)
+                .OrderByDescending(p => p.CreatedAtUtc)
+                .ThenByDescending(p => p.RestockFulfillmentPostingId)
+                .Select(p => new RestockFulfillmentPostingDto
+                {
+                    RestockFulfillmentPostingId = p.RestockFulfillmentPostingId,
+                    SourceDocumentType = p.SourceDocumentType,
+                    SourceDocumentId = p.SourceDocumentId,
+                    SourceDocumentLineId = p.SourceDocumentLineId,
+                    Quantity = p.Quantity,
+                    BaseUnitId = p.BaseUnitId,
+                    BaseUnitName = p.BaseUnit != null ? p.BaseUnit.Name : null,
+                    CreatedAtUtc = p.CreatedAtUtc
                 })
                 .ToListAsync();
 
@@ -513,13 +537,16 @@ namespace CafeChain.Application.Services.Inventories
                 AlertThresholdSnapshot = r.StockAlert?.ThresholdSnapshot,
                 ReceivedQuantity = received,
                 RemainingQuantity = remaining,
+                TargetQuantity = target,
+                StockRecoveredExternally = stockRecoveredExternally,
                 Timeline = timeline,
                 Receipts = receipts,
-                Fulfillments = fulfillments
+                Fulfillments = fulfillments,
+                FulfillmentPostings = postings
             };
         }
 
-        private ServiceResult AuthorizeView(
+        private async Task<ServiceResult> AuthorizeViewAsync(
             RestockRequest request,
             int actorStaffId,
             int? actorStoreId,
@@ -531,8 +558,18 @@ namespace CafeChain.Application.Services.Inventories
             if (roleNames.Contains(RoleConstants.AccountantWarehouse))
                 return ServiceResult.Success();
 
+            if (roleNames.Contains(RoleConstants.AreaManager))
+            {
+                return await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, request.StoreId)
+                    ? ServiceResult.Success()
+                    : ServiceResult.Failure(
+                        "Yêu cầu nằm ngoài phạm vi khu vực của bạn.",
+                        errorCode: BranchReceiptErrorCodes.StoreMismatch);
+            }
+
             if (roleNames.Contains(RoleConstants.StoreManager)
-                || roleNames.Contains(RoleConstants.ShiftSupervisor))
+                || roleNames.Contains(RoleConstants.ShiftSupervisor)
+                || roleNames.Contains(RoleConstants.SalesStaff))
             {
                 if (actorStoreId.HasValue && actorStoreId.Value == request.StoreId)
                     return ServiceResult.Success();
@@ -549,7 +586,6 @@ namespace CafeChain.Application.Services.Inventories
         private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse)
             || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin)
             || roles.Contains(RoleConstants.AreaManager);
 
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
@@ -560,9 +596,7 @@ namespace CafeChain.Application.Services.Inventories
             && !CanWarehouseProcess(roles);
 
         private static bool IsGlobalAdmin(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.SystemAdmin)
-            || roles.Contains(RoleConstants.AreaManager);
+            roles.Contains(RoleConstants.BusinessOwner);
 
         private static string ResolveItemName(RestockRequest r)
         {

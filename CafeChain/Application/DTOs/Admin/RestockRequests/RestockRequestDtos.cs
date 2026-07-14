@@ -44,6 +44,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class CreateRestockRequestResultDto
     {
         public int RestockRequestId { get; set; }
+        public bool AlreadyExisted { get; set; }
         public bool NotifiedAccountantWarehouse { get; set; }
         public int RecipientCount { get; set; }
     }

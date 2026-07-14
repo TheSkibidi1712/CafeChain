@@ -1,5 +1,6 @@
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
+using CafeChain.Models.Inventories.Transfers;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -23,6 +24,7 @@ namespace CafeChain.Models.Inventories.Stock
         public string? Reason { get; set; }
 
         public int? BranchReceiptId { get; set; }
+        public int? InventoryTransferId { get; set; }
 
         public int? InventoryTransactionId { get; set; }
 
@@ -35,6 +37,7 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual RestockRequest RestockRequest { get; set; } = null!;
         public virtual Staff ActorStaff { get; set; } = null!;
         public virtual BranchReceipt? BranchReceipt { get; set; }
+        public virtual InventoryTransfer? InventoryTransfer { get; set; }
         public virtual InventoryTransaction? InventoryTransaction { get; set; }
     }
 }

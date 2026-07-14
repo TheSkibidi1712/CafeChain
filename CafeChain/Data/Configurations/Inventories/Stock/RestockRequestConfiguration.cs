@@ -10,13 +10,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
         {
             entity.ToTable("RestockRequests", t =>
             {
-                // Issue #122 — same transitional identity truth table as StockAlert.
+                // RecipeId is compatibility metadata only; canonical identity is Ingredient XOR PreparedItem.
                 t.HasCheckConstraint(
                     "CK_RestockRequests_Identity",
                     @"
 (
   ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)
-  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)
   OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
   OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)
 )");
@@ -47,6 +46,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 
             entity.Property(x => x.UpdatedAt)
                 .IsRequired();
+
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
 
             entity.HasOne(x => x.StockAlert)
                 .WithMany()
@@ -92,8 +94,18 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 
             entity.HasIndex(x => x.StockAlertId)
                 .IsUnique()
-                .HasFilter("[Status] = 'SUBMITTED'")
-                .HasDatabaseName("UX_RestockRequest_Open_StockAlert");
+                .HasFilter("[StockAlertId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasDatabaseName("UX_RestockRequest_Active_StockAlert");
+
+            entity.HasIndex(x => new { x.StoreId, x.IngredientId })
+                .IsUnique()
+                .HasFilter("[IngredientId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasDatabaseName("UX_RestockRequest_Active_Store_Ingredient");
+
+            entity.HasIndex(x => new { x.StoreId, x.PreparedItemId })
+                .IsUnique()
+                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasDatabaseName("UX_RestockRequest_Active_Store_PreparedItem");
         }
     }
 }
