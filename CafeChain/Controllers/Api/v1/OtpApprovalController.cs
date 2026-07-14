@@ -39,7 +39,13 @@ namespace CafeChain.Controllers.Api.v1
             var result = await _otpService.RequestOtpAsync(request, CurrentStaffId, CurrentStoreId);
 
             if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    data = result.Data
+                });
 
             return Ok(new
             {
@@ -59,7 +65,13 @@ namespace CafeChain.Controllers.Api.v1
             var result = await _otpService.VerifyOtpAsync(request);
 
             if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message, data = result.Data });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    data = result.Data
+                });
 
             return Ok(new
             {
@@ -79,7 +91,13 @@ namespace CafeChain.Controllers.Api.v1
             var result = await _otpService.ResendOtpAsync(request);
 
             if (!result.IsSuccess)
-                return BadRequest(new { success = false, message = result.Message, data = result.Data });
+                return BadRequest(new
+                {
+                    success = false,
+                    message = result.Message,
+                    errorCode = result.ErrorCode,
+                    data = result.Data
+                });
 
             return Ok(new
             {

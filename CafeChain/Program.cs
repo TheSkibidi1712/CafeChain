@@ -15,12 +15,26 @@ if (args.Length > 0
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Per-machine overrides (connection strings) — never commit appsettings.Local.json.
-// Loaded AFTER default config + User Secrets. Do NOT put empty Email:Password here —
-// an empty value overrides User Secrets / Email__Password and breaks SMTP.
-// Prefer: dotnet user-secrets set "Email:Password" "..." or env Email__Password.
-// See appsettings.Local.json.example and docs/testing/email-otp-local-setup.md.
+// Default CreateBuilder provider order (see Microsoft.Extensions.Hosting):
+//   1) appsettings.json
+//   2) appsettings.{Environment}.json
+//   3) User Secrets (Development only)
+//   4) Environment variables
+//   5) Command-line args
+//
+// Local machine overrides (connection string only). Loaded next, then we re-add
+// User Secrets + Environment so empty keys in Local can never wipe Email:Password.
+// Prefer: .\scripts\setup-team-otp-email.ps1  OR  env Email__Password.
+// See docs/testing/email-otp-local-setup.md
 builder.Configuration.AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Configuration.AddUserSecrets(typeof(Program).Assembly, optional: true);
+}
+
+// Environment variables always win over JSON/Local for Email__Password etc.
+builder.Configuration.AddEnvironmentVariables();
 
 builder.AddCafeChainSerilog();
 

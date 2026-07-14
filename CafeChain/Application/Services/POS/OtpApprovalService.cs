@@ -225,6 +225,20 @@ namespace CafeChain.Application.Services.POS
                         "OTP_EMAIL_SEND_FAILED | StoreId={StoreId} | RequestedByStaffId={RequestedByStaffId} | ApproverStaffId={ApproverStaffId} | To={To}",
                         storeId, requestedByStaffId, approver.StaffId, MaskEmail(approverEmail));
 
+                    // Missing App Password: clear business error (no host crash, no PIN fallback).
+                    if (IsSmtpPasswordNotConfigured(ex))
+                    {
+                        challenge.Status = OtpConstants.Statuses.Cancelled;
+                        challenge.CancelledAt = DateTime.UtcNow;
+                        await _repository.SaveChangesAsync();
+
+                        return ServiceResult<OtpChallengeResponseDto>.Failure(
+                            "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED: Chưa cấu hình Gmail App Password. " +
+                            "Chạy .\\scripts\\setup-team-otp-email.ps1 (hoặc set Email__Password / user-secrets), " +
+                            "rồi restart backend.",
+                            errorCode: OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured);
+                    }
+
                     if (_environment.IsDevelopment())
                     {
                         _logger.LogWarning(
@@ -419,6 +433,20 @@ namespace CafeChain.Application.Services.POS
                         "OTP_EMAIL_RESEND_FAILED | PublicId={PublicId} | StoreId={StoreId}",
                         challenge.PublicId, challenge.StoreId);
 
+                    if (IsSmtpPasswordNotConfigured(ex))
+                    {
+                        await _repository.RollbackTransactionAsync();
+                        return new ServiceResult<OtpChallengeResponseDto>
+                        {
+                            IsSuccess = false,
+                            Message =
+                                "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED: Chưa cấu hình Gmail App Password. " +
+                                "Chạy .\\scripts\\setup-team-otp-email.ps1 rồi restart backend.",
+                            ErrorCode = OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured,
+                            Data = MapResponse(challenge, nowUtc)
+                        };
+                    }
+
                     if (_environment.IsDevelopment())
                     {
                         // Keep Pending and rotate hash even if email fails in Development so tests can proceed.
@@ -589,6 +617,16 @@ namespace CafeChain.Application.Services.POS
             }
 
             return null;
+        }
+
+        private static bool IsSmtpPasswordNotConfigured(Exception ex)
+        {
+            var text = ex.Message ?? string.Empty;
+            return text.Contains(
+                       OtpConstants.ErrorCodes.EmailSmtpPasswordNotConfigured,
+                       StringComparison.OrdinalIgnoreCase)
+                   || text.Contains("Thiếu Email:Password", StringComparison.OrdinalIgnoreCase)
+                   || text.Contains("Thiếu Gmail App Password", StringComparison.OrdinalIgnoreCase);
         }
 
         private static ServiceResult<OtpChallengeResponseDto> Failure(

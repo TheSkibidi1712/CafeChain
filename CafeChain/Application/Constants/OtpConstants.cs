@@ -48,6 +48,8 @@ namespace CafeChain.Application.Constants
             public const string FeatureNotAvailable = "FEATURE_NOT_AVAILABLE";
             public const string RequiresOnline = "SUPERVISOR_APPROVAL_REQUIRES_ONLINE";
             public const string LateOpeningRequiresOtp = "LATE_OPENING_REQUIRES_OTP";
+            /// <summary>SMTP mode is on but Email:Password / Email__Password is not configured.</summary>
+            public const string EmailSmtpPasswordNotConfigured = "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED";
         }
 
         public static class Thresholds

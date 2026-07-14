@@ -152,6 +152,8 @@ const OTP_SYSTEM_DB_MESSAGE =
   'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình hệ thống hoặc cơ sở dữ liệu.'
 const OTP_EMAIL_CONFIG_MESSAGE =
   'Không gửi được OTP ca trưởng. Vui lòng kiểm tra cấu hình email.'
+const OTP_EMAIL_PASSWORD_MESSAGE =
+  'Chưa cấu hình Gmail App Password. Chạy .\\scripts\\setup-team-otp-email.ps1 (hoặc set Email__Password / user-secrets), rồi restart backend.'
 
 /** Detect developer exception pages, SQL stack traces, HTML dumps, etc. */
 export const isRawDeveloperErrorText = (text: string | null | undefined): boolean => {
@@ -210,6 +212,15 @@ export const mapOtpUserMessage = (
     lower.includes('sqlexception')
   ) {
     return OTP_SYSTEM_DB_MESSAGE
+  }
+
+  if (
+    lower.includes('email_smtp_password_not_configured') ||
+    lower.includes('gmail app password') ||
+    lower.includes('setup-team-otp-email') ||
+    lower.includes('email__password')
+  ) {
+    return OTP_EMAIL_PASSWORD_MESSAGE
   }
 
   if (lower.includes('không gửi được otp') || lower.includes('không gửi lại được otp')) {

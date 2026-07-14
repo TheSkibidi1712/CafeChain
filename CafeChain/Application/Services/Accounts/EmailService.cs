@@ -50,11 +50,17 @@ namespace CafeChain.Application.Services.Accounts
                 if (string.IsNullOrWhiteSpace(email))
                     throw new InvalidOperationException("Thiếu cấu hình Email:Address (tài khoản SMTP gửi đi).");
                 if (string.IsNullOrWhiteSpace(password))
+                {
+                    // Structured token for API/UI mapping — never log secrets.
+                    _logger.LogWarning(
+                        "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED | DeliveryMode=Smtp | From={From}",
+                        email);
                     throw new InvalidOperationException(
-                        "Thiếu Email:Password (Gmail App Password). " +
-                        "Cấu hình local: environment Email__Password hoặc " +
-                        "dotnet user-secrets set \"Email:Password\" \"<TEAM_APP_PASSWORD>\". " +
+                        "EMAIL_SMTP_PASSWORD_NOT_CONFIGURED: Thiếu Gmail App Password. " +
+                        "Chạy .\\scripts\\setup-team-otp-email.ps1 hoặc set Email__Password / " +
+                        "dotnet user-secrets set \"Email:Password\" \"...\", rồi restart backend. " +
                         "Không commit App Password vào source.");
+                }
 
                 // IMPORTANT: set UseDefaultCredentials = false BEFORE Credentials.
                 // Object-initializer order Credentials then UseDefaultCredentials=false clears the password

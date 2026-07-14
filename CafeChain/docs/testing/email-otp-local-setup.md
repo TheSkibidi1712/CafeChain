@@ -4,101 +4,154 @@ Private repo uses one **shared Gmail test mailbox** for OTP delivery.
 Tracked config holds **non-secret** SMTP settings only.  
 **Never commit** Gmail login password or Gmail App Password.
 
-## 1. Pull latest branch
+---
+
+## Quick start
 
 ```powershell
 git pull
+
+# From repository root:
+.\scripts\setup-team-otp-email.ps1
+
+# Restart backend (required after secrets change)
+cd CafeChain
+dotnet run --launch-profile http
 ```
 
-## 2. Shared non-secret settings (already in repo)
+Then open POS → Shift Summary → **Gửi OTP**.  
+Check the **approver** inbox (Ca trưởng email in Admin/DB), including **Spam**.
+
+---
+
+## What is already in the repository
 
 Tracked `appsettings.json` / `appsettings.Development.json`:
 
-| Key | Expected value |
+| Key | Value |
 |---|---|
 | `Email:DeliveryMode` | `Smtp` |
 | `Email:SmtpHost` | `smtp.gmail.com` |
 | `Email:SmtpPort` | `587` |
-| `Email:Address` | team shared test Gmail (see tracked config) |
-| `Email:Password` | empty in git — supply locally |
+| `Email:Address` | shared test Gmail (`cafechain8386@gmail.com`) |
+| `Email:Password` | **not stored in git** |
 
-ASP.NET Core maps environment variables with `__` to nested keys:
+You only need the **shared Gmail App Password** from the team private channel.
+
+---
+
+## Configuration provider order (runtime)
+
+Actual host order after `Program.cs`:
+
+1. `appsettings.json`
+2. `appsettings.{Environment}.json` (e.g. Development)
+3. User Secrets (Development; also re-applied after Local)
+4. `appsettings.Local.json` (optional, gitignored — **connection string only**)
+5. **User Secrets again** (Development) so Local cannot wipe secrets
+6. **Environment variables** (final authority for `Email__Password`)
+7. Command-line args (CreateBuilder defaults; env re-added last among our overrides)
+
+**Critical:** never put `"Email:Password": ""` in `appsettings.Local.json`.  
+Empty string would override User Secrets if Local were last — current host re-applies secrets + env after Local.
+
+Environment mapping:
 
 - `Email__Password` → `Email:Password`
 - `Email__DeliveryMode` → `Email:DeliveryMode`
 
-## 3. Configure App Password locally (required for real SMTP)
+---
 
-Obtain the **shared Gmail App Password** from the team private channel (not from git, issues, or screenshots).
-
-### Option A — PowerShell session env (quick)
+## Setup script (recommended)
 
 ```powershell
-$env:Email__Password = "<TEAM_APP_PASSWORD>"
+.\scripts\setup-team-otp-email.ps1
 ```
 
-Restart the backend in **the same** PowerShell window.
+The script:
 
-### Option B — User Secrets (persists for this machine)
+1. Finds the web project with `UserSecretsId`
+2. Prompts for App Password via **SecureString** (not echoed)
+3. Sets User Secrets: DeliveryMode, Host, Port, Address, Password
+4. Prints **Password is configured** without printing the value
+5. Reminds you to **restart backend**
 
-From the `CafeChain` project folder:
+Clear secrets:
 
 ```powershell
+.\scripts\clear-team-otp-email.ps1
+```
+
+Manual alternatives:
+
+```powershell
+# Session env (same PowerShell window as dotnet run)
+$env:Email__Password = "<TEAM_APP_PASSWORD>"
+
+# Or User Secrets
 cd CafeChain
 dotnet user-secrets set "Email:Password" "<TEAM_APP_PASSWORD>"
 ```
 
-Project already has `UserSecretsId` so secrets load automatically in Development.
+---
 
-### Option C — gitignored Local file (optional)
+## Security rules
 
-Copy `appsettings.Local.json.example` → `appsettings.Local.json`  
-(file is gitignored). Use Local **only for connection string / non-secret overrides**.
-
-**Important:** `appsettings.Local.json` is loaded **after** User Secrets.  
-Do **not** put `"Email:Password": ""` in Local — an empty string will **wipe** the App Password from User Secrets / environment.
-
-## 4. Verify effective config
-
-Before clicking **Gửi OTP**:
-
-1. `DeliveryMode` = `Smtp` (not `Log`)
-2. `SmtpHost` / `SmtpPort` as above
-3. `Address` = shared test Gmail from tracked config
-4. `Password` comes from **env or User Secrets**, not from git
-
-## 5. Restart backend and test
-
-```powershell
-dotnet run --project CafeChain --launch-profile http
-```
-
-1. Open POS Shift Summary (or any OTP flow).
-2. Click **Gửi OTP** once.
-3. Approver mailbox receives the OTP email (shared test Gmail / approver account as designed).
-
-## 6. If password is missing
-
-Backend returns a **clear configuration error** (e.g. missing `Email:Password` / App Password guidance).  
-It must **not**:
-
-- log the App Password;
-- crash the entire host;
-- fall back to supervisor PIN.
-
-## 7. Security rules for testers
-
-- Do **not** paste App Password into GitHub issues, PR comments, screenshots, or terminal logs you share.
+- Do **not** put App Password in `appsettings.json`, issues, screenshots, or terminal logs you share.
 - Do **not** commit `appsettings.Local.json` with secrets.
-- Prefer env or User Secrets over putting the password in any tracked file.
-- OTP plaintext must never be committed or shared in issues.
+- Prefer setup script / User Secrets / `Email__Password`.
+- Never commit OTP plaintext.
 
-## 8. Optional: Log-only mode (no Gmail)
+---
 
-For pipeline-only testing without SMTP:
+## Troubleshooting
+
+### A. `EMAIL_SMTP_PASSWORD_NOT_CONFIGURED` / “Thiếu Email:Password”
+
+→ Run `.\scripts\setup-team-otp-email.ps1`, then **restart** backend.
+
+### B. UI shows “Development capture OTP …”
+
+→ SMTP path ran but send failed (auth/network).  
+Check DeliveryMode is `Smtp` (not `Log`), App Password still valid, 2FA enabled on shared Gmail.
+
+### C. User Secrets set but runtime still empty
+
+→ Ensure `appsettings.Local.json` has **no** `Email:Password` key (especially not `""`).  
+Restart process after changing secrets.  
+Confirm Development environment (`--launch-profile http`).
+
+### D. SMTP authentication failed
+
+→ App Password expired/revoked, or account 2FA not enabled, or wrong sender address.
+
+### E. OTP request HTTP 500 / “cấu hình hệ thống hoặc cơ sở dữ liệu”
+
+→ Often DB schema: `OtpChallenges` needs `PayloadFingerprint` + `RowVersion`.  
+Recreate DB from current InitialCreate, or apply migrations.  
+Also check unique index conflicts from expired Pending rows (fixed in recent OTP expire-stale commit).
+
+### F. Optional Log-only (no real Gmail)
 
 ```powershell
 $env:Email__DeliveryMode = "Log"
 ```
 
-OTP challenges can still be created in Development with log capture; no real email is sent.
+No real email is sent; Development may capture codes in messages when SMTP fails for other reasons.
+
+---
+
+## Verify effective non-secret config
+
+| Check | Expected |
+|---|---|
+| DeliveryMode | `Smtp` |
+| Host/Port | `smtp.gmail.com` / `587` |
+| Address | shared test Gmail from tracked config |
+| Password | User Secrets or `Email__Password` only |
+
+```powershell
+cd CafeChain
+dotnet user-secrets list
+# Expect Email:Password = ***** (value present; do not copy it into chats)
+```
