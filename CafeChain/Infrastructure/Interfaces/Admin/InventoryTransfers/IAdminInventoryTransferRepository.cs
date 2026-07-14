@@ -1,6 +1,7 @@
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
@@ -27,13 +28,15 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
             int? fromStoreId,
             int? toStoreId,
             int skip,
-            int take);
+            int take,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
 
         Task<int> CountTransfersAsync(
             string? keyword,
             CafeChain.Models.Enums.Inventory.InventoryTransferStatus? status,
             int? fromStoreId,
-            int? toStoreId);
+            int? toStoreId,
+            IReadOnlyCollection<int>? allowedStoreIds = null);
 
         void UpdateTransfer(InventoryTransfer transfer);
 
@@ -45,6 +48,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
 
         Task<Ingredient?> GetIngredientAsync(int ingredientId);
 
+        Task<PreparedItem?> GetPreparedItemAsync(int preparedItemId);
+
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 
         Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
@@ -52,6 +57,12 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId);
 
         Task<StoreInventory> GetOrCreateStoreInventoryForUpdateAsync(int storeId, int ingredientId);
+
+        Task<StoreInventory> GetOrCreatePreparedItemInventoryForUpdateAsync(
+            int storeId,
+            int preparedItemId,
+            int actorAccountId,
+            string evidenceReference);
 
         Task AddStoreInventoryAsync(StoreInventory inventory);
 
@@ -62,6 +73,10 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task AddCostLayerAsync(InventoryCostLayer layer);
 
         Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, int ingredientId);
+
+        Task<List<InventoryCostLayer>> GetAvailablePreparedItemCostLayersAsync(int storeId, int preparedItemId);
+
+        Task<int?> GetAccountIdForStaffAsync(int staffId);
 
         void UpdateCostLayer(InventoryCostLayer layer);
 

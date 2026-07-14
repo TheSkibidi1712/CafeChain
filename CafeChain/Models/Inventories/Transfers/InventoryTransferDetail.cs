@@ -1,4 +1,6 @@
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
+using CafeChain.Models.Inventories.Stock;
 
 namespace CafeChain.Models.Inventories.Transfers
 {
@@ -8,7 +10,10 @@ namespace CafeChain.Models.Inventories.Transfers
 
         public int InventoryTransferId { get; set; }
 
-        public int IngredientId { get; set; }
+        public int? IngredientId { get; set; }
+        public int? PreparedItemId { get; set; }
+        public int? RestockRequestId { get; set; }
+        public int? RestockRequestFulfillmentId { get; set; }
         public int UnitId { get; set; }
 
         public decimal Quantity { get; set; }
@@ -23,7 +28,10 @@ namespace CafeChain.Models.Inventories.Transfers
         public string? Note { get; set; }
 
         public virtual InventoryTransfer InventoryTransfer { get; set; }
-        public virtual Ingredient Ingredient { get; set; }
-        public virtual Unit Unit { get; set; }
+        public virtual Ingredient? Ingredient { get; set; }
+        public virtual PreparedItem? PreparedItem { get; set; }
+        public virtual RestockRequest? RestockRequest { get; set; }
+        public virtual RestockRequestFulfillment? RestockRequestFulfillment { get; set; }
+        public virtual Unit Unit { get; set; } = null!;
     }
 }

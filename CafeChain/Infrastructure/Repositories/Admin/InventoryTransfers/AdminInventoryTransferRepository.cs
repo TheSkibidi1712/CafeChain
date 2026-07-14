@@ -3,6 +3,7 @@ using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
@@ -70,6 +71,9 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                         .ThenInclude(x => x.BaseUnit)
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Unit)
+                .Include(x => x.Details)
+                    .ThenInclude(x => x.PreparedItem)
+                        .ThenInclude(x => x.BaseUnit)
                 .Include(x => x.FromStore)
                 .Include(x => x.ToStore)
                 .Include(x => x.CreatedByStaff)
@@ -84,9 +88,10 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             int? fromStoreId,
             int? toStoreId,
             int skip,
-            int take)
+            int take,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
-            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId)
+            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId, allowedStoreIds)
                 .OrderByDescending(x => x.CreatedAt)
                 .Skip(skip)
                 .Take(take)
@@ -97,9 +102,10 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             string? keyword,
             InventoryTransferStatus? status,
             int? fromStoreId,
-            int? toStoreId)
+            int? toStoreId,
+            IReadOnlyCollection<int>? allowedStoreIds = null)
         {
-            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId)
+            return await BuildTransferIndexQuery(keyword, status, fromStoreId, toStoreId, allowedStoreIds)
                 .CountAsync();
         }
 
@@ -107,7 +113,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             string? keyword,
             InventoryTransferStatus? status,
             int? fromStoreId,
-            int? toStoreId)
+            int? toStoreId,
+            IReadOnlyCollection<int>? allowedStoreIds)
         {
             var query = _context.InventoryTransfers
                 .AsNoTracking()
@@ -136,6 +143,14 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             if (toStoreId.HasValue && toStoreId.Value > 0)
             {
                 query = query.Where(x => x.ToStoreId == toStoreId.Value);
+            }
+
+            if (allowedStoreIds != null)
+            {
+                var scopedStoreIds = allowedStoreIds.Distinct().ToList();
+                query = query.Where(x =>
+                    scopedStoreIds.Contains(x.FromStoreId)
+                    || scopedStoreIds.Contains(x.ToStoreId));
             }
 
             return query;
@@ -181,6 +196,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .FirstOrDefaultAsync(x => x.IngredientId == ingredientId);
         }
 
+        public async Task<PreparedItem?> GetPreparedItemAsync(int preparedItemId)
+        {
+            return await _context.PreparedItems
+                .Include(x => x.BaseUnit)
+                .FirstOrDefaultAsync(x => x.PreparedItemId == preparedItemId);
+        }
+
         public async Task<List<Ingredient>> GetActiveIngredientsAsync()
         {
             return await _context.Ingredients
@@ -202,7 +224,10 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .Include(x => x.Ingredient)
                     .ThenInclude(x => x.UnitConversions)
                         .ThenInclude(x => x.FromUnit)
-                .Where(x => x.StoreId == storeId && x.IngredientId.HasValue)
+                .Include(x => x.PreparedItem)
+                    .ThenInclude(x => x.BaseUnit)
+                .Where(x => x.StoreId == storeId &&
+                    (x.IngredientId.HasValue || x.PreparedItemId.HasValue))
                 .ToListAsync();
         }
 
@@ -254,6 +279,60 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             return inventory;
         }
 
+        public async Task<StoreInventory> GetOrCreatePreparedItemInventoryForUpdateAsync(
+            int storeId,
+            int preparedItemId,
+            int actorAccountId,
+            string evidenceReference)
+        {
+            var inventory = await _context.StoreInventories
+                .FromSqlInterpolated(
+                    $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK)
+                       WHERE StoreId = {storeId} AND PreparedItemId = {preparedItemId}
+                         AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
+                .FirstOrDefaultAsync();
+            if (inventory != null)
+                return inventory;
+
+            inventory = new StoreInventory
+            {
+                StoreId = storeId,
+                IngredientId = null,
+                RecipeId = null,
+                PreparedItemId = preparedItemId,
+                BtpIdentityState = BtpIdentityState.Canonical,
+                QuantitySemanticsStatus = InventoryQuantitySemanticsStatus.BaseUnitConfirmed,
+                QuantitySemanticsEvidenceType = QuantitySemanticsEvidenceType.SystemCanonicalCreation,
+                QuantitySemanticsEvidenceReference = evidenceReference,
+                QuantitySemanticsReviewedAt = DateTime.UtcNow,
+                QuantitySemanticsReviewedByAccountId = actorAccountId,
+                AvailableQty = 0,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow
+            };
+
+            await _context.StoreInventories.AddAsync(inventory);
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException)
+            {
+                _context.Entry(inventory).State = EntityState.Detached;
+                var existing = await _context.StoreInventories
+                    .FromSqlInterpolated(
+                        $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK)
+                           WHERE StoreId = {storeId} AND PreparedItemId = {preparedItemId}
+                             AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
+                    .FirstOrDefaultAsync();
+                if (existing != null)
+                    return existing;
+                throw;
+            }
+
+            return inventory;
+        }
+
         public async Task AddStoreInventoryAsync(StoreInventory inventory)
         {
             await _context.StoreInventories.AddAsync(inventory);
@@ -285,6 +364,26 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .OrderBy(x => x.CreatedAt)
                 .ToListAsync();
         }
+
+        public async Task<List<InventoryCostLayer>> GetAvailablePreparedItemCostLayersAsync(
+            int storeId,
+            int preparedItemId)
+        {
+            return await _context.InventoryCostLayers
+                .Where(x =>
+                    x.StoreId == storeId &&
+                    x.PreparedItemId == preparedItemId &&
+                    x.RemainingQuantity > 0)
+                .OrderBy(x => x.CreatedAt)
+                .ToListAsync();
+        }
+
+        public Task<int?> GetAccountIdForStaffAsync(int staffId) =>
+            _context.Staffs
+                .AsNoTracking()
+                .Where(s => s.StaffId == staffId)
+                .Select(s => (int?)s.AccountId)
+                .FirstOrDefaultAsync();
 
         public void UpdateCostLayer(InventoryCostLayer layer)
         {
