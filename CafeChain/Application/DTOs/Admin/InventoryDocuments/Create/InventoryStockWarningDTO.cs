@@ -8,6 +8,10 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 
         public int IngredientId { get; set; }
 
+        public int? PreparedItemId { get; set; }
+
+        public string ItemType { get; set; } = "INGREDIENT";
+
         public string IngredientName { get; set; } = string.Empty;
 
         public decimal AvailableQuantity { get; set; }

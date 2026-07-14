@@ -120,56 +120,35 @@ namespace CafeChain.Application.Services.Inventories
                 await EvaluateIdentityGroupAsync(storeId, mode, source, summary, group.ToList());
             }
 
-            // BTP groups
-            if (mode == InventoryWriterMode.PreparedItem)
+            // BTP alerts always use canonical PreparedItem identity. Writer mode only decides
+            // which StoreInventory row is authoritative, never the alert key.
+            var btpRows = items.Where(i => i.IngredientId == null).ToList();
+            var byPi = new Dictionary<int, List<StoreInventory>>();
+            foreach (var row in btpRows)
             {
-                var btpRows = items.Where(i => i.IngredientId == null).ToList();
-                var byPi = new Dictionary<int, List<StoreInventory>>();
-                var unmapped = new List<StoreInventory>();
-
-                foreach (var row in btpRows)
-                {
-                    var pi = ResolveEffectivePreparedItemId(row);
-                    if (pi.HasValue)
-                    {
-                        if (!byPi.TryGetValue(pi.Value, out var list))
-                        {
-                            list = new List<StoreInventory>();
-                            byPi[pi.Value] = list;
-                        }
-
-                        list.Add(row);
-                    }
-                    else if (row.RecipeId.HasValue)
-                    {
-                        // Legacy recipe without mapping — do not create Recipe-keyed alert in Prepared mode.
-                        unmapped.Add(row);
-                    }
-                }
-
-                foreach (var (piId, rows) in byPi)
-                {
-                    await EvaluatePreparedItemGroupAsync(storeId, piId, rows, source, summary);
-                }
-
-                foreach (var row in unmapped)
+                var pi = ResolveEffectivePreparedItemId(row);
+                if (!pi.HasValue)
                 {
                     summary.EvaluatedCount++;
                     summary.ReviewCount++;
                     _logger.LogWarning(
-                        "[StockAlert] Prepared mode unmapped Recipe inventory skipped StoreId={StoreId} RecipeId={RecipeId}",
-                        storeId, row.RecipeId);
+                        "[StockAlert] Unmapped BTP inventory skipped StoreId={StoreId} RecipeId={RecipeId}",
+                        storeId,
+                        row.RecipeId);
+                    continue;
                 }
-            }
-            else
-            {
-                // LegacyRecipe or Blocked (or missing config treated as Legacy): Recipe-keyed BTP
-                foreach (var group in items
-                             .Where(i => i.IngredientId == null && i.RecipeId.HasValue)
-                             .GroupBy(i => i.RecipeId!.Value))
+
+                if (!byPi.TryGetValue(pi.Value, out var list))
                 {
-                    await EvaluateIdentityGroupAsync(storeId, mode, source, summary, group.ToList());
+                    list = new List<StoreInventory>();
+                    byPi[pi.Value] = list;
                 }
+                list.Add(row);
+            }
+
+            foreach (var (piId, rows) in byPi)
+            {
+                await EvaluatePreparedItemGroupAsync(storeId, piId, rows, source, summary);
             }
         }
 
@@ -196,7 +175,7 @@ namespace CafeChain.Application.Services.Inventories
                     auth,
                     openLookup: () => _context.StockAlerts.FirstOrDefaultAsync(a =>
                         a.StoreId == storeId
-                        && a.Status == StockAlertStatuses.Open
+                        && StockAlertStatuses.ActiveValues.Contains(a.Status)
                         && a.IngredientId == auth.IngredientId
                         && a.RecipeId == null
                         && a.PreparedItemId == null),
@@ -209,35 +188,19 @@ namespace CafeChain.Application.Services.Inventories
                 return;
             }
 
-            // BTP path — only when not PreparedItem mode (handled by EvaluatePreparedItemGroupAsync)
-            if (mode == InventoryWriterMode.PreparedItem)
+            var preparedItemId = ResolveEffectivePreparedItemId(first);
+            if (preparedItemId.HasValue)
             {
-                var pi = ResolveEffectivePreparedItemId(first);
-                if (pi.HasValue)
-                    await EvaluatePreparedItemGroupAsync(storeId, pi.Value, rows, source, summary);
+                await EvaluatePreparedItemGroupAsync(storeId, preparedItemId.Value, rows, source, summary);
                 return;
             }
 
-            // Legacy Recipe-keyed
-            var recipeAuth = rows.OrderBy(r => r.StoreInventoryId).First();
             summary.EvaluatedCount++;
-            var recipeId = recipeAuth.RecipeId;
-            await EvaluateThresholdAsync(
+            summary.ReviewCount++;
+            _logger.LogWarning(
+                "[StockAlert] BTP inventory has no canonical PreparedItem StoreId={StoreId} RecipeId={RecipeId}",
                 storeId,
-                source,
-                summary,
-                recipeAuth,
-                openLookup: () => _context.StockAlerts.FirstOrDefaultAsync(a =>
-                    a.StoreId == storeId
-                    && a.Status == StockAlertStatuses.Open
-                    && a.IngredientId == null
-                    && a.RecipeId == recipeId),
-                createIdentity: (a) =>
-                {
-                    a.IngredientId = null;
-                    a.RecipeId = recipeAuth.RecipeId;
-                    a.PreparedItemId = null;
-                });
+                first.RecipeId);
         }
 
         private async Task EvaluatePreparedItemGroupAsync(
@@ -364,7 +327,7 @@ namespace CafeChain.Application.Services.Inventories
             return await _context.StockAlerts
                 .Where(a =>
                     a.StoreId == storeId &&
-                    a.Status == StockAlertStatuses.Open &&
+                    StockAlertStatuses.ActiveValues.Contains(a.Status) &&
                     (
                         a.PreparedItemId == preparedItemId
                         || (a.RecipeId != null && recipeIds.Contains(a.RecipeId.Value))
@@ -383,7 +346,7 @@ namespace CafeChain.Application.Services.Inventories
             bool preserveExistingIdentity = false)
         {
             var min = item.MinStockLevel;
-            var qty = item.AvailableQty;
+            var qty = CalculateUsableQuantity(item);
 
             StockAlert? openAlert = existingOpen;
             if (openAlert == null && openLookup != null)
@@ -399,6 +362,9 @@ namespace CafeChain.Application.Services.Inventories
             {
                 if (openAlert != null)
                 {
+                    var previousStatus = openAlert.Status;
+                    var previousType = openAlert.AlertType;
+                    var previousSeverity = openAlert.Severity;
                     openAlert.Status = StockAlertStatuses.Resolved;
                     openAlert.UpdatedAt = DateTime.UtcNow;
                     openAlert.ResolvedAt = DateTime.UtcNow;
@@ -407,6 +373,14 @@ namespace CafeChain.Application.Services.Inventories
                     openAlert.ThresholdSnapshot = min;
                     openAlert.Source = source;
                     openAlert.Note = AppendNote(openAlert.Note, $"Resolved via {source}");
+                    AddTransition(
+                        openAlert,
+                        item,
+                        previousStatus,
+                        previousType,
+                        previousSeverity,
+                        source,
+                        "Tồn khả dụng đã cao hơn ngưỡng tối thiểu.");
                     summary.ResolvedCount++;
                 }
 
@@ -448,7 +422,7 @@ namespace CafeChain.Application.Services.Inventories
                     AlertType = alertType,
                     Severity = severity,
                     Status = StockAlertStatuses.Open,
-                    CurrentQtySnapshot = item.AvailableQty,
+                    CurrentQtySnapshot = CalculateUsableQuantity(item),
                     ThresholdSnapshot = item.MinStockLevel,
                     Source = source,
                     CreatedAt = now,
@@ -456,6 +430,14 @@ namespace CafeChain.Application.Services.Inventories
                 };
                 createIdentity(alert);
                 _context.StockAlerts.Add(alert);
+                AddTransition(
+                    alert,
+                    item,
+                    previousStatus: null,
+                    previousAlertType: null,
+                    previousSeverity: null,
+                    source,
+                    "Phát hiện tồn kho dưới ngưỡng.");
                 summary.CreatedCount++;
                 await Task.CompletedTask;
                 return;
@@ -465,7 +447,7 @@ namespace CafeChain.Application.Services.Inventories
             var changed =
                 openAlert.AlertType != alertType ||
                 openAlert.Severity != severity ||
-                openAlert.CurrentQtySnapshot != item.AvailableQty ||
+                openAlert.CurrentQtySnapshot != CalculateUsableQuantity(item) ||
                 openAlert.ThresholdSnapshot != item.MinStockLevel ||
                 openAlert.Source != source;
 
@@ -474,15 +456,31 @@ namespace CafeChain.Application.Services.Inventories
 
             var wasLow = openAlert.AlertType == StockAlertTypes.LowStock;
             var nowOut = alertType == StockAlertTypes.OutOfStock;
+            var previousType = openAlert.AlertType;
+            var previousSeverity = openAlert.Severity;
 
             openAlert.AlertType = alertType;
             openAlert.Severity = severity;
-            openAlert.CurrentQtySnapshot = item.AvailableQty;
+            openAlert.CurrentQtySnapshot = CalculateUsableQuantity(item);
             openAlert.ThresholdSnapshot = item.MinStockLevel;
             openAlert.Source = source;
             openAlert.UpdatedAt = now;
             if (wasLow && nowOut)
                 openAlert.Note = AppendNote(openAlert.Note, $"Escalated LOW_STOCK → OUT_OF_STOCK via {source}");
+
+            if (previousType != alertType || previousSeverity != severity)
+            {
+                AddTransition(
+                    openAlert,
+                    item,
+                    openAlert.Status,
+                    previousType,
+                    previousSeverity,
+                    source,
+                    wasLow && nowOut
+                        ? "Tồn khả dụng giảm từ LOW_STOCK xuống OUT_OF_STOCK."
+                        : "Trạng thái tồn kho thay đổi trong khi cảnh báo vẫn đang hoạt động.");
+            }
 
             // preserveExistingIdentity: leave IngredientId/RecipeId/PreparedItemId as stored
             if (!preserveExistingIdentity)
@@ -498,7 +496,9 @@ namespace CafeChain.Application.Services.Inventories
         {
             try
             {
+                var notifications = CaptureNotificationTransitions();
                 await _context.SaveChangesAsync();
+                await NotifyTransitionsAsync(notifications);
             }
             catch (DbUpdateException ex) when (IsUniqueOpenAlertConflict(ex))
             {
@@ -507,22 +507,147 @@ namespace CafeChain.Application.Services.Inventories
                     "[StockAlert] Unique OPEN conflict StoreId={StoreId} — treating as concurrent create race",
                     summary.StoreId);
 
-                // Discard poisoned inserts; winner already exists in DB.
+                // Discard poisoned inserts, reload the winner and apply any LOW -> OUT escalation.
                 _context.ChangeTracker.Clear();
-                if (summary.CreatedCount > 0)
-                {
-                    summary.CreatedCount--;
-                    summary.UpdatedCount++;
-                }
+                ResetSummaryCounts(summary);
+                await ReevaluateStoreAfterRaceAsync(summary);
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "[StockAlert] Concurrent active alert update StoreId={StoreId}; reloading winner",
+                    summary.StoreId);
+                _context.ChangeTracker.Clear();
+                ResetSummaryCounts(summary);
+                await ReevaluateStoreAfterRaceAsync(summary);
             }
         }
 
         private static bool IsUniqueOpenAlertConflict(DbUpdateException ex)
         {
             var msg = ex.InnerException?.Message ?? ex.Message;
-            return msg.Contains("UX_StockAlert_Open", StringComparison.OrdinalIgnoreCase)
-                   || msg.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
-                   || msg.Contains("unique", StringComparison.OrdinalIgnoreCase);
+            return msg.Contains("UX_StockAlert_Active_", StringComparison.OrdinalIgnoreCase)
+                   || msg.Contains("UX_StockAlert_Open_", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private async Task ReevaluateStoreAfterRaceAsync(StockAlertEvaluationResultDto summary)
+        {
+            var items = await _context.StoreInventories
+                .Include(i => i.Recipe)
+                .Include(i => i.PreparedItem)
+                .Where(i => i.StoreId == summary.StoreId)
+                .ToListAsync();
+            var mode = await ReadWriterModeOnceAsync(summary.StoreId);
+            await EvaluateAllGroupsAsync(summary.StoreId, mode, summary.Source, summary, items);
+            var notifications = CaptureNotificationTransitions();
+            await _context.SaveChangesAsync();
+            await NotifyTransitionsAsync(notifications);
+        }
+
+        private static void ResetSummaryCounts(StockAlertEvaluationResultDto summary)
+        {
+            summary.CreatedCount = 0;
+            summary.UpdatedCount = 0;
+            summary.ResolvedCount = 0;
+            summary.SkippedUnconfiguredCount = 0;
+            summary.EvaluatedCount = 0;
+            summary.ReviewCount = 0;
+        }
+
+        private void AddTransition(
+            StockAlert alert,
+            StoreInventory inventory,
+            string? previousStatus,
+            string? previousAlertType,
+            string? previousSeverity,
+            string source,
+            string reason)
+        {
+            _context.StockAlertTransitions.Add(new StockAlertTransition
+            {
+                StockAlert = alert,
+                PreviousStatus = previousStatus,
+                NewStatus = alert.Status,
+                PreviousAlertType = previousAlertType,
+                NewAlertType = alert.AlertType,
+                PreviousSeverity = previousSeverity,
+                NewSeverity = alert.Severity,
+                OnHandSnapshot = inventory.AvailableQty,
+                ReservedSnapshot = inventory.ReservedQty,
+                AvailableSnapshot = CalculateUsableQuantity(inventory),
+                MinLevelSnapshot = inventory.MinStockLevel,
+                SourceType = string.IsNullOrWhiteSpace(source) ? StockAlertSources.Auto : source.Trim(),
+                Reason = reason,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        private List<StockAlertTransition> CaptureNotificationTransitions() =>
+            _context.ChangeTracker.Entries<StockAlertTransition>()
+                .Where(e => e.State == EntityState.Added)
+                .Select(e => e.Entity)
+                .Where(t =>
+                    t.PreviousStatus == null
+                    || (t.PreviousAlertType == StockAlertTypes.LowStock
+                        && t.NewAlertType == StockAlertTypes.OutOfStock))
+                .ToList();
+
+        private async Task NotifyTransitionsAsync(IReadOnlyCollection<StockAlertTransition> transitions)
+        {
+            foreach (var transition in transitions)
+            {
+                var alert = transition.StockAlert;
+                var type = transition.PreviousStatus == null
+                    ? StaffNotificationTypes.StockAlertCreated
+                    : StaffNotificationTypes.StockAlertEscalated;
+                var recipients = await _context.Staffs
+                    .AsNoTracking()
+                    .Where(s =>
+                        s.StoreId == alert.StoreId &&
+                        s.Active &&
+                        s.Account != null &&
+                        s.Account.Active &&
+                        s.Account.AccountRoles.Any(ar =>
+                            ar.Role != null && ar.Role.Active && ar.Role.Name == RoleConstants.StoreManager))
+                    .Select(s => s.StaffId)
+                    .Distinct()
+                    .ToListAsync();
+
+                foreach (var recipientId in recipients)
+                {
+                    var exists = await _context.StaffNotifications.AsNoTracking().AnyAsync(n =>
+                        n.RecipientStaffId == recipientId &&
+                        n.Type == type &&
+                        n.EntityType == StaffNotificationEntityTypes.StockAlert &&
+                        n.EntityId == alert.StockAlertId);
+                    if (exists)
+                        continue;
+
+                    _context.StaffNotifications.Add(new CafeChain.Models.Operations.StaffNotification
+                    {
+                        StoreId = alert.StoreId,
+                        RecipientStaffId = recipientId,
+                        Type = type,
+                        Title = type == StaffNotificationTypes.StockAlertCreated
+                            ? "Cảnh báo tồn kho mới"
+                            : "Cảnh báo tồn kho đã chuyển mức khẩn cấp",
+                        Body = $"Cảnh báo #{alert.StockAlertId}: {alert.AlertType}, tồn khả dụng {transition.AvailableSnapshot:N3}.",
+                        EntityType = StaffNotificationEntityTypes.StockAlert,
+                        EntityId = alert.StockAlertId,
+                        IsRead = false,
+                        CreatedAt = DateTime.UtcNow,
+                        EmailAttempted = false,
+                        EmailSent = false
+                    });
+                }
+            }
+
+            if (_context.ChangeTracker.Entries<CafeChain.Models.Operations.StaffNotification>()
+                .Any(e => e.State == EntityState.Added))
+            {
+                await _context.SaveChangesAsync();
+            }
         }
 
         private async Task<InventoryWriterMode> ReadWriterModeOnceAsync(int storeId)
@@ -542,6 +667,9 @@ namespace CafeChain.Application.Services.Inventories
             StoreId = storeId,
             Source = source
         };
+
+        private static decimal CalculateUsableQuantity(StoreInventory item) =>
+            item.AvailableQty - item.ReservedQty;
 
         private static string? AppendNote(string? existing, string addition)
         {

@@ -10,17 +10,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
         {
             entity.ToTable("StockAlerts", t =>
             {
-                // Issue #122 — transitional identity truth table:
-                // 1) Ingredient-only
-                // 2) Legacy Recipe-only BTP
-                // 3) Compatibility Recipe + PreparedItem
-                // 4) PreparedItem-only
+                // RecipeId may remain as compatibility metadata, but is never inventory identity.
                 t.HasCheckConstraint(
                     "CK_StockAlerts_Identity",
                     @"
 (
   ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)
-  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)
   OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
   OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)
 )");
@@ -68,6 +63,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.UpdatedAt)
                 .IsRequired();
 
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
+
             entity.HasOne(x => x.Store)
                 .WithMany()
                 .HasForeignKey(x => x.StoreId)
@@ -111,21 +109,16 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.HasIndex(x => x.PreparedItemId)
                 .HasDatabaseName("IX_StockAlerts_PreparedItemId");
 
-            // At most one OPEN alert per store ingredient / recipe / prepared item.
+            // At most one active alert per canonical store inventory identity.
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
-                .HasFilter("[IngredientId] IS NOT NULL AND [Status] = 'OPEN'")
-                .HasDatabaseName("UX_StockAlert_Open_Store_Ingredient");
-
-            entity.HasIndex(x => new { x.StoreId, x.RecipeId })
-                .IsUnique()
-                .HasFilter("[RecipeId] IS NOT NULL AND [Status] = 'OPEN'")
-                .HasDatabaseName("UX_StockAlert_Open_Store_Recipe");
+                .HasFilter("[IngredientId] IS NOT NULL AND [Status] IN ('OPEN','CONFIRMED')")
+                .HasDatabaseName("UX_StockAlert_Active_Store_Ingredient");
 
             entity.HasIndex(x => new { x.StoreId, x.PreparedItemId })
                 .IsUnique()
-                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] = 'OPEN'")
-                .HasDatabaseName("UX_StockAlert_Open_Store_PreparedItem");
+                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] IN ('OPEN','CONFIRMED')")
+                .HasDatabaseName("UX_StockAlert_Active_Store_PreparedItem");
         }
     }
 }

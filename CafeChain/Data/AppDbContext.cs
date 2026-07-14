@@ -144,11 +144,13 @@ namespace CafeChain.Data
         // Stock
         public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
         public DbSet<StockAlert> StockAlerts { get; set; }
+        public DbSet<StockAlertTransition> StockAlertTransitions { get; set; }
         public DbSet<RestockRequest> RestockRequests { get; set; }
         // Issue #128 — branch receipt + restock workflow
         public DbSet<BranchReceipt> BranchReceipts { get; set; }
         public DbSet<BranchReceiptLine> BranchReceiptLines { get; set; }
         public DbSet<RestockRequestFulfillment> RestockRequestFulfillments { get; set; }
+        public DbSet<RestockFulfillmentPosting> RestockFulfillmentPostings { get; set; }
         public DbSet<RestockRequestTransition> RestockRequestTransitions { get; set; }
 
         // Stock Take

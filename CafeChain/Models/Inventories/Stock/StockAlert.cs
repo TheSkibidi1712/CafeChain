@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -30,7 +31,7 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>WARNING | URGENT</summary>
         public string Severity { get; set; } = string.Empty;
 
-        /// <summary>OPEN | RESOLVED | CONFIRMED | MANAGER_REJECTED</summary>
+        /// <summary>OPEN | CONFIRMED | REJECTED | RESOLVED | CLOSED</summary>
         public string Status { get; set; } = string.Empty;
 
         public decimal CurrentQtySnapshot { get; set; }
@@ -73,6 +74,9 @@ namespace CafeChain.Models.Inventories.Stock
 
         public string? ResolvedReason { get; set; }
 
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
+
         public virtual Store Store { get; set; } = null!;
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }
@@ -80,5 +84,6 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual Staff? ReportedByStaff { get; set; }
         public virtual Staff? ConfirmedByStaff { get; set; }
         public virtual Staff? RejectedByStaff { get; set; }
+        public virtual ICollection<StockAlertTransition> Transitions { get; set; } = new List<StockAlertTransition>();
     }
 }

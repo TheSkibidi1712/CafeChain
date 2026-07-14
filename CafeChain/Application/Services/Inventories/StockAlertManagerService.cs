@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.StockAlerts;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Stock;
@@ -18,13 +19,16 @@ namespace CafeChain.Application.Services.Inventories
         private const int MaxTextLength = 500;
 
         private readonly AppDbContext _context;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<StockAlertManagerService> _logger;
 
         public StockAlertManagerService(
             AppDbContext context,
+            IScopeAuthorizationService scopeAuthorization,
             ILogger<StockAlertManagerService> logger)
         {
             _context = context;
+            _scopeAuthorization = scopeAuthorization;
             _logger = logger;
         }
 
@@ -44,6 +48,7 @@ namespace CafeChain.Application.Services.Inventories
 
             var alert = gate.Data!;
             var now = DateTime.UtcNow;
+            var previousStatus = alert.Status;
 
             alert.Status = StockAlertStatuses.Confirmed;
             alert.ConfirmedByStaffId = managerStaffId;
@@ -58,7 +63,10 @@ namespace CafeChain.Application.Services.Inventories
                 "Quản lý đã xác nhận cảnh báo kho",
                 $"Quản lý chi nhánh đã xác nhận cảnh báo kho.\nGhi chú: {text}");
 
-            await _context.SaveChangesAsync();
+            await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
+
+            if (!await SaveManagerTransitionAsync())
+                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
 
             _logger.LogInformation(
                 "[StockAlert] CONFIRMED AlertId={AlertId} StoreId={StoreId} ByStaffId={StaffId}",
@@ -83,8 +91,9 @@ namespace CafeChain.Application.Services.Inventories
 
             var alert = gate.Data!;
             var now = DateTime.UtcNow;
+            var previousStatus = alert.Status;
 
-            alert.Status = StockAlertStatuses.ManagerRejected;
+            alert.Status = StockAlertStatuses.Rejected;
             alert.RejectedByStaffId = managerStaffId;
             alert.RejectedAt = now;
             alert.RejectReason = text;
@@ -96,13 +105,53 @@ namespace CafeChain.Application.Services.Inventories
                 "Quản lý đã báo sai cảnh báo kho",
                 $"Quản lý chi nhánh đã báo sai cảnh báo kho.\nLý do: {text}");
 
-            await _context.SaveChangesAsync();
+            await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
+
+            if (!await SaveManagerTransitionAsync())
+                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
 
             _logger.LogInformation(
-                "[StockAlert] MANAGER_REJECTED AlertId={AlertId} StoreId={StoreId} ByStaffId={StaffId}",
+                "[StockAlert] REJECTED AlertId={AlertId} StoreId={StoreId} ByStaffId={StaffId}",
                 alert.StockAlertId, alert.StoreId, managerStaffId);
 
             return ServiceResult.Success("Đã báo sai cảnh báo kho.");
+        }
+
+        public async Task<ServiceResult> CloseAsync(
+            int alertId,
+            int managerStaffId,
+            int managerStoreId,
+            string reason)
+        {
+            var text = (reason ?? string.Empty).Trim();
+            if (text.Length < 1 || text.Length > MaxTextLength)
+                return ServiceResult.Failure("Vui lòng nhập lý do đóng cảnh báo (1–500 ký tự).");
+
+            var alert = await _context.StockAlerts
+                .Include(a => a.Ingredient)
+                .Include(a => a.Recipe)
+                .Include(a => a.PreparedItem)
+                .FirstOrDefaultAsync(a => a.StockAlertId == alertId);
+            if (alert == null)
+                return ServiceResult.Failure("Không tìm thấy cảnh báo.");
+            if (alert.StoreId != managerStoreId)
+                return ServiceResult.Failure("Cảnh báo không thuộc cửa hàng của bạn.");
+            if (alert.Status is not (StockAlertStatuses.Open or StockAlertStatuses.Confirmed))
+                return ServiceResult.Failure($"Không thể đóng cảnh báo ở trạng thái {alert.Status}.");
+
+            if (!await IsAuthorizedManagerAsync(managerStaffId, managerStoreId))
+                return ServiceResult.Failure("Bạn không có quyền đóng cảnh báo tại cửa hàng này.");
+
+            var previousStatus = alert.Status;
+            alert.Status = StockAlertStatuses.Closed;
+            alert.UpdatedAt = DateTime.UtcNow;
+            alert.ResolvedReason = text;
+            await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
+
+            if (!await SaveManagerTransitionAsync())
+                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
+
+            return ServiceResult.Success("Đã đóng cảnh báo kho.");
         }
 
         public async Task<ServiceResult<StockAlertListResultDto>> ListForStoreAsync(
@@ -140,6 +189,9 @@ namespace CafeChain.Application.Services.Inventories
                 .Take(pageSize)
                 .ToListAsync();
 
+            var items = rows.Select(MapListItem).ToList();
+            await PopulateCurrentInventoryAsync(storeId, items);
+
             return ServiceResult<StockAlertListResultDto>.Success(new StockAlertListResultDto
             {
                 StoreId = storeId,
@@ -147,7 +199,7 @@ namespace CafeChain.Application.Services.Inventories
                 Page = page,
                 PageSize = pageSize,
                 Total = total,
-                Items = rows.Select(MapListItem).ToList()
+                Items = items
             });
         }
 
@@ -164,6 +216,8 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(a => a.ReportedByStaff)
                 .Include(a => a.ConfirmedByStaff)
                 .Include(a => a.RejectedByStaff)
+                .Include(a => a.Transitions)
+                    .ThenInclude(t => t.ActorStaff)
                 .FirstOrDefaultAsync(a => a.StockAlertId == alertId);
 
             if (alert == null)
@@ -172,7 +226,34 @@ namespace CafeChain.Application.Services.Inventories
             if (alert.StoreId != managerStoreId)
                 return ServiceResult<StockAlertDetailDto>.Failure("Cảnh báo không thuộc cửa hàng của bạn.");
 
-            return ServiceResult<StockAlertDetailDto>.Success(MapDetail(alert));
+            var detail = MapDetail(alert);
+            await PopulateCurrentInventoryAsync(managerStoreId, new[] { detail });
+            detail.RecentMovements = await LoadRecentMovementsAsync(detail);
+            detail.Transitions = alert.Transitions
+                .OrderBy(t => t.CreatedAtUtc)
+                .ThenBy(t => t.StockAlertTransitionId)
+                .Select(t => new StockAlertTransitionDto
+                {
+                    StockAlertTransitionId = t.StockAlertTransitionId,
+                    PreviousStatus = t.PreviousStatus,
+                    NewStatus = t.NewStatus,
+                    PreviousAlertType = t.PreviousAlertType,
+                    NewAlertType = t.NewAlertType,
+                    PreviousSeverity = t.PreviousSeverity,
+                    NewSeverity = t.NewSeverity,
+                    OnHandSnapshot = t.OnHandSnapshot,
+                    ReservedSnapshot = t.ReservedSnapshot,
+                    AvailableSnapshot = t.AvailableSnapshot,
+                    MinLevelSnapshot = t.MinLevelSnapshot,
+                    SourceType = t.SourceType,
+                    SourceId = t.SourceId,
+                    Reason = t.Reason,
+                    ActorStaffId = t.ActorStaffId,
+                    ActorName = t.ActorStaff?.FullName,
+                    CreatedAtUtc = t.CreatedAtUtc
+                })
+                .ToList();
+            return ServiceResult<StockAlertDetailDto>.Success(detail);
         }
 
         private async Task<ServiceResult<StockAlert>> LoadOpenAlertForManagerAsync(
@@ -183,19 +264,10 @@ namespace CafeChain.Application.Services.Inventories
             if (managerStaffId <= 0 || managerStoreId <= 0)
                 return ServiceResult<StockAlert>.Failure("Thiếu thông tin quản lý cửa hàng.");
 
-            var isStoreManager = await _context.Staffs
-                .AsNoTracking()
-                .Where(s => s.StaffId == managerStaffId && s.Active)
-                .SelectMany(s => s.Account.AccountRoles)
-                .AnyAsync(ar =>
-                    ar.Role != null &&
-                    ar.Role.Active &&
-                    ar.Role.Name == RoleConstants.StoreManager);
-
-            if (!isStoreManager)
+            if (!await IsAuthorizedManagerAsync(managerStaffId, managerStoreId))
             {
                 return ServiceResult<StockAlert>.Failure(
-                    "Chỉ Quản lý chi nhánh được xác nhận/từ chối cảnh báo.");
+                    "Bạn không có quyền xác nhận/từ chối cảnh báo tại cửa hàng này.");
             }
 
             var alert = await _context.StockAlerts
@@ -217,6 +289,84 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return ServiceResult<StockAlert>.Success(alert);
+        }
+
+        private async Task<bool> IsAuthorizedManagerAsync(int staffId, int storeId)
+        {
+            var staff = await _context.Staffs
+                .AsNoTracking()
+                .Where(s => s.StaffId == staffId && s.Active)
+                .Select(s => new
+                {
+                    s.StoreId,
+                    Roles = s.Account.AccountRoles
+                        .Where(ar => ar.Role != null && ar.Role.Active)
+                        .Select(ar => ar.Role.Name)
+                        .ToList()
+                })
+                .FirstOrDefaultAsync();
+            if (staff == null)
+                return false;
+            if (staff.Roles.Contains(RoleConstants.BusinessOwner))
+                return true;
+            if (staff.Roles.Contains(RoleConstants.AreaManager))
+                return await _scopeAuthorization.CanAccessStoreAsync(staffId, storeId);
+            return staff.Roles.Contains(RoleConstants.StoreManager) && staff.StoreId == storeId;
+        }
+
+        private async Task RecordTransitionAsync(
+            StockAlert alert,
+            string? previousStatus,
+            string? previousType,
+            string? previousSeverity,
+            int actorStaffId,
+            string reason)
+        {
+            var inventory = await _context.StoreInventories
+                .AsNoTracking()
+                .Include(i => i.Recipe)
+                .Where(i => i.StoreId == alert.StoreId)
+                .Where(i => alert.IngredientId.HasValue
+                    ? i.IngredientId == alert.IngredientId
+                    : i.PreparedItemId == alert.PreparedItemId
+                      || i.Recipe!.PreparedItemId == alert.PreparedItemId)
+                .OrderBy(i => i.StoreInventoryId)
+                .FirstOrDefaultAsync();
+
+            var onHand = inventory?.AvailableQty ?? alert.CurrentQtySnapshot;
+            var reserved = inventory?.ReservedQty ?? 0m;
+            _context.StockAlertTransitions.Add(new StockAlertTransition
+            {
+                StockAlertId = alert.StockAlertId,
+                PreviousStatus = previousStatus,
+                NewStatus = alert.Status,
+                PreviousAlertType = previousType,
+                NewAlertType = alert.AlertType,
+                PreviousSeverity = previousSeverity,
+                NewSeverity = alert.Severity,
+                OnHandSnapshot = onHand,
+                ReservedSnapshot = reserved,
+                AvailableSnapshot = onHand - reserved,
+                MinLevelSnapshot = inventory?.MinStockLevel ?? alert.ThresholdSnapshot,
+                SourceType = "MANAGER_ACTION",
+                Reason = reason,
+                ActorStaffId = actorStaffId,
+                CreatedAtUtc = DateTime.UtcNow
+            });
+        }
+
+        private async Task<bool> SaveManagerTransitionAsync()
+        {
+            try
+            {
+                await _context.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+                return false;
+            }
         }
 
         private async Task NotifyReporterAsync(
@@ -264,6 +414,9 @@ namespace CafeChain.Application.Services.Inventories
         {
             StockAlertId = a.StockAlertId,
             StoreId = a.StoreId,
+            IngredientId = a.IngredientId,
+            RecipeId = a.RecipeId,
+            PreparedItemId = a.PreparedItemId,
             ItemName = ResolveItemName(a),
             ItemTypeLabel = a.IngredientId.HasValue
                 ? "Nguyên liệu"
@@ -279,6 +432,36 @@ namespace CafeChain.Application.Services.Inventories
             CreatedAt = a.CreatedAt,
             UpdatedAt = a.UpdatedAt
         };
+
+        private async Task PopulateCurrentInventoryAsync(
+            int storeId,
+            IEnumerable<StockAlertListItemDto> alerts)
+        {
+            var rows = await _context.StoreInventories
+                .AsNoTracking()
+                .Include(i => i.Recipe)
+                .Where(i => i.StoreId == storeId)
+                .ToListAsync();
+
+            foreach (var alert in alerts)
+            {
+                var inventory = rows.FirstOrDefault(i =>
+                    alert.IngredientId.HasValue
+                        ? i.IngredientId == alert.IngredientId
+                        : alert.PreparedItemId.HasValue
+                            ? i.PreparedItemId == alert.PreparedItemId
+                              || i.Recipe?.PreparedItemId == alert.PreparedItemId
+                            : i.RecipeId == alert.RecipeId);
+
+                if (inventory == null)
+                    continue;
+
+                alert.HasCurrentInventory = true;
+                alert.OnHandQty = inventory.AvailableQty;
+                alert.ReservedQty = inventory.ReservedQty;
+                alert.AvailableQty = inventory.AvailableQty - inventory.ReservedQty;
+            }
+        }
 
         private static StockAlertDetailDto MapDetail(StockAlert a)
         {
@@ -317,6 +500,48 @@ namespace CafeChain.Application.Services.Inventories
                 ResolvedReason = a.ResolvedReason
             };
             return dto;
+        }
+
+        private async Task<List<StockAlertMovementDto>> LoadRecentMovementsAsync(
+            StockAlertDetailDto alert)
+        {
+            var inventoryId = await _context.StoreInventories
+                .AsNoTracking()
+                .Where(i => i.StoreId == alert.StoreId)
+                .Where(i => alert.IngredientId.HasValue
+                    ? i.IngredientId == alert.IngredientId
+                    : alert.PreparedItemId.HasValue
+                        ? i.PreparedItemId == alert.PreparedItemId
+                          || i.Recipe!.PreparedItemId == alert.PreparedItemId
+                        : i.RecipeId == alert.RecipeId)
+                .OrderBy(i => i.StoreInventoryId)
+                .Select(i => (int?)i.StoreInventoryId)
+                .FirstOrDefaultAsync();
+
+            if (!inventoryId.HasValue)
+                return new List<StockAlertMovementDto>();
+
+            return await _context.InventoryTransactions
+                .AsNoTracking()
+                .Where(t => t.StoreInventoryId == inventoryId.Value)
+                .OrderByDescending(t => t.CreatedAt)
+                .ThenByDescending(t => t.InventoryTransactionId)
+                .Take(8)
+                .Select(t => new StockAlertMovementDto
+                {
+                    InventoryTransactionId = t.InventoryTransactionId,
+                    Type = t.Type.ToString(),
+                    Quantity = t.Quantity,
+                    BeforeQty = t.BeforeQty,
+                    AfterQty = t.AfterQty,
+                    CreatedAt = t.CreatedAt,
+                    InventoryDocumentId = t.InventoryDocumentId,
+                    InventoryTransferId = t.InventoryTransferId,
+                    ReferenceOrderId = t.ReferenceOrderId,
+                    ProductionRunId = t.ProductionRunId,
+                    BranchReceiptLineId = t.BranchReceiptLineId
+                })
+                .ToListAsync();
         }
 
         private static string ResolveItemName(StockAlert a)

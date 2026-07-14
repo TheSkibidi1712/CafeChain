@@ -15,7 +15,16 @@ namespace CafeChain.Application.Constants
         /// <summary>Issue #99 — StoreManager confirmed alert.</summary>
         public const string Confirmed = "CONFIRMED";
         /// <summary>Issue #99 — StoreManager rejected (false positive).</summary>
-        public const string ManagerRejected = "MANAGER_REJECTED";
+        public const string Rejected = "REJECTED";
+        public const string Closed = "CLOSED";
+
+        /// <summary>
+        /// OPEN and CONFIRMED both represent a stock shortage that has not recovered yet.
+        /// Confirmation is a manager workflow decision, not the end of the stock condition.
+        /// </summary>
+        public static readonly string[] ActiveValues = { Open, Confirmed };
+
+        public static readonly string[] TerminalValues = { Rejected, Resolved, Closed };
     }
 
     /// <summary>Issue #97 — StockAlert severity codes.</summary>
@@ -45,6 +54,8 @@ namespace CafeChain.Application.Constants
         public const string StockAlertConfirmed = "STOCK_ALERT_CONFIRMED";
         /// <summary>Issue #99 — notify reporter that manager rejected.</summary>
         public const string StockAlertRejected = "STOCK_ALERT_REJECTED";
+        public const string StockAlertCreated = "STOCK_ALERT_CREATED";
+        public const string StockAlertEscalated = "STOCK_ALERT_ESCALATED";
         /// <summary>Issue #100 — notify AccountantWarehouse of new restock request.</summary>
         public const string RestockRequestSubmitted = "RESTOCK_REQUEST_SUBMITTED";
     }

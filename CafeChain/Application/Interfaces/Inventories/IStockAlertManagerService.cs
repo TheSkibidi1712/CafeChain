@@ -18,6 +18,12 @@ namespace CafeChain.Application.Interfaces.Inventories
             int managerStoreId,
             string reason);
 
+        Task<ServiceResult> CloseAsync(
+            int alertId,
+            int managerStaffId,
+            int managerStoreId,
+            string reason);
+
         Task<ServiceResult<StockAlertListResultDto>> ListForStoreAsync(
             int storeId,
             string? statusFilter,

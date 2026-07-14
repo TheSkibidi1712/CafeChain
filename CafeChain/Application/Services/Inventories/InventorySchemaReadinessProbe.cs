@@ -37,7 +37,7 @@ namespace CafeChain.Application.Services.Inventories
                 new[] { "InventoryConsolidationRunId", "StoreInventoryId", "Type" }, "InventoryConsolidationRunId"),
             ("UX_InventoryTransactions_ProductionRun_Inventory_Type", "InventoryTransactions",
                 new[] { "ProductionRunId", "StoreInventoryId", "Type" }, "ProductionRunId"),
-            ("UX_StockAlert_Open_Store_PreparedItem", "StockAlerts", new[] { "StoreId", "PreparedItemId" }, "PreparedItemId"),
+            ("UX_StockAlert_Active_Store_PreparedItem", "StockAlerts", new[] { "StoreId", "PreparedItemId" }, "PreparedItemId"),
         };
 
         private static readonly string[] PerformanceIndexHints =
@@ -240,7 +240,8 @@ namespace CafeChain.Application.Services.Inventories
                         return result != null && result != DBNull.Value;
                     }
 
-                    cmd.CommandText = $"PRAGMA table_info(\"{table}\")";
+                    // table_xinfo includes generated/hidden columns; table_info omits them.
+                    cmd.CommandText = $"PRAGMA table_xinfo(\"{table}\")";
                     await using var reader = await cmd.ExecuteReaderAsync(ct);
                     while (await reader.ReadAsync(ct))
                     {

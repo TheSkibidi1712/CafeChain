@@ -10,6 +10,8 @@ namespace CafeChain.Application.DTOs.Admin.InventoryThresholds
         public string? UnitCode { get; set; }
         public decimal AvailableQty { get; set; }
         public decimal ReservedQty { get; set; }
+        public decimal OnHandQty => AvailableQty;
+        public decimal UsableQty => OnHandQty - ReservedQty;
         public decimal? MinStockLevel { get; set; }
         public bool ThresholdConfigured => MinStockLevel.HasValue;
         public string ThresholdStatusLabel =>

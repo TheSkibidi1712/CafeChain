@@ -86,14 +86,23 @@ namespace CafeChain.Application.Services.Inventories
             var itemTypeLabel = inventory.IngredientId.HasValue ? "Nguyên liệu" : "Bán thành phẩm";
 
             var now = DateTime.UtcNow;
-            var (alertType, severity) = MapTypeSeverity(inventory.AvailableQty);
+            var usableQty = CalculateUsableQuantity(inventory);
+            var (alertType, severity) = MapTypeSeverity(usableQty);
+            var preparedItemId = inventory.PreparedItemId ?? inventory.Recipe?.PreparedItemId;
+            var recipeId = preparedItemId.HasValue ? null : inventory.RecipeId;
 
             var openAlert = await _context.StockAlerts
                 .FirstOrDefaultAsync(a =>
                     a.StoreId == storeId &&
-                    a.Status == StockAlertStatuses.Open &&
-                    a.IngredientId == inventory.IngredientId &&
-                    a.RecipeId == inventory.RecipeId);
+                    StockAlertStatuses.ActiveValues.Contains(a.Status) &&
+                    (inventory.IngredientId.HasValue
+                        ? a.IngredientId == inventory.IngredientId
+                          && a.RecipeId == null
+                          && a.PreparedItemId == null
+                        : preparedItemId.HasValue
+                            ? a.PreparedItemId == preparedItemId
+                              || (inventory.RecipeId.HasValue && a.RecipeId == inventory.RecipeId)
+                            : a.RecipeId == inventory.RecipeId));
 
             string createdOrUpdated;
             if (openAlert == null)
@@ -102,11 +111,12 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     StoreId = storeId,
                     IngredientId = inventory.IngredientId,
-                    RecipeId = inventory.RecipeId,
+                    RecipeId = recipeId,
+                    PreparedItemId = preparedItemId,
                     AlertType = alertType,
                     Severity = severity,
                     Status = StockAlertStatuses.Open,
-                    CurrentQtySnapshot = inventory.AvailableQty,
+                    CurrentQtySnapshot = usableQty,
                     ThresholdSnapshot = inventory.MinStockLevel,
                     Source = StockAlertSources.SalesReport,
                     Note = note,
@@ -122,7 +132,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 openAlert.AlertType = alertType;
                 openAlert.Severity = severity;
-                openAlert.CurrentQtySnapshot = inventory.AvailableQty;
+                openAlert.CurrentQtySnapshot = usableQty;
                 openAlert.ThresholdSnapshot = inventory.MinStockLevel;
                 openAlert.Source = StockAlertSources.SalesReport;
                 openAlert.Note = note; // latest note only — no history append
@@ -150,7 +160,9 @@ namespace CafeChain.Application.Services.Inventories
             var body =
                 $"Cửa hàng: {store?.Name ?? $"#{storeId}"}\n" +
                 $"Mặt hàng: {itemName} ({itemTypeLabel})\n" +
-                $"Tồn hiện tại: {inventory.AvailableQty:N3}\n" +
+                $"Tồn vật lý: {inventory.AvailableQty:N3}\n" +
+                $"Đang giữ chỗ: {inventory.ReservedQty:N3}\n" +
+                $"Khả dụng: {usableQty:N3}\n" +
                 $"Người báo: {reporter.FullName}\n" +
                 $"Thời gian: {now:yyyy-MM-dd HH:mm} UTC\n" +
                 $"Ghi chú: {note}";
@@ -197,7 +209,7 @@ namespace CafeChain.Application.Services.Inventories
                         store?.Name ?? $"Cửa hàng #{storeId}",
                         itemName,
                         itemTypeLabel,
-                        inventory.AvailableQty,
+                        usableQty,
                         note,
                         reporter.FullName,
                         now);
@@ -238,6 +250,7 @@ namespace CafeChain.Application.Services.Inventories
                 return await _context.StoreInventories
                     .Include(i => i.Ingredient)
                     .Include(i => i.Recipe)
+                    .Include(i => i.PreparedItem)
                     .FirstOrDefaultAsync(i =>
                         i.StoreInventoryId == request.StoreInventoryId.Value &&
                         i.StoreId == storeId);
@@ -251,6 +264,7 @@ namespace CafeChain.Application.Services.Inventories
             return await _context.StoreInventories
                 .Include(i => i.Ingredient)
                 .Include(i => i.Recipe)
+                .Include(i => i.PreparedItem)
                 .FirstOrDefaultAsync(i =>
                     i.StoreId == storeId &&
                     i.IngredientId == (hasIng ? request.IngredientId : null) &&
@@ -290,6 +304,14 @@ namespace CafeChain.Application.Services.Inventories
                     ?? $"Nguyên liệu #{inventory.IngredientId}";
             }
 
+            if (inventory.PreparedItemId.HasValue || inventory.Recipe?.PreparedItemId != null)
+            {
+                if (!string.IsNullOrWhiteSpace(inventory.PreparedItem?.Name))
+                    return inventory.PreparedItem.Name;
+                if (!string.IsNullOrWhiteSpace(inventory.PreparedItem?.Code))
+                    return inventory.PreparedItem.Code;
+            }
+
             if (inventory.RecipeId.HasValue)
             {
                 if (!string.IsNullOrWhiteSpace(inventory.Recipe?.Name))
@@ -308,6 +330,9 @@ namespace CafeChain.Application.Services.Inventories
                 return (StockAlertTypes.OutOfStock, StockAlertSeverities.Urgent);
             return (StockAlertTypes.LowStock, StockAlertSeverities.Warning);
         }
+
+        private static decimal CalculateUsableQuantity(StoreInventory inventory) =>
+            inventory.AvailableQty - inventory.ReservedQty;
 
         private static string TruncateSafe(string value, int max)
         {
