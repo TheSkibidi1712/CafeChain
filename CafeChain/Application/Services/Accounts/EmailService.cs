@@ -50,7 +50,11 @@ namespace CafeChain.Application.Services.Accounts
                 if (string.IsNullOrWhiteSpace(email))
                     throw new InvalidOperationException("Thiếu cấu hình Email:Address (tài khoản SMTP gửi đi).");
                 if (string.IsNullOrWhiteSpace(password))
-                    throw new InvalidOperationException("Thiếu cấu hình Email:Password (Gmail cần App Password).");
+                    throw new InvalidOperationException(
+                        "Thiếu Email:Password (Gmail App Password). " +
+                        "Cấu hình local: environment Email__Password hoặc " +
+                        "dotnet user-secrets set \"Email:Password\" \"<TEAM_APP_PASSWORD>\". " +
+                        "Không commit App Password vào source.");
 
                 // IMPORTANT: set UseDefaultCredentials = false BEFORE Credentials.
                 // Object-initializer order Credentials then UseDefaultCredentials=false clears the password

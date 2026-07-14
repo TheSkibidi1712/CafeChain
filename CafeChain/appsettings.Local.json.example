@@ -6,8 +6,7 @@
     "DeliveryMode": "Smtp",
     "SmtpHost": "smtp.gmail.com",
     "SmtpPort": "587",
-    "Address": "your-gmail@gmail.com",
-    "Password": "your-16-char-app-password"
+    "Address": "cafechain8386@gmail.com",
+    "Password": ""
   }
 }
-
