@@ -423,19 +423,16 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    TaxCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Website = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    DebtAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    Status = table.Column<int>(type: "int", nullable: false, defaultValue: 1),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Suppliers", x => x.SupplierId);
-                    table.CheckConstraint("CK_Supplier_DebtAmount", "[DebtAmount] >= 0");
                 });
 
             migrationBuilder.CreateTable(
@@ -738,31 +735,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SupplierBankAccounts",
-                columns: table => new
-                {
-                    SupplierBankAccountId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SupplierId = table.Column<int>(type: "int", nullable: false),
-                    BankName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    AccountNumber = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    AccountHolder = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
-                    Branch = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SupplierBankAccounts", x => x.SupplierBankAccountId);
-                    table.ForeignKey(
-                        name: "FK_SupplierBankAccounts_Suppliers_SupplierId",
-                        column: x => x.SupplierId,
-                        principalTable: "Suppliers",
-                        principalColumn: "SupplierId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SupplierContacts",
                 columns: table => new
                 {
@@ -771,6 +743,7 @@ namespace CafeChain.Migrations
                     SupplierId = table.Column<int>(type: "int", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(150)", maxLength: 150, nullable: true),
+                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     Position = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
@@ -1113,7 +1086,9 @@ namespace CafeChain.Migrations
                     DrinkId = table.Column<int>(type: "int", nullable: false),
                     SizeId = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true)
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -1198,28 +1173,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "SupplierContactPhones",
-                columns: table => new
-                {
-                    SupplierContactPhoneId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    SupplierContactId = table.Column<int>(type: "int", nullable: false),
-                    PhoneNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
-                    Description = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_SupplierContactPhones", x => x.SupplierContactPhoneId);
-                    table.ForeignKey(
-                        name: "FK_SupplierContactPhones_SupplierContacts_SupplierContactId",
-                        column: x => x.SupplierContactId,
-                        principalTable: "SupplierContacts",
-                        principalColumn: "SupplierContactId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "IngredientSuppliers",
                 columns: table => new
                 {
@@ -1230,18 +1183,21 @@ namespace CafeChain.Migrations
                     UnitId = table.Column<int>(type: "int", nullable: false),
                     PackageQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
                     CurrentPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    MinimumOrderQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    MinimumOrderPackageCount = table.Column<int>(type: "int", nullable: true),
                     LeadTimeDays = table.Column<int>(type: "int", nullable: true),
                     IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_IngredientSuppliers", x => x.IngredientSupplierId);
                     table.CheckConstraint("CK_IngredientSupplier_CurrentPrice", "[CurrentPrice] >= 0");
                     table.CheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
-                    table.CheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderQuantity] IS NULL OR [MinimumOrderQuantity] > 0");
+                    table.CheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
                     table.CheckConstraint("CK_IngredientSupplier_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
                     table.ForeignKey(
                         name: "FK_IngredientSuppliers_Ingredients_IngredientId",
@@ -1413,6 +1369,72 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DrinkSizePriceAudits",
+                columns: table => new
+                {
+                    DrinkSizePriceAuditId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DrinkSizeId = table.Column<int>(type: "int", nullable: false),
+                    OldPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    NewPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CostStatus = table.Column<string>(type: "nvarchar(60)", maxLength: 60, nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DrinkSizePriceAudits", x => x.DrinkSizePriceAuditId);
+                    table.ForeignKey(
+                        name: "FK_DrinkSizePriceAudits_DrinkSizes_DrinkSizeId",
+                        column: x => x.DrinkSizeId,
+                        principalTable: "DrinkSizes",
+                        principalColumn: "DrinkSizeId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DrinkSizeToppingPolicies",
+                columns: table => new
+                {
+                    DrinkSizeToppingPolicyId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DrinkSizeId = table.Column<int>(type: "int", nullable: false),
+                    ToppingId = table.Column<int>(type: "int", nullable: false),
+                    IsDefaultSelected = table.Column<bool>(type: "bit", nullable: false),
+                    IsRequired = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    PriceTreatment = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    CostTreatment = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    QuantityPerDrink = table.Column<decimal>(type: "decimal(18,5)", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    UpdatedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DrinkSizeToppingPolicies", x => x.DrinkSizeToppingPolicyId);
+                    table.CheckConstraint("CK_DrinkSizeToppingPolicies_CostTreatment", "[CostTreatment] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST','DISPLAY_ONLY')");
+                    table.CheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
+                    table.CheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
+                    table.CheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
+                    table.ForeignKey(
+                        name: "FK_DrinkSizeToppingPolicies_DrinkSizes_DrinkSizeId",
+                        column: x => x.DrinkSizeId,
+                        principalTable: "DrinkSizes",
+                        principalColumn: "DrinkSizeId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DrinkSizeToppingPolicies_Toppings_ToppingId",
+                        column: x => x.ToppingId,
+                        principalTable: "Toppings",
+                        principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RatingImages",
                 columns: table => new
                 {
@@ -1472,9 +1494,11 @@ namespace CafeChain.Migrations
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     PackageQuantity = table.Column<decimal>(type: "decimal(18,5)", nullable: true),
                     PackageUnitId = table.Column<int>(type: "int", nullable: true),
-                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    EffectiveDate = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
                     IsCurrent = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
-                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true)
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()")
                 },
                 constraints: table =>
                 {
@@ -1620,6 +1644,31 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DrinkSizeToppingPolicyAudits",
+                columns: table => new
+                {
+                    DrinkSizeToppingPolicyAuditId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DrinkSizeToppingPolicyId = table.Column<int>(type: "int", nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    OldDataJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DrinkSizeToppingPolicyAudits", x => x.DrinkSizeToppingPolicyAuditId);
+                    table.ForeignKey(
+                        name: "FK_DrinkSizeToppingPolicyAudits_DrinkSizeToppingPolicies_DrinkSizeToppingPolicyId",
+                        column: x => x.DrinkSizeToppingPolicyId,
+                        principalTable: "DrinkSizeToppingPolicies",
+                        principalColumn: "DrinkSizeToppingPolicyId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "InventoryWriterModeTransitions",
                 columns: table => new
                 {
@@ -1650,6 +1699,29 @@ namespace CafeChain.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryWriterModeTransitions_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "PosCatalogStates",
+                columns: table => new
+                {
+                    PosCatalogStateId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    Version = table.Column<long>(type: "bigint", nullable: false, defaultValue: 0L),
+                    PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: true),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PosCatalogStates", x => x.PosCatalogStateId);
+                    table.ForeignKey(
+                        name: "FK_PosCatalogStates_Stores_StoreId",
                         column: x => x.StoreId,
                         principalTable: "Stores",
                         principalColumn: "StoreId",
@@ -1917,6 +1989,40 @@ namespace CafeChain.Migrations
                         column: x => x.ToppingId,
                         principalTable: "Toppings",
                         principalColumn: "ToppingId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "SupplierStores",
+                columns: table => new
+                {
+                    SupplierStoreId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SupplierId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    LeadTimeOverrideDays = table.Column<int>(type: "int", nullable: true),
+                    DeliverySchedule = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierStores", x => x.SupplierStoreId);
+                    table.CheckConstraint("CK_SupplierStore_LeadTimeOverride", "[LeadTimeOverrideDays] IS NULL OR [LeadTimeOverrideDays] >= 0");
+                    table.ForeignKey(
+                        name: "FK_SupplierStores_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierStores_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -2540,6 +2646,53 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StoreMenuItems",
+                columns: table => new
+                {
+                    StoreMenuItemId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    DrinkSizeId = table.Column<int>(type: "int", nullable: false),
+                    IsEnabled = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    PriceOverride = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    EffectiveFromUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EffectiveToUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DisplayOrder = table.Column<int>(type: "int", nullable: false),
+                    PauseReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    PublishedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    PublishedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreMenuItems", x => x.StoreMenuItemId);
+                    table.CheckConstraint("CK_StoreMenuItems_DisplayOrder", "[DisplayOrder] >= 0");
+                    table.CheckConstraint("CK_StoreMenuItems_EffectiveWindow", "[EffectiveToUtc] IS NULL OR [EffectiveFromUtc] IS NULL OR [EffectiveToUtc] > [EffectiveFromUtc]");
+                    table.CheckConstraint("CK_StoreMenuItems_PriceOverride", "[PriceOverride] IS NULL OR [PriceOverride] >= 0");
+                    table.ForeignKey(
+                        name: "FK_StoreMenuItems_DrinkSizes_DrinkSizeId",
+                        column: x => x.DrinkSizeId,
+                        principalTable: "DrinkSizes",
+                        principalColumn: "DrinkSizeId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreMenuItems_Staffs_PublishedByStaffId",
+                        column: x => x.PublishedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreMenuItems_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkShifts",
                 columns: table => new
                 {
@@ -2646,35 +2799,6 @@ namespace CafeChain.Migrations
                         column: x => x.StoreInventoryId,
                         principalTable: "StoreInventories",
                         principalColumn: "StoreInventoryId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InventoryDebts",
-                columns: table => new
-                {
-                    InventoryDebtId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
-                    PartnerType = table.Column<int>(type: "int", nullable: false),
-                    PartnerId = table.Column<int>(type: "int", nullable: true),
-                    PartnerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    PaidAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false, defaultValue: 0m),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    PaidAt = table.Column<DateTime>(type: "datetime2", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryDebts", x => x.InventoryDebtId);
-                    table.CheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
-                    table.CheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
-                    table.CheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
-                    table.ForeignKey(
-                        name: "FK_InventoryDebts_InventoryDocuments_InventoryDocumentId",
-                        column: x => x.InventoryDocumentId,
-                        principalTable: "InventoryDocuments",
-                        principalColumn: "InventoryDocumentId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3017,6 +3141,51 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "StoreMenuItemAudits",
+                columns: table => new
+                {
+                    StoreMenuItemAuditId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StoreMenuItemId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    DrinkSizeId = table.Column<int>(type: "int", nullable: false),
+                    Action = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    OldIsEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    NewIsEnabled = table.Column<bool>(type: "bit", nullable: false),
+                    OldPriceOverride = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    NewPriceOverride = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    OldEffectiveFromUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    NewEffectiveFromUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    OldEffectiveToUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    NewEffectiveToUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    CatalogVersionBefore = table.Column<long>(type: "bigint", nullable: false),
+                    CatalogVersionAfter = table.Column<long>(type: "bigint", nullable: false),
+                    ItemRowVersionBefore = table.Column<byte[]>(type: "varbinary(8)", maxLength: 8, nullable: false),
+                    ItemRowVersionAfter = table.Column<byte[]>(type: "varbinary(8)", maxLength: 8, nullable: false),
+                    OldDataJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    NewDataJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StoreMenuItemAudits", x => x.StoreMenuItemAuditId);
+                    table.ForeignKey(
+                        name: "FK_StoreMenuItemAudits_Staffs_ActorStaffId",
+                        column: x => x.ActorStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StoreMenuItemAudits_StoreMenuItems_StoreMenuItemId",
+                        column: x => x.StoreMenuItemId,
+                        principalTable: "StoreMenuItems",
+                        principalColumn: "StoreMenuItemId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Orders",
                 columns: table => new
                 {
@@ -3299,9 +3468,14 @@ namespace CafeChain.Migrations
                     OrderId = table.Column<int>(type: "int", nullable: false),
                     DrinkId = table.Column<int>(type: "int", nullable: false),
                     SizeId = table.Column<int>(type: "int", nullable: true),
+                    StoreMenuItemId = table.Column<int>(type: "int", nullable: true),
+                    DrinkSizeId = table.Column<int>(type: "int", nullable: true),
                     DrinkName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     SizeName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Price = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    AcceptedBasePrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    PriceSource = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    AcceptedCatalogVersion = table.Column<long>(type: "bigint", nullable: true),
                     Quantity = table.Column<int>(type: "int", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     CostStatus = table.Column<int>(type: "int", nullable: false, defaultValue: 0),
@@ -3311,6 +3485,12 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OrderDetails", x => x.OrderDetailId);
+                    table.ForeignKey(
+                        name: "FK_OrderDetails_DrinkSizes_DrinkSizeId",
+                        column: x => x.DrinkSizeId,
+                        principalTable: "DrinkSizes",
+                        principalColumn: "DrinkSizeId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_OrderDetails_Drinks_DrinkId",
                         column: x => x.DrinkId,
@@ -3329,6 +3509,12 @@ namespace CafeChain.Migrations
                         principalTable: "Sizes",
                         principalColumn: "SizeId",
                         onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_OrderDetails_StoreMenuItems_StoreMenuItemId",
+                        column: x => x.StoreMenuItemId,
+                        principalTable: "StoreMenuItems",
+                        principalColumn: "StoreMenuItemId",
+                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -4471,19 +4657,15 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Suppliers",
-                columns: new[] { "SupplierId", "Active", "Address", "Code", "CreatedAt", "Name", "Note", "Status", "TaxCode", "Website" },
+                columns: new[] { "SupplierId", "Active", "Address", "Code", "CreatedAt", "Name", "Note", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, true, "Bình Dương", "SUP001", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp A", "Nhà cung cấp nguyên liệu chính", 1, "0101234567", "https://supA.com" },
-                    { 2, true, "TP HCM", "SUP002", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp B", "Nhà cung cấp sữa và kem", 1, "0201234567", "https://supB.com" },
-                    { 3, true, "Đồng Nai", "SUP003", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp C", "Nhà cung cấp cà phê", 1, "0301234567", "https://supC.com" },
-                    { 4, true, "Hà Nội", "SUP004", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp D", "Nhà cung cấp syrup và trà", 1, "0401234567", "https://supD.com" }
+                    { 1, true, "Bình Dương", "SUP001", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp A", "Nhà cung cấp nguyên liệu chính", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, true, "TP HCM", "SUP002", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp B", "Nhà cung cấp sữa và kem", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, true, "Đồng Nai", "SUP003", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp C", "Nhà cung cấp cà phê", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 4, true, "Hà Nội", "SUP004", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp D", "Nhà cung cấp syrup và trà", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 5, true, "Đà Nẵng", "SUP005", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp E", "Nhà cung cấp matcha", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
                 });
-
-            migrationBuilder.InsertData(
-                table: "Suppliers",
-                columns: new[] { "SupplierId", "Active", "Address", "Code", "CreatedAt", "DebtAmount", "Name", "Note", "Status", "TaxCode", "Website" },
-                values: new object[] { 5, true, "Đà Nẵng", "SUP005", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 100000m, "Nhà cung cấp E", "Nhà cung cấp matcha", 1, "0501234567", "https://supE.com" });
 
             migrationBuilder.InsertData(
                 table: "SystemSettings",
@@ -4673,27 +4855,15 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "SupplierBankAccounts",
-                columns: new[] { "SupplierBankAccountId", "AccountHolder", "AccountNumber", "Active", "BankName", "Branch", "IsPrimary", "SupplierId" },
-                values: new object[,]
-                {
-                    { 1, "NCC A", "111111111", true, "Vietcombank", "Bình Dương", true, 1 },
-                    { 2, "NCC B", "222222222", true, "ACB", "TP HCM", true, 2 },
-                    { 3, "NCC C", "333333333", true, "Techcombank", "Đồng Nai", true, 3 },
-                    { 4, "NCC D", "444444444", true, "BIDV", "Hà Nội", true, 4 },
-                    { 5, "NCC E", "555555555", true, "MB Bank", "Đà Nẵng", true, 5 }
-                });
-
-            migrationBuilder.InsertData(
                 table: "SupplierContacts",
-                columns: new[] { "SupplierContactId", "Active", "Email", "IsPrimary", "Name", "Note", "Position", "SupplierId" },
+                columns: new[] { "SupplierContactId", "Active", "Email", "IsPrimary", "Name", "Note", "PhoneNumber", "Position", "SupplierId" },
                 values: new object[,]
                 {
-                    { 1, true, "a@supplier.com", true, "Nguyễn Văn A", "Liên hệ chính", "Manager", 1 },
-                    { 2, true, "b@supplier.com", true, "Trần Văn B", "Phụ trách bán hàng", "Sales", 2 },
-                    { 3, true, "c@supplier.com", true, "Lê Văn C", "Chủ doanh nghiệp", "Owner", 3 },
-                    { 4, true, "d@supplier.com", true, "Phạm Văn D", "Giám đốc", "Director", 4 },
-                    { 5, true, "e@supplier.com", true, "Hoàng Văn E", "Quản lý kinh doanh", "Manager", 5 }
+                    { 1, true, "a@supplier.com", true, "Nguyễn Văn A", "Liên hệ chính", "0901111111", "Manager", 1 },
+                    { 2, true, "b@supplier.com", true, "Trần Văn B", "Phụ trách bán hàng", "0902222222", "Sales", 2 },
+                    { 3, true, "c@supplier.com", true, "Lê Văn C", "Chủ doanh nghiệp", "0903333333", "Owner", 3 },
+                    { 4, true, "d@supplier.com", true, "Phạm Văn D", "Giám đốc", "0904444444", "Director", 4 },
+                    { 5, true, "e@supplier.com", true, "Hoàng Văn E", "Quản lý kinh doanh", "0905555555", "Manager", 5 }
                 });
 
             migrationBuilder.InsertData(
@@ -4888,18 +5058,18 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSuppliers",
-                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderQuantity", "Note", "PackageQuantity", "SupplierId", "UnitId" },
+                columns: new[] { "IngredientSupplierId", "Active", "CurrentPrice", "IngredientId", "IsPrimary", "LeadTimeDays", "MinimumOrderPackageCount", "Note", "PackageQuantity", "SupplierId", "UnitId" },
                 values: new object[,]
                 {
-                    { 1, true, 22000m, 6, true, 1, 1m, "Đường Biên Hòa", 1m, 1, 2 },
-                    { 2, true, 27000m, 2, true, 2, 24m, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
-                    { 3, true, 140000m, 1, true, 3, 5m, "Cà phê hạt", 1m, 3, 2 },
-                    { 4, true, 250000m, 8, true, 4, 6m, "Syrup Torani", 750m, 4, 3 },
-                    { 5, true, 95000m, 10, true, 2, 12m, "Kem béo Rich", 1m, 2, 4 },
-                    { 6, true, 450000m, 9, true, 5, 1m, "Matcha Nhật", 500m, 5, 1 },
-                    { 7, true, 180000m, 5, true, 3, 2m, "Bột cacao", 1m, 3, 2 },
-                    { 8, true, 85000m, 4, true, 2, 2m, "Bột sữa", 1m, 1, 2 },
-                    { 9, true, 120000m, 3, true, 5, 1m, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
+                    { 1, true, 22000m, 6, true, 1, 1, "Đường Biên Hòa", 1m, 1, 2 },
+                    { 2, true, 27000m, 2, true, 2, 24, "Sữa đặc demo lon 380 ml (synthetic)", 380m, 2, 3 },
+                    { 3, true, 140000m, 1, true, 3, 5, "Cà phê hạt", 1m, 3, 2 },
+                    { 4, true, 250000m, 8, true, 4, 6, "Syrup Torani", 750m, 4, 3 },
+                    { 5, true, 95000m, 10, true, 2, 12, "Kem béo Rich", 1m, 2, 4 },
+                    { 6, true, 450000m, 9, true, 5, 1, "Matcha Nhật", 500m, 5, 1 },
+                    { 7, true, 180000m, 5, true, 3, 2, "Bột cacao", 1m, 3, 2 },
+                    { 8, true, 85000m, 4, true, 2, 2, "Bột sữa", 1m, 1, 2 },
+                    { 9, true, 120000m, 3, true, 5, 1, "Trà đen demo 100 túi × 2 g (synthetic)", 200m, 4, 1 }
                 });
 
             migrationBuilder.InsertData(
@@ -5021,18 +5191,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.InsertData(
-                table: "SupplierContactPhones",
-                columns: new[] { "SupplierContactPhoneId", "Description", "IsPrimary", "PhoneNumber", "SupplierContactId" },
-                values: new object[,]
-                {
-                    { 1, "Số chính", true, "0901111111", 1 },
-                    { 2, "Sales", true, "0902222222", 2 },
-                    { 3, "Owner", true, "0903333333", 3 },
-                    { 4, "Director", true, "0904444444", 4 },
-                    { 5, "Manager", true, "0905555555", 5 }
-                });
-
-            migrationBuilder.InsertData(
                 table: "UnitConversions",
                 columns: new[] { "UnitConversionId", "FromQuantity", "FromUnitId", "IngredientId", "ToQuantity", "ToUnitId" },
                 values: new object[,]
@@ -5065,12 +5223,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "IngredientSupplierPriceHistories",
-                columns: new[] { "IngredientSupplierPriceHistoryId", "EffectiveDate", "IngredientSupplierId", "IsCurrent", "Note", "PackageQuantity", "PackageUnitId", "Price" },
+                columns: new[] { "IngredientSupplierPriceHistoryId", "CreatedByStaffId", "EffectiveDate", "IngredientSupplierId", "IsCurrent", "Note", "PackageQuantity", "PackageUnitId", "Price" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, true, "Giá ban đầu", 1m, 2, 22000m },
-                    { 2, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, true, "Giá ban đầu", null, null, 27000m },
-                    { 3, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, true, "Giá ban đầu", 1m, 2, 140000m }
+                    { 1, null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 1, true, "Giá ban đầu", 1m, 2, 22000m },
+                    { 2, null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 2, true, "Giá ban đầu", null, null, 27000m },
+                    { 3, null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), 3, true, "Giá ban đầu", 1m, 2, 140000m }
                 });
 
             migrationBuilder.InsertData(
@@ -5436,6 +5594,11 @@ namespace CafeChain.Migrations
                 column: "ProductTypeId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DrinkSizePriceAudits_DrinkSizeId_CreatedAtUtc",
+                table: "DrinkSizePriceAudits",
+                columns: new[] { "DrinkSizeId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DrinkSizes_DrinkId_SizeId",
                 table: "DrinkSizes",
                 columns: new[] { "DrinkId", "SizeId" },
@@ -5445,6 +5608,23 @@ namespace CafeChain.Migrations
                 name: "IX_DrinkSizes_SizeId",
                 table: "DrinkSizes",
                 column: "SizeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DrinkSizeToppingPolicies_ToppingId",
+                table: "DrinkSizeToppingPolicies",
+                column: "ToppingId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_DrinkSizeToppingPolicies_Active",
+                table: "DrinkSizeToppingPolicies",
+                columns: new[] { "DrinkSizeId", "ToppingId" },
+                unique: true,
+                filter: "[IsActive] = 1");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DrinkSizeToppingPolicyAudits_DrinkSizeToppingPolicyId_CreatedAtUtc",
+                table: "DrinkSizeToppingPolicyAudits",
+                columns: new[] { "DrinkSizeToppingPolicyId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_DrinkToppings_DrinkId_ToppingId",
@@ -5474,6 +5654,11 @@ namespace CafeChain.Migrations
                 column: "Name");
 
             migrationBuilder.CreateIndex(
+                name: "IX_IngredientSupplierPriceHistories_CreatedByStaffId",
+                table: "IngredientSupplierPriceHistories",
+                column: "CreatedByStaffId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_IngredientSupplierPriceHistories_IngredientSupplierId",
                 table: "IngredientSupplierPriceHistories",
                 column: "IngredientSupplierId");
@@ -5482,6 +5667,13 @@ namespace CafeChain.Migrations
                 name: "IX_IngredientSupplierPriceHistories_IngredientSupplierId_EffectiveDate",
                 table: "IngredientSupplierPriceHistories",
                 columns: new[] { "IngredientSupplierId", "EffectiveDate" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_IngredientSupplierPriceHistories_IngredientSupplierId_IsCurrent",
+                table: "IngredientSupplierPriceHistories",
+                columns: new[] { "IngredientSupplierId", "IsCurrent" },
+                unique: true,
+                filter: "[IsCurrent] = 1");
 
             migrationBuilder.CreateIndex(
                 name: "IX_IngredientSupplierPriceHistories_PackageUnitId",
@@ -5669,21 +5861,6 @@ namespace CafeChain.Migrations
                 column: "SourceProductionRunId",
                 unique: true,
                 filter: "[SourceProductionRunId] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryDebts_InventoryDocumentId",
-                table: "InventoryDebts",
-                column: "InventoryDocumentId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryDebts_PaidAmount",
-                table: "InventoryDebts",
-                column: "PaidAmount");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_InventoryDebts_PartnerType_PartnerId",
-                table: "InventoryDebts",
-                columns: new[] { "PartnerType", "PartnerId" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocumentDetails_IngredientId",
@@ -6128,6 +6305,11 @@ namespace CafeChain.Migrations
                 column: "DrinkId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OrderDetails_DrinkSizeId",
+                table: "OrderDetails",
+                column: "DrinkSizeId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_OrderDetails_OrderId",
                 table: "OrderDetails",
                 column: "OrderId");
@@ -6136,6 +6318,11 @@ namespace CafeChain.Migrations
                 name: "IX_OrderDetails_SizeId",
                 table: "OrderDetails",
                 column: "SizeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OrderDetails_StoreMenuItemId",
+                table: "OrderDetails",
+                column: "StoreMenuItemId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OrderRefunds_CompletedByStaffId",
@@ -6393,6 +6580,12 @@ namespace CafeChain.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_PosCatalogStates_StoreId",
+                table: "PosCatalogStates",
+                column: "StoreId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PosTerminals_StoreId",
                 table: "PosTerminals",
                 column: "StoreId");
@@ -6553,11 +6746,6 @@ namespace CafeChain.Migrations
                 column: "UnitId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Recipes_DrinkId_SizeId",
-                table: "Recipes",
-                columns: new[] { "DrinkId", "SizeId" });
-
-            migrationBuilder.CreateIndex(
                 name: "IX_Recipes_OneActive_PreparedItem",
                 table: "Recipes",
                 column: "PreparedItemId",
@@ -6588,6 +6776,13 @@ namespace CafeChain.Migrations
                 name: "IX_Recipes_ToppingId",
                 table: "Recipes",
                 column: "ToppingId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_Recipes_OneActive_Drink_Size",
+                table: "Recipes",
+                columns: new[] { "DrinkId", "SizeId" },
+                unique: true,
+                filter: "[DrinkId] IS NOT NULL AND [SizeId] IS NOT NULL AND [ToppingId] IS NULL AND [Active] = 1 AND [Status] = 'Active'");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RefundCostGaps_OrderRefundId",
@@ -7189,6 +7384,47 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItemAudits_ActorStaffId",
+                table: "StoreMenuItemAudits",
+                column: "ActorStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItemAudits_StoreId_CreatedAtUtc",
+                table: "StoreMenuItemAudits",
+                columns: new[] { "StoreId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItemAudits_StoreMenuItemId_CreatedAtUtc",
+                table: "StoreMenuItemAudits",
+                columns: new[] { "StoreMenuItemId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItems_DrinkSizeId",
+                table: "StoreMenuItems",
+                column: "DrinkSizeId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItems_PublishedByStaffId",
+                table: "StoreMenuItems",
+                column: "PublishedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItems_StoreId_DisplayOrder",
+                table: "StoreMenuItems",
+                columns: new[] { "StoreId", "DisplayOrder" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StoreMenuItems_StoreId_IsEnabled_EffectiveFromUtc_EffectiveToUtc",
+                table: "StoreMenuItems",
+                columns: new[] { "StoreId", "IsEnabled", "EffectiveFromUtc", "EffectiveToUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "UX_StoreMenuItems_Store_DrinkSize",
+                table: "StoreMenuItems",
+                columns: new[] { "StoreId", "DrinkSizeId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Stores_DistrictId",
                 table: "Stores",
                 column: "DistrictId");
@@ -7214,28 +7450,6 @@ namespace CafeChain.Migrations
                 column: "ToppingId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_SupplierBankAccounts_SupplierId",
-                table: "SupplierBankAccounts",
-                column: "SupplierId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SupplierBankAccounts_SupplierId_AccountNumber",
-                table: "SupplierBankAccounts",
-                columns: new[] { "SupplierId", "AccountNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SupplierContactPhones_SupplierContactId",
-                table: "SupplierContactPhones",
-                column: "SupplierContactId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_SupplierContactPhones_SupplierContactId_PhoneNumber",
-                table: "SupplierContactPhones",
-                columns: new[] { "SupplierContactId", "PhoneNumber" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
                 name: "IX_SupplierContacts_Email",
                 table: "SupplierContacts",
                 column: "Email");
@@ -7244,6 +7458,11 @@ namespace CafeChain.Migrations
                 name: "IX_SupplierContacts_SupplierId",
                 table: "SupplierContacts",
                 column: "SupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierContacts_SupplierId_PhoneNumber",
+                table: "SupplierContacts",
+                columns: new[] { "SupplierId", "PhoneNumber" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_SupplierPhones_SupplierId",
@@ -7273,14 +7492,15 @@ namespace CafeChain.Migrations
                 column: "Name");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Suppliers_Status",
-                table: "Suppliers",
-                column: "Status");
+                name: "IX_SupplierStores_StoreId_Active",
+                table: "SupplierStores",
+                columns: new[] { "StoreId", "Active" });
 
             migrationBuilder.CreateIndex(
-                name: "IX_Suppliers_TaxCode",
-                table: "Suppliers",
-                column: "TaxCode");
+                name: "IX_SupplierStores_SupplierId_StoreId",
+                table: "SupplierStores",
+                columns: new[] { "SupplierId", "StoreId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_SystemSettings_SettingKey",
@@ -7723,7 +7943,10 @@ namespace CafeChain.Migrations
                 name: "DrinkImages");
 
             migrationBuilder.DropTable(
-                name: "DrinkSizes");
+                name: "DrinkSizePriceAudits");
+
+            migrationBuilder.DropTable(
+                name: "DrinkSizeToppingPolicyAudits");
 
             migrationBuilder.DropTable(
                 name: "DrinkToppings");
@@ -7739,9 +7962,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "InventoryCostGapSettlements");
-
-            migrationBuilder.DropTable(
-                name: "InventoryDebts");
 
             migrationBuilder.DropTable(
                 name: "InventoryDocumentSnapshotDetails");
@@ -7775,6 +7995,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "PointTransactions");
+
+            migrationBuilder.DropTable(
+                name: "PosCatalogStates");
 
             migrationBuilder.DropTable(
                 name: "ProductionCostAllocations");
@@ -7852,16 +8075,19 @@ namespace CafeChain.Migrations
                 name: "StoreIPs");
 
             migrationBuilder.DropTable(
+                name: "StoreMenuItemAudits");
+
+            migrationBuilder.DropTable(
                 name: "StoreToppings");
 
             migrationBuilder.DropTable(
-                name: "SupplierBankAccounts");
-
-            migrationBuilder.DropTable(
-                name: "SupplierContactPhones");
+                name: "SupplierContacts");
 
             migrationBuilder.DropTable(
                 name: "SupplierPhones");
+
+            migrationBuilder.DropTable(
+                name: "SupplierStores");
 
             migrationBuilder.DropTable(
                 name: "SystemSettings");
@@ -7886,6 +8112,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "WheelSpins");
+
+            migrationBuilder.DropTable(
+                name: "DrinkSizeToppingPolicies");
 
             migrationBuilder.DropTable(
                 name: "InventoryNegativeCostGaps");
@@ -7927,9 +8156,6 @@ namespace CafeChain.Migrations
                 name: "StockTakeSessions");
 
             migrationBuilder.DropTable(
-                name: "SupplierContacts");
-
-            migrationBuilder.DropTable(
                 name: "WheelPrizes");
 
             migrationBuilder.DropTable(
@@ -7952,6 +8178,12 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "OrderDetails");
+
+            migrationBuilder.DropTable(
+                name: "StoreMenuItems");
+
+            migrationBuilder.DropTable(
+                name: "DrinkSizes");
 
             migrationBuilder.DropTable(
                 name: "Accounts");

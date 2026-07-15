@@ -1364,8 +1364,19 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("SizeId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.HasKey("DrinkSizeId");
 
@@ -1383,7 +1394,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 1,
                             Price = 30000m,
-                            SizeId = 1
+                            RowVersion = new byte[0],
+                            SizeId = 1,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1391,7 +1404,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 2,
                             Price = 22000m,
-                            SizeId = 1
+                            RowVersion = new byte[0],
+                            SizeId = 1,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1399,7 +1414,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 3,
                             Price = 22000m,
-                            SizeId = 1
+                            RowVersion = new byte[0],
+                            SizeId = 1,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1407,7 +1424,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 3,
                             Price = 27000m,
-                            SizeId = 2
+                            RowVersion = new byte[0],
+                            SizeId = 2,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1415,7 +1434,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 3,
                             Price = 32000m,
-                            SizeId = 3
+                            RowVersion = new byte[0],
+                            SizeId = 3,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1423,7 +1444,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             Price = 25000m,
-                            SizeId = 1
+                            RowVersion = new byte[0],
+                            SizeId = 1,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1431,7 +1454,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             Price = 30000m,
-                            SizeId = 2
+                            RowVersion = new byte[0],
+                            SizeId = 2,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1439,7 +1464,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 4,
                             Price = 35000m,
-                            SizeId = 3
+                            RowVersion = new byte[0],
+                            SizeId = 3,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1447,7 +1474,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 5,
                             Price = 15000m,
-                            SizeId = 5
+                            RowVersion = new byte[0],
+                            SizeId = 5,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1455,7 +1484,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 5,
                             Price = 20000m,
-                            SizeId = 6
+                            RowVersion = new byte[0],
+                            SizeId = 6,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1463,7 +1494,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 5,
                             Price = 25000m,
-                            SizeId = 7
+                            RowVersion = new byte[0],
+                            SizeId = 7,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1471,7 +1504,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 6,
                             Price = 15000m,
-                            SizeId = 5
+                            RowVersion = new byte[0],
+                            SizeId = 5,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1479,7 +1514,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 6,
                             Price = 20000m,
-                            SizeId = 6
+                            RowVersion = new byte[0],
+                            SizeId = 6,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1487,7 +1524,9 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 6,
                             Price = 25000m,
-                            SizeId = 7
+                            RowVersion = new byte[0],
+                            SizeId = 7,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -1495,8 +1534,175 @@ namespace CafeChain.Migrations
                             Active = true,
                             DrinkId = 6,
                             Price = 30000m,
-                            SizeId = 8
+                            RowVersion = new byte[0],
+                            SizeId = 8,
+                            UpdatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizePriceAudit", b =>
+                {
+                    b.Property<int>("DrinkSizePriceAuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkSizePriceAuditId"));
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("CostStatus")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("DrinkSizeId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("DrinkSizePriceAuditId");
+
+                    b.HasIndex("DrinkSizeId", "CreatedAtUtc");
+
+                    b.ToTable("DrinkSizePriceAudits", (string)null);
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizeToppingPolicy", b =>
+                {
+                    b.Property<int>("DrinkSizeToppingPolicyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkSizeToppingPolicyId"));
+
+                    b.Property<string>("CostTreatment")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("CreatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DrinkSizeId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsDefaultSelected")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsRequired")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("PriceTreatment")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<decimal>("QuantityPerDrink")
+                        .HasColumnType("decimal(18,5)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("ToppingId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int?>("UpdatedByStaffId")
+                        .HasColumnType("int");
+
+                    b.HasKey("DrinkSizeToppingPolicyId");
+
+                    b.HasIndex("ToppingId");
+
+                    b.HasIndex("DrinkSizeId", "ToppingId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_DrinkSizeToppingPolicies_Active")
+                        .HasFilter("[IsActive] = 1");
+
+                    b.ToTable("DrinkSizeToppingPolicies", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_CostTreatment", "[CostTreatment] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST','DISPLAY_ONLY')");
+
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
+
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
+
+                            t.HasCheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizeToppingPolicyAudit", b =>
+                {
+                    b.Property<int>("DrinkSizeToppingPolicyAuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DrinkSizeToppingPolicyAuditId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("DrinkSizeToppingPolicyId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("NewDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OldDataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("DrinkSizeToppingPolicyAuditId");
+
+                    b.HasIndex("DrinkSizeToppingPolicyId", "CreatedAtUtc");
+
+                    b.ToTable("DrinkSizeToppingPolicyAudits", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkTopping", b =>
@@ -1610,6 +1816,45 @@ namespace CafeChain.Migrations
                             DrinkId = 4,
                             ToppingId = 6
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.PosCatalogState", b =>
+                {
+                    b.Property<int>("PosCatalogStateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PosCatalogStateId"));
+
+                    b.Property<string>("PayloadHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<long>("Version")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasDefaultValue(0L);
+
+                    b.HasKey("PosCatalogStateId");
+
+                    b.HasIndex("StoreId")
+                        .IsUnique();
+
+                    b.ToTable("PosCatalogStates", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.ProductType", b =>
@@ -1735,7 +1980,10 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("ToppingId");
 
-                    b.HasIndex("DrinkId", "SizeId");
+                    b.HasIndex("DrinkId", "SizeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Recipes_OneActive_Drink_Size")
+                        .HasFilter("[DrinkId] IS NOT NULL AND [SizeId] IS NOT NULL AND [ToppingId] IS NULL AND [Active] = 1 AND [Status] = 'Active'");
 
                     b.ToTable("Recipes", null, t =>
                         {
@@ -3202,60 +3450,6 @@ namespace CafeChain.Migrations
                     b.ToTable("SalesCostGaps", null, t =>
                         {
                             t.HasCheckConstraint("CK_SalesCostGaps_ExactlyOneIdentity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.Debts.InventoryDebt", b =>
-                {
-                    b.Property<int>("InventoryDebtId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDebtId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("InventoryDocumentId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("PaidAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int?>("PartnerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PartnerName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<int>("PartnerType")
-                        .HasColumnType("int");
-
-                    b.HasKey("InventoryDebtId");
-
-                    b.HasIndex("InventoryDocumentId");
-
-                    b.HasIndex("PaidAmount");
-
-                    b.HasIndex("PartnerType", "PartnerId");
-
-                    b.ToTable("InventoryDebts", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_InventoryDebt_Amount", "[Amount] >= 0");
-
-                            t.HasCheckConstraint("CK_InventoryDebt_PaidAmount", "[PaidAmount] >= 0");
-
-                            t.HasCheckConstraint("CK_InventoryDebt_Paid_Limit", "[PaidAmount] <= [Amount]");
                         });
                 });
 
@@ -5276,6 +5470,11 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(true);
 
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
                     b.Property<decimal>("CurrentPrice")
                         .HasColumnType("decimal(18,2)");
 
@@ -5290,8 +5489,8 @@ namespace CafeChain.Migrations
                     b.Property<int?>("LeadTimeDays")
                         .HasColumnType("int");
 
-                    b.Property<decimal?>("MinimumOrderQuantity")
-                        .HasColumnType("decimal(18,3)");
+                    b.Property<int?>("MinimumOrderPackageCount")
+                        .HasColumnType("int");
 
                     b.Property<string>("Note")
                         .HasMaxLength(1000)
@@ -5300,11 +5499,22 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("PackageQuantity")
                         .HasColumnType("decimal(18,5)");
 
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<int>("SupplierId")
                         .HasColumnType("int");
 
                     b.Property<int>("UnitId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("IngredientSupplierId");
 
@@ -5325,7 +5535,7 @@ namespace CafeChain.Migrations
 
                             t.HasCheckConstraint("CK_IngredientSupplier_LeadTime", "[LeadTimeDays] IS NULL OR [LeadTimeDays] >= 0");
 
-                            t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderQuantity] IS NULL OR [MinimumOrderQuantity] > 0");
+                            t.HasCheckConstraint("CK_IngredientSupplier_MOQ", "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0");
 
                             t.HasCheckConstraint("CK_IngredientSupplier_PackageQuantity", "[PackageQuantity] IS NULL OR [PackageQuantity] > 0");
                         });
@@ -5335,127 +5545,154 @@ namespace CafeChain.Migrations
                         {
                             IngredientSupplierId = 1,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 22000m,
                             IngredientId = 6,
                             IsPrimary = true,
                             LeadTimeDays = 1,
-                            MinimumOrderQuantity = 1m,
+                            MinimumOrderPackageCount = 1,
                             Note = "Đường Biên Hòa",
                             PackageQuantity = 1m,
+                            RowVersion = new byte[0],
                             SupplierId = 1,
-                            UnitId = 2
+                            UnitId = 2,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 2,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 27000m,
                             IngredientId = 2,
                             IsPrimary = true,
                             LeadTimeDays = 2,
-                            MinimumOrderQuantity = 24m,
+                            MinimumOrderPackageCount = 24,
                             Note = "Sữa đặc demo lon 380 ml (synthetic)",
                             PackageQuantity = 380m,
+                            RowVersion = new byte[0],
                             SupplierId = 2,
-                            UnitId = 3
+                            UnitId = 3,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 3,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 140000m,
                             IngredientId = 1,
                             IsPrimary = true,
                             LeadTimeDays = 3,
-                            MinimumOrderQuantity = 5m,
+                            MinimumOrderPackageCount = 5,
                             Note = "Cà phê hạt",
                             PackageQuantity = 1m,
+                            RowVersion = new byte[0],
                             SupplierId = 3,
-                            UnitId = 2
+                            UnitId = 2,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 4,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 250000m,
                             IngredientId = 8,
                             IsPrimary = true,
                             LeadTimeDays = 4,
-                            MinimumOrderQuantity = 6m,
+                            MinimumOrderPackageCount = 6,
                             Note = "Syrup Torani",
                             PackageQuantity = 750m,
+                            RowVersion = new byte[0],
                             SupplierId = 4,
-                            UnitId = 3
+                            UnitId = 3,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 5,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 95000m,
                             IngredientId = 10,
                             IsPrimary = true,
                             LeadTimeDays = 2,
-                            MinimumOrderQuantity = 12m,
+                            MinimumOrderPackageCount = 12,
                             Note = "Kem béo Rich",
                             PackageQuantity = 1m,
+                            RowVersion = new byte[0],
                             SupplierId = 2,
-                            UnitId = 4
+                            UnitId = 4,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 6,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 450000m,
                             IngredientId = 9,
                             IsPrimary = true,
                             LeadTimeDays = 5,
-                            MinimumOrderQuantity = 1m,
+                            MinimumOrderPackageCount = 1,
                             Note = "Matcha Nhật",
                             PackageQuantity = 500m,
+                            RowVersion = new byte[0],
                             SupplierId = 5,
-                            UnitId = 1
+                            UnitId = 1,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 7,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 180000m,
                             IngredientId = 5,
                             IsPrimary = true,
                             LeadTimeDays = 3,
-                            MinimumOrderQuantity = 2m,
+                            MinimumOrderPackageCount = 2,
                             Note = "Bột cacao",
                             PackageQuantity = 1m,
+                            RowVersion = new byte[0],
                             SupplierId = 3,
-                            UnitId = 2
+                            UnitId = 2,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 8,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 85000m,
                             IngredientId = 4,
                             IsPrimary = true,
                             LeadTimeDays = 2,
-                            MinimumOrderQuantity = 2m,
+                            MinimumOrderPackageCount = 2,
                             Note = "Bột sữa",
                             PackageQuantity = 1m,
+                            RowVersion = new byte[0],
                             SupplierId = 1,
-                            UnitId = 2
+                            UnitId = 2,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
                             IngredientSupplierId = 9,
                             Active = true,
+                            CreatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             CurrentPrice = 120000m,
                             IngredientId = 3,
                             IsPrimary = true,
                             LeadTimeDays = 5,
-                            MinimumOrderQuantity = 1m,
+                            MinimumOrderPackageCount = 1,
                             Note = "Trà đen demo 100 túi × 2 g (synthetic)",
                             PackageQuantity = 200m,
+                            RowVersion = new byte[0],
                             SupplierId = 4,
-                            UnitId = 1
+                            UnitId = 1,
+                            UpdatedAt = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -5467,10 +5704,18 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IngredientSupplierPriceHistoryId"));
 
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int?>("CreatedByStaffId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("EffectiveDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<int>("IngredientSupplierId")
                         .HasColumnType("int");
@@ -5495,11 +5740,17 @@ namespace CafeChain.Migrations
 
                     b.HasKey("IngredientSupplierPriceHistoryId");
 
+                    b.HasIndex("CreatedByStaffId");
+
                     b.HasIndex("IngredientSupplierId");
 
                     b.HasIndex("PackageUnitId");
 
                     b.HasIndex("IngredientSupplierId", "EffectiveDate");
+
+                    b.HasIndex("IngredientSupplierId", "IsCurrent")
+                        .IsUnique()
+                        .HasFilter("[IsCurrent] = 1");
 
                     b.ToTable("IngredientSupplierPriceHistories", null, t =>
                         {
@@ -5512,6 +5763,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             IngredientSupplierPriceHistoryId = 1,
+                            CreatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EffectiveDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IngredientSupplierId = 1,
                             IsCurrent = true,
@@ -5523,6 +5775,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             IngredientSupplierPriceHistoryId = 2,
+                            CreatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EffectiveDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IngredientSupplierId = 2,
                             IsCurrent = true,
@@ -5532,6 +5785,7 @@ namespace CafeChain.Migrations
                         new
                         {
                             IngredientSupplierPriceHistoryId = 3,
+                            CreatedAtUtc = new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             EffectiveDate = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
                             IngredientSupplierId = 3,
                             IsCurrent = true,
@@ -5567,12 +5821,7 @@ namespace CafeChain.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.Property<decimal>("DebtAmount")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("decimal(18,2)")
-                        .HasDefaultValue(0m);
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -5583,18 +5832,16 @@ namespace CafeChain.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<int>("Status")
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(1);
-
-                    b.Property<string>("TaxCode")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Website")
-                        .HasMaxLength(300)
-                        .HasColumnType("nvarchar(300)");
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.HasKey("SupplierId");
 
@@ -5605,14 +5852,7 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("Name");
 
-                    b.HasIndex("Status");
-
-                    b.HasIndex("TaxCode");
-
-                    b.ToTable("Suppliers", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_Supplier_DebtAmount", "[DebtAmount] >= 0");
-                        });
+                    b.ToTable("Suppliers", (string)null);
 
                     b.HasData(
                         new
@@ -5622,12 +5862,10 @@ namespace CafeChain.Migrations
                             Address = "Bình Dương",
                             Code = "SUP001",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DebtAmount = 0m,
                             Name = "Nhà cung cấp A",
                             Note = "Nhà cung cấp nguyên liệu chính",
-                            Status = 1,
-                            TaxCode = "0101234567",
-                            Website = "https://supA.com"
+                            RowVersion = new byte[0],
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -5636,12 +5874,10 @@ namespace CafeChain.Migrations
                             Address = "TP HCM",
                             Code = "SUP002",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DebtAmount = 0m,
                             Name = "Nhà cung cấp B",
                             Note = "Nhà cung cấp sữa và kem",
-                            Status = 1,
-                            TaxCode = "0201234567",
-                            Website = "https://supB.com"
+                            RowVersion = new byte[0],
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -5650,12 +5886,10 @@ namespace CafeChain.Migrations
                             Address = "Đồng Nai",
                             Code = "SUP003",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DebtAmount = 0m,
                             Name = "Nhà cung cấp C",
                             Note = "Nhà cung cấp cà phê",
-                            Status = 1,
-                            TaxCode = "0301234567",
-                            Website = "https://supC.com"
+                            RowVersion = new byte[0],
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -5664,12 +5898,10 @@ namespace CafeChain.Migrations
                             Address = "Hà Nội",
                             Code = "SUP004",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DebtAmount = 0m,
                             Name = "Nhà cung cấp D",
                             Note = "Nhà cung cấp syrup và trà",
-                            Status = 1,
-                            TaxCode = "0401234567",
-                            Website = "https://supD.com"
+                            RowVersion = new byte[0],
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         },
                         new
                         {
@@ -5678,119 +5910,10 @@ namespace CafeChain.Migrations
                             Address = "Đà Nẵng",
                             Code = "SUP005",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                            DebtAmount = 100000m,
                             Name = "Nhà cung cấp E",
                             Note = "Nhà cung cấp matcha",
-                            Status = 1,
-                            TaxCode = "0501234567",
-                            Website = "https://supE.com"
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierBankAccount", b =>
-                {
-                    b.Property<int>("SupplierBankAccountId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierBankAccountId"));
-
-                    b.Property<string>("AccountHolder")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<string>("AccountNumber")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<bool>("Active")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(true);
-
-                    b.Property<string>("BankName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Branch")
-                        .HasMaxLength(150)
-                        .HasColumnType("nvarchar(150)");
-
-                    b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<int>("SupplierId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SupplierBankAccountId");
-
-                    b.HasIndex("SupplierId");
-
-                    b.HasIndex("SupplierId", "AccountNumber")
-                        .IsUnique();
-
-                    b.ToTable("SupplierBankAccounts", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            SupplierBankAccountId = 1,
-                            AccountHolder = "NCC A",
-                            AccountNumber = "111111111",
-                            Active = true,
-                            BankName = "Vietcombank",
-                            Branch = "Bình Dương",
-                            IsPrimary = true,
-                            SupplierId = 1
-                        },
-                        new
-                        {
-                            SupplierBankAccountId = 2,
-                            AccountHolder = "NCC B",
-                            AccountNumber = "222222222",
-                            Active = true,
-                            BankName = "ACB",
-                            Branch = "TP HCM",
-                            IsPrimary = true,
-                            SupplierId = 2
-                        },
-                        new
-                        {
-                            SupplierBankAccountId = 3,
-                            AccountHolder = "NCC C",
-                            AccountNumber = "333333333",
-                            Active = true,
-                            BankName = "Techcombank",
-                            Branch = "Đồng Nai",
-                            IsPrimary = true,
-                            SupplierId = 3
-                        },
-                        new
-                        {
-                            SupplierBankAccountId = 4,
-                            AccountHolder = "NCC D",
-                            AccountNumber = "444444444",
-                            Active = true,
-                            BankName = "BIDV",
-                            Branch = "Hà Nội",
-                            IsPrimary = true,
-                            SupplierId = 4
-                        },
-                        new
-                        {
-                            SupplierBankAccountId = 5,
-                            AccountHolder = "NCC E",
-                            AccountNumber = "555555555",
-                            Active = true,
-                            BankName = "MB Bank",
-                            Branch = "Đà Nẵng",
-                            IsPrimary = true,
-                            SupplierId = 5
+                            RowVersion = new byte[0],
+                            UpdatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified)
                         });
                 });
 
@@ -5825,6 +5948,10 @@ namespace CafeChain.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.Property<string>("Position")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -5838,6 +5965,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("SupplierId");
 
+                    b.HasIndex("SupplierId", "PhoneNumber");
+
                     b.ToTable("SupplierContacts", (string)null);
 
                     b.HasData(
@@ -5849,6 +5978,7 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             Name = "Nguyễn Văn A",
                             Note = "Liên hệ chính",
+                            PhoneNumber = "0901111111",
                             Position = "Manager",
                             SupplierId = 1
                         },
@@ -5860,6 +5990,7 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             Name = "Trần Văn B",
                             Note = "Phụ trách bán hàng",
+                            PhoneNumber = "0902222222",
                             Position = "Sales",
                             SupplierId = 2
                         },
@@ -5871,6 +6002,7 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             Name = "Lê Văn C",
                             Note = "Chủ doanh nghiệp",
+                            PhoneNumber = "0903333333",
                             Position = "Owner",
                             SupplierId = 3
                         },
@@ -5882,6 +6014,7 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             Name = "Phạm Văn D",
                             Note = "Giám đốc",
+                            PhoneNumber = "0904444444",
                             Position = "Director",
                             SupplierId = 4
                         },
@@ -5893,85 +6026,9 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             Name = "Hoàng Văn E",
                             Note = "Quản lý kinh doanh",
+                            PhoneNumber = "0905555555",
                             Position = "Manager",
                             SupplierId = 5
-                        });
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierContactPhone", b =>
-                {
-                    b.Property<int>("SupplierContactPhoneId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierContactPhoneId"));
-
-                    b.Property<string>("Description")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<bool>("IsPrimary")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bit")
-                        .HasDefaultValue(false);
-
-                    b.Property<string>("PhoneNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<int>("SupplierContactId")
-                        .HasColumnType("int");
-
-                    b.HasKey("SupplierContactPhoneId");
-
-                    b.HasIndex("SupplierContactId");
-
-                    b.HasIndex("SupplierContactId", "PhoneNumber")
-                        .IsUnique();
-
-                    b.ToTable("SupplierContactPhones", (string)null);
-
-                    b.HasData(
-                        new
-                        {
-                            SupplierContactPhoneId = 1,
-                            Description = "Số chính",
-                            IsPrimary = true,
-                            PhoneNumber = "0901111111",
-                            SupplierContactId = 1
-                        },
-                        new
-                        {
-                            SupplierContactPhoneId = 2,
-                            Description = "Sales",
-                            IsPrimary = true,
-                            PhoneNumber = "0902222222",
-                            SupplierContactId = 2
-                        },
-                        new
-                        {
-                            SupplierContactPhoneId = 3,
-                            Description = "Owner",
-                            IsPrimary = true,
-                            PhoneNumber = "0903333333",
-                            SupplierContactId = 3
-                        },
-                        new
-                        {
-                            SupplierContactPhoneId = 4,
-                            Description = "Director",
-                            IsPrimary = true,
-                            PhoneNumber = "0904444444",
-                            SupplierContactId = 4
-                        },
-                        new
-                        {
-                            SupplierContactPhoneId = 5,
-                            Description = "Manager",
-                            IsPrimary = true,
-                            PhoneNumber = "0905555555",
-                            SupplierContactId = 5
                         });
                 });
 
@@ -6057,6 +6114,65 @@ namespace CafeChain.Migrations
                             IsPrimary = true,
                             PhoneNumber = "0905555555",
                             SupplierId = 5
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierStore", b =>
+                {
+                    b.Property<int>("SupplierStoreId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SupplierStoreId"));
+
+                    b.Property<bool>("Active")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("DeliverySchedule")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("LeadTimeOverrideDays")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("SupplierStoreId");
+
+                    b.HasIndex("StoreId", "Active");
+
+                    b.HasIndex("SupplierId", "StoreId")
+                        .IsUnique();
+
+                    b.ToTable("SupplierStores", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_SupplierStore_LeadTimeOverride", "[LeadTimeOverrideDays] IS NULL OR [LeadTimeOverrideDays] >= 0");
                         });
                 });
 
@@ -7092,6 +7208,12 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OrderDetailId"));
 
+                    b.Property<decimal?>("AcceptedBasePrice")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<long?>("AcceptedCatalogVersion")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("CostStatus")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int")
@@ -7105,6 +7227,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<int?>("DrinkSizeId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Note")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -7116,6 +7241,10 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("Price")
                         .HasColumnType("decimal(18,2)");
 
+                    b.Property<string>("PriceSource")
+                        .HasMaxLength(32)
+                        .HasColumnType("nvarchar(32)");
+
                     b.Property<int>("Quantity")
                         .HasColumnType("int");
 
@@ -7125,6 +7254,9 @@ namespace CafeChain.Migrations
                     b.Property<string>("SizeName")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("StoreMenuItemId")
+                        .HasColumnType("int");
 
                     b.Property<decimal?>("TotalCogs")
                         .HasColumnType("decimal(18,2)");
@@ -7136,9 +7268,13 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("DrinkId");
 
+                    b.HasIndex("DrinkSizeId");
+
                     b.HasIndex("OrderId");
 
                     b.HasIndex("SizeId");
+
+                    b.HasIndex("StoreMenuItemId");
 
                     b.ToTable("OrderDetails", (string)null);
                 });
@@ -9239,6 +9375,184 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreMenuItem", b =>
+                {
+                    b.Property<int>("StoreMenuItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreMenuItemId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("DisplayOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DrinkSizeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("EffectiveFromUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("EffectiveToUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("PauseReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal?>("PriceOverride")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<DateTime?>("PublishedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PublishedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("StoreMenuItemId");
+
+                    b.HasIndex("DrinkSizeId");
+
+                    b.HasIndex("PublishedByStaffId");
+
+                    b.HasIndex("StoreId", "DisplayOrder");
+
+                    b.HasIndex("StoreId", "DrinkSizeId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_StoreMenuItems_Store_DrinkSize");
+
+                    b.HasIndex("StoreId", "IsEnabled", "EffectiveFromUtc", "EffectiveToUtc");
+
+                    b.ToTable("StoreMenuItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_StoreMenuItems_DisplayOrder", "[DisplayOrder] >= 0");
+
+                            t.HasCheckConstraint("CK_StoreMenuItems_EffectiveWindow", "[EffectiveToUtc] IS NULL OR [EffectiveFromUtc] IS NULL OR [EffectiveToUtc] > [EffectiveFromUtc]");
+
+                            t.HasCheckConstraint("CK_StoreMenuItems_PriceOverride", "[PriceOverride] IS NULL OR [PriceOverride] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreMenuItemAudit", b =>
+                {
+                    b.Property<long>("StoreMenuItemAuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("StoreMenuItemAuditId"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("ActorStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("CatalogVersionAfter")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("CatalogVersionBefore")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("DrinkSizeId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("ItemRowVersionAfter")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varbinary(8)");
+
+                    b.Property<byte[]>("ItemRowVersionBefore")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("varbinary(8)");
+
+                    b.Property<string>("NewDataJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("NewEffectiveFromUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("NewEffectiveToUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("NewIsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("NewPriceOverride")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("OldDataJson")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("OldEffectiveFromUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("OldEffectiveToUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("OldIsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<decimal?>("OldPriceOverride")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoreMenuItemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("StoreMenuItemAuditId");
+
+                    b.HasIndex("ActorStaffId");
+
+                    b.HasIndex("StoreId", "CreatedAtUtc");
+
+                    b.HasIndex("StoreMenuItemId", "CreatedAtUtc");
+
+                    b.ToTable("StoreMenuItemAudits", (string)null);
+                });
+
             modelBuilder.Entity("CafeChain.Models.Stores.StoreTopping", b =>
                 {
                     b.Property<int>("StoreToppingId")
@@ -10113,6 +10427,47 @@ namespace CafeChain.Migrations
                     b.Navigation("Size");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizePriceAudit", b =>
+                {
+                    b.HasOne("CafeChain.Models.Drinks.DrinkSize", "DrinkSize")
+                        .WithMany("PriceAudits")
+                        .HasForeignKey("DrinkSizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DrinkSize");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizeToppingPolicy", b =>
+                {
+                    b.HasOne("CafeChain.Models.Drinks.DrinkSize", "DrinkSize")
+                        .WithMany("ToppingPolicies")
+                        .HasForeignKey("DrinkSizeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Drinks.Topping", "Topping")
+                        .WithMany()
+                        .HasForeignKey("ToppingId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DrinkSize");
+
+                    b.Navigation("Topping");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSizeToppingPolicyAudit", b =>
+                {
+                    b.HasOne("CafeChain.Models.Drinks.DrinkSizeToppingPolicy", "Policy")
+                        .WithMany()
+                        .HasForeignKey("DrinkSizeToppingPolicyId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Policy");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Drinks.DrinkTopping", b =>
                 {
                     b.HasOne("CafeChain.Models.Drinks.Drink", "Drink")
@@ -10130,6 +10485,17 @@ namespace CafeChain.Migrations
                     b.Navigation("Drink");
 
                     b.Navigation("Topping");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Drinks.PosCatalogState", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithOne("PosCatalogState")
+                        .HasForeignKey("CafeChain.Models.Drinks.PosCatalogState", "StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Store");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Drinks.Recipe", b =>
@@ -10558,17 +10924,6 @@ namespace CafeChain.Migrations
                     b.Navigation("OrderDetail");
 
                     b.Navigation("OrderTopping");
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.Debts.InventoryDebt", b =>
-                {
-                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
-                        .WithMany("Debts")
-                        .HasForeignKey("InventoryDocumentId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("InventoryDocument");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocument", b =>
@@ -11273,17 +11628,6 @@ namespace CafeChain.Migrations
                     b.Navigation("PackageUnit");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierBankAccount", b =>
-                {
-                    b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
-                        .WithMany("BankAccounts")
-                        .HasForeignKey("SupplierId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Supplier");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierContact", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
@@ -11295,17 +11639,6 @@ namespace CafeChain.Migrations
                     b.Navigation("Supplier");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierContactPhone", b =>
-                {
-                    b.HasOne("CafeChain.Models.Inventories.Suppliers.SupplierContact", "SupplierContact")
-                        .WithMany("Phones")
-                        .HasForeignKey("SupplierContactId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("SupplierContact");
-                });
-
             modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierPhone", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
@@ -11313,6 +11646,25 @@ namespace CafeChain.Migrations
                         .HasForeignKey("SupplierId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierStore", b =>
+                {
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
+                        .WithMany("SupplierStores")
+                        .HasForeignKey("SupplierId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Store");
 
                     b.Navigation("Supplier");
                 });
@@ -11701,6 +12053,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Drinks.DrinkSize", "DrinkSize")
+                        .WithMany()
+                        .HasForeignKey("DrinkSizeId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Orders.Order", "Order")
                         .WithMany("OrderDetails")
                         .HasForeignKey("OrderId")
@@ -11712,11 +12069,20 @@ namespace CafeChain.Migrations
                         .HasForeignKey("SizeId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("CafeChain.Models.Stores.StoreMenuItem", "StoreMenuItem")
+                        .WithMany()
+                        .HasForeignKey("StoreMenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Drink");
+
+                    b.Navigation("DrinkSize");
 
                     b.Navigation("Order");
 
                     b.Navigation("Size");
+
+                    b.Navigation("StoreMenuItem");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Orders.OrderTopping", b =>
@@ -12086,6 +12452,51 @@ namespace CafeChain.Migrations
                     b.Navigation("SupersededByStoreInventory");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreMenuItem", b =>
+                {
+                    b.HasOne("CafeChain.Models.Drinks.DrinkSize", "DrinkSize")
+                        .WithMany("StoreMenuItems")
+                        .HasForeignKey("DrinkSizeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "PublishedByStaff")
+                        .WithMany()
+                        .HasForeignKey("PublishedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany("StoreMenuItems")
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DrinkSize");
+
+                    b.Navigation("PublishedByStaff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Stores.StoreMenuItemAudit", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ActorStaff")
+                        .WithMany()
+                        .HasForeignKey("ActorStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.StoreMenuItem", "StoreMenuItem")
+                        .WithMany()
+                        .HasForeignKey("StoreMenuItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ActorStaff");
+
+                    b.Navigation("StoreMenuItem");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Stores.StoreTopping", b =>
                 {
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
@@ -12294,6 +12705,15 @@ namespace CafeChain.Migrations
                     b.Navigation("Drinks");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Drinks.DrinkSize", b =>
+                {
+                    b.Navigation("PriceAudits");
+
+                    b.Navigation("StoreMenuItems");
+
+                    b.Navigation("ToppingPolicies");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Drinks.ProductType", b =>
                 {
                     b.Navigation("Drinks");
@@ -12341,8 +12761,6 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocument", b =>
                 {
-                    b.Navigation("Debts");
-
                     b.Navigation("Details");
 
                     b.Navigation("InventoryTransactions");
@@ -12412,8 +12830,6 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.Supplier", b =>
                 {
-                    b.Navigation("BankAccounts");
-
                     b.Navigation("Contacts");
 
                     b.Navigation("IngredientSuppliers");
@@ -12421,11 +12837,8 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocuments");
 
                     b.Navigation("Phones");
-                });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierContact", b =>
-                {
-                    b.Navigation("Phones");
+                    b.Navigation("SupplierStores");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransfer", b =>
@@ -12568,6 +12981,8 @@ namespace CafeChain.Migrations
 
                     b.Navigation("Orders");
 
+                    b.Navigation("PosCatalogState");
+
                     b.Navigation("Shifts");
 
                     b.Navigation("Staffs");
@@ -12575,6 +12990,8 @@ namespace CafeChain.Migrations
                     b.Navigation("StoreDrinks");
 
                     b.Navigation("StoreInventories");
+
+                    b.Navigation("StoreMenuItems");
 
                     b.Navigation("StoreToppings");
 
