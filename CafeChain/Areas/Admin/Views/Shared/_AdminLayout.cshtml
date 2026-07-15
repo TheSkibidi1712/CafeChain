@@ -277,12 +277,12 @@
             {
                 <!-- ━━━ ☕ SẢN PHẨM ━━━ -->
                 <a href="#collapseProducts" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability")">
+                   aria-expanded="@(Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu")">
                     <i class="fas fa-mug-hot section-icon"></i> Sản phẩm
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability", cssClass: "show")" id="collapseProducts">
+                <div class="collapse @Html.IsActive("AdminCategory,AdminDrink,AdminSize,AdminTopping,AdminDrinkProfitability,AdminStoreMenu", cssClass: "show")" id="collapseProducts">
                     <div class="sidebar-sub">
                         <a asp-area="Admin" asp-controller="AdminCategory" asp-action="Index" class="@Html.IsActive("AdminCategory")"><i class="fas fa-circle"></i> Danh mục</a>
                         <a asp-area="Admin" asp-controller="AdminDrink" asp-action="Index" class="@Html.IsActive("AdminDrink")"><i class="fas fa-circle"></i> Đồ uống</a>
@@ -295,6 +295,7 @@
                             || User.IsInRole(CafeChain.Application.Constants.RoleConstants.SystemAdmin))
                         {
                             <a asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index" class="@Html.IsActive("AdminDrinkProfitability")"><i class="fas fa-circle"></i> Vốn & lợi nhuận dự kiến</a>
+                            <a asp-area="Admin" asp-controller="AdminStoreMenu" asp-action="Index" class="@Html.IsActive("AdminStoreMenu")"><i class="fas fa-circle"></i> Menu cửa hàng</a>
                         }
                     </div>
                 </div>

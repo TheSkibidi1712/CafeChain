@@ -143,6 +143,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.StoreMenu.StoreCatalogVersionService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuPricingService,
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuPricingService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuWorkspaceService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuWorkspaceService>();
             services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSCatalogSnapshotService,
                 CafeChain.Application.Services.POS.POSCatalogSnapshotService>();
 
