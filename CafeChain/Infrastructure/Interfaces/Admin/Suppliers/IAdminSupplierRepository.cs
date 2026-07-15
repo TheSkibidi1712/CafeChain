@@ -19,11 +19,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
         Task<SupplierPhone?> GetPhoneByIdAsync(int supplierPhoneId);
         Task DeletePhoneAsync(SupplierPhone phone);
 
-        // ===== BANK ACCOUNTS =====
-        Task AddBankAccountAsync(SupplierBankAccount bankAccount);
-        Task<SupplierBankAccount?> GetBankAccountByIdAsync(int supplierBankAccountId);
-        Task DeleteBankAccountAsync(SupplierBankAccount bankAccount);
-
         // ===== CONTACTS =====
         Task AddContactAsync(SupplierContact contact);
         Task<SupplierContact?> GetContactByIdAsync(int supplierContactId);

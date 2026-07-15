@@ -1,13 +1,20 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SupplierReadRoles)]
     public class AdminSupplierController : Controller
     {
+        private const string SupplierReadRoles =
+            RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse + "," +
+            RoleConstants.AreaManager + "," + RoleConstants.StoreManager;
+        private const string SupplierMutationRoles =
+            RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse;
         private readonly IAdminSupplierService _service;
 
         public AdminSupplierController(IAdminSupplierService service)
@@ -35,7 +42,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== GET NEXT CODE (auto-generate NCC code) =====
         [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> GetNextCode()
         {
             var code = await _service.GenerateNextCodeAsync();
@@ -44,6 +50,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== CREATE =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> Create([FromBody] AdminSupplierCreateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -62,6 +69,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== UPDATE =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> Update([FromBody] AdminSupplierUpdateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -80,6 +88,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== TOGGLE STATUS =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try
@@ -96,6 +105,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================== PHONES =====================
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> AddPhone([FromBody] AdminSupplierPhoneCreateDTO dto)
         {
             try
@@ -110,6 +120,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> DeletePhone(int supplierPhoneId)
         {
             try
@@ -123,39 +134,10 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-        // ===================== BANK ACCOUNTS =====================
-
-        [HttpPost]
-        public async Task<IActionResult> AddBankAccount([FromBody] AdminSupplierBankAccountCreateDTO dto)
-        {
-            try
-            {
-                await _service.AddBankAccountAsync(dto);
-                return Json(new { success = true, message = "Thêm tài khoản ngân hàng thành công" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteBankAccount(int supplierBankAccountId)
-        {
-            try
-            {
-                await _service.DeleteBankAccountAsync(supplierBankAccountId);
-                return Json(new { success = true, message = "Đã xoá tài khoản ngân hàng" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
         // ===================== CONTACTS =====================
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> AddContact([FromBody] AdminSupplierContactCreateDTO dto)
         {
             try
@@ -170,6 +152,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> DeleteContact(int supplierContactId)
         {
             try
@@ -184,6 +167,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> SetPrimaryContact(int supplierContactId)
         {
             try
@@ -216,6 +200,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> CreateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -230,6 +215,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> UpdateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -244,6 +230,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> ToggleIngredientOffer([FromBody] AdminIngredientSupplierToggleDTO dto)
         {
             try
@@ -271,33 +258,5 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
-        // ===================== LOCATION ENDPOINTS =====================
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetProvinces()
-        {
-            var provinces = await _service.GetProvincesAsync();
-            var data = provinces.Select(p => new { code = p.ProvinceId, name = p.Name }).ToList();
-            return Json(data);
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetDistricts(int provinceId)
-        {
-            var districts = await _service.GetDistrictsByProvinceAsync(provinceId);
-            var data = districts.Select(d => new { code = d.DistrictId, name = d.Name }).ToList();
-            return Json(data);
-        }
-
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetWards(int districtId)
-        {
-            var wards = await _service.GetWardsByDistrictAsync(districtId);
-            var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
-            return Json(data);
-        }
     }
 }

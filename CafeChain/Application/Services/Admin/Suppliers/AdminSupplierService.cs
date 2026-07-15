@@ -40,7 +40,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             var entity = await _repo.GetByIdAsync(id);
             if (entity == null) return null;
-            return await MapToDetailDTOAsync(entity);
+            return MapToDetailDTO(entity);
         }
 
         // ===== GENERATE NEXT CODE =====
@@ -53,23 +53,15 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         public async Task<int> CreateAsync(AdminSupplierCreateDTO dto)
         {
             dto.Name = Normalize(dto.Name);
-
-            // Sinh mã tự động
-            var code = await _repo.GenerateNextCodeAsync();
-
-            // Ghép địa chỉ đầy đủ từ 3 cấp
-            string? fullAddress = await BuildFullAddressAsync(
-                dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
-
             var supplier = new Supplier
             {
-                Code = code,
+                Code = await _repo.GenerateNextCodeAsync(),
                 Name = dto.Name,
-                TaxCode = dto.TaxCode?.Trim(),
-                Website = dto.Website?.Trim(),
-                Address = fullAddress,
-                DebtAmount = 0,
+                Address = Clean(dto.Address),
+                Note = Clean(dto.Note),
                 Active = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
 
                 // Số điện thoại chính
                 Phones = new List<SupplierPhone>
@@ -78,18 +70,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     {
                         PhoneNumber = dto.PrimaryPhone.Trim(),
                         IsPrimary   = true
-                    }
-                },
-
-                // Tài khoản ngân hàng chính
-                BankAccounts = new List<SupplierBankAccount>
-                {
-                    new SupplierBankAccount
-                    {
-                        BankName      = dto.PrimaryBankName.Trim(),
-                        AccountNumber = dto.PrimaryAccountNumber.Trim(),
-                        AccountHolder = dto.PrimaryAccountHolder.Trim(),
-                        IsPrimary     = true
                     }
                 },
 
@@ -118,19 +98,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 });
             }
 
-            // ===== TÀI KHOẢN NGÂN HÀNG PHỤ =====
-            foreach (var bk in dto.AdditionalBankAccounts
-                .Where(b => !string.IsNullOrWhiteSpace(b.BankName)))
-            {
-                supplier.BankAccounts.Add(new SupplierBankAccount
-                {
-                    BankName = bk.BankName.Trim(),
-                    AccountNumber = bk.AccountNumber.Trim(),
-                    AccountHolder = bk.AccountHolder.Trim(),
-                    IsPrimary = false
-                });
-            }
-
             // ===== NGƯỜI LIÊN HỆ PHỤ =====
             foreach (var ct in dto.AdditionalContacts
                 .Where(c => !string.IsNullOrWhiteSpace(c.Name)))
@@ -146,8 +113,20 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
 
             await _repo.CreateAsync(supplier);
-            await _repo.SaveChangesAsync();
-            return supplier.SupplierId;
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    await _repo.SaveChangesAsync();
+                    return supplier.SupplierId;
+                }
+                catch (DbUpdateException ex) when (IsUniqueCodeCollision(ex) && attempt < 2)
+                {
+                    supplier.Code = await _repo.GenerateNextCodeAsync();
+                }
+            }
+
+            throw new InvalidOperationException("Không thể sinh mã nhà cung cấp duy nhất sau nhiều lần thử.");
         }
 
         // ===== UPDATE =====
@@ -159,22 +138,27 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             dto.Name = Normalize(dto.Name);
 
-            entity.Name = dto.Name;
-            entity.TaxCode = dto.TaxCode?.Trim();
-            entity.Website = dto.Website?.Trim();
-            entity.Active = dto.Active;
-
-            // Chỉ cập nhật địa chỉ khi người dùng thực sự chọn/nhập địa chỉ mới
-            // → tránh xoá trắng địa chỉ cũ khi modal Edit không có trường địa chỉ
-            if (dto.ProvinceId.HasValue || dto.DistrictId.HasValue ||
-                dto.WardId.HasValue || !string.IsNullOrWhiteSpace(dto.StreetAddress))
+            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
             {
-                string? fullAddress = await BuildFullAddressAsync(
-                    dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
-                entity.Address = fullAddress;
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                    Convert.FromBase64String(dto.RowVersion);
             }
 
-            await _repo.SaveChangesAsync();
+            entity.Name = dto.Name;
+            entity.Address = Clean(dto.Address);
+            entity.Note = Clean(dto.Note);
+            entity.Active = dto.Active;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _repo.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "Nhà cung cấp vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
         }
 
         // ===== TOGGLE STATUS =====
@@ -204,31 +188,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (phone.IsPrimary) throw new Exception("Không thể xoá số điện thoại chính");
 
             await _repo.DeletePhoneAsync(phone);
-            await _repo.SaveChangesAsync();
-        }
-
-        // ===== BANK ACCOUNTS =====
-        public async Task AddBankAccountAsync(AdminSupplierBankAccountCreateDTO dto)
-        {
-            var bank = new SupplierBankAccount
-            {
-                SupplierId = dto.SupplierId,
-                BankName = dto.BankName.Trim(),
-                AccountNumber = dto.AccountNumber.Trim(),
-                AccountHolder = dto.AccountHolder.Trim(),
-                IsPrimary = false   // phụ
-            };
-            await _repo.AddBankAccountAsync(bank);
-            await _repo.SaveChangesAsync();
-        }
-
-        public async Task DeleteBankAccountAsync(int supplierBankAccountId)
-        {
-            var bank = await _repo.GetBankAccountByIdAsync(supplierBankAccountId);
-            if (bank == null) throw new Exception("Không tìm thấy tài khoản ngân hàng");
-            if (bank.IsPrimary) throw new Exception("Không thể xoá tài khoản ngân hàng chính");
-
-            await _repo.DeleteBankAccountAsync(bank);
             await _repo.SaveChangesAsync();
         }
 
@@ -275,69 +234,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             await _repo.SaveChangesAsync();
         }
 
-        // ===== LOCATION =====
-        public async Task<List<Province>> GetProvincesAsync()
-        {
-            return await _context.Provinces.OrderBy(p => p.Name).ToListAsync();
-        }
-
-        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
-        {
-            return await _context.Districts
-                .Where(d => d.ProvinceId == provinceId)
-                .OrderBy(d => d.Name)
-                .ToListAsync();
-        }
-
-        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
-        {
-            return await _context.Wards
-                .Where(w => w.DistrictId == districtId)
-                .OrderBy(w => w.Name)
-                .ToListAsync();
-        }
-
         // =============================================================
         // ==================== PRIVATE HELPERS ========================
         // =============================================================
 
-        /// <summary>
-        /// Ghép địa chỉ đầy đủ từ 3 cấp + số nhà.
-        /// Ví dụ: "123 Nguyễn Văn Linh, Phường Bình Chánh, Quận 8, TP. Hồ Chí Minh"
-        /// </summary>
-        private async Task<string?> BuildFullAddressAsync(
-            int? provinceId, int? districtId, int? wardId, string? streetAddress)
-        {
-            var parts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(streetAddress))
-                parts.Add(streetAddress.Trim());
-
-            if (wardId.HasValue)
-            {
-                var ward = await _context.Wards.FindAsync(wardId.Value);
-                if (ward != null) parts.Add(ward.Name);
-            }
-
-            if (districtId.HasValue)
-            {
-                var district = await _context.Districts.FindAsync(districtId.Value);
-                if (district != null) parts.Add(district.Name);
-            }
-
-            if (provinceId.HasValue)
-            {
-                var province = await _context.Provinces.FindAsync(provinceId.Value);
-                if (province != null) parts.Add(province.Name);
-            }
-
-            return parts.Count > 0 ? string.Join(", ", parts) : null;
-        }
-
         private static AdminSupplierDTO MapToListDTO(Supplier x)
         {
             var primaryPhone = x.Phones.FirstOrDefault(p => p.IsPrimary);
-            var primaryBank = x.BankAccounts.FirstOrDefault(b => b.IsPrimary);
             var primaryContact = x.Contacts.FirstOrDefault(c => c.IsPrimary);
 
             return new AdminSupplierDTO
@@ -345,46 +248,29 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
-                TaxCode = x.TaxCode,
-                Website = x.Website,
                 Address = x.Address,
-                DebtAmount = x.DebtAmount,
+                Note = x.Note,
                 Active = x.Active,
                 PrimaryPhone = primaryPhone?.PhoneNumber,
                 PrimaryContactName = primaryContact?.Name,
-                //PrimaryContactPhone = primaryContact?.Phone,
-                PrimaryBankName = primaryBank?.BankName,
-                PrimaryAccountNumber = primaryBank?.AccountNumber,
+                PrimaryContactPhone = null,
+                ActiveOfferCount = x.IngredientSuppliers.Count(o => o.Active)
             };
         }
 
-        private async Task<AdminSupplierDetailDTO> MapToDetailDTOAsync(Supplier x)
+        private static AdminSupplierDetailDTO MapToDetailDTO(Supplier x)
         {
-            // Parse lại địa chỉ để lấy ID từng cấp (nếu có)
-            // Vì Address là chuỗi ghép, ta không reverse-parse; thay vào đó
-            // cần lưu ID riêng → hiện tại ta dùng lookup ngược theo tên (best-effort).
-            // Cách chính xác hơn: lưu riêng ProvinceId/DistrictId/WardId vào Supplier entity.
-            // Tạm thời trả về null cho các ID để FE biết cần chọn lại nếu muốn thay đổi địa chỉ.
             return new AdminSupplierDetailDTO
             {
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
-                TaxCode = x.TaxCode,
-                Website = x.Website,
                 Address = x.Address,
-                DebtAmount = x.DebtAmount,
+                Note = x.Note,
                 Active = x.Active,
-
-                // Location IDs — null vì Supplier model chưa lưu riêng
-                // Frontend sẽ hiển thị Address text và cho phép chọn lại 3 cấp khi edit
-                ProvinceId = null,
-                ProvinceName = null,
-                DistrictId = null,
-                DistrictName = null,
-                WardId = null,
-                WardName = null,
-                StreetAddress = null,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                RowVersion = Convert.ToBase64String(x.RowVersion),
 
                 Phones = x.Phones.Select(p => new AdminSupplierPhoneDTO
                 {
@@ -393,20 +279,11 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     IsPrimary = p.IsPrimary
                 }).ToList(),
 
-                BankAccounts = x.BankAccounts.Select(b => new AdminSupplierBankAccountDTO
-                {
-                    SupplierBankAccountId = b.SupplierBankAccountId,
-                    BankName = b.BankName ?? "",
-                    AccountNumber = b.AccountNumber ?? "",
-                    AccountHolder = b.AccountHolder ?? "",
-                    IsPrimary = b.IsPrimary
-                }).ToList(),
-
                 Contacts = x.Contacts.Select(c => new AdminSupplierContactDTO
                 {
                     SupplierContactId = c.SupplierContactId,
                     Name = c.Name ?? "",
-                    //Phone = c.Phone,
+                    Phone = null,
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary
@@ -415,6 +292,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         }
 
         private static string Normalize(string text) => text?.Trim() ?? "";
+
+        private static string? Clean(string? text) =>
+            string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+
+        private static bool IsUniqueCodeCollision(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("IX_Suppliers_Code", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("2627", StringComparison.OrdinalIgnoreCase);
+        }
 
         // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
 

@@ -1,5 +1,5 @@
-using CafeChain.Models.Enums.Inventory.Suppliers;
 using CafeChain.Models.Inventories.Documents;
+using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Suppliers
 {
@@ -10,30 +10,20 @@ namespace CafeChain.Models.Inventories.Suppliers
         public string? Code { get; set; }
         public string? Name { get; set; }
 
-        public string? TaxCode { get; set; }
-        public string? Website { get; set; }
-
         public string? Address { get; set; }
-
-        public decimal DebtAmount { get; set; }
-
-        public SupplierStatus Status { get; set; }
-
         public bool Active { get; set; }
-
         public DateTime CreatedAt { get; set; }
-
+        public DateTime UpdatedAt { get; set; }
         public string? Note { get; set; }
+
+        [Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         // ================= RELATIONS =================
 
         // hotline công ty
         public virtual ICollection<SupplierPhone> Phones { get; set; }
             = new List<SupplierPhone>();
-
-        // tài khoản ngân hàng
-        public virtual ICollection<SupplierBankAccount> BankAccounts { get; set; }
-            = new List<SupplierBankAccount>();
 
         // người liên hệ
         public virtual ICollection<SupplierContact> Contacts { get; set; }
@@ -46,6 +36,7 @@ namespace CafeChain.Models.Inventories.Suppliers
         // phiếu nhập
         public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; }
             = new List<InventoryDocument>();
+
 
     }
 }

@@ -1,5 +1,4 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
-using CafeChain.Models.Locations;
 
 namespace CafeChain.Application.Interfaces.Admin.Suppliers
 {
@@ -19,19 +18,10 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task AddPhoneAsync(AdminSupplierPhoneCreateDTO dto);
         Task DeletePhoneAsync(int supplierPhoneId);
 
-        // ===== BANK ACCOUNTS =====
-        Task AddBankAccountAsync(AdminSupplierBankAccountCreateDTO dto);
-        Task DeleteBankAccountAsync(int supplierBankAccountId);
-
         // ===== CONTACTS =====
         Task AddContactAsync(AdminSupplierContactCreateDTO dto);
         Task DeleteContactAsync(int supplierContactId);
         Task SetPrimaryContactAsync(int supplierContactId);
-
-        // ===== LOCATION =====
-        Task<List<Province>> GetProvincesAsync();
-        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
-        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
 
         // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
         Task<List<AdminIngredientSupplierDTO>> GetIngredientOffersAsync(int supplierId);

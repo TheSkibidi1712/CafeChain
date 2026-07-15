@@ -19,8 +19,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
         {
             var query = _context.Suppliers
                 .Include(x => x.Phones)
-                .Include(x => x.BankAccounts)
                 .Include(x => x.Contacts)
+                .Include(x => x.IngredientSuppliers)
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(search))
@@ -42,7 +42,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
         {
             return await _context.Suppliers
                 .Include(x => x.Phones)
-                .Include(x => x.BankAccounts)
                 .Include(x => x.Contacts)
                 .FirstOrDefaultAsync(x => x.SupplierId == id);
         }
@@ -100,6 +99,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
             var supplier = await _context.Suppliers.FindAsync(id);
             if (supplier == null) throw new Exception("Không tìm thấy nhà cung cấp");
             supplier.Active = !supplier.Active;
+            supplier.UpdatedAt = DateTime.UtcNow;
         }
 
         // ===== PHONES =====
@@ -116,23 +116,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
         public Task DeletePhoneAsync(SupplierPhone phone)
         {
             _context.SupplierPhones.Remove(phone);
-            return Task.CompletedTask;
-        }
-
-        // ===== BANK ACCOUNTS =====
-        public async Task AddBankAccountAsync(SupplierBankAccount bankAccount)
-        {
-            await _context.SupplierBankAccounts.AddAsync(bankAccount);
-        }
-
-        public async Task<SupplierBankAccount?> GetBankAccountByIdAsync(int supplierBankAccountId)
-        {
-            return await _context.SupplierBankAccounts.FindAsync(supplierBankAccountId);
-        }
-
-        public Task DeleteBankAccountAsync(SupplierBankAccount bankAccount)
-        {
-            _context.SupplierBankAccounts.Remove(bankAccount);
             return Task.CompletedTask;
         }
 

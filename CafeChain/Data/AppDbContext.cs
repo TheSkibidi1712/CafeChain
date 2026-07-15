@@ -5,7 +5,6 @@ using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Costing;
-using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
@@ -123,9 +122,6 @@ namespace CafeChain.Data
         public DbSet<CafeChain.Models.Inventories.Refunds.RefundCostReversal> RefundCostReversals { get; set; }
         public DbSet<CafeChain.Models.Inventories.Refunds.RefundCostGap> RefundCostGaps { get; set; }
 
-        // Debts
-        public DbSet<InventoryDebt> InventoryDebts { get; set; }
-
         // Documents
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
         public DbSet<InventoryDocumentDetail> InventoryDocumentDetails { get; set; }
@@ -165,8 +161,6 @@ namespace CafeChain.Data
 
         // Suppliers
         public DbSet<Supplier> Suppliers { get; set; }
-        public DbSet<SupplierBankAccount> SupplierBankAccounts { get; set; }
-        public DbSet<SupplierContactPhone> SupplierContactPhones { get; set; }
         public DbSet<IngredientSupplierPriceHistory> IngredientSupplierPriceHistories { get; set; }
         public DbSet<SupplierContact> SupplierContacts { get; set; }
         public DbSet<SupplierPhone> SupplierPhones { get; set; }

@@ -2,7 +2,6 @@
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Costing;
-using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Stock;
@@ -422,11 +421,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         // =====================================================
         // INVENTORY DEBT
         // =====================================================
-
-        public async Task AddDebtAsync(InventoryDebt debt)
-        {
-            await _context.InventoryDebts.AddAsync(debt);
-        }
 
         // =====================================================
         // MASTER DATA

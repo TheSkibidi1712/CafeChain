@@ -38,8 +38,7 @@
                     <th>Tên NCC</th>
                     <th>SĐT chính</th>
                     <th>Người liên hệ</th>
-                    <th>Ngân hàng</th>
-                    <th>Công nợ</th>
+                    <th>Gói cung cấp</th>
                     <th>Trạng thái</th>
                     <th width="120"></th>
                 </tr>
@@ -62,18 +61,7 @@
                                 <span>—</span>
                             }
                         </td>
-                        <td>
-                            @if (item.PrimaryBankName != null)
-                            {
-                                <span>@item.PrimaryBankName</span><br />
-                                <small class="text-muted">@item.PrimaryAccountNumber</small>
-                            }
-                            else
-                            {
-                                <span>—</span>
-                            }
-                        </td>
-                        <td class="text-end">@item.DebtAmount.ToString("N0") ₫</td>
+                        <td>@item.ActiveOfferCount đang hoạt động</td>
                         <td>
                             <span class="sup-badge @(item.Active ? "badge-active" : "badge-inactive")">
                                 @(item.Active ? "Hoạt động" : "Ngưng")
