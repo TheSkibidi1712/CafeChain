@@ -1,20 +1,31 @@
 @model CafeChain.Models.Stores.Store
 @{
-    ViewData["Title"] = "Cập Nhật Cửa Hàng";
+    ViewData["Title"] = "Cập nhật cửa hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
 }
 
-<h2>@ViewData["Title"]</h2>
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Store/store-admin.css" asp-append-version="true" />
+}
+
+<div class="store-admin-page">
+<div class="store-admin-header">
+    <div>
+        <span class="store-admin-kicker">Quản lý cửa hàng</span>
+        <h1 class="store-admin-title">Cập nhật cửa hàng</h1>
+        <p class="store-admin-subtitle">Chỉnh sửa thông tin chi nhánh và cập nhật vị trí GPS trên bản đồ.</p>
+    </div>
+    <a asp-action="Index" class="store-admin-btn store-admin-btn-ghost"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+</div>
 
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
 <style>
     #admin-map {
-        height: 450px;
+        height: 480px;
         width: 100%;
-        margin-top: 10px;
-        border: 1px solid #ccc;
-        border-radius: 5px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
     }
     /* Google-style Floating Action Button */
     .leaflet-control-locate {
@@ -35,7 +46,7 @@
     }
     .leaflet-control-locate i {
         font-size: 1.3rem; 
-        color: #0d6efd; /* Blue Google-like color */
+        color: #f97316;
     }
     /* Red Dot Pulse Animation */
     .user-location-dot {
@@ -62,16 +73,15 @@
     }
 </style>
 
-<div class="row">
-    <div class="col-md-6">
-        <form asp-action="Edit">
+<div class="store-admin-form-grid">
+        <form asp-action="Edit" class="store-admin-card store-admin-form-card">
             <input type="hidden" asp-for="StoreId" />
             <input type="hidden" asp-for="CreatedAt" />
             <input type="hidden" id="Latitude" name="Latitude" value="@Model.Latitude" />
             <input type="hidden" id="Longitude" name="Longitude" value="@Model.Longitude" />
 
             <div class="form-group mb-3">
-                <label asp-for="Name">Tên Cửa Hàng</label>
+                <label asp-for="Name">Tên cửa hàng</label>
                 <input asp-for="Name" class="form-control" />
                 <span asp-validation-for="Name" class="text-danger"></span>
             </div>
@@ -103,16 +113,25 @@
                 <span asp-validation-for="Address" class="text-danger"></span>
             </div>
 
-            <button type="button" id="btnGeocode" class="btn btn-info w-100 mb-3">📍 Tìm vị trí trên bản đồ</button>
+            <button type="button" id="btnGeocode" class="store-admin-btn store-admin-btn-outline w-100 mb-3">
+                <i class="fas fa-location-dot"></i>
+                Tìm vị trí trên bản đồ
+            </button>
 
             <div class="row mb-3">
                 <div class="col-6">
-                    <label>Vĩ độ (Latitude)</label>
-                    <input id="DisplayLatitude" value="@Model.Latitude" class="form-control bg-light" readonly />
+                    <label title="Latitude">Vĩ độ</label>
+                    <input id="DisplayLatitude" value="@Model.Latitude" class="form-control store-admin-readonly-control" readonly />
                 </div>
                 <div class="col-6">
-                    <label>Kinh độ (Longitude)</label>
-                    <input id="DisplayLongitude" value="@Model.Longitude" class="form-control bg-light" readonly />
+                    <label title="Longitude">Kinh độ</label>
+                    <input id="DisplayLongitude" value="@Model.Longitude" class="form-control store-admin-readonly-control" readonly />
+                </div>
+                <div class="col-12">
+                    <small class="store-admin-readonly-help">
+                        <i class="fas fa-lock"></i>
+                        Tự động cập nhật theo vị trí ghim trên bản đồ.
+                    </small>
                 </div>
             </div>
 
@@ -127,15 +146,23 @@
                 <label class="form-check-label" asp-for="Active">Hoạt động</label>
             </div>
 
-            <button type="submit" class="btn btn-primary">Lưu cửa hàng</button>
-            <a asp-action="Index" class="btn btn-secondary">Quay lại</a>
+            <div class="d-flex flex-wrap gap-2">
+                <button type="submit" class="store-admin-btn store-admin-btn-primary">
+                    <i class="fas fa-save"></i>
+                    Lưu cửa hàng
+                </button>
+                <a asp-action="Index" class="store-admin-btn store-admin-btn-ghost">Quay lại</a>
+            </div>
         </form>
-    </div>
     
-    <div class="col-md-6">
-        <h5>Bản đồ Cửa hàng (Kéo thả ghim để chọn)</h5>
+    <section class="store-admin-card store-admin-map-card">
+        <h5><i class="fas fa-map-location-dot text-warning"></i> Bản đồ cửa hàng</h5>
+        <div class="store-admin-map-hint">
+            Click hoặc kéo ghim trên bản đồ để chọn tọa độ chính xác.
+        </div>
         <div id="admin-map"></div>
-    </div>
+    </section>
+</div>
 </div>
 
 <!-- Truyền sẵn Model values vào JS để load default dropdowns -->

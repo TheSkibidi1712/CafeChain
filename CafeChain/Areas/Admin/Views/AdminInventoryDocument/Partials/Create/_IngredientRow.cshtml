@@ -15,7 +15,7 @@
         </select>
 
         <div class="ingredient-row-meta">
-            <span class="base-unit-name">Base unit</span>
+            <span class="base-unit-name">Đơn vị gốc</span>
             <span class="ingredient-source">Chưa chọn</span>
             <span class="available-stock-display">Tồn: -</span>
             <span class="price-source-display @(hideMoneyColumns ? "d-none" : "")">Nguồn giá: -</span>
@@ -47,7 +47,8 @@
                min="0"
                step="any"
                inputmode="decimal"
-               placeholder="1" />
+               placeholder="Nhập số lượng"
+               disabled />
     </td>
 
     <td class="create-col-price @(hideMoneyColumns ? "d-none" : "")">
@@ -80,7 +81,8 @@
     <td class="create-col-action">
         <button type="button"
                 class="create-remove-row-btn btn-remove-row"
-                title="Xóa dòng">
+                title="Xóa dòng nguyên liệu"
+                aria-label="Xóa dòng nguyên liệu">
             <i class="fas fa-trash-alt"></i>
         </button>
     </td>

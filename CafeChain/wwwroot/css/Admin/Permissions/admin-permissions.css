@@ -273,10 +273,10 @@
 }
 
 .perm-primary-button:disabled {
-    color: #fff !important;
-    -webkit-text-fill-color: #fff;
-    background: #c2410c;
-    border-color: #9a3412;
+    color: #64748b !important;
+    -webkit-text-fill-color: #64748b;
+    background: #f1f5f9;
+    border-color: #e2e8f0;
     cursor: not-allowed;
     box-shadow: none;
     opacity: 1;
@@ -291,9 +291,9 @@
 }
 
 .perm-outline-button:disabled {
-    color: #9a3412;
-    background: #fff7ed;
-    border-color: #fed7aa;
+    color: #94a3b8;
+    background: #f8fafc;
+    border-color: #e2e8f0;
     cursor: not-allowed;
     box-shadow: none;
     opacity: 1;
@@ -356,6 +356,33 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+}
+
+.perm-staff-copy {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.perm-staff-item .perm-name,
+.perm-staff-item .perm-subtext {
+    display: block;
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.perm-staff-item .perm-subtext {
+    margin-top: 0;
+    line-height: 1.35;
+}
+
+.perm-staff-item > i {
+    flex: 0 0 auto;
+    color: #111827;
 }
 
 .perm-staff-item:hover,

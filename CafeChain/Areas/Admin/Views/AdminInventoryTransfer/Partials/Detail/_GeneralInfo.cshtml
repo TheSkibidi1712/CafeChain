@@ -64,9 +64,19 @@
             <strong>@(Model.CancelledAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "-")</strong>
         </div>
 
-        <div class="transfer-readonly-field transfer-readonly-wide">
-            <span>Request Key</span>
-            <strong>@(Model.RequestKey ?? "-")</strong>
-        </div>
     </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.RequestKey))
+    {
+        <details class="transfer-technical-details">
+            <summary>
+                <i class="fas fa-code"></i>
+                Thông tin kỹ thuật
+            </summary>
+            <div class="transfer-readonly-field transfer-readonly-wide">
+                <span>Request Key</span>
+                <strong>@Model.RequestKey</strong>
+            </div>
+        </details>
+    }
 </section>

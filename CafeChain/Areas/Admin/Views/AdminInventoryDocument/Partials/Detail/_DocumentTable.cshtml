@@ -7,15 +7,15 @@
     <table class="table inventory-table">
         <thead>
             <tr>
-                <th>Mã Phiếu</th>
+                <th>Mã phiếu</th>
                 <th>Loại</th>
-                <th>Mục Đích</th>
-                <th>Cửa Hàng</th>
-                <th>Đối Tác</th>
+                <th>Mục đích</th>
+                <th>Cửa hàng</th>
+                <th>Đối tác</th>
                 <th>Ngày</th>
-                <th>Giá Trị</th>
-                <th>Trạng Thái</th>
-                <th>Thao Tác</th>
+                <th>Giá trị chứng từ</th>
+                <th>Trạng thái</th>
+                <th>Thao tác</th>
             </tr>
         </thead>
 
@@ -25,7 +25,10 @@
             {
                 <tr>
                     <td colspan="9" class="text-center">
-                        Không có dữ liệu
+                        <div class="inventory-empty-state">
+                            <strong>Chưa có phiếu kho</strong>
+                            <span>Tạo phiếu đầu tiên hoặc thay đổi bộ lọc để xem dữ liệu.</span>
+                        </div>
                     </td>
                 </tr>
             }
@@ -52,7 +55,8 @@
                         </td>
 
                         <td class="amount-cell"
-                            data-amount="@(item.FinalAmount ?? 0)">
+                            data-amount="@(item.FinalAmount ?? 0)"
+                            data-has-amount="@((item.FinalAmount.HasValue && item.FinalAmount.Value > 0).ToString().ToLowerInvariant())">
                         </td>
 
                         <td>
@@ -113,13 +117,18 @@
 <div class="table-footer">
 
     <div class="table-info">
-        Hiển thị
-        @((Model.Documents.PageIndex - 1) * Model.Filter.PageSize + 1)
-        -
-        @(Math.Min(Model.Documents.PageIndex * Model.Filter.PageSize,
-            Model.Documents.TotalCount))
-        trong
-        @Model.Documents.TotalCount phiếu
+        @if (Model.Documents.TotalCount > 0)
+        {
+            <span>
+                Hiển thị
+                @((Model.Documents.PageIndex - 1) * Model.Filter.PageSize + 1)
+                -
+                @(Math.Min(Model.Documents.PageIndex * Model.Filter.PageSize,
+                    Model.Documents.TotalCount))
+                trong
+                @Model.Documents.TotalCount phiếu
+            </span>
+        }
     </div>
 
     @await Html.PartialAsync("_Pagination", Model)
@@ -193,7 +202,7 @@
             <div class="modal-footer">
 
                 <button type="button"
-                        class="btn btn-secondary"
+                        class="btn btn-secondary inventory-action-secondary"
                         data-bs-dismiss="modal">
 
                     Hủy
@@ -201,7 +210,7 @@
                 </button>
 
                 <button type="button"
-                        class="btn btn-primary"
+                        class="btn btn-primary inventory-action-primary"
                         id="btnConfirmExport">
 
                     Xuất File

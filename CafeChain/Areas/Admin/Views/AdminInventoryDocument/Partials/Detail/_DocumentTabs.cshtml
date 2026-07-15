@@ -19,16 +19,8 @@
 
     <a asp-action="Index"
        asp-route-Type="IMPORT"
-       asp-route-Purpose="IMPORT_PURCHASE"
-       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_PURCHASE)">
-        Nhập NCC
-    </a>
-
-    <a asp-action="Index"
-       asp-route-Type="IMPORT"
-       asp-route-Purpose="IMPORT_ADJUSTMENT"
-       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT, InventoryDocumentPurpose.IMPORT_ADJUSTMENT)">
-        Nhập điều chỉnh
+       class="tab-btn @ActiveFor(InventoryDocumentType.IMPORT)">
+        Nhập
     </a>
 
     <a asp-action="Index"

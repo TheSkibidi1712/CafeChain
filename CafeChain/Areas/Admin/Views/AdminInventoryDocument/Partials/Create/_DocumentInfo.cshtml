@@ -6,6 +6,14 @@
     var isImport = Model.Type == InventoryDocumentType.IMPORT
         || Model.Type == InventoryDocumentType.ADJUSTMENT_IN;
     var isExport = Model.Type == InventoryDocumentType.EXPORT;
+    var purposeTitle = Model.Type switch
+    {
+        InventoryDocumentType.IMPORT or InventoryDocumentType.ADJUSTMENT_IN => "Mục đích nhập kho",
+        InventoryDocumentType.EXPORT => "Mục đích xuất kho",
+        InventoryDocumentType.STOCK_TAKE => "Mục đích kiểm kê",
+        InventoryDocumentType.WASTE => "Lý do hủy kho",
+        _ => "Mục đích nghiệp vụ"
+    };
 
     var purposeOptions = Model.Type switch
     {
@@ -57,7 +65,7 @@
         </div>
 
         <span class="create-section-badge">
-            Tự động điền
+            Mã phiếu tự động
         </span>
     </div>
 
@@ -74,15 +82,17 @@
         </div>
 
         <div class="create-field">
-            <label for="DocumentDate">Ngày chứng từ</label>
+            <label for="DocumentDateDisplay">Ngày chứng từ</label>
+            <input id="DocumentDateDisplay"
+                   type="text"
+                   class="form-control create-control create-control-readonly"
+                   value="@documentDate.ToString("dd/MM/yyyy")"
+                   readonly
+                   required />
             <input id="DocumentDate"
                    name="DocumentDate"
-                   type="date"
-                   class="form-control create-control create-control-readonly"
-                   value="@documentDate.ToString("yyyy-MM-dd")"
-                   readonly
-                   disabled
-                   required />
+                   type="hidden"
+                   value="@documentDate.ToString("yyyy-MM-dd")" />
         </div>
 
         <div class="create-field">
@@ -132,7 +142,7 @@
 
         <div class="create-section-subtitle">
             <i class="fas fa-bullseye"></i>
-            Mục đích nghiệp vụ
+            @purposeTitle
         </div>
 
         <div class="create-purpose-list">
@@ -171,7 +181,7 @@
         <div class="create-field"
              id="partnerField">
             <label id="partnerNameLabel"
-                   for="PartnerName">Đối tác / Partner</label>
+                   for="PartnerName">Đối tác</label>
             <input id="PartnerName"
                    name="PartnerName"
                    class="form-control create-control partner-name-input"

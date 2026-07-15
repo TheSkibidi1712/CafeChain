@@ -34,6 +34,40 @@
     gap: 10px;
 }
 
+.inventory-action-primary,
+.inventory-action-secondary {
+    align-items: center;
+    display: inline-flex;
+    gap: 8px;
+    justify-content: center;
+    min-height: 40px;
+    border-radius: 8px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.inventory-action-primary {
+    border-color: #f97316;
+    background: #f97316;
+}
+
+.inventory-action-primary:hover {
+    border-color: #ea580c;
+    background: #ea580c;
+}
+
+.inventory-action-secondary {
+    border-color: #fed7aa;
+    color: #c2410c;
+    background: #fff;
+}
+
+.inventory-action-secondary:hover {
+    border-color: #fdba74;
+    color: #9a3412;
+    background: #fff7ed;
+}
+
 /* =====================================================
    DASHBOARD
 ===================================================== */
@@ -47,7 +81,7 @@
 
 .dashboard-card {
     background: #fff;
-    border-radius: 18px;
+    border-radius: 8px;
     padding: 22px;
     box-shadow: 0 2px 12px rgba(0,0,0,.04);
     transition: .25s;
@@ -76,7 +110,7 @@
 
 .filter-container {
     background: white;
-    border-radius: 18px;
+    border-radius: 8px;
     padding: 20px;
     box-shadow: 0 2px 12px rgba(0,0,0,.04);
     margin-bottom: 20px;
@@ -88,7 +122,15 @@
 
 .filter-row {
     display: grid;
-    grid-template-columns: repeat(6,1fr);
+    grid-template-columns:
+        minmax(140px, 1fr)
+        minmax(140px, 1fr)
+        minmax(150px, 1fr)
+        minmax(150px, 1fr)
+        minmax(150px, .9fr)
+        minmax(150px, .9fr)
+        auto;
+    align-items: end;
     gap: 12px;
     margin-top: 15px;
 }
@@ -96,14 +138,28 @@
     .filter-row .form-control,
     .filter-row .form-select {
         height: 44px;
-        border-radius: 10px;
+        border-radius: 8px;
+    }
+
+.filter-date-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+    .filter-date-field label {
+        margin: 0;
+        color: #64748b;
+        font-size: 12px;
+        font-weight: 700;
     }
 
 .filter-actions {
-    margin-top: 18px;
     display: flex;
+    align-items: flex-end;
     justify-content: flex-end;
     gap: 10px;
+    min-width: max-content;
 }
 
 /* =====================================================
@@ -143,7 +199,7 @@
 
 .inventory-table-wrapper {
     background: white;
-    border-radius: 18px;
+    border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 12px rgba(0,0,0,.04);
 }
@@ -172,6 +228,26 @@
     .inventory-table tbody tr:hover {
         background: #fffaf5;
     }
+
+.inventory-empty-state {
+    align-items: center;
+    color: #64748b;
+    display: grid;
+    gap: 6px;
+    justify-items: center;
+    min-height: 116px;
+    padding: 24px 16px;
+}
+
+.inventory-empty-state strong {
+    color: #334155;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.inventory-empty-state span {
+    font-size: 13px;
+}
 
 .code {
     font-weight: 700;
@@ -549,4 +625,49 @@
     display: block;
     color: #999;
     font-size: 11px;
+}
+
+.amount-placeholder {
+    color: #94a3b8;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+@media (max-width: 1180px) {
+    .inventory-cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .filter-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .filter-actions {
+        grid-column: 2 / -1;
+    }
+}
+
+@media (max-width: 768px) {
+    .inventory-header,
+    .table-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 14px;
+    }
+
+    .inventory-actions,
+    .filter-actions {
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .inventory-cards,
+    .filter-row {
+        grid-template-columns: 1fr;
+    }
+
+    .filter-actions {
+        grid-column: auto;
+        min-width: 0;
+    }
 }
