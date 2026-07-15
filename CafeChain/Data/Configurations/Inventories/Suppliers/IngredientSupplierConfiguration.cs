@@ -17,7 +17,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
 
                 table.HasCheckConstraint(
                     "CK_IngredientSupplier_MOQ",
-                    "[MinimumOrderQuantity] IS NULL OR [MinimumOrderQuantity] > 0"
+                    "[MinimumOrderPackageCount] IS NULL OR [MinimumOrderPackageCount] > 0"
                 );
 
                 table.HasCheckConstraint(
@@ -42,8 +42,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.Property(x => x.PackageQuantity)
                 .HasColumnType("decimal(18,5)");
 
-            entity.Property(x => x.MinimumOrderQuantity)
-                .HasColumnType("decimal(18,3)");
+            entity.Property(x => x.MinimumOrderPackageCount);
 
             entity.Property(x => x.IsPrimary)
                 .HasDefaultValue(false);
@@ -53,6 +52,15 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
 
             entity.Property(x => x.Note)
                 .HasMaxLength(1000);
+
+            entity.Property(x => x.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(x => x.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
 
             // ================= INDEX =================
 
@@ -104,7 +112,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 22000,
                     UnitId = 2,
                     PackageQuantity = 1m,
-                    MinimumOrderQuantity = 1,
+                    MinimumOrderPackageCount = 1,
                     LeadTimeDays = 1,
                     IsPrimary = true,
                     Active = true,
@@ -119,7 +127,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 27000,
                     UnitId = 3,
                     PackageQuantity = 380m,
-                    MinimumOrderQuantity = 24,
+                    MinimumOrderPackageCount = 24,
                     LeadTimeDays = 2,
                     IsPrimary = true,
                     Active = true,
@@ -134,7 +142,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 140000,
                     UnitId = 2,
                     PackageQuantity = 1m,
-                    MinimumOrderQuantity = 5,
+                    MinimumOrderPackageCount = 5,
                     LeadTimeDays = 3,
                     IsPrimary = true,
                     Active = true,
@@ -149,7 +157,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 250000,
                     UnitId = 3,
                     PackageQuantity = 750m,
-                    MinimumOrderQuantity = 6,
+                    MinimumOrderPackageCount = 6,
                     LeadTimeDays = 4,
                     IsPrimary = true,
                     Active = true,
@@ -164,7 +172,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 95000,
                     UnitId = 4,
                     PackageQuantity = 1m,
-                    MinimumOrderQuantity = 12,
+                    MinimumOrderPackageCount = 12,
                     LeadTimeDays = 2,
                     IsPrimary = true,
                     Active = true,
@@ -179,7 +187,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 450000,
                     UnitId = 1,
                     PackageQuantity = 500m,
-                    MinimumOrderQuantity = 1,
+                    MinimumOrderPackageCount = 1,
                     LeadTimeDays = 5,
                     IsPrimary = true,
                     Active = true,
@@ -194,7 +202,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 180000,
                     UnitId = 2,
                     PackageQuantity = 1m,
-                    MinimumOrderQuantity = 2,
+                    MinimumOrderPackageCount = 2,
                     LeadTimeDays = 3,
                     IsPrimary = true,
                     Active = true,
@@ -209,7 +217,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 85000,
                     UnitId = 2,
                     PackageQuantity = 1m,
-                    MinimumOrderQuantity = 2,
+                    MinimumOrderPackageCount = 2,
                     LeadTimeDays = 2,
                     IsPrimary = true,
                     Active = true,
@@ -224,7 +232,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     CurrentPrice = 120000,
                     UnitId = 1,
                     PackageQuantity = 200m,
-                    MinimumOrderQuantity = 1,
+                    MinimumOrderPackageCount = 1,
                     LeadTimeDays = 5,
                     IsPrimary = true,
                     Active = true,

@@ -374,11 +374,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     UnitId = dto.UnitId,
                     PackageQuantity = dto.PackageQuantity,
                     CurrentPrice = dto.CurrentPrice,
-                    MinimumOrderQuantity = dto.MinimumOrderQuantity,
+                    MinimumOrderPackageCount = dto.MinimumOrderPackageCount,
                     LeadTimeDays = dto.LeadTimeDays,
                     IsPrimary = dto.IsPrimary,
                     Active = dto.Active,
-                    Note = dto.Note?.Trim()
+                    Note = dto.Note?.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.IngredientSuppliers.Add(entity);
@@ -425,7 +427,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var reactivating = dto.Active && !entity.Active;
             var requirePackage = reactivating
                 || (dto.Active && packageOrPriceChanged)
-                || (dto.Active && dto.PackageQuantity.HasValue); // if user supplies package while Active, validate it
+                || dto.Active;
 
             var validation = await _packageValidator.ValidateAsync(
                 dto.IngredientId,
@@ -440,11 +442,11 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (!validation.IsSuccess)
                 throw new InvalidOperationException(validation.Message);
 
-            // Supplier/ingredient identity should not silently change to another unique pair without validation
             if (entity.IngredientId != dto.IngredientId || entity.SupplierId != dto.SupplierId)
-            {
-                // Allow only if validation passed unique check
-            }
+                throw new InvalidOperationException("Không được đổi nhà cung cấp hoặc nguyên liệu của gói đã tạo.");
+
+            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = Convert.FromBase64String(dto.RowVersion);
 
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
@@ -477,11 +479,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.UnitId = dto.UnitId;
                 entity.PackageQuantity = dto.PackageQuantity;
                 entity.CurrentPrice = dto.CurrentPrice;
-                entity.MinimumOrderQuantity = dto.MinimumOrderQuantity;
+                entity.MinimumOrderPackageCount = dto.MinimumOrderPackageCount;
                 entity.LeadTimeDays = dto.LeadTimeDays;
                 entity.IsPrimary = dto.IsPrimary;
                 entity.Active = dto.Active;
                 entity.Note = dto.Note?.Trim();
+                entity.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -599,17 +602,19 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 SupplierName = x.Supplier?.Name ?? "",
                 CurrentPrice = x.CurrentPrice,
-                PackageQuantity = x.PackageQuantity,
+                PackageQuantity = x.PackageQuantity ?? 0m,
                 UnitId = x.UnitId,
                 UnitCode = unitCode,
                 UnitName = x.Unit?.Name ?? "",
                 BaseUnitId = x.Ingredient?.BaseUnitId ?? 0,
                 BaseUnitCode = x.Ingredient?.BaseUnit?.UnitCode ?? "",
-                MinimumOrderQuantity = x.MinimumOrderQuantity,
+                MinimumOrderPackageCount = x.MinimumOrderPackageCount,
                 LeadTimeDays = x.LeadTimeDays,
                 IsPrimary = x.IsPrimary,
                 Active = x.Active,
                 Note = x.Note,
+                UpdatedAt = x.UpdatedAt,
+                RowVersion = Convert.ToBase64String(x.RowVersion),
                 HasCompletePackageDefinition = complete,
                 PackageDisplay = packageDisplay,
                 PriceDisplay = $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói mua"

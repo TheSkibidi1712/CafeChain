@@ -52,12 +52,16 @@ namespace CafeChain.Application.Services.Inventories
                 .FirstOrDefaultAsync(i => i.IngredientId == ingredientId);
             if (ingredient == null)
                 return ServiceResult.Failure($"Không tìm thấy nguyên liệu #{ingredientId}.");
+            if (!ingredient.Active && isActive)
+                return ServiceResult.Failure("Không thể kích hoạt nguồn cung cho nguyên liệu đã ngưng hoạt động.");
 
-            var supplierExists = await _context.Suppliers
+            var supplier = await _context.Suppliers
                 .AsNoTracking()
-                .AnyAsync(s => s.SupplierId == supplierId);
-            if (!supplierExists)
+                .FirstOrDefaultAsync(s => s.SupplierId == supplierId);
+            if (supplier == null)
                 return ServiceResult.Failure($"Không tìm thấy nhà cung cấp #{supplierId}.");
+            if (!supplier.Active && isActive)
+                return ServiceResult.Failure("Không thể kích hoạt nguồn cung của nhà cung cấp đã ngưng hoạt động.");
 
             var unit = await _context.Units
                 .AsNoTracking()
