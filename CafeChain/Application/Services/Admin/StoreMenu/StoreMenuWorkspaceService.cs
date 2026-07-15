@@ -124,6 +124,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                 return Conflict();
 
             var now = DateTime.UtcNow;
+            var catalogBefore = await _catalogVersions.GetAsync(item.StoreId, cancellationToken);
             var oldData = new
             {
                 item.IsEnabled,
@@ -161,30 +162,44 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
 
             _context.Entry(item).Property(x => x.RowVersion).OriginalValue = expected;
             item.UpdatedAtUtc = now;
-            await _catalogVersions.InvalidateAsync(new[] { item.StoreId }, now, cancellationToken);
-            _context.StoreMenuItemAudits.Add(new StoreMenuItemAudit
-            {
-                StoreMenuItemId = item.StoreMenuItemId,
-                StoreId = item.StoreId,
-                DrinkSizeId = item.DrinkSizeId,
-                Action = request.Action,
-                OldDataJson = JsonSerializer.Serialize(oldData),
-                NewDataJson = JsonSerializer.Serialize(new
-                {
-                    item.IsEnabled,
-                    item.PublishedAtUtc,
-                    item.PublishedByStaffId,
-                    item.DisplayOrder,
-                    item.PauseReason
-                }),
-                ActorStaffId = actorStaffId,
-                Reason = request.Reason.Trim(),
-                CreatedAtUtc = now
-            });
+            var catalogVersions = await _catalogVersions.InvalidateAsync(
+                new[] { item.StoreId }, now, cancellationToken);
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                await _context.SaveChangesAsync(cancellationToken);
+                _context.StoreMenuItemAudits.Add(new StoreMenuItemAudit
+                {
+                    StoreMenuItemId = item.StoreMenuItemId,
+                    StoreId = item.StoreId,
+                    DrinkSizeId = item.DrinkSizeId,
+                    Action = request.Action,
+                    OldIsEnabled = oldData.IsEnabled,
+                    NewIsEnabled = item.IsEnabled,
+                    OldPriceOverride = item.PriceOverride,
+                    NewPriceOverride = item.PriceOverride,
+                    OldEffectiveFromUtc = item.EffectiveFromUtc,
+                    NewEffectiveFromUtc = item.EffectiveFromUtc,
+                    OldEffectiveToUtc = item.EffectiveToUtc,
+                    NewEffectiveToUtc = item.EffectiveToUtc,
+                    CatalogVersionBefore = catalogBefore.Version,
+                    CatalogVersionAfter = catalogVersions[item.StoreId],
+                    ItemRowVersionBefore = expected.ToArray(),
+                    ItemRowVersionAfter = item.RowVersion.ToArray(),
+                    OldDataJson = JsonSerializer.Serialize(oldData),
+                    NewDataJson = JsonSerializer.Serialize(new
+                    {
+                        item.IsEnabled,
+                        item.PublishedAtUtc,
+                        item.PublishedByStaffId,
+                        item.DisplayOrder,
+                        item.PauseReason
+                    }),
+                    ActorStaffId = actorStaffId,
+                    Reason = request.Reason.Trim(),
+                    CreatedAtUtc = now
+                });
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
             }

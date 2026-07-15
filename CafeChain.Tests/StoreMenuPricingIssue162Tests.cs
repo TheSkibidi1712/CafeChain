@@ -62,7 +62,19 @@ public sealed class StoreMenuPricingIssue162Tests : IntegrationTestBase
         Assert.Equal(30_000m, clear.Data.EffectivePrice);
         Assert.Equal(StoreMenuPriceSources.Global, clear.Data.PriceSource);
         Assert.Equal(2, (await context.PosCatalogStates.SingleAsync(x => x.StoreId == StoreA)).Version);
-        Assert.Equal(2, await context.StoreMenuItemAudits.CountAsync(x => x.StoreMenuItemId == MenuA));
+        var audits = await context.StoreMenuItemAudits
+            .Where(x => x.StoreMenuItemId == MenuA)
+            .OrderBy(x => x.StoreMenuItemAuditId)
+            .ToListAsync();
+        Assert.Equal(2, audits.Count);
+        Assert.Null(audits[0].OldPriceOverride);
+        Assert.Equal(35_000m, audits[0].NewPriceOverride);
+        Assert.Equal(0, audits[0].CatalogVersionBefore);
+        Assert.Equal(1, audits[0].CatalogVersionAfter);
+        Assert.Equal(35_000m, audits[1].OldPriceOverride);
+        Assert.Null(audits[1].NewPriceOverride);
+        Assert.Equal(1, audits[1].CatalogVersionBefore);
+        Assert.Equal(2, audits[1].CatalogVersionAfter);
     }
 
     [Fact]

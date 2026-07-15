@@ -80,26 +80,40 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
             }
 
             var now = DateTime.UtcNow;
+            var catalogBefore = await _catalogVersions.GetAsync(item.StoreId, cancellationToken);
             _context.Entry(item).Property(x => x.RowVersion).OriginalValue = expected;
             item.PriceOverride = request.PriceOverride;
             item.UpdatedAtUtc = now;
             var versions = await _catalogVersions.InvalidateAsync(new[] { item.StoreId }, now, cancellationToken);
-            _context.StoreMenuItemAudits.Add(new StoreMenuItemAudit
-            {
-                StoreMenuItemId = item.StoreMenuItemId,
-                StoreId = item.StoreId,
-                DrinkSizeId = item.DrinkSizeId,
-                Action = request.PriceOverride.HasValue ? "SET_PRICE_OVERRIDE" : "USE_GLOBAL_PRICE",
-                OldDataJson = JsonSerializer.Serialize(new { PriceOverride = oldOverride }),
-                NewDataJson = JsonSerializer.Serialize(new { request.PriceOverride }),
-                ActorStaffId = actorStaffId,
-                Reason = request.Reason.Trim(),
-                CreatedAtUtc = now
-            });
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
+                await _context.SaveChangesAsync(cancellationToken);
+                _context.StoreMenuItemAudits.Add(new StoreMenuItemAudit
+                {
+                    StoreMenuItemId = item.StoreMenuItemId,
+                    StoreId = item.StoreId,
+                    DrinkSizeId = item.DrinkSizeId,
+                    Action = request.PriceOverride.HasValue ? "SET_PRICE_OVERRIDE" : "USE_GLOBAL_PRICE",
+                    OldIsEnabled = item.IsEnabled,
+                    NewIsEnabled = item.IsEnabled,
+                    OldPriceOverride = oldOverride,
+                    NewPriceOverride = request.PriceOverride,
+                    OldEffectiveFromUtc = item.EffectiveFromUtc,
+                    NewEffectiveFromUtc = item.EffectiveFromUtc,
+                    OldEffectiveToUtc = item.EffectiveToUtc,
+                    NewEffectiveToUtc = item.EffectiveToUtc,
+                    CatalogVersionBefore = catalogBefore.Version,
+                    CatalogVersionAfter = versions[item.StoreId],
+                    ItemRowVersionBefore = expected.ToArray(),
+                    ItemRowVersionAfter = item.RowVersion.ToArray(),
+                    OldDataJson = JsonSerializer.Serialize(new { PriceOverride = oldOverride }),
+                    NewDataJson = JsonSerializer.Serialize(new { request.PriceOverride }),
+                    ActorStaffId = actorStaffId,
+                    Reason = request.Reason.Trim(),
+                    CreatedAtUtc = now
+                });
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
                 return ServiceResult<StoreMenuPriceDto>.Success(

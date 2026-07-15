@@ -26,6 +26,9 @@ public sealed class StoreMenuAdminWorkspaceIssue164Tests : IntegrationTestBase
     private const int OwnerId = 16408;
     private const int ManagerId = 16409;
     private const int AccountantId = 16410;
+    private const int AreaManagerId = 16412;
+    private const int CashierId = 16413;
+    private const int ShiftSupervisorId = 16414;
 
     [Fact]
     public async Task Owner_PublishesDraft_AtomicallyAuditsAndInvalidatesCatalog()
@@ -48,8 +51,14 @@ public sealed class StoreMenuAdminWorkspaceIssue164Tests : IntegrationTestBase
         Assert.True(item.PublishedAtUtc.HasValue);
         Assert.True(item.IsEnabled);
         Assert.Equal(OwnerId, item.PublishedByStaffId);
-        Assert.Equal(StoreMenuLifecycleActions.Publish,
-            (await context.StoreMenuItemAudits.SingleAsync(x => x.StoreMenuItemId == MenuA)).Action);
+        var audit = await context.StoreMenuItemAudits.SingleAsync(x => x.StoreMenuItemId == MenuA);
+        Assert.Equal(StoreMenuLifecycleActions.Publish, audit.Action);
+        Assert.False(audit.OldIsEnabled);
+        Assert.True(audit.NewIsEnabled);
+        Assert.Equal(0, audit.CatalogVersionBefore);
+        Assert.Equal(1, audit.CatalogVersionAfter);
+        Assert.Equal(version, Convert.ToBase64String(audit.ItemRowVersionBefore));
+        Assert.NotEmpty(audit.ItemRowVersionAfter);
         Assert.Equal(1, (await context.PosCatalogStates.SingleAsync(x => x.StoreId == StoreA)).Version);
         Assert.False(await context.PosCatalogStates.AnyAsync(x => x.StoreId == StoreB));
     }
@@ -119,6 +128,31 @@ public sealed class StoreMenuAdminWorkspaceIssue164Tests : IntegrationTestBase
         Assert.Equal("STORE_MENU_OPERATION_FORBIDDEN", denied.ErrorCode);
     }
 
+    [Theory]
+    [InlineData(AreaManagerId)]
+    [InlineData(AccountantId)]
+    [InlineData(CashierId)]
+    [InlineData(ShiftSupervisorId)]
+    public async Task NonMutationRoles_CannotChangeStoreMenu(int actorStaffId)
+    {
+        await SeedAsync(published: true);
+        await using var context = CreateDbContext();
+        var service = CreateService(context);
+
+        var denied = await service.UpdateLifecycleAsync(new UpdateStoreMenuLifecycleRequest
+        {
+            StoreMenuItemId = MenuA,
+            Action = StoreMenuLifecycleActions.Pause,
+            ExpectedRowVersion = VersionOf(await context.StoreMenuItems.AsNoTracking()
+                .SingleAsync(x => x.StoreMenuItemId == MenuA)),
+            Reason = "Vai trò chỉ đọc thử thay đổi menu"
+        }, actorStaffId);
+
+        Assert.False(denied.IsSuccess);
+        Assert.Equal("STORE_MENU_OPERATION_FORBIDDEN", denied.ErrorCode);
+        Assert.Empty(await context.StoreMenuItemAudits.ToListAsync());
+    }
+
     [Fact]
     public void AdminWorkspace_SourceContract_HasStatesAndNoRecipeEditing()
     {
@@ -179,16 +213,27 @@ public sealed class StoreMenuAdminWorkspaceIssue164Tests : IntegrationTestBase
         var ownerRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.BusinessOwner);
         var managerRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.StoreManager);
         var accountantRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.AccountantWarehouse);
+        var areaManagerRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.AreaManager);
+        var cashierRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.SalesStaff);
+        var shiftSupervisorRole = await context.Roles.SingleAsync(x => x.Name == RoleConstants.ShiftSupervisor);
         context.Accounts.AddRange(
             new Account { AccountId = OwnerId, Email = "owner164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
             new Account { AccountId = ManagerId, Email = "manager164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
-            new Account { AccountId = AccountantId, Email = "accountant164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow });
+            new Account { AccountId = AccountantId, Email = "accountant164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
+            new Account { AccountId = AreaManagerId, Email = "area164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
+            new Account { AccountId = CashierId, Email = "cashier164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow },
+            new Account { AccountId = ShiftSupervisorId, Email = "supervisor164@test.local", PasswordHash = "x", Active = true, CreatedAt = DateTime.UtcNow });
         context.Staffs.AddRange(
-            Staff(OwnerId, StoreA, "Owner"), Staff(ManagerId, StoreA, "Manager"), Staff(AccountantId, StoreA, "Accountant"));
+            Staff(OwnerId, StoreA, "Owner"), Staff(ManagerId, StoreA, "Manager"), Staff(AccountantId, StoreA, "Accountant"),
+            Staff(AreaManagerId, StoreA, "Area manager"), Staff(CashierId, StoreA, "Cashier"),
+            Staff(ShiftSupervisorId, StoreA, "Shift supervisor"));
         context.AccountRoles.AddRange(
             new AccountRole { AccountId = OwnerId, RoleId = ownerRole.RoleId },
             new AccountRole { AccountId = ManagerId, RoleId = managerRole.RoleId },
-            new AccountRole { AccountId = AccountantId, RoleId = accountantRole.RoleId });
+            new AccountRole { AccountId = AccountantId, RoleId = accountantRole.RoleId },
+            new AccountRole { AccountId = AreaManagerId, RoleId = areaManagerRole.RoleId },
+            new AccountRole { AccountId = CashierId, RoleId = cashierRole.RoleId },
+            new AccountRole { AccountId = ShiftSupervisorId, RoleId = shiftSupervisorRole.RoleId });
         await context.SaveChangesAsync();
     }
 

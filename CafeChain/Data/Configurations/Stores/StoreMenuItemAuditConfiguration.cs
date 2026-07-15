@@ -11,6 +11,10 @@ namespace CafeChain.Data.Configurations.Stores
             entity.ToTable("StoreMenuItemAudits");
             entity.HasKey(x => x.StoreMenuItemAuditId);
             entity.Property(x => x.Action).IsRequired().HasMaxLength(50);
+            entity.Property(x => x.OldPriceOverride).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.NewPriceOverride).HasColumnType("decimal(18,2)");
+            entity.Property(x => x.ItemRowVersionBefore).IsRequired().HasMaxLength(8);
+            entity.Property(x => x.ItemRowVersionAfter).IsRequired().HasMaxLength(8);
             entity.Property(x => x.OldDataJson).HasColumnType("nvarchar(max)");
             entity.Property(x => x.NewDataJson).IsRequired().HasColumnType("nvarchar(max)");
             entity.Property(x => x.Reason).IsRequired().HasMaxLength(500);
