@@ -11,6 +11,7 @@ namespace CafeChain.Data.Configurations.Drinks
             entity.ToTable("PosCatalogStates");
             entity.HasKey(x => x.PosCatalogStateId);
             entity.Property(x => x.Version).HasDefaultValue(0L);
+            entity.Property(x => x.PayloadHash).HasMaxLength(64);
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
             entity.HasOne(x => x.Store).WithOne(x => x.PosCatalogState)

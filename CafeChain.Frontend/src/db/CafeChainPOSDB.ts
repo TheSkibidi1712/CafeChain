@@ -1,4 +1,4 @@
-import Dexie, { type EntityTable } from 'dexie'
+import Dexie, { type EntityTable, type Table } from 'dexie'
 
 // ============================================================
 // CafeChainPOS_DB — IndexedDB Schema Definition
@@ -11,6 +11,8 @@ import Dexie, { type EntityTable } from 'dexie'
  * Endpoint: GET /api/v1/pos/categories
  */
 export interface Category {
+  storeId: number
+  catalogVersion: number
   /** Primary Key — từ Backend (categories.CategoryId) */
   id: number
   /** Tên danh mục từ Backend */
@@ -28,6 +30,8 @@ export interface Category {
  * Endpoint: GET /api/v1/pos/menu-items
  */
 export interface MenuItem {
+  storeId: number
+  catalogVersion: number
   /** Primary Key — từ Backend (drinks.DrinkId) */
   id: number
   /** Tên món hiển thị trên thẻ sản phẩm */
@@ -53,9 +57,23 @@ export interface MenuItem {
 }
 
 export interface MenuItemSize {
+  storeMenuItemId: number
+  drinkSizeId: number
   sizeId: number
   sizeName: string
   price: number
+  globalPrice: number
+  storeOverride?: number | null
+  priceSource: string
+  isAvailable: boolean
+  availabilityStatus: string
+  availabilityReason?: string | null
+}
+
+export interface CatalogState {
+  storeId: number
+  version: number
+  syncedAt: number
 }
 
 export interface ToppingOption {
@@ -172,8 +190,9 @@ export interface CartSyncQueueItem {
  * - cartSyncQueue: Append-only queue, chỉ xóa sau khi sync thành công
  */
 export class CafeChainPOSDB extends Dexie {
-  categories!: EntityTable<Category, 'id'>
-  menuItems!: EntityTable<MenuItem, 'id'>
+  categories!: Table<Category, [number, number]>
+  menuItems!: Table<MenuItem, [number, number]>
+  catalogStates!: EntityTable<CatalogState, 'storeId'>
   cartSyncQueue!: EntityTable<CartSyncQueueItem, 'queueId'>
 
   constructor() {
@@ -194,6 +213,16 @@ export class CafeChainPOSDB extends Dexie {
       // PK: ++queueId (auto-increment local)
       // Index: clientOrderId (unique idempotency key), syncStatus (filter pending), createdAt (sort)
       cartSyncQueue: '++queueId, clientOrderId, syncStatus, createdAt',
+    })
+
+    this.version(2).stores({
+      categories: '[storeId+id], storeId, [storeId+name]',
+      menuItems: '[storeId+id], storeId, [storeId+categoryId], name, isAvailable',
+      catalogStates: 'storeId, version',
+      cartSyncQueue: '++queueId, clientOrderId, syncStatus, createdAt',
+    }).upgrade(async (transaction) => {
+      await transaction.table('categories').clear()
+      await transaction.table('menuItems').clear()
     })
   }
 }

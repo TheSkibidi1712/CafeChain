@@ -7,6 +7,7 @@ import {
   registerConnectivityListeners,
   getPendingOrderCount,
 } from '../services/OfflineSyncService'
+import { getPosSession, type PosSession } from '../services/posSession'
 
 // ============================================================
 // usePOSData — React Hook cho dữ liệu POS từ IndexedDB
@@ -29,10 +30,17 @@ export function usePOSData() {
   const [isLoading, setIsLoading] = useState(true)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingCount, setPendingCount] = useState(0)
+  const [storeId, setStoreId] = useState<number | null>(() => getPosSession().storeId)
 
   // ─── Reactive Queries — auto-update khi IndexedDB thay đổi ───
-  const categories = useLiveQuery(() => db.categories.toArray(), []) ?? []
-  const menuItems = useLiveQuery(() => db.menuItems.toArray(), []) ?? []
+  const categories = useLiveQuery(
+    () => storeId ? db.categories.where('storeId').equals(storeId).toArray() : [],
+    [storeId]
+  ) ?? []
+  const menuItems = useLiveQuery(
+    () => storeId ? db.menuItems.where('storeId').equals(storeId).toArray() : [],
+    [storeId]
+  ) ?? []
 
   // ─── Khởi tạo: Sync + Listeners ───
   useEffect(() => {
@@ -59,6 +67,15 @@ export function usePOSData() {
     const handleOffline = () => setIsOnline(false)
     window.addEventListener('online', handleOnline)
     window.addEventListener('offline', handleOffline)
+    const handleSessionChanged = (event: Event) => {
+      const session = (event as CustomEvent<PosSession>).detail ?? getPosSession()
+      setStoreId(session.storeId)
+      setIsLoading(true)
+      syncCatalog().finally(() => {
+        if (mounted) setIsLoading(false)
+      })
+    }
+    window.addEventListener('pos-session-changed', handleSessionChanged)
 
     // Refresh pending count mỗi 10s
     const refreshPendingCount = async () => {
@@ -73,6 +90,7 @@ export function usePOSData() {
       cleanupConnectivity()
       window.removeEventListener('online', handleOnline)
       window.removeEventListener('offline', handleOffline)
+      window.removeEventListener('pos-session-changed', handleSessionChanged)
       clearInterval(interval)
     }
   }, [])

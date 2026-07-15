@@ -42,6 +42,7 @@ namespace CafeChain.Application.Services.Admin.StoreMenu
                     state.Version++;
                     state.UpdatedAtUtc = updatedAtUtc;
                 }
+                state.PayloadHash = null;
                 versions[storeId] = state.Version;
             }
             return versions;

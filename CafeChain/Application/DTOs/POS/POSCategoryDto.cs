@@ -18,4 +18,13 @@ namespace CafeChain.Application.DTOs.POS
         /// <summary>Số món active trong danh mục tại store (COUNT từ StoreDrink)</summary>
         public int Count { get; set; }
     }
+
+    public sealed class POSCatalogSnapshotDto
+    {
+        public int StoreId { get; set; }
+        public long Version { get; set; }
+        public DateTime GeneratedAtUtc { get; set; }
+        public IReadOnlyList<POSCategoryDto> Categories { get; set; } = Array.Empty<POSCategoryDto>();
+        public IReadOnlyList<POSMenuItemDto> MenuItems { get; set; } = Array.Empty<POSMenuItemDto>();
+    }
 }
