@@ -64,7 +64,7 @@
                 </div>
 
                 <div class="transfer-field">
-                    <label for="FromStoreId">Kho đi</label>
+                    <label for="FromStoreId">Kho nguồn</label>
                     <select id="FromStoreId" name="FromStoreId" class="transfer-input">
                         <option value="">Tất cả</option>
                         @foreach (var store in Model.Stores)
@@ -77,7 +77,7 @@
                 </div>
 
                 <div class="transfer-field">
-                    <label for="ToStoreId">Kho đến</label>
+                    <label for="ToStoreId">Kho đích</label>
                     <select id="ToStoreId" name="ToStoreId" class="transfer-input">
                         <option value="">Tất cả</option>
                         @foreach (var store in Model.Stores)
@@ -113,7 +113,6 @@
                         Danh sách phiếu
                     </span>
                     <h2>@Model.TotalItems phiếu chuyển kho</h2>
-                    <p>Hiển thị trang @Model.Page / @Model.TotalPages.</p>
                 </div>
             </div>
 
@@ -124,11 +123,11 @@
                             <th>Mã phiếu</th>
                             <th>Trạng thái</th>
                             <th>Mục đích</th>
-                            <th>Kho đi</th>
-                            <th>Kho đến</th>
+                            <th>Kho nguồn</th>
+                            <th>Kho đích</th>
                             <th>Người lập</th>
                             <th>Ngày chứng từ</th>
-                            <th class="text-end">Dòng</th>
+                            <th class="text-end">Số dòng</th>
                             <th class="text-end">Thao tác</th>
                         </tr>
                     </thead>
@@ -148,7 +147,7 @@
                                     <td>
                                         <strong>@item.Code</strong>
                                         <span class="transfer-index-date">
-                                            Tạo @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                            Ngày tạo @item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
                                         </span>
                                     </td>
 

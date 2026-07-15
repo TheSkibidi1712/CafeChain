@@ -50,7 +50,156 @@ const InventoryDocument = (() => {
 
         pageInput.value = page;
 
+        if (!syncDateFilterInputs()) {
+            return;
+        }
+
         form.submit();
+    }
+
+    // =====================================================
+    // VIETNAMESE DATE FILTERS
+    // =====================================================
+
+    function initDateFilters() {
+
+        const form =
+            document.querySelector(selectors.filterForm);
+
+        if (!form) {
+            return;
+        }
+
+        form
+            .querySelectorAll(".vn-date-input")
+            .forEach(input => {
+
+                input.addEventListener(
+                    "input",
+                    () => {
+                        input.value = maskVietnameseDate(input.value);
+                        input.setCustomValidity("");
+                    });
+
+                input.addEventListener(
+                    "blur",
+                    () => syncDateFilterInput(input));
+            });
+
+        form.addEventListener(
+            "submit",
+            event => {
+                if (!syncDateFilterInputs()) {
+                    event.preventDefault();
+                }
+            });
+    }
+
+    function syncDateFilterInputs() {
+
+        const form =
+            document.querySelector(selectors.filterForm);
+
+        if (!form) {
+            return true;
+        }
+
+        const inputs =
+            Array.from(
+                form.querySelectorAll(".vn-date-input")
+            );
+
+        return inputs.every(syncDateFilterInput);
+    }
+
+    function syncDateFilterInput(input) {
+
+        const hidden =
+            document.getElementById(input.dataset.dateHidden || "");
+
+        if (!hidden) {
+            return true;
+        }
+
+        const value =
+            input.value.trim();
+
+        if (!value) {
+            hidden.value = "";
+            input.setCustomValidity("");
+            return true;
+        }
+
+        const isoDate =
+            parseVietnameseDate(value);
+
+        if (!isoDate) {
+            input.setCustomValidity("Nhập ngày theo dạng dd/mm/yyyy.");
+            input.reportValidity();
+            return false;
+        }
+
+        hidden.value = isoDate;
+        input.value = formatIsoDateForVietnameseDisplay(isoDate);
+        input.setCustomValidity("");
+        return true;
+    }
+
+    function maskVietnameseDate(value) {
+
+        const digits =
+            String(value || "")
+                .replace(/\D/g, "")
+                .slice(0, 8);
+
+        if (digits.length <= 2) {
+            return digits;
+        }
+
+        if (digits.length <= 4) {
+            return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+        }
+
+        return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+    }
+
+    function parseVietnameseDate(value) {
+
+        const match =
+            /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(value);
+
+        if (!match) {
+            return null;
+        }
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+
+        if (
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+        ) {
+            return null;
+        }
+
+        return [
+            String(year).padStart(4, "0"),
+            String(month).padStart(2, "0"),
+            String(day).padStart(2, "0")
+        ].join("-");
+    }
+
+    function formatIsoDateForVietnameseDisplay(value) {
+
+        const match =
+            /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+
+        return match
+            ? `${match[3]}/${match[2]}/${match[1]}`
+            : value;
     }
 
     // =====================================================
@@ -715,6 +864,22 @@ const InventoryDocument = (() => {
                     Number(
                         cell.dataset.amount || 0
                     );
+                const hasAmount =
+                    cell.dataset.hasAmount === "true"
+                    && amount > 0;
+
+                if (!hasAmount) {
+
+                    cell.innerHTML = `
+
+                <span class="amount-placeholder">
+                    —
+                </span>
+
+            `;
+
+                    return;
+                }
 
                 cell.innerHTML = `
 
@@ -1029,6 +1194,7 @@ const InventoryDocument = (() => {
     function init() {
 
         bindEvents();
+        initDateFilters();
         formatTableAmounts();
     }
 

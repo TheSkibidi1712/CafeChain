@@ -60,6 +60,8 @@ const InventoryCreate = (() => {
     };
 
     let supplierIngredients = [];
+    let isIngredientSourceLoading = false;
+    let isSupplierIngredientFallback = false;
     let summaryTimer = null;
     let currentRequestKey = null;
     let supplierAnalysisController = null;
@@ -189,6 +191,8 @@ const InventoryCreate = (() => {
     function bindCreateEvents() {
 
         supplierIngredients = [];
+        isIngredientSourceLoading = false;
+        isSupplierIngredientFallback = false;
 
         const form =
             document.querySelector(
@@ -243,6 +247,7 @@ const InventoryCreate = (() => {
                     invalidateAiResults();
 
                     syncPartnerFromSupplier();
+                    updateEntryGuards();
 
                     await loadSupplierIngredients(
                         supplierSelect.value
@@ -256,6 +261,7 @@ const InventoryCreate = (() => {
                 async () => {
 
                     invalidateAiResults();
+                    updateEntryGuards();
 
                     if (isImportAdjustment()) {
                         await loadActiveIngredients(
@@ -423,6 +429,7 @@ const InventoryCreate = (() => {
         updatePurposeFields();
         updateDetailHint();
         updateQuantityReferenceHeader();
+        updateUnitPriceHeader();
         updateDraftAction();
 
         if (isImportPurchase()) {
@@ -436,20 +443,25 @@ const InventoryCreate = (() => {
             }
             else {
                 supplierIngredients = [];
+                isIngredientSourceLoading = false;
+                isSupplierIngredientFallback = false;
                 resetRows();
-                renderIngredientOptions();
+                renderIngredientOptions(false, "Chọn nhà cung cấp trước");
+                updateEntryGuards();
                 updateSummary(emptySummary());
             }
 
             toggleManualRows(true);
             setPriceEditable(false);
+            updateEntryGuards();
             return;
         }
 
         if (isImportAdjustment() || usesActiveIngredientSource()) {
             syncPurposePartner();
             toggleManualRows(true);
-            setPriceEditable(isManualPricePurpose());
+            setPriceEditable(canEditUnitPriceForCurrentPurpose());
+            updateEntryGuards();
 
             const storeId =
                 document.querySelector(selector.store)?.value;
@@ -468,6 +480,7 @@ const InventoryCreate = (() => {
         }
 
         renderIngredientOptions();
+        updateEntryGuards();
     }
 
     function updatePurposeFields() {
@@ -627,6 +640,28 @@ const InventoryCreate = (() => {
                 : "Tham chiếu";
     }
 
+    function updateUnitPriceHeader() {
+
+        const header =
+            document.querySelector("#unitPriceHeader");
+
+        if (!header) {
+            return;
+        }
+
+        if (isAdjustmentOut()) {
+            header.textContent = "Giá vốn điều chỉnh";
+            return;
+        }
+
+        if (isExportSale()) {
+            header.textContent = "Đơn giá xuất kho";
+            return;
+        }
+
+        header.textContent = "Đơn giá nhập";
+    }
+
     function updateDraftAction() {
 
         const button =
@@ -653,7 +688,7 @@ const InventoryCreate = (() => {
 
         if (isImportAdjustment()) {
             return {
-                title: "Tạo Phiếu Nhập Điều Chỉnh",
+                title: "Tạo Phiếu Điều Chỉnh Tăng Kho",
                 subtitle: "Điều chỉnh tăng tồn kho theo biên bản đối soát",
                 icon: "fa-sliders-h",
                 hint: "Chọn nguyên liệu cần điều chỉnh tăng và nhập số lượng theo biên bản đối soát."
@@ -671,7 +706,7 @@ const InventoryCreate = (() => {
 
         if (isAdjustmentOut()) {
             return {
-                title: "Tạo Phiếu Xuất Điều Chỉnh",
+                title: "Tạo Phiếu Điều Chỉnh Giảm Kho",
                 subtitle: "Điều chỉnh giảm tồn kho theo biên bản kiểm tra",
                 icon: "fa-sliders-h",
                 hint: "Chọn nguyên liệu cần điều chỉnh giảm, nhập số lượng và ghi rõ lý do điều chỉnh."
@@ -726,7 +761,7 @@ const InventoryCreate = (() => {
 
         if (isExportSale()) {
             configurePartnerField(
-                "Khách hàng / Đối tác nhận",
+                "Đối tác nhận",
                 "Có thể nhập tên đối tác để lưu vào chứng từ xuất kho.",
                 "Nhập tên khách hàng hoặc đối tác nhận",
                 false
@@ -819,12 +854,16 @@ const InventoryCreate = (() => {
     async function loadActiveIngredients(storeId) {
 
         supplierIngredients = [];
+        isIngredientSourceLoading = true;
+        isSupplierIngredientFallback = false;
         resetRows();
         renderIngredientOptions(true);
         updateSummary(emptySummary());
 
         if (!storeId) {
+            isIngredientSourceLoading = false;
             renderIngredientOptions(false, "Chọn cửa hàng trước");
+            updateEntryGuards();
             return;
         }
 
@@ -842,13 +881,17 @@ const InventoryCreate = (() => {
             supplierIngredients =
                 await response.json();
 
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
-            setPriceEditable(isManualPricePurpose());
+            setPriceEditable(canEditUnitPriceForCurrentPurpose());
+            updateEntryGuards();
 
         }
         catch (error) {
 
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
+            updateEntryGuards();
 
             showError(
                 error.message || "Không tải được danh sách nguyên liệu."
@@ -860,12 +903,16 @@ const InventoryCreate = (() => {
     async function loadStoreExportIngredients(storeId) {
 
         supplierIngredients = [];
+        isIngredientSourceLoading = true;
+        isSupplierIngredientFallback = false;
         resetRows();
         renderIngredientOptions(true);
         updateSummary(emptySummary());
 
         if (!storeId) {
+            isIngredientSourceLoading = false;
             renderIngredientOptions(false, "Chọn cửa hàng trước");
+            updateEntryGuards();
             return;
         }
 
@@ -883,13 +930,17 @@ const InventoryCreate = (() => {
             supplierIngredients =
                 await response.json();
 
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
             setPriceEditable(isManualPricePurpose());
+            updateEntryGuards();
 
         }
         catch (error) {
 
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
+            updateEntryGuards();
 
             showError(
                 error.message || "Không tải được danh sách nguyên liệu tồn kho."
@@ -901,12 +952,16 @@ const InventoryCreate = (() => {
     async function loadSupplierIngredients(supplierId) {
 
         supplierIngredients = [];
+        isIngredientSourceLoading = true;
+        isSupplierIngredientFallback = false;
         resetRows();
         renderIngredientOptions(true);
         updateSummary(emptySummary());
 
         if (!supplierId) {
-            renderIngredientOptions();
+            isIngredientSourceLoading = false;
+            renderIngredientOptions(false, "Chọn nhà cung cấp trước");
+            updateEntryGuards();
             return;
         }
 
@@ -924,13 +979,25 @@ const InventoryCreate = (() => {
             supplierIngredients =
                 await response.json();
 
+            if (!supplierIngredients.length) {
+                supplierIngredients =
+                    await loadActiveIngredientFallbackForImportPurchase();
+
+                isSupplierIngredientFallback =
+                    supplierIngredients.length > 0;
+            }
+
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
-            setPriceEditable(false);
+            setPriceEditable(canEditUnitPriceForCurrentPurpose());
+            updateEntryGuards();
 
         }
         catch (error) {
 
+            isIngredientSourceLoading = false;
             renderIngredientOptions();
+            updateEntryGuards();
 
             showError(
                 error.message || "Không tải được danh sách nguyên liệu của nhà cung cấp."
@@ -1126,6 +1193,121 @@ const InventoryCreate = (() => {
 
             });
 
+        updateEntryGuards();
+
+    }
+
+    async function loadActiveIngredientFallbackForImportPurchase() {
+
+        const storeId =
+            document.querySelector(selector.store)?.value;
+
+        if (!storeId) {
+            return [];
+        }
+
+        const response =
+            await fetch(
+                `/Admin/AdminInventoryDocument/ActiveIngredients?storeId=${encodeURIComponent(storeId)}&purpose=${encodeURIComponent(documentPurpose.importPurchase)}`
+            );
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        return await response.json();
+    }
+
+    function getEntryDisabledReason() {
+
+        const storeSelect =
+            document.querySelector(selector.store);
+
+        const supplierSelect =
+            document.querySelector(selector.supplier);
+
+        if (!storeSelect?.value) {
+            return "Vui lòng chọn cửa hàng trước.";
+        }
+
+        if (isImportPurchase() && !supplierSelect?.value) {
+            return "Vui lòng chọn nhà cung cấp trước.";
+        }
+
+        if (!isIngredientSourceLoading && supplierIngredients.length === 0) {
+            return isImportPurchase()
+                ? "Nhà cung cấp chưa có nguyên liệu. Hãy kiểm tra liên kết nguyên liệu hoặc chọn nhà cung cấp khác."
+                : "Không có nguyên liệu phù hợp để chọn.";
+        }
+
+        return "";
+    }
+
+    function updateEntryGuards() {
+
+        const reason =
+            getEntryDisabledReason();
+
+        const addButton =
+            document.querySelector(selector.addIngredient);
+
+        if (addButton) {
+            addButton.disabled = Boolean(reason);
+            addButton.title = reason || "Thêm nguyên liệu";
+            addButton.setAttribute(
+                "aria-label",
+                reason || "Thêm nguyên liệu vào phiếu");
+        }
+
+        document
+            .querySelectorAll(`${selector.tableBody} .ingredient-row`)
+            .forEach(updateRowEntryGuard);
+    }
+
+    function updateRowEntryGuard(row) {
+
+        if (!row) {
+            return;
+        }
+
+        const reason =
+            getEntryDisabledReason();
+
+        const ingredientSelect =
+            row.querySelector(".ingredient-select");
+
+        const quantityInput =
+            row.querySelector(".quantity");
+
+        const priceInput =
+            row.querySelector(".unit-price");
+
+        const removeButton =
+            row.querySelector(".btn-remove-row");
+
+        const hasIngredient =
+            Boolean(row.querySelector(".ingredient-id")?.value);
+
+        if (ingredientSelect) {
+            ingredientSelect.disabled =
+                Boolean(reason) || isIngredientSourceLoading || supplierIngredients.length === 0;
+            ingredientSelect.title =
+                reason || ingredientSelect.title || "";
+        }
+
+        if (quantityInput) {
+            quantityInput.disabled =
+                Boolean(reason) || !hasIngredient;
+        }
+
+        if (priceInput) {
+            priceInput.disabled =
+                Boolean(reason) || !hasIngredient || isQuantityOnlyDocument();
+        }
+
+        if (removeButton) {
+            removeButton.disabled = Boolean(reason);
+        }
     }
 
     function getSelectedIngredientIds(exceptSelect = null) {
@@ -1180,7 +1362,8 @@ const InventoryCreate = (() => {
         tableBody.append(row);
 
         renderIngredientOptions();
-        setPriceEditable(isManualPricePurpose());
+        setPriceEditable(canEditUnitPriceForCurrentPurpose());
+        updateRowEntryGuard(row);
         renumberRows();
 
         return row;
@@ -1234,15 +1417,16 @@ const InventoryCreate = (() => {
         const isLockedQuantity =
             isQuantityLocked(item);
 
+        const currentQuantity =
+            readQuantity(row.querySelector(".quantity")?.value);
+
         const displayQuantity =
             isLockedQuantity
                 ? remainingQuantity
-                : resetQuantity
-                ? 1
-                : readQuantity(row.querySelector(".quantity")?.value) || 1;
+                : currentQuantity;
 
         setValue(row, ".ingredient-id", item.ingredientId ?? item.IngredientId);
-        setText(row, ".base-unit-name", `Base: ${getBaseUnitLabel(item)}`);
+        setText(row, ".base-unit-name", `Đơn vị gốc: ${getBaseUnitLabel(item)}`);
         setText(row, ".ingredient-source", buildIngredientSourceText(item));
         setText(row, ".available-stock-display", buildAvailableStockText(item));
         setText(row, ".price-source-display", buildPriceSourceText(item));
@@ -1266,7 +1450,7 @@ const InventoryCreate = (() => {
 
         if (priceInput) {
             priceInput.readOnly =
-                isPriceLocked(item) || !isManualPricePurpose();
+                isPriceLocked(item) || !canEditUnitPriceForCurrentPurpose();
         }
 
         const quantityInput =
@@ -1280,14 +1464,20 @@ const InventoryCreate = (() => {
 
                 quantityInput.readOnly = true;
             }
-            else if (resetQuantity || !readQuantity(quantityInput.value)) {
+            else if (resetQuantity) {
                 quantityInput.value =
-                    1;
+                    "";
                 quantityInput.readOnly = false;
             }
         }
 
-        setText(row, ".unit-conversion-display", buildConversionPreview(item, displayQuantity, row));
+        setText(
+            row,
+            ".unit-conversion-display",
+            displayQuantity > 0
+                ? buildConversionPreview(item, displayQuantity, row)
+                : "Quy đổi: -");
+        updateRowEntryGuard(row);
         updateRowAmount(row);
         requestSummary();
     }
@@ -1305,7 +1495,7 @@ const InventoryCreate = (() => {
         setValue(row, ".unit-price", "");
         setValue(row, ".base-quantity", 0);
         setValue(row, ".total", 0);
-        setText(row, ".base-unit-name", "Base unit");
+        setText(row, ".base-unit-name", "Đơn vị gốc");
         setText(row, ".ingredient-source", "Chưa chọn");
         setText(row, ".available-stock-display", "Tồn: -");
         setText(row, ".price-source-display", "Nguồn giá: -");
@@ -1322,6 +1512,8 @@ const InventoryCreate = (() => {
             ingredientSelect.title =
                 "";
         }
+
+        updateRowEntryGuard(row);
     }
 
     function renderUnitOptions(row, item) {
@@ -1437,7 +1629,7 @@ const InventoryCreate = (() => {
         // Unlock when no valid per-unit suggestion (package price alone must not lock the field).
         priceInput.readOnly =
             hasSuggestion
-            && (isPriceLocked(item) || !isManualPricePurpose());
+            && (isPriceLocked(item) || !canEditUnitPriceForCurrentPurpose());
     }
 
     function buildIngredientSourceText(item, row) {
@@ -1448,6 +1640,10 @@ const InventoryCreate = (() => {
 
         if (isWaste()) {
             return "Nguồn: tồn kho cửa hàng";
+        }
+
+        if (isSupplierIngredientFallback) {
+            return "Nguồn: danh mục nguyên liệu";
         }
 
         const unitLabel =
@@ -1590,8 +1786,16 @@ const InventoryCreate = (() => {
 
     function updateRowAmount(row) {
 
+        const quantityInput =
+            row.querySelector(".quantity");
+
+        const hasQuantityValue =
+            Boolean(quantityInput?.value?.trim());
+
         const quantity =
-            normalizeRowQuantity(row);
+            hasQuantityValue
+                ? normalizeRowQuantity(row)
+                : 0;
 
         const unitPrice =
             readNumber(
@@ -1608,7 +1812,7 @@ const InventoryCreate = (() => {
             !ingredient || conversionFactor > 0;
 
         const baseQuantity =
-            canConvert
+            canConvert && hasQuantityValue
                 ? quantity * conversionFactor
                 : 0;
 
@@ -1630,10 +1834,15 @@ const InventoryCreate = (() => {
         setValue(row, ".unit-price", isQuantityOnlyDocument() ? 0 : unitPrice);
         setValue(row, ".total", total);
         setText(row, ".line-total-display", formatCurrency(total));
-        updateStockTakeVariance(row, ingredient, finalBaseQuantity);
+        updateStockTakeVariance(row, hasQuantityValue ? ingredient : null, finalBaseQuantity);
 
         if (ingredient) {
-            setText(row, ".unit-conversion-display", buildConversionPreview(ingredient, finalQuantity, row));
+            setText(
+                row,
+                ".unit-conversion-display",
+                hasQuantityValue
+                    ? buildConversionPreview(ingredient, finalQuantity, row)
+                    : "Quy đổi: -");
         }
     }
 
@@ -1995,6 +2204,11 @@ const InventoryCreate = (() => {
                         row.querySelector(".unit-id")?.value
                     ),
 
+                hasQuantityValue:
+                    Boolean(
+                        row.querySelector(".quantity")?.value?.trim()
+                    ),
+
                 quantity:
                     readQuantity(
                         row.querySelector(".quantity")?.value
@@ -2022,7 +2236,9 @@ const InventoryCreate = (() => {
             .filter(item =>
                 item.ingredientId > 0
                 && item.unitId > 0
-                && (isStockTake() ? item.quantity >= 0 : item.quantity > 0)
+                && (isStockTake()
+                    ? item.hasQuantityValue && item.quantity >= 0
+                    : item.quantity > 0)
             );
     }
 
@@ -2561,8 +2777,8 @@ const InventoryCreate = (() => {
                         <i class="fas fa-trash-alt"></i>
                     </span>
                     <span>
-                        <strong>Hủy hàng</strong>
-                        <small>Hủy hàng hết hạn, hỏng</small>
+                        <strong>Hủy kho</strong>
+                        <small>Ghi nhận nguyên liệu hỏng, hết hạn</small>
                     </span>
                 </button>
             </div>
@@ -2963,6 +3179,11 @@ const InventoryCreate = (() => {
     function isManualPricePurpose() {
 
         return isImportAdjustment();
+    }
+
+    function canEditUnitPriceForCurrentPurpose() {
+
+        return isManualPricePurpose() || isSupplierIngredientFallback;
     }
 
     function usesActiveIngredientSource() {

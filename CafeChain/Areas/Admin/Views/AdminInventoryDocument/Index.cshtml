@@ -15,13 +15,13 @@
         <div>
             <h3>Phiếu Kho</h3>
             <p>
-                Quản lý Nhập, Xuất, Kiểm kê, Hủy và Chuyển kho.
+                Quản lý Nhập, Xuất, Kiểm kê và Hủy kho.
             </p>
         </div>
 
         <div class="inventory-actions">
             <button
-                class="btn btn-primary"
+                class="btn btn-primary inventory-action-primary"
                 id="btnCreateInventory">
 
                 <i class="fas fa-plus"></i>
@@ -31,15 +31,20 @@
             </button>
 
             <button type="button"
-                    class="btn btn-outline-secondary"
-                    id="btnExportExcel">
+                    class="btn btn-outline-secondary inventory-action-secondary"
+                    id="btnExportExcel"
+                    title="Xuất Excel"
+                    aria-label="Xuất Excel">
                 <i class="fas fa-file-excel"></i>
-                Export Excel
+                Xuất Excel
             </button>
 
-            <button class="btn btn-outline-secondary">
+            <button class="btn btn-outline-secondary inventory-action-secondary"
+                    type="button"
+                    title="Báo cáo"
+                    aria-label="Báo cáo">
                 <i class="fas fa-chart-bar"></i>
-                Reports
+                Báo cáo
             </button>
         </div>
     </div>

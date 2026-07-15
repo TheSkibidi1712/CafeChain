@@ -10,7 +10,7 @@
             <h2>Thông tin phiếu</h2>
         </div>
 
-        <span class="auto-pill">Tự động</span>
+        <span class="auto-pill">Mã tự động</span>
     </div>
 
     <div class="transfer-info-grid">
@@ -24,14 +24,17 @@
         </div>
 
         <div class="transfer-field">
-            <label for="transferDate">Ngày chứng từ <span>*</span></label>
-            <input class="transfer-input"
-                   type="date"
-                   id="transferDate"
-                   value="@Model.DocumentDate.ToString("yyyy-MM-dd")"
+            <label for="transferDateDisplay">Ngày chứng từ <span>*</span></label>
+            <input class="transfer-input transfer-static-input"
+                   type="text"
+                   id="transferDateDisplay"
+                   value="@Model.DocumentDate.ToString("dd/MM/yyyy")"
                    tabindex="-1"
                    onfocus="this.blur()"
                    readonly />
+            <input type="hidden"
+                   id="transferDate"
+                   value="@Model.DocumentDate.ToString("yyyy-MM-dd")" />
         </div>
 
         <div class="transfer-field transfer-field-wide">

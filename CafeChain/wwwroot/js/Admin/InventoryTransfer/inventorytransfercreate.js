@@ -409,15 +409,15 @@ const InventoryTransferCreate = (() => {
         const dto = buildDto(createRequestKey(), false);
 
         if (!dto.fromStoreId) {
-            throw new Error("Vui lòng chọn kho đi.");
+            throw new Error("Vui lòng chọn kho nguồn.");
         }
 
         if (!dto.toStoreId) {
-            throw new Error("Vui lòng chọn kho đến.");
+            throw new Error("Vui lòng chọn kho đích.");
         }
 
         if (dto.fromStoreId === dto.toStoreId) {
-            throw new Error("Kho đi và kho đến phải khác nhau.");
+            throw new Error("Kho nguồn và kho đích phải khác nhau.");
         }
 
         if (!dto.details.length) {

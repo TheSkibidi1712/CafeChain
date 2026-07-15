@@ -251,7 +251,7 @@
 
     function roleNamesHtml(roleNames) {
         const names = roleNames || [];
-        if (!names.length) return '<span class="perm-subtext">Chưa có role</span>';
+        if (!names.length) return '<span class="perm-subtext">Chưa có vai trò</span>';
         return `<div class="perm-role-tags">${names.map(name => `<span class="perm-role-tag">${escapeHtml(name)}</span>`).join("")}</div>`;
     }
 
@@ -262,8 +262,10 @@
             const data = await fetchJson(url);
             const items = get(data, "items", []);
             state.roles.totalPages = get(data, "totalPages", 1);
-            el.roleCount.textContent = `${get(data, "totalCount", items.length)} role`;
-            el.roleTable.innerHTML = items.length ? items.map(renderRoleRow).join("") : emptyRow(6, "Không có role phù hợp.");
+            el.roleCount.textContent = `${get(data, "totalCount", items.length)} vai trò`;
+            el.roleTable.innerHTML = items.length
+                ? items.map((item, index) => renderRoleRow(item, index)).join("")
+                : emptyRow(6, "Không có vai trò phù hợp.");
             renderPagination(el.rolePagination, state.roles.pageIndex, state.roles.totalPages, page => {
                 state.roles.pageIndex = page;
                 loadRoles();
@@ -273,14 +275,16 @@
         }
     }
 
-    function renderRoleRow(role) {
+    function renderRoleRow(role, index) {
+        const ordinal = ((state.roles.pageIndex - 1) * state.roles.pageSize) + index + 1;
+
         return `
             <tr>
-                <td>${get(role, "roleId", "")}</td>
+                <td>${ordinal}</td>
                 <td><div class="perm-name">${escapeHtml(get(role, "name", ""))}</div></td>
                 <td>${get(role, "userCount", 0)}</td>
                 <td>${get(role, "permissionCount", 0)}</td>
-                <td><span class="perm-badge ${get(role, "active", false) ? "" : "is-muted"}">${get(role, "active", false) ? "Active" : "Inactive"}</span></td>
+                <td><span class="perm-badge ${get(role, "active", false) ? "" : "is-muted"}">${get(role, "active", false) ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
                 <td>
                     <button type="button" class="perm-outline-button" data-action="open-role" data-role-id="${get(role, "roleId", "")}">
                         <i class="fas fa-shield-halved"></i>
@@ -335,11 +339,11 @@
                 <td>${escapeHtml(get(staff, "email", ""))}</td>
                 <td>${escapeHtml(get(staff, "storeName", ""))}</td>
                 <td>${roleNamesHtml(get(staff, "roleNames", []))}</td>
-                <td><span class="perm-badge ${active ? "" : "is-muted"}">${active ? "Active" : "Inactive"}</span></td>
+                <td><span class="perm-badge ${active ? "" : "is-muted"}">${active ? "Hoạt động" : "Ngưng hoạt động"}</span></td>
                 <td>
                     <button type="button" class="perm-outline-button" data-action="open-staff-role" data-staff-id="${get(staff, "staffId", "")}">
                         <i class="fas fa-user-tag"></i>
-                        Gán role
+                        Gán vai trò
                     </button>
                 </td>
             </tr>
@@ -350,7 +354,7 @@
         const staffId = get(staff, "staffId", 0);
         return `
             <button type="button" class="perm-staff-item ${selectedId === staffId ? "is-active" : ""}" data-action="select-${context}-staff" data-staff-id="${staffId}">
-                <span>
+                <span class="perm-staff-copy">
                     <span class="perm-name">${escapeHtml(get(staff, "fullName", ""))}</span>
                     <span class="perm-subtext">${escapeHtml(get(staff, "email", ""))}</span>
                 </span>
@@ -367,7 +371,7 @@
         try {
             const matrix = await fetchJson(endpoint(`RolePermissions?roleId=${roleId}`));
             state.roleMatrix = matrix;
-            el.roleModalMeta.textContent = `Role: ${get(matrix, "roleName", "")} | Users: ${get(matrix, "userCount", 0)} | Permissions: ${get(matrix, "permissionCount", 0)}`;
+            el.roleModalMeta.textContent = `Vai trò: ${get(matrix, "roleName", "")} | Người dùng: ${get(matrix, "userCount", 0)} | Quyền: ${get(matrix, "permissionCount", 0)}`;
             el.rolePermissionSearch.value = "";
             renderRolePermissionGroups();
         } catch (error) {
@@ -418,7 +422,7 @@
                 method: "POST",
                 body: JSON.stringify({ permissionIds })
             });
-            notifySuccess("Đã lưu phân quyền role");
+            notifySuccess("Đã lưu phân quyền vai trò");
             roleModal.hide();
             loadRoles();
         } catch (error) {
@@ -461,7 +465,7 @@
                 method: "POST",
                 body: JSON.stringify({ roleIds })
             });
-            notifySuccess("Đã lưu role nhân viên");
+            notifySuccess("Đã lưu vai trò nhân viên");
             staffRoleModal.hide();
             loadStaff("assign");
         } catch (error) {
@@ -522,12 +526,12 @@
                 </div>
                 <div class="perm-role-state ${roleAllowed ? "is-yes" : "is-no"}">
                     <i class="fas ${roleAllowed ? "fa-check" : "fa-xmark"}"></i>
-                    <span>${roleAllowed ? "Role" : "No role"}</span>
+                    <span>${roleAllowed ? "Theo vai trò" : "Chưa có vai trò"}</span>
                 </div>
                 <div class="perm-radio-set">
-                    <label><input type="radio" name="override-${permissionId}" value="Inherit" ${!effect ? "checked" : ""} /><span>Inherit</span></label>
-                    <label class="is-allow"><input type="radio" name="override-${permissionId}" value="Allow" ${effect === "Allow" ? "checked" : ""} /><span>Allow</span></label>
-                    <label class="is-deny"><input type="radio" name="override-${permissionId}" value="Deny" ${effect === "Deny" ? "checked" : ""} /><span>Deny</span></label>
+                    <label><input type="radio" name="override-${permissionId}" value="Inherit" ${!effect ? "checked" : ""} /><span>Kế thừa</span></label>
+                    <label class="is-allow"><input type="radio" name="override-${permissionId}" value="Allow" ${effect === "Allow" ? "checked" : ""} /><span>Cho phép</span></label>
+                    <label class="is-deny"><input type="radio" name="override-${permissionId}" value="Deny" ${effect === "Deny" ? "checked" : ""} /><span>Từ chối</span></label>
                 </div>
             </div>
         `;
@@ -552,7 +556,7 @@
                 method: "POST",
                 body: JSON.stringify({ overrides })
             });
-            notifySuccess("Đã lưu override");
+            notifySuccess("Đã lưu quyền ghi đè");
             await selectOverrideStaff(state.selectedOverrideStaffId);
         } catch (error) {
             notifyError(error);
@@ -602,7 +606,7 @@
 
     function renderScopeTypes() {
         const types = get(state.scopeData, "scopeTypes", []);
-        el.scopeTypeSelect.innerHTML = '<option value="">-- Chọn scope --</option>' + types.map(type => `
+        el.scopeTypeSelect.innerHTML = '<option value="">-- Chọn phạm vi --</option>' + types.map(type => `
             <option value="${get(type, "scopeTypeId", "")}">${escapeHtml(get(type, "name", ""))}</option>
         `).join("");
         el.scopeTypeSelect.disabled = false;
@@ -676,7 +680,7 @@
 
     function renderScopes() {
         if (!state.selectedScopes.length) {
-            el.scopeList.innerHTML = '<div class="perm-empty">Chưa có scope.</div>';
+            el.scopeList.innerHTML = '<div class="perm-empty">Chưa có phạm vi.</div>';
             return;
         }
 
@@ -704,7 +708,7 @@
                 method: "POST",
                 body: JSON.stringify({ scopes })
             });
-            notifySuccess("Đã lưu store scope");
+            notifySuccess("Đã lưu phạm vi cửa hàng");
             await selectScopeStaff(state.selectedScopeStaffId);
         } catch (error) {
             notifyError(error);

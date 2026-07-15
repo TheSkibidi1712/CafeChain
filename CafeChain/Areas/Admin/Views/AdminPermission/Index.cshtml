@@ -27,15 +27,15 @@
             <div class="perm-breadcrumb">Hệ thống / Bảng phân quyền</div>
             <h1>Bảng phân quyền</h1>
         </div>
-        <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại">
+        <button type="button" class="perm-icon-button" id="permRefreshBtn" title="Tải lại" aria-label="Tải lại dữ liệu phân quyền">
             <i class="fas fa-rotate-right"></i>
         </button>
     </div>
 
-    <div class="perm-tabs" role="tablist" aria-label="Permission tabs">
+    <div class="perm-tabs" role="tablist" aria-label="Nhóm chức năng phân quyền">
         <button type="button" class="perm-tab is-active" data-tab="roles">
             <i class="fas fa-shield-halved"></i>
-            <span>Role Management</span>
+            <span>Quản lý vai trò</span>
         </button>
         <button type="button" class="perm-tab" data-tab="assign">
             <i class="fas fa-user-tag"></i>
@@ -43,11 +43,11 @@
         </button>
         <button type="button" class="perm-tab" data-tab="override">
             <i class="fas fa-sliders"></i>
-            <span>User Override</span>
+            <span>Ghi đè quyền người dùng</span>
         </button>
         <button type="button" class="perm-tab" data-tab="scope">
             <i class="fas fa-store"></i>
-            <span>Store Scope</span>
+            <span>Phạm vi cửa hàng</span>
         </button>
     </div>
 
@@ -55,20 +55,20 @@
         <div class="perm-toolbar">
             <label class="perm-search">
                 <i class="fas fa-magnifying-glass"></i>
-                <input type="search" id="permRoleSearch" placeholder="Tìm kiếm role..." autocomplete="off" />
+                <input type="search" id="permRoleSearch" placeholder="Tìm kiếm vai trò..." autocomplete="off" />
             </label>
-            <div class="perm-count" id="permRoleCount">0 role</div>
+            <div class="perm-count" id="permRoleCount">0 vai trò</div>
         </div>
 
         <div class="perm-table-wrap">
             <table class="perm-table">
                 <thead>
                     <tr>
-                        <th>ID</th>
-                        <th>Tên role</th>
-                        <th>Users</th>
-                        <th>Permissions</th>
-                        <th>Active</th>
+                        <th>STT</th>
+                        <th>Tên vai trò</th>
+                        <th>Người dùng</th>
+                        <th>Quyền</th>
+                        <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
@@ -94,8 +94,8 @@
                         <th>Nhân viên</th>
                         <th>Email</th>
                         <th>Cửa hàng</th>
-                        <th>Role</th>
-                        <th>Active</th>
+                        <th>Vai trò</th>
+                        <th>Trạng thái</th>
                         <th>Thao tác</th>
                     </tr>
                 </thead>
@@ -131,10 +131,10 @@
                 <div class="perm-toolbar perm-toolbar-compact">
                     <label class="perm-search">
                         <i class="fas fa-magnifying-glass"></i>
-                        <input type="search" id="permOverrideSearch" placeholder="Tìm permission..." autocomplete="off" />
+                        <input type="search" id="permOverrideSearch" placeholder="Tìm quyền..." autocomplete="off" />
                     </label>
                 </div>
-                <div class="perm-empty" id="permOverrideEmpty">Chọn một nhân viên để chỉnh override.</div>
+                <div class="perm-empty" id="permOverrideEmpty">Chọn một nhân viên để chỉnh quyền ghi đè.</div>
                 <div class="perm-override-grid" id="permOverrideGrid"></div>
             </div>
         </div>
@@ -167,7 +167,7 @@
                 <div class="perm-scope-editor">
                     <div class="perm-form-row">
                         <label>
-                            <span>Scope</span>
+                            <span>Phạm vi</span>
                             <select id="permScopeTypeSelect" disabled></select>
                         </label>
                         <label id="permScopeParentWrap" hidden>
@@ -175,7 +175,7 @@
                             <select id="permScopeParentSelect"></select>
                         </label>
                         <label>
-                            <span>Đối tượng</span>
+                            <span>Cửa hàng/khu vực</span>
                             <select id="permScopeRefSelect" disabled></select>
                         </label>
                         <button type="button" class="perm-outline-button" id="permAddScopeBtn" disabled>
@@ -183,7 +183,9 @@
                             Thêm
                         </button>
                     </div>
-                    <div class="perm-scope-list" id="permScopeList"></div>
+                    <div class="perm-scope-list" id="permScopeList">
+                        <div class="perm-empty">Chọn một nhân viên để thiết lập phạm vi cửa hàng.</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -205,7 +207,7 @@
             <div class="perm-modal-tools">
                 <label class="perm-search">
                     <i class="fas fa-magnifying-glass"></i>
-                    <input type="search" id="permRolePermissionSearch" placeholder="Tìm permission..." autocomplete="off" />
+                    <input type="search" id="permRolePermissionSearch" placeholder="Tìm quyền..." autocomplete="off" />
                 </label>
                 <button type="button" class="perm-outline-button" id="permSelectAllPermissions">
                     <i class="fas fa-check-square"></i>
@@ -248,7 +250,7 @@
             <div class="perm-role-options" id="permStaffRoleOptions"></div>
             <div class="perm-note">
                 <i class="fas fa-lightbulb"></i>
-                <span>Chọn nhiều role nếu nhân viên đảm nhận nhiều vị trí.</span>
+                <span>Chọn nhiều vai trò nếu nhân viên đảm nhận nhiều vị trí.</span>
             </div>
             <div class="perm-modal-foot">
                 <button type="button" class="perm-ghost-button" data-bs-dismiss="modal">Hủy</button>

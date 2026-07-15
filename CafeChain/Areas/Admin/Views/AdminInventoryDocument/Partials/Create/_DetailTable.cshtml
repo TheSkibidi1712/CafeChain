@@ -49,7 +49,9 @@
 
         <button type="button"
                 class="create-add-row-btn"
-                id="btnAddIngredient">
+                id="btnAddIngredient"
+                title="Thêm nguyên liệu"
+                aria-label="Thêm nguyên liệu vào phiếu">
             <i class="fas fa-plus"></i>
             Thêm nguyên liệu
         </button>
@@ -70,7 +72,8 @@
                     <th>Nguyên liệu</th>
                     <th class="create-col-unit">ĐVT</th>
                     <th class="create-col-qty">@quantityHeader</th>
-                    <th class="create-col-price @(hideMoneyColumns ? "d-none" : "")">Đơn giá</th>
+                    <th class="create-col-price @(hideMoneyColumns ? "d-none" : "")"
+                        id="unitPriceHeader">Đơn giá nhập</th>
                     <th class="create-col-moq" id="quantityReferenceHeader">@referenceHeader</th>
                     <th class="create-col-variance @(showVarianceColumn ? "" : "d-none")">Chênh lệch</th>
                     <th class="create-col-total @(hideMoneyColumns ? "d-none" : "")">Thành tiền</th>

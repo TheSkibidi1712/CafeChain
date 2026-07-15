@@ -1,6 +1,13 @@
 ﻿@model CafeChain.ViewModels.Admin.InventoryDocuments.Index.AdminInventoryDocumentIndexVM
 @using CafeChain.Models.Enums.Inventory
 
+@{
+    var fromDateIso = Model.Filter.FromDate?.ToString("yyyy-MM-dd") ?? "";
+    var fromDateDisplay = Model.Filter.FromDate?.ToString("dd/MM/yyyy") ?? "";
+    var toDateIso = Model.Filter.ToDate?.ToString("yyyy-MM-dd") ?? "";
+    var toDateDisplay = Model.Filter.ToDate?.ToString("dd/MM/yyyy") ?? "";
+}
+
 <form method="get"
       asp-action="Index"
       id="filterForm">
@@ -10,7 +17,8 @@
         <div class="search-box">
             <input asp-for="Filter.Search"
                    class="form-control"
-                   placeholder="Tìm theo mã phiếu, nhà cung cấp, đối tác, nhân viên..." />
+                   placeholder="Tìm mã phiếu, cửa hàng, đối tác, người lập..."
+                   aria-label="Tìm kiếm phiếu kho" />
         </div>
 
         <div class="filter-row">
@@ -87,27 +95,51 @@
 
             </select>
 
-            <input asp-for="Filter.FromDate"
-                   type="date"
-                   class="form-control" />
+            <div class="filter-date-field">
+                <label asp-for="Filter.FromDate">Từ ngày</label>
+                <input type="hidden"
+                       id="Filter_FromDate"
+                       name="Filter.FromDate"
+                       value="@fromDateIso" />
+                <input type="text"
+                       class="form-control vn-date-input"
+                       value="@fromDateDisplay"
+                      placeholder="dd/mm/yyyy"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       data-date-hidden="Filter_FromDate"
+                      aria-label="Từ ngày dạng dd/mm/yyyy" />
+            </div>
 
-            <input asp-for="Filter.ToDate"
-                   type="date"
-                   class="form-control" />
+            <div class="filter-date-field">
+                <label asp-for="Filter.ToDate">Đến ngày</label>
+                <input type="hidden"
+                       id="Filter_ToDate"
+                       name="Filter.ToDate"
+                       value="@toDateIso" />
+                <input type="text"
+                       class="form-control vn-date-input"
+                       value="@toDateDisplay"
+                      placeholder="dd/mm/yyyy"
+                       inputmode="numeric"
+                       autocomplete="off"
+                       data-date-hidden="Filter_ToDate"
+                      aria-label="Đến ngày dạng dd/mm/yyyy" />
+            </div>
 
-        </div>
+            <div class="filter-actions">
 
-        <div class="filter-actions">
+                <a asp-action="Index"
+                   class="btn btn-light inventory-action-secondary">
+                    Đặt lại
+                </a>
 
-            <a asp-action="Index"
-               class="btn btn-light">
-                Reset
-            </a>
+                <button type="submit"
+                        class="btn btn-primary inventory-action-primary">
+                    Áp dụng
+                </button>
 
-            <button type="submit"
-                    class="btn btn-primary">
-                Áp dụng
-            </button>
+            </div>
 
         </div>
 
