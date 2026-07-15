@@ -7,11 +7,11 @@ using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Approvals;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
-using CafeChain.Application.DTOs.AI;
 
 
 
@@ -40,8 +40,14 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<InventoryDocument?> GetByIdAsync(int documentId);
 
         Task<InventoryDocument?> GetDocumentForConfirmAsync(int documentId);
+        Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId);
+        Task AddNegativeApprovalAsync(InventoryNegativeApproval approval);
+        Task<InventoryNegativeApproval?> GetNegativeApprovalForUpdateAsync(int documentId);
+        void UpdateNegativeApproval(InventoryNegativeApproval approval);
 
         Task<InventoryDocument?> GetDocumentWithDetailsAsync(int documentId);
+
+        Task<List<InventoryNegativeCostGap>> GetNegativeCostGapsByDocumentAsync(int documentId);
 
         void UpdateDocument(InventoryDocument document);
 
@@ -71,6 +77,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task AddDocumentDetailsAsync(IEnumerable<InventoryDocumentDetail> details);
 
+        void RemoveDocumentDetails(IEnumerable<InventoryDocumentDetail> details);
+
         // =====================================================
         // STORE INVENTORY
         // =====================================================
@@ -88,14 +96,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         // =====================================================
         // INVENTORY SNAPSHOT
         // =====================================================
-
-        Task<StoreInventorySnapshot?> GetStoreInventorySnapshotAsync(int storeId, int ingredientId);
-
-        Task AddStoreInventorySnapshotAsync(StoreInventorySnapshot snapshot);
-
-        Task AddStoreInventorySnapshotsAsync(IEnumerable<StoreInventorySnapshot> snapshots);
-
-        void UpdateStoreInventorySnapshot(StoreInventorySnapshot snapshot);
 
         // =====================================================
         // INVENTORY TRANSACTION
@@ -132,6 +132,9 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task AddCostAllocationAsync(InventoryCostAllocation allocation);
 
         Task AddCostAllocationsAsync(IEnumerable<InventoryCostAllocation> allocations);
+        Task AddInventoryNegativeCostGapAsync(InventoryNegativeCostGap gap);
+        Task<List<InventoryNegativeCostGap>> GetOpenCostGapsForUpdateAsync(int storeInventoryId);
+        Task AddCostGapSettlementsAsync(IEnumerable<InventoryCostGapSettlement> settlements);
 
         // =====================================================
         // DEBT
@@ -161,11 +164,6 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 
         Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds);
-
-        Task<IReadOnlyList<SupplierOfferDTO>> GetSupplierOffersAsync(
-            IEnumerable<int> ingredientIds,
-            DateTime effectiveDate,
-            CancellationToken cancellationToken = default);
 
         Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type, InventoryDocumentPurpose? purpose = null);
 

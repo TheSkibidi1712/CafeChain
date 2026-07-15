@@ -2,6 +2,7 @@
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Models.Inventories.Documents;
+using CafeChain.Models.Enums.Inventory;
 namespace CafeChain.Application.Services.Admin.InventoryDocuments
 {
     public class AdminInventoryDocumentSnapshotService : IAdminInventoryDocumentSnapshotService
@@ -30,6 +31,14 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 SnapshotId = snapshot.InventoryDocumentSnapshotId,
 
                 InventoryDocumentId = snapshot.InventoryDocumentId,
+
+                Type = snapshot.Type,
+
+                Purpose = snapshot.Purpose,
+
+                Status = snapshot.Status,
+
+                CostComplete = snapshot.CostComplete,
 
                 Code = snapshot.Code,
 
@@ -74,6 +83,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task CreateSnapshotAsync(InventoryDocument document)
         {
+            if (document.Status != InventoryDocumentStatus.CONFIRMED)
+                throw new InvalidOperationException("Chỉ chứng từ đã xác nhận mới được tạo snapshot.");
+
             if (await _repository.SnapshotExistsAsync(document.InventoryDocumentId))
             {
                 return;
@@ -82,6 +94,30 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 new InventoryDocumentSnapshot
                 {
                     InventoryDocumentId = document.InventoryDocumentId,
+
+                    InventoryDocument = document,
+
+                    Type = document.Type,
+
+                    Purpose = document.Purpose,
+
+                    Status = document.Status,
+
+                    NegativeApprovalId = document.NegativeApproval?.InventoryNegativeApprovalId,
+
+                    PolicyVersion = document.NegativeApproval?.PolicyVersion,
+
+                    EffectiveMaxNegativeQty = document.NegativeApproval?.Lines.Any() == true
+                        ? document.NegativeApproval.Lines.Max(x => x.EffectiveMaxNegativeQty)
+                        : null,
+
+                    BeforeQty = document.NegativeApproval?.Lines.Any() == true
+                        ? document.NegativeApproval.Lines.Sum(x => x.BeforeQty)
+                        : null,
+
+                    AfterQty = document.NegativeApproval?.Lines.Any() == true
+                        ? document.NegativeApproval.Lines.Sum(x => x.ProjectedAfterQty)
+                        : null,
 
                     Code = document.Code ?? string.Empty,
 
@@ -99,32 +135,24 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                     FinalAmount = document.FinalAmount ?? 0,
 
-                    CreatedAt = DateTime.UtcNow
+                    CostComplete = document.Details.All(x =>
+                        x.CostPrice.HasValue && x.CostAmount.HasValue),
+
+                    CreatedAt = DateTime.UtcNow,
+
+                    Details = document.Details
+                        .Select(x => new InventoryDocumentSnapshotDetail
+                        {
+                            ItemName = x.Ingredient?.Name ?? string.Empty,
+                            UnitName = x.Unit?.Name ?? string.Empty,
+                            Quantity = x.Quantity,
+                            UnitPrice = x.UnitPrice ?? 0,
+                            TotalAmount = x.TotalAmount ?? 0
+                        })
+                        .ToList()
                 };
 
             await _repository.AddSnapshotAsync(snapshot);
-
-            await _repository.SaveChangesAsync();
-
-            var details =
-                document.Details
-                .Select(x =>
-                    new InventoryDocumentSnapshotDetail
-                    {
-                        InventoryDocumentSnapshotId = snapshot.InventoryDocumentSnapshotId,
-
-                        ItemName = x.Ingredient?.Name ?? string.Empty,
-
-                        UnitName = x.Unit?.Name ?? string.Empty,
-
-                        Quantity = x.Quantity,
-
-                        UnitPrice = x.UnitPrice ?? 0,
-
-                        TotalAmount = x.TotalAmount ?? 0
-                    });
-
-            await _repository.AddSnapshotDetailsAsync(details);
         }
     }
 }

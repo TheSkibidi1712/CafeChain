@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260715075122_InitialCreate")]
+    [Migration("20260715104817_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -2254,6 +2254,144 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", b =>
+                {
+                    b.Property<long>("InventoryNegativeApprovalId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryNegativeApprovalId"));
+
+                    b.Property<int?>("ApproverStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryDocumentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PolicyVersion")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("RequestKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime>("RequestedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("RequesterStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReviewNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<bool>("ScopeAuthorized")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("StoreId")
+                        .HasColumnType("int");
+
+                    b.HasKey("InventoryNegativeApprovalId");
+
+                    b.HasIndex("ApproverStaffId");
+
+                    b.HasIndex("InventoryDocumentId")
+                        .IsUnique();
+
+                    b.HasIndex("RequesterStaffId");
+
+                    b.HasIndex("StoreId");
+
+                    b.HasIndex("RequestKey", "RequesterStaffId")
+                        .IsUnique();
+
+                    b.HasIndex("Status", "RequestedAt");
+
+                    b.ToTable("InventoryNegativeApprovals", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryNegativeApproval_Status", "[Status] IN ('REQUESTED','APPROVED','REJECTED','CANCELLED')");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Approvals.InventoryNegativeApprovalLine", b =>
+                {
+                    b.Property<long>("InventoryNegativeApprovalLineId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryNegativeApprovalLineId"));
+
+                    b.Property<decimal>("BeforeQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("EffectiveMaxNegativeQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InventoryDocumentDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("InventoryNegativeApprovalId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte[]>("InventoryRowVersion")
+                        .IsRequired()
+                        .HasColumnType("varbinary(max)");
+
+                    b.Property<decimal>("IssueQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("PreparedItemId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ProjectedAfterQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("InventoryNegativeApprovalLineId");
+
+                    b.HasIndex("InventoryNegativeApprovalId", "InventoryDocumentDetailId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryNegativeApprovalLines", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryNegativeApprovalLine_Identity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_InventoryNegativeApprovalLine_Quantity", "[IssueQty] > 0 AND [EffectiveMaxNegativeQty] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Auditing.AuditLog", b =>
                 {
                     b.Property<int>("AuditLogId")
@@ -2684,6 +2822,45 @@ namespace CafeChain.Migrations
                     b.ToTable("InventoryCostAllocations", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryCostGapSettlement", b =>
+                {
+                    b.Property<long>("InventoryCostGapSettlementId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryCostGapSettlementId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InboundInventoryCostLayerId")
+                        .HasColumnType("int");
+
+                    b.Property<long>("InventoryNegativeCostGapId")
+                        .HasColumnType("bigint");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("InventoryCostGapSettlementId");
+
+                    b.HasIndex("InboundInventoryCostLayerId");
+
+                    b.HasIndex("InventoryNegativeCostGapId", "InboundInventoryCostLayerId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryCostGapSettlements", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryCostGapSettlement_Quantity", "[Quantity] > 0 AND [UnitCost] >= 0 AND [TotalCost] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryCostLayer", b =>
                 {
                     b.Property<int>("InventoryCostLayerId")
@@ -2709,11 +2886,20 @@ namespace CafeChain.Migrations
                     b.Property<decimal>("RemainingQuantity")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<int?>("SourceBranchReceiptLineId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SourceInventoryDocumentDetailId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("SourceOrderRefundId")
                         .HasColumnType("int");
 
                     b.Property<int?>("SourceProductionRunId")
                         .HasColumnType("int");
+
+                    b.Property<long?>("SourceTransferCostAllocationId")
+                        .HasColumnType("bigint");
 
                     b.Property<int>("StoreId")
                         .HasColumnType("int");
@@ -2729,6 +2915,14 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("PreparedItemId");
 
+                    b.HasIndex("SourceBranchReceiptLineId")
+                        .IsUnique()
+                        .HasFilter("[SourceBranchReceiptLineId] IS NOT NULL");
+
+                    b.HasIndex("SourceInventoryDocumentDetailId")
+                        .IsUnique()
+                        .HasFilter("[SourceInventoryDocumentDetailId] IS NOT NULL");
+
                     b.HasIndex("SourceOrderRefundId")
                         .HasDatabaseName("IX_InventoryCostLayers_SourceOrderRefundId")
                         .HasFilter("[SourceOrderRefundId] IS NOT NULL");
@@ -2737,6 +2931,9 @@ namespace CafeChain.Migrations
                         .IsUnique()
                         .HasDatabaseName("UX_InventoryCostLayers_SourceProductionRunId")
                         .HasFilter("[SourceProductionRunId] IS NOT NULL");
+
+                    b.HasIndex("SourceTransferCostAllocationId")
+                        .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
 
                     b.HasIndex("StoreId");
 
@@ -2751,6 +2948,88 @@ namespace CafeChain.Migrations
                     b.ToTable("InventoryCostLayers", null, t =>
                         {
                             t.HasCheckConstraint("CK_InventoryCostLayers_ExactlyOneIdentity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryNegativeCostGap", b =>
+                {
+                    b.Property<long>("InventoryNegativeCostGapId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryNegativeCostGapId"));
+
+                    b.Property<int?>("IngredientId")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("InventoryDocumentDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("InventoryNegativeApprovalId")
+                        .HasColumnType("bigint");
+
+                    b.Property<int?>("InventoryTransactionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("OccurredAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("OriginalQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("OutstandingQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<int?>("PreparedItemId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int?>("SalesCostGapId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SourceType")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<int>("StoreInventoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("InventoryNegativeCostGapId");
+
+                    b.HasIndex("InventoryDocumentDetailId")
+                        .IsUnique()
+                        .HasFilter("[InventoryDocumentDetailId] IS NOT NULL");
+
+                    b.HasIndex("InventoryNegativeApprovalId");
+
+                    b.HasIndex("InventoryTransactionId");
+
+                    b.HasIndex("SalesCostGapId")
+                        .IsUnique()
+                        .HasFilter("[SalesCostGapId] IS NOT NULL");
+
+                    b.HasIndex("StoreInventoryId", "Status", "OccurredAt");
+
+                    b.ToTable("InventoryNegativeCostGaps", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryNegativeCostGap_Identity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+
+                            t.HasCheckConstraint("CK_InventoryNegativeCostGap_Quantity", "[OriginalQuantity] > 0 AND [OutstandingQuantity] >= 0 AND [OutstandingQuantity] <= [OriginalQuantity]");
+
+                            t.HasCheckConstraint("CK_InventoryNegativeCostGap_Source", "[SourceType] IN ('POS_SALE','MANUAL_DOCUMENT','LEGACY_BALANCE')");
+
+                            t.HasCheckConstraint("CK_InventoryNegativeCostGap_Status", "[Status] IN ('OPEN','PARTIALLY_SETTLED','SETTLED','CANCELLED')");
                         });
                 });
 
@@ -3015,6 +3294,10 @@ namespace CafeChain.Migrations
                         .HasColumnType("bit")
                         .HasDefaultValue(false);
 
+                    b.Property<string>("NegativeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
                     b.Property<string>("Note")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
@@ -3037,6 +3320,12 @@ namespace CafeChain.Migrations
                     b.Property<string>("RequestKey")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("StaffId")
                         .HasColumnType("int");
@@ -3139,9 +3428,9 @@ namespace CafeChain.Migrations
 
                     b.ToTable("InventoryDocumentDetails", null, t =>
                         {
-                            t.HasCheckConstraint("CK_InventoryDocumentDetail_BaseQuantity", "[BaseQuantity] > 0");
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_BaseQuantity", "[BaseQuantity] >= 0");
 
-                            t.HasCheckConstraint("CK_InventoryDocumentDetail_Quantity", "[Quantity] > 0");
+                            t.HasCheckConstraint("CK_InventoryDocumentDetail_Quantity", "[Quantity] >= 0");
 
                             t.HasCheckConstraint("CK_InventoryDocumentDetail_TotalAmount", "[TotalAmount] IS NULL OR [TotalAmount] >= 0");
 
@@ -3157,10 +3446,19 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("InventoryDocumentSnapshotId"));
 
+                    b.Property<decimal?>("AfterQty")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal?>("BeforeQty")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<string>("Code")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("CostComplete")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -3170,20 +3468,36 @@ namespace CafeChain.Migrations
                     b.Property<DateTime>("DocumentDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<decimal?>("EffectiveMaxNegativeQty")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<decimal>("FinalAmount")
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("InventoryDocumentId")
                         .HasColumnType("int");
 
+                    b.Property<long?>("NegativeApprovalId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("PartnerName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PolicyVersion")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("Purpose")
+                        .HasColumnType("int");
 
                     b.Property<string>("StaffName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
 
                     b.Property<string>("StoreName")
                         .IsRequired()
@@ -3192,6 +3506,9 @@ namespace CafeChain.Migrations
 
                     b.Property<decimal>("TotalAmount")
                         .HasColumnType("decimal(18,2)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("VatAmount")
                         .HasColumnType("decimal(18,2)");
@@ -3204,7 +3521,8 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("DocumentDate");
 
-                    b.HasIndex("InventoryDocumentId");
+                    b.HasIndex("InventoryDocumentId")
+                        .IsUnique();
 
                     b.ToTable("InventoryDocumentSnapshots", (string)null);
                 });
@@ -4202,6 +4520,9 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<int?>("SourceInventoryTransferId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -4224,6 +4545,8 @@ namespace CafeChain.Migrations
                         .HasDatabaseName("UX_BranchReceipts_ReceiptCode");
 
                     b.HasIndex("ReceivedByStaffId");
+
+                    b.HasIndex("SourceInventoryTransferId");
 
                     b.HasIndex("Status");
 
@@ -4297,7 +4620,7 @@ namespace CafeChain.Migrations
                     b.Property<int?>("RestockRequestFulfillmentId")
                         .HasColumnType("int");
 
-                    b.Property<int>("RestockRequestId")
+                    b.Property<int?>("RestockRequestId")
                         .HasColumnType("int");
 
                     b.Property<byte[]>("RowVersion")
@@ -4305,6 +4628,12 @@ namespace CafeChain.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
+
+                    b.Property<int?>("SourceInventoryTransferDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<long?>("SourceTransferCostAllocationId")
+                        .HasColumnType("bigint");
 
                     b.Property<int?>("SupplierId")
                         .HasColumnType("int");
@@ -4333,7 +4662,15 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("RestockRequestId");
 
+                    b.HasIndex("SourceInventoryTransferDetailId");
+
+                    b.HasIndex("SourceTransferCostAllocationId");
+
                     b.HasIndex("SupplierId");
+
+                    b.HasIndex("BranchReceiptId", "SourceTransferCostAllocationId")
+                        .IsUnique()
+                        .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
 
                     b.ToTable("BranchReceiptLines", null, t =>
                         {
@@ -4848,50 +5185,6 @@ namespace CafeChain.Migrations
                     b.HasIndex("StockAlertId", "CreatedAtUtc");
 
                     b.ToTable("StockAlertTransitions", (string)null);
-                });
-
-            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.StoreInventorySnapshot", b =>
-                {
-                    b.Property<int>("StoreInventorySnapshotId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("StoreInventorySnapshotId"));
-
-                    b.Property<decimal>("AvgCost")
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("IngredientId")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("Quantity")
-                        .HasColumnType("decimal(18,3)");
-
-                    b.Property<int>("StoreId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETDATE()");
-
-                    b.HasKey("StoreInventorySnapshotId");
-
-                    b.HasIndex("IngredientId");
-
-                    b.HasIndex("StoreId");
-
-                    b.HasIndex("UpdatedAt");
-
-                    b.HasIndex("StoreId", "IngredientId")
-                        .IsUnique();
-
-                    b.ToTable("StoreInventorySnapshots", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_StoreInventorySnapshot_AvgCost", "[AvgCost] >= 0");
-
-                            t.HasCheckConstraint("CK_StoreInventorySnapshot_Quantity", "[Quantity] >= 0");
-                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.StockTake.StockTakeDetail", b =>
@@ -5795,6 +6088,9 @@ namespace CafeChain.Migrations
                     b.Property<int?>("InventoryConsolidationRunId")
                         .HasColumnType("int");
 
+                    b.Property<int?>("InventoryDocumentDetailId")
+                        .HasColumnType("int");
+
                     b.Property<int?>("InventoryDocumentId")
                         .HasColumnType("int");
 
@@ -5875,6 +6171,11 @@ namespace CafeChain.Migrations
                         .HasDatabaseName("UX_InventoryTransactions_BranchReceiptLine_Type")
                         .HasFilter("[BranchReceiptLineId] IS NOT NULL");
 
+                    b.HasIndex("InventoryDocumentDetailId", "Type")
+                        .IsUnique()
+                        .HasDatabaseName("UX_InventoryTransactions_DocumentDetail_Type")
+                        .HasFilter("[InventoryDocumentDetailId] IS NOT NULL");
+
                     b.HasIndex("InventoryTransferDetailId", "Type")
                         .IsUnique()
                         .HasDatabaseName("UX_InventoryTransactions_TransferDetail_Type")
@@ -5942,6 +6243,9 @@ namespace CafeChain.Migrations
                     b.Property<int>("CreatedByStaffId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("DispatchedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<DateTime>("DocumentDate")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -5960,6 +6264,12 @@ namespace CafeChain.Migrations
                     b.Property<string>("RequestKey")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
 
                     b.Property<int>("Status")
                         .HasColumnType("int");
@@ -6003,6 +6313,54 @@ namespace CafeChain.Migrations
                         });
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", b =>
+                {
+                    b.Property<long>("InventoryTransferCostAllocationId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("InventoryTransferCostAllocationId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("InventoryTransferDetailId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("ReceivedQuantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<int>("SourceInventoryCostLayerId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(18,2)");
+
+                    b.Property<decimal>("UnitCost")
+                        .HasColumnType("decimal(18,6)");
+
+                    b.HasKey("InventoryTransferCostAllocationId");
+
+                    b.HasIndex("SourceInventoryCostLayerId");
+
+                    b.HasIndex("InventoryTransferDetailId", "SourceInventoryCostLayerId")
+                        .IsUnique();
+
+                    b.ToTable("InventoryTransferCostAllocations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InventoryTransferCostAllocation_Quantity", "[Quantity] > 0 AND [ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [Quantity] AND [UnitCost] > 0");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", b =>
                 {
                     b.Property<int>("InventoryTransferDetailId")
@@ -6020,6 +6378,9 @@ namespace CafeChain.Migrations
                     b.Property<decimal?>("DestinationBeforeQty")
                         .HasColumnType("decimal(18,3)");
 
+                    b.Property<decimal>("DispatchedBaseQuantity")
+                        .HasColumnType("decimal(18,3)");
+
                     b.Property<int?>("IngredientId")
                         .HasColumnType("int");
 
@@ -6034,6 +6395,9 @@ namespace CafeChain.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,3)");
+
+                    b.Property<decimal>("ReceivedBaseQuantity")
                         .HasColumnType("decimal(18,3)");
 
                     b.Property<int?>("RestockRequestFulfillmentId")
@@ -9044,6 +9408,45 @@ namespace CafeChain.Migrations
                     b.ToTable("WorkShifts", (string)null);
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Systems.DocumentNumberCounter", b =>
+                {
+                    b.Property<int>("DocumentNumberCounterId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DocumentNumberCounterId"));
+
+                    b.Property<string>("CounterKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("DateKey")
+                        .HasColumnType("int");
+
+                    b.Property<int>("LastValue")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("DocumentNumberCounterId");
+
+                    b.HasIndex("CounterKey", "DateKey")
+                        .IsUnique();
+
+                    b.ToTable("DocumentNumberCounters", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_DocumentNumberCounter_Value", "[LastValue] > 0");
+                        });
+                });
+
             modelBuilder.Entity("CafeChain.Models.Systems.RequestDeduplication", b =>
                 {
                     b.Property<int>("RequestDeduplicationId")
@@ -9064,6 +9467,11 @@ namespace CafeChain.Migrations
 
                     b.Property<DateTime>("ExpiredAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
 
                     b.Property<int?>("ReferenceId")
                         .HasColumnType("int");
@@ -9151,23 +9559,30 @@ namespace CafeChain.Migrations
                         new
                         {
                             SettingId = 2001,
-                            Description = "Cho phép tồn kho âm có kiểm soát.",
-                            SettingKey = "inventory_allow_negative_stock",
+                            Description = "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm.",
+                            SettingKey = "inventory_manual_external_export_negative_enabled",
                             SettingValue = "false"
                         },
                         new
                         {
                             SettingId = 2002,
-                            Description = "Yêu cầu quản lý/admin xác nhận khi giao dịch làm âm kho.",
-                            SettingKey = "inventory_require_manager_approval_for_negative_stock",
-                            SettingValue = "false"
+                            Description = "Bắt buộc maker-checker cho phiếu xuất ngoài làm âm kho.",
+                            SettingKey = "inventory_manual_external_export_approval_required",
+                            SettingValue = "true"
                         },
                         new
                         {
                             SettingId = 2003,
-                            Description = "Ngưỡng âm kho mặc định nếu tồn kho nguyên liệu không cấu hình riêng.",
-                            SettingKey = "inventory_default_max_negative_quantity",
+                            Description = "Hạn mức âm mặc định cho phiếu xuất ngoài.",
+                            SettingKey = "inventory_manual_external_export_default_max_negative_quantity",
                             SettingValue = "0"
+                        },
+                        new
+                        {
+                            SettingId = 2004,
+                            Description = "Phiên bản policy phiếu xuất ngoài làm âm kho.",
+                            SettingKey = "inventory_manual_external_export_policy_version",
+                            SettingValue = "manual-export-v1"
                         });
                 });
 
@@ -9797,6 +10212,51 @@ namespace CafeChain.Migrations
                     b.Navigation("Unit");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", b =>
+                {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ApproverStaff")
+                        .WithMany()
+                        .HasForeignKey("ApproverStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
+                        .WithOne("NegativeApproval")
+                        .HasForeignKey("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", "InventoryDocumentId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "RequesterStaff")
+                        .WithMany()
+                        .HasForeignKey("RequesterStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Stores.Store", "Store")
+                        .WithMany()
+                        .HasForeignKey("StoreId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApproverStaff");
+
+                    b.Navigation("InventoryDocument");
+
+                    b.Navigation("RequesterStaff");
+
+                    b.Navigation("Store");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Approvals.InventoryNegativeApprovalLine", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", "InventoryNegativeApproval")
+                        .WithMany("Lines")
+                        .HasForeignKey("InventoryNegativeApprovalId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryNegativeApproval");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Auditing.InventoryWriterModeTransition", b =>
                 {
                     b.HasOne("CafeChain.Models.Customers.Account", "ActorAccount")
@@ -9906,6 +10366,25 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocumentDetail");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryCostGapSettlement", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Costing.InventoryCostLayer", "InboundInventoryCostLayer")
+                        .WithMany()
+                        .HasForeignKey("InboundInventoryCostLayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Costing.InventoryNegativeCostGap", "InventoryNegativeCostGap")
+                        .WithMany("Settlements")
+                        .HasForeignKey("InventoryNegativeCostGapId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InboundInventoryCostLayer");
+
+                    b.Navigation("InventoryNegativeCostGap");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryCostLayer", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", null)
@@ -9918,6 +10397,16 @@ namespace CafeChain.Migrations
                         .HasForeignKey("PreparedItemId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Stock.BranchReceiptLine", "SourceBranchReceiptLine")
+                        .WithMany()
+                        .HasForeignKey("SourceBranchReceiptLineId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocumentDetail", null)
+                        .WithMany()
+                        .HasForeignKey("SourceInventoryDocumentDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.Refunds.OrderRefund", "SourceOrderRefund")
                         .WithMany()
                         .HasForeignKey("SourceOrderRefundId")
@@ -9928,15 +10417,55 @@ namespace CafeChain.Migrations
                         .HasForeignKey("SourceProductionRunId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", "SourceTransferCostAllocation")
+                        .WithMany()
+                        .HasForeignKey("SourceTransferCostAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", null)
                         .WithMany()
                         .HasForeignKey("StoreId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.Navigation("SourceBranchReceiptLine");
+
                     b.Navigation("SourceOrderRefund");
 
                     b.Navigation("SourceProductionRun");
+
+                    b.Navigation("SourceTransferCostAllocation");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryNegativeCostGap", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocumentDetail", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryDocumentDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", null)
+                        .WithMany()
+                        .HasForeignKey("InventoryNegativeApprovalId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Transactions.InventoryTransaction", "InventoryTransaction")
+                        .WithMany()
+                        .HasForeignKey("InventoryTransactionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Costing.SalesCostGap", null)
+                        .WithMany()
+                        .HasForeignKey("SalesCostGapId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Stores.StoreInventory", null)
+                        .WithMany()
+                        .HasForeignKey("StoreInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryTransaction");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Costing.ProductionCostAllocation", b =>
@@ -10096,6 +10625,17 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryDocument");
 
                     b.Navigation("Unit");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshot", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
+                        .WithOne("Snapshot")
+                        .HasForeignKey("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshot", "InventoryDocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("InventoryDocument");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshotDetail", b =>
@@ -10306,6 +10846,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("ReceivedByStaffId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransfer", "SourceInventoryTransfer")
+                        .WithMany()
+                        .HasForeignKey("SourceInventoryTransferId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Stores.Store", "Store")
                         .WithMany()
                         .HasForeignKey("StoreId")
@@ -10322,6 +10867,8 @@ namespace CafeChain.Migrations
                     b.Navigation("CreatedByStaff");
 
                     b.Navigation("ReceivedByStaff");
+
+                    b.Navigation("SourceInventoryTransfer");
 
                     b.Navigation("Store");
 
@@ -10386,8 +10933,17 @@ namespace CafeChain.Migrations
                     b.HasOne("CafeChain.Models.Inventories.Stock.RestockRequest", "RestockRequest")
                         .WithMany()
                         .HasForeignKey("RestockRequestId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", "SourceInventoryTransferDetail")
+                        .WithMany()
+                        .HasForeignKey("SourceInventoryTransferDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", "SourceTransferCostAllocation")
+                        .WithMany()
+                        .HasForeignKey("SourceTransferCostAllocationId")
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", "Supplier")
                         .WithMany()
@@ -10415,6 +10971,10 @@ namespace CafeChain.Migrations
                     b.Navigation("RestockRequest");
 
                     b.Navigation("RestockRequestFulfillment");
+
+                    b.Navigation("SourceInventoryTransferDetail");
+
+                    b.Navigation("SourceTransferCostAllocation");
 
                     b.Navigation("Supplier");
                 });
@@ -10637,21 +11197,6 @@ namespace CafeChain.Migrations
                     b.Navigation("StockAlert");
                 });
 
-            modelBuilder.Entity("CafeChain.Models.Inventories.Stock.StoreInventorySnapshot", b =>
-                {
-                    b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", null)
-                        .WithMany()
-                        .HasForeignKey("IngredientId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("CafeChain.Models.Stores.Store", null)
-                        .WithMany()
-                        .HasForeignKey("StoreId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("CafeChain.Models.Inventories.StockTake.StockTakeDetail", b =>
                 {
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "Ingredient")
@@ -10787,6 +11332,11 @@ namespace CafeChain.Migrations
                         .HasForeignKey("InventoryConsolidationRunId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocumentDetail", "InventoryDocumentDetail")
+                        .WithMany()
+                        .HasForeignKey("InventoryDocumentDetailId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.Documents.InventoryDocument", "InventoryDocument")
                         .WithMany("InventoryTransactions")
                         .HasForeignKey("InventoryDocumentId")
@@ -10833,6 +11383,8 @@ namespace CafeChain.Migrations
                     b.Navigation("InventoryConsolidationRun");
 
                     b.Navigation("InventoryDocument");
+
+                    b.Navigation("InventoryDocumentDetail");
 
                     b.Navigation("InventoryTransfer");
 
@@ -10888,6 +11440,25 @@ namespace CafeChain.Migrations
                     b.Navigation("FromStore");
 
                     b.Navigation("ToStore");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", "InventoryTransferDetail")
+                        .WithMany()
+                        .HasForeignKey("InventoryTransferDetailId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("CafeChain.Models.Inventories.Costing.InventoryCostLayer", "SourceInventoryCostLayer")
+                        .WithMany()
+                        .HasForeignKey("SourceInventoryCostLayerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("InventoryTransferDetail");
+
+                    b.Navigation("SourceInventoryCostLayer");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Transfers.InventoryTransferDetail", b =>
@@ -11756,9 +12327,19 @@ namespace CafeChain.Migrations
                     b.Navigation("StoreToppings");
                 });
 
+            modelBuilder.Entity("CafeChain.Models.Inventories.Approvals.InventoryNegativeApproval", b =>
+                {
+                    b.Navigation("Lines");
+                });
+
             modelBuilder.Entity("CafeChain.Models.Inventories.Consolidation.InventoryConsolidationRun", b =>
                 {
                     b.Navigation("Lines");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Costing.InventoryNegativeCostGap", b =>
+                {
+                    b.Navigation("Settlements");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocument", b =>
@@ -11768,6 +12349,10 @@ namespace CafeChain.Migrations
                     b.Navigation("Details");
 
                     b.Navigation("InventoryTransactions");
+
+                    b.Navigation("NegativeApproval");
+
+                    b.Navigation("Snapshot");
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Documents.InventoryDocumentSnapshot", b =>

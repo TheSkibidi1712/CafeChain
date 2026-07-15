@@ -26,6 +26,7 @@ using CafeChain.Models.Vouchers;
 using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 using CafeChain.Models.Permissions;
+using CafeChain.Models.Inventories.Approvals;
 namespace CafeChain.Data
 {
     public class AppDbContext : DbContext
@@ -98,6 +99,7 @@ namespace CafeChain.Data
         public DbSet<StoreIP> StoreIPs { get; set; }
         public DbSet<WorkShift> WorkShifts { get; set; }
         public DbSet<PosTerminal> PosTerminals { get; set; }
+        public DbSet<DocumentNumberCounter> DocumentNumberCounters { get; set; }
 
         // ========================= INVENTORY =========================
         // Auditing
@@ -111,6 +113,11 @@ namespace CafeChain.Data
         public DbSet<ProductionCostAllocation> ProductionCostAllocations { get; set; }
         public DbSet<SalesCostAllocation> SalesCostAllocations { get; set; }
         public DbSet<SalesCostGap> SalesCostGaps { get; set; }
+        public DbSet<InventoryNegativeCostGap> InventoryNegativeCostGaps { get; set; }
+        public DbSet<InventoryCostGapSettlement> InventoryCostGapSettlements { get; set; }
+        public DbSet<InventoryNegativeApproval> InventoryNegativeApprovals { get; set; }
+        public DbSet<InventoryNegativeApprovalLine> InventoryNegativeApprovalLines { get; set; }
+        public DbSet<InventoryTransferCostAllocation> InventoryTransferCostAllocations { get; set; }
 
         // Issue #134 — full-order cash refund
         public DbSet<CafeChain.Models.Inventories.Refunds.OrderRefund> OrderRefunds { get; set; }
@@ -142,7 +149,6 @@ namespace CafeChain.Data
         public DbSet<CafeChain.Models.Inventories.Consolidation.InventoryConsolidationLine> InventoryConsolidationLines { get; set; }
 
         // Stock
-        public DbSet<StoreInventorySnapshot> StoreInventorySnapshots { get; set; }
         public DbSet<StockAlert> StockAlerts { get; set; }
         public DbSet<StockAlertTransition> StockAlertTransitions { get; set; }
         public DbSet<RestockRequest> RestockRequests { get; set; }

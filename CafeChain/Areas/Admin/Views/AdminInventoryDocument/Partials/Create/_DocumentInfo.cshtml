@@ -25,6 +25,9 @@
         InventoryDocumentType.EXPORT => new[]
         {
             new { Value = (int)InventoryDocumentPurpose.SALE, Label = "Xuất bán hàng", Description = "Giảm tồn kho phục vụ bán hàng" },
+            new { Value = (int)InventoryDocumentPurpose.GIFT, Label = "Xuất quà tặng", Description = "Hàng quà tặng đã giao thực tế" },
+            new { Value = (int)InventoryDocumentPurpose.DEBT, Label = "Xuất ghi nợ", Description = "Hàng đã giao và ghi nhận công nợ" },
+            new { Value = (int)InventoryDocumentPurpose.SAMPLE, Label = "Xuất hàng mẫu", Description = "Hàng mẫu đã giao thực tế" },
             new { Value = (int)InventoryDocumentPurpose.ADJUSTMENT_OUT, Label = "Điều chỉnh giảm", Description = "Giảm tồn do đối soát" }
         },
         InventoryDocumentType.STOCK_TAKE => new[]
@@ -204,6 +207,19 @@
                 Phiếu điều chỉnh bắt buộc ghi rõ lý do điều chỉnh.
             </small>
         </div>
+
+        @if (isExport)
+        {
+            <div class="create-field create-field-wide" id="negativeReasonField">
+                <label for="NegativeReason">Lý do xuất âm (bắt buộc khi projected after âm)</label>
+                <textarea id="NegativeReason"
+                          name="NegativeReason"
+                          rows="2"
+                          class="form-control create-control"
+                          placeholder="Mô tả giao dịch thực tế đã phát sinh và lý do không thể trì hoãn ghi nhận"></textarea>
+            </div>
+            <div class="create-field create-field-wide d-none" id="negativePreflightPanel" aria-live="polite"></div>
+        }
 
     </div>
 

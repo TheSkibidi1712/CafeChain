@@ -4,6 +4,19 @@
 
 const InventoryDocument = (() => {
 
+    const nativeFetch = window.fetch.bind(window);
+    const fetch = (input, init = {}) => {
+        const options = { ...init };
+        const method = String(options.method || "GET").toUpperCase();
+        if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+            const headers = new Headers(options.headers || {});
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) headers.set("RequestVerificationToken", token);
+            options.headers = headers;
+        }
+        return nativeFetch(input, options);
+    };
+
     const selectors = {
         modal: "#inventoryDetailModal",
         content: "#inventoryDetailContent",
@@ -22,6 +35,26 @@ const InventoryDocument = (() => {
         content: "#inventoryCreateContent"
 
     };
+
+    function getEndpoint(name) {
+        const endpoint = document.querySelector("#inventoryDocumentPage")?.dataset[name];
+        if (!endpoint) {
+            throw new Error(`Thiếu cấu hình endpoint: ${name}.`);
+        }
+
+        return endpoint;
+    }
+
+    function appendQuery(endpoint, params = {}) {
+        const url = new URL(endpoint, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.set(key, String(value));
+            }
+        });
+
+        return url.toString();
+    }
 
     // =====================================================
     // PAGINATION
@@ -227,9 +260,7 @@ const InventoryDocument = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/DetailModal?documentId=${id}`
-                );
+                await fetch(appendQuery(getEndpoint("detailUrl"), { documentId: id }));
 
             const html =
                 await response.text();
@@ -268,9 +299,7 @@ const InventoryDocument = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/DetailModal?documentId=${id}`
-                );
+                await fetch(appendQuery(getEndpoint("detailUrl"), { documentId: id }));
 
             if (!response.ok) {
 
@@ -326,21 +355,17 @@ const InventoryDocument = (() => {
     }
 
     function buildAdminUrl(action, params = {}) {
+        const endpointName = action === "ConfirmDraft"
+            ? "confirmDraftUrl"
+            : action === "CancelInventoryDocument"
+                ? "cancelUrl"
+                : null;
 
-        const url =
-            new URL(
-                `/Admin/AdminInventoryDocument/${action}`,
-                window.location.origin);
+        if (!endpointName) {
+            throw new Error(`Action phiếu kho không được hỗ trợ: ${action}.`);
+        }
 
-        Object
-            .entries(params)
-            .forEach(([key, value]) => {
-                if (value !== undefined && value !== null) {
-                    url.searchParams.set(key, String(value));
-                }
-            });
-
-        return url.toString();
+        return appendQuery(getEndpoint(endpointName), params);
     }
 
     async function postDocumentAction(action, documentId, requestKey) {
@@ -635,6 +660,98 @@ const InventoryDocument = (() => {
         return div.innerHTML;
     }
 
+    async function reviewNegativeApproval(button, approve) {
+        const documentId = Number(button?.dataset.documentId || 0);
+        const endpoint = button?.dataset.url;
+        if (!Number.isInteger(documentId) || documentId <= 0 || !endpoint) {
+            showActionMessage("Không xác định được yêu cầu phê duyệt.");
+            return;
+        }
+
+        let reviewNote = null;
+        if (window.Swal) {
+            const dialogTarget = button.closest(selectors.modal) || document.body;
+            const dialog = await Swal.fire({
+                target: dialogTarget,
+                returnFocus: false,
+                icon: approve ? "question" : "warning",
+                title: approve ? "Duyệt xuất âm?" : "Từ chối xuất âm?",
+                text: approve
+                    ? "Hệ thống sẽ kiểm tra lại tồn kho, phạm vi và policy trước khi xác nhận."
+                    : "Phiếu sẽ chuyển sang trạng thái đã hủy.",
+                input: "textarea",
+                inputLabel: approve ? "Ghi chú duyệt (không bắt buộc)" : "Lý do từ chối",
+                inputPlaceholder: approve ? "Nhập ghi chú nếu cần..." : "Nhập lý do từ chối...",
+                showCancelButton: true,
+                confirmButtonText: approve ? "Duyệt xuất âm" : "Từ chối",
+                cancelButtonText: "Đóng",
+                confirmButtonColor: approve ? "#198754" : "#dc3545",
+                inputValidator: value => !approve && !String(value || "").trim()
+                    ? "Lý do từ chối là bắt buộc."
+                    : undefined,
+                didOpen: popup => {
+                    const input = popup.querySelector(".swal2-textarea");
+                    if (input) {
+                        window.requestAnimationFrame(() => input.focus({ preventScroll: true }));
+                    }
+                }
+            });
+
+            if (button.isConnected && !button.disabled) {
+                button.focus({ preventScroll: true });
+            }
+
+            if (!dialog.isConfirmed) {
+                return;
+            }
+
+            reviewNote = String(dialog.value || "").trim() || null;
+        }
+        else if (approve) {
+            if (!confirm("Duyệt yêu cầu xuất âm này?")) {
+                return;
+            }
+            reviewNote = prompt("Ghi chú duyệt (không bắt buộc):", "")?.trim() || null;
+        }
+        else {
+            reviewNote = prompt("Nhập lý do từ chối:", "")?.trim() || null;
+            if (!reviewNote) {
+                showActionMessage("Lý do từ chối là bắt buộc.");
+                return;
+            }
+        }
+
+        setActionBusy(button, true);
+        try {
+            const response = await fetch(endpoint, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({ reviewNote })
+            });
+
+            if (!response.ok) {
+                throw new Error(await readActionResponseMessage(response));
+            }
+
+            const result = await readActionResponse(response);
+            if (result?.success === false) {
+                throw new Error(result.message || "Không thể xử lý yêu cầu phê duyệt.");
+            }
+
+            showActionMessage(
+                approve ? "Đã duyệt và xác nhận phiếu xuất âm." : "Đã từ chối yêu cầu xuất âm.",
+                "success");
+            window.setTimeout(() => window.location.reload(), 500);
+        }
+        catch (error) {
+            showActionMessage(error.message || "Không thể xử lý yêu cầu phê duyệt.");
+            setActionBusy(button, false);
+        }
+    }
+
     // =====================================================
     // EVENTS
     // =====================================================
@@ -759,6 +876,19 @@ const InventoryDocument = (() => {
                         cancelDraftBtn.dataset.id,
                         cancelDraftBtn
                     );
+
+                    return;
+                }
+
+                const approveNegativeBtn = e.target.closest(".btn-approve-negative");
+                if (approveNegativeBtn) {
+                    reviewNegativeApproval(approveNegativeBtn, true);
+                    return;
+                }
+
+                const rejectNegativeBtn = e.target.closest(".btn-reject-negative");
+                if (rejectNegativeBtn) {
+                    reviewNegativeApproval(rejectNegativeBtn, false);
                 }
             });
 
@@ -904,10 +1034,9 @@ const InventoryDocument = (() => {
         const query =
             buildExcelExportQuery();
 
-        const url =
-            query
-                ? `/Admin/AdminInventoryDocument/ExportExcel?${query}`
-                : "/Admin/AdminInventoryDocument/ExportExcel";
+        const url = query
+            ? `${getEndpoint("exportExcelUrl")}?${query}`
+            : getEndpoint("exportExcelUrl");
 
         setActionBusy(
             button,
@@ -1123,7 +1252,7 @@ const InventoryDocument = (() => {
 
             const response =
                 await fetch(
-                    "/Admin/AdminInventoryDocument/ExportFile",
+                    getEndpoint("exportFileUrl"),
                     {
                         method: "POST",
 

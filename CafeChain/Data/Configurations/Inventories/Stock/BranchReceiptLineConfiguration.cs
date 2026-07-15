@@ -60,6 +60,16 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.RestockRequestId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.SourceInventoryTransferDetail)
+                .WithMany()
+                .HasForeignKey(x => x.SourceInventoryTransferDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SourceTransferCostAllocation)
+                .WithMany()
+                .HasForeignKey(x => x.SourceTransferCostAllocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.RestockRequestFulfillment)
                 .WithMany()
                 .HasForeignKey(x => x.RestockRequestFulfillmentId)
@@ -113,6 +123,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 
             entity.HasIndex(x => x.BranchReceiptId);
             entity.HasIndex(x => x.RestockRequestId);
+            entity.HasIndex(x => new { x.BranchReceiptId, x.SourceTransferCostAllocationId })
+                .IsUnique()
+                .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
             entity.HasIndex(x => x.IngredientId);
             entity.HasIndex(x => x.PreparedItemId);
         }

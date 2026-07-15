@@ -1,5 +1,18 @@
 const InventoryCreate = (() => {
 
+    const nativeFetch = window.fetch.bind(window);
+    const fetch = (input, init = {}) => {
+        const options = { ...init };
+        const method = String(options.method || "GET").toUpperCase();
+        if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+            const headers = new Headers(options.headers || {});
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) headers.set("RequestVerificationToken", token);
+            options.headers = headers;
+        }
+        return nativeFetch(input, options);
+    };
+
     const selector = {
         modal: "#inventoryCreateModal",
         content: "#inventoryCreateContent",
@@ -14,6 +27,8 @@ const InventoryCreate = (() => {
         partnerName: "#PartnerName",
         store: "#storeSelect",
         note: "#Note",
+        negativeReason: "#NegativeReason",
+        negativePreflightPanel: "#negativePreflightPanel",
         notePurposeHint: "#notePurposeHint",
         title: "#inventoryCreateTitle",
         subtitle: "#inventoryCreateSubtitle",
@@ -24,12 +39,28 @@ const InventoryCreate = (() => {
         rowTemplate: "#ingredientRowTemplate",
         addIngredient: "#btnAddIngredient",
         saveDraft: "#btnSaveDraft",
-        createDocument: "#btnCreateDocument",
-        suggestInput: "#btnAiSuggestInput",
-        inputSuggestionPanel: "#aiInputSuggestionPanel",
-        analyzeSupplier: "#btnAnalyzeSupplier",
-        aiPanel: "#aiSupplierPanel"
+        createDocument: "#btnCreateDocument"
     };
+
+    function getEndpoint(name) {
+        const endpoint = document.querySelector("#inventoryDocumentPage")?.dataset[name];
+        if (!endpoint) {
+            throw new Error(`Thiếu cấu hình endpoint: ${name}.`);
+        }
+
+        return endpoint;
+    }
+
+    function appendQuery(endpoint, params = {}) {
+        const url = new URL(endpoint, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.set(key, String(value));
+            }
+        });
+
+        return url.toString();
+    }
 
     const partnerType = {
         none: 0,
@@ -50,6 +81,9 @@ const InventoryCreate = (() => {
         importPurchase: 1,
         importAdjustment: 3,
         sale: 5,
+        gift: 7,
+        debt: 8,
+        sample: 9,
         adjustmentOut: 10,
         stockTake: 11,
         damaged: 12,
@@ -64,10 +98,6 @@ const InventoryCreate = (() => {
     let isSupplierIngredientFallback = false;
     let summaryTimer = null;
     let currentRequestKey = null;
-    let supplierAnalysisController = null;
-    let supplierSuggestion = null;
-    let inputSuggestionController = null;
-    let inputSuggestion = null;
 
     async function open(type) {
 
@@ -91,8 +121,7 @@ const InventoryCreate = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/CreateModal?type=${encodeURIComponent(type)}`);
+                await fetch(appendQuery(getEndpoint("createModalUrl"), { type }));
 
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -218,23 +247,6 @@ const InventoryCreate = (() => {
             form.querySelector(
                 selector.store);
 
-        const analyzeButton = form.querySelector(selector.analyzeSupplier);
-        const suggestInputButton = form.querySelector(selector.suggestInput);
-        suggestInputButton?.classList.toggle("d-none", !isImportPurchase());
-        suggestInputButton?.addEventListener("click", suggestInventoryInput);
-        form.querySelector("#btnApplyInputSuggestion")?.addEventListener("click", applyInventoryInputSuggestion);
-        form.querySelector("#btnToggleInputSuggestion")?.addEventListener("click", () =>
-            form.querySelector("#aiInputSuggestionDetails")?.classList.toggle("d-none"));
-        form.querySelector("#btnDismissInputSuggestion")?.addEventListener("click", () =>
-            form.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none"));
-        analyzeButton?.classList.toggle("d-none", !isImportPurchase());
-        analyzeButton?.addEventListener("click", analyzeSupplier);
-        form.querySelector("#btnApplySupplierSuggestion")?.addEventListener("click", applySupplierSuggestion);
-        form.querySelector("#btnToggleSupplierComparisons")?.addEventListener("click", () =>
-            form.querySelector("#aiSupplierComparisons")?.classList.toggle("d-none"));
-        form.querySelector("#btnDismissSupplierSuggestion")?.addEventListener("click", () =>
-            form.querySelector(selector.aiPanel)?.classList.add("d-none"));
-
         supplierSelect
             ?.addEventListener(
                 "change",
@@ -243,8 +255,6 @@ const InventoryCreate = (() => {
                     if (!isImportPurchase()) {
                         return;
                     }
-
-                    invalidateAiResults();
 
                     syncPartnerFromSupplier();
                     updateEntryGuards();
@@ -260,7 +270,6 @@ const InventoryCreate = (() => {
                 "change",
                 async () => {
 
-                    invalidateAiResults();
                     updateEntryGuards();
 
                     if (isImportAdjustment()) {
@@ -271,22 +280,13 @@ const InventoryCreate = (() => {
                     }
 
                     if (usesStoreInventorySource()) {
-                        await loadStoreExportIngredients(
+                        await loadStoreInventoryIngredients(
                             storeSelect.value
                         );
                         return;
                     }
 
-                    if (usesActiveIngredientSource()) {
-                        await loadActiveIngredients(
-                            storeSelect.value
-                        );
-                    }
-
                 });
-
-        tableBody?.addEventListener("change", invalidateAiResults);
-        tableBody?.addEventListener("input", invalidateAiResults);
 
         form
             .querySelector(selector.partnerName)
@@ -457,7 +457,7 @@ const InventoryCreate = (() => {
             return;
         }
 
-        if (isImportAdjustment() || usesActiveIngredientSource()) {
+        if (isImportAdjustment() || usesStoreInventorySource()) {
             syncPurposePartner();
             toggleManualRows(true);
             setPriceEditable(canEditUnitPriceForCurrentPurpose());
@@ -470,10 +470,7 @@ const InventoryCreate = (() => {
                 loadActiveIngredients(storeId);
             }
             else if (usesStoreInventorySource()) {
-                loadStoreExportIngredients(storeId);
-            }
-            else {
-                loadActiveIngredients(storeId);
+                loadStoreInventoryIngredients(storeId);
             }
 
             return;
@@ -502,9 +499,6 @@ const InventoryCreate = (() => {
 
         const showSupplier =
             isImportPurchase();
-
-        document.querySelector(selector.analyzeSupplier)?.classList.toggle("d-none", !showSupplier);
-        document.querySelector(selector.suggestInput)?.classList.toggle("d-none", !showSupplier);
 
         supplierField?.classList.toggle("d-none", !showSupplier);
         partnerField?.classList.toggle("d-none", !shouldShowPartnerField());
@@ -870,9 +864,10 @@ const InventoryCreate = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/ActiveIngredients?storeId=${encodeURIComponent(storeId)}&purpose=${encodeURIComponent(documentPurpose.importAdjustment)}`
-                );
+                await fetch(appendQuery(getEndpoint("activeIngredientsUrl"), {
+                    storeId,
+                    purpose: documentPurpose.importAdjustment
+                }));
 
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -900,8 +895,9 @@ const InventoryCreate = (() => {
         }
     }
 
-    async function loadStoreExportIngredients(storeId) {
+    async function loadStoreInventoryIngredients(storeId) {
 
+        const hadSelectedIngredients = hasSelectedIngredientRows();
         supplierIngredients = [];
         isIngredientSourceLoading = true;
         isSupplierIngredientFallback = false;
@@ -919,9 +915,11 @@ const InventoryCreate = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/StoreExportIngredients?storeId=${encodeURIComponent(storeId)}`
-                );
+                await fetch(appendQuery(getEndpoint("storeInventoryIngredientsUrl"), {
+                    storeId,
+                    type: getCurrentDocumentType(),
+                    purpose: getCurrentPurpose()
+                }));
 
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -934,6 +932,13 @@ const InventoryCreate = (() => {
             renderIngredientOptions();
             setPriceEditable(isManualPricePurpose());
             updateEntryGuards();
+
+            if (hadSelectedIngredients) {
+                notify(
+                    "Danh sách nguyên liệu đã được làm mới theo tồn kho của cửa hàng và loại phiếu đang chọn.",
+                    "warning"
+                );
+            }
 
         }
         catch (error) {
@@ -968,9 +973,7 @@ const InventoryCreate = (() => {
         try {
 
             const response =
-                await fetch(
-                    `/Admin/AdminInventoryDocument/SupplierIngredients?supplierId=${encodeURIComponent(supplierId)}`
-                );
+                await fetch(appendQuery(getEndpoint("supplierIngredientsUrl"), { supplierId }));
 
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -1207,9 +1210,10 @@ const InventoryCreate = (() => {
         }
 
         const response =
-            await fetch(
-                `/Admin/AdminInventoryDocument/ActiveIngredients?storeId=${encodeURIComponent(storeId)}&purpose=${encodeURIComponent(documentPurpose.importPurchase)}`
-            );
+            await fetch(appendQuery(getEndpoint("activeIngredientsUrl"), {
+                storeId,
+                purpose: documentPurpose.importPurchase
+            }));
 
         if (!response.ok) {
             throw new Error(await response.text());
@@ -1381,6 +1385,13 @@ const InventoryCreate = (() => {
 
         tableBody.innerHTML = "";
         addIngredientRow();
+    }
+
+    function hasSelectedIngredientRows() {
+
+        return Array
+            .from(document.querySelectorAll(`${selector.tableBody} .ingredient-select`))
+            .some(select => Boolean(select.value));
     }
 
     function ensureAtLeastOneRow() {
@@ -1741,7 +1752,7 @@ const InventoryCreate = (() => {
 
     function clampRowQuantityToAvailableStock(row, item, quantity, baseQuantity) {
 
-        if (!item || !usesStoreInventorySource()) {
+        if (!item || !usesStoreInventorySource() || allowsManualNegativeExport() || isStockTake()) {
             return { quantity, baseQuantity };
         }
 
@@ -1936,7 +1947,7 @@ const InventoryCreate = (() => {
 
             updateSummary(
                 await postJson(
-                    "/Admin/AdminInventoryDocument/Calculate",
+                    getEndpoint("calculateUrl"),
                     dto)
             );
 
@@ -1996,10 +2007,9 @@ const InventoryCreate = (() => {
             return;
         }
 
-        const endpoint =
-            saveAsDraft
-                ? "/Admin/AdminInventoryDocument/SaveDraft"
-                : "/Admin/AdminInventoryDocument/Create";
+        const endpoint = saveAsDraft
+            ? getEndpoint("saveDraftUrl")
+            : getEndpoint("submitUrl");
 
         const button =
             document.querySelector(
@@ -2011,6 +2021,20 @@ const InventoryCreate = (() => {
         setButtonBusy(button, true);
 
         try {
+
+            if (!saveAsDraft) {
+                const preflightResponse = await postJson(getEndpoint("preflightUrl"), dto);
+                const preflight = preflightResponse.preflight || preflightResponse.Preflight;
+                renderNegativePreflight(preflight);
+                const outcome = String(preflight?.outcome ?? preflight?.Outcome ?? "");
+                if (outcome === "3" || outcome.toLowerCase() === "blocked") {
+                    throw new Error("Preflight đã chặn phiếu. Vui lòng kiểm tra projected after và reason code.");
+                }
+                if ((outcome === "2" || outcome.toLowerCase() === "approvalrequired")
+                    && !dto.negativeReason?.trim()) {
+                    throw new Error("Lý do xuất âm là bắt buộc trước khi gửi yêu cầu phê duyệt.");
+                }
+            }
 
             const result =
                 await postJson(endpoint, dto);
@@ -2115,6 +2139,9 @@ const InventoryCreate = (() => {
 
             note:
                 document.querySelector(selector.note)?.value || null,
+
+            negativeReason:
+                document.querySelector(selector.negativeReason)?.value?.trim() || null,
 
             partnerType:
                 effectivePartnerType,
@@ -2300,288 +2327,6 @@ const InventoryCreate = (() => {
         };
     }
 
-    async function suggestInventoryInput() {
-        if (!isImportPurchase()) {
-            showError("Chỉ gợi ý dữ liệu cho phiếu nhập mua hàng.");
-            return;
-        }
-
-        const dto = buildDto(false);
-        if (!dto.storeId || !dto.documentDate) {
-            showError("Hãy chọn cửa hàng trước khi dùng AI Gợi Ý.");
-            return;
-        }
-
-        inputSuggestionController?.abort();
-        inputSuggestionController = new AbortController();
-        const timeoutId = setTimeout(() => inputSuggestionController?.abort(), 125000);
-        const button = document.querySelector(selector.suggestInput);
-        setButtonBusy(button, true);
-
-        try {
-            const response = await fetch("/Admin/AI/SuggestInventoryInput", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "RequestVerificationToken": document.querySelector(`${selector.form} input[name="__RequestVerificationToken"]`)?.value || ""
-                },
-                body: JSON.stringify({
-                    type: dto.type,
-                    purpose: dto.purpose,
-                    storeId: dto.storeId,
-                    documentDate: dto.documentDate
-                }),
-                signal: inputSuggestionController.signal
-            });
-            const json = await response.json();
-            if (!response.ok || !json.success)
-                throw new Error(json.message || "Không có dữ liệu phù hợp để tạo gợi ý.");
-            inputSuggestion = json.data;
-            renderInventoryInputSuggestion(inputSuggestion);
-        }
-        catch (error) {
-            if (error.name !== "AbortError") showError(error.message || "Không thể tạo gợi ý nhập kho.");
-        }
-        finally {
-            clearTimeout(timeoutId);
-            setButtonBusy(button, false);
-        }
-    }
-
-    function renderInventoryInputSuggestion(result) {
-        const panel = document.querySelector(selector.inputSuggestionPanel);
-        if (!panel) return;
-        panel.classList.remove("d-none");
-        setText(panel, "#aiInputSuggestionSource", result.usedOllama ? "Ollama diễn giải" : "Fallback C#");
-        setText(panel, "#aiInputSuggestionSummary", result.summary || result.message);
-        setText(panel, "#aiInputSuggestionReason", result.reason || "");
-        panel.querySelector("#aiInputSuggestionWarnings").innerHTML = (result.warnings || [])
-            .map(x => `<div><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(x)}</div>`).join("");
-        panel.querySelector("#aiInputSuggestionDetails").innerHTML = `
-            <div class="mb-2"><strong>${escapeHtml(result.supplierName || "Chưa có NCC bao phủ đủ")}</strong> · Tổng dự kiến ${formatCurrency(result.totalAmount)} VNĐ</div>
-            <table class="table table-sm"><thead><tr><th>Nguyên liệu</th><th>Tồn khả dụng</th><th>Ngưỡng</th><th>SL đề xuất</th><th>MOQ</th><th>Thành tiền</th></tr></thead><tbody>
-            ${(result.items || []).map(x => `<tr><td>${escapeHtml(x.ingredientName)}</td><td>${formatQuantity(x.usableQuantity)}</td><td>${formatQuantity(x.minimumStockLevel)}</td><td>${formatQuantity(x.quantity)} ${escapeHtml(x.unitName)}</td><td>${formatQuantity(x.minimumOrderQuantity)}</td><td>${formatCurrency(x.lineTotal)} VNĐ</td></tr>`).join("")}
-            </tbody></table>${renderSupplierComparisonTable(result.comparisons || [])}`;
-        panel.querySelector("#btnApplyInputSuggestion").disabled = !result.canApply || !(result.items || []).length;
-        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-
-    async function applyInventoryInputSuggestion() {
-        const result = inputSuggestion;
-        if (!result?.requiresUserConfirmation || !(result.items || []).length) return;
-        const confirmation = await Swal.fire({
-            icon: "question",
-            title: "Áp dụng danh sách AI gợi ý?",
-            text: "Các dòng hiện tại sẽ được thay bằng danh sách gợi ý. Phiếu sẽ không tự submit.",
-            showCancelButton: true,
-            confirmButtonText: "Áp dụng",
-            cancelButtonText: "Giữ dữ liệu cũ"
-        });
-        if (!confirmation.isConfirmed) return;
-
-        const snapshot = collectDetails();
-        try {
-            const supplierSelect = document.querySelector(selector.supplier);
-            supplierSelect.value = String(result.supplierId);
-            syncPartnerFromSupplier();
-            await loadSupplierIngredients(String(result.supplierId));
-            resetRows();
-            (result.items || []).forEach((suggestion, index) => {
-                const row = index === 0
-                    ? document.querySelector(`${selector.tableBody} .ingredient-row`)
-                    : addIngredientRow();
-                const select = row?.querySelector(".ingredient-select");
-                if (!row || !select) throw new Error("Không thể tạo dòng nguyên liệu.");
-                select.value = String(suggestion.ingredientId);
-                if (select.value !== String(suggestion.ingredientId))
-                    throw new Error(`Nhà cung cấp không còn cung cấp ${suggestion.ingredientName}.`);
-                applyIngredientToRow(row, Number(suggestion.ingredientId), true);
-                const unitSelect = row.querySelector(".unit-select");
-                unitSelect.value = String(suggestion.unitId);
-                if (unitSelect.value !== String(suggestion.unitId))
-                    throw new Error(`Đơn vị của ${suggestion.ingredientName} không còn hợp lệ.`);
-                setValue(row, ".unit-id", suggestion.unitId);
-                setValue(row, ".quantity", suggestion.quantity);
-                setValue(row, ".unit-price", suggestion.unitPrice);
-                setValue(row, ".base-quantity", suggestion.suggestedBaseQuantity);
-                updateRowAmount(row);
-            });
-            requestSummary();
-            document.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none");
-            inputSuggestion = null;
-            notify("Đã áp dụng danh sách gợi ý. Vui lòng kiểm tra trước khi tạo phiếu.");
-        }
-        catch (error) {
-            restoreSupplierRows(snapshot);
-            showError(`${error.message || "Không thể áp dụng gợi ý."} Dữ liệu cũ đã được khôi phục.`);
-        }
-    }
-
-    async function analyzeSupplier() {
-        if (!isImportPurchase()) {
-            showError("Chỉ phân tích nhà cung cấp cho phiếu nhập mua hàng.");
-            return;
-        }
-
-        const dto = buildDto(false);
-        const details = (dto.details || []).map(item => ({
-            ingredientId: item.ingredientId,
-            unitId: item.unitId,
-            quantity: item.quantity
-        }));
-        if (!dto.storeId || !dto.documentDate || !details.length
-            || details.some(x => !x.ingredientId || !x.unitId || x.quantity <= 0)) {
-            showError("Hãy chọn cửa hàng và nhập đầy đủ nguyên liệu, đơn vị, số lượng trước khi phân tích.");
-            return;
-        }
-
-        supplierAnalysisController?.abort();
-        supplierAnalysisController = new AbortController();
-        const timeoutId = setTimeout(() => supplierAnalysisController?.abort(), 125000);
-        const button = document.querySelector(selector.analyzeSupplier);
-        setButtonBusy(button, true);
-
-        try {
-            const response = await fetch("/Admin/AI/SuggestSupplier", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "RequestVerificationToken": document.querySelector(`${selector.form} input[name="__RequestVerificationToken"]`)?.value || ""
-                },
-                body: JSON.stringify({
-                    type: dto.type,
-                    purpose: dto.purpose,
-                    storeId: dto.storeId,
-                    documentDate: dto.documentDate,
-                    currentSupplierId: dto.supplierId,
-                    details
-                }),
-                signal: supplierAnalysisController.signal
-            });
-            const json = await response.json();
-            if (!response.ok || !json.success) throw new Error(json.message || "Không đủ dữ liệu để phân tích.");
-            supplierSuggestion = json.data;
-            renderSupplierSuggestion(supplierSuggestion);
-        }
-        catch (error) {
-            if (error.name !== "AbortError") showError(error.message || "Không thể phân tích nhà cung cấp.");
-        }
-        finally {
-            clearTimeout(timeoutId);
-            setButtonBusy(button, false);
-        }
-    }
-
-    function renderSupplierSuggestion(result) {
-        const panel = document.querySelector(selector.aiPanel);
-        if (!panel) return;
-        panel.classList.remove("d-none");
-        setText(panel, "#aiSupplierTitle", `Đề xuất: ${result.recommendedSupplierName || "Chưa xác định"}`);
-        setText(panel, "#aiSupplierRisk", result.riskLevel || "High");
-        panel.querySelector("#aiSupplierRisk").className = `ai-risk-badge ai-risk-${String(result.riskLevel || "High").toLowerCase()}`;
-        setText(panel, "#aiSupplierSummary", result.summary || result.message);
-        setText(panel, "#aiSupplierReason", result.reason || "");
-        panel.querySelector("#aiSupplierMetrics").innerHTML = `
-            <span>Chi phí đề xuất <strong>${formatCurrency(result.recommendedTotalCost)} VNĐ</strong></span>
-            <span>Tiết kiệm <strong>${formatCurrency(result.savingsAmount)} VNĐ (${Number(result.savingsPercentage || 0).toLocaleString("vi-VN") }%)</strong></span>`;
-        panel.querySelector("#aiSupplierWarnings").innerHTML = (result.warnings || [])
-            .map(x => `<div><i class="fas fa-triangle-exclamation"></i> ${escapeHtml(x)}</div>`).join("");
-        panel.querySelector("#aiSupplierComparisons").innerHTML = renderSupplierComparisonTable(result.comparisons || []);
-        panel.querySelector("#btnApplySupplierSuggestion").disabled = !result.recommendedSupplierId || !(result.applyItems || []).length;
-        panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }
-
-    async function applySupplierSuggestion() {
-        const result = supplierSuggestion;
-        if (!result?.recommendedSupplierId || !result.requiresUserConfirmation) return;
-        const currentSupplierId = readInt(document.querySelector(selector.supplier)?.value);
-        const changesSupplier = currentSupplierId !== Number(result.recommendedSupplierId);
-        const confirmation = await Swal.fire({
-            icon: "question",
-            title: changesSupplier ? "Chuyển nhà cung cấp?" : "Áp dụng gợi ý?",
-            text: "Hệ thống sẽ điền lại nhà cung cấp, đơn vị, số lượng và đơn giá. Phiếu sẽ không tự submit.",
-            showCancelButton: true,
-            confirmButtonText: "Áp dụng",
-            cancelButtonText: "Bỏ qua"
-        });
-        if (!confirmation.isConfirmed) return;
-
-        const snapshot = collectDetails();
-        try {
-            const supplierSelect = document.querySelector(selector.supplier);
-            supplierSelect.value = String(result.recommendedSupplierId);
-            syncPartnerFromSupplier();
-            await loadSupplierIngredients(String(result.recommendedSupplierId));
-
-            resetRows();
-            (result.applyItems || []).forEach((suggestion, index) => {
-                const row = index === 0
-                    ? document.querySelector(`${selector.tableBody} .ingredient-row`)
-                    : addIngredientRow();
-                const select = row?.querySelector(".ingredient-select");
-                if (!row || !select) throw new Error("Không thể tạo dòng nguyên liệu.");
-                select.value = String(suggestion.ingredientId);
-                if (select.value !== String(suggestion.ingredientId))
-                    throw new Error(`Nhà cung cấp không còn cung cấp ${suggestion.ingredientName}.`);
-                applyIngredientToRow(row, Number(suggestion.ingredientId), true);
-                const unitSelect = row.querySelector(".unit-select");
-                unitSelect.value = String(suggestion.unitId);
-                setValue(row, ".unit-id", suggestion.unitId);
-                setValue(row, ".quantity", suggestion.quantity);
-                setValue(row, ".unit-price", suggestion.unitPrice);
-                setValue(row, ".base-quantity", suggestion.baseQuantity);
-                updateRowAmount(row);
-            });
-            requestSummary();
-            document.querySelector(selector.aiPanel)?.classList.add("d-none");
-            supplierSuggestion = null;
-            notify("Đã áp dụng gợi ý. Vui lòng kiểm tra trước khi tạo phiếu.");
-        }
-        catch (error) {
-            const supplierSelect = document.querySelector(selector.supplier);
-            if (supplierSelect && currentSupplierId) {
-                supplierSelect.value = String(currentSupplierId);
-                syncPartnerFromSupplier();
-                await loadSupplierIngredients(String(currentSupplierId));
-                restoreSupplierRows(snapshot);
-            }
-            showError(`${error.message || "Không thể áp dụng gợi ý."} Dữ liệu cũ chưa được submit; vui lòng kiểm tra lại form.`);
-            console.warn("Supplier suggestion apply failed", { itemCount: snapshot.length });
-        }
-    }
-
-    function restoreSupplierRows(details) {
-        resetRows();
-        (details || []).forEach((item, index) => {
-            const row = index === 0 ? document.querySelector(`${selector.tableBody} .ingredient-row`) : addIngredientRow();
-            const select = row?.querySelector(".ingredient-select");
-            if (!row || !select) return;
-            select.value = String(item.ingredientId);
-            if (!select.value) return;
-            applyIngredientToRow(row, Number(item.ingredientId), true);
-            const unitSelect = row.querySelector(".unit-select");
-            unitSelect.value = String(item.unitId);
-            setValue(row, ".unit-id", item.unitId);
-            setValue(row, ".quantity", item.quantity);
-            setValue(row, ".unit-price", item.unitPrice);
-            updateRowAmount(row);
-        });
-        requestSummary();
-    }
-
-    function renderSupplierComparisonTable(comparisons) {
-        return `<table class="table table-sm"><thead><tr><th>Nhà cung cấp</th><th>Độ phủ</th><th>Thiếu</th><th>Tổng chi phí</th><th>Giao hàng</th><th>Rủi ro</th></tr></thead><tbody>
-            ${comparisons.map(x => `<tr><td>${escapeHtml(x.supplierName)}</td><td>${x.coveredIngredientCount || 0}/${x.totalIngredientCount || 0}</td><td>${(x.missingIngredients || []).map(escapeHtml).join(", ") || "-"}</td><td>${x.totalCost == null ? "-" : `${formatCurrency(x.totalCost)} VNĐ`}</td><td>${x.leadTimeDays == null ? "Chưa có" : `${x.leadTimeDays} ngày`}</td><td>${escapeHtml(x.riskLevel)}</td></tr>`).join("")}
-            </tbody></table>`;
-    }
-
-    function invalidateAiResults() {
-        document.querySelector(selector.inputSuggestionPanel)?.classList.add("d-none");
-        document.querySelector(selector.aiPanel)?.classList.add("d-none");
-        inputSuggestion = null;
-        supplierSuggestion = null;
-    }
-
     async function readResponseMessage(response) {
 
         const contentType =
@@ -2664,11 +2409,13 @@ const InventoryCreate = (() => {
         }
 
         if (typeof Swal !== "undefined") {
+            const isError = type === "error";
+            const isWarning = type === "warning";
             Swal.fire({
                 icon:
-                    type === "error" ? "error" : "success",
+                    isError ? "error" : isWarning ? "warning" : "success",
                 title:
-                    type === "error" ? "Không thể xử lý" : "Thành công",
+                    isError ? "Không thể xử lý" : isWarning ? "Danh sách đã thay đổi" : "Thành công",
                 text:
                     message,
                 confirmButtonText:
@@ -3098,6 +2845,22 @@ const InventoryCreate = (() => {
         });
     }
 
+    function renderNegativePreflight(preflight) {
+        const panel = document.querySelector(selector.negativePreflightPanel);
+        if (!panel) return;
+        const lines = preflight?.lines || preflight?.Lines || [];
+        panel.classList.toggle("d-none", lines.length === 0);
+        panel.textContent = lines.map(line => {
+            const before = line.beforeQty ?? line.BeforeQty ?? 0;
+            const issue = line.issueQty ?? line.IssueQty ?? 0;
+            const after = line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0;
+            const limit = line.effectiveMaxNegativeQty ?? line.EffectiveMaxNegativeQty ?? 0;
+            const outcome = line.outcome ?? line.Outcome ?? "";
+            const reason = line.reasonCode ?? line.ReasonCode ?? "";
+            return `#${line.ingredientId ?? line.IngredientId}: Before ${before} | Issue ${issue} | Projected ${after} | Limit ${limit} | ${outcome} | ${reason}`;
+        }).join("\n");
+    }
+
     function readNumber(value) {
 
         if (value === null || value === undefined || value === "") {
@@ -3150,6 +2913,16 @@ const InventoryCreate = (() => {
             && getCurrentPurpose() === documentPurpose.sale;
     }
 
+    function allowsManualNegativeExport() {
+        if (getCurrentDocumentType() !== documentType.export) return false;
+        return [
+            documentPurpose.sale,
+            documentPurpose.gift,
+            documentPurpose.debt,
+            documentPurpose.sample
+        ].includes(getCurrentPurpose());
+    }
+
     function isAdjustmentOut() {
 
         return getCurrentDocumentType() === documentType.export
@@ -3186,21 +2959,14 @@ const InventoryCreate = (() => {
         return isManualPricePurpose() || isSupplierIngredientFallback;
     }
 
-    function usesActiveIngredientSource() {
-
-        const type =
-            getCurrentDocumentType();
-
-        return type !== documentType.import;
-    }
-
     function usesStoreInventorySource() {
 
         const type =
             getCurrentDocumentType();
 
         return type === documentType.export
-            || type === documentType.waste;
+            || type === documentType.waste
+            || type === documentType.stockTake;
     }
 
     function createRequestKey() {

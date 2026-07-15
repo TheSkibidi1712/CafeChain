@@ -25,10 +25,12 @@ namespace CafeChain.Models.Inventories.Transfers
         public int? CancelledByStaffId { get; set; }
 
         public DateTime? ConfirmedAt { get; set; }
+        public DateTime? DispatchedAt { get; set; }
         public DateTime? CancelledAt { get; set; }
         public DateTime CreatedAt { get; set; }
 
         public string? Note { get; set; }
+        public byte[] RowVersion { get; set; } = [];
 
         public virtual Store FromStore { get; set; }
         public virtual Store ToStore { get; set; }

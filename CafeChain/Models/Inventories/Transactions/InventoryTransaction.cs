@@ -27,6 +27,7 @@ namespace CafeChain.Models.Inventories.Transactions
         public decimal? TotalCost { get; set; }
 
         public int? InventoryDocumentId { get; set; }
+        public int? InventoryDocumentDetailId { get; set; }
         public int? InventoryTransferId { get; set; }
         public int? InventoryTransferDetailId { get; set; }
         public int? ReferenceOrderId { get; set; }
@@ -53,6 +54,7 @@ namespace CafeChain.Models.Inventories.Transactions
 
         public virtual StoreInventory StoreInventory { get; set; }
         public virtual InventoryDocument? InventoryDocument { get; set; }
+        public virtual InventoryDocumentDetail? InventoryDocumentDetail { get; set; }
         public virtual InventoryTransfer? InventoryTransfer { get; set; }
         public virtual InventoryTransferDetail? InventoryTransferDetail { get; set; }
         public virtual Order? ReferenceOrder { get; set; }

@@ -37,6 +37,9 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.NegativeReason)
+                .HasMaxLength(1000);
+
             // ================= IDEMPOTENCY =================
 
             entity.Property(x => x.RequestKey)
@@ -48,6 +51,9 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
 
             entity.Property(x => x.IsProcessing)
                 .HasDefaultValue(false);
+
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion();
 
             // ================= PARTNER =================
 

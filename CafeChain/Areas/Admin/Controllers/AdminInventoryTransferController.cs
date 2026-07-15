@@ -5,9 +5,11 @@ using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.ViewModels.Admin.InventoryTransfers;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
+    [AutoValidateAntiforgeryToken]
     public class AdminInventoryTransferController : AdminBaseController
     {
         private readonly IAdminInventoryTransferService _service;
@@ -93,7 +95,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> ValidateStock([FromBody] InventoryTransferMutationDTO dto)
+        public async Task<IActionResult> Preflight([FromBody] InventoryTransferMutationDTO dto)
         {
             try
             {
@@ -109,11 +111,11 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
             }
             catch (Exception ex)
             {
@@ -128,13 +130,15 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> CreateDraft([FromBody] InventoryTransferMutationDTO dto)
+        public async Task<IActionResult> SaveDraft([FromBody] InventoryTransferMutationDTO dto)
         {
             try
             {
                 if (!await CanMutateTransferAsync(dto.FromStoreId, dto.ToStoreId))
                     return Forbid();
-                var result = await _service.CreateDraftAsync(dto);
+                var result = dto.TransferId.HasValue
+                    ? await _service.UpdateDraftAsync(dto.TransferId.Value, dto)
+                    : await _service.CreateDraftAsync(dto);
 
                 return Json(new
                 {
@@ -144,11 +148,15 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (Exception ex)
             {
@@ -185,11 +193,15 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (Exception ex)
             {
@@ -204,59 +216,62 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
-        public async Task<IActionResult> Confirm(int id, string? requestKey)
+        public async Task<IActionResult> Dispatch(int id, string? requestKey)
         {
+            if (id <= 0 || string.IsNullOrWhiteSpace(requestKey))
+                return BadRequest(new { success = false, message = "Id và RequestKey là bắt buộc." });
+
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanMutateTransferAsync(current.FromStoreId, current.ToStoreId))
+                return Forbid();
+
             try
             {
-                if (id <= 0)
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "Mã phiếu chuyển kho không hợp lệ."
-                    });
-                }
-
-                if (string.IsNullOrWhiteSpace(requestKey))
-                {
-                    return BadRequest(new
-                    {
-                        success = false,
-                        message = "RequestKey là bắt buộc."
-                    });
-                }
-
-                var current = await _service.GetDetailAsync(id);
-                if (current == null)
-                    return NotFound();
-                if (!await CanMutateTransferAsync(current.FromStoreId, current.ToStoreId))
-                    return Forbid();
-
-                var result = await _service.ConfirmAsync(id, requestKey);
-
-                return Json(new
-                {
-                    success = true,
-                    transfer = result
-                });
+                return Json(new { success = true, transfer = await _service.DispatchAsync(id, requestKey) });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
             }
-            catch (Exception ex)
+            catch (UnauthorizedAccessException)
             {
-                _logger.LogError(ex, "Failed to confirm inventory transfer {TransferId}.", id);
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+            }
+        }
 
-                return BadRequest(new
-                {
-                    success = false,
-                    message = "Không thể xác nhận phiếu chuyển kho."
-                });
+        [HttpPost]
+        public async Task<IActionResult> Receive(int id, [FromBody] InventoryTransferReceiveDTO dto)
+        {
+            if (id <= 0 || string.IsNullOrWhiteSpace(dto.RequestKey))
+                return BadRequest(new { success = false, message = "Id và RequestKey là bắt buộc." });
+
+            var current = await _service.GetDetailAsync(id);
+            if (current == null)
+                return NotFound();
+            if (!await CanMutateStoreAsync(current.ToStoreId))
+                return Forbid();
+
+            try
+            {
+                return Json(new { success = true, transfer = await _service.ReceiveAsync(id, dto) });
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
         }
 
@@ -308,11 +323,15 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (Exception ex)
             {
@@ -328,7 +347,8 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool IsGlobalDocumentRole() =>
             User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AccountantWarehouse);
+            || User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanMutateTransfers() =>
             IsGlobalDocumentRole() || User.IsInRole(RoleConstants.AreaManager);
@@ -391,5 +411,30 @@ namespace CafeChain.Areas.Admin.Controllers
             && toStoreId > 0
             && await CanMutateStoreAsync(fromStoreId)
             && await CanMutateStoreAsync(toStoreId);
+
+        private IActionResult MutationFailure(InvalidOperationException exception)
+        {
+            var message = exception.Message;
+            if (message.Contains("IDEMPOTENCY_KEY_REUSED", StringComparison.Ordinal)
+                || message.Contains("CONCURRENCY", StringComparison.Ordinal)
+                || message.Contains("ROW_VERSION", StringComparison.Ordinal)
+                || message.Contains("STALE", StringComparison.Ordinal)
+                || message.Contains("REQUEST_IN_PROGRESS", StringComparison.Ordinal)
+                || message.Contains("REQUEST_PREVIOUSLY_FAILED", StringComparison.Ordinal)
+                || message.Contains("REQUEST_EXPIRED", StringComparison.Ordinal)
+                || message.Contains("REQUEST_KEY_UNAVAILABLE", StringComparison.Ordinal))
+            {
+                return Conflict(new { success = false, message });
+            }
+
+            if (message.Contains("REQUIRED", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("INVALID", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("bắt buộc", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { success = false, message });
+            }
+
+            return UnprocessableEntity(new { success = false, message });
+        }
     }
 }

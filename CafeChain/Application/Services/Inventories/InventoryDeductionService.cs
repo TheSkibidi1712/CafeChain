@@ -418,6 +418,7 @@ namespace CafeChain.Application.Services.Inventories
                 var runningQty = new Dictionary<int, decimal>(preMutationQty);
                 var pendingAllocations = new List<(InventoryTransaction Tx, RequirementLine Req, CostLayerAllocationSlice Slice)>();
                 var ledgerCompleteness = new Dictionary<InventoryTransaction, bool>();
+                var transactionByRequirement = new Dictionary<RequirementLine, InventoryTransaction>();
 
                 foreach (var ledger in ledgerGroups)
                 {
@@ -462,6 +463,7 @@ namespace CafeChain.Application.Services.Inventories
 
                     foreach (var req in lines)
                     {
+                        transactionByRequirement[req] = tx;
                         foreach (var slice in reqCostState[req].Slices)
                         {
                             pendingAllocations.Add((tx, req, slice));
@@ -494,6 +496,12 @@ namespace CafeChain.Application.Services.Inventories
                         });
                     }
 
+                    var pendingGenericGaps = new List<(
+                        SalesCostGap SalesGap,
+                        RequirementLine Requirement,
+                        InventoryTransaction Transaction,
+                        decimal MissingQuantity)>();
+
                     // Gaps only when inventory identity supports cost layers (Ingredient XOR PreparedItem).
                     foreach (var req in requirements
                         .Where(r => r.OrderDetailId.HasValue
@@ -506,7 +514,8 @@ namespace CafeChain.Application.Services.Inventories
                         if (state.IsComplete)
                             continue;
 
-                        _context.SalesCostGaps.Add(new SalesCostGap
+                        var missingQuantity = Math.Max(0m, req.RequiredQty - state.AllocatedQty);
+                        var salesGap = new SalesCostGap
                         {
                             OrderId = referenceOrderId.Value,
                             OrderDetailId = req.OrderDetailId!.Value,
@@ -515,11 +524,39 @@ namespace CafeChain.Application.Services.Inventories
                             PreparedItemId = req.PreparedItemId,
                             RequiredQuantity = req.RequiredQty,
                             AllocatedCostQuantity = state.AllocatedQty,
-                            MissingCostQuantity = Math.Max(0m, req.RequiredQty - state.AllocatedQty),
+                            MissingCostQuantity = missingQuantity,
                             BaseUnitId = req.BaseUnitId,
                             ReasonCode = SalesCogsCodes.Incomplete,
                             CreatedAtUtc = now
-                        });
+                        };
+
+                        _context.SalesCostGaps.Add(salesGap);
+                        pendingGenericGaps.Add((
+                            salesGap,
+                            req,
+                            transactionByRequirement[req],
+                            missingQuantity));
+                    }
+
+                    if (pendingGenericGaps.Count > 0)
+                    {
+                        await _context.SaveChangesAsync();
+                        foreach (var pending in pendingGenericGaps)
+                        {
+                            _context.InventoryNegativeCostGaps.Add(new InventoryNegativeCostGap
+                            {
+                                SourceType = InventoryNegativeCostGapSources.PosSale,
+                                StoreInventoryId = pending.Requirement.StoreInventoryId,
+                                IngredientId = pending.Requirement.IngredientId,
+                                PreparedItemId = pending.Requirement.PreparedItemId,
+                                SalesCostGapId = pending.SalesGap.SalesCostGapId,
+                                InventoryTransactionId = pending.Transaction.InventoryTransactionId,
+                                OriginalQuantity = pending.MissingQuantity,
+                                OutstandingQuantity = pending.MissingQuantity,
+                                OccurredAt = now,
+                                Status = InventoryNegativeCostGapStatuses.Open
+                            });
+                        }
                     }
 
                     await SnapshotOrderCogsAsync(lockedOrder, requirements, reqCostState, now);

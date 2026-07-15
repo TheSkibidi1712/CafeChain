@@ -339,9 +339,17 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.QuantityInvalid);
                 }
 
+                if (receipt.Lines.Any(x => !x.RestockRequestId.HasValue))
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                        "Phiếu nhận restock không được chứa dòng transfer.",
+                        errorCode: BranchReceiptErrorCodes.RequestNotFound);
+                }
+
                 // Lock restock requests in ascending ID order.
                 var requestIds = receipt.Lines
-                    .Select(l => l.RestockRequestId)
+                    .Select(l => l.RestockRequestId!.Value)
                     .Distinct()
                     .OrderBy(id => id)
                     .ToList();
@@ -364,7 +372,7 @@ namespace CafeChain.Application.Services.Inventories
                 // Validate each line
                 foreach (var line in receipt.Lines)
                 {
-                    var req = requests[line.RestockRequestId];
+                    var req = requests[line.RestockRequestId!.Value];
                     if (!IsReceivableStatus(req.Status))
                     {
                         await transaction.RollbackAsync();
@@ -421,7 +429,7 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     var posting = await _fulfillmentPostingService.RegisterAsync(new RegisterRestockFulfillmentPostingCommand
                     {
-                        RestockRequestId = line.RestockRequestId,
+                        RestockRequestId = line.RestockRequestId!.Value,
                         DestinationStoreId = receipt.StoreId,
                         SourceDocumentType = RestockFulfillmentDocumentTypes.BranchReceipt,
                         SourceDocumentId = receipt.BranchReceiptId,
@@ -443,7 +451,7 @@ namespace CafeChain.Application.Services.Inventories
                                 : BranchReceiptErrorCodes.RequestStateInvalid);
                     }
 
-                    requestUpdates[line.RestockRequestId] = posting.Data;
+                    requestUpdates[line.RestockRequestId!.Value] = posting.Data;
                 }
 
                 // Resolve / lock inventory rows ASC
@@ -987,7 +995,7 @@ namespace CafeChain.Application.Services.Inventories
                 Lines = (r.Lines ?? Enumerable.Empty<BranchReceiptLine>()).Select(l => new BranchReceiptLineDto
                 {
                     BranchReceiptLineId = l.BranchReceiptLineId,
-                    RestockRequestId = l.RestockRequestId,
+                    RestockRequestId = l.RestockRequestId ?? 0,
                     IngredientId = l.IngredientId,
                     PreparedItemId = l.PreparedItemId,
                     RecipeId = l.RecipeId,

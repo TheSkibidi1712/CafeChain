@@ -36,6 +36,10 @@ namespace CafeChain.Data.Configurations.Systems
             entity.Property(x => x.RequestBody)
                 .HasColumnType("nvarchar(max)");
 
+            entity.Property(x => x.PayloadHash)
+                .IsRequired()
+                .HasMaxLength(64);
+
             entity.Property(x => x.ResponseBody)
                 .HasColumnType("nvarchar(max)");
 

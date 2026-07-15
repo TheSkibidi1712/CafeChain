@@ -9,11 +9,11 @@ using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Approvals;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
 using Microsoft.EntityFrameworkCore;
-using CafeChain.Application.DTOs.AI;
 using Microsoft.EntityFrameworkCore.Storage;
 using CafeChain.Models.Enums.Inventory;
 
@@ -89,6 +89,15 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
 
                 .Include(x => x.Supplier)
 
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.RequesterStaff)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.ApproverStaff)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.Lines)
+
                 .AsNoTracking();
         }
 
@@ -99,15 +108,36 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     x.InventoryDocumentId == documentId);
         }
 
+        public async Task<List<InventoryNegativeCostGap>> GetNegativeCostGapsByDocumentAsync(int documentId)
+        {
+            return await _context.InventoryNegativeCostGaps
+                .AsNoTracking()
+                .Include(x => x.Settlements)
+                .Where(x => x.InventoryDocumentDetailId.HasValue
+                    && _context.InventoryDocumentDetails.Any(d =>
+                        d.InventoryDocumentDetailId == x.InventoryDocumentDetailId.Value
+                        && d.InventoryDocumentId == documentId))
+                .OrderBy(x => x.OccurredAt)
+                .ThenBy(x => x.InventoryNegativeCostGapId)
+                .ToListAsync();
+        }
+
         public async Task<InventoryDocument?> GetDocumentForConfirmAsync(int documentId)
         {
-            return await _context.InventoryDocuments
+            IQueryable<InventoryDocument> query = _context.InventoryDocuments;
+            if (_context.Database.IsSqlServer() && _context.Database.CurrentTransaction != null)
+                query = _context.InventoryDocuments.FromSqlInterpolated($"SELECT * FROM InventoryDocuments WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE InventoryDocumentId = {documentId}");
+
+            return await query
 
                 .Include(x => x.Store)
 
                 .Include(x => x.Staff)
 
                 .Include(x => x.Supplier)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.Lines)
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Ingredient)
@@ -131,6 +161,15 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.Staff)
 
                 .Include(x => x.Supplier)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.RequesterStaff)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.ApproverStaff)
+
+                .Include(x => x.NegativeApproval)
+                    .ThenInclude(x => x.Lines)
 
                 .Include(x => x.Details)
                     .ThenInclude(x => x.Ingredient)
@@ -272,34 +311,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
         }
 
         // =====================================================
-        // STORE INVENTORY SNAPSHOT
-        // =====================================================
-
-        public async Task<StoreInventorySnapshot?> GetStoreInventorySnapshotAsync(int storeId, int ingredientId)
-        {
-            return await _context.StoreInventorySnapshots
-
-                .FirstOrDefaultAsync(x =>
-                    x.StoreId == storeId
-                    && x.IngredientId == ingredientId);
-        }
-
-        public async Task AddStoreInventorySnapshotAsync(StoreInventorySnapshot snapshot)
-        {
-            await _context.StoreInventorySnapshots.AddAsync(snapshot);
-        }
-
-        public async Task AddStoreInventorySnapshotsAsync(IEnumerable<StoreInventorySnapshot> snapshots)
-        {
-            await _context.StoreInventorySnapshots.AddRangeAsync(snapshots);
-        }
-
-        public void UpdateStoreInventorySnapshot(StoreInventorySnapshot snapshot)
-        {
-            _context.StoreInventorySnapshots.Update(snapshot);
-        }
-
-        // =====================================================
         // INVENTORY TRANSACTION
         // =====================================================
 
@@ -419,6 +430,65 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             await _context.InventoryCostAllocations.AddRangeAsync(allocations);
         }
 
+        public void RemoveDocumentDetails(IEnumerable<InventoryDocumentDetail> details)
+        {
+            _context.InventoryDocumentDetails.RemoveRange(details);
+        }
+
+        public async Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.StoreInventories.FromSqlInterpolated(
+                    $"SELECT * FROM StoreInventories WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE StoreId = {storeId} AND IngredientId = {ingredientId} AND PreparedItemId IS NULL")
+                    .SingleOrDefaultAsync();
+            }
+
+            return await GetStoreInventoryAsync(storeId, ingredientId);
+        }
+
+        public async Task AddNegativeApprovalAsync(InventoryNegativeApproval approval)
+        {
+            await _context.InventoryNegativeApprovals.AddAsync(approval);
+        }
+
+        public async Task<InventoryNegativeApproval?> GetNegativeApprovalForUpdateAsync(int documentId)
+        {
+            IQueryable<InventoryNegativeApproval> query = _context.InventoryNegativeApprovals;
+            if (_context.Database.IsSqlServer())
+                query = _context.InventoryNegativeApprovals.FromSqlInterpolated($"SELECT * FROM InventoryNegativeApprovals WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE InventoryDocumentId = {documentId}");
+
+            return await query.Include(x => x.Lines).SingleOrDefaultAsync(x => x.InventoryDocumentId == documentId);
+        }
+
+        public void UpdateNegativeApproval(InventoryNegativeApproval approval)
+        {
+            _context.InventoryNegativeApprovals.Update(approval);
+        }
+
+        public async Task AddInventoryNegativeCostGapAsync(InventoryNegativeCostGap gap)
+        {
+            await _context.InventoryNegativeCostGaps.AddAsync(gap);
+        }
+
+        public async Task<List<InventoryNegativeCostGap>> GetOpenCostGapsForUpdateAsync(int storeInventoryId)
+        {
+            IQueryable<InventoryNegativeCostGap> query = _context.InventoryNegativeCostGaps
+                .Where(x => x.StoreInventoryId == storeInventoryId && x.OutstandingQuantity > 0);
+            if (_context.Database.IsSqlServer())
+            {
+                query = _context.InventoryNegativeCostGaps.FromSqlInterpolated(
+                    $"SELECT * FROM InventoryNegativeCostGaps WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE StoreInventoryId = {storeInventoryId} AND OutstandingQuantity > 0");
+            }
+
+            return await query.OrderBy(x => x.OccurredAt).ThenBy(x => x.InventoryNegativeCostGapId).ToListAsync();
+        }
+
+        public async Task AddCostGapSettlementsAsync(IEnumerable<InventoryCostGapSettlement> settlements)
+        {
+            await _context.InventoryCostGapSettlements.AddRangeAsync(settlements);
+        }
+
         // =====================================================
         // INVENTORY DEBT
         // =====================================================
@@ -508,21 +578,12 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 _ => "PK"
             };
 
-            string date = DateTime.Today.ToString("yyyyMMdd");
-
-            var query = _context.InventoryDocuments
-                .Where(x =>
-                    x.Type == type
-                    && x.DocumentDate.Date == DateTime.Today);
-
-            if (purpose.HasValue)
-            {
-                query = query.Where(x => x.Purpose == purpose.Value);
-            }
-
-            int count = await query.CountAsync();
-
-            return $"{prefix}-{date}-{count + 1:000}";
+            var today = DateTime.Today;
+            var next = await CafeChain.Infrastrusture.Repositories.DocumentNumberCounterAllocator.NextAsync(
+                _context,
+                $"InventoryDocument:{prefix}",
+                today);
+            return $"{prefix}-{today:yyyyMMdd}-{next:000}";
         }
 
         public async Task<List<SupplierDropdownVM>>GetSupplierDropdownAsync()
@@ -594,42 +655,6 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                     ids.Contains(x.IngredientId)
                     && x.Active)
                 .ToListAsync();
-        }
-
-        public async Task<IReadOnlyList<SupplierOfferDTO>> GetSupplierOffersAsync(
-            IEnumerable<int> ingredientIds,
-            DateTime effectiveDate,
-            CancellationToken cancellationToken = default)
-        {
-            var ids = ingredientIds.Where(x => x > 0).Distinct().ToList();
-            if (ids.Count == 0)
-                return [];
-
-            var date = effectiveDate.Date;
-            return await _context.IngredientSuppliers
-                .AsNoTracking()
-                .Where(x => ids.Contains(x.IngredientId) && x.Active && x.Supplier.Active && x.Ingredient.Active)
-                .Select(x => new SupplierOfferDTO
-                {
-                    IngredientSupplierId = x.IngredientSupplierId,
-                    IngredientId = x.IngredientId,
-                    IngredientName = x.Ingredient.Name,
-                    SupplierId = x.SupplierId,
-                    SupplierName = x.Supplier.Name ?? string.Empty,
-                    PackageUnitId = x.UnitId,
-                    PackageUnitName = x.Unit.Name,
-                    BaseUnitId = x.Ingredient.BaseUnitId,
-                    PackageQuantity = x.PackageQuantity,
-                    PackagePrice = x.PriceHistories
-                        .Where(h => h.EffectiveDate <= date)
-                        .OrderByDescending(h => h.EffectiveDate)
-                        .Select(h => (decimal?)h.Price)
-                        .FirstOrDefault() ?? x.CurrentPrice,
-                    MinimumOrderQuantity = x.MinimumOrderQuantity,
-                    LeadTimeDays = x.LeadTimeDays,
-                    IsPrimary = x.IsPrimary
-                })
-                .ToListAsync(cancellationToken);
         }
 
         // =====================================================

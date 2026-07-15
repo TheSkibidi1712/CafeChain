@@ -80,6 +80,62 @@
 
     </div>
 
+    @if (Model.NegativeApproval != null)
+    {
+        <section class="voucher-approval-panel" aria-label="Lịch sử phê duyệt tồn âm">
+            <h6>Phê duyệt tồn âm #@Model.NegativeApproval.ApprovalId</h6>
+            <div class="voucher-readonly-grid">
+                <div class="voucher-readonly-field"><label>Trạng thái</label><strong>@Model.NegativeApproval.Status</strong></div>
+                <div class="voucher-readonly-field"><label>Người đề nghị</label><strong>@Model.NegativeApproval.RequesterName</strong></div>
+                <div class="voucher-readonly-field"><label>Người duyệt</label><strong>@(Model.NegativeApproval.ApproverName ?? "-")</strong></div>
+                <div class="voucher-readonly-field"><label>Policy</label><strong>@Model.NegativeApproval.PolicyVersion</strong></div>
+                <div class="voucher-readonly-field"><label>Đề nghị lúc</label><strong>@Model.NegativeApproval.RequestedAt.ToString("dd/MM/yyyy HH:mm")</strong></div>
+                <div class="voucher-readonly-field"><label>Duyệt lúc</label><strong>@(Model.NegativeApproval.ReviewedAt?.ToString("dd/MM/yyyy HH:mm") ?? "-")</strong></div>
+            </div>
+            <p><strong>Lý do:</strong> @Model.NegativeApproval.Reason</p>
+            @if (!string.IsNullOrWhiteSpace(Model.NegativeApproval.ReviewNote))
+            {
+                <p><strong>Ghi chú duyệt:</strong> @Model.NegativeApproval.ReviewNote</p>
+            }
+            <table class="voucher-table voucher-readonly-table">
+                <thead><tr><th>Identity</th><th class="text-end">Before</th><th class="text-end">Issue</th><th class="text-end">After</th><th class="text-end">Limit</th></tr></thead>
+                <tbody>
+                @foreach (var line in Model.NegativeApproval.Lines)
+                {
+                    <tr>
+                        <td>@(line.IngredientId.HasValue ? $"Ingredient #{line.IngredientId}" : $"PreparedItem #{line.PreparedItemId}")</td>
+                        <td class="text-end">@line.BeforeQty.ToString("0.###")</td>
+                        <td class="text-end">@line.IssueQty.ToString("0.###")</td>
+                        <td class="text-end">@line.ProjectedAfterQty.ToString("0.###")</td>
+                        <td class="text-end">@line.EffectiveMaxNegativeQty.ToString("0.###")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </section>
+    }
+
+    @if (Model.CostGaps.Count > 0)
+    {
+        <section class="voucher-approval-panel" aria-label="Trạng thái cost gap">
+            <h6>Cost-gap</h6>
+            <table class="voucher-table voucher-readonly-table">
+                <thead><tr><th>Mã</th><th>Nguồn</th><th>Trạng thái</th><th class="text-end">Ban đầu</th><th class="text-end">Đã settle</th><th class="text-end">Còn lại</th></tr></thead>
+                <tbody>
+                @foreach (var gap in Model.CostGaps)
+                {
+                    <tr>
+                        <td>#@gap.GapId</td><td>@gap.SourceType</td><td>@gap.Status</td>
+                        <td class="text-end">@gap.OriginalQuantity.ToString("0.###")</td>
+                        <td class="text-end">@gap.SettledQuantity.ToString("0.###")</td>
+                        <td class="text-end">@gap.OutstandingQuantity.ToString("0.###")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </section>
+    }
+
     <div class="voucher-table-wrap">
 
         <table class="voucher-table voucher-readonly-table">

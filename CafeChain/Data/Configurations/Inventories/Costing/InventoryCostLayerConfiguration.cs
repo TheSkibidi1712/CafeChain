@@ -62,6 +62,21 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
                 .HasForeignKey(x => x.SourceOrderRefundId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne<CafeChain.Models.Inventories.Documents.InventoryDocumentDetail>()
+                .WithMany()
+                .HasForeignKey(x => x.SourceInventoryDocumentDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SourceBranchReceiptLine)
+                .WithMany()
+                .HasForeignKey(x => x.SourceBranchReceiptLineId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.SourceTransferCostAllocation)
+                .WithMany()
+                .HasForeignKey(x => x.SourceTransferCostAllocationId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // ================= INDEX =================
 
             entity.HasIndex(x => x.IngredientId);
@@ -108,6 +123,17 @@ namespace CafeChain.Data.Configurations.Inventories.Costing
             entity.HasIndex(x => x.SourceOrderRefundId)
                 .HasFilter("[SourceOrderRefundId] IS NOT NULL")
                 .HasDatabaseName("IX_InventoryCostLayers_SourceOrderRefundId");
+
+            entity.HasIndex(x => x.SourceInventoryDocumentDetailId)
+                .IsUnique()
+                .HasFilter("[SourceInventoryDocumentDetailId] IS NOT NULL");
+
+            entity.HasIndex(x => x.SourceBranchReceiptLineId)
+                .IsUnique()
+                .HasFilter("[SourceBranchReceiptLineId] IS NOT NULL");
+
+            entity.HasIndex(x => x.SourceTransferCostAllocationId)
+                .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");
         }
     }
 }

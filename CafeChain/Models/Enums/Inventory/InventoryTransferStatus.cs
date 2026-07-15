@@ -4,6 +4,7 @@ namespace CafeChain.Models.Enums.Inventory
     {
         DRAFT = 1,
         COMPLETED = 2,
-        CANCELLED = 3
+        CANCELLED = 3,
+        DISPATCHED = 4
     }
 }

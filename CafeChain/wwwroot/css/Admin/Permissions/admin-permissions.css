@@ -1,4 +1,5 @@
-.perm-page {
+.perm-page,
+.perm-modal {
     --perm-accent: #f97316;
     --perm-accent-dark: #d93d20;
     --perm-ink: #111827;
@@ -257,8 +258,8 @@
     -webkit-text-fill-color: #fff;
     font-weight: 800;
     opacity: 1;
-    background: var(--perm-accent);
-    border-color: var(--perm-accent);
+    background: var(--perm-accent, #f97316);
+    border-color: var(--perm-accent, #f97316);
     padding: 0 16px;
     min-width: 96px;
     box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
@@ -267,8 +268,9 @@
 .perm-primary-button:hover:not(:disabled),
 .perm-primary-button:focus-visible:not(:disabled) {
     color: #fff;
-    background: var(--perm-accent-dark);
-    border-color: var(--perm-accent-dark);
+    -webkit-text-fill-color: #fff;
+    background: var(--perm-accent-dark, #d93d20);
+    border-color: var(--perm-accent-dark, #d93d20);
     box-shadow: 0 12px 24px rgba(217, 61, 32, .24);
 }
 
@@ -285,9 +287,15 @@
 .perm-primary-button.is-loading:disabled {
     color: #fff !important;
     -webkit-text-fill-color: #fff;
-    background: var(--perm-accent-dark);
-    border-color: var(--perm-accent-dark);
+    background: var(--perm-accent-dark, #d93d20);
+    border-color: var(--perm-accent-dark, #d93d20);
     cursor: wait;
+}
+
+.perm-primary-button > i,
+.perm-primary-button > span {
+    color: inherit;
+    -webkit-text-fill-color: inherit;
 }
 
 .perm-outline-button:disabled {

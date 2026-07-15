@@ -37,6 +37,9 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
                 .HasColumnType("decimal(18,3)")
                 .IsRequired();
 
+            entity.Property(x => x.DispatchedBaseQuantity).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.ReceivedBaseQuantity).HasColumnType("decimal(18,3)");
+
             entity.Property(x => x.SourceBeforeQty)
                 .HasColumnType("decimal(18,3)");
 

@@ -23,6 +23,10 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryTransfers
 
         Task<InventoryTransferMutationResultDTO> ConfirmAsync(int id, string? requestKey);
 
+        Task<InventoryTransferMutationResultDTO> DispatchAsync(int id, string? requestKey);
+
+        Task<InventoryTransferMutationResultDTO> ReceiveAsync(int id, InventoryTransferReceiveDTO dto);
+
         Task<bool> CancelAsync(int id, string? requestKey);
 
         Task<List<InventoryStockWarningDTO>> ValidateStockAsync(InventoryTransferMutationDTO dto);

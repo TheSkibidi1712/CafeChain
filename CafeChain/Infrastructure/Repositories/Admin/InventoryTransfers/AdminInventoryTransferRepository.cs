@@ -4,6 +4,7 @@ using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
+using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
@@ -79,6 +80,19 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
                 .Include(x => x.CreatedByStaff)
                 .Include(x => x.ConfirmedByStaff)
                 .Include(x => x.CancelledByStaff)
+                .FirstOrDefaultAsync(x => x.InventoryTransferId == id);
+        }
+
+        public async Task<InventoryTransfer?> GetTransferForUpdateAsync(int id)
+        {
+            IQueryable<InventoryTransfer> query = _context.InventoryTransfers;
+            if (_context.Database.IsSqlServer())
+                query = _context.InventoryTransfers.FromSqlInterpolated($"SELECT * FROM InventoryTransfers WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE InventoryTransferId = {id}");
+
+            return await query
+                .Include(x => x.Details).ThenInclude(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Details).ThenInclude(x => x.PreparedItem).ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Details).ThenInclude(x => x.Unit)
                 .FirstOrDefaultAsync(x => x.InventoryTransferId == id);
         }
 
@@ -233,10 +247,61 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
 
         public async Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId)
         {
-            return await _context.StoreInventories
-                .FromSqlInterpolated(
-                    $"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK) WHERE StoreId = {storeId} AND IngredientId = {ingredientId}")
-                .FirstOrDefaultAsync();
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.StoreInventories
+                    .FromSqlInterpolated(
+                        $"SELECT * FROM StoreInventories WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE StoreId = {storeId} AND IngredientId = {ingredientId} AND PreparedItemId IS NULL")
+                    .FirstOrDefaultAsync();
+            }
+
+            return await _context.StoreInventories.FirstOrDefaultAsync(
+                x => x.StoreId == storeId
+                     && x.IngredientId == ingredientId
+                     && x.PreparedItemId == null);
+        }
+
+        public async Task LockInventoriesAsync(
+            IEnumerable<(int StoreId, int? IngredientId, int? PreparedItemId)> identities)
+        {
+            var ordered = identities
+                .Distinct()
+                .OrderBy(x => x.StoreId)
+                .ThenBy(x => x.IngredientId.HasValue ? 0 : 1)
+                .ThenBy(x => x.IngredientId ?? x.PreparedItemId)
+                .ToList();
+
+            foreach (var identity in ordered)
+            {
+                if (identity.IngredientId.HasValue)
+                {
+                    _ = await GetStoreInventoryForUpdateAsync(
+                        identity.StoreId,
+                        identity.IngredientId.Value);
+                    continue;
+                }
+
+                if (!identity.PreparedItemId.HasValue)
+                    throw new InvalidOperationException("INVALID_INVENTORY_IDENTITY");
+
+                if (_context.Database.IsSqlServer())
+                {
+                    _ = await _context.StoreInventories
+                        .FromSqlInterpolated(
+                            $@"SELECT * FROM StoreInventories WITH (UPDLOCK, HOLDLOCK, ROWLOCK)
+                               WHERE StoreId = {identity.StoreId}
+                                 AND PreparedItemId = {identity.PreparedItemId.Value}
+                                 AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
+                        .FirstOrDefaultAsync();
+                }
+                else
+                {
+                    _ = await _context.StoreInventories.FirstOrDefaultAsync(
+                        x => x.StoreId == identity.StoreId
+                             && x.PreparedItemId == identity.PreparedItemId.Value
+                             && x.BtpIdentityState == BtpIdentityState.Canonical);
+                }
+            }
         }
 
         public async Task<StoreInventory> GetOrCreateStoreInventoryForUpdateAsync(int storeId, int ingredientId)
@@ -285,12 +350,7 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             int actorAccountId,
             string evidenceReference)
         {
-            var inventory = await _context.StoreInventories
-                .FromSqlInterpolated(
-                    $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK)
-                       WHERE StoreId = {storeId} AND PreparedItemId = {preparedItemId}
-                         AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
-                .FirstOrDefaultAsync();
+            var inventory = await GetPreparedItemInventoryForUpdateAsync(storeId, preparedItemId);
             if (inventory != null)
                 return inventory;
 
@@ -319,18 +379,33 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
             catch (DbUpdateException)
             {
                 _context.Entry(inventory).State = EntityState.Detached;
-                var existing = await _context.StoreInventories
-                    .FromSqlInterpolated(
-                        $@"SELECT * FROM StoreInventories WITH (UPDLOCK, ROWLOCK)
-                           WHERE StoreId = {storeId} AND PreparedItemId = {preparedItemId}
-                             AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
-                    .FirstOrDefaultAsync();
+                var existing = await GetPreparedItemInventoryForUpdateAsync(storeId, preparedItemId);
                 if (existing != null)
                     return existing;
                 throw;
             }
 
             return inventory;
+        }
+
+        private async Task<StoreInventory?> GetPreparedItemInventoryForUpdateAsync(
+            int storeId,
+            int preparedItemId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.StoreInventories
+                    .FromSqlInterpolated(
+                        $@"SELECT * FROM StoreInventories WITH (UPDLOCK, HOLDLOCK, ROWLOCK)
+                           WHERE StoreId = {storeId} AND PreparedItemId = {preparedItemId}
+                             AND BtpIdentityState = {(int)BtpIdentityState.Canonical}")
+                    .FirstOrDefaultAsync();
+            }
+
+            return await _context.StoreInventories.FirstOrDefaultAsync(
+                x => x.StoreId == storeId
+                     && x.PreparedItemId == preparedItemId
+                     && x.BtpIdentityState == BtpIdentityState.Canonical);
         }
 
         public async Task AddStoreInventoryAsync(StoreInventory inventory)
@@ -352,6 +427,44 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
         public async Task AddCostLayerAsync(InventoryCostLayer layer)
         {
             await _context.InventoryCostLayers.AddAsync(layer);
+        }
+
+        public async Task AddTransferCostAllocationsAsync(IEnumerable<InventoryTransferCostAllocation> allocations)
+        {
+            await _context.InventoryTransferCostAllocations.AddRangeAsync(allocations);
+        }
+
+        public async Task<List<InventoryTransferCostAllocation>> GetTransferCostAllocationsAsync(IEnumerable<int> detailIds)
+        {
+            var ids = detailIds.Distinct().ToList();
+            return await _context.InventoryTransferCostAllocations
+                .Where(x => ids.Contains(x.InventoryTransferDetailId))
+                .OrderBy(x => x.InventoryTransferDetailId)
+                .ThenBy(x => x.InventoryTransferCostAllocationId)
+                .ToListAsync();
+        }
+
+        public async Task AddBranchReceiptAsync(BranchReceipt receipt)
+        {
+            await _context.BranchReceipts.AddAsync(receipt);
+        }
+
+        public async Task<List<InventoryNegativeCostGap>> GetOpenCostGapsForUpdateAsync(int storeInventoryId)
+        {
+            IQueryable<InventoryNegativeCostGap> query = _context.InventoryNegativeCostGaps
+                .Where(x => x.StoreInventoryId == storeInventoryId && x.OutstandingQuantity > 0);
+            if (_context.Database.IsSqlServer())
+            {
+                query = _context.InventoryNegativeCostGaps.FromSqlInterpolated(
+                    $"SELECT * FROM InventoryNegativeCostGaps WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE StoreInventoryId = {storeInventoryId} AND OutstandingQuantity > 0");
+            }
+
+            return await query.OrderBy(x => x.OccurredAt).ThenBy(x => x.InventoryNegativeCostGapId).ToListAsync();
+        }
+
+        public async Task AddCostGapSettlementsAsync(IEnumerable<InventoryCostGapSettlement> settlements)
+        {
+            await _context.InventoryCostGapSettlements.AddRangeAsync(settlements);
         }
 
         public async Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, int ingredientId)
@@ -393,10 +506,11 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryTransfers
         public async Task<string> GenerateTransferCodeAsync()
         {
             var today = DateTime.Today;
-            var count = await _context.InventoryTransfers
-                .CountAsync(x => x.DocumentDate.Date == today);
-
-            return $"CK-{today:yyyyMMdd}-{count + 1:000}";
+            var next = await CafeChain.Infrastrusture.Repositories.DocumentNumberCounterAllocator.NextAsync(
+                _context,
+                "InventoryTransfer:CK",
+                today);
+            return $"CK-{today:yyyyMMdd}-{next:000}";
         }
 
         public async Task<List<InventoryTransfer>> GetPendingTransfersToStoreAsync(int storeId)

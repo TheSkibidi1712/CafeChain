@@ -2,7 +2,10 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.DTOs.Systems;
+using CafeChain.Application.DTOs.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Systems;
@@ -27,6 +30,7 @@ using CafeChain.Models.Systems;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.AspNetCore.Http;
 using Moq;
 using Xunit;
 
@@ -160,7 +164,7 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
                         UnitId = _unitId,
                         Quantity = 20m,
                         BaseQuantity = 20m,
-                        UnitPrice = 5m
+                        UnitPrice = 999m
                     }
                 ]
             };
@@ -173,11 +177,30 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
         await using (var first = CreateContext())
         {
             var result = await CreateTransferService(first).ConfirmAsync(transferId, "sql-transfer-confirm-1");
-            Assert.Equal(InventoryTransferStatus.COMPLETED, result.Status);
+            Assert.Equal(InventoryTransferStatus.DISPATCHED, result.Status);
         }
         await using (var replay = CreateContext())
         {
             var result = await CreateTransferService(replay).ConfirmAsync(transferId, "sql-transfer-confirm-2");
+            Assert.Equal(InventoryTransferStatus.DISPATCHED, result.Status);
+        }
+        await using (var receive = CreateContext())
+        {
+            var result = await CreateTransferService(receive).ReceiveAsync(
+                transferId,
+                new InventoryTransferReceiveDTO
+                {
+                    RequestKey = "sql-transfer-receive-1",
+                    ReceivedAt = DateTime.UtcNow,
+                    Lines =
+                    [
+                        new InventoryTransferReceiveLineDTO
+                        {
+                            InventoryTransferDetailId = detailId,
+                            ReceivedBaseQuantity = 20m
+                        }
+                    ]
+                });
             Assert.Equal(InventoryTransferStatus.COMPLETED, result.Status);
         }
 
@@ -292,27 +315,38 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
                 CanProcess = true,
                 Entry = new RequestDeduplication()
             });
-        var negative = new Mock<INegativeInventoryService>();
-        negative.Setup(x => x.ValidateIssueAsync(
-                It.IsAny<StoreInventory>(), It.IsAny<decimal>(), It.IsAny<string>()))
-            .ReturnsAsync((StoreInventory inventory, decimal qty, string _) => new NegativeStockValidationResult
-            {
-                IsAllowed = true,
-                BeforeQty = inventory.AvailableQty,
-                IssueQuantity = qty,
-                AfterQty = inventory.AvailableQty - qty,
-                StockStatus = InventoryStockStatus.NORMAL
-            });
+        var issuePolicy = new Mock<IInventoryIssuePolicy>();
+        issuePolicy.Setup(x => x.EvaluateAsync(It.IsAny<InventoryIssueRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InventoryIssueRequest request, CancellationToken _) => new InventoryIssueDecision(
+                InventoryIssueOutcome.Allowed,
+                InventoryIssueReasonCodes.NonNegativeIssueAllowed,
+                request.BeforeAvailableQty,
+                request.IssueQty,
+                request.BeforeAvailableQty - request.IssueQty,
+                0,
+                0,
+                false,
+                false,
+                string.Empty));
         var alerts = new Mock<IStockAlertService>();
         alerts.Setup(x => x.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new()));
+        var actor = new Mock<IAdminActorContextAccessor>();
+        actor.Setup(x => x.Get(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
+            .Returns(new AdminActorContext { StaffId = _staffId });
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(_staffId, It.IsAny<int>())).ReturnsAsync(true);
         return new AdminInventoryTransferService(
             repository,
             dedup.Object,
-            negative.Object,
+            issuePolicy.Object,
+            new InventoryCostLayerConsumptionService(context),
             new RestockFulfillmentPostingService(context),
             alerts.Object,
-            new FixedUserContext(_staffId));
+            new FixedUserContext(_staffId),
+            actor.Object,
+            scope.Object,
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
     }
 
     private async Task SeedFoundationAsync(AppDbContext context)

@@ -328,13 +328,13 @@
                 </div>
 
                 <!-- ━━━ 📦 Phiếu Kho ━━━ -->
-                <a href="#collapseInventory" data-bs-toggle="collapse"
+                <a href="#collapseInventoryDocument" data-bs-toggle="collapse"
                    aria-expanded="@(Html.IsActive("AdminInventorydocument,AdminInventoryTransfer") != "" ? "true" : "false")"
                    class="sidebar-section-header @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer")">
                     <i class="fas fa-warehouse section-icon"></i> Phiếu Kho
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer", cssClass: "show")" id="collapseInventoryDocument">
                     <div class="sidebar-sub">
                         <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> Phiếu kho</a>
                         <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> Phiếu chuyển kho</a>
@@ -471,6 +471,13 @@
 
         <!-- ===== SYSTEM SECTION (pinned to bottom) ===== -->
             <div class="sidebar-system">
+            @if (User.IsInRole(RoleConstants.BusinessOwner) || User.IsInRole(RoleConstants.SystemAdmin))
+            {
+                <a asp-area="Admin" asp-controller="AdminSetting" asp-action="Index" class="@Html.IsActive("AdminSetting")">
+                    <i class="fas fa-sliders"></i> Cài đặt hệ thống
+                </a>
+            }
+
             <a asp-area="Admin" asp-controller="AdminProfile" asp-action="MyProfile" class="@Html.IsActive("Profile")">
                 <i class="fas fa-user-circle"></i> Hồ sơ của tôi
             </a>

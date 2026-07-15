@@ -4,6 +4,8 @@ using CafeChain.Infrastrusture.Interfaces.Systems;
 using CafeChain.Models.Systems;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace CafeChain.Application.Services.Systems
 {
@@ -33,11 +35,13 @@ namespace CafeChain.Application.Services.Systems
             }
 
             var normalizedKey = requestKey.Trim();
+            var serializedBody = SerializeCanonical(requestBody);
+            var payloadHash = ComputeSha256(serializedBody);
             var existing = await FindExistingAsync(normalizedKey, actionName, staffId);
 
             if (existing != null)
             {
-                return BuildDuplicateResult(existing);
+                return BuildDuplicateResult(existing, payloadHash);
             }
 
             var now = DateTime.UtcNow;
@@ -48,7 +52,8 @@ namespace CafeChain.Application.Services.Systems
                 StaffId = staffId,
                 ReferenceId = referenceId,
                 Status = Processing,
-                RequestBody = Serialize(requestBody),
+                RequestBody = serializedBody,
+                PayloadHash = payloadHash,
                 CreatedAt = now,
                 ExpiredAt = now.AddMinutes(30)
             };
@@ -67,7 +72,7 @@ namespace CafeChain.Application.Services.Systems
 
                 if (existing != null)
                 {
-                    return BuildDuplicateResult(existing);
+                    return BuildDuplicateResult(existing, payloadHash);
                 }
 
                 throw;
@@ -98,12 +103,10 @@ namespace CafeChain.Application.Services.Systems
             RequestDeduplication entry,
             object responseBody)
         {
-            entry.Status = Failed;
-            entry.ResponseBody = Serialize(responseBody);
-
-            _repository.Update(entry);
-
-            await _repository.SaveChangesAsync();
+            // Failure belongs to the rolled-back business transaction. Do not
+            // persist FAILED: the same key must be available for a safe retry.
+            _repository.Detach(entry);
+            await Task.CompletedTask;
         }
 
         private async Task<RequestDeduplication?> FindExistingAsync(
@@ -115,8 +118,22 @@ namespace CafeChain.Application.Services.Systems
         }
 
         private static RequestDeduplicationBeginResult BuildDuplicateResult(
-            RequestDeduplication existing)
+            RequestDeduplication existing,
+            string payloadHash)
         {
+            if (!string.Equals(existing.PayloadHash, payloadHash, StringComparison.OrdinalIgnoreCase))
+            {
+                return new RequestDeduplicationBeginResult
+                {
+                    CanProcess = false,
+                    IsDuplicate = true,
+                    Status = existing.Status,
+                    ReferenceId = existing.ReferenceId,
+                    ErrorCode = "IDEMPOTENCY_KEY_REUSED",
+                    ErrorMessage = "RequestKey đã được dùng với payload khác."
+                };
+            }
+
             var message = existing.Status switch
             {
                 Processing => "Yêu cầu đang được xử lý, vui lòng không thao tác lại.",
@@ -133,9 +150,57 @@ namespace CafeChain.Application.Services.Systems
                 Status = existing.Status,
                 ReferenceId = existing.ReferenceId,
                 ResponseBody = existing.ResponseBody,
+                ErrorCode = existing.Status switch
+                {
+                    Processing => "REQUEST_IN_PROGRESS",
+                    Failed => "REQUEST_PREVIOUSLY_FAILED",
+                    "EXPIRED" => "REQUEST_EXPIRED",
+                    Success => null,
+                    _ => "REQUEST_KEY_UNAVAILABLE"
+                },
                 ErrorMessage = message
             };
         }
+
+        private static string SerializeCanonical(object value)
+        {
+            using var document = JsonDocument.Parse(Serialize(value));
+            using var stream = new MemoryStream();
+            using (var writer = new Utf8JsonWriter(stream))
+            {
+                WriteCanonical(writer, document.RootElement);
+            }
+
+            return Encoding.UTF8.GetString(stream.ToArray());
+        }
+
+        private static void WriteCanonical(Utf8JsonWriter writer, JsonElement element)
+        {
+            switch (element.ValueKind)
+            {
+                case JsonValueKind.Object:
+                    writer.WriteStartObject();
+                    foreach (var property in element.EnumerateObject().OrderBy(x => x.Name, StringComparer.Ordinal))
+                    {
+                        writer.WritePropertyName(property.Name);
+                        WriteCanonical(writer, property.Value);
+                    }
+                    writer.WriteEndObject();
+                    break;
+                case JsonValueKind.Array:
+                    writer.WriteStartArray();
+                    foreach (var item in element.EnumerateArray())
+                        WriteCanonical(writer, item);
+                    writer.WriteEndArray();
+                    break;
+                default:
+                    element.WriteTo(writer);
+                    break;
+            }
+        }
+
+        private static string ComputeSha256(string value) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
 
         private static string Serialize(object value)
         {

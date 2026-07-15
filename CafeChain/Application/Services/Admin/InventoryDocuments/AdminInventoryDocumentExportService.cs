@@ -72,7 +72,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                                 header.Item()
                                     .PaddingTop(8)
-                                    .Text("PHIẾU NHẬP KHO")
+                                    .Text(GetDocumentTitle(snapshot.Type))
                                     .FontSize(20)
                                     .Bold()
                                     .FontColor("#F97316");
@@ -314,7 +314,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 body.Append(
                     CreateParagraph(
-                        "PHIẾU NHẬP KHO",
+                        GetDocumentTitle(snapshot.Type),
                         true,
                         JustificationValues.Center,
                         "34",
@@ -1813,6 +1813,22 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return snapshot.TotalAmount == 0
                 && snapshot.VatAmount == 0
                 && snapshot.FinalAmount == 0;
+        }
+
+        private static string GetDocumentTitle(CafeChain.Models.Enums.Inventory.InventoryDocumentType type)
+        {
+            return type switch
+            {
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.IMPORT => "PHIẾU NHẬP KHO",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.EXPORT => "PHIẾU XUẤT KHO",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.WASTE => "PHIẾU HỦY KHO",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.STOCK_TAKE => "PHIẾU KIỂM KÊ",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.PRODUCTION_IN => "PHIẾU NHẬP SẢN XUẤT",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.PRODUCTION_OUT => "PHIẾU XUẤT SẢN XUẤT",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.SALES_DEDUCTION => "PHIẾU TRỪ TỒN BÁN HÀNG",
+                CafeChain.Models.Enums.Inventory.InventoryDocumentType.ADJUSTMENT_IN => "PHIẾU ĐIỀU CHỈNH TĂNG",
+                _ => "PHIẾU KHO"
+            };
         }
     }
 }

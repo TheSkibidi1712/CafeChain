@@ -23,5 +23,11 @@ namespace CafeChain.ViewModels.Admin.InventoryDocuments.Index
         public decimal? FinalAmount { get; set; }
 
         public DateTime? ConfirmedAt { get; set; }
+
+        public string? NegativeApprovalStatus { get; set; }
+
+        public bool CanReviewNegativeApproval { get; set; }
+
+        public string? NegativeApprovalReviewMessage { get; set; }
     }
 }

@@ -6,8 +6,16 @@
 
 <link rel="stylesheet" href="~/css/Admin/InventoryTransfer/inventorytransfer.css" />
 
-<div class="transfer-page" id="inventoryTransferForm">
+<div class="transfer-page"
+     id="inventoryTransferForm"
+     data-items-url="@Url.Action("Items", "AdminInventoryTransfer", new { area = "Admin" })"
+     data-preflight-url="@Url.Action("Preflight", "AdminInventoryTransfer", new { area = "Admin" })"
+     data-save-draft-url="@Url.Action("SaveDraft", "AdminInventoryTransfer", new { area = "Admin" })"
+     data-dispatch-url="@Url.Action("Dispatch", "AdminInventoryTransfer", new { area = "Admin" })"
+     data-detail-url="@Url.Action("Detail", "AdminInventoryTransfer", new { area = "Admin" })">
+    @Html.AntiForgeryToken()
     <input type="hidden" id="transferId" value="" />
+    <input type="hidden" id="transferRowVersion" value="" />
 
     @await Html.PartialAsync("Partials/Create/_Header", Model)
 

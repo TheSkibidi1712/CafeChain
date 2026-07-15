@@ -331,6 +331,11 @@ namespace CafeChain.Application.Services.POS
                                     && t.Type == InventoryTransactionTypeEnum.SALES_RETURN)
                         .ToDictionaryAsync(t => t.StoreInventoryId, t => t);
 
+                    var negativeGaps = await LoadNegativeGapsForUpdateAsync(order.OrderId);
+                    var negativeGapBySalesGapId = negativeGaps
+                        .Where(x => x.SalesCostGapId.HasValue)
+                        .ToDictionary(x => x.SalesCostGapId!.Value);
+
                     foreach (var alloc in allocations.OrderBy(a => a.SalesCostAllocationId))
                     {
                         var saleTx = deductions.FirstOrDefault(d => d.InventoryTransactionId == alloc.InventoryTransactionId);
@@ -375,17 +380,32 @@ namespace CafeChain.Application.Services.POS
                         if (!gap.IngredientId.HasValue && !gap.PreparedItemId.HasValue)
                             continue;
 
+                        if (!negativeGapBySalesGapId.TryGetValue(gap.SalesCostGapId, out var negativeGap))
+                        {
+                            throw new InvalidOperationException(
+                                $"Missing InventoryNegativeCostGap for SalesCostGap #{gap.SalesCostGapId}.");
+                        }
+
+                        // Settlement history is immutable. A refund only cancels the portion
+                        // whose cost is still unknown at refund time.
+                        var outstandingToCancel = negativeGap.OutstandingQuantity;
+                        if (outstandingToCancel <= 0)
+                            continue;
+
                         _context.RefundCostGaps.Add(new RefundCostGap
                         {
                             OrderRefundId = refund.OrderRefundId,
                             SalesCostGapId = gap.SalesCostGapId,
                             IngredientId = gap.IngredientId,
                             PreparedItemId = gap.PreparedItemId,
-                            Quantity = gap.MissingCostQuantity,
+                            Quantity = outstandingToCancel,
                             BaseUnitId = gap.BaseUnitId,
                             ReasonCode = gap.ReasonCode,
                             CreatedAtUtc = now
                         });
+
+                        negativeGap.OutstandingQuantity = 0;
+                        negativeGap.Status = InventoryNegativeCostGapStatuses.Cancelled;
                     }
 
                     refund.InventoryReversalStatus = RefundInventoryReversalStatus.Completed;
@@ -565,6 +585,34 @@ namespace CafeChain.Application.Services.POS
             }
 
             return await _context.StoreInventories.SingleOrDefaultAsync(x => x.StoreInventoryId == storeInventoryId);
+        }
+
+        private async Task<List<InventoryNegativeCostGap>> LoadNegativeGapsForUpdateAsync(int orderId)
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                return await _context.InventoryNegativeCostGaps
+                    .FromSqlInterpolated(
+                        $@"SELECT g.*
+                           FROM InventoryNegativeCostGaps g WITH (UPDLOCK, ROWLOCK, HOLDLOCK)
+                           INNER JOIN SalesCostGaps sg ON sg.SalesCostGapId = g.SalesCostGapId
+                           WHERE sg.OrderId = {orderId}")
+                    .OrderBy(g => g.OccurredAt)
+                    .ThenBy(g => g.InventoryNegativeCostGapId)
+                    .ToListAsync();
+            }
+
+            var salesGapIds = await _context.SalesCostGaps
+                .Where(g => g.OrderId == orderId)
+                .Select(g => g.SalesCostGapId)
+                .ToListAsync();
+
+            return await _context.InventoryNegativeCostGaps
+                .Where(g => g.SalesCostGapId.HasValue
+                            && salesGapIds.Contains(g.SalesCostGapId.Value))
+                .OrderBy(g => g.OccurredAt)
+                .ThenBy(g => g.InventoryNegativeCostGapId)
+                .ToListAsync();
         }
 
         private static OrderRefundResultDto ToDto(OrderRefund r, bool wasReplay) => new()

@@ -4,6 +4,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
+using CafeChain.Models.Inventories.Transfers;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -17,7 +18,9 @@ namespace CafeChain.Models.Inventories.Stock
 
         public int BranchReceiptId { get; set; }
 
-        public int RestockRequestId { get; set; }
+        public int? RestockRequestId { get; set; }
+        public int? SourceInventoryTransferDetailId { get; set; }
+        public long? SourceTransferCostAllocationId { get; set; }
 
         public int? RestockRequestFulfillmentId { get; set; }
 
@@ -58,7 +61,9 @@ namespace CafeChain.Models.Inventories.Stock
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         public virtual BranchReceipt BranchReceipt { get; set; } = null!;
-        public virtual RestockRequest RestockRequest { get; set; } = null!;
+        public virtual RestockRequest? RestockRequest { get; set; }
+        public virtual InventoryTransferDetail? SourceInventoryTransferDetail { get; set; }
+        public virtual InventoryTransferCostAllocation? SourceTransferCostAllocation { get; set; }
         public virtual RestockRequestFulfillment? RestockRequestFulfillment { get; set; }
         public virtual Ingredient? Ingredient { get; set; }
         public virtual PreparedItem? PreparedItem { get; set; }

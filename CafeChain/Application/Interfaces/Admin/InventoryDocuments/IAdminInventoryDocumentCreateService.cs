@@ -16,9 +16,13 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(int storeId, InventoryDocumentPurpose purpose);
 
-        Task<List<SupplierIngredientDTO>> GetStoreExportIngredientsAsync(int storeId);
+        Task<List<SupplierIngredientDTO>> GetStoreInventoryIngredientsAsync(
+            int storeId,
+            InventoryDocumentType type,
+            InventoryDocumentPurpose purpose);
 
         Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto);
+        Task<InventoryDocumentPreflightResultDTO> PreflightAsync(CreateInventoryDocumentDTO dto);
 
         // =====================================================
         // CREATE
@@ -28,8 +32,10 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<InventoryDocumentMutationResultDTO> CreateAndConfirmAsync(CreateInventoryDocumentDTO dto);
 
-        Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey);
+        Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey, string? rowVersion = null);
 
         Task<bool> CancelInventoryDocumentAsync(int documentId, string? requestKey);
+        Task<InventoryDocumentMutationResultDTO> ApproveNegativeAsync(int documentId, string? reviewNote);
+        Task<InventoryDocumentMutationResultDTO> RejectNegativeAsync(int documentId, string reviewNote);
     }
 }

@@ -32,9 +32,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             await ValidateDetailsAsync(dto);
             await ValidateIngredientExistsAsync(dto);
             await ValidateUnitsAsync(dto);
+            await ValidateStoreInventoryMembershipAsync(
+                dto.StoreId,
+                dto.Type,
+                dto.Details.Select(x => x.IngredientId));
         }
 
-        public Task ValidateConfirmAsync(InventoryDocument document)
+        public async Task ValidateConfirmAsync(InventoryDocument document)
         {
             if (document.Status == InventoryDocumentStatus.CONFIRMED)
             {
@@ -46,7 +50,31 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 throw new InvalidOperationException("Phiếu không có chi tiết.");
             }
 
-            return Task.CompletedTask;
+            await ValidateStoreInventoryMembershipAsync(
+                document.StoreId,
+                document.Type,
+                document.Details.Select(x => x.IngredientId));
+        }
+
+        private async Task ValidateStoreInventoryMembershipAsync(
+            int storeId,
+            InventoryDocumentType type,
+            IEnumerable<int> ingredientIds)
+        {
+            if (type is not InventoryDocumentType.EXPORT
+                and not InventoryDocumentType.WASTE
+                and not InventoryDocumentType.STOCK_TAKE)
+            {
+                return;
+            }
+
+            foreach (var ingredientId in ingredientIds.Distinct())
+            {
+                if (await _repository.GetStoreInventoryAsync(storeId, ingredientId) == null)
+                {
+                    throw new InvalidOperationException("INGREDIENT_NOT_IN_STORE_INVENTORY");
+                }
+            }
         }
 
         private static void ValidateBasic(CreateInventoryDocumentDTO dto)

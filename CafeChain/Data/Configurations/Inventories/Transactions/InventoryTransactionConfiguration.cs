@@ -76,6 +76,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
                 .HasForeignKey(x => x.InventoryDocumentId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.InventoryDocumentDetail)
+                .WithMany()
+                .HasForeignKey(x => x.InventoryDocumentDetailId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.InventoryTransfer)
                 .WithMany()
                 .HasForeignKey(x => x.InventoryTransferId)
@@ -129,6 +134,11 @@ namespace CafeChain.Data.Configurations.Inventories.Transactions
             entity.HasIndex(x => x.StockStatus);
 
             entity.HasIndex(x => x.InventoryDocumentId);
+
+            entity.HasIndex(x => new { x.InventoryDocumentDetailId, x.Type })
+                .IsUnique()
+                .HasFilter("[InventoryDocumentDetailId] IS NOT NULL")
+                .HasDatabaseName("UX_InventoryTransactions_DocumentDetail_Type");
 
             entity.HasIndex(x => x.InventoryTransferId);
 

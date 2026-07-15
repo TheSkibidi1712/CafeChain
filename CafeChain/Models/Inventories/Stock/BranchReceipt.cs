@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Inventories.Transfers;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -17,6 +18,7 @@ namespace CafeChain.Models.Inventories.Stock
         public int StoreId { get; set; }
 
         public int? SupplierId { get; set; }
+        public int? SourceInventoryTransferId { get; set; }
 
         /// <summary>DRAFT | CONFIRMED</summary>
         public string Status { get; set; } = string.Empty;
@@ -45,6 +47,7 @@ namespace CafeChain.Models.Inventories.Stock
 
         public virtual Store Store { get; set; } = null!;
         public virtual Supplier? Supplier { get; set; }
+        public virtual InventoryTransfer? SourceInventoryTransfer { get; set; }
         public virtual Staff? ReceivedByStaff { get; set; }
         public virtual Staff? ConfirmedByStaff { get; set; }
         public virtual Staff CreatedByStaff { get; set; } = null!;

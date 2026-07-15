@@ -36,23 +36,30 @@ namespace CafeChain.Data.Configurations.Systems
                 new SystemSetting
                 {
                     SettingId = 2001,
-                    SettingKey = "inventory_allow_negative_stock",
+                    SettingKey = "inventory_manual_external_export_negative_enabled",
                     SettingValue = "false",
-                    Description = "Cho phép tồn kho âm có kiểm soát."
+                    Description = "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm."
                 },
                 new SystemSetting
                 {
                     SettingId = 2002,
-                    SettingKey = "inventory_require_manager_approval_for_negative_stock",
-                    SettingValue = "false",
-                    Description = "Yêu cầu quản lý/admin xác nhận khi giao dịch làm âm kho."
+                    SettingKey = "inventory_manual_external_export_approval_required",
+                    SettingValue = "true",
+                    Description = "Bắt buộc maker-checker cho phiếu xuất ngoài làm âm kho."
                 },
                 new SystemSetting
                 {
                     SettingId = 2003,
-                    SettingKey = "inventory_default_max_negative_quantity",
+                    SettingKey = "inventory_manual_external_export_default_max_negative_quantity",
                     SettingValue = "0",
-                    Description = "Ngưỡng âm kho mặc định nếu tồn kho nguyên liệu không cấu hình riêng."
+                    Description = "Hạn mức âm mặc định cho phiếu xuất ngoài."
+                },
+                new SystemSetting
+                {
+                    SettingId = 2004,
+                    SettingKey = "inventory_manual_external_export_policy_version",
+                    SettingValue = "manual-export-v1",
+                    Description = "Phiên bản policy phiếu xuất ngoài làm âm kho."
                 }
             );
         }

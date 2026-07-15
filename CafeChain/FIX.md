@@ -1,1299 +1,1244 @@
-# NGHIỆP VỤ AI GỢI Ý, TÌM ẢNH PEXELS VÀ TẠO ẢNH BẰNG COMFYUI
+# HƯỚNG DẪN SỬ DỤNG PHIẾU KHO VÀ XUẤT ÂM KHO
 
-Bạn hãy đóng vai một Senior Software Architect có kinh nghiệm về ASP.NET MVC, Layered Architecture, AI Image Generation, Pexels API và ComfyUI.
+> Phiên bản tài liệu: 15/07/2026
+>
+> Phạm vi: Form Phiếu Kho, quy trình phê duyệt xuất âm và cấu hình vận hành
+>
+> Đối tượng: nhân viên kho, quản lý cửa hàng, quản lý vùng, kế toán/kho, chủ doanh nghiệp, quản trị hệ thống và DBA
+>
+> Nguồn kỹ thuật và trạng thái nghiệm thu: [Scripts/NegativeInventoryAcceptance.md](Scripts/NegativeInventoryAcceptance.md)
 
-Hãy phân tích hệ thống hiện tại và triển khai nghiệp vụ AI gợi ý kết hợp Pexels và ComfyUI theo đúng các yêu cầu dưới đây.
+## 1. Mục đích và cảnh báo an toàn
 
----
+Tài liệu này hướng dẫn cách sử dụng màn hình **Phiếu Kho**, gồm:
 
-# 1. Mục tiêu
+- Tạo phiếu nhập kho.
+- Tạo phiếu xuất kho.
+- Tạo phiếu kiểm kê.
+- Tạo phiếu hủy kho.
+- Lưu nháp, xác nhận, hủy và xuất chứng từ.
+- Bật/tắt tính năng xuất âm.
+- Gửi, duyệt hoặc từ chối yêu cầu xuất âm.
+- Hiểu giá vốn, cost-gap và cách nhập bù tồn âm.
 
-Xây dựng một quy trình AI hỗ trợ người dùng tạo dữ liệu và hình ảnh cho các form có trường ảnh.
+Tính năng xuất âm thủ công mặc định đang **tắt**. Không bật tính năng chỉ để vượt qua lỗi thiếu tồn. Chỉ được bật sau khi:
 
-Quy trình bắt buộc phải theo thứ tự:
+1. Người phụ trách nghiệp vụ kho phê duyệt phạm vi sử dụng.
+2. Dữ liệu tồn kho, FIFO và cost-gap đã được đối soát.
+3. SQL Server integration gate trong `NegativeInventoryAcceptance.md` đã chạy thành công.
+4. Có ít nhất hai người tham gia quy trình maker-checker: một người gửi và một người duyệt.
+5. Đã thống nhất hạn mức âm theo cửa hàng/nguyên liệu.
 
-```text
-Người dùng bấm "AI gợi ý"
-        ↓
-AI sinh từ 1 đến 3 gợi ý
-        ↓
-Người dùng chọn một gợi ý
-        ↓
-Hệ thống phân tích nội dung hình ảnh của gợi ý
-        ↓
-Hệ thống tìm ảnh tham chiếu phù hợp trên Pexels
-        ↓
-Hệ thống kiểm tra độ phù hợp của ảnh Pexels
-        ↓
-ComfyUI sử dụng ảnh Pexels làm ảnh tham chiếu
-        ↓
-ComfyUI tạo ảnh cuối cùng đúng với gợi ý
-        ↓
-Hệ thống kiểm tra ảnh được tạo
-        ↓
-Điền dữ liệu và ảnh vào form
-```
-
-Không được lấy ngẫu nhiên kết quả đầu tiên từ Pexels.
-
-Không được sử dụng ảnh Pexels khác xa với nội dung gợi ý để đưa vào ComfyUI.
-
-Không được để ComfyUI tạo ảnh chỉ dựa trên tên ngắn hoặc một câu mô tả chung chung.
-
----
-
-# 2. Phạm vi áp dụng
-
-Nghiệp vụ này phải được thiết kế dùng chung cho tất cả form có trường hình ảnh, ví dụ:
-
-* Drink.
-* Drink Category.
-* Topping.
-* Ingredient.
-* Product.
-* Combo.
-* Promotion.
-* Store.
-* Supplier.
-* Các form khác có trường Image, ImageUrl, Thumbnail hoặc Avatar.
-
-Không được viết cứng toàn bộ logic chỉ dành cho `Create Drink`.
-
-Mỗi loại form có thể có cấu hình hình ảnh riêng nhưng phải sử dụng chung một pipeline:
+Nếu SQL Server gate chưa đạt, phải giữ:
 
 ```text
-AI Suggestion
-→ Visual Specification
-→ Pexels Search
-→ Pexels Validation
-→ ComfyUI Generation
-→ Generated Image Validation
-→ Apply To Form
+inventory_manual_external_export_negative_enabled = false
 ```
 
----
+## 2. Thuật ngữ cần biết
 
-# 3. Nguyên tắc xử lý chung
+| Thuật ngữ | Ý nghĩa vận hành |
+|---|---|
+| `AvailableQty` | Lượng tồn tự do hiện có để xuất. Đây đã là lượng khả dụng; không trừ `ReservedQty` thêm lần nữa. |
+| Đơn vị chứng từ | Đơn vị người dùng chọn trên form, ví dụ thùng, chai, kg. |
+| Đơn vị base | Đơn vị chuẩn hệ thống dùng để ghi sổ kho, ví dụ g, ml, cái. |
+| `BaseQuantity` | Số lượng sau khi quy đổi từ đơn vị chứng từ về đơn vị base. |
+| Tồn âm | `AvailableQty` sau xuất nhỏ hơn 0. |
+| FIFO | Xuất giá vốn từ lớp nhập cũ nhất trước, theo thời gian tạo rồi Id. |
+| Preflight | Bước server kiểm tra trước khi xác nhận: tồn trước, lượng xuất, tồn dự kiến, hạn mức và kết quả. |
+| Approval | Yêu cầu phê duyệt bền vững cho một phiếu xuất âm. |
+| Maker-checker | Người tạo/gửi phiếu và người duyệt phải là hai người khác nhau. |
+| Cost-gap | Phần đã xuất thực tế nhưng chưa có đủ bằng chứng giá vốn FIFO. |
+| Settlement | Dùng giá vốn của lần nhập sau để tất toán cost-gap cũ. |
+| Store scope | Danh sách cửa hàng mà tài khoản được phép đọc hoặc thao tác. |
+| Policy version | Phiên bản chính sách dùng để làm cũ các approval khi cấu hình thay đổi. |
 
-## 3.1. Khi người dùng bấm AI gợi ý
+## 3. Quyền và trách nhiệm
 
-Khi bấm nút `AI gợi ý`, hệ thống phải:
+### 3.1. Người tạo phiếu
 
-1. Đọc loại form hiện tại.
-2. Đọc dữ liệu người dùng đã nhập, nếu có.
-3. Không yêu cầu người dùng phải chọn sẵn Category, Size, Topping hoặc dữ liệu liên quan.
-4. Tự động sinh từ 1 đến 3 gợi ý khác nhau.
-5. Không tự động áp dụng gợi ý đầu tiên.
-6. Hiển thị các gợi ý để người dùng lựa chọn.
-7. Chỉ bắt đầu tìm ảnh sau khi người dùng chọn hoặc áp dụng một gợi ý.
+Người dùng phải có quyền truy cập khu vực quản trị Phiếu Kho và có scope tới cửa hàng được chọn. Dropdown cửa hàng chỉ hỗ trợ thao tác; server vẫn kiểm tra lại scope.
 
-Mỗi gợi ý phải khác nhau rõ ràng về ít nhất một trong các yếu tố:
+StoreManager hoặc người có quyền lập phiếu có thể gửi yêu cầu xuất âm trong cửa hàng được phân quyền, nhưng không được tự duyệt.
 
-* Tên.
-* Thành phần.
-* Hương vị.
-* Màu sắc.
-* Phong cách hình ảnh.
-* Cách trình bày.
-* Bối cảnh.
-* Đối tượng chính.
+### 3.2. Người duyệt xuất âm
 
----
+Các vai trò có thể duyệt khi đồng thời có store scope hợp lệ:
 
-# 4. Dữ liệu bắt buộc của một gợi ý AI
+- BusinessOwner.
+- SystemAdmin.
+- AreaManager.
+- AccountantWarehouse.
 
-AI không được chỉ trả về tên và mô tả.
+Các vai trò trên vẫn không được:
 
-Mỗi gợi ý phải có dữ liệu nghiệp vụ và một bản mô tả hình ảnh có cấu trúc.
+- Tự duyệt yêu cầu do chính mình gửi.
+- Duyệt phiếu ngoài phạm vi cửa hàng/vùng.
+- Bỏ qua hạn mức.
+- Duyệt approval đã stale.
+- Duyệt khi kill switch đã tắt.
 
-Cấu trúc gợi ý đề xuất:
+Nút duyệt trên giao diện chỉ được hiển thị khi điều kiện quyền ban đầu đạt. Application service là nơi quyết định cuối cùng.
 
-```json
-{
-  "suggestionId": "uuid",
-  "entityType": "Drink",
-  "name": "Trà đào cam sả",
-  "code": "TRA_DAO_CAM_SA",
-  "description": "Trà đào kết hợp cam vàng và sả tươi",
-  "businessData": {
-    "categoryName": "Trà trái cây",
-    "price": 45000,
-    "active": true
-  },
-  "visualSpecification": {
-    "primarySubject": "a clear glass of peach orange lemongrass iced tea",
-    "subjectType": "beverage",
-    "mainIngredients": [
-      "peach slices",
-      "orange slices",
-      "lemongrass",
-      "ice cubes",
-      "amber tea"
-    ],
-    "secondaryObjects": [
-      "small wooden tray",
-      "fresh peach",
-      "orange"
-    ],
-    "excludedObjects": [
-      "coffee",
-      "milk tea",
-      "beer",
-      "wine",
-      "cake",
-      "people",
-      "hands",
-      "text",
-      "logo"
-    ],
-    "dominantColors": [
-      "amber",
-      "orange",
-      "light yellow"
-    ],
-    "background": "clean cafe table with soft neutral background",
-    "composition": "single centered beverage, product photography",
-    "cameraAngle": "three-quarter front view",
-    "lighting": "soft natural commercial lighting",
-    "imageStyle": "realistic professional food photography",
-    "orientation": "square",
-    "pexelsQueries": [],
-    "comfyPositivePrompt": "",
-    "comfyNegativePrompt": ""
-  }
-}
-```
+### 3.3. DBA hoặc người vận hành hệ thống
 
-Tên các field có thể điều chỉnh theo cấu trúc dự án hiện tại, nhưng phải giữ được đầy đủ ý nghĩa nghiệp vụ.
+DBA chịu trách nhiệm:
 
----
+- Kiểm tra SQL Server gate.
+- Backup trước khi thay đổi cấu hình production.
+- Bật/tắt feature trong `dbo.SystemSettings`.
+- Đặt hạn mức item trong `dbo.StoreInventories.MaxNegativeQty`.
+- Tăng policy version sau mỗi lần thay đổi policy hoặc limit.
+- Lưu ticket/biên bản phê duyệt và kết quả truy vấn sau thay đổi.
 
-# 5. Chuẩn hóa nội dung hình ảnh
+## 4. Mở màn hình Phiếu Kho
 
-Trước khi tìm ảnh Pexels, hệ thống phải chuyển gợi ý thành một `Visual Specification`.
+Đường dẫn trên sidebar:
 
-`Visual Specification` phải xác định rõ:
+**Admin → Phiếu Kho → Phiếu kho**
 
-* Đối tượng chính cần xuất hiện.
-* Loại đối tượng.
-* Thành phần nhận diện.
-* Màu sắc chủ đạo.
-* Bối cảnh.
-* Phong cách.
-* Góc chụp.
-* Bố cục.
-* Hướng ảnh.
-* Những đối tượng không được xuất hiện.
+Màn hình chính gồm:
 
-Ví dụ, không được tìm ảnh chỉ bằng:
+1. **Dashboard**: tổng số phiếu, phiếu nháp, đã xác nhận, đã hủy và số phiếu trong tháng.
+2. **Bộ lọc**: mã phiếu/đối tác, loại, trạng thái, mục đích, cửa hàng và khoảng ngày.
+3. **Tab nghiệp vụ**: Nhập kho, Xuất kho, Kiểm kê và Hủy kho.
+4. **Bảng danh sách**: mã phiếu, loại, mục đích, cửa hàng, đối tác, ngày, giá trị, trạng thái và thao tác.
+5. **Tạo phiếu mới**: mở popup chọn loại phiếu.
+6. **Xuất Excel**: xuất danh sách theo bộ lọc hiện tại.
+
+### 4.1. Trạng thái phiếu
+
+| Trạng thái | Ý nghĩa | Kho đã thay đổi? |
+|---|---|---:|
+| `DRAFT` | Phiếu mới lưu nháp, chưa xác nhận. | Không |
+| `PENDING` | Phiếu xuất âm đang chờ người khác duyệt. | Không |
+| `CONFIRMED` | Phiếu đã xử lý thành công và có snapshot. | Có |
+| `CANCELLED` | Phiếu đã hủy hoặc yêu cầu âm bị từ chối. | Không phát sinh mutation mới |
+
+Luồng trạng thái chính:
 
 ```text
-Trà đào
+DRAFT ───────────────→ CONFIRMED
+  │
+  ├──────────────────→ CANCELLED
+  │
+  └→ PENDING ────────→ CONFIRMED
+          └──────────→ CANCELLED
 ```
 
-Phải chuyển thành nội dung cụ thể hơn:
+`PENDING` không được tạo transaction, cost allocation, cost-gap hoặc confirmed snapshot.
+
+### 4.2. Các nút trên danh sách
+
+- **Biểu tượng mắt**: xem chi tiết phiếu.
+- **Mở để duyệt**: chỉ hiện với phiếu đang chờ duyệt xuất âm và tài khoản reviewer đủ role, scope, không phải requester; thao tác duyệt/từ chối vẫn nằm trong chi tiết.
+- **Biểu tượng dấu kiểm trên DRAFT**: mở bản xem trước để xác nhận hoặc hủy draft.
+- **Biểu tượng in**: mở lựa chọn PDF/Word. Chỉ phiếu `CONFIRMED` có snapshot mới xuất được.
+- **Xuất Excel**: xuất danh sách và chi tiết phù hợp bộ lọc; không đồng nghĩa mọi dòng đều là chứng từ đã xác nhận.
+
+## 5. Quy trình chung khi tạo phiếu
+
+### Bước 1 — Chọn loại phiếu
+
+Bấm **Tạo phiếu mới**, sau đó chọn một trong bốn loại:
+
+- Phiếu Nhập Kho.
+- Phiếu Xuất Kho.
+- Phiếu Kiểm Kê.
+- Phiếu Hủy Kho.
+
+Chuyển kho không nằm trong popup này. Dùng **Admin → Phiếu Kho → Phiếu chuyển kho**.
+
+### Bước 2 — Kiểm tra thông tin chung
+
+- **Mã phiếu**: hệ thống tự sinh; không sửa thủ công.
+- **Ngày chứng từ**: mặc định là ngày hiện tại và được server kiểm tra.
+- **Cửa hàng**: chỉ chọn cửa hàng thuộc scope.
+- **Mục đích**: quyết định validation, nguồn nguyên liệu, giá và policy tồn âm.
+- **Nhà cung cấp/Đối tác**: chỉ hiển thị khi nghiệp vụ cần.
+- **Ghi chú**: mô tả chung hoặc lý do điều chỉnh/hủy.
+- **Lý do xuất âm**: trường riêng trên phiếu xuất; không được thay bằng ghi chú chung.
+
+### Bước 3 — Thêm nguyên liệu
+
+1. Bấm **Thêm nguyên liệu**.
+2. Chọn nguyên liệu.
+3. Chọn đơn vị tính.
+4. Nhập số lượng.
+5. Kiểm tra dòng “Quy đổi” để chắc chắn số lượng base đúng.
+6. Kiểm tra tồn/MOQ/chênh lệch tùy loại phiếu.
+7. Thêm các dòng còn lại.
+
+Không được chọn cùng một nguyên liệu ở hai dòng. Nếu chọn trùng, form sẽ xóa lựa chọn dòng vừa nhập và yêu cầu chọn lại.
+
+Nếu hiển thị **Chưa cấu hình quy đổi**, dừng thao tác và cấu hình đơn vị trước. Không dùng số lượng ước đoán để thay thế conversion factor.
+
+Nguồn nguyên liệu phụ thuộc loại phiếu:
+
+| Loại phiếu | Nguồn hiển thị |
+|---|---|
+| Nhập từ nhà cung cấp | Nguyên liệu được cấu hình với nhà cung cấp. |
+| Nhập điều chỉnh | Master nguyên liệu đang hoạt động; xác nhận nhập có thể tạo `StoreInventory` mới. |
+| Xuất `SALE/GIFT/DEBT/SAMPLE` | Nguyên liệu đang hoạt động đã có `StoreInventory` tại cửa hàng, kể cả tồn bằng 0 hoặc đang âm. |
+| Xuất `ADJUSTMENT_OUT` | Nguyên liệu đã có `StoreInventory` tại cửa hàng và `AvailableQty > 0`. |
+| Kiểm kê | Mọi nguyên liệu đang hoạt động đã có `StoreInventory` tại cửa hàng, kể cả tồn dương, 0 hoặc âm. |
+| Hủy kho | Nguyên liệu đã có `StoreInventory` tại cửa hàng và `AvailableQty > 0`. |
+
+Đổi cửa hàng, loại phiếu hoặc mục đích sẽ tải lại nguồn nguyên liệu và đặt lại các dòng đã chọn để không giữ số tồn/giá của nguồn cũ. Một payload tự ghép chứa nguyên liệu không thuộc `StoreInventory` của cửa hàng bị server từ chối với `INGREDIENT_NOT_IN_STORE_INVENTORY`.
+
+### Bước 4 — Kiểm tra tổng hợp
+
+Khối tổng hợp hiển thị:
+
+- Số dòng.
+- Tổng số lượng chứng từ.
+- Tổng số lượng quy đổi base theo từng đơn vị.
+- Tổng tiền.
+- VAT.
+- Thành tiền.
+
+Phiếu kiểm kê và phiếu hủy là chứng từ quantity-only nên các dòng tiền bị ẩn và luôn được normalize về 0.
+
+### Bước 5 — Chọn cách lưu
+
+- **Lưu nháp**: tạo/cập nhật `DRAFT`, chưa thay đổi kho.
+- **Tạo & xác nhận**: chạy validation, preflight cần thiết và xử lý phiếu.
+- **Hủy** trên modal: đóng form, không phải action hủy một document đã lưu.
+
+Nếu đã lưu nháp, dùng nút xác nhận trên danh sách. Server tải lại draft và không tin chi tiết gửi lại từ client.
+
+## 6. Hướng dẫn từng loại phiếu
+
+### 6.1. Nhập kho từ nhà cung cấp
+
+Chọn:
 
 ```text
-iced peach tea in clear glass with peach slices, orange slices and lemongrass
+Loại phiếu: IMPORT
+Mục đích: IMPORT_PURCHASE — Nhập từ nhà cung cấp
 ```
 
-Các truy vấn gửi tới Pexels nên ưu tiên tiếng Anh vì dữ liệu tìm kiếm ảnh bằng tiếng Anh thường chính xác hơn.
+Các bước:
 
-Tên tiếng Việt vẫn phải được giữ lại để hiển thị và lưu dữ liệu nghiệp vụ.
+1. Chọn cửa hàng nhận hàng.
+2. Chọn nhà cung cấp đang hoạt động.
+3. Form tải danh sách nguyên liệu phù hợp nhà cung cấp.
+4. Chọn nguyên liệu và đơn vị đúng với chứng từ giao hàng.
+5. Nhập số lượng thực nhận.
+6. Kiểm tra đơn giá nhập và thành tiền.
+7. Đối chiếu MOQ/còn nhận nếu form hiển thị.
+8. Lưu nháp hoặc tạo và xác nhận.
 
----
+Nhà cung cấp là bắt buộc. Server từ chối nhà cung cấp không tồn tại hoặc đã ngừng hoạt động.
 
-# 6. Tạo truy vấn tìm kiếm Pexels
+Khi xác nhận, hệ thống tăng tồn, ghi transaction nhập và tạo FIFO cost layer từ bằng chứng giá nhập.
 
-## 6.1. Mỗi gợi ý phải có nhiều truy vấn
+### 6.2. Nhập điều chỉnh
 
-Hệ thống phải tạo từ 3 đến 6 truy vấn Pexels cho mỗi gợi ý.
-
-Không sử dụng một truy vấn duy nhất.
-
-Các truy vấn phải được sắp xếp từ cụ thể đến tổng quát.
-
-Ví dụ với “Trà đào cam sả”:
+Chọn:
 
 ```text
-1. iced peach orange lemongrass tea in clear glass
-2. peach citrus iced tea product photography
-3. orange peach tea with ice and fruit slices
-4. amber fruit tea cafe drink
-5. iced fruit tea in transparent glass
+Loại phiếu: IMPORT
+Mục đích: IMPORT_ADJUSTMENT — Điều chỉnh tăng
 ```
 
-Ví dụ với topping trân châu đen:
+Sử dụng khi biên bản kiểm tra/đối soát chứng minh tồn phải tăng nhưng không phải giao dịch mua hàng thông thường.
+
+Yêu cầu:
+
+- Bắt buộc ghi rõ lý do điều chỉnh trong **Ghi chú**.
+- Đơn giá nhập của mọi dòng phải lớn hơn 0.
+- Nguyên liệu và đơn vị phải đang hoạt động/hợp lệ.
+- Lưu kèm mã biên bản hoặc tham chiếu trong ghi chú.
+
+Không dùng nhập điều chỉnh để che cost-gap chưa được phân tích.
+
+### 6.3. Xuất kho
+
+Các mục đích:
+
+| Purpose | Nhãn trên form | Có thể xin xuất âm? | Yêu cầu đặc biệt |
+|---|---|---:|---|
+| `SALE` | Xuất bán hàng | Có | Có thể nhập tên đối tác/khách hàng. |
+| `GIFT` | Xuất quà tặng | Có | Hàng phải đã giao thực tế. |
+| `DEBT` | Xuất ghi nợ | Có | Hàng đã giao và đã ghi nhận công nợ. |
+| `SAMPLE` | Xuất hàng mẫu | Có | Hàng mẫu đã giao thực tế. |
+| `ADJUSTMENT_OUT` | Điều chỉnh giảm | Không | Bắt buộc ghi chú; thiếu tồn hoặc FIFO bị chặn. |
+
+Các bước xuất không âm:
+
+1. Chọn cửa hàng xuất.
+2. Chọn đúng purpose.
+3. Với `SALE`, nhập đối tác nếu cần.
+4. Chọn nguyên liệu và đơn vị.
+5. Nhập số lượng thực xuất.
+6. Đối chiếu cột **Tồn khả dụng** và quy đổi base.
+7. Bấm **Tạo & xác nhận**.
+
+Danh sách chọn chỉ chứa nguyên liệu đã có bản ghi `StoreInventory` tại cửa hàng đang chọn. Đối với `SALE`, `GIFT`, `DEBT`, `SAMPLE`, item tồn bằng 0 hoặc đang âm vẫn xuất hiện để có thể đi qua preflight và quy trình xin duyệt; điều này không đồng nghĩa phiếu chắc chắn được phép xuất.
+
+Giá vốn xuất do server xác định từ FIFO. Giá hiển thị hoặc dữ liệu client không phải bằng chứng giá vốn có thẩm quyền.
+
+`ADJUSTMENT_OUT`, `WASTE`, `PRODUCTION_OUT` và nguồn chuyển kho luôn fail-closed nếu thao tác làm âm.
+
+### 6.4. Kiểm kê
+
+Chọn:
 
 ```text
-1. black tapioca pearls in small bowl
-2. cooked black boba pearls food photography
-3. tapioca pearl topping close up
-4. bubble tea black pearls ingredient
+Loại phiếu: STOCK_TAKE
+Mục đích: STOCK_TAKE — Kiểm kê
 ```
 
-Ví dụ với nguyên liệu dâu tây:
+Các bước:
+
+1. Đếm vật lý trước khi nhập số liệu.
+2. Chọn cửa hàng và nguyên liệu.
+3. Nhập **Số lượng thực tế**, không nhập lượng chênh lệch.
+4. Đọc cột **Tồn hệ thống**.
+5. Kiểm tra cột **Chênh lệch**:
+   - Số dương: tăng tồn.
+   - Số âm: giảm tồn.
+   - Bằng 0: khớp tồn.
+6. Xác nhận kết quả kiểm kê.
+
+Số lượng thực tế bằng 0 hợp lệ. Số lượng thực tế âm không hợp lệ.
+
+Form chỉ hiển thị nguyên liệu đã có `StoreInventory` tại cửa hàng kiểm kê. Item tồn bằng 0 hoặc đang âm vẫn phải xuất hiện để người kiểm kê nhập số thực tế và đối soát. Nguyên liệu chỉ tồn tại trong master data hoặc chỉ có ở cửa hàng khác không xuất hiện.
+
+Trên `InventoryDocumentDetail`, bốn trường sau luôn bằng 0:
 
 ```text
-1. fresh ripe strawberries isolated food photography
-2. fresh strawberries in small wooden bowl
-3. red strawberry ingredient close up
+UnitPrice = 0
+TotalAmount = 0
+CostPrice = 0
+CostAmount = 0
 ```
 
-## 6.2. Quy tắc tạo truy vấn
+Chi phí xử lý thật, nếu có giảm tồn, vẫn được ghi ở transaction và cost allocation; không lấy bốn trường detail làm sổ giá vốn.
 
-Truy vấn nên được tạo theo cấu trúc:
+### 6.5. Hủy kho
+
+Chọn một lý do:
+
+- `DAMAGED`: hàng hỏng.
+- `EXPIRED`: hết hạn.
+- `BROKEN`: bị vỡ.
+- `CONTAMINATED`: nhiễm bẩn.
+- `LOST`: thất thoát.
+
+Các bước:
+
+1. Kiểm tra hàng vật lý và lập biên bản nếu quy trình nội bộ yêu cầu.
+2. Chọn cửa hàng và lý do hủy.
+3. Chọn nguyên liệu còn tồn.
+4. Nhập **Số lượng hủy**.
+5. Bắt buộc nhập lý do cụ thể trong **Ghi chú**.
+6. Đối chiếu tồn khả dụng.
+7. Xác nhận phiếu.
+
+Không thể hủy vượt tồn khả dụng và không có đường phê duyệt âm cho phiếu hủy.
+
+Form hủy chỉ hiển thị nguyên liệu đã có `StoreInventory` tại cửa hàng và `AvailableQty > 0`. Item tồn bằng 0/âm, item chỉ có ở cửa hàng khác hoặc chỉ có trong master data không được đưa vào danh sách.
+
+Giống phiếu kiểm kê, `UnitPrice`, `TotalAmount`, `CostPrice`, `CostAmount` trên detail luôn bằng 0; giá vốn thật vẫn nằm ở ledger/allocation.
+
+## 7. Bật, tắt và cấu hình xuất âm
+
+### 7.1. Bật/tắt ở đâu?
+
+Màn hình cấu hình hiện nằm tại **Admin → Cài đặt hệ thống → Kho & tồn âm**. Chỉ **BusinessOwner** và **SystemAdmin** được xem và lưu cấu hình.
+
+Các bước bật có kiểm soát:
+
+1. Kiểm tra SQL Server gate trong `Scripts/NegativeInventoryAcceptance.md` đã đạt.
+2. Mở tab **Kho & tồn âm**.
+3. Giữ `approval_required = true` ở trạng thái khóa.
+4. Giữ hạn mức mặc định bằng 0 hoặc nhập hạn mức đã được phê duyệt.
+5. Lọc cửa hàng, tìm item và chọn **Chặn**, **Theo mặc định** hoặc **Hạn mức riêng**.
+6. Bật switch **Cho phép gửi yêu cầu xuất âm kho**.
+7. Bấm **Lưu cấu hình âm kho**, đọc cảnh báo approval stale và xác nhận.
+8. Tải lại màn hình, kiểm tra badge **Bật có kiểm soát** và hạn mức hiệu lực của item.
+
+Để tắt khẩn cấp, tắt switch rồi lưu. Provider đọc lại setting ở request kế tiếp nên kill switch không cần restart ứng dụng.
+
+Nguồn runtime có thẩm quyền là:
 
 ```text
-[đối tượng chính]
-+ [thành phần nhận diện]
-+ [cách trình bày]
-+ [phong cách hình ảnh]
+dbo.SystemSettings
+```
+
+Hạn mức riêng của từng dòng tồn nằm tại:
+
+```text
+dbo.StoreInventories.MaxNegativeQty
+```
+
+Màn hình trên ghi vào `dbo.SystemSettings` và `dbo.StoreInventories.MaxNegativeQty`. File `Data/Configurations/Systems/SystemSettingConfiguration.cs` chỉ seed giá trị mặc định cho database mới; sửa file seed không tự thay đổi database đang vận hành. Không sửa `appsettings.json` để bật feature.
+
+Policy provider đọc trực tiếp bốn setting ở mỗi request, không dùng cache. Kill switch có hiệu lực từ request kế tiếp.
+
+### 7.2. Bốn setting bắt buộc
+
+| SettingKey | Giá trị seed | Quy tắc |
+|---|---|---|
+| `inventory_manual_external_export_negative_enabled` | `false` | `true` mới cho phép đi vào quy trình xin xuất âm. |
+| `inventory_manual_external_export_approval_required` | `true` | Phải luôn là `true` khi feature bật. |
+| `inventory_manual_external_export_default_max_negative_quantity` | `0` | Hạn mức mặc định, không được âm. |
+| `inventory_manual_external_export_policy_version` | `manual-export-v1` | Không được rỗng; phải đổi sau mỗi thay đổi policy/limit. |
+
+Thiếu key, boolean sai định dạng, limit âm, version rỗng, hoặc `enabled=true` cùng `approval_required=false` đều trả `NEGATIVE_SETTING_INVALID` và chặn xuất âm.
+
+### 7.3. Thứ tự ưu tiên hạn mức
+
+```text
+effectiveLimit = StoreInventories.MaxNegativeQty
+                 nếu MaxNegativeQty khác NULL;
+                 ngược lại dùng default setting.
+```
+
+Ví dụ:
+
+| Item limit | Default limit | Effective limit |
+|---:|---:|---:|
+| `NULL` | 5 | 5 |
+| 2 | 5 | 2 |
+| 0 | 5 | 0 — item bị chặn âm |
+
+Khuyến nghị production:
+
+- Giữ default limit bằng 0.
+- Chỉ đặt `MaxNegativeQty > 0` cho `StoreInventoryId` đã được phê duyệt.
+- Không mở một hạn mức global lớn cho mọi nguyên liệu.
+
+### 7.4. SQL kiểm tra hiện trạng — chỉ đọc
+
+DBA chạy trên đúng database CafeChain:
+
+```sql
+SELECT
+    SettingKey,
+    SettingValue,
+    Description
+FROM dbo.SystemSettings
+WHERE SettingKey IN
+(
+    N'inventory_manual_external_export_negative_enabled',
+    N'inventory_manual_external_export_approval_required',
+    N'inventory_manual_external_export_default_max_negative_quantity',
+    N'inventory_manual_external_export_policy_version'
+)
+ORDER BY SettingKey;
+
+SELECT
+    StoreInventoryId,
+    StoreId,
+    IngredientId,
+    PreparedItemId,
+    AvailableQty,
+    ReservedQty,
+    MaxNegativeQty,
+    LastUpdated
+FROM dbo.StoreInventories
+WHERE MaxNegativeQty IS NOT NULL
+ORDER BY StoreId, IngredientId, PreparedItemId, StoreInventoryId;
+```
+
+Kết quả truy vấn setting phải có đúng bốn dòng.
+
+### 7.5. SQL bật feature an toàn
+
+Mẫu dưới đây bật feature nhưng giữ default limit bằng 0. Sau đó DBA mở limit riêng cho từng item ở mục 7.7.
+
+Thay `manual-export-v1-YYYYMMDD-NN` bằng version duy nhất gắn với ticket triển khai.
+
+```sql
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @DefaultMaxNegativeQuantity decimal(18,3) = 0.000;
+DECLARE @NewPolicyVersion nvarchar(100) = N'manual-export-v1-YYYYMMDD-NN';
+
+IF @DefaultMaxNegativeQuantity < 0
+    THROW 51000, N'Default max negative quantity không được âm.', 1;
+
+IF NULLIF(LTRIM(RTRIM(@NewPolicyVersion)), N'') IS NULL
+    THROW 51000, N'Policy version là bắt buộc.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF
+    (
+        SELECT COUNT(*)
+        FROM dbo.SystemSettings WITH (UPDLOCK, HOLDLOCK)
+        WHERE SettingKey IN
+        (
+            N'inventory_manual_external_export_negative_enabled',
+            N'inventory_manual_external_export_approval_required',
+            N'inventory_manual_external_export_default_max_negative_quantity',
+            N'inventory_manual_external_export_policy_version'
+        )
+    ) <> 4
+        THROW 51000, N'Thiếu hoặc trùng setting âm kho; đã hủy thao tác.', 1;
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = N'true'
+    WHERE SettingKey = N'inventory_manual_external_export_approval_required';
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = CONVERT(nvarchar(100), @DefaultMaxNegativeQuantity)
+    WHERE SettingKey = N'inventory_manual_external_export_default_max_negative_quantity';
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = @NewPolicyVersion
+    WHERE SettingKey = N'inventory_manual_external_export_policy_version';
+
+    -- Bật ở bước cuối để các setting liên quan đã nhất quán trước.
+    UPDATE dbo.SystemSettings
+    SET SettingValue = N'true'
+    WHERE SettingKey = N'inventory_manual_external_export_negative_enabled';
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+SELECT SettingKey, SettingValue
+FROM dbo.SystemSettings
+WHERE SettingKey LIKE N'inventory_manual_external_export_%'
+ORDER BY SettingKey;
+```
+
+Sau khi chạy:
+
+1. Lưu kết quả `SELECT` vào ticket.
+2. Chạy preflight thử với một item limit bằng 0; kết quả phải bị chặn khi projected after âm.
+3. Chỉ tiếp tục mở item limit sau khi kiểm tra maker-checker.
+
+### 7.6. SQL tắt khẩn cấp
+
+Tắt feature không xóa approval/gap lịch sử. Approval đang chờ sẽ không thể duyệt theo policy cũ.
+
+```sql
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @NewPolicyVersion nvarchar(100) = N'manual-export-disabled-YYYYMMDD-NN';
+
+IF NULLIF(LTRIM(RTRIM(@NewPolicyVersion)), N'') IS NULL
+    THROW 51000, N'Policy version là bắt buộc.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    IF
+    (
+        SELECT COUNT(*)
+        FROM dbo.SystemSettings WITH (UPDLOCK, HOLDLOCK)
+        WHERE SettingKey IN
+        (
+            N'inventory_manual_external_export_negative_enabled',
+            N'inventory_manual_external_export_approval_required',
+            N'inventory_manual_external_export_default_max_negative_quantity',
+            N'inventory_manual_external_export_policy_version'
+        )
+    ) <> 4
+        THROW 51000, N'Thiếu hoặc trùng setting âm kho; đã hủy thao tác.', 1;
+
+    -- Tắt ở bước đầu để request kế tiếp fail-closed.
+    UPDATE dbo.SystemSettings
+    SET SettingValue = N'false'
+    WHERE SettingKey = N'inventory_manual_external_export_negative_enabled';
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = @NewPolicyVersion
+    WHERE SettingKey = N'inventory_manual_external_export_policy_version';
+
+    -- Giữ maker-checker ở trạng thái hợp lệ cho lần bật sau.
+    UPDATE dbo.SystemSettings
+    SET SettingValue = N'true'
+    WHERE SettingKey = N'inventory_manual_external_export_approval_required';
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+SELECT SettingKey, SettingValue
+FROM dbo.SystemSettings
+WHERE SettingKey LIKE N'inventory_manual_external_export_%'
+ORDER BY SettingKey;
+```
+
+Sau khi tắt, chạy preflight projected âm. Kết quả mong đợi:
+
+```text
+Outcome: Blocked
+ReasonCode: MANUAL_NEGATIVE_FEATURE_DISABLED
+```
+
+### 7.7. Đặt hạn mức cho một item
+
+Trước tiên dùng truy vấn chỉ đọc để tìm chính xác `StoreInventoryId`. Không update theo tên nguyên liệu.
+
+```sql
+DECLARE @StoreId int = 0;          -- Thay bằng cửa hàng cần cấu hình.
+DECLARE @IngredientId int = NULL;  -- Điền IngredientId hoặc PreparedItemId.
+DECLARE @PreparedItemId int = NULL;
+
+IF @StoreId <= 0
+    THROW 51000, N'StoreId không hợp lệ.', 1;
+
+IF (@IngredientId IS NULL AND @PreparedItemId IS NULL)
+   OR (@IngredientId IS NOT NULL AND @PreparedItemId IS NOT NULL)
+    THROW 51000, N'Phải chọn đúng một identity IngredientId/PreparedItemId.', 1;
+
+SELECT
+    si.StoreInventoryId,
+    si.StoreId,
+    si.IngredientId,
+    si.PreparedItemId,
+    si.AvailableQty,
+    si.MaxNegativeQty
+FROM dbo.StoreInventories AS si
+WHERE si.StoreId = @StoreId
+  AND
+  (
+      (si.IngredientId = @IngredientId AND si.PreparedItemId IS NULL)
+      OR (si.PreparedItemId = @PreparedItemId AND si.IngredientId IS NULL)
+  );
+```
+
+Sau khi xác minh đúng identity, đặt hạn mức và đổi policy version trong cùng transaction:
+
+```sql
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @StoreInventoryId int = 0; -- Thay bằng Id đã đối chiếu.
+DECLARE @MaxNegativeQty decimal(18,3) = 5.000;
+DECLARE @NewPolicyVersion nvarchar(100) = N'manual-export-v1-YYYYMMDD-NN';
+
+IF @StoreInventoryId <= 0
+    THROW 51000, N'StoreInventoryId không hợp lệ.', 1;
+
+IF @MaxNegativeQty < 0
+    THROW 51000, N'MaxNegativeQty không được âm.', 1;
+
+IF NULLIF(LTRIM(RTRIM(@NewPolicyVersion)), N'') IS NULL
+    THROW 51000, N'Policy version là bắt buộc.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    UPDATE dbo.StoreInventories WITH (UPDLOCK)
+    SET MaxNegativeQty = @MaxNegativeQty
+    WHERE StoreInventoryId = @StoreInventoryId;
+
+    IF @@ROWCOUNT <> 1
+        THROW 51000, N'Không tìm thấy đúng một StoreInventoryId.', 1;
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = @NewPolicyVersion
+    WHERE SettingKey = N'inventory_manual_external_export_policy_version';
+
+    IF @@ROWCOUNT <> 1
+        THROW 51000, N'Không cập nhật được policy version.', 1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+
+SELECT StoreInventoryId, StoreId, IngredientId, PreparedItemId, MaxNegativeQty
+FROM dbo.StoreInventories
+WHERE StoreInventoryId = @StoreInventoryId;
+```
+
+### 7.8. Xóa hạn mức riêng của item
+
+Đặt `MaxNegativeQty = NULL` để item quay về dùng default limit. Không dùng `NULL` nếu mục đích là chặn item; để chặn riêng item, đặt bằng 0.
+
+```sql
+SET NOCOUNT ON;
+SET XACT_ABORT ON;
+
+DECLARE @StoreInventoryId int = 0;
+DECLARE @NewPolicyVersion nvarchar(100) = N'manual-export-v1-YYYYMMDD-NN';
+
+IF @StoreInventoryId <= 0
+    THROW 51000, N'StoreInventoryId không hợp lệ.', 1;
+
+IF NULLIF(LTRIM(RTRIM(@NewPolicyVersion)), N'') IS NULL
+    THROW 51000, N'Policy version là bắt buộc.', 1;
+
+BEGIN TRY
+    BEGIN TRANSACTION;
+
+    UPDATE dbo.StoreInventories WITH (UPDLOCK)
+    SET MaxNegativeQty = NULL
+    WHERE StoreInventoryId = @StoreInventoryId;
+
+    IF @@ROWCOUNT <> 1
+        THROW 51000, N'Không tìm thấy đúng một StoreInventoryId.', 1;
+
+    UPDATE dbo.SystemSettings
+    SET SettingValue = @NewPolicyVersion
+    WHERE SettingKey = N'inventory_manual_external_export_policy_version';
+
+    IF @@ROWCOUNT <> 1
+        THROW 51000, N'Không cập nhật được policy version.', 1;
+
+    COMMIT TRANSACTION;
+END TRY
+BEGIN CATCH
+    IF XACT_STATE() <> 0
+        ROLLBACK TRANSACTION;
+    THROW;
+END CATCH;
+```
+
+## 8. Xuất âm kho từng bước
+
+### 8.1. Điều kiện để được xin xuất âm
+
+Tất cả điều kiện sau phải đúng:
+
+1. Loại phiếu là `EXPORT`.
+2. Purpose là `SALE`, `GIFT`, `DEBT` hoặc `SAMPLE`.
+3. Feature đang bật.
+4. Approval-required đang là `true`.
+5. Lý do xuất âm không rỗng.
+6. `ProjectedAfter` không thấp hơn `-EffectiveLimit`.
+7. Item/store nằm trong phạm vi được phép.
+
+`ADJUSTMENT_OUT`, `WASTE`, `PRODUCTION_OUT` và `TRANSFER_DISPATCH` không bao giờ đi vào workflow xin âm.
+
+### 8.2. Cách lập phiếu
+
+1. Mở **Phiếu Kho → Phiếu kho → Tạo phiếu mới → Phiếu Xuất Kho**.
+2. Chọn cửa hàng trong scope.
+3. Chọn `SALE`, `GIFT`, `DEBT` hoặc `SAMPLE`.
+4. Chọn nguyên liệu và đơn vị.
+5. Nhập đúng số lượng đã xuất thực tế; form không tự giảm về tồn hiện tại cho bốn purpose này.
+6. Kiểm tra quy đổi base.
+7. Nhập **Lý do xuất âm**, mô tả:
+   - Giao dịch thực tế nào đã phát sinh.
+   - Tại sao không thể trì hoãn ghi nhận.
+   - Tham chiếu đơn hàng/biên bản/công nợ nếu có.
+8. Bấm **Tạo & xác nhận**.
+9. Server chạy preflight và hiển thị kết quả từng dòng.
+
+### 8.3. Cách đọc preflight
+
+```text
+Before         = AvailableQty trước xuất
+Issue          = số lượng xuất theo base unit
+ProjectedAfter = Before - Issue
+Limit          = MaxNegativeQty có hiệu lực
 ```
 
 Ví dụ:
 
 ```text
-matcha latte
-+ clear glass
-+ ice cubes and matcha foam
-+ professional product photography
+Before = 3
+Issue = 5
+ProjectedAfter = -2
+Limit = 4
 ```
 
-Không thêm quá nhiều từ không liên quan vì có thể làm giảm độ chính xác của Pexels.
+Vì `-2 >= -4`, số âm nằm trong hạn mức và có thể trả `ApprovalRequired`.
 
-Không đưa vào truy vấn:
+### 8.4. Ba outcome
 
-* Giá bán.
-* Mã sản phẩm.
-* Trạng thái Active.
-* Nội dung phân quyền.
-* Dữ liệu không liên quan đến hình ảnh.
-* Câu mô tả marketing dài.
+| Outcome | Ý nghĩa | Hành động |
+|---|---|---|
+| `Allowed` | Dòng không âm hoặc approval hợp lệ đã được đánh giá lại. | Tiếp tục xử lý. |
+| `ApprovalRequired` | Âm hợp lệ trong limit nhưng chưa có approval. | Gửi yêu cầu và chờ người khác duyệt. |
+| `Blocked` | Vi phạm feature, purpose, reason, limit, scope hoặc strict operation. | Không có mutation; sửa nghiệp vụ/dữ liệu. |
 
----
+Cảnh báo “sắp hết tồn” là low-stock warning, không phải quyền cho phép âm.
 
-# 7. Quy trình tìm ảnh Pexels
+### 8.5. Gửi yêu cầu
 
-## 7.1. Không lấy kết quả đầu tiên
+Khi preflight trả `ApprovalRequired`:
 
-Đối với mỗi truy vấn, hệ thống phải lấy một tập ứng viên, ví dụ từ 10 đến 20 ảnh.
+- Document chuyển `PENDING`.
+- Hệ thống lưu requester, reason, policy version và từng dòng before/issue/after/limit.
+- Không giảm `AvailableQty`.
+- Không consume FIFO.
+- Không tạo transaction, gap hoặc snapshot.
 
-Sau đó:
+Không thay đổi trực tiếp document `PENDING` trong database.
 
-1. Gộp kết quả từ các truy vấn.
-2. Loại bỏ ảnh trùng.
-3. Loại bỏ ảnh có kích thước quá thấp.
-4. Loại bỏ ảnh không đúng orientation.
-5. Loại bỏ ảnh không phù hợp với đối tượng chính.
-6. Chấm điểm các ảnh còn lại.
-7. Chọn ảnh có điểm cao nhất.
+### 8.6. Duyệt hoặc từ chối
 
-Không được thực hiện:
+Nút duyệt không nằm trên form tạo phiếu. Nó chỉ xuất hiện sau khi server đã tạo approval `REQUESTED` và document đã chuyển sang `PENDING`.
+
+#### Tài khoản người tạo
+
+1. Bấm **Tạo & xác nhận**.
+2. Kiểm tra kết quả là `PENDING`/`ApprovalRequired`, không phải `Blocked`.
+3. Ghi lại mã phiếu hoặc `approvalId`.
+4. Đăng xuất hoặc chuyển sang tài khoản người duyệt khác.
+
+Người tạo không được tự duyệt, kể cả có đồng thời role BusinessOwner/SystemAdmin. Khi chính requester mở chi tiết, hệ thống hiển thị **“Bạn không thể tự duyệt phiếu do chính mình tạo”** thay cho hai nút.
+
+#### Tài khoản người duyệt
+
+1. Đăng nhập bằng tài khoản khác requester.
+2. Tài khoản phải có một trong các role: **BusinessOwner**, **SystemAdmin**, **AreaManager**, **AccountantWarehouse**.
+3. Tài khoản phải có scope tại cửa hàng của phiếu.
+4. Mở **Admin → Phiếu Kho → Phiếu kho**.
+5. Lọc trạng thái **PENDING** hoặc tìm badge **Chờ duyệt xuất âm**.
+6. Bấm **Mở để duyệt**. Nếu danh sách chỉ có biểu tượng con mắt, bấm **Xem chi tiết**.
+7. Trong panel **Phê duyệt tồn âm**, đối chiếu lý do, requester, policy version và từng dòng Before/Issue/After/Limit.
+8. Chọn **Duyệt xuất âm** (ghi chú tùy chọn) hoặc **Từ chối** (bắt buộc lý do).
+9. Xác nhận hộp thoại và chờ trang tải lại trạng thái mới.
+
+Phần approval trong chi tiết hiển thị trạng thái, người đề nghị, người duyệt, policy version, thời điểm đề nghị/duyệt, lý do, review note và Before/Issue/After/Limit từng dòng.
+
+Khi duyệt, server lock và đánh giá lại stock, scope, reason, limit, row version và policy version. Dữ liệu đã thay đổi trả `APPROVAL_STALE`; người dùng phải tải lại và lập lượt xét duyệt mới.
+
+Kết quả:
+
+- Duyệt thành công: approval thành `APPROVED`, document thành `CONFIRMED`, sau đó mới ghi stock transaction/FIFO/cost-gap/snapshot.
+- Từ chối thành công: approval thành `REJECTED`, document thành `CANCELLED`, không giảm tồn.
+- Request đồng thời hoặc approval đã xử lý: trả `409`, không xử lý lần hai.
+
+#### Vì sao không thấy nút duyệt?
+
+| Hiện tượng | Nguyên nhân | Cách xử lý |
+|---|---|---|
+| Có panel approval nhưng hiện thông báo không thể tự duyệt | Tài khoản hiện tại chính là requester. | Đăng nhập bằng người duyệt khác. |
+| Tài khoản StoreManager không có nút | StoreManager chỉ được tạo/gửi yêu cầu. | Chuyển cho một trong bốn role duyệt được phép. |
+| Không thấy phiếu trong danh sách | Người duyệt không có store scope hoặc bộ lọc đang loại phiếu. | Kiểm tra scope và lọc `PENDING`; không mở rộng scope bằng sửa database. |
+| Phiếu là `DRAFT` | Chưa submit hoặc chưa phát sinh approval. | Xác nhận draft; chỉ yêu cầu hợp lệ trong limit mới chuyển `PENDING`. |
+| Phiếu đã `CONFIRMED`/`CANCELLED` | Approval đã được xử lý. | Xem timeline, approver và review note; không duyệt lại. |
+| Phiếu `PENDING` nhưng không có approval | Trạng thái dữ liệu bất thường. | Dừng thao tác, liên hệ DBA/kỹ thuật; không tự thêm approval. |
+| Bấm duyệt nhận `APPROVAL_STALE` | Stock, limit, feature hoặc policy version đã đổi. | Tải lại, xử lý lượt cũ theo quy trình và lập yêu cầu mới từ dữ liệu hiện tại. |
+
+Không được đổi setting hoặc sửa row tồn để làm approval cũ vượt qua stale check.
+
+### 8.7. Ví dụ nghiệp vụ
+
+#### Đúng hạn mức
 
 ```text
-Gọi Pexels API
-→ Lấy photos[0]
-→ Sử dụng ngay
+Before = 2
+Issue = 5
+After = -3
+Limit = 3
+Kết quả = ApprovalRequired
 ```
 
-## 7.2. Số vòng tìm kiếm
+Biên `After = -Limit` là hợp lệ.
 
-Cho phép tìm kiếm tối đa 3 vòng:
-
-### Vòng 1: Truy vấn chính xác
-
-Sử dụng đối tượng chính và đầy đủ các thành phần nhận diện.
-
-Ví dụ:
+#### Vượt hạn mức
 
 ```text
-iced peach orange lemongrass tea
+Before = 2
+Issue = 6
+After = -4
+Limit = 3
+Kết quả = Blocked / MANUAL_NEGATIVE_LIMIT_EXCEEDED
 ```
 
-### Vòng 2: Truy vấn rút gọn
-
-Giữ đối tượng chính và hai đặc điểm quan trọng nhất.
-
-Ví dụ:
+#### Item limit ghi đè default
 
 ```text
-peach citrus iced tea
+Default limit = 10
+Item MaxNegativeQty = 2
+After = -3
+Kết quả = Blocked vì effective limit là 2
 ```
 
-### Vòng 3: Truy vấn fallback
-
-Giữ đúng loại sản phẩm và phong cách hình ảnh.
-
-Ví dụ:
+#### Feature bị tắt trong lúc chờ duyệt
 
 ```text
-amber fruit tea product photography
+Lúc gửi: enabled = true
+Lúc duyệt: enabled = false, policy version đã đổi
+Kết quả = APPROVAL_STALE hoặc feature disabled; không mutate kho
 ```
 
-Không được fallback sang một nhóm đối tượng khác.
+## 9. Giá vốn, cost-gap và nhập bù
 
-Ví dụ:
+### 9.1. Vì sao cần cost-gap?
 
-* Không tìm thấy trà đào không có nghĩa là được chọn ảnh cà phê.
-* Không tìm thấy trân châu đen không có nghĩa là được chọn ảnh chocolate.
-* Không tìm thấy dâu tây không có nghĩa là được chọn ảnh cherry.
-* Không tìm thấy cửa hàng cà phê không có nghĩa là được chọn nhà hàng sang trọng.
+Xuất âm là ghi nhận hàng đã đi ra khi kho chưa có đủ bằng chứng FIFO. Hệ thống không được tự đoán giá cho phần thiếu.
 
----
-
-# 8. Chấm điểm ảnh Pexels
-
-Mỗi ảnh ứng viên phải được chấm điểm trước khi lựa chọn.
-
-Có thể sử dụng metadata, alt text, caption, từ khóa hoặc mô hình đánh giá hình ảnh nếu hệ thống có hỗ trợ.
-
-Công thức tham khảo:
+Ví dụ kho có 3 kg, FIFO cost 80.000 đ/kg, nhưng hàng thực tế đã xuất 5 kg:
 
 ```text
-Tổng điểm =
-    35% độ khớp đối tượng chính
-  + 20% độ khớp thành phần nhận diện
-  + 15% độ khớp loại sản phẩm
-  + 10% độ khớp màu sắc
-  + 10% độ khớp bố cục và orientation
-  + 10% chất lượng và độ phân giải
+Before = 3 kg
+Issue = 5 kg
+After = -2 kg
+FIFO coverage = 3 kg × 80.000
+Outstanding cost-gap = 2 kg
 ```
 
-Thang điểm chuẩn hóa từ `0` đến `1`.
+Sau khi được duyệt:
 
-## 8.1. Điều kiện chấp nhận
+- Ba kg có cost allocation thật.
+- Hai kg thiếu cost evidence tạo `InventoryNegativeCostGap`.
+- Transaction của phần thiếu được đánh dấu cost incomplete/null phù hợp.
+- Không dùng giá client, giá layer cuối hoặc giá 0 làm giá vốn giả.
+
+### 9.2. Nhập bù ít hơn deficit
+
+Kho đang -2 kg, nhập 1,5 kg với cost thật 90.000 đ/kg:
 
 ```text
-Điểm >= 0.75:
-    Có thể tự động chọn làm ảnh tham chiếu.
-
-Điểm từ 0.60 đến dưới 0.75:
-    Không tự động chọn ngay.
-    Phải thử truy vấn khác hoặc đưa ra các ảnh tốt nhất để người dùng chọn.
-
-Điểm dưới 0.60:
-    Loại bỏ.
+settled = min(1,5; abs(min(-2; 0))) = 1,5
+after = -0,5
+inbound layer Quantity = 1,5
+RemainingQuantity = 0
+gap còn mở = 0,5
 ```
 
-Các ngưỡng có thể được cấu hình, không viết cứng rải rác trong nhiều service.
+Toàn bộ lượng nhập đã dùng để bù phần xuất trước đó nên chưa có FIFO available mới.
 
-## 8.2. Điều kiện loại bỏ ngay
+### 9.3. Nhập bù bằng deficit
 
-Một ảnh phải bị loại ngay nếu:
-
-* Sai hoàn toàn loại đối tượng.
-* Không chứa đối tượng chính.
-* Chứa đối tượng nằm trong `excludedObjects` ở vị trí nổi bật.
-* Là ảnh có người khi yêu cầu ảnh sản phẩm không có người.
-* Chứa logo hoặc chữ lớn khi yêu cầu ảnh sạch.
-* Là ảnh minh họa hoặc hoạt hình khi yêu cầu ảnh chân thực.
-* Có tỷ lệ ảnh không phù hợp nghiêm trọng.
-* Ảnh mờ hoặc độ phân giải quá thấp.
-* Có nhiều sản phẩm gây nhầm lẫn trong khi yêu cầu một sản phẩm chính.
-* Là ảnh cà phê nhưng gợi ý là trà trái cây.
-* Là ảnh đồ uống có cồn nhưng gợi ý là đồ uống trong quán cà phê.
-* Là ảnh món ăn nhưng gợi ý là topping hoặc nguyên liệu.
-
----
-
-# 9. Bảo vệ hệ thống khỏi việc lấy sai ảnh
-
-Hệ thống phải có các lớp bảo vệ sau:
-
-## Lớp 1: Chuẩn hóa gợi ý
-
-Tách tên sản phẩm khỏi đối tượng hình ảnh thật sự.
-
-Ví dụ:
+Kho đang -2 kg, nhập đúng 2 kg:
 
 ```text
-Tên: Hoàng hôn nhiệt đới
+after = 0
+gap đóng
+RemainingQuantity = 0
 ```
 
-Không được tìm:
+### 9.4. Nhập bù lớn hơn deficit
+
+Kho đang -2 kg, nhập 5 kg:
 
 ```text
-tropical sunset
+settled = 2
+after = 3
+gap đóng
+RemainingQuantity = 3
 ```
 
-Nếu đây là tên của một đồ uống, phải tìm:
+Settlement xử lý gap cũ nhất trước theo `OccurredAt`, sau đó theo Id.
 
-```text
-orange passion fruit iced drink in clear glass
+### 9.5. Xem cost-gap
+
+Mở chi tiết phiếu `CONFIRMED`, chuyển sang tab chứng từ. Bảng cost-gap hiển thị:
+
+- Mã gap.
+- Nguồn.
+- Trạng thái.
+- Số lượng ban đầu.
+- Đã settlement.
+- Còn outstanding.
+
+Không đóng gap thủ công bằng cách sửa status hoặc outstanding quantity trong database.
+
+## 10. Snapshot, hủy và xuất file
+
+- `DRAFT` chưa có confirmed snapshot.
+- `PENDING` chưa có confirmed snapshot.
+- `CONFIRMED` có đúng một snapshot tạo sau xử lý thành công.
+- PDF/Word chỉ đọc confirmed snapshot.
+- Tiêu đề được map đúng Phiếu Nhập, Phiếu Xuất, Phiếu Kiểm Kê hoặc Phiếu Hủy.
+- Hủy draft không hoàn tác stock vì draft chưa mutate.
+- Từ chối approval chuyển phiếu sang `CANCELLED` trong cùng transaction.
+- Sau khi phiếu đã `CONFIRMED`, không sửa/xóa dữ liệu để “hủy”; cần workflow reversal phù hợp.
+
+## 11. Lỗi thường gặp
+
+| HTTP / ReasonCode | Nguyên nhân | Cách xử lý |
+|---|---|---|
+| `400` | DTO, request key, ngày, identity, đơn vị hoặc số lượng không hợp lệ. | Sửa dữ liệu; không gửi lại nguyên payload lỗi. |
+| `403` | Không có role hoặc store/area scope. | Kiểm tra phân quyền; không đổi store bằng client để bypass. |
+| `409 / APPROVAL_STALE` | Stock, reason, limit, row version hoặc policy version đã đổi. | Tải lại và lập lượt xét duyệt mới. |
+| `409 / IDEMPOTENCY_KEY_REUSED` | Cùng request key nhưng payload khác. | Mở lại form/tạo request key mới cho ý định mới. |
+| `422 / MANUAL_NEGATIVE_FEATURE_DISABLED` | Kill switch đang tắt. | Không tự bật; kiểm tra rollout gate. |
+| `422 / NEGATIVE_SETTING_INVALID` | Thiếu/sai setting hoặc approval-required bị tắt. | DBA sửa bộ setting và chạy lại truy vấn kiểm tra. |
+| `422 / MANUAL_NEGATIVE_PURPOSE_NOT_ALLOWED` | Purpose không thuộc SALE/GIFT/DEBT/SAMPLE. | Chọn đúng nghiệp vụ; không đổi purpose giả. |
+| `422 / MANUAL_NEGATIVE_REASON_REQUIRED` | Thiếu lý do xuất âm. | Nhập lý do cụ thể. |
+| `422 / MANUAL_NEGATIVE_LIMIT_EXCEEDED` | After thấp hơn `-Limit`. | Giảm lượng xuất, nhập bổ sung hoặc xin thay đổi limit theo quy trình. |
+| `422 / SELF_APPROVAL_FORBIDDEN` | Requester đang tự duyệt. | Chuyển cho người duyệt khác. |
+| `422 / ADJUSTMENT_OUT_NEGATIVE_FORBIDDEN` | Điều chỉnh giảm làm âm. | Đối soát/kiểm kê hoặc nhập bổ sung. |
+| `422 / WASTE_NEGATIVE_FORBIDDEN` | Hủy vượt tồn. | Kiểm tra hàng vật lý và số liệu. |
+| `422 / PRODUCTION_OUT_NEGATIVE_FORBIDDEN` | Xuất sản xuất thiếu nguồn. | Bổ sung tồn/cost evidence. |
+| `422 / TRANSFER_SOURCE_NEGATIVE_FORBIDDEN` | Dispatch chuyển kho làm âm nguồn. | Không dispatch; bổ sung tồn nguồn. |
+
+Nếu một request không rõ đã thành công hay chưa, kiểm tra document/transaction theo request key trước khi bấm lại. Không tự tạo nhiều request key để ép xử lý trùng.
+
+## 12. Checklist vận hành
+
+### 12.1. Trước khi tạo phiếu
+
+- [ ] Đúng cửa hàng và đúng ngày chứng từ.
+- [ ] Đúng loại/purpose.
+- [ ] Nguyên liệu đang hoạt động.
+- [ ] Đơn vị và conversion factor hợp lệ.
+- [ ] Không trùng nguyên liệu giữa các dòng.
+- [ ] Số lượng là số thực tế, không phải lượng chênh lệch trừ trường hợp hệ thống tự tính kiểm kê.
+- [ ] Nhà cung cấp/đối tác phù hợp.
+- [ ] Ghi chú bắt buộc đã nhập.
+
+### 12.2. Trước khi gửi xuất âm
+
+- [ ] Purpose thuộc SALE/GIFT/DEBT/SAMPLE.
+- [ ] Giao dịch/hàng giao thực tế đã phát sinh.
+- [ ] Lý do xuất âm có tham chiếu kiểm chứng.
+- [ ] Before/Issue/After và base unit đã đối chiếu.
+- [ ] After không vượt limit.
+- [ ] Không dùng xuất âm thay cho kiểm kê hoặc điều chỉnh dữ liệu.
+
+### 12.3. Trước khi duyệt
+
+- [ ] Người duyệt không phải requester.
+- [ ] Cửa hàng thuộc scope.
+- [ ] Reason và purpose đúng bản chất giao dịch.
+- [ ] Từng dòng before/issue/after/limit hợp lý.
+- [ ] Policy version hiện tại đúng với ticket rollout.
+- [ ] Đã hiểu phần cost-gap có thể phát sinh.
+
+### 12.4. Trước khi bật feature
+
+- [ ] Backup và kế hoạch rollback sẵn sàng.
+- [ ] `NegativeInventoryAcceptance.md` xác nhận SQL Server gate đạt.
+- [ ] Bốn setting tồn tại và parse hợp lệ.
+- [ ] `approval_required=true`.
+- [ ] Default limit bằng 0 hoặc đã được phê duyệt rõ ràng.
+- [ ] Danh sách item limit đã được duyệt.
+- [ ] Policy version mới, duy nhất.
+- [ ] Có người gửi và người duyệt khác nhau.
+- [ ] Có telemetry/audit và người trực xử lý sự cố.
+
+### 12.5. Khi tắt khẩn cấp
+
+- [ ] Update `enabled=false` trước.
+- [ ] Đổi policy version.
+- [ ] Xác minh truy vấn trả `false`.
+- [ ] Chạy preflight thử và xác nhận bị block.
+- [ ] Rà soát approval đang `REQUESTED`.
+- [ ] Không xóa approval, transaction, gap hoặc settlement lịch sử.
+- [ ] Tiếp tục xử lý nhập bù/cost-gap đã tồn tại.
+
+### 12.6. Sau khi một phiếu âm được xác nhận
+
+- [ ] Document ở `CONFIRMED`.
+- [ ] Approval ở `APPROVED`, requester khác approver.
+- [ ] `AvailableQty` đúng với after.
+- [ ] Transaction và allocation không bị nhân đôi.
+- [ ] Gap outstanding đúng phần thiếu FIFO.
+- [ ] Snapshot tồn tại đúng một bản.
+- [ ] PDF/Word phản ánh đúng lý do và approval.
+- [ ] Kế hoạch nhập bù đã được giao cho người phụ trách.
+
+## 13. Khi nào phải dừng và liên hệ kỹ thuật
+
+Dừng thao tác, không cố gọi API hoặc sửa trực tiếp dữ liệu nghiệp vụ khi gặp một trong các trường hợp:
+
+- Setting thiếu, trùng hoặc `NEGATIVE_SETTING_INVALID` lặp lại.
+- AvailableQty không khớp ledger.
+- FIFO layer remaining không khớp tồn.
+- Gap outstanding lớn hơn deficit thực tế.
+- Approval requester/approver hoặc scope sai.
+- Phiếu `PENDING` đã có transaction/allocation/snapshot.
+- Cùng request tạo nhiều movement/snapshot.
+- Nhập bù tạo FIFO available dù kho vẫn âm.
+- SQL deadlock/concurrency lặp lại.
+- Không xác định database/migration history đang vận hành.
+
+Liên hệ DBA, kế toán kho và kỹ thuật ứng dụng. Giữ nguyên dữ liệu để điều tra; không clamp số âm về 0 và không xóa audit trail.
+
+## 14. Tài liệu liên quan
+
+- [Bảng nghiệm thu và trạng thái SQL Server gate](Scripts/NegativeInventoryAcceptance.md)
+- `Data/Configurations/Systems/SystemSettingConfiguration.cs`
+- `Application/Services/Inventories/InventoryIssuePolicy.cs`
+- `Application/Services/Inventories/InventoryIssueSettingsProvider.cs`
+
+Tài liệu này phản ánh form và policy hiện tại. Nếu UI, setting, purpose hoặc approval workflow thay đổi, phải cập nhật hướng dẫn trong cùng pull request.
+
+## 15. Xác định cửa hàng và item được phép xin xuất âm
+
+### 15.1. Điều kiện kết luận
+
+Không thể chỉ nhìn `MaxNegativeQty` để kết luận một item đang được phép xuất âm. Một store-item chỉ hiển thị **Có thể xin xuất âm** khi đồng thời thỏa mãn:
+
+1. `inventory_manual_external_export_negative_enabled = true`.
+2. `inventory_manual_external_export_approval_required = true`.
+3. Cả bốn setting tồn tại, parse hợp lệ và policy version không rỗng.
+4. Hạn mức hiệu lực lớn hơn 0.
+5. Cửa hàng và item còn hoạt động.
+
+Hạn mức hiệu lực được xác định như sau:
+
+| `StoreInventories.MaxNegativeQty` | Ý nghĩa |
+|---|---|
+| `NULL` | Dùng `inventory_manual_external_export_default_max_negative_quantity`. |
+| `0` | Chặn riêng item, kể cả default limit lớn hơn 0. |
+| Lớn hơn `0` | Dùng hạn mức riêng của store-item. |
+
+Trạng thái **Có thể xin xuất âm** chỉ có nghĩa item đủ điều kiện cấu hình. Phiếu cụ thể vẫn phải là `EXPORT` với `SALE`, `GIFT`, `DEBT` hoặc `SAMPLE`, có lý do xuất âm, không vượt hạn mức và được một người khác phê duyệt.
+
+### 15.2. Dữ liệu mẫu Store 3 / Ingredient 2 đang có trong code
+
+`StoreConfiguration` hiện có bản ghi sau. Bảng này chỉ mô tả dữ liệu đang có; tài liệu không thay đổi seed hoặc database:
+
+| Trường | Giá trị hiện tại |
+|---|---|
+| `StoreInventoryId` | `4` |
+| `StoreId` | `3` — CafeChain Dĩ An |
+| `IngredientId` | `2` — Sữa đặc demo lon 380 ml (`ING00002`) |
+| Base unit | `ml` |
+| `AvailableQty` | `60.000` |
+| `ReservedQty` | `0.000` |
+| `MaxNegativeQty` | `NULL` |
+| Hạn mức mặc định được seed | `0` |
+| Feature mặc định | `false` |
+| Kết quả hiện tại | Không được xin xuất âm |
+
+`MaxNegativeQty = NULL` không có nghĩa là được âm không giới hạn. Bản ghi này đang kế thừa default limit bằng 0 nên bị chặn. Dữ liệu trong bảng trên không tự cập nhật database đang vận hành.
+
+### 15.3. Màn hình bật/tắt và đặt hạn mức
+
+Chỉ **Chủ doanh nghiệp** và **Quản trị hệ thống** được sử dụng màn hình này.
+
+1. Mở **Admin → Cài đặt hệ thống**.
+2. Chọn tab **Kho & tồn âm**.
+3. Kiểm tra badge trạng thái, policy version và số approval đang chờ.
+4. Dùng bộ lọc chọn Store `3`.
+5. Tìm mã `ING00002`, tên “Sữa đặc demo lon 380 ml” hoặc Item ID `2`.
+6. Tại cột **Chế độ**, chọn **Hạn mức riêng**.
+7. Nhập `5.000` tại cột **Hạn mức riêng**.
+8. Bật switch **Cho phép gửi yêu cầu xuất âm kho**.
+9. Nhấn **Lưu cấu hình âm kho**, đọc cảnh báo và xác nhận.
+10. Tải lại tab và xác minh item hiển thị **Có thể xin xuất âm tối đa 5.000 ml**.
+
+`5.000` ở ví dụ này là **5 ml theo base unit**, không phải 5 lon. Khi lập phiếu bằng đơn vị khác, server quy đổi về base unit trước khi so hạn mức.
+
+Ba chế độ item trên màn hình:
+
+- **Chặn**: lưu `MaxNegativeQty = 0`.
+- **Theo mặc định**: lưu `MaxNegativeQty = NULL`.
+- **Hạn mức riêng**: bắt buộc nhập số lớn hơn 0, tối đa 3 chữ số thập phân.
+
+Khi feature bị tắt, item vẫn bị chặn dù hạn mức riêng đang là 5. Bật feature chỉ mở quy trình maker-checker; không tự duyệt hoặc tự xác nhận phiếu, không cho phép tự duyệt và không mở âm kho cho `WASTE`, `ADJUSTMENT_OUT`, `PRODUCTION_OUT` hoặc `TRANSFER_DISPATCH`.
+
+Mỗi lần feature, default limit hoặc item limit thực sự thay đổi, server tự tạo policy version mới. Approval đang `REQUESTED` theo version cũ có thể trả `APPROVAL_STALE` và phải được tải lại/lập lượt xét duyệt mới.
+
+### 15.4. Truy vấn chỉ đọc để đối chiếu toàn bộ store-item
+
+Truy vấn sau không cập nhật dữ liệu. Nó kết hợp global setting với hạn mức từng item để đưa ra kết luận cấu hình:
+
+```sql
+WITH NegativeSettings AS
+(
+    SELECT
+        TRY_CONVERT(bit, MAX(CASE
+            WHEN SettingKey = N'inventory_manual_external_export_negative_enabled'
+            THEN SettingValue END)) AS FeatureEnabled,
+        TRY_CONVERT(bit, MAX(CASE
+            WHEN SettingKey = N'inventory_manual_external_export_approval_required'
+            THEN SettingValue END)) AS ApprovalRequired,
+        TRY_CONVERT(decimal(18,3), MAX(CASE
+            WHEN SettingKey = N'inventory_manual_external_export_default_max_negative_quantity'
+            THEN SettingValue END)) AS DefaultMaxNegativeQty,
+        MAX(CASE
+            WHEN SettingKey = N'inventory_manual_external_export_policy_version'
+            THEN SettingValue END) AS PolicyVersion,
+        COUNT(DISTINCT CASE
+            WHEN SettingKey IN
+            (
+                N'inventory_manual_external_export_negative_enabled',
+                N'inventory_manual_external_export_approval_required',
+                N'inventory_manual_external_export_default_max_negative_quantity',
+                N'inventory_manual_external_export_policy_version'
+            )
+            THEN SettingKey END) AS SettingKeyCount
+    FROM dbo.SystemSettings
+), InventoryEligibility AS
+(
+    SELECT
+        si.StoreInventoryId,
+        si.StoreId,
+        s.Name AS StoreName,
+        si.IngredientId,
+        si.PreparedItemId,
+        COALESCE(i.Code, pi.Code) AS ItemCode,
+        COALESCE(i.Name, pi.Name) AS ItemName,
+        u.UnitCode AS BaseUnit,
+        si.AvailableQty,
+        si.ReservedQty,
+        si.MaxNegativeQty,
+        ns.DefaultMaxNegativeQty,
+        COALESCE(si.MaxNegativeQty, ns.DefaultMaxNegativeQty) AS EffectiveMaxNegativeQty,
+        ns.FeatureEnabled,
+        ns.ApprovalRequired,
+        ns.PolicyVersion,
+        ns.SettingKeyCount,
+        s.Active AS StoreActive,
+        COALESCE(i.Active, pi.Active) AS ItemActive
+    FROM dbo.StoreInventories si
+    INNER JOIN dbo.Stores s ON s.StoreId = si.StoreId
+    LEFT JOIN dbo.Ingredients i ON i.IngredientId = si.IngredientId
+    LEFT JOIN dbo.PreparedItems pi ON pi.PreparedItemId = si.PreparedItemId
+    LEFT JOIN dbo.Units u ON u.UnitId = COALESCE(i.BaseUnitId, pi.BaseUnitId)
+    CROSS JOIN NegativeSettings ns
+    WHERE
+        (si.IngredientId IS NOT NULL AND si.PreparedItemId IS NULL)
+        OR (si.IngredientId IS NULL AND si.PreparedItemId IS NOT NULL)
+)
+SELECT
+    StoreInventoryId,
+    StoreId,
+    StoreName,
+    IngredientId,
+    PreparedItemId,
+    ItemCode,
+    ItemName,
+    BaseUnit,
+    AvailableQty,
+    ReservedQty,
+    MaxNegativeQty,
+    DefaultMaxNegativeQty,
+    EffectiveMaxNegativeQty,
+    FeatureEnabled,
+    ApprovalRequired,
+    PolicyVersion,
+    CASE
+        WHEN SettingKeyCount <> 4
+             OR FeatureEnabled IS NULL
+             OR ApprovalRequired IS NULL
+             OR DefaultMaxNegativeQty IS NULL
+             OR DefaultMaxNegativeQty < 0
+             OR NULLIF(LTRIM(RTRIM(PolicyVersion)), N'') IS NULL
+            THEN N'Cấu hình lỗi - fail closed'
+        WHEN ApprovalRequired <> 1
+            THEN N'Cấu hình lỗi - approval phải bật'
+        WHEN StoreActive <> 1 OR ItemActive <> 1
+            THEN N'Item/cửa hàng ngừng hoạt động'
+        WHEN FeatureEnabled <> 1
+            THEN N'Feature đang tắt'
+        WHEN EffectiveMaxNegativeQty <= 0
+            THEN N'Bị chặn'
+        ELSE N'Có thể xin xuất âm'
+    END AS Eligibility
+FROM InventoryEligibility
+ORDER BY StoreId, IngredientId, PreparedItemId, StoreInventoryId;
 ```
 
-AI phải hiểu ngữ cảnh của entity, không tìm kiếm theo nghĩa đen của tên marketing.
+Để chỉ kiểm tra ví dụ trong chương này, thêm điều kiện vào truy vấn cuối:
 
-## Lớp 2: Xác định loại đối tượng
-
-Mỗi gợi ý phải có `subjectType`, ví dụ:
-
-```text
-beverage
-food ingredient
-topping
-store interior
-product package
-category banner
+```sql
+WHERE StoreId = 3 AND IngredientId = 2
 ```
 
-Ảnh Pexels phải đúng loại đối tượng này.
-
-## Lớp 3: Danh sách từ khóa bắt buộc
-
-Có thể xác định các từ khóa bắt buộc:
-
-```json
-{
-  "requiredKeywords": [
-    "tea",
-    "peach",
-    "glass"
-  ]
-}
-```
-
-Ảnh ứng viên thiếu phần lớn từ khóa quan trọng sẽ bị giảm điểm hoặc loại bỏ.
-
-## Lớp 4: Danh sách từ khóa loại trừ
-
-Ví dụ:
-
-```json
-{
-  "forbiddenKeywords": [
-    "coffee",
-    "beer",
-    "wine",
-    "cake",
-    "person"
-  ]
-}
-```
-
-## Lớp 5: Kiểm tra confidence
-
-Không sử dụng ảnh khi độ tin cậy thấp.
-
-Khi không có ảnh đạt ngưỡng, hệ thống phải trả về trạng thái rõ ràng:
-
-```text
-Không tìm thấy ảnh Pexels đủ phù hợp với gợi ý.
-```
-
-Không được âm thầm chọn một ảnh sai chỉ để hoàn thành quy trình.
-
----
-
-# 10. Xử lý khi Pexels không tìm thấy ảnh phù hợp
-
-Nếu sau tối đa 3 vòng vẫn không có ảnh đạt ngưỡng:
-
-1. Không sử dụng ảnh có điểm thấp.
-2. Hiển thị tối đa 3 ứng viên gần nhất để người dùng lựa chọn, nếu có.
-3. Cho phép người dùng:
-
-   * Chọn một ảnh tham chiếu.
-   * Tìm lại bằng từ khóa khác.
-   * Yêu cầu AI viết lại mô tả hình ảnh.
-   * Tạo bằng ComfyUI mà không dùng ảnh Pexels, nếu hệ thống hỗ trợ chế độ này.
-4. Ghi lại nguyên nhân thất bại.
-5. Không thay đổi các dữ liệu khác trên form.
-
-Pexels phải được gọi trước theo đúng quy trình, nhưng không bắt buộc phải sử dụng một ảnh Pexels sai khi không có kết quả phù hợp.
-
----
-
-# 11. Sử dụng ảnh Pexels trong ComfyUI
-
-Ảnh Pexels được chọn phải là ảnh tham chiếu, không phải nội dung cuối cùng bắt buộc phải giữ nguyên.
-
-ComfyUI phải kết hợp:
-
-```text
-Ảnh Pexels đã được xác thực
-+
-Visual Specification
-+
-Positive Prompt
-+
-Negative Prompt
-```
-
-Tùy workflow ComfyUI hiện tại, có thể sử dụng:
-
-* Image-to-Image.
-* IPAdapter.
-* ControlNet.
-* Reference-only workflow.
-* Kết hợp IPAdapter và Image-to-Image.
-
-Ưu tiên IPAdapter hoặc cơ chế reference image nếu workflow hiện tại hỗ trợ, vì mục tiêu là giữ:
-
-* Loại đối tượng.
-* Bố cục.
-* Góc chụp.
-* Cách trình bày.
-
-Nhưng vẫn cho phép thay đổi:
-
-* Thành phần chi tiết.
-* Màu sắc.
-* Trang trí.
-* Background.
-* Phong cách ánh sáng.
-* Nhận diện riêng của sản phẩm.
-
-Không để ComfyUI sao chép nguyên trạng ảnh Pexels.
-
----
-
-# 12. Xây dựng Positive Prompt cho ComfyUI
-
-Positive Prompt phải được tạo từ `Visual Specification`, không được chỉ sử dụng tên sản phẩm.
-
-Cấu trúc đề xuất:
-
-```text
-[đối tượng chính],
-[thành phần quan trọng],
-[màu sắc],
-[vật chứa hoặc hình dạng],
-[cách trình bày],
-[bối cảnh],
-[bố cục],
-[góc chụp],
-[ánh sáng],
-[phong cách],
-[chất lượng ảnh]
-```
-
-Ví dụ:
-
-```text
-A realistic professional product photo of a peach orange lemongrass iced tea,
-served in one tall clear glass,
-amber tea color,
-visible peach slices, orange slices, fresh lemongrass and ice cubes,
-small wooden cafe tray,
-clean neutral cafe background,
-single centered beverage,
-three-quarter front camera view,
-soft natural commercial lighting,
-sharp focus,
-high detail,
-realistic food photography,
-no brand
-```
-
-Prompt phải mô tả rõ số lượng đối tượng chính.
-
-Ví dụ:
-
-```text
-one single glass
-one bowl of topping
-one ingredient package
-one storefront
-```
-
-Điều này giúp tránh ComfyUI tạo quá nhiều vật thể.
-
----
-
-# 13. Xây dựng Negative Prompt cho ComfyUI
-
-Negative Prompt phải gồm hai phần:
-
-## 13.1. Negative Prompt chung
-
-```text
-low quality,
-low resolution,
-blurry,
-out of focus,
-distorted,
-deformed,
-duplicate objects,
-multiple main products,
-cropped product,
-cut off,
-watermark,
-logo,
-brand name,
-text,
-letters,
-numbers,
-signature,
-frame,
-collage,
-illustration,
-cartoon,
-anime,
-3d render,
-unrealistic colors,
-oversaturated,
-dirty background,
-messy composition
-```
-
-## 13.2. Negative Prompt theo từng gợi ý
-
-Ví dụ với trà đào cam sả:
-
-```text
-coffee,
-espresso,
-milk coffee,
-milk tea,
-beer,
-wine,
-cocktail,
-cake,
-food plate,
-person,
-face,
-hands,
-straw covering the drink,
-opaque cup,
-plastic branded cup
-```
-
-Negative Prompt phải được tạo dựa trên:
-
-* Loại entity.
-* Đối tượng chính.
-* `excludedObjects`.
-* Những đối tượng thường gây nhầm lẫn.
-
----
-
-# 14. Mức độ ảnh hưởng của ảnh tham chiếu
-
-Không được để ảnh Pexels lấn át hoàn toàn prompt.
-
-Cường độ ảnh tham chiếu phải được cấu hình theo loại entity.
-
-Ví dụ tham khảo:
-
-```text
-Drink/Product:
-    reference strength từ 0.55 đến 0.75
-
-Ingredient/Topping:
-    reference strength từ 0.60 đến 0.80
-
-Category banner:
-    reference strength từ 0.35 đến 0.60
-
-Store interior:
-    reference strength từ 0.50 đến 0.70
-```
-
-Nếu sử dụng Image-to-Image, denoise strength có thể nằm trong khoảng tham khảo:
-
-```text
-0.40 đến 0.65
-```
-
-Không viết cứng một giá trị cho tất cả trường hợp.
-
-Nếu muốn giữ bố cục ảnh Pexels nhiều hơn thì giảm denoise.
-
-Nếu muốn thay đổi thành phần, màu sắc hoặc sản phẩm nhiều hơn thì tăng denoise.
-
----
-
-# 15. Tạo nhiều ảnh ComfyUI và chọn ảnh tốt nhất
-
-ComfyUI nên tạo từ 2 đến 4 ảnh cho mỗi lần xử lý.
-
-Sau khi tạo xong, hệ thống phải:
-
-1. Kiểm tra file ảnh hợp lệ.
-2. Kiểm tra kích thước ảnh.
-3. Kiểm tra ảnh có đúng orientation không.
-4. Chấm điểm độ phù hợp với `Visual Specification`.
-5. Loại ảnh sai đối tượng.
-6. Loại ảnh có chữ, logo hoặc watermark.
-7. Chọn ảnh có điểm cao nhất.
-8. Có thể hiển thị các ảnh còn lại cho người dùng lựa chọn.
-
-Không tự động lấy output đầu tiên của ComfyUI.
-
-Quy trình đúng:
-
-```text
-ComfyUI outputs
-→ Validate
-→ Score
-→ Rank
-→ Select best image
-```
-
----
-
-# 16. Chấm điểm ảnh sau khi ComfyUI tạo
-
-Ảnh ComfyUI có thể sử dụng công thức:
-
-```text
-Tổng điểm =
-    35% đúng đối tượng chính
-  + 20% đúng thành phần
-  + 15% đúng màu sắc
-  + 10% đúng bố cục
-  + 10% đúng phong cách
-  + 10% chất lượng ảnh
-```
-
-Ảnh phải bị loại nếu:
-
-* Sai loại sản phẩm.
-* Thiếu đối tượng chính.
-* Có nhiều đối tượng chính không mong muốn.
-* Có chữ hoặc logo sai.
-* Có hình người khi không được yêu cầu.
-* Bị biến dạng.
-* Màu sắc khác hoàn toàn với gợi ý.
-* Các thành phần bị tạo sai nghiêm trọng.
-* Ảnh không thể sử dụng làm ảnh sản phẩm.
-
----
-
-# 17. Áp dụng gợi ý vào form
-
-Khi người dùng bấm `Áp dụng`, hệ thống phải:
-
-1. Điền toàn bộ dữ liệu hợp lệ vào input.
-2. Chọn đúng dữ liệu cho combobox.
-3. Không chỉ điền tên và mô tả.
-4. Điền ảnh cuối cùng được tạo bởi ComfyUI.
-5. Không tự động lưu form.
-6. Cho phép người dùng chỉnh sửa trước khi lưu.
-7. Không ghi đè dữ liệu người dùng đã nhập mà không có cảnh báo, nếu dữ liệu đó khác với gợi ý.
-
-Nếu một dữ liệu combobox chưa tồn tại:
-
-* Không tự ý tạo bản ghi mới.
-* Cố gắng map với bản ghi gần đúng.
-* Nếu không map được thì để trống và thông báo.
-* Không gửi một giá trị text vào field yêu cầu ID.
-
----
-
-# 18. Trạng thái giao diện
-
-Giao diện phải thể hiện rõ trạng thái của pipeline:
-
-```text
-Idle
-GeneratingSuggestions
-SuggestionsReady
-SearchingPexels
-ValidatingPexelsImages
-PexelsReferenceReady
-GeneratingWithComfyUI
-ValidatingGeneratedImages
-Completed
-Failed
-```
-
-Thông báo ví dụ:
-
-```text
-AI đang tạo gợi ý...
-Đang phân tích nội dung hình ảnh...
-Đang tìm ảnh tham chiếu phù hợp...
-Đang kiểm tra độ phù hợp của ảnh...
-Đang tạo ảnh sản phẩm bằng ComfyUI...
-Đang kiểm tra ảnh được tạo...
-Ảnh đã sẵn sàng.
-```
-
-Không hiển thị chung một thông báo như “Đang xử lý” trong toàn bộ quá trình.
-
----
-
-# 19. Hủy và chống gửi trùng
-
-Trong thời gian xử lý:
-
-* Disable nút `AI gợi ý` hoặc sử dụng request key.
-* Không cho gửi cùng một yêu cầu nhiều lần.
-* Cho phép người dùng hủy tiến trình nếu hệ thống hiện tại hỗ trợ.
-* Khi hủy, không áp dụng kết quả trả về sau đó vào form.
-* Mỗi lần sinh gợi ý phải có request ID riêng.
-* Mỗi lần tìm Pexels phải liên kết với suggestion ID.
-* Mỗi lần gọi ComfyUI phải liên kết với ảnh Pexels đã chọn.
-
-Phải tránh trường hợp:
-
-```text
-Người dùng chọn gợi ý B
-nhưng request cũ của gợi ý A trả về sau
-và ghi đè ảnh của gợi ý B.
-```
-
-Trước khi cập nhật giao diện, phải kiểm tra request hiện tại còn hợp lệ.
-
----
-
-# 20. Cache và tái sử dụng
-
-Có thể cache kết quả Pexels theo:
-
-```text
-entityType
-+ normalized primarySubject
-+ mainIngredients
-+ orientation
-```
-
-Không cache chỉ theo tên hiển thị.
-
-Ví dụ:
-
-```text
-“Hoàng hôn nhiệt đới”
-```
-
-không phải cache key tốt.
-
-Cache key phải dựa trên nội dung hình ảnh thực tế:
-
-```text
-beverage-orange-passion-fruit-iced-drink-square
-```
-
-Cache phải có thời gian hết hạn.
-
-Không cache vĩnh viễn một ảnh Pexels đã bị đánh giá sai.
-
----
-
-# 21. Log nghiệp vụ
-
-Mỗi lần xử lý cần ghi log các thông tin cần thiết:
-
-```text
-RequestId
-SuggestionId
-EntityType
-EntityId nếu có
-Tên gợi ý
-Visual Specification
-Danh sách Pexels query
-Số ảnh Pexels tìm được
-Ảnh Pexels được chọn
-Pexels relevance score
-ComfyUI workflow được sử dụng
-ComfyUI prompt
-ComfyUI negative prompt
-Số ảnh ComfyUI tạo ra
-Ảnh cuối cùng được chọn
-Final relevance score
-Thời gian xử lý
-Trạng thái
-Thông báo lỗi
-```
-
-Không log API key.
-
-Không log dữ liệu bí mật.
-
-Không log toàn bộ file ảnh dưới dạng base64.
-
----
-
-# 22. Xử lý lỗi
-
-## 22.1. AI gợi ý lỗi
-
-* Hiển thị thông báo rõ ràng.
-* Không gọi Pexels.
-* Không gọi ComfyUI.
-* Không làm mất dữ liệu đang nhập.
-
-## 22.2. Pexels API lỗi
-
-* Retry có giới hạn.
-* Không retry vô hạn.
-* Không chuyển sang một ảnh ngẫu nhiên.
-* Cho phép tạo lại hoặc tiếp tục bằng ComfyUI không có ảnh tham chiếu nếu nghiệp vụ cho phép.
-
-## 22.3. Không có ảnh Pexels phù hợp
-
-* Không lấy ảnh sai.
-* Thông báo không tìm thấy ảnh đủ phù hợp.
-* Cho phép sửa từ khóa hoặc chọn ảnh gần nhất.
-
-## 22.4. ComfyUI lỗi
-
-* Giữ lại gợi ý AI.
-* Giữ lại ảnh tham chiếu Pexels.
-* Cho phép tạo lại ảnh.
-* Không bắt người dùng sinh lại toàn bộ gợi ý.
-
-## 22.5. ComfyUI tạo ảnh sai
-
-* Không tự động áp dụng.
-* Thử tạo lại với prompt chặt chẽ hơn.
-* Tăng negative prompt.
-* Giảm ảnh hưởng của ảnh Pexels nếu ảnh tham chiếu gây sai.
-* Cho phép chọn ảnh khác từ Pexels.
-
----
-
-# 23. Cấu hình theo loại entity
-
-Thiết kế một cấu hình dùng chung cho từng nhóm form.
-
-Ví dụ:
-
-```json
-{
-  "entityType": "Drink",
-  "subjectType": "beverage",
-  "defaultOrientation": "square",
-  "requiredVisualFields": [
-    "container",
-    "color",
-    "mainIngredients",
-    "presentation"
-  ],
-  "defaultExcludedObjects": [
-    "person",
-    "hands",
-    "logo",
-    "text",
-    "alcohol"
-  ],
-  "pexelsResultLimit": 15,
-  "minimumPexelsScore": 0.75,
-  "comfyOutputCount": 3,
-  "minimumGeneratedScore": 0.75
-}
-```
-
-Ví dụ với Topping:
-
-```json
-{
-  "entityType": "Topping",
-  "subjectType": "food ingredient",
-  "defaultOrientation": "square",
-  "requiredVisualFields": [
-    "ingredientType",
-    "texture",
-    "color",
-    "container"
-  ],
-  "defaultExcludedObjects": [
-    "full beverage",
-    "person",
-    "hands",
-    "logo",
-    "text"
-  ]
-}
-```
-
-Logic khác nhau giữa các loại form phải nằm trong configuration hoặc strategy phù hợp.
-
-Không sử dụng một chuỗi `if/else` quá dài trong Controller.
-
----
-
-# 24. Yêu cầu kiến trúc
-
-Tuân thủ Layered Architecture của dự án.
-
-## Controller
-
-Controller chỉ:
-
-* Nhận request.
-* Kiểm tra ModelState.
-* Gọi Service.
-* Trả kết quả.
-
-Controller không:
-
-* Gọi trực tiếp Pexels.
-* Gọi trực tiếp ComfyUI.
-* Chấm điểm ảnh.
-* Xây dựng prompt phức tạp.
-* Truy cập trực tiếp DbContext.
-
-## Service
-
-Service chịu trách nhiệm điều phối nghiệp vụ:
-
-```text
-Generate suggestions
-→ Build visual specification
-→ Search reference images
-→ Validate candidates
-→ Generate image
-→ Validate outputs
-→ Return result
-```
-
-Nên tách các trách nhiệm rõ ràng, ví dụ:
-
-```text
-AI Suggestion Service
-Visual Specification Builder
-Pexels Image Search Service
-Image Relevance Service
-ComfyUI Generation Service
-Generated Image Validation Service
-```
-
-Có thể điều chỉnh tên theo cấu trúc hiện tại.
-
-Không tự ý tạo file hoặc interface trùng với những thành phần dự án đã có.
-
-Trước khi thêm mới, phải kiểm tra project hiện tại có service hoặc client tương ứng hay chưa.
-
-## Repository
-
-Repository chỉ xử lý dữ liệu cần lưu trong database, ví dụ:
-
-* Lưu lịch sử AI generation.
-* Lưu metadata ảnh.
-* Lưu cache.
-* Lưu trạng thái request.
-
-Không đưa HTTP call Pexels hoặc ComfyUI vào Repository.
-
----
-
-# 25. Kết quả API trả về cho frontend
-
-Kết quả không nên chỉ trả về một URL ảnh.
-
-Cấu trúc tham khảo:
-
-```json
-{
-  "success": true,
-  "requestId": "uuid",
-  "suggestionId": "uuid",
-  "entityType": "Drink",
-  "suggestion": {},
-  "pexelsReference": {
-    "photoId": "123456",
-    "previewUrl": "https://...",
-    "sourceUrl": "https://...",
-    "photographer": "Photographer name",
-    "score": 0.86,
-    "matchedQuery": "iced peach orange lemongrass tea"
-  },
-  "generatedImages": [
-    {
-      "imageId": "uuid",
-      "imageUrl": "/uploads/ai/...",
-      "score": 0.91,
-      "selected": true
-    }
-  ],
-  "selectedImageUrl": "/uploads/ai/final-image.webp",
-  "warnings": []
-}
-```
-
-Khi thất bại:
-
-```json
-{
-  "success": false,
-  "requestId": "uuid",
-  "stage": "PexelsValidation",
-  "message": "Không tìm thấy ảnh Pexels đủ phù hợp với gợi ý.",
-  "retryable": true,
-  "candidates": []
-}
-```
-
----
-
-# 26. Bản quyền và nguồn ảnh Pexels
-
-Phải giữ metadata cần thiết của ảnh Pexels:
-
-* Pexels Photo ID.
-* URL nguồn.
-* Tên photographer.
-* Trang ảnh, nếu API cung cấp.
-* Thời điểm sử dụng.
-* Mục đích sử dụng làm reference.
-
-Không sử dụng URL tạm thời làm URL ảnh cuối cùng của sản phẩm.
-
-Ảnh cuối cùng sau ComfyUI phải được xử lý theo cơ chế lưu trữ ảnh hiện tại của dự án.
-
-Không hardcode đường dẫn lưu ảnh nếu hệ thống đã có image storage service.
-
----
-
-# 27. Ví dụ luồng hoàn chỉnh
-
-Người dùng mở form tạo Drink và bấm `AI gợi ý`.
-
-AI trả về ba lựa chọn:
-
-```text
-1. Trà đào cam sả
-2. Trà vải hoa hồng
-3. Trà dâu bạc hà
-```
-
-Người dùng chọn “Trà đào cam sả”.
-
-Hệ thống tạo Visual Specification:
-
-```text
-Đối tượng chính:
-Một ly trà trái cây màu hổ phách.
-
-Thành phần:
-Đào, cam vàng, sả và đá viên.
-
-Vật chứa:
-Một ly thủy tinh cao trong suốt.
-
-Bối cảnh:
-Bàn quán cà phê sạch, nền trung tính.
-
-Không được có:
-Cà phê, trà sữa, bia, rượu, bánh, người, tay, logo và chữ.
-```
-
-Hệ thống tạo các query:
-
-```text
-iced peach orange lemongrass tea in clear glass
-peach citrus iced tea product photography
-amber fruit tea with peach and orange slices
-iced fruit tea in transparent glass
-```
-
-Pexels trả về 40 ứng viên.
-
-Hệ thống:
-
-```text
-Loại ảnh trùng
-Loại ảnh sai orientation
-Loại ảnh cà phê
-Loại ảnh cocktail
-Loại ảnh có người
-Chấm điểm các ảnh còn lại
-```
-
-Ảnh tốt nhất có điểm:
-
-```text
-0.87
-```
-
-Ảnh này được dùng làm reference cho ComfyUI.
-
-ComfyUI nhận:
-
-```text
-Reference image
-Positive prompt
-Negative prompt
-Visual Specification
-```
-
-ComfyUI tạo ba ảnh:
-
-```text
-Ảnh A: 0.84
-Ảnh B: 0.92
-Ảnh C: 0.76
-```
-
-Hệ thống chọn ảnh B.
-
-Khi người dùng bấm `Áp dụng`:
-
-* Điền tên.
-* Điền mã.
-* Điền mô tả.
-* Chọn Category phù hợp.
-* Điền giá được gợi ý.
-* Điền URL ảnh cuối cùng.
-* Không tự động submit form.
-
----
-
-# 28. Tiêu chí nghiệm thu
-
-Chức năng được xem là hoàn thành khi đáp ứng đầy đủ:
-
-1. AI tạo được từ 1 đến 3 gợi ý.
-2. Gợi ý có dữ liệu form và Visual Specification.
-3. Không yêu cầu người dùng chọn trước dữ liệu mới sinh được gợi ý.
-4. Pexels nhận nhiều truy vấn tìm kiếm.
-5. Không lấy mặc định kết quả đầu tiên từ Pexels.
-6. Ảnh Pexels được chấm điểm.
-7. Ảnh sai đối tượng bị loại.
-8. Không sử dụng ảnh có confidence thấp.
-9. ComfyUI sử dụng ảnh Pexels đã được xác thực làm reference.
-10. Positive Prompt được tạo từ Visual Specification.
-11. Có Negative Prompt chung và theo từng đối tượng.
-12. ComfyUI tạo nhiều output.
-13. Output ComfyUI được kiểm tra và xếp hạng.
-14. Không lấy mặc định output đầu tiên.
-15. Người dùng có thể xem và chọn kết quả.
-16. Khi áp dụng, dữ liệu được điền đầy đủ vào input và combobox.
-17. Không tự động lưu form.
-18. Không làm mất dữ liệu khi có lỗi.
-19. Không để request cũ ghi đè request mới.
-20. Logic dùng chung được cho nhiều loại form có ảnh.
-21. Không viết cứng riêng cho Create Drink.
-22. Controller không gọi trực tiếp Pexels hoặc ComfyUI.
-23. Không sử dụng ảnh sai chỉ để hoàn tất quy trình.
-24. Có log theo từng giai đoạn.
-25. Có xử lý retry và lỗi rõ ràng.
-
----
-
-# 29. Yêu cầu cuối cùng khi triển khai
-
-Trước khi chỉnh sửa code, hãy:
-
-1. Phân tích các service AI, Pexels, ComfyUI và Image Storage đang có.
-2. Xác định form nào đang sử dụng nút AI gợi ý.
-3. Xác định DTO request và response hiện tại.
-4. Chỉ ra nguyên nhân khiến Pexels đang lấy sai ảnh.
-5. Chỉ ra ComfyUI hiện đang dùng text-to-image, image-to-image, IPAdapter hay workflow nào.
-6. Tái sử dụng các thành phần hiện có nếu phù hợp.
-7. Không tự ý tạo các file trùng chức năng.
-8. Không thay đổi những nghiệp vụ không liên quan.
-9. Không viết logic gọi API trong Controller.
-10. Không hardcode API key.
-11. Đưa các ngưỡng score, số lần retry và số lượng ảnh vào configuration.
-12. Sau khi hoàn thành, liệt kê rõ:
-
-    * File đã sửa.
-    * Method đã sửa.
-    * File mới thực sự cần thêm.
-    * Luồng xử lý mới.
-    * Cấu hình cần bổ sung.
-    * Cách kiểm thử.
-    * Các trường hợp fallback.
-
-Mục tiêu quan trọng nhất là:
-
-```text
-Pexels phải tìm được ảnh tham chiếu gần đúng nhất với gợi ý.
-ComfyUI phải tạo ảnh cuối cùng dựa trên cả gợi ý và ảnh tham chiếu.
-Hệ thống tuyệt đối không được lấy một ảnh khác xa với nội dung gợi ý chỉ vì đó là kết quả đầu tiên.
-```
+Không sửa trực tiếp approval, transaction, cost gap hoặc snapshot để “mở” item. Nếu màn hình báo **Cấu hình lỗi**, dừng bật feature và liên hệ DBA để kiểm tra đủ bốn setting. Kill switch là tắt switch global và lưu; provider không cache bốn setting này nên request kế tiếp sẽ đọc trạng thái mới.

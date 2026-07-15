@@ -9,7 +9,23 @@
 <link rel="stylesheet"
       href="~/css/Admin/InventoryDocument/inventorydocumentcreate.css" />
 
-<div class="inventory-page">
+<div class="inventory-page"
+     id="inventoryDocumentPage"
+     data-detail-url="@Url.Action("DetailModal", "AdminInventoryDocument", new { area = "Admin" })"
+     data-create-modal-url="@Url.Action("CreateModal", "AdminInventoryDocument", new { area = "Admin" })"
+     data-active-ingredients-url="@Url.Action("ActiveIngredients", "AdminInventoryDocument", new { area = "Admin" })"
+     data-store-inventory-ingredients-url="@Url.Action("StoreInventoryIngredients", "AdminInventoryDocument", new { area = "Admin" })"
+     data-supplier-ingredients-url="@Url.Action("SupplierIngredients", "AdminInventoryDocument", new { area = "Admin" })"
+     data-calculate-url="@Url.Action("Calculate", "AdminInventoryDocument", new { area = "Admin" })"
+     data-preflight-url="@Url.Action("Preflight", "AdminInventoryDocument", new { area = "Admin" })"
+     data-save-draft-url="@Url.Action("SaveDraft", "AdminInventoryDocument", new { area = "Admin" })"
+     data-submit-url="@Url.Action("Submit", "AdminInventoryDocument", new { area = "Admin" })"
+     data-confirm-draft-url="@Url.Action("ConfirmDraft", "AdminInventoryDocument", new { area = "Admin" })"
+     data-cancel-url="@Url.Action("CancelInventoryDocument", "AdminInventoryDocument", new { area = "Admin" })"
+     data-export-excel-url="@Url.Action("ExportExcel", "AdminInventoryDocument", new { area = "Admin" })"
+     data-export-file-url="@Url.Action("ExportFile", "AdminInventoryDocument", new { area = "Admin" })">
+
+    @Html.AntiForgeryToken()
 
     <div class="inventory-header">
         <div>

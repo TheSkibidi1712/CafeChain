@@ -2,12 +2,19 @@
 using CafeChain.Application.DTOs.Systems;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Systems;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.DTOs.Inventories;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Approvals;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Create;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
 using System.Globalization;
@@ -22,26 +29,31 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private readonly IAdminInventoryDocumentConfirmService _confirmService;
 
-        private readonly IAdminInventoryDocumentSnapshotService _snapshotService;
-
         private readonly IHttpContextAccessor _httpContextAccessor;
 
         private readonly IRequestDeduplicationService _deduplicationService;
+        private readonly IInventoryIssuePolicy _inventoryIssuePolicy;
+        private readonly IAdminActorContextAccessor _actorAccessor;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
         public AdminInventoryDocumentCreateService(
             IAdminInventoryDocumentRepository repository,
             IAdminInventoryDocumentValidationService validationService,
             IAdminInventoryDocumentConfirmService confirmService,
-            IAdminInventoryDocumentSnapshotService snapshotService,
             IHttpContextAccessor httpContextAccessor,
-            IRequestDeduplicationService deduplicationService)
+            IRequestDeduplicationService deduplicationService,
+            IInventoryIssuePolicy inventoryIssuePolicy,
+            IAdminActorContextAccessor actorAccessor,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _repository = repository;
             _validationService = validationService;
             _confirmService = confirmService;
-            _snapshotService = snapshotService;
             _httpContextAccessor = httpContextAccessor;
             _deduplicationService = deduplicationService;
+            _inventoryIssuePolicy = inventoryIssuePolicy;
+            _actorAccessor = actorAccessor;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         // =====================================================
@@ -49,6 +61,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         // =====================================================
         public async Task<AdminInventoryDocumentCreateVM> GetCreateDataAsync(InventoryDocumentType type)
         {
+            var actor = GetActor();
+            var allowedStoreIds = actor.StaffId > 0
+                ? (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
+                    .Select(x => x.StoreId)
+                    .ToHashSet()
+                : [];
+            var stores = (await _repository.GetStoreDropdownAsync())
+                .Where(x => allowedStoreIds.Contains(x.StoreId))
+                .ToList();
             var effectiveType = 
                     type == InventoryDocumentType.ADJUSTMENT_IN 
                     ? InventoryDocumentType.IMPORT 
@@ -67,7 +88,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 Purpose = purpose,
                 DocumentDate = DateTime.Now,
                 Code = await _repository.GenerateDocumentCodeAsync( effectiveType, purpose == InventoryDocumentPurpose.NONE ? null : purpose),
-                Stores = await _repository.GetStoreDropdownAsync(),
+                Stores = stores,
                 Suppliers = await _repository.GetSupplierDropdownAsync(),
                 Summary = new InventoryCreateSummaryDTO()
             };
@@ -88,6 +109,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 return [];
             }
+
+            await EnsureStoreScopeAsync(storeId);
 
             var ingredients = await _repository.GetActiveIngredientsAsync();
             var inventories = await _repository.GetStoreInventoriesAsync(storeId);
@@ -116,24 +139,47 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 .ToList();
         }
 
-        public async Task<List<SupplierIngredientDTO>> GetStoreExportIngredientsAsync(int storeId)
+        public async Task<List<SupplierIngredientDTO>> GetStoreInventoryIngredientsAsync(
+            int storeId,
+            InventoryDocumentType type,
+            InventoryDocumentPurpose purpose)
         {
             if (storeId <= 0)
             {
                 return [];
             }
 
+            await EnsureStoreScopeAsync(storeId);
+
             var inventories = await _repository.GetStoreInventoriesAsync(storeId);
 
-            var availableInventories =
-                inventories
-                    .Where(x =>
-                        x.IngredientId.HasValue && x.Ingredient != null && x.Ingredient.Active && x.AvailableQty > 0)
-                    .ToList();
+            var requiresPositiveQuantity =
+                type == InventoryDocumentType.WASTE
+                || type == InventoryDocumentType.EXPORT
+                    && purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT;
+            var isSupportedSource =
+                type == InventoryDocumentType.STOCK_TAKE
+                || type == InventoryDocumentType.WASTE
+                || type == InventoryDocumentType.EXPORT;
+
+            if (!isSupportedSource)
+            {
+                return [];
+            }
+
+            var availableInventories = inventories
+                .Where(x => x.IngredientId.HasValue
+                    && x.Ingredient != null
+                    && x.Ingredient.Active)
+                .Where(x => !requiresPositiveQuantity || x.AvailableQty > 0)
+                .GroupBy(x => x.IngredientId!.Value)
+                .Select(x => x.First())
+                .Select(x => new { Ingredient = x.Ingredient, Quantity = x.AvailableQty })
+                .ToList();
 
             var ingredientIds =
                 availableInventories
-                    .Select(x => x.IngredientId!.Value)
+                    .Select(x => x.Ingredient.IngredientId)
                     .Distinct()
                     .ToList();
 
@@ -148,7 +194,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 .Select(x =>
                     BuildStoreIngredientDto(
                         x.Ingredient,
-                        x.AvailableQty,
+                        x.Quantity,
                         priceLookup,
                         isPriceLocked: true,
                         isQuantityLocked: false))
@@ -158,10 +204,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<InventoryCreateSummaryDTO> CalculateSummaryAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+            await EnsureStoreScopeAsync(dto.StoreId);
 
             await NormalizeCreateDetailsAsync(dto);
 
             return await BuildSummaryAsync(dto);
+        }
+
+        public async Task<InventoryDocumentPreflightResultDTO> PreflightAsync(CreateInventoryDocumentDTO dto)
+        {
+            NormalizeImportDocumentType(dto);
+            await EnsureStoreScopeAsync(dto.StoreId);
+            await NormalizeCreateDetailsAsync(dto);
+            await _validationService.ValidateCreateAsync(dto);
+            return await EvaluateDtoIssuesAsync(dto);
         }
 
         // =====================================================
@@ -171,6 +227,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         public async Task<int> SaveDraftAsync(CreateInventoryDocumentDTO dto)
         {
             NormalizeImportDocumentType(dto);
+            await EnsureStoreScopeAsync(dto.StoreId);
 
             EnsureRequestKey(dto.RequestKey);
 
@@ -191,7 +248,9 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 var dedup = await _deduplicationService.BeginAsync(
                     dto.RequestKey,
-                    "InventoryDocument.CreateDraft",
+                    dto.DocumentId.HasValue
+                        ? "InventoryDocument.UpdateDraft"
+                        : "InventoryDocument.CreateDraft",
                     GetCurrentStaffId(),
                     dto);
 
@@ -204,10 +263,49 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         return dedup.ReferenceId.Value;
                     }
 
-                    throw new InvalidOperationException(dedup.ErrorMessage);
+                    throw BuildDeduplicationException(dedup);
                 }
 
                 var summary = await BuildSummaryAsync(dto);
+
+                if (dto.DocumentId.HasValue)
+                {
+                    var existingDraft = await _repository.GetDocumentForConfirmAsync(dto.DocumentId.Value)
+                        ?? throw new InvalidOperationException("Không tìm thấy phiếu nháp cần cập nhật.");
+                    await EnsureStoreScopeAsync(existingDraft.StoreId);
+                    if (existingDraft.Status != InventoryDocumentStatus.DRAFT)
+                        throw new InvalidOperationException("Chỉ được cập nhật phiếu DRAFT.");
+                    EnsureRowVersionMatches(existingDraft.RowVersion, dto.RowVersion);
+
+                    var oldDetails = existingDraft.Details.ToList();
+                    _repository.RemoveDocumentDetails(oldDetails);
+                    existingDraft.Details.Clear();
+
+                    existingDraft.StoreId = dto.StoreId;
+                    existingDraft.DocumentDate = dto.DocumentDate;
+                    existingDraft.Type = dto.Type;
+                    existingDraft.Purpose = dto.Purpose;
+                    existingDraft.RequestKey = dto.RequestKey;
+                    existingDraft.PartnerType = dto.PartnerType;
+                    existingDraft.PartnerId = dto.PartnerId;
+                    existingDraft.PartnerName = dto.PartnerName;
+                    existingDraft.SupplierId = dto.SupplierId;
+                    existingDraft.Note = dto.Note;
+                    existingDraft.NegativeReason = dto.NegativeReason;
+                    existingDraft.TotalAmount = summary.TotalAmount;
+                    existingDraft.VatAmount = summary.VatAmount;
+                    existingDraft.FinalAmount = summary.FinalAmount;
+                    _repository.UpdateDocument(existingDraft);
+                    await _repository.AddDocumentDetailsAsync(
+                        BuildDocumentDetails(existingDraft.InventoryDocumentId, dto));
+                    await _repository.SaveChangesAsync();
+
+                    await _deduplicationService.MarkSuccessAsync(
+                        dedup.Entry!, existingDraft.InventoryDocumentId,
+                        new { documentId = existingDraft.InventoryDocumentId });
+                    await _repository.CommitTransactionAsync();
+                    return existingDraft.InventoryDocumentId;
+                }
 
                 var document = await BuildDraftDocument(dto, summary);
 
@@ -218,14 +316,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var details = BuildDocumentDetails(document.InventoryDocumentId, dto);
 
                 await _repository.AddDocumentDetailsAsync(details);
-
-                await _repository.SaveChangesAsync();
-
-                document =
-                    await _repository.GetDocumentForConfirmAsync(document.InventoryDocumentId)
-                    ?? throw new Exception("Không tìm thấy chứng từ.");
-
-                await _snapshotService.CreateSnapshotAsync(document);
 
                 await _repository.SaveChangesAsync();
 
@@ -248,7 +338,16 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         public async Task<InventoryDocumentMutationResultDTO> CreateAndConfirmAsync(CreateInventoryDocumentDTO dto)
         {
+            if (dto.DocumentId.HasValue)
+            {
+                if (string.IsNullOrWhiteSpace(dto.RowVersion))
+                    throw new InvalidOperationException("ROW_VERSION_REQUIRED");
+                var result = await ConfirmDraftAsync(dto.DocumentId.Value, dto.RequestKey, dto.RowVersion);
+                return result ?? throw new InvalidOperationException("Không tìm thấy phiếu nháp cần submit.");
+            }
+
             NormalizeImportDocumentType(dto);
+            await EnsureStoreScopeAsync(dto.StoreId);
 
             EnsureRequestKey(dto.RequestKey);
 
@@ -276,7 +375,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         };
                     }
 
-                    throw new InvalidOperationException(dedup.ErrorMessage);
+                    throw BuildDeduplicationException(dedup);
                 }
 
                 await NormalizeCreateDetailsAsync(dto);
@@ -289,6 +388,29 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 document = await _repository.GetDocumentForConfirmAsync(document.InventoryDocumentId) ?? throw new Exception("Không tìm thấy chứng từ.");
 
+                var preflight = await EvaluateDocumentIssuesAsync(document, null, scopeAuthorized: false);
+                var blocked = preflight.FirstOrDefault(x => x.Decision.Outcome == InventoryIssueOutcome.Blocked);
+                if (blocked != null)
+                    throw new InvalidOperationException(blocked.Decision.ReasonCode);
+
+                var requiresApproval = preflight.Where(x => x.Decision.Outcome == InventoryIssueOutcome.ApprovalRequired).ToList();
+                if (requiresApproval.Count > 0)
+                {
+                    var approval = BuildApproval(document, requiresApproval, dedup.Entry!.PayloadHash, dto.RequestKey!);
+                    await _repository.AddNegativeApprovalAsync(approval);
+                    await _repository.SaveChangesAsync();
+
+                    var pendingResponse = new InventoryDocumentMutationResultDTO
+                    {
+                        DocumentId = document.InventoryDocumentId,
+                        Status = InventoryDocumentStatus.PENDING,
+                        ApprovalId = approval.InventoryNegativeApprovalId
+                    };
+                    await _deduplicationService.MarkSuccessAsync(dedup.Entry!, document.InventoryDocumentId, pendingResponse);
+                    await _repository.CommitTransactionAsync();
+                    return pendingResponse;
+                }
+
                 var processResult = await _confirmService.ConfirmDocumentAsync(document, GetCurrentStaffId());
 
                 await _repository.SaveChangesAsync();
@@ -296,6 +418,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var response = new InventoryDocumentMutationResultDTO
                 {
                     DocumentId = document.InventoryDocumentId,
+                    Status = InventoryDocumentStatus.CONFIRMED,
                     Warnings = processResult.Warnings
                 };
 
@@ -315,7 +438,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        public async Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(int documentId, string? requestKey)
+        public async Task<InventoryDocumentMutationResultDTO?> ConfirmDraftAsync(
+            int documentId,
+            string? requestKey,
+            string? rowVersion = null)
         {
             EnsureRequestKey(requestKey);
 
@@ -334,6 +460,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     return null;
                 }
 
+                await EnsureStoreScopeAsync(document.StoreId);
+                if (!string.IsNullOrWhiteSpace(rowVersion))
+                    EnsureRowVersionMatches(document.RowVersion, rowVersion);
+
                 dedup = await _deduplicationService.BeginAsync(
                     requestKey,
                     GetConfirmActionName(document),
@@ -349,11 +479,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     {
                         return new InventoryDocumentMutationResultDTO
                         {
-                            DocumentId = dedup.ReferenceId.Value
+                            DocumentId = dedup.ReferenceId.Value,
+                            Status = document.Status
                         };
                     }
 
-                    throw new InvalidOperationException(dedup.ErrorMessage);
+                    throw BuildDeduplicationException(dedup);
                 }
 
                 if (document.Status == InventoryDocumentStatus.CANCELLED)
@@ -365,7 +496,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 {
                     var alreadyConfirmedResponse = new InventoryDocumentMutationResultDTO
                     {
-                        DocumentId = document.InventoryDocumentId
+                        DocumentId = document.InventoryDocumentId,
+                        Status = InventoryDocumentStatus.CONFIRMED
                     };
 
                     await _deduplicationService.MarkSuccessAsync(
@@ -383,6 +515,43 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     throw new InvalidOperationException("Trạng thái phiếu không hợp lệ để xác nhận.");
                 }
 
+                var existingApproval = await _repository.GetNegativeApprovalForUpdateAsync(document.InventoryDocumentId);
+                if (existingApproval?.Status == InventoryNegativeApprovalStatuses.Requested)
+                {
+                    var pendingReplay = new InventoryDocumentMutationResultDTO
+                    {
+                        DocumentId = document.InventoryDocumentId,
+                        Status = InventoryDocumentStatus.PENDING,
+                        ApprovalId = existingApproval.InventoryNegativeApprovalId
+                    };
+                    await _deduplicationService.MarkSuccessAsync(dedup.Entry!, document.InventoryDocumentId, pendingReplay);
+                    await _repository.CommitTransactionAsync();
+                    return pendingReplay;
+                }
+
+                var preflight = await EvaluateDocumentIssuesAsync(document, null, scopeAuthorized: false);
+                var blocked = preflight.FirstOrDefault(x => x.Decision.Outcome == InventoryIssueOutcome.Blocked);
+                if (blocked != null)
+                    throw new InvalidOperationException(blocked.Decision.ReasonCode);
+                var approvalLines = preflight.Where(x => x.Decision.Outcome == InventoryIssueOutcome.ApprovalRequired).ToList();
+                if (approvalLines.Count > 0)
+                {
+                    var approval = BuildApproval(document, approvalLines, dedup.Entry!.PayloadHash, requestKey!);
+                    await _repository.AddNegativeApprovalAsync(approval);
+                    document.Status = InventoryDocumentStatus.PENDING;
+                    _repository.UpdateDocument(document);
+                    await _repository.SaveChangesAsync();
+                    var pending = new InventoryDocumentMutationResultDTO
+                    {
+                        DocumentId = document.InventoryDocumentId,
+                        Status = InventoryDocumentStatus.PENDING,
+                        ApprovalId = approval.InventoryNegativeApprovalId
+                    };
+                    await _deduplicationService.MarkSuccessAsync(dedup.Entry!, document.InventoryDocumentId, pending);
+                    await _repository.CommitTransactionAsync();
+                    return pending;
+                }
+
                 var processResult = await _confirmService.ConfirmDocumentAsync(document, GetCurrentStaffId());
 
                 await _repository.SaveChangesAsync();
@@ -390,6 +559,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 var response = new InventoryDocumentMutationResultDTO
                 {
                     DocumentId = document.InventoryDocumentId,
+                    Status = InventoryDocumentStatus.CONFIRMED,
                     Warnings = processResult.Warnings
                 };
 
@@ -412,6 +582,99 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
+        public async Task<InventoryDocumentMutationResultDTO> ApproveNegativeAsync(int documentId, string? reviewNote)
+        {
+            await _repository.BeginTransactionAsync();
+            try
+            {
+                var document = await _repository.GetDocumentForConfirmAsync(documentId)
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu kho.");
+                await EnsureStoreScopeAsync(document.StoreId);
+                var actor = GetActor();
+                EnsureCanApprove(actor.RoleNames);
+
+                var approval = await _repository.GetNegativeApprovalForUpdateAsync(documentId)
+                    ?? throw new InvalidOperationException("Không tìm thấy yêu cầu phê duyệt.");
+                if (approval.Status != InventoryNegativeApprovalStatuses.Requested)
+                    throw new InvalidOperationException("APPROVAL_STALE");
+                if (approval.RequesterStaffId == actor.StaffId)
+                    throw new InvalidOperationException(InventoryIssueReasonCodes.SelfApprovalForbidden);
+
+                approval.ApproverStaffId = actor.StaffId;
+                approval.Status = InventoryNegativeApprovalStatuses.Approved;
+                approval.ReviewNote = string.IsNullOrWhiteSpace(reviewNote) ? null : reviewNote.Trim();
+                approval.ReviewedAt = DateTime.UtcNow;
+                approval.ScopeAuthorized = true;
+                document.NegativeApproval = approval;
+
+                var reevaluated = await EvaluateDocumentIssuesAsync(document, approval, scopeAuthorized: true);
+                var stale = reevaluated.FirstOrDefault(x => x.Decision.Outcome != InventoryIssueOutcome.Allowed);
+                if (stale != null)
+                    throw new InvalidOperationException($"{InventoryIssueReasonCodes.ApprovalStale}:{stale.Decision.ReasonCode}");
+
+                var processResult = await _confirmService.ConfirmDocumentAsync(document, actor.StaffId);
+                _repository.UpdateNegativeApproval(approval);
+                await _repository.SaveChangesAsync();
+                await _repository.CommitTransactionAsync();
+                return new InventoryDocumentMutationResultDTO
+                {
+                    DocumentId = documentId,
+                    Status = InventoryDocumentStatus.CONFIRMED,
+                    ApprovalId = approval.InventoryNegativeApprovalId,
+                    Warnings = processResult.Warnings
+                };
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<InventoryDocumentMutationResultDTO> RejectNegativeAsync(int documentId, string reviewNote)
+        {
+            if (string.IsNullOrWhiteSpace(reviewNote))
+                throw new InvalidOperationException("Review note là bắt buộc khi từ chối.");
+
+            await _repository.BeginTransactionAsync();
+            try
+            {
+                var document = await _repository.GetDocumentForConfirmAsync(documentId)
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu kho.");
+                await EnsureStoreScopeAsync(document.StoreId);
+                var actor = GetActor();
+                EnsureCanApprove(actor.RoleNames);
+                var approval = await _repository.GetNegativeApprovalForUpdateAsync(documentId)
+                    ?? throw new InvalidOperationException("Không tìm thấy yêu cầu phê duyệt.");
+                if (approval.Status != InventoryNegativeApprovalStatuses.Requested)
+                    throw new InvalidOperationException("APPROVAL_STALE");
+                if (approval.RequesterStaffId == actor.StaffId)
+                    throw new InvalidOperationException(InventoryIssueReasonCodes.SelfApprovalForbidden);
+
+                approval.Status = InventoryNegativeApprovalStatuses.Rejected;
+                approval.ApproverStaffId = actor.StaffId;
+                approval.ReviewNote = reviewNote.Trim();
+                approval.ReviewedAt = DateTime.UtcNow;
+                document.Status = InventoryDocumentStatus.CANCELLED;
+                document.NegativeApproval = approval;
+                _repository.UpdateNegativeApproval(approval);
+                _repository.UpdateDocument(document);
+                await _repository.SaveChangesAsync();
+                await _repository.CommitTransactionAsync();
+                return new InventoryDocumentMutationResultDTO
+                {
+                    DocumentId = documentId,
+                    Status = InventoryDocumentStatus.CANCELLED,
+                    ApprovalId = approval.InventoryNegativeApprovalId
+                };
+            }
+            catch
+            {
+                await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
         public async Task<bool> CancelInventoryDocumentAsync(int documentId, string? requestKey)
         {
             EnsureRequestKey(requestKey);
@@ -422,7 +685,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             try
             {
-                var document = await _repository.GetByIdAsync(documentId);
+                var document = await _repository.GetDocumentForConfirmAsync(documentId);
 
                 if (document == null)
                 {
@@ -430,6 +693,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                     return false;
                 }
+
+                await EnsureStoreScopeAsync(document.StoreId);
 
                 dedup = await _deduplicationService.BeginAsync(
                     requestKey,
@@ -447,7 +712,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         return true;
                     }
 
-                    throw new InvalidOperationException(dedup.ErrorMessage);
+                    throw BuildDeduplicationException(dedup);
                 }
 
                 if (document.Status == InventoryDocumentStatus.CONFIRMED)
@@ -469,6 +734,15 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 document.Status = InventoryDocumentStatus.CANCELLED;
                 document.IsProcessing = false;
+
+                var approval = await _repository.GetNegativeApprovalForUpdateAsync(documentId);
+                if (approval?.Status == InventoryNegativeApprovalStatuses.Requested)
+                {
+                    approval.Status = InventoryNegativeApprovalStatuses.Cancelled;
+                    approval.ReviewNote = "Cancelled by requester before review.";
+                    approval.ReviewedAt = DateTime.UtcNow;
+                    _repository.UpdateNegativeApproval(approval);
+                }
 
                 _repository.UpdateDocument(document);
 
@@ -515,6 +789,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 PartnerName = dto.PartnerName,
                 SupplierId = dto.SupplierId,
                 Note = dto.Note,
+                NegativeReason = dto.NegativeReason,
                 TotalAmount = summary.TotalAmount,
                 VatAmount = summary.VatAmount,
                 FinalAmount = summary.FinalAmount,
@@ -524,6 +799,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private List<InventoryDocumentDetail> BuildDocumentDetails(int documentId, CreateInventoryDocumentDTO dto)
         {
+            var isQuantityOnlyDocument = IsQuantityOnlyDocumentType(dto.Type);
+
             return dto.Details
                 .Select(x => new InventoryDocumentDetail
                 {
@@ -532,10 +809,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     Quantity = x.Quantity,
                     BaseQuantity = x.BaseQuantity,
                     UnitId = x.UnitId,
-                    UnitPrice = x.UnitPrice,
-                    CostPrice = x.CostPrice,
-                    CostAmount = x.CostAmount,
-                    TotalAmount = x.TotalAmount,
+                    UnitPrice = isQuantityOnlyDocument ? 0 : x.UnitPrice,
+                    CostPrice = isQuantityOnlyDocument ? 0 : x.CostPrice,
+                    CostAmount = isQuantityOnlyDocument ? 0 : x.CostAmount,
+                    TotalAmount = isQuantityOnlyDocument ? 0 : x.TotalAmount,
                     Note = NormalizeDetailNote(dto.Note)
                 })
                 .ToList();
@@ -563,7 +840,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     TotalAmount = summary.TotalAmount,
                     VatAmount = summary.VatAmount,
                     FinalAmount = summary.FinalAmount,
-                    Note = dto.Note
+                    Note = dto.Note,
+                    NegativeReason = dto.NegativeReason
                 };
 
             await _repository.AddDocumentAsync(document);
@@ -575,6 +853,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
         private async Task CreateDetailsAsync(int documentId, CreateInventoryDocumentDTO dto)
         {
+            var isQuantityOnlyDocument = IsQuantityOnlyDocumentType(dto.Type);
+
             var details =
                 dto.Details
                 .Select(x =>
@@ -585,10 +865,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         Quantity = x.Quantity,
                         BaseQuantity = x.BaseQuantity,
                         UnitId = x.UnitId,
-                        UnitPrice = x.UnitPrice,
-                        CostPrice = x.CostPrice,
-                        CostAmount = x.CostAmount,
-                        TotalAmount = x.TotalAmount,
+                        UnitPrice = isQuantityOnlyDocument ? 0 : x.UnitPrice,
+                        CostPrice = isQuantityOnlyDocument ? 0 : x.CostPrice,
+                        CostAmount = isQuantityOnlyDocument ? 0 : x.CostAmount,
+                        TotalAmount = isQuantityOnlyDocument ? 0 : x.TotalAmount,
                         Note = NormalizeDetailNote(dto.Note)
                     });
 
@@ -997,6 +1277,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 {
                     item.UnitPrice = 0;
                     item.TotalAmount = 0;
+                    item.CostPrice = 0;
+                    item.CostAmount = 0;
                     continue;
                 }
 
@@ -1128,6 +1410,227 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
         {
             return Math.Abs(left - right) < 0.001m;
         }
+
+        private async Task<InventoryDocumentPreflightResultDTO> EvaluateDtoIssuesAsync(CreateInventoryDocumentDTO dto)
+        {
+            var operation = ResolveIssueOperation(dto.Type, dto.Purpose);
+            if (!operation.HasValue)
+                return new InventoryDocumentPreflightResultDTO { Outcome = InventoryIssueOutcome.Allowed };
+
+            var result = new InventoryDocumentPreflightResultDTO { Outcome = InventoryIssueOutcome.Allowed };
+            foreach (var detail in dto.Details.OrderBy(x => x.IngredientId))
+            {
+                var inventory = await _repository.GetStoreInventoryAsync(dto.StoreId, detail.IngredientId);
+                var decision = await _inventoryIssuePolicy.EvaluateAsync(new InventoryIssueRequest(
+                    operation.Value,
+                    dto.StoreId,
+                    detail.IngredientId,
+                    null,
+                    inventory?.AvailableQty ?? 0,
+                    detail.BaseQuantity,
+                    inventory?.MaxNegativeQty,
+                    dto.Purpose.ToString(),
+                    dto.NegativeReason,
+                    null,
+                    null));
+                result.Lines.Add(new InventoryDocumentPreflightLineDTO
+                {
+                    IngredientId = detail.IngredientId,
+                    IngredientName = $"#{detail.IngredientId}",
+                    BeforeQty = decision.BeforeQty,
+                    IssueQty = decision.IssueQty,
+                    ProjectedAfterQty = decision.ProjectedAfterQty,
+                    EffectiveMaxNegativeQty = decision.EffectiveMaxNegativeQty,
+                    Outcome = decision.Outcome,
+                    ReasonCode = decision.ReasonCode
+                });
+                result.PolicyVersion = decision.PolicyVersion;
+            }
+
+            result.Outcome = AggregateOutcome(result.Lines.Select(x => x.Outcome));
+            return result;
+        }
+
+        private async Task<List<DocumentIssueEvaluation>> EvaluateDocumentIssuesAsync(
+            InventoryDocument document,
+            InventoryNegativeApproval? approval,
+            bool scopeAuthorized)
+        {
+            var operation = ResolveIssueOperation(document.Type, document.Purpose);
+            if (!operation.HasValue)
+                return [];
+
+            var result = new List<DocumentIssueEvaluation>();
+            foreach (var detail in document.Details.OrderBy(x => x.IngredientId))
+            {
+                var inventory = await _repository.GetStoreInventoryForUpdateAsync(document.StoreId, detail.IngredientId);
+                if (inventory == null)
+                {
+                    if (document.Type is InventoryDocumentType.EXPORT or InventoryDocumentType.WASTE)
+                    {
+                        throw new InvalidOperationException("INGREDIENT_NOT_IN_STORE_INVENTORY");
+                    }
+
+                    inventory = await _repository.GetOrCreateStoreInventoryForIngredientAsync(
+                        document.StoreId,
+                        detail.IngredientId);
+                }
+                var approvalLine = approval?.Lines.FirstOrDefault(x => x.InventoryDocumentDetailId == detail.InventoryDocumentDetailId);
+                InventoryApprovalEvidence? evidence = null;
+                if (approval?.Status == InventoryNegativeApprovalStatuses.Approved && approvalLine != null)
+                {
+                    evidence = new InventoryApprovalEvidence(
+                        approval.InventoryNegativeApprovalId,
+                        approval.StoreId,
+                        approvalLine.IngredientId,
+                        approvalLine.PreparedItemId,
+                        approvalLine.BeforeQty,
+                        approvalLine.ProjectedAfterQty,
+                        approvalLine.EffectiveMaxNegativeQty,
+                        approval.PolicyVersion,
+                        approval.RequesterStaffId.ToString(CultureInfo.InvariantCulture),
+                        approval.ApproverStaffId?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                        true,
+                        scopeAuthorized,
+                        approvalLine.IssueQty,
+                        approval.Reason,
+                        approvalLine.InventoryRowVersion);
+                }
+
+                var decision = await _inventoryIssuePolicy.EvaluateAsync(new InventoryIssueRequest(
+                    operation.Value,
+                    document.StoreId,
+                    detail.IngredientId,
+                    null,
+                    inventory.AvailableQty,
+                    detail.BaseQuantity,
+                    inventory.MaxNegativeQty,
+                    document.Purpose.ToString(),
+                    document.NegativeReason,
+                    approval?.PolicyVersion,
+                    evidence,
+                    inventory.RowVersion));
+                result.Add(new DocumentIssueEvaluation(detail, inventory, decision));
+            }
+
+            return result;
+        }
+
+        private InventoryNegativeApproval BuildApproval(
+            InventoryDocument document,
+            IReadOnlyCollection<DocumentIssueEvaluation> evaluations,
+            string payloadHash,
+            string requestKey)
+        {
+            var actor = GetActor();
+            var approval = new InventoryNegativeApproval
+            {
+                InventoryDocumentId = document.InventoryDocumentId,
+                StoreId = document.StoreId,
+                RequesterStaffId = actor.StaffId,
+                Status = InventoryNegativeApprovalStatuses.Requested,
+                Reason = document.NegativeReason!.Trim(),
+                PolicyVersion = evaluations.Select(x => x.Decision.PolicyVersion).Distinct().Single(),
+                RequestKey = requestKey.Trim(),
+                PayloadHash = payloadHash,
+                RequestedAt = DateTime.UtcNow,
+                Lines = evaluations.Select(x => new InventoryNegativeApprovalLine
+                {
+                    InventoryDocumentDetailId = x.Detail.InventoryDocumentDetailId,
+                    StoreInventoryId = x.Inventory.StoreInventoryId,
+                    IngredientId = x.Detail.IngredientId,
+                    BeforeQty = x.Decision.BeforeQty,
+                    IssueQty = x.Decision.IssueQty,
+                    ProjectedAfterQty = x.Decision.ProjectedAfterQty,
+                    EffectiveMaxNegativeQty = x.Decision.EffectiveMaxNegativeQty,
+                    InventoryRowVersion = x.Inventory.RowVersion.ToArray()
+                }).ToList()
+            };
+            document.NegativeApproval = approval;
+            return approval;
+        }
+
+        private static InventoryIssueOperation? ResolveIssueOperation(
+            InventoryDocumentType type,
+            InventoryDocumentPurpose purpose) => type switch
+        {
+            InventoryDocumentType.EXPORT when purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT => InventoryIssueOperation.AdjustmentOut,
+            InventoryDocumentType.EXPORT => InventoryIssueOperation.ManualExternalExport,
+            InventoryDocumentType.WASTE => InventoryIssueOperation.Waste,
+            InventoryDocumentType.PRODUCTION_OUT => InventoryIssueOperation.ProductionOut,
+            InventoryDocumentType.SALES_DEDUCTION => InventoryIssueOperation.PosBlindSale,
+            _ => null
+        };
+
+        private static InventoryIssueOutcome AggregateOutcome(IEnumerable<InventoryIssueOutcome> outcomes)
+        {
+            var values = outcomes.ToList();
+            if (values.Contains(InventoryIssueOutcome.Blocked))
+                return InventoryIssueOutcome.Blocked;
+            return values.Contains(InventoryIssueOutcome.ApprovalRequired)
+                ? InventoryIssueOutcome.ApprovalRequired
+                : InventoryIssueOutcome.Allowed;
+        }
+
+        private async Task EnsureStoreScopeAsync(int storeId)
+        {
+            var actor = GetActor();
+            if (actor.StaffId <= 0 || !await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId))
+                throw new UnauthorizedAccessException("APPROVAL_SCOPE_FORBIDDEN");
+        }
+
+        private static InvalidOperationException BuildDeduplicationException(
+            RequestDeduplicationBeginResult dedup)
+        {
+            var message = dedup.ErrorMessage ?? "RequestKey đã được xử lý.";
+            return new InvalidOperationException(string.IsNullOrWhiteSpace(dedup.ErrorCode)
+                ? message
+                : $"{dedup.ErrorCode}: {message}");
+        }
+
+        private static void EnsureRowVersionMatches(byte[] current, string? suppliedBase64)
+        {
+            if (string.IsNullOrWhiteSpace(suppliedBase64))
+                throw new InvalidOperationException("ROW_VERSION_REQUIRED");
+
+            byte[] supplied;
+            try
+            {
+                supplied = Convert.FromBase64String(suppliedBase64);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("ROW_VERSION_INVALID");
+            }
+
+            if (!current.AsSpan().SequenceEqual(supplied))
+                throw new InvalidOperationException("CONCURRENCY_CONFLICT");
+        }
+
+        private AdminActorContext GetActor()
+        {
+            var user = _httpContextAccessor.HttpContext?.User
+                ?? throw new UnauthorizedAccessException("Không xác định được actor.");
+            return _actorAccessor.Get(user);
+        }
+
+        private static void EnsureCanApprove(IReadOnlyList<string> roles)
+        {
+            var allowed = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+            {
+                RoleConstants.BusinessOwner,
+                RoleConstants.SystemAdmin,
+                RoleConstants.AreaManager,
+                RoleConstants.AccountantWarehouse
+            };
+            if (!roles.Any(allowed.Contains))
+                throw new UnauthorizedAccessException("Role hiện tại không được duyệt tồn âm.");
+        }
+
+        private sealed record DocumentIssueEvaluation(
+            InventoryDocumentDetail Detail,
+            CafeChain.Models.Stores.StoreInventory Inventory,
+            InventoryIssueDecision Decision);
 
         private static string GetCreateActionName(CreateInventoryDocumentDTO dto)
         {

@@ -2,7 +2,11 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.DTOs.Systems;
+using CafeChain.Application.DTOs.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Results;
@@ -18,6 +22,7 @@ using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Systems;
 using Moq;
+using Microsoft.AspNetCore.Http;
 using Xunit;
 
 namespace CafeChain.Tests;
@@ -25,7 +30,7 @@ namespace CafeChain.Tests;
 public sealed class InventoryTransferPreparedItemTests
 {
     [Fact]
-    public async Task PreparedItemConfirm_PreservesIdentityCostAndLineAudit_AndReplayIsNoOp()
+    public async Task PreparedItemDispatchAndPartialReceive_PreserveIdentityCostAndReplayIsNoOp()
     {
         const int transferId = 21;
         const int detailId = 55;
@@ -83,6 +88,10 @@ public sealed class InventoryTransferPreparedItemTests
 
         var repository = new Mock<IAdminInventoryTransferRepository>();
         repository.Setup(x => x.GetTransferByIdAsync(transferId)).ReturnsAsync(transfer);
+        repository.Setup(x => x.GetTransferForUpdateAsync(transferId)).ReturnsAsync(transfer);
+        repository.Setup(x => x.LockInventoriesAsync(
+                It.IsAny<IEnumerable<(int StoreId, int? IngredientId, int? PreparedItemId)>>()))
+            .Returns(Task.CompletedTask);
         repository.Setup(x => x.GetPreparedItemAsync(preparedItemId)).ReturnsAsync(item);
         repository.Setup(x => x.GetAccountIdForStaffAsync(7)).ReturnsAsync(70);
         repository.Setup(x => x.GetOrCreatePreparedItemInventoryForUpdateAsync(1, preparedItemId, 70, It.IsAny<string>()))
@@ -91,6 +100,21 @@ public sealed class InventoryTransferPreparedItemTests
             .ReturnsAsync(destination);
         repository.Setup(x => x.GetAvailablePreparedItemCostLayersAsync(1, preparedItemId))
             .ReturnsAsync([sourceLayer]);
+        var transferAllocations = new List<InventoryTransferCostAllocation>();
+        repository.Setup(x => x.AddTransferCostAllocationsAsync(It.IsAny<IEnumerable<InventoryTransferCostAllocation>>()))
+            .Callback<IEnumerable<InventoryTransferCostAllocation>>(rows =>
+            {
+                foreach (var row in rows)
+                {
+                    row.InventoryTransferCostAllocationId = transferAllocations.Count + 1;
+                    transferAllocations.Add(row);
+                }
+            })
+            .Returns(Task.CompletedTask);
+        repository.Setup(x => x.GetTransferCostAllocationsAsync(It.IsAny<IEnumerable<int>>()))
+            .ReturnsAsync(() => transferAllocations);
+        repository.Setup(x => x.AddBranchReceiptAsync(It.IsAny<BranchReceipt>()))
+            .Returns(Task.CompletedTask);
 
         var dedup = new Mock<IRequestDeduplicationService>();
         dedup.Setup(x => x.BeginAsync(
@@ -105,16 +129,19 @@ public sealed class InventoryTransferPreparedItemTests
                 Entry = new RequestDeduplication { RequestDeduplicationId = 1 }
             });
 
-        var negative = new Mock<INegativeInventoryService>();
-        negative.Setup(x => x.ValidateIssueAsync(source, 30m, item.Name))
-            .ReturnsAsync(new NegativeStockValidationResult
-            {
-                IsAllowed = true,
-                BeforeQty = 100m,
-                IssueQuantity = 30m,
-                AfterQty = 70m,
-                StockStatus = InventoryStockStatus.NORMAL
-            });
+        var issuePolicy = new Mock<IInventoryIssuePolicy>();
+        issuePolicy.Setup(x => x.EvaluateAsync(It.IsAny<InventoryIssueRequest>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((InventoryIssueRequest request, CancellationToken _) => new InventoryIssueDecision(
+                InventoryIssueOutcome.Allowed,
+                InventoryIssueReasonCodes.NonNegativeIssueAllowed,
+                request.BeforeAvailableQty,
+                request.IssueQty,
+                request.BeforeAvailableQty - request.IssueQty,
+                0,
+                0,
+                false,
+                false,
+                string.Empty));
 
         var posting = new Mock<IRestockFulfillmentPostingService>();
         posting.Setup(x => x.RegisterAsync(It.IsAny<RegisterRestockFulfillmentPostingCommand>()))
@@ -124,12 +151,47 @@ public sealed class InventoryTransferPreparedItemTests
                 TargetQuantity = 30m,
                 RequestStatus = RestockRequestStatuses.Completed
             }));
+        var costConsumption = new Mock<IInventoryCostLayerConsumptionService>();
+        costConsumption.Setup(x => x.PlanConsumeAsync(1, null, preparedItemId, 30m, true, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<CostLayerConsumptionPlan>.Success(new CostLayerConsumptionPlan
+            {
+                StoreId = 1,
+                PreparedItemId = preparedItemId,
+                RequiredQuantity = 30m,
+                CoveredQuantity = 30m,
+                AvailableLayerQuantity = 100m,
+                TotalCost = 120m,
+                WeightedUnitCost = 4m,
+                IsFullyCovered = true,
+                Slices =
+                [
+                    new CostLayerAllocationSlice
+                    {
+                        Layer = sourceLayer,
+                        InventoryCostLayerId = sourceLayer.InventoryCostLayerId,
+                        Quantity = 30m,
+                        UnitCost = 4m,
+                        TotalCost = 120m
+                    }
+                ]
+            }));
+        costConsumption.Setup(x => x.ApplyPlan(It.IsAny<CostLayerConsumptionPlan>()))
+            .Callback<CostLayerConsumptionPlan>(plan =>
+            {
+                foreach (var slice in plan.Slices)
+                    slice.Layer.RemainingQuantity -= slice.Quantity;
+            });
 
         var alerts = new Mock<IStockAlertService>();
         alerts.Setup(x => x.EvaluateStoreInventoryItemAsync(It.IsAny<int>(), It.IsAny<string>()))
             .ReturnsAsync(ServiceResult<StockAlertEvaluationResultDto>.Success(new()));
         var user = new Mock<IUserContext>();
         user.SetupGet(x => x.StaffId).Returns(7);
+        var actor = new Mock<IAdminActorContextAccessor>();
+        actor.Setup(x => x.Get(It.IsAny<System.Security.Claims.ClaimsPrincipal>()))
+            .Returns(new AdminActorContext { StaffId = 7 });
+        var scope = new Mock<IScopeAuthorizationService>();
+        scope.Setup(x => x.CanAccessStoreAsync(7, It.IsAny<int>())).ReturnsAsync(true);
 
         var transactions = new List<InventoryTransaction>();
         var destinationLayers = new List<InventoryCostLayer>();
@@ -143,39 +205,79 @@ public sealed class InventoryTransferPreparedItemTests
         var service = new AdminInventoryTransferService(
             repository.Object,
             dedup.Object,
-            negative.Object,
+            issuePolicy.Object,
+            costConsumption.Object,
             posting.Object,
             alerts.Object,
-            user.Object);
+            user.Object,
+            actor.Object,
+            scope.Object,
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
 
         var first = await service.ConfirmAsync(transferId, "confirm-1");
         var replay = await service.ConfirmAsync(transferId, "confirm-2");
 
-        Assert.Equal(InventoryTransferStatus.COMPLETED, first.Status);
-        Assert.Equal(InventoryTransferStatus.COMPLETED, replay.Status);
+        Assert.Equal(InventoryTransferStatus.DISPATCHED, first.Status);
+        Assert.Equal(InventoryTransferStatus.DISPATCHED, replay.Status);
         Assert.Equal(70m, source.AvailableQty);
-        Assert.Equal(30m, destination.AvailableQty);
+        Assert.Equal(0m, destination.AvailableQty);
         Assert.Equal(70m, sourceLayer.RemainingQuantity);
-        var inbound = Assert.Single(transactions, tx => tx.Type == InventoryTransactionTypeEnum.IN_TRANSFER);
-        Assert.Equal(detailId, inbound.InventoryTransferDetailId);
-        Assert.Equal(destination.StoreInventoryId, inbound.StoreInventoryId);
         var outbound = Assert.Single(transactions, tx => tx.Type == InventoryTransactionTypeEnum.OUT_TRANSFER);
         Assert.Equal(detailId, outbound.InventoryTransferDetailId);
         Assert.Equal(source.StoreInventoryId, outbound.StoreInventoryId);
-        var destinationLayer = Assert.Single(destinationLayers);
-        Assert.Null(destinationLayer.IngredientId);
-        Assert.Equal(preparedItemId, destinationLayer.PreparedItemId);
-        Assert.Equal(30m, destinationLayer.Quantity);
-        Assert.Equal(4m, destinationLayer.UnitCost);
-        posting.Verify(x => x.RegisterAsync(It.Is<RegisterRestockFulfillmentPostingCommand>(c =>
-            c.SourceDocumentType == RestockFulfillmentDocumentTypes.InventoryTransfer
-            && c.SourceDocumentId == transferId
-            && c.SourceDocumentLineId == detailId
-            && c.RestockRequestId == restockRequestId
-            && c.PreparedItemId == preparedItemId
-            && c.IngredientId == null)), Times.Once);
-        repository.Verify(x => x.AddInventoryTransactionAsync(It.IsAny<InventoryTransaction>()), Times.Exactly(2));
-        repository.Verify(x => x.AddCostLayerAsync(It.IsAny<InventoryCostLayer>()), Times.Once);
+        Assert.Empty(destinationLayers);
+        posting.Verify(x => x.RegisterAsync(It.IsAny<RegisterRestockFulfillmentPostingCommand>()), Times.Never);
+        repository.Verify(x => x.AddInventoryTransactionAsync(It.IsAny<InventoryTransaction>()), Times.Once);
+        repository.Verify(x => x.AddCostLayerAsync(It.IsAny<InventoryCostLayer>()), Times.Never);
+
+        var partial = await service.ReceiveAsync(transferId, new InventoryTransferReceiveDTO
+        {
+            RequestKey = "receive-1",
+            Lines =
+            [
+                new InventoryTransferReceiveLineDTO
+                {
+                    InventoryTransferDetailId = detailId,
+                    ReceivedBaseQuantity = 10m
+                }
+            ]
+        });
+        Assert.Equal(InventoryTransferStatus.DISPATCHED, partial.Status);
+        Assert.Equal(10m, destination.AvailableQty);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveAsync(
+            transferId,
+            new InventoryTransferReceiveDTO
+            {
+                RequestKey = "receive-over",
+                Lines =
+                [
+                    new InventoryTransferReceiveLineDTO
+                    {
+                        InventoryTransferDetailId = detailId,
+                        ReceivedBaseQuantity = 21m
+                    }
+                ]
+            }));
+
+        var completed = await service.ReceiveAsync(transferId, new InventoryTransferReceiveDTO
+        {
+            RequestKey = "receive-2",
+            Lines =
+            [
+                new InventoryTransferReceiveLineDTO
+                {
+                    InventoryTransferDetailId = detailId,
+                    ReceivedBaseQuantity = 20m
+                }
+            ]
+        });
+        Assert.Equal(InventoryTransferStatus.COMPLETED, completed.Status);
+        Assert.Equal(30m, destination.AvailableQty);
+        Assert.Equal(30m, transferAllocations.Single().ReceivedQuantity);
+        Assert.Equal(2, destinationLayers.Count);
+        Assert.All(destinationLayers, layer => Assert.Equal(4m, layer.UnitCost));
+        Assert.Equal(2, transactions.Count(tx => tx.Type == InventoryTransactionTypeEnum.IN_TRANSFER));
     }
 
     private static StoreInventory CanonicalInventory(

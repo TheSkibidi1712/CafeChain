@@ -1,15 +1,19 @@
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
 using CafeChain.Application.DTOs.Systems;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Systems;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Ingredients;
+using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Inventories.Transfers;
 using CafeChain.Models.Stores;
@@ -22,36 +26,50 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
     {
         private const string CreateDraftAction = "InventoryTransfer.CreateDraft";
         private const string UpdateDraftAction = "InventoryTransfer.UpdateDraft";
-        private const string ConfirmAction = "InventoryTransfer.Confirm";
+        private const string DispatchAction = "InventoryTransfer.Dispatch";
+        private const string ReceiveAction = "InventoryTransfer.Receive";
         private const string CancelAction = "InventoryTransfer.Cancel";
 
         private readonly IAdminInventoryTransferRepository _repository;
         private readonly IRequestDeduplicationService _deduplicationService;
-        private readonly INegativeInventoryService _negativeInventoryService;
+        private readonly IInventoryIssuePolicy _inventoryIssuePolicy;
+        private readonly IInventoryCostLayerConsumptionService _costLayerConsumptionService;
         private readonly IRestockFulfillmentPostingService _fulfillmentPostingService;
         private readonly IStockAlertService _stockAlertService;
         private readonly IUserContext _userContext;
+        private readonly IAdminActorContextAccessor _actorAccessor;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IHttpContextAccessor _httpContextAccessor;
 
         public AdminInventoryTransferService(
             IAdminInventoryTransferRepository repository,
             IRequestDeduplicationService deduplicationService,
-            INegativeInventoryService negativeInventoryService,
+            IInventoryIssuePolicy inventoryIssuePolicy,
+            IInventoryCostLayerConsumptionService costLayerConsumptionService,
             IRestockFulfillmentPostingService fulfillmentPostingService,
             IStockAlertService stockAlertService,
-            IUserContext userContext)
+            IUserContext userContext,
+            IAdminActorContextAccessor actorAccessor,
+            IScopeAuthorizationService scopeAuthorization,
+            IHttpContextAccessor httpContextAccessor)
         {
             _repository = repository;
             _deduplicationService = deduplicationService;
-            _negativeInventoryService = negativeInventoryService;
+            _inventoryIssuePolicy = inventoryIssuePolicy;
+            _costLayerConsumptionService = costLayerConsumptionService;
             _fulfillmentPostingService = fulfillmentPostingService;
             _stockAlertService = stockAlertService;
             _userContext = userContext;
+            _actorAccessor = actorAccessor;
+            _scopeAuthorization = scopeAuthorization;
+            _httpContextAccessor = httpContextAccessor;
         }
 
         public async Task<AdminInventoryTransferIndexVM> GetIndexAsync(
             AdminInventoryTransferIndexVM filter,
             IReadOnlyCollection<int>? allowedStoreIds = null)
         {
+            allowedStoreIds = await GetAllowedStoreIdsAsync();
             var page = filter.Page <= 0 ? 1 : filter.Page;
             var pageSize = filter.PageSize <= 0 ? 20 : Math.Min(filter.PageSize, 100);
             var skip = (page - 1) * pageSize;
@@ -113,6 +131,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         public async Task<AdminInventoryTransferCreateVM> GetCreateDataAsync(
             IReadOnlyCollection<int>? allowedStoreIds = null)
         {
+            allowedStoreIds = await GetAllowedStoreIdsAsync();
             var stores = await _repository.GetStoreDropdownAsync();
             if (allowedStoreIds != null)
             {
@@ -140,6 +159,9 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             {
                 return null;
             }
+
+            if (!await CanReadTransferAsync(transfer.FromStoreId, transfer.ToStoreId))
+                return null;
 
             return new AdminInventoryTransferDetailVM
             {
@@ -195,6 +217,9 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             {
                 return [];
             }
+
+            if (!await CanAccessStoreAsync(fromStoreId))
+                return [];
 
             var inventories = await _repository.GetStoreInventoriesAsync(fromStoreId);
             var ingredientInventories = inventories
@@ -344,6 +369,9 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             int id,
             InventoryTransferMutationDTO dto)
         {
+            if (dto.TransferId.HasValue && dto.TransferId.Value != id)
+                throw new InvalidOperationException("INVALID_TRANSFER_ID");
+
             RequestDeduplicationBeginResult? dedup = null;
 
             await _repository.BeginTransactionAsync();
@@ -364,8 +392,11 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     return await ResolveDuplicateResultAsync(dedup);
                 }
 
-                var transfer = await _repository.GetTransferByIdAsync(id)
+                var transfer = await _repository.GetTransferForUpdateAsync(id)
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
+
+                await EnsureTransferScopeAsync(transfer.FromStoreId, transfer.ToStoreId);
+                EnsureTransferRowVersion(transfer.RowVersion, dto.RowVersion);
 
                 if (transfer.Status != InventoryTransferStatus.DRAFT)
                 {
@@ -410,7 +441,10 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             }
         }
 
-        public async Task<InventoryTransferMutationResultDTO> ConfirmAsync(int id, string? requestKey)
+        public Task<InventoryTransferMutationResultDTO> ConfirmAsync(int id, string? requestKey) =>
+            DispatchAsync(id, requestKey);
+
+        public async Task<InventoryTransferMutationResultDTO> DispatchAsync(int id, string? requestKey)
         {
             RequestDeduplicationBeginResult? dedup = null;
 
@@ -421,7 +455,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 var staffId = GetCurrentStaffId();
                 dedup = await _deduplicationService.BeginAsync(
                     requestKey,
-                    ConfirmAction,
+                    DispatchAction,
                     staffId,
                     new { id, requestKey },
                     id);
@@ -432,10 +466,12 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     return await ResolveDuplicateResultAsync(dedup);
                 }
 
-                var transfer = await _repository.GetTransferByIdAsync(id)
+                var transfer = await _repository.GetTransferForUpdateAsync(id)
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
 
-                if (transfer.Status == InventoryTransferStatus.COMPLETED)
+                await EnsureTransferScopeAsync(transfer.FromStoreId, transfer.ToStoreId);
+
+                if (transfer.Status is InventoryTransferStatus.DISPATCHED or InventoryTransferStatus.COMPLETED)
                 {
                     var completedResult = BuildResult(transfer);
                     await _deduplicationService.MarkSuccessAsync(
@@ -456,9 +492,11 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     throw new InvalidOperationException("Phiếu chuyển kho phải có ít nhất một nguyên liệu.");
                 }
 
-                var (warnings, affectedInventoryIds) = await ProcessConfirmAsync(transfer, staffId);
+                await LockTransferInventoriesAsync(transfer);
+                var (warnings, affectedInventoryIds) = await ProcessDispatchAsync(transfer, staffId);
 
-                transfer.Status = InventoryTransferStatus.COMPLETED;
+                transfer.Status = InventoryTransferStatus.DISPATCHED;
+                transfer.DispatchedAt = DateTime.UtcNow;
                 transfer.ConfirmedAt = DateTime.UtcNow;
                 transfer.ConfirmedByStaffId = staffId;
 
@@ -479,7 +517,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     {
                         await _stockAlertService.EvaluateStoreInventoryItemAsync(
                             inventoryId,
-                            "INVENTORY_TRANSFER_COMPLETED");
+                            "INVENTORY_TRANSFER_DISPATCHED");
                     }
                     catch
                     {
@@ -493,6 +531,207 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             {
                 await MarkFailedIfPossibleAsync(dedup, ex.Message);
                 await _repository.RollbackTransactionAsync();
+                throw;
+            }
+        }
+
+        public async Task<InventoryTransferMutationResultDTO> ReceiveAsync(
+            int id,
+            InventoryTransferReceiveDTO dto)
+        {
+            RequestDeduplicationBeginResult? dedup = null;
+            await _repository.BeginTransactionAsync();
+
+            try
+            {
+                var staffId = GetCurrentStaffId();
+                dedup = await _deduplicationService.BeginAsync(
+                    dto.RequestKey,
+                    ReceiveAction,
+                    staffId,
+                    new { id, dto.RequestKey, dto.ReceivedAt, dto.Lines },
+                    id);
+                if (!dedup.CanProcess)
+                {
+                    await _repository.RollbackTransactionAsync();
+                    return await ResolveDuplicateResultAsync(dedup);
+                }
+
+                var transfer = await _repository.GetTransferForUpdateAsync(id)
+                    ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
+                await EnsureStoreScopeAsync(transfer.ToStoreId);
+
+                if (transfer.Status == InventoryTransferStatus.COMPLETED)
+                {
+                    var replay = BuildResult(transfer);
+                    await _deduplicationService.MarkSuccessAsync(dedup.Entry!, id, replay);
+                    await _repository.CommitTransactionAsync();
+                    return replay;
+                }
+                if (transfer.Status != InventoryTransferStatus.DISPATCHED)
+                    throw new InvalidOperationException("Chỉ phiếu DISPATCHED mới được nhận kho.");
+                if (dto.Lines.Count == 0)
+                    throw new InvalidOperationException("Phiếu nhận phải có ít nhất một dòng.");
+                if (dto.Lines.Any(x => x.InventoryTransferDetailId <= 0 || x.ReceivedBaseQuantity <= 0))
+                    throw new InvalidOperationException("Số lượng nhận phải lớn hơn 0.");
+                if (dto.Lines.GroupBy(x => x.InventoryTransferDetailId).Any(x => x.Count() > 1))
+                    throw new InvalidOperationException("Dòng nhận chuyển kho bị trùng.");
+
+                var detailById = transfer.Details.ToDictionary(x => x.InventoryTransferDetailId);
+                foreach (var line in dto.Lines)
+                {
+                    if (!detailById.TryGetValue(line.InventoryTransferDetailId, out var detail))
+                        throw new InvalidOperationException("Dòng nhận không thuộc phiếu chuyển kho.");
+                    if (detail.ReceivedBaseQuantity + line.ReceivedBaseQuantity > detail.DispatchedBaseQuantity)
+                        throw new InvalidOperationException("Số lượng nhận vượt số lượng đã dispatch.");
+                }
+
+                await LockTransferInventoriesAsync(transfer);
+                var allocations = await _repository.GetTransferCostAllocationsAsync(dto.Lines.Select(x => x.InventoryTransferDetailId));
+                var actorAccountId = await _repository.GetAccountIdForStaffAsync(staffId)
+                    ?? throw new InvalidOperationException("Không xác định được tài khoản người nhận.");
+                var receipt = new BranchReceipt
+                {
+                    ReceiptCode = $"TR-{transfer.InventoryTransferId}-{DateTime.UtcNow:yyyyMMddHHmmssfff}",
+                    StoreId = transfer.ToStoreId,
+                    SourceInventoryTransferId = transfer.InventoryTransferId,
+                    Status = "CONFIRMED",
+                    ReceiptKey = dto.RequestKey!.Trim(),
+                    ReferenceNumber = transfer.Code,
+                    ReceivedAt = dto.ReceivedAt,
+                    ReceivedByStaffId = staffId,
+                    ConfirmedAt = DateTime.UtcNow,
+                    ConfirmedByStaffId = staffId,
+                    Notes = dto.Note,
+                    CreatedAt = DateTime.UtcNow,
+                    CreatedByStaffId = staffId
+                };
+
+                foreach (var receiveLine in dto.Lines.OrderBy(x => x.InventoryTransferDetailId))
+                {
+                    var detail = detailById[receiveLine.InventoryTransferDetailId];
+                    var ingredient = detail.Ingredient;
+                    var preparedItem = detail.PreparedItem;
+                    var inventory = ingredient != null
+                        ? await _repository.GetOrCreateStoreInventoryForUpdateAsync(transfer.ToStoreId, ingredient.IngredientId)
+                        : await _repository.GetOrCreatePreparedItemInventoryForUpdateAsync(
+                            transfer.ToStoreId,
+                            preparedItem!.PreparedItemId,
+                            actorAccountId,
+                            $"INVENTORY_TRANSFER_RECEIPT:{transfer.InventoryTransferId}");
+                    var remainingToReceive = receiveLine.ReceivedBaseQuantity;
+                    var detailAllocations = allocations
+                        .Where(x => x.InventoryTransferDetailId == detail.InventoryTransferDetailId)
+                        .OrderBy(x => x.InventoryTransferCostAllocationId)
+                        .ToList();
+
+                    foreach (var allocation in detailAllocations)
+                    {
+                        if (remainingToReceive <= 0)
+                            break;
+                        var inTransit = allocation.Quantity - allocation.ReceivedQuantity;
+                        var quantity = Math.Min(remainingToReceive, inTransit);
+                        if (quantity <= 0)
+                            continue;
+
+                        var before = inventory.AvailableQty;
+                        inventory.AvailableQty += quantity;
+                        allocation.ReceivedQuantity += quantity;
+                        remainingToReceive -= quantity;
+
+                        var receiptLine = new BranchReceiptLine
+                        {
+                            RestockRequestId = detail.RestockRequestId,
+                            SourceInventoryTransferDetailId = detail.InventoryTransferDetailId,
+                            SourceTransferCostAllocationId = allocation.InventoryTransferCostAllocationId,
+                            IngredientId = detail.IngredientId,
+                            PreparedItemId = detail.PreparedItemId,
+                            InputQuantity = quantity,
+                            InputUnitId = ingredient?.BaseUnitId ?? preparedItem!.BaseUnitId,
+                            ReceivedBaseQuantity = quantity,
+                            BaseUnitId = ingredient?.BaseUnitId ?? preparedItem!.BaseUnitId,
+                            BaseUnitCostSnapshot = allocation.UnitCost,
+                            LineTotalCost = quantity * allocation.UnitCost,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        receipt.Lines.Add(receiptLine);
+
+                        await _repository.AddInventoryTransactionAsync(new InventoryTransaction
+                        {
+                            StoreInventoryId = inventory.StoreInventoryId,
+                            InventoryTransferId = transfer.InventoryTransferId,
+                            BranchReceiptLine = receiptLine,
+                            Type = InventoryTransactionTypeEnum.IN_TRANSFER,
+                            StockStatus = inventory.AvailableQty < 0
+                                ? InventoryStockStatus.NEGATIVE_CONFIRMED
+                                : InventoryStockStatus.NORMAL,
+                            Quantity = quantity,
+                            BeforeQty = before,
+                            AfterQty = inventory.AvailableQty,
+                            UnitCost = allocation.UnitCost,
+                            TotalCost = quantity * allocation.UnitCost,
+                            CreatedAt = DateTime.UtcNow
+                        });
+                        var inboundLayer = new InventoryCostLayer
+                        {
+                            StoreId = transfer.ToStoreId,
+                            IngredientId = detail.IngredientId,
+                            PreparedItemId = detail.PreparedItemId,
+                            Quantity = quantity,
+                            RemainingQuantity = quantity,
+                            UnitCost = allocation.UnitCost,
+                            SourceBranchReceiptLine = receiptLine,
+                            SourceTransferCostAllocation = allocation,
+                            CreatedAt = DateTime.UtcNow
+                        };
+                        await SettleDestinationGapAsync(inventory, before, inboundLayer);
+                        await _repository.AddCostLayerAsync(inboundLayer);
+                    }
+
+                    if (remainingToReceive > 0)
+                        throw new InvalidOperationException("Thiếu cost allocation in-transit cho số lượng nhận.");
+
+                    detail.ReceivedBaseQuantity += receiveLine.ReceivedBaseQuantity;
+                    detail.DestinationAfterQty = inventory.AvailableQty;
+                    _repository.UpdateStoreInventory(inventory);
+
+                    if (detail.RestockRequestId.HasValue)
+                    {
+                        var posting = await _fulfillmentPostingService.RegisterAsync(
+                            new RegisterRestockFulfillmentPostingCommand
+                            {
+                                RestockRequestId = detail.RestockRequestId.Value,
+                                DestinationStoreId = transfer.ToStoreId,
+                                SourceDocumentType = RestockFulfillmentDocumentTypes.InventoryTransfer,
+                                SourceDocumentId = transfer.InventoryTransferId,
+                                SourceDocumentLineId = detail.InventoryTransferDetailId,
+                                IngredientId = detail.IngredientId,
+                                PreparedItemId = detail.PreparedItemId,
+                                Quantity = receiveLine.ReceivedBaseQuantity,
+                                BaseUnitId = ingredient?.BaseUnitId ?? preparedItem!.BaseUnitId,
+                                ActorStaffId = staffId,
+                                Reason = $"InventoryTransfer #{transfer.InventoryTransferId} RECEIVED"
+                            });
+                        if (!posting.IsSuccess)
+                            throw new InvalidOperationException(posting.Message);
+                    }
+                }
+
+                await _repository.AddBranchReceiptAsync(receipt);
+                if (transfer.Details.All(x => x.ReceivedBaseQuantity == x.DispatchedBaseQuantity))
+                    transfer.Status = InventoryTransferStatus.COMPLETED;
+                _repository.UpdateTransfer(transfer);
+                await _repository.SaveChangesAsync();
+
+                var response = BuildResult(transfer);
+                await _deduplicationService.MarkSuccessAsync(dedup.Entry!, id, response);
+                await _repository.CommitTransactionAsync();
+                return response;
+            }
+            catch (Exception ex)
+            {
+                await _repository.RollbackTransactionAsync();
+                await MarkFailedIfPossibleAsync(dedup, ex.Message);
                 throw;
             }
         }
@@ -522,7 +761,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         return true;
                     }
 
-                    throw new InvalidOperationException(dedup.ErrorMessage);
+                    throw BuildDeduplicationException(dedup);
                 }
 
                 var transfer = await _repository.GetTransferByIdAsync(id);
@@ -532,9 +771,11 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     return false;
                 }
 
-                if (transfer.Status == InventoryTransferStatus.COMPLETED)
+                await EnsureTransferScopeAsync(transfer.FromStoreId, transfer.ToStoreId);
+
+                if (transfer.Status is InventoryTransferStatus.COMPLETED or InventoryTransferStatus.DISPATCHED)
                 {
-                    throw new InvalidOperationException("Phiếu đã hoàn tất, không thể hủy.");
+                    throw new InvalidOperationException("Chỉ phiếu DRAFT mới được hủy; phiếu đã dispatch phải dùng workflow hoàn trả.");
                 }
 
                 if (transfer.Status == InventoryTransferStatus.CANCELLED)
@@ -610,10 +851,19 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     LastUpdated = DateTime.UtcNow
                 };
 
-                var validation = await _negativeInventoryService.ValidateIssueAsync(
-                    inventory,
-                    detail.BaseQuantity,
-                    ingredient?.Name ?? preparedItem!.Name);
+                var validation = await _inventoryIssuePolicy.EvaluateAsync(
+                    new InventoryIssueRequest(
+                        InventoryIssueOperation.TransferDispatch,
+                        dto.FromStoreId,
+                        detail.IngredientId,
+                        detail.PreparedItemId,
+                        inventory.AvailableQty,
+                        detail.BaseQuantity,
+                        inventory.MaxNegativeQty,
+                        null,
+                        null,
+                        null,
+                        null));
 
                 if (!validation.IsAllowed || validation.IsNegative)
                 {
@@ -627,20 +877,46 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                             IngredientName = ingredient?.Name ?? preparedItem!.Name,
                             AvailableQuantity = validation.BeforeQty,
                             ReservedQuantity = inventory.ReservedQty,
-                            UsableQuantity = validation.BeforeQty - inventory.ReservedQty,
-                            ThresholdQuantity = validation.ThresholdQuantity,
+                            UsableQuantity = validation.BeforeQty,
+                            ThresholdQuantity = validation.EffectiveMaxNegativeQty,
                             UnitCode = ingredient?.BaseUnit?.UnitCode
                                 ?? preparedItem?.BaseUnit?.UnitCode
                                 ?? string.Empty,
-                            Message = validation.Message
+                            Message = validation.ReasonCode
                         });
+                }
+
+                var fifo = await _costLayerConsumptionService.PlanConsumeAsync(
+                    dto.FromStoreId,
+                    detail.IngredientId,
+                    detail.PreparedItemId,
+                    detail.BaseQuantity,
+                    requireFullCoverage: true);
+                if (!fifo.IsSuccess || fifo.Data == null || !fifo.Data.IsFullyCovered)
+                {
+                    warnings.Add(new InventoryStockWarningDTO
+                    {
+                        StoreId = dto.FromStoreId,
+                        IngredientId = detail.IngredientId ?? 0,
+                        PreparedItemId = detail.PreparedItemId,
+                        ItemType = detail.IngredientId.HasValue ? "INGREDIENT" : "PREPARED_ITEM",
+                        IngredientName = ingredient?.Name ?? preparedItem!.Name,
+                        AvailableQuantity = inventory.AvailableQty,
+                        ReservedQuantity = inventory.ReservedQty,
+                        UsableQuantity = inventory.AvailableQty,
+                        ThresholdQuantity = detail.BaseQuantity,
+                        UnitCode = ingredient?.BaseUnit?.UnitCode
+                            ?? preparedItem?.BaseUnit?.UnitCode
+                            ?? string.Empty,
+                        Message = fifo.ErrorCode ?? "FIFO_FULL_COVERAGE_REQUIRED"
+                    });
                 }
             }
 
             return warnings;
         }
 
-        private async Task<(List<InventoryStockWarningDTO> Warnings, List<int> InventoryIds)> ProcessConfirmAsync(
+        private async Task<(List<InventoryStockWarningDTO> Warnings, List<int> InventoryIds)> ProcessDispatchAsync(
             InventoryTransfer transfer,
             int actorStaffId)
         {
@@ -678,24 +954,23 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         preparedItem!.PreparedItemId,
                         actorAccountId,
                         $"INVENTORY_TRANSFER_SOURCE:{transfer.InventoryTransferId}");
-                var destinationInventory = ingredient != null
-                    ? await _repository.GetOrCreateStoreInventoryForUpdateAsync(
-                        transfer.ToStoreId,
-                        ingredient.IngredientId)
-                    : await _repository.GetOrCreatePreparedItemInventoryForUpdateAsync(
-                        transfer.ToStoreId,
-                        preparedItem!.PreparedItemId,
-                        actorAccountId,
-                        $"INVENTORY_TRANSFER_DESTINATION:{transfer.InventoryTransferId}");
-
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(
-                    sourceInventory,
-                    detail.BaseQuantity,
-                    itemName);
+                var stockValidation = await _inventoryIssuePolicy.EvaluateAsync(
+                    new InventoryIssueRequest(
+                        InventoryIssueOperation.TransferDispatch,
+                        transfer.FromStoreId,
+                        detail.IngredientId,
+                        detail.PreparedItemId,
+                        sourceInventory.AvailableQty,
+                        detail.BaseQuantity,
+                        sourceInventory.MaxNegativeQty,
+                        null,
+                        null,
+                        null,
+                        null));
 
                 if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException(stockValidation.Message);
+                    throw new InvalidOperationException(stockValidation.ReasonCode);
                 }
 
                 if (stockValidation.IsNegative)
@@ -710,34 +985,45 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                             IngredientName = itemName,
                             AvailableQuantity = stockValidation.BeforeQty,
                             ReservedQuantity = sourceInventory.ReservedQty,
-                            UsableQuantity = stockValidation.BeforeQty - sourceInventory.ReservedQty,
-                            ThresholdQuantity = stockValidation.ThresholdQuantity,
+                            UsableQuantity = stockValidation.BeforeQty,
+                            ThresholdQuantity = stockValidation.EffectiveMaxNegativeQty,
                             UnitCode = baseUnitCode,
-                            Message = stockValidation.Message
+                            Message = stockValidation.ReasonCode
                         });
                 }
 
                 var sourceBefore = sourceInventory.AvailableQty;
-                var destinationBefore = destinationInventory.AvailableQty;
-                var cost = await ConsumeSourceCostAsync(
+                var planResult = await _costLayerConsumptionService.PlanConsumeAsync(
                     transfer.FromStoreId,
                     detail.IngredientId,
                     detail.PreparedItemId,
                     detail.BaseQuantity,
-                    detail);
+                    requireFullCoverage: true);
+                if (!planResult.IsSuccess || planResult.Data == null)
+                    throw new InvalidOperationException(planResult.ErrorCode ?? "FIFO_FULL_COVERAGE_REQUIRED");
+                var cost = planResult.Data;
+                _costLayerConsumptionService.ApplyPlan(cost);
+
+                await _repository.AddTransferCostAllocationsAsync(cost.Slices.Select(slice =>
+                    new InventoryTransferCostAllocation
+                    {
+                        InventoryTransferDetailId = detail.InventoryTransferDetailId,
+                        SourceInventoryCostLayerId = slice.InventoryCostLayerId,
+                        Quantity = slice.Quantity,
+                        ReceivedQuantity = 0,
+                        UnitCost = slice.UnitCost,
+                        TotalCost = slice.TotalCost,
+                        CreatedAt = DateTime.UtcNow
+                    }));
 
                 sourceInventory.AvailableQty -= detail.BaseQuantity;
-                destinationInventory.AvailableQty += detail.BaseQuantity;
 
                 detail.SourceBeforeQty = sourceBefore;
                 detail.SourceAfterQty = sourceInventory.AvailableQty;
-                detail.DestinationBeforeQty = destinationBefore;
-                detail.DestinationAfterQty = destinationInventory.AvailableQty;
+                detail.DispatchedBaseQuantity = detail.BaseQuantity;
 
                 _repository.UpdateStoreInventory(sourceInventory);
-                _repository.UpdateStoreInventory(destinationInventory);
                 inventoryIds.Add(sourceInventory.StoreInventoryId);
-                inventoryIds.Add(destinationInventory.StoreInventoryId);
 
                 await _repository.AddInventoryTransactionAsync(
                     BuildTransferTransaction(
@@ -745,61 +1031,71 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         detail.InventoryTransferDetailId,
                         sourceInventory,
                         InventoryTransactionTypeEnum.OUT_TRANSFER,
-                        stockValidation.StockStatus,
+                        InventoryStockStatus.NORMAL,
                         detail.BaseQuantity,
                         sourceBefore,
                         sourceInventory.AvailableQty,
-                        cost.UnitCost,
+                        cost.WeightedUnitCost,
                         cost.TotalCost));
-
-                await _repository.AddInventoryTransactionAsync(
-                    BuildTransferTransaction(
-                        transfer.InventoryTransferId,
-                        detail.InventoryTransferDetailId,
-                        destinationInventory,
-                        InventoryTransactionTypeEnum.IN_TRANSFER,
-                        InventoryStockStatus.NORMAL,
-                        detail.BaseQuantity,
-                        destinationBefore,
-                        destinationInventory.AvailableQty,
-                        cost.UnitCost,
-                        cost.TotalCost));
-
-                await _repository.AddCostLayerAsync(
-                    new InventoryCostLayer
-                    {
-                        StoreId = transfer.ToStoreId,
-                        IngredientId = detail.IngredientId,
-                        PreparedItemId = detail.PreparedItemId,
-                        Quantity = detail.BaseQuantity,
-                        RemainingQuantity = detail.BaseQuantity,
-                        UnitCost = cost.UnitCost,
-                        CreatedAt = DateTime.UtcNow
-                    });
-
-                if (detail.RestockRequestId.HasValue)
-                {
-                    var posting = await _fulfillmentPostingService.RegisterAsync(
-                        new RegisterRestockFulfillmentPostingCommand
-                        {
-                            RestockRequestId = detail.RestockRequestId.Value,
-                            DestinationStoreId = transfer.ToStoreId,
-                            SourceDocumentType = RestockFulfillmentDocumentTypes.InventoryTransfer,
-                            SourceDocumentId = transfer.InventoryTransferId,
-                            SourceDocumentLineId = detail.InventoryTransferDetailId,
-                            IngredientId = detail.IngredientId,
-                            PreparedItemId = detail.PreparedItemId,
-                            Quantity = detail.BaseQuantity,
-                            BaseUnitId = ingredient?.BaseUnitId ?? preparedItem!.BaseUnitId,
-                            ActorStaffId = actorStaffId,
-                            Reason = $"InventoryTransfer #{transfer.InventoryTransferId} COMPLETED"
-                        });
-                    if (!posting.IsSuccess)
-                        throw new InvalidOperationException(posting.Message);
-                }
             }
 
             return (warnings, inventoryIds);
+        }
+
+        private Task LockTransferInventoriesAsync(InventoryTransfer transfer) =>
+            _repository.LockInventoriesAsync(
+                transfer.Details.SelectMany(detail =>
+                    new (int StoreId, int? IngredientId, int? PreparedItemId)[]
+                    {
+                        (transfer.FromStoreId, detail.IngredientId, detail.PreparedItemId),
+                        (transfer.ToStoreId, detail.IngredientId, detail.PreparedItemId)
+                    }));
+
+        private async Task SettleDestinationGapAsync(
+            StoreInventory inventory,
+            decimal beforeQty,
+            InventoryCostLayer inboundLayer)
+        {
+            var deficit = Math.Abs(Math.Min(beforeQty, 0));
+            var settledQuantity = Math.Min(inboundLayer.Quantity, deficit);
+            inboundLayer.RemainingQuantity = inboundLayer.Quantity - settledQuantity;
+            if (settledQuantity <= 0)
+                return;
+            if (inboundLayer.UnitCost <= 0)
+                throw new InvalidOperationException("INBOUND_NEGATIVE_SETTLEMENT_COST_REQUIRED");
+
+            var gaps = await _repository.GetOpenCostGapsForUpdateAsync(inventory.StoreInventoryId);
+            if (gaps.Sum(x => x.OutstandingQuantity) != deficit)
+                throw new InvalidOperationException("NEGATIVE_COST_GAP_COVERAGE_MISMATCH");
+
+            var remaining = settledQuantity;
+            var settlements = new List<InventoryCostGapSettlement>();
+            foreach (var gap in gaps.OrderBy(x => x.OccurredAt).ThenBy(x => x.InventoryNegativeCostGapId))
+            {
+                if (remaining <= 0)
+                    break;
+                var quantity = Math.Min(remaining, gap.OutstandingQuantity);
+                if (quantity <= 0)
+                    continue;
+                gap.OutstandingQuantity -= quantity;
+                gap.Status = gap.OutstandingQuantity == 0
+                    ? InventoryNegativeCostGapStatuses.Settled
+                    : InventoryNegativeCostGapStatuses.PartiallySettled;
+                settlements.Add(new InventoryCostGapSettlement
+                {
+                    InventoryNegativeCostGap = gap,
+                    InboundInventoryCostLayer = inboundLayer,
+                    Quantity = quantity,
+                    UnitCost = inboundLayer.UnitCost,
+                    TotalCost = quantity * inboundLayer.UnitCost,
+                    CreatedAt = DateTime.UtcNow
+                });
+                remaining -= quantity;
+            }
+
+            if (remaining != 0)
+                throw new InvalidOperationException("NEGATIVE_COST_GAP_SETTLEMENT_INCOMPLETE");
+            await _repository.AddCostGapSettlementsAsync(settlements);
         }
 
         private static InventoryTransaction BuildTransferTransaction(
@@ -830,52 +1126,6 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             };
         }
 
-        private async Task<(decimal UnitCost, decimal TotalCost)> ConsumeSourceCostAsync(
-            int storeId,
-            int? ingredientId,
-            int? preparedItemId,
-            decimal baseQuantity,
-            InventoryTransferDetail detail)
-        {
-            var requiredQty = baseQuantity;
-            var totalCost = 0m;
-            decimal? lastCost = null;
-            var layers = ingredientId.HasValue
-                ? await _repository.GetAvailableCostLayersAsync(storeId, ingredientId.Value)
-                : await _repository.GetAvailablePreparedItemCostLayersAsync(
-                    storeId,
-                    preparedItemId!.Value);
-
-            foreach (var layer in layers)
-            {
-                if (requiredQty <= 0)
-                {
-                    break;
-                }
-
-                var consumeQty = Math.Min(requiredQty, layer.RemainingQuantity);
-
-                layer.RemainingQuantity -= consumeQty;
-                _repository.UpdateCostLayer(layer);
-
-                totalCost += consumeQty * layer.UnitCost;
-                lastCost = layer.UnitCost;
-                requiredQty -= consumeQty;
-            }
-
-            if (requiredQty > 0)
-            {
-                var fallbackCost = lastCost ?? CalculateFallbackBaseUnitCost(detail);
-                totalCost += requiredQty * fallbackCost;
-            }
-
-            var unitCost = baseQuantity > 0
-                ? totalCost / baseQuantity
-                : 0;
-
-            return (unitCost, totalCost);
-        }
-
         private async Task ValidateAndNormalizeAsync(InventoryTransferMutationDTO dto)
         {
             if (dto.FromStoreId <= 0 || dto.ToStoreId <= 0)
@@ -887,6 +1137,8 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             {
                 throw new InvalidOperationException("Kho đi và kho đến phải khác nhau.");
             }
+
+            await EnsureTransferScopeAsync(dto.FromStoreId, dto.ToStoreId);
 
             var stores = await _repository.GetStoresByIdsAsync([dto.FromStoreId, dto.ToStoreId]);
 
@@ -933,11 +1185,6 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 if (detail.Quantity <= 0)
                 {
                     throw new InvalidOperationException("Số lượng chuyển phải lớn hơn 0.");
-                }
-
-                if (detail.UnitPrice.HasValue && detail.UnitPrice.Value < 0)
-                {
-                    throw new InvalidOperationException("Đơn giá không được âm.");
                 }
 
                 if (detail.IngredientId.HasValue)
@@ -991,7 +1238,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     UnitId = x.UnitId,
                     Quantity = x.Quantity,
                     BaseQuantity = x.BaseQuantity,
-                    UnitPrice = x.UnitPrice,
+                    UnitPrice = null,
                     Note = NormalizeNote(x.Note)
                 })
                 .ToList();
@@ -1010,7 +1257,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 }
             }
 
-            throw new InvalidOperationException(dedup.ErrorMessage ?? "RequestKey đã được xử lý.");
+            throw BuildDeduplicationException(dedup);
         }
 
         private async Task MarkFailedIfPossibleAsync(
@@ -1043,8 +1290,28 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 InventoryTransferId = transfer.InventoryTransferId,
                 Code = transfer.Code,
                 Status = transfer.Status,
+                RowVersion = Convert.ToBase64String(transfer.RowVersion),
                 Warnings = warnings ?? []
             };
+        }
+
+        private static void EnsureTransferRowVersion(byte[] current, string? suppliedBase64)
+        {
+            if (string.IsNullOrWhiteSpace(suppliedBase64))
+                throw new InvalidOperationException("ROW_VERSION_REQUIRED");
+
+            byte[] supplied;
+            try
+            {
+                supplied = Convert.FromBase64String(suppliedBase64);
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException("ROW_VERSION_INVALID");
+            }
+
+            if (!current.SequenceEqual(supplied))
+                throw new InvalidOperationException("CONCURRENCY_CONFLICT");
         }
 
         private async Task<decimal> EstimateBaseUnitCostAsync(int storeId, int ingredientId)
@@ -1149,23 +1416,63 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             return conversion.ToQuantity / conversion.FromQuantity;
         }
 
-        private static decimal CalculateFallbackBaseUnitCost(InventoryTransferDetail detail)
+        private static InvalidOperationException BuildDeduplicationException(
+            RequestDeduplicationBeginResult dedup)
         {
-            if (!detail.UnitPrice.HasValue || detail.UnitPrice.Value <= 0)
-            {
-                return 0;
-            }
+            var message = dedup.ErrorMessage ?? "RequestKey đã được xử lý.";
+            return new InvalidOperationException(string.IsNullOrWhiteSpace(dedup.ErrorCode)
+                ? message
+                : $"{dedup.ErrorCode}: {message}");
+        }
 
-            if (detail.Quantity <= 0 || detail.BaseQuantity <= 0)
-            {
-                return detail.UnitPrice.Value;
-            }
+        private async Task<IReadOnlyCollection<int>> GetAllowedStoreIdsAsync()
+        {
+            var actor = GetActor();
+            if (actor.StaffId <= 0)
+                return Array.Empty<int>();
 
-            var conversionFactor = detail.BaseQuantity / detail.Quantity;
+            return (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
+                .Select(x => x.StoreId)
+                .Distinct()
+                .ToArray();
+        }
 
-            return conversionFactor > 0
-                ? detail.UnitPrice.Value / conversionFactor
-                : detail.UnitPrice.Value;
+        private async Task<bool> CanAccessStoreAsync(int storeId)
+        {
+            var actor = GetActor();
+            return actor.StaffId > 0
+                && await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, storeId);
+        }
+
+        private async Task<bool> CanAccessTransferAsync(int fromStoreId, int toStoreId)
+        {
+            return await CanAccessStoreAsync(fromStoreId)
+                && await CanAccessStoreAsync(toStoreId);
+        }
+
+        private async Task<bool> CanReadTransferAsync(int fromStoreId, int toStoreId)
+        {
+            return await CanAccessStoreAsync(fromStoreId)
+                || await CanAccessStoreAsync(toStoreId);
+        }
+
+        private async Task EnsureStoreScopeAsync(int storeId)
+        {
+            if (!await CanAccessStoreAsync(storeId))
+                throw new UnauthorizedAccessException("INVENTORY_TRANSFER_SCOPE_DENIED");
+        }
+
+        private async Task EnsureTransferScopeAsync(int fromStoreId, int toStoreId)
+        {
+            if (!await CanAccessTransferAsync(fromStoreId, toStoreId))
+                throw new UnauthorizedAccessException("INVENTORY_TRANSFER_SCOPE_DENIED");
+        }
+
+        private CafeChain.Application.DTOs.Admin.Actor.AdminActorContext GetActor()
+        {
+            var principal = _httpContextAccessor.HttpContext?.User
+                ?? new System.Security.Claims.ClaimsPrincipal();
+            return _actorAccessor.Get(principal);
         }
 
         private int GetCurrentStaffId()

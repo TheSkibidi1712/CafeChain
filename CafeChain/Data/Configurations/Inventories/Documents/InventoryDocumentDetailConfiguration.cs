@@ -12,11 +12,11 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
             {
                 table.HasCheckConstraint(
                     "CK_InventoryDocumentDetail_Quantity",
-                    "[Quantity] > 0");
+                    "[Quantity] >= 0");
 
                 table.HasCheckConstraint(
                     "CK_InventoryDocumentDetail_BaseQuantity",
-                    "[BaseQuantity] > 0");
+                    "[BaseQuantity] >= 0");
 
                 table.HasCheckConstraint(
                     "CK_InventoryDocumentDetail_UnitPrice",

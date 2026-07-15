@@ -4,6 +4,8 @@ namespace CafeChain.Application.DTOs.Admin.InventoryTransfers
 {
     public class InventoryTransferMutationDTO
     {
+        public int? TransferId { get; set; }
+        public string? RowVersion { get; set; }
         public string? RequestKey { get; set; }
         public int FromStoreId { get; set; }
         public int ToStoreId { get; set; }

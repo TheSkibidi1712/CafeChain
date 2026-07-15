@@ -8,6 +8,14 @@
     const loginUrl = root.dataset.loginUrl || "/Account/Login";
     const accessDeniedUrl = root.dataset.accessDeniedUrl || "/Account/AccessDenied";
 
+    const scopeTypeLabels = Object.freeze({
+        COUNTRY: "Quốc gia",
+        PROVINCE: "Tỉnh/Thành phố",
+        DISTRICT: "Quận/Huyện",
+        WARD: "Phường/Xã",
+        STORE: "Cửa hàng"
+    });
+
     const state = {
         activeTab: "roles",
         roles: { pageIndex: 1, pageSize: 10, search: "", totalPages: 1 },
@@ -24,7 +32,8 @@
         staffRoles: null,
         overrideMatrix: null,
         scopeData: null,
-        selectedScopes: []
+        selectedScopes: [],
+        scopeReferenceCache: new Map()
     };
 
     const el = {
@@ -82,6 +91,23 @@
         if (!obj) return fallback;
         const pascal = key.charAt(0).toUpperCase() + key.slice(1);
         return obj[key] !== undefined ? obj[key] : (obj[pascal] !== undefined ? obj[pascal] : fallback);
+    }
+
+    function getScopeTypeLabel(scopeType) {
+        const code = String(
+            get(scopeType, "code", get(scopeType, "scopeTypeCode", "")))
+            .trim()
+            .toUpperCase();
+
+        if (scopeTypeLabels[code]) return scopeTypeLabels[code];
+
+        const scopeTypeId = Number(get(scopeType, "scopeTypeId", 0));
+        const configuredType = get(state.scopeData, "scopeTypes", [])
+            .find(type => Number(get(type, "scopeTypeId", 0)) === scopeTypeId);
+        const configuredCode = String(get(configuredType, "code", "")).trim().toUpperCase();
+
+        return scopeTypeLabels[configuredCode]
+            || get(scopeType, "name", get(scopeType, "scopeTypeName", "Phạm vi"));
     }
 
     function escapeHtml(value) {
@@ -567,6 +593,7 @@
 
     async function selectScopeStaff(staffId) {
         state.selectedScopeStaffId = staffId;
+        state.scopeReferenceCache.clear();
         el.saveScopeBtn.disabled = true;
         await loadStaff("scope");
 
@@ -575,7 +602,8 @@
             state.scopeData = data;
             state.selectedScopes = get(data, "scopes", []).map(scope => ({
                 scopeTypeId: get(scope, "scopeTypeId", 0),
-                scopeTypeName: get(scope, "scopeTypeName", ""),
+                scopeTypeCode: get(scope, "scopeTypeCode", ""),
+                scopeTypeName: getScopeTypeLabel(scope),
                 scopeRefId: get(scope, "scopeRefId", 0),
                 scopeRefName: get(scope, "scopeRefName", "")
             }));
@@ -607,7 +635,7 @@
     function renderScopeTypes() {
         const types = get(state.scopeData, "scopeTypes", []);
         el.scopeTypeSelect.innerHTML = '<option value="">-- Chọn phạm vi --</option>' + types.map(type => `
-            <option value="${get(type, "scopeTypeId", "")}">${escapeHtml(get(type, "name", ""))}</option>
+            <option value="${get(type, "scopeTypeId", "")}">${escapeHtml(getScopeTypeLabel(type))}</option>
         `).join("");
         el.scopeTypeSelect.disabled = false;
         el.scopeRefSelect.innerHTML = '<option value="">-- Chọn đối tượng --</option>';
@@ -648,13 +676,53 @@
 
     async function loadScopeReferences(scopeTypeId, parentId) {
         el.scopeRefSelect.innerHTML = '<option value="">Đang tải...</option>';
-        const url = endpoint(`ScopeReferences?scopeTypeId=${scopeTypeId}${parentId ? `&parentId=${parentId}` : ""}`);
-        const refs = await fetchJson(url);
-        el.scopeRefSelect.innerHTML = '<option value="">-- Chọn đối tượng --</option>' + refs.map(item => `
+        const cacheKey = scopeReferenceCacheKey(scopeTypeId, parentId);
+        let refs = state.scopeReferenceCache.get(cacheKey);
+        if (!refs) {
+            const url = endpoint(`ScopeReferences?scopeTypeId=${scopeTypeId}${parentId ? `&parentId=${parentId}` : ""}`);
+            refs = await fetchJson(url);
+            state.scopeReferenceCache.set(cacheKey, refs || []);
+        }
+
+        renderAvailableScopeReferences(scopeTypeId, refs || []);
+    }
+
+    function scopeReferenceCacheKey(scopeTypeId, parentId) {
+        return `${scopeTypeId}:${parentId || 0}`;
+    }
+
+    function getAvailableScopeReferences(scopeTypeId, refs) {
+        const selectedIds = new Set(
+            state.selectedScopes
+                .filter(scope => Number(scope.scopeTypeId) === Number(scopeTypeId))
+                .map(scope => Number(scope.scopeRefId)));
+
+        return refs.filter(item => !selectedIds.has(Number(get(item, "id", 0))));
+    }
+
+    function renderAvailableScopeReferences(scopeTypeId, refs) {
+        const availableRefs = getAvailableScopeReferences(scopeTypeId, refs);
+        const placeholder = availableRefs.length
+            ? "-- Chọn đối tượng --"
+            : "-- Đã phân quyền tất cả đối tượng --";
+
+        el.scopeRefSelect.innerHTML = `<option value="">${placeholder}</option>` + availableRefs.map(item => `
             <option value="${get(item, "id", "")}">${escapeHtml(get(item, "name", ""))}</option>
         `).join("");
-        el.scopeRefSelect.disabled = false;
-        el.addScopeBtn.disabled = !refs.length;
+        el.scopeRefSelect.disabled = !availableRefs.length;
+        el.addScopeBtn.disabled = true;
+    }
+
+    function refreshCurrentScopeReferences() {
+        const scopeTypeId = Number(el.scopeTypeSelect.value);
+        if (!scopeTypeId) return;
+
+        const requiresParent = scopeTypeId === 3 || scopeTypeId === 4;
+        const parentId = requiresParent ? Number(el.scopeParentSelect.value) : null;
+        if (requiresParent && !parentId) return;
+
+        const refs = state.scopeReferenceCache.get(scopeReferenceCacheKey(scopeTypeId, parentId));
+        if (refs) renderAvailableScopeReferences(scopeTypeId, refs);
     }
 
     function addScope() {
@@ -676,6 +744,7 @@
             scopeRefName: refText
         });
         renderScopes();
+        refreshCurrentScopeReferences();
     }
 
     function renderScopes() {
@@ -817,6 +886,7 @@
             if (action === "remove-scope") {
                 state.selectedScopes.splice(Number(target.dataset.index), 1);
                 renderScopes();
+                refreshCurrentScopeReferences();
             }
             if (action === "toggle-group") {
                 const body = target.closest(".perm-permission-group, .perm-override-group").querySelector(".perm-group-body");
@@ -854,6 +924,9 @@
             const scopeTypeId = Number(el.scopeTypeSelect.value);
             const parentId = Number(el.scopeParentSelect.value);
             if (scopeTypeId && parentId) loadScopeReferences(scopeTypeId, parentId).catch(notifyError);
+        });
+        el.scopeRefSelect.addEventListener("change", () => {
+            el.addScopeBtn.disabled = !Number(el.scopeRefSelect.value);
         });
         el.addScopeBtn.addEventListener("click", addScope);
     }

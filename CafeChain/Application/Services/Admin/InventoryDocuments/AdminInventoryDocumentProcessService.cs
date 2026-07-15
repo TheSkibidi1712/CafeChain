@@ -2,11 +2,11 @@
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Costing;
 using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
-using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
 using CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments;
@@ -17,12 +17,17 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
     {
         private readonly IAdminInventoryDocumentRepository _repository;
 
-        private readonly INegativeInventoryService _negativeInventoryService;
+        private readonly IInventoryIssuePolicy _inventoryIssuePolicy;
+        private readonly IInventoryCostLayerConsumptionService _costLayerConsumptionService;
 
-        public AdminInventoryDocumentProcessService(IAdminInventoryDocumentRepository repository, INegativeInventoryService negativeInventoryService)
+        public AdminInventoryDocumentProcessService(
+            IAdminInventoryDocumentRepository repository,
+            IInventoryIssuePolicy inventoryIssuePolicy,
+            IInventoryCostLayerConsumptionService costLayerConsumptionService)
         {
             _repository = repository;
-            _negativeInventoryService = negativeInventoryService;
+            _inventoryIssuePolicy = inventoryIssuePolicy;
+            _costLayerConsumptionService = costLayerConsumptionService;
         }
 
         public async Task<InventoryProcessResultDTO> ExecuteProcessAsync(InventoryDocument document)
@@ -96,29 +101,20 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 _repository.UpdateStoreInventory(inventory);
 
-                await UpsertStoreInventorySnapshotAsync(document.StoreId, detail.IngredientId, inventory.AvailableQty, baseUnitCost);
-
-                await _repository
-                    .AddCostLayerAsync(
-                        new InventoryCostLayer
-                        {
-                            StoreId = document.StoreId,
-
-                            IngredientId = detail.IngredientId,
-
-                            Quantity = detail.BaseQuantity,
-
-                            RemainingQuantity = detail.BaseQuantity,
-
-                            UnitCost = baseUnitCost,
-
-                            CreatedAt = DateTime.UtcNow
-                        });
+                await AddInboundLayerAndSettleAsync(
+                    document,
+                    detail,
+                    inventory,
+                    beforeQty,
+                    detail.BaseQuantity,
+                    baseUnitCost);
 
                 var transaction =
                     new InventoryTransaction
                     {
                         InventoryDocumentId = document.InventoryDocumentId,
+
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
 
                         Type = document.Purpose == InventoryDocumentPurpose.IMPORT_ADJUSTMENT
                             ? InventoryTransactionTypeEnum.ADJUSTMENT_IN
@@ -170,36 +166,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             }
         }
 
-        private async Task UpsertStoreInventorySnapshotAsync(int storeId, int ingredientId, decimal quantity, decimal avgCost)
-        {
-            var snapshot = await _repository.GetStoreInventorySnapshotAsync(storeId, ingredientId);
-
-            if (snapshot == null)
-            {
-                await _repository.AddStoreInventorySnapshotAsync(
-                    new StoreInventorySnapshot
-                    {
-                        StoreId = storeId,
-
-                        IngredientId = ingredientId,
-
-                        Quantity = quantity,
-
-                        AvgCost = avgCost,
-
-                        UpdatedAt = DateTime.UtcNow
-                    });
-
-                return;
-            }
-
-            snapshot.Quantity = quantity;
-            snapshot.AvgCost = avgCost;
-            snapshot.UpdatedAt = DateTime.UtcNow;
-
-            _repository.UpdateStoreInventorySnapshot(snapshot);
-        }
-
         // =====================================================
         // EXPORT
         // =====================================================
@@ -210,19 +176,25 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 ValidateProcessDetail(detail);
 
-                var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
+                var inventory = await GetExistingInventoryForUpdateAsync(document.StoreId, detail.IngredientId);
 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
+                var operation = document.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT
+                    ? InventoryIssueOperation.AdjustmentOut
+                    : InventoryIssueOperation.ManualExternalExport;
+                var stockValidation = await EvaluateIssueAsync(document, detail, inventory, operation);
 
                 if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException(stockValidation.Message);
+                    throw new InvalidOperationException(stockValidation.ReasonCode);
                 }
 
-                var fifo = await AllocateFifoAsync(detail, document.StoreId);
+                var fifo = await AllocateFifoAsync(
+                    detail,
+                    document.StoreId,
+                    requireFullCoverage: !stockValidation.IsNegative);
 
-                detail.CostPrice = fifo.CostPrice;
-                detail.CostAmount = fifo.CostAmount;
+                detail.CostPrice = fifo.IsFullyCovered ? fifo.CostPrice : null;
+                detail.CostAmount = fifo.IsFullyCovered ? fifo.CostAmount : null;
 
                 _repository.UpdateDocumentDetail(detail);
 
@@ -234,18 +206,19 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 AddLowStockWarning(result, document, detail, inventory);
 
-                await _repository.AddInventoryTransactionAsync(
-                    new InventoryTransaction
+                var transaction = new InventoryTransaction
                     {
                         StoreInventoryId = inventory.StoreInventoryId,
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+
                         Type = document.Purpose == InventoryDocumentPurpose.ADJUSTMENT_OUT
                             ? InventoryTransactionTypeEnum.ADJUSTMENT_OUT
                             : InventoryTransactionTypeEnum.EXPORT,
 
-                        StockStatus = stockValidation.StockStatus,
+                        StockStatus = ResolveStockStatus(stockValidation),
 
                         Quantity = detail.BaseQuantity,
 
@@ -253,12 +226,29 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         AfterQty = inventory.AvailableQty,
 
-                        UnitCost = fifo.CostPrice,
+                        UnitCost = fifo.IsFullyCovered ? fifo.CostPrice : null,
 
-                        TotalCost = fifo.CostAmount,
+                        TotalCost = fifo.IsFullyCovered ? fifo.CostAmount : null,
 
                         CreatedAt = DateTime.UtcNow
+                    };
+                await _repository.AddInventoryTransactionAsync(transaction);
+
+                if (!fifo.IsFullyCovered && fifo.MissingQuantity > 0)
+                {
+                    await _repository.AddInventoryNegativeCostGapAsync(new InventoryNegativeCostGap
+                    {
+                        SourceType = InventoryNegativeCostGapSources.ManualDocument,
+                        StoreInventoryId = inventory.StoreInventoryId,
+                        IngredientId = detail.IngredientId,
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+                        InventoryTransaction = transaction,
+                        OriginalQuantity = fifo.MissingQuantity,
+                        OutstandingQuantity = fifo.MissingQuantity,
+                        OccurredAt = DateTime.UtcNow,
+                        Status = InventoryNegativeCostGapStatuses.Open
                     });
+                }
             }
 
             if (document.Purpose == InventoryDocumentPurpose.DEBT)
@@ -293,21 +283,21 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 ValidateProcessDetail(detail);
 
-                var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
+                var inventory = await GetExistingInventoryForUpdateAsync(document.StoreId, detail.IngredientId);
 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
+                var stockValidation = await EvaluateIssueAsync(document, detail, inventory, InventoryIssueOperation.Waste);
 
                 if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException(stockValidation.Message);
+                    throw new InvalidOperationException(stockValidation.ReasonCode);
                 }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
 
                 detail.UnitPrice = 0;
                 detail.TotalAmount = 0;
-                detail.CostPrice = fifo.CostPrice;
-                detail.CostAmount = fifo.CostAmount;
+                detail.CostPrice = 0;
+                detail.CostAmount = 0;
 
                 _repository.UpdateDocumentDetail(detail);
 
@@ -326,9 +316,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+
                         Type = InventoryTransactionTypeEnum.WASTE,
 
-                        StockStatus = stockValidation.StockStatus,
+                        StockStatus = ResolveStockStatus(stockValidation),
 
                         Quantity = detail.BaseQuantity,
 
@@ -356,17 +348,17 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
                 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync( inventory, detail.BaseQuantity, detail.Ingredient.Name);
+                var stockValidation = await EvaluateIssueAsync(document, detail, inventory, InventoryIssueOperation.PosBlindSale);
 
                 if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException(stockValidation.Message);
+                    throw new InvalidOperationException(stockValidation.ReasonCode);
                 }
 
-                var fifo = await AllocateFifoAsync(detail, document.StoreId);
+                var fifo = await AllocateFifoAsync(detail, document.StoreId, requireFullCoverage: false);
 
-                detail.CostPrice = fifo.CostPrice;
-                detail.CostAmount = fifo.CostAmount;
+                detail.CostPrice = fifo.IsFullyCovered ? fifo.CostPrice : null;
+                detail.CostAmount = fifo.IsFullyCovered ? fifo.CostAmount : null;
 
                 _repository.UpdateDocumentDetail(detail);
 
@@ -378,16 +370,17 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 AddLowStockWarning(result, document, detail, inventory);
 
-                await _repository.AddInventoryTransactionAsync(
-                    new InventoryTransaction
+                var transaction = new InventoryTransaction
                     {
                         StoreInventoryId = inventory.StoreInventoryId,
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+
                         Type = InventoryTransactionTypeEnum.SALES_DEDUCTION,
 
-                        StockStatus = stockValidation.StockStatus,
+                        StockStatus = ResolveStockStatus(stockValidation),
 
                         Quantity = detail.BaseQuantity,
 
@@ -395,12 +388,29 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         AfterQty = inventory.AvailableQty,
 
-                        UnitCost = fifo.CostPrice,
+                        UnitCost = fifo.IsFullyCovered ? fifo.CostPrice : null,
 
-                        TotalCost = fifo.CostAmount,
+                        TotalCost = fifo.IsFullyCovered ? fifo.CostAmount : null,
 
                         CreatedAt = DateTime.UtcNow
+                    };
+                await _repository.AddInventoryTransactionAsync(transaction);
+
+                if (!fifo.IsFullyCovered && fifo.MissingQuantity > 0)
+                {
+                    await _repository.AddInventoryNegativeCostGapAsync(new InventoryNegativeCostGap
+                    {
+                        SourceType = InventoryNegativeCostGapSources.PosSale,
+                        StoreInventoryId = inventory.StoreInventoryId,
+                        IngredientId = detail.IngredientId,
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+                        InventoryTransaction = transaction,
+                        OriginalQuantity = fifo.MissingQuantity,
+                        OutstandingQuantity = fifo.MissingQuantity,
+                        OccurredAt = DateTime.UtcNow,
+                        Status = InventoryNegativeCostGapStatuses.Open
                     });
+                }
             }
         }
 
@@ -415,11 +425,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
                 
-                var stockValidation = await _negativeInventoryService.ValidateIssueAsync(inventory, detail.BaseQuantity, detail.Ingredient.Name);
+                var stockValidation = await EvaluateIssueAsync(document, detail, inventory, InventoryIssueOperation.ProductionOut);
 
                 if (!stockValidation.IsAllowed)
                 {
-                    throw new InvalidOperationException(stockValidation.Message);
+                    throw new InvalidOperationException(stockValidation.ReasonCode);
                 }
 
                 var fifo = await AllocateFifoAsync(detail, document.StoreId);
@@ -444,9 +454,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                         InventoryDocumentId = document.InventoryDocumentId,
 
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+
                         Type = InventoryTransactionTypeEnum.PRODUCTION_OUT,
 
-                        StockStatus = stockValidation.StockStatus,
+                        StockStatus = ResolveStockStatus(stockValidation),
 
                         Quantity = detail.BaseQuantity,
 
@@ -482,21 +494,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 AddLowStockWarning(result, document, detail, inventory);
 
-                await _repository.AddCostLayerAsync(
-                    new InventoryCostLayer
-                    {
-                        StoreId = document.StoreId,
-
-                        IngredientId = detail.IngredientId,
-
-                        Quantity = detail.BaseQuantity,
-
-                        RemainingQuantity = detail.BaseQuantity,
-
-                        UnitCost = detail.CostPrice ?? 0,
-
-                        CreatedAt = DateTime.UtcNow
-                    });
+                await AddInboundLayerAndSettleAsync(
+                    document,
+                    detail,
+                    inventory,
+                    beforeQty,
+                    detail.BaseQuantity,
+                    detail.CostPrice ?? 0);
 
                 await _repository.AddInventoryTransactionAsync(
                     new InventoryTransaction
@@ -504,6 +508,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         StoreInventoryId = inventory.StoreInventoryId,
 
                         InventoryDocumentId = document.InventoryDocumentId,
+
+                        InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
 
                         Type = InventoryTransactionTypeEnum.PRODUCTION_IN,
 
@@ -534,7 +540,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 ValidateStockTakeDetail(detail);
 
-                var inventory = await GetOrCreateInventoryAsync(document.StoreId, detail.IngredientId);
+                var inventory = await GetExistingInventoryForUpdateAsync(document.StoreId, detail.IngredientId);
 
                 var systemQty = inventory.AvailableQty;
 
@@ -544,6 +550,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 detail.UnitPrice = 0;
                 detail.TotalAmount = 0;
+                detail.CostPrice = 0;
+                detail.CostAmount = 0;
 
                 if (variance == 0)
                 {
@@ -567,16 +575,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     unitCost = await ResolveLatestStockTakeUnitCostAsync(document.StoreId, detail.IngredientId);
                     totalCost = transactionQuantity * unitCost;
 
-                    await _repository.AddCostLayerAsync(
-                        new InventoryCostLayer
-                        {
-                            StoreId = document.StoreId,
-                            IngredientId = detail.IngredientId,
-                            Quantity = transactionQuantity,
-                            RemainingQuantity = transactionQuantity,
-                            UnitCost = unitCost,
-                            CreatedAt = DateTime.UtcNow
-                        });
+                    await AddInboundLayerAndSettleAsync(
+                        document,
+                        detail,
+                        inventory,
+                        systemQty,
+                        transactionQuantity,
+                        unitCost);
                 }
                 else
                 {
@@ -590,9 +595,10 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     totalCost = fifo.CostAmount;
                 }
 
-                detail.CostPrice = unitCost;
-                detail.CostAmount = totalCost;
+                detail.UnitPrice = 0;
                 detail.TotalAmount = 0;
+                detail.CostPrice = 0;
+                detail.CostAmount = 0;
 
                 _repository.UpdateDocumentDetail(detail);
 
@@ -609,6 +615,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                             StoreInventoryId = inventory.StoreInventoryId,
 
                             InventoryDocumentId = document.InventoryDocumentId,
+
+                            InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
 
                             Type = transactionType,
 
@@ -637,6 +645,12 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return await _repository.GetOrCreateStoreInventoryForIngredientAsync(
                 storeId,
                 ingredientId);
+        }
+
+        private async Task<StoreInventory> GetExistingInventoryForUpdateAsync(int storeId, int ingredientId)
+        {
+            return await _repository.GetStoreInventoryForUpdateAsync(storeId, ingredientId)
+                ?? throw new InvalidOperationException("INGREDIENT_NOT_IN_STORE_INVENTORY");
         }
 
         private static void ValidateProcessDetail(InventoryDocumentDetail detail)
@@ -689,7 +703,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 return;
             }
 
-            var usableQuantity = inventory.AvailableQty - inventory.ReservedQty;
+            // AvailableQty is already free/unreserved under the inventory invariant.
+            var usableQuantity = inventory.AvailableQty;
 
             if (usableQuantity > threshold)
             {
@@ -738,6 +753,70 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             return quantity.ToString("#,0.###");
         }
 
+        private async Task AddInboundLayerAndSettleAsync(
+            InventoryDocument document,
+            InventoryDocumentDetail detail,
+            StoreInventory inventory,
+            decimal beforeQty,
+            decimal receivedQuantity,
+            decimal unitCost)
+        {
+            var deficit = Math.Abs(Math.Min(beforeQty, 0));
+            var settledQuantity = Math.Min(receivedQuantity, deficit);
+            if (settledQuantity > 0 && unitCost <= 0)
+                throw new InvalidOperationException("INBOUND_NEGATIVE_SETTLEMENT_COST_REQUIRED");
+
+            var layer = new InventoryCostLayer
+            {
+                StoreId = document.StoreId,
+                IngredientId = detail.IngredientId,
+                Quantity = receivedQuantity,
+                RemainingQuantity = receivedQuantity - settledQuantity,
+                UnitCost = unitCost,
+                SourceInventoryDocumentDetailId = detail.InventoryDocumentDetailId,
+                CreatedAt = DateTime.UtcNow
+            };
+            await _repository.AddCostLayerAsync(layer);
+
+            if (settledQuantity <= 0)
+                return;
+
+            var gaps = await _repository.GetOpenCostGapsForUpdateAsync(inventory.StoreInventoryId);
+            var outstanding = gaps.Sum(x => x.OutstandingQuantity);
+            if (outstanding != deficit)
+                throw new InvalidOperationException("NEGATIVE_COST_GAP_COVERAGE_MISMATCH");
+
+            var remaining = settledQuantity;
+            var settlements = new List<InventoryCostGapSettlement>();
+            foreach (var gap in gaps.OrderBy(x => x.OccurredAt).ThenBy(x => x.InventoryNegativeCostGapId))
+            {
+                if (remaining <= 0)
+                    break;
+                var quantity = Math.Min(remaining, gap.OutstandingQuantity);
+                if (quantity <= 0)
+                    continue;
+
+                gap.OutstandingQuantity -= quantity;
+                gap.Status = gap.OutstandingQuantity == 0
+                    ? InventoryNegativeCostGapStatuses.Settled
+                    : InventoryNegativeCostGapStatuses.PartiallySettled;
+                settlements.Add(new InventoryCostGapSettlement
+                {
+                    InventoryNegativeCostGap = gap,
+                    InboundInventoryCostLayer = layer,
+                    Quantity = quantity,
+                    UnitCost = unitCost,
+                    TotalCost = quantity * unitCost,
+                    CreatedAt = DateTime.UtcNow
+                });
+                remaining -= quantity;
+            }
+
+            if (remaining != 0)
+                throw new InvalidOperationException("NEGATIVE_COST_GAP_SETTLEMENT_INCOMPLETE");
+            await _repository.AddCostGapSettlementsAsync(settlements);
+        }
+
         // =====================================================
         // FIFO
         // =====================================================
@@ -752,112 +831,110 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 : 0;
         }
 
-        private async Task<(decimal CostPrice, decimal CostAmount)> AllocateFifoAsync(InventoryDocumentDetail detail, int storeId)
+        private Task<FifoAllocationResult> AllocateFifoAsync(
+            InventoryDocumentDetail detail,
+            int storeId,
+            bool requireFullCoverage = true)
         {
-            return await AllocateFifoQuantityAsync(detail, storeId, detail.BaseQuantity);
+            return AllocateFifoQuantityAsync(detail, storeId, detail.BaseQuantity, requireFullCoverage);
         }
 
-        private async Task<(decimal CostPrice, decimal CostAmount)> AllocateFifoQuantityAsync(InventoryDocumentDetail detail, int storeId, decimal issueQuantity)
+        private async Task<FifoAllocationResult> AllocateFifoQuantityAsync(
+            InventoryDocumentDetail detail,
+            int storeId,
+            decimal issueQuantity,
+            bool requireFullCoverage = true)
         {
             if (issueQuantity <= 0)
+                throw new InvalidOperationException("COST_LAYER_INVALID_QUANTITY");
+
+            var planResult = await _costLayerConsumptionService.PlanConsumeAsync(
+                storeId,
+                detail.IngredientId,
+                null,
+                issueQuantity,
+                requireFullCoverage);
+            if (!planResult.IsSuccess || planResult.Data == null)
+                throw new InvalidOperationException(planResult.ErrorCode ?? "FIFO_FULL_COVERAGE_REQUIRED");
+
+            var plan = planResult.Data;
+            _costLayerConsumptionService.ApplyPlan(plan);
+
+            if (plan.Slices.Count > 0)
             {
-                return (0, 0);
-            }
-
-            decimal requiredQty = issueQuantity;
-
-            decimal totalCost = 0;
-
-            var allocations = new List<InventoryCostAllocation>();
-
-            var layers = await _repository.GetAvailableCostLayersAsync(storeId, detail.IngredientId);
-
-            foreach (var layer in layers)
-            {
-                if (requiredQty <= 0)
-                {
-                    break;
-                }
-
-                var consumeQty = Math.Min(requiredQty, layer.RemainingQuantity);
-
-                if (consumeQty <= 0)
-                {
-                    continue;
-                }
-
-                allocations.Add(
+                await _repository.AddCostAllocationsAsync(plan.Slices.Select(slice =>
                     new InventoryCostAllocation
                     {
                         InventoryDocumentDetailId = detail.InventoryDocumentDetailId,
-
-                        InventoryCostLayerId = layer.InventoryCostLayerId,
-
-                        Quantity = consumeQty,
-
-                        UnitCost = layer.UnitCost
-                    });
-
-                layer.RemainingQuantity -= consumeQty;
-
-                _repository.UpdateCostLayer(layer);
-
-                totalCost += consumeQty * layer.UnitCost;
-
-                requiredQty -= consumeQty;
+                        InventoryCostLayerId = slice.InventoryCostLayerId,
+                        Quantity = slice.Quantity,
+                        UnitCost = slice.UnitCost
+                    }));
             }
 
-            if (requiredQty > 0)
-            {
-                var fallbackCost = await ResolveFallbackIssueCostAsync(detail, storeId, allocations);
-
-                totalCost += requiredQty * fallbackCost;
-            }
-
-            if (allocations.Any())
-            {
-                await _repository.AddCostAllocationsAsync(allocations);
-            }
-
-            var avgCost = totalCost / issueQuantity;
-
-            return (avgCost, totalCost);
+            return new FifoAllocationResult(
+                plan.WeightedUnitCost,
+                plan.TotalCost,
+                plan.IsFullyCovered,
+                plan.RequiredQuantity - plan.CoveredQuantity);
         }
 
-        private async Task<decimal> ResolveFallbackIssueCostAsync(InventoryDocumentDetail detail, int storeId, IReadOnlyCollection<InventoryCostAllocation> allocations)
+        private sealed record FifoAllocationResult(
+            decimal CostPrice,
+            decimal CostAmount,
+            bool IsFullyCovered,
+            decimal MissingQuantity);
+
+        private async Task<InventoryIssueDecision> EvaluateIssueAsync(
+            InventoryDocument document,
+            InventoryDocumentDetail detail,
+            StoreInventory inventory,
+            InventoryIssueOperation operation)
         {
-            var lastAllocatedCost = allocations
-                    .Where(x => x.UnitCost > 0)
-                    .Select(x => (decimal?)x.UnitCost)
-                    .LastOrDefault();
-
-            if (lastAllocatedCost.HasValue)
+            InventoryApprovalEvidence? evidence = null;
+            var approval = await _repository.GetNegativeApprovalForUpdateAsync(document.InventoryDocumentId);
+            var line = approval?.Lines.FirstOrDefault(x => x.InventoryDocumentDetailId == detail.InventoryDocumentDetailId);
+            if (approval?.Status == CafeChain.Models.Inventories.Approvals.InventoryNegativeApprovalStatuses.Approved
+                && line != null)
             {
-                return lastAllocatedCost.Value;
+                evidence = new InventoryApprovalEvidence(
+                    approval.InventoryNegativeApprovalId,
+                    approval.StoreId,
+                    line.IngredientId,
+                    line.PreparedItemId,
+                    line.BeforeQty,
+                    line.ProjectedAfterQty,
+                    line.EffectiveMaxNegativeQty,
+                    approval.PolicyVersion,
+                    approval.RequesterStaffId.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    approval.ApproverStaffId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty,
+                    true,
+                    approval.ScopeAuthorized,
+                    line.IssueQty,
+                    approval.Reason,
+                    line.InventoryRowVersion);
             }
 
-            var latestLayer = await _repository.GetLatestCostLayerAsync(storeId, detail.IngredientId);
-
-            if (latestLayer?.UnitCost > 0)
-            {
-                return latestLayer.UnitCost;
-            }
-
-            if (detail.CostPrice.HasValue && detail.CostPrice.Value > 0)
-            {
-                return detail.CostPrice.Value;
-            }
-
-            if (detail.UnitPrice.HasValue
-                && detail.UnitPrice.Value > 0
-                && detail.Quantity > 0
-                && detail.BaseQuantity > 0)
-            {
-                return detail.UnitPrice.Value * detail.Quantity / detail.BaseQuantity;
-            }
-
-            return 0;
+            return await _inventoryIssuePolicy.EvaluateAsync(
+                new InventoryIssueRequest(
+                    operation,
+                    document.StoreId,
+                    detail.IngredientId,
+                    null,
+                    inventory.AvailableQty,
+                    detail.BaseQuantity,
+                    inventory.MaxNegativeQty,
+                    document.Purpose.ToString(),
+                    document.NegativeReason,
+                    approval?.PolicyVersion,
+                    evidence,
+                    inventory.RowVersion));
         }
+
+        private static InventoryStockStatus ResolveStockStatus(InventoryIssueDecision decision) =>
+            decision.IsNegative
+                ? InventoryStockStatus.NEGATIVE_CONFIRMED
+                : InventoryStockStatus.NORMAL;
 
     }
 }

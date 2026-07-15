@@ -26,7 +26,7 @@ public sealed class InventoryTransferAuthorizationTests
             .Setup(x => x.CanAccessStoreAsync(41, It.IsAny<int>()))
             .ReturnsAsync(false);
 
-        var result = await fixture.Controller.ValidateStock(Transfer(1, 2));
+        var result = await fixture.Controller.Preflight(Transfer(1, 2));
 
         Assert.IsType<ForbidResult>(result);
         fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Never);
@@ -43,7 +43,7 @@ public sealed class InventoryTransferAuthorizationTests
             .Setup(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()))
             .ReturnsAsync([]);
 
-        var result = await fixture.Controller.ValidateStock(Transfer(1, 2));
+        var result = await fixture.Controller.Preflight(Transfer(1, 2));
 
         Assert.IsType<JsonResult>(result);
         fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Once);
@@ -57,7 +57,7 @@ public sealed class InventoryTransferAuthorizationTests
             .Setup(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()))
             .ReturnsAsync([]);
 
-        var result = await fixture.Controller.ValidateStock(Transfer(1, 999));
+        var result = await fixture.Controller.Preflight(Transfer(1, 999));
 
         Assert.IsType<JsonResult>(result);
         fixture.Scope.Verify(
@@ -70,7 +70,7 @@ public sealed class InventoryTransferAuthorizationTests
     {
         var fixture = CreateController(RoleConstants.StoreManager, staffId: 44, storeId: 1);
 
-        var result = await fixture.Controller.CreateDraft(Transfer(1, 2));
+        var result = await fixture.Controller.SaveDraft(Transfer(1, 2));
 
         Assert.IsType<ForbidResult>(result);
         fixture.Service.Verify(x => x.CreateDraftAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Never);

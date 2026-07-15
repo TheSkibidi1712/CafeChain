@@ -1,7 +1,21 @@
 const InventoryTransferCreate = (() => {
+    const nativeFetch = window.fetch.bind(window);
+    const fetch = (input, init = {}) => {
+        const options = { ...init };
+        const method = String(options.method || "GET").toUpperCase();
+        if (!["GET", "HEAD", "OPTIONS", "TRACE"].includes(method)) {
+            const headers = new Headers(options.headers || {});
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            if (token) headers.set("RequestVerificationToken", token);
+            options.headers = headers;
+        }
+        return nativeFetch(input, options);
+    };
+
     const selector = {
         form: "#inventoryTransferForm",
         id: "#transferId",
+        rowVersion: "#transferRowVersion",
         fromStore: "#transferFromStore",
         toStore: "#transferToStore",
         purpose: "#transferPurpose",
@@ -17,12 +31,34 @@ const InventoryTransferCreate = (() => {
         codePreview: "#transferCodePreview"
     };
 
+    function getEndpoint(name) {
+        const endpoint = document.querySelector(selector.form)?.dataset[name];
+        if (!endpoint) {
+            throw new Error(`Thiếu cấu hình endpoint: ${name}.`);
+        }
+
+        return endpoint;
+    }
+
+    function appendQuery(endpoint, params = {}) {
+        const url = new URL(endpoint, window.location.origin);
+        Object.entries(params).forEach(([key, value]) => {
+            if (value !== undefined && value !== null && value !== "") {
+                url.searchParams.set(key, String(value));
+            }
+        });
+
+        return url.toString();
+    }
+
     let ingredients = [];
     let createDraftRequestKey = createRequestKey();
     let confirmRequestKey = null;
     let isSaving = false;
     let isConfirming = false;
     let validateTimer = null;
+    let preflightReady = false;
+    let preflightBlocked = true;
 
     function init() {
         const form = document.querySelector(selector.form);
@@ -38,6 +74,8 @@ const InventoryTransferCreate = (() => {
         document
             .querySelector(selector.toStore)
             ?.addEventListener("change", () => {
+                preflightReady = false;
+                preflightBlocked = true;
                 hideWarnings();
                 syncConfirmState();
             });
@@ -58,10 +96,13 @@ const InventoryTransferCreate = (() => {
     }
 
     async function onFromStoreChanged() {
+        preflightReady = false;
+        preflightBlocked = true;
         ingredients = [];
         clearRows();
         hideWarnings();
         setTransferId(null);
+        setTransferRowVersion(null);
         createDraftRequestKey = createRequestKey();
         confirmRequestKey = null;
         updateCodePreview("");
@@ -88,8 +129,7 @@ const InventoryTransferCreate = (() => {
         }
 
         try {
-            const response = await fetch(
-                `/Admin/AdminInventoryTransfer/Items?fromStoreId=${encodeURIComponent(fromStoreId)}`);
+            const response = await fetch(appendQuery(getEndpoint("itemsUrl"), { fromStoreId }));
 
             if (!response.ok) {
                 throw new Error(await readResponseMessage(response));
@@ -139,16 +179,12 @@ const InventoryTransferCreate = (() => {
             <td>
                 <input class="transfer-input transfer-quantity" type="number" min="0" step="any" value="1" />
             </td>
-            <td>
-                <input class="transfer-input transfer-restock-request" type="number" min="1" step="1" placeholder="Không gắn" />
-            </td>
             <td class="transfer-diff">0</td>
             <td class="transfer-row-status">-</td>
             <td class="text-end">
                 <button class="transfer-remove" type="button" title="Xóa dòng">
                     <i class="fas fa-trash"></i>
                 </button>
-                <input class="transfer-price" type="hidden" value="0" />
             </td>`;
 
         body.appendChild(row);
@@ -182,10 +218,6 @@ const InventoryTransferCreate = (() => {
                 debounceValidateStock();
                 syncConfirmState();
             });
-
-        row
-            .querySelector(".transfer-price")
-            ?.addEventListener("input", debounceValidateStock);
 
         row
             .querySelector(".transfer-remove")
@@ -224,11 +256,6 @@ const InventoryTransferCreate = (() => {
             })
             .join("");
 
-        const price = read(ingredient, "suggestedUnitPrice", "SuggestedUnitPrice")
-            || read(ingredient, "currentPrice", "CurrentPrice")
-            || 0;
-
-        row.querySelector(".transfer-price").value = formatNumberInput(price);
     }
 
     function recalculateRow(row) {
@@ -255,7 +282,7 @@ const InventoryTransferCreate = (() => {
 
         if (ingredient && baseQuantity > available) {
             warning.hidden = false;
-            warning.textContent = "Vượt tồn hiện có, hệ thống sẽ kiểm tra cấu hình âm kho khi xác nhận.";
+            warning.textContent = "Vượt tồn nguồn; dispatch sẽ bị chặn.";
         }
         else {
             warning.hidden = true;
@@ -282,15 +309,12 @@ const InventoryTransferCreate = (() => {
                     ? createRequestKey()
                     : createDraftRequestKey);
 
-            const url = transferId > 0
-                ? `/Admin/AdminInventoryTransfer/UpdateDraft?id=${encodeURIComponent(transferId)}`
-                : "/Admin/AdminInventoryTransfer/CreateDraft";
-
-            const result = await postJson(url, dto);
+            const result = await postJson(getEndpoint("saveDraftUrl"), dto);
             const saved = read(result.transfer, "inventoryTransferId", "InventoryTransferId");
             const code = read(result.transfer, "code", "Code");
 
             setTransferId(saved);
+            setTransferRowVersion(read(result.transfer, "rowVersion", "RowVersion"));
             updateCodePreview(code);
             notifySuccess("Đã lưu nháp phiếu chuyển kho.");
         }
@@ -315,21 +339,29 @@ const InventoryTransferCreate = (() => {
 
         try {
             validateClient();
+            await validateStock();
+            if (!preflightReady || preflightBlocked) {
+                throw new Error("Preflight quantity/FIFO chưa đạt; không thể dispatch.");
+            }
 
             let transferId = getTransferId();
 
             if (transferId <= 0) {
                 const draft = await postJson(
-                    "/Admin/AdminInventoryTransfer/CreateDraft",
+                    getEndpoint("saveDraftUrl"),
                     buildDto(createDraftRequestKey));
 
                 transferId = read(draft.transfer, "inventoryTransferId", "InventoryTransferId");
                 setTransferId(transferId);
+                setTransferRowVersion(read(draft.transfer, "rowVersion", "RowVersion"));
                 updateCodePreview(read(draft.transfer, "code", "Code"));
             }
 
             const result = await postJson(
-                `/Admin/AdminInventoryTransfer/Confirm?id=${encodeURIComponent(transferId)}&requestKey=${encodeURIComponent(confirmRequestKey)}`,
+                appendQuery(getEndpoint("dispatchUrl"), {
+                    id: transferId,
+                    requestKey: confirmRequestKey
+                }),
                 {});
             updateCodePreview(read(result.transfer, "code", "Code"));
 
@@ -349,26 +381,39 @@ const InventoryTransferCreate = (() => {
 
     function debounceValidateStock() {
         window.clearTimeout(validateTimer);
+        preflightReady = false;
+        preflightBlocked = true;
+        syncConfirmState();
 
         validateTimer = window.setTimeout(validateStock, 350);
     }
 
     async function validateStock() {
         if (document.querySelectorAll(".transfer-detail-row").length === 0) {
+            preflightReady = false;
+            preflightBlocked = true;
             hideWarnings();
-            return;
+            return false;
         }
 
         try {
             const result = await postJson(
-                "/Admin/AdminInventoryTransfer/ValidateStock",
+                getEndpoint("preflightUrl"),
                 buildDto(null, false));
             const warnings = result.warnings || result.Warnings || [];
 
+            preflightReady = true;
+            preflightBlocked = warnings.length > 0;
             renderWarnings(warnings);
+            syncConfirmState();
+            return !preflightBlocked;
         }
-        catch {
-            hideWarnings();
+        catch (error) {
+            preflightReady = false;
+            preflightBlocked = true;
+            renderWarnings([{ message: error.message || "Không chạy được preflight quantity/FIFO." }]);
+            syncConfirmState();
+            return false;
         }
     }
 
@@ -378,23 +423,21 @@ const InventoryTransferCreate = (() => {
                 const item = getRowIngredient(row);
                 const unitId = Number(row.querySelector(".transfer-unit")?.value || 0);
                 const quantity = Number(row.querySelector(".transfer-quantity")?.value || 0);
-                const unitPriceValue = row.querySelector(".transfer-price")?.value;
-                const restockRequestId = Number(row.querySelector(".transfer-restock-request")?.value || 0);
-
                 return {
                     ingredientId: read(item, "ingredientId", "IngredientId") || null,
                     preparedItemId: read(item, "preparedItemId", "PreparedItemId") || null,
-                    restockRequestId: restockRequestId > 0 ? restockRequestId : null,
+                    restockRequestId: null,
                     unitId,
                     quantity,
                     baseQuantity: 0,
-                    unitPrice: unitPriceValue === "" ? null : Number(unitPriceValue),
                     note: null
                 };
             })
             .filter(x => x.ingredientId || x.preparedItemId);
 
         const dto = {
+            transferId: getTransferId() || null,
+            rowVersion: getTransferRowVersion() || null,
             requestKey: requestKey || null,
             fromStoreId: getNumber(selector.fromStore),
             toStoreId: getNumber(selector.toStore),
@@ -463,7 +506,8 @@ const InventoryTransferCreate = (() => {
             {
                 method: "POST",
                 headers: {
-                    "Content-Type": "application/json"
+                    "Content-Type": "application/json",
+                    "RequestVerificationToken": document.querySelector('input[name="__RequestVerificationToken"]')?.value || ""
                 },
                 body: JSON.stringify(payload)
             });
@@ -546,7 +590,7 @@ const InventoryTransferCreate = (() => {
             return;
         }
 
-        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="9">Chưa có hàng hóa.</td></tr>';
+        body.innerHTML = '<tr class="transfer-empty-row"><td colspan="8">Chưa có hàng hóa.</td></tr>';
         syncConfirmState();
     }
 
@@ -624,7 +668,7 @@ const InventoryTransferCreate = (() => {
 
         try {
             validateClient();
-            button.disabled = false;
+            button.disabled = !preflightReady || preflightBlocked;
         }
         catch {
             button.disabled = true;
@@ -666,6 +710,17 @@ const InventoryTransferCreate = (() => {
     function setTransferId(value) {
         const input = document.querySelector(selector.id);
 
+        if (input) {
+            input.value = value || "";
+        }
+    }
+
+    function getTransferRowVersion() {
+        return document.querySelector(selector.rowVersion)?.value || "";
+    }
+
+    function setTransferRowVersion(value) {
+        const input = document.querySelector(selector.rowVersion);
         if (input) {
             input.value = value || "";
         }
@@ -762,8 +817,7 @@ const InventoryTransferCreate = (() => {
         }
 
         window.setTimeout(() => {
-            window.location.href =
-                `/Admin/AdminInventoryTransfer/Detail?id=${encodeURIComponent(transferId)}`;
+            window.location.href = appendQuery(getEndpoint("detailUrl"), { id: transferId });
         }, 650);
     }
 

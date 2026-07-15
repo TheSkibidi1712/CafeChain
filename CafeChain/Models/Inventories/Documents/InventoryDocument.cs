@@ -5,6 +5,7 @@ using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using System.ComponentModel.DataAnnotations.Schema;
+using CafeChain.Models.Inventories.Approvals;
 
 namespace CafeChain.Models.Inventories.Documents
 {
@@ -25,6 +26,8 @@ namespace CafeChain.Models.Inventories.Documents
 
         public bool IsProcessing { get; set; }
 
+        public byte[] RowVersion { get; set; } = [];
+
         public DateTime? ConfirmedAt { get; set; }
 
         public int? ConfirmedBy { get; set; }
@@ -43,6 +46,7 @@ namespace CafeChain.Models.Inventories.Documents
 
         public int? SupplierId { get; set; }
         public string? Note { get; set; }
+        public string? NegativeReason { get; set; }
 
         // ===== MONEY =====
         public decimal? TotalAmount { get; set; }
@@ -58,5 +62,7 @@ namespace CafeChain.Models.Inventories.Documents
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
         public virtual ICollection<InventoryDebt> Debts { get; set; } = new List<InventoryDebt>();
+        public virtual InventoryDocumentSnapshot? Snapshot { get; set; }
+        public virtual InventoryNegativeApproval? NegativeApproval { get; set; }
     }
 }

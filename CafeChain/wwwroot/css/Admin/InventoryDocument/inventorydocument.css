@@ -671,3 +671,120 @@
         min-width: 0;
     }
 }
+.voucher-approval-panel {
+    margin: 16px 0;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #fff7ed;
+}
+
+.voucher-approval-panel h6 {
+    margin: 0 0 12px;
+    color: #9a3412;
+    font-weight: 700;
+}
+.voucher-approval-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1rem;
+}
+
+.voucher-approval-actions button:disabled {
+    cursor: wait;
+    opacity: 0.7;
+}
+
+.inventory-negative-approval-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #fed7aa;
+    background: #fffaf5;
+}
+
+.inventory-negative-approval-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+    color: #9a3412;
+}
+
+.inventory-negative-approval-summary > i {
+    font-size: 1.25rem;
+}
+
+.inventory-negative-approval-summary div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.inventory-negative-approval-summary span {
+    color: #64748b;
+    font-size: 0.8rem;
+}
+
+.inventory-negative-approval-footer .voucher-approval-actions,
+.inventory-negative-approval-footer .voucher-approval-message {
+    flex: 0 1 auto;
+    margin-top: 0;
+}
+
+@media (max-width: 767.98px) {
+    .inventory-negative-approval-footer {
+        align-items: stretch;
+        flex-direction: column;
+        padding: 1rem;
+    }
+
+    .inventory-negative-approval-footer .voucher-approval-actions {
+        display: grid;
+        grid-template-columns: 1fr;
+        width: 100%;
+    }
+
+    .inventory-negative-approval-footer .voucher-approval-actions .btn {
+        width: 100%;
+    }
+}
+
+.voucher-approval-message {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.negative-approval-list-badge {
+    display: block;
+    width: fit-content;
+    margin-top: 0.35rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 999px;
+    background: #fff7ed;
+    color: #9a3412;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.negative-approval-list-message {
+    display: block;
+    max-width: 260px;
+    margin-top: 0.35rem;
+    color: #64748b;
+    font-size: 0.72rem;
+    line-height: 1.3;
+}
+
+.btn-open-negative-review {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}

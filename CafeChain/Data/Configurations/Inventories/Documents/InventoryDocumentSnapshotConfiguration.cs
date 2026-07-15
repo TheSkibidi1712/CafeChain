@@ -41,6 +41,13 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
             entity.Property(x => x.CreatedAt)
                 .HasDefaultValueSql("GETDATE()");
 
+            entity.Property(x => x.PolicyVersion)
+                .HasMaxLength(100);
+
+            entity.Property(x => x.BeforeQty).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.AfterQty).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.EffectiveMaxNegativeQty).HasColumnType("decimal(18,3)");
+
             // ================= RELATION =================
 
             entity.HasMany(x => x.Details)
@@ -48,9 +55,14 @@ namespace CafeChain.Data.Configurations.Inventories.Documents
                 .HasForeignKey(x => x.InventoryDocumentSnapshotId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            entity.HasOne(x => x.InventoryDocument)
+                .WithOne(x => x.Snapshot)
+                .HasForeignKey<InventoryDocumentSnapshot>(x => x.InventoryDocumentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // ================= INDEX =================
 
-            entity.HasIndex(x => x.InventoryDocumentId);
+            entity.HasIndex(x => x.InventoryDocumentId).IsUnique();
 
             entity.HasIndex(x => x.Code);
 

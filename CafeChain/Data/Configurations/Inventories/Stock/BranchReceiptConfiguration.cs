@@ -46,6 +46,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.SupplierId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.SourceInventoryTransfer)
+                .WithMany()
+                .HasForeignKey(x => x.SourceInventoryTransferId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasOne(x => x.ReceivedByStaff)
                 .WithMany()
                 .HasForeignKey(x => x.ReceivedByStaffId)
@@ -66,6 +71,7 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasDatabaseName("UX_BranchReceipts_Store_ReceiptKey");
 
             entity.HasIndex(x => x.StoreId);
+            entity.HasIndex(x => x.SourceInventoryTransferId);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.ReceiptCode)
                 .IsUnique()

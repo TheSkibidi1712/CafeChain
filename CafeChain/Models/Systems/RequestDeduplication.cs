@@ -16,6 +16,8 @@
 
         public string? RequestBody { get; set; }
 
+        public string PayloadHash { get; set; } = string.Empty;
+
         public string? ResponseBody { get; set; }
 
         public DateTime CreatedAt { get; set; }

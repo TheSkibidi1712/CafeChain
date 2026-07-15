@@ -4,6 +4,7 @@ using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
+using CafeChain.Models.Inventories.Stock;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
 
 namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
@@ -21,6 +22,7 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task AddTransferAsync(InventoryTransfer transfer);
 
         Task<InventoryTransfer?> GetTransferByIdAsync(int id);
+        Task<InventoryTransfer?> GetTransferForUpdateAsync(int id);
 
         Task<List<InventoryTransfer>> GetTransfersAsync(
             string? keyword,
@@ -54,6 +56,9 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
 
         Task<List<StoreInventory>> GetStoreInventoriesAsync(int storeId);
 
+        Task LockInventoriesAsync(
+            IEnumerable<(int StoreId, int? IngredientId, int? PreparedItemId)> identities);
+
         Task<StoreInventory?> GetStoreInventoryForUpdateAsync(int storeId, int ingredientId);
 
         Task<StoreInventory> GetOrCreateStoreInventoryForUpdateAsync(int storeId, int ingredientId);
@@ -71,6 +76,11 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryTransfers
         Task AddInventoryTransactionAsync(InventoryTransaction transaction);
 
         Task AddCostLayerAsync(InventoryCostLayer layer);
+        Task AddTransferCostAllocationsAsync(IEnumerable<InventoryTransferCostAllocation> allocations);
+        Task<List<InventoryTransferCostAllocation>> GetTransferCostAllocationsAsync(IEnumerable<int> detailIds);
+        Task AddBranchReceiptAsync(BranchReceipt receipt);
+        Task<List<InventoryNegativeCostGap>> GetOpenCostGapsForUpdateAsync(int storeInventoryId);
+        Task AddCostGapSettlementsAsync(IEnumerable<InventoryCostGapSettlement> settlements);
 
         Task<List<InventoryCostLayer>> GetAvailableCostLayersAsync(int storeId, int ingredientId);
 

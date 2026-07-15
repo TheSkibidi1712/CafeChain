@@ -65,6 +65,23 @@
                                 @item.Status.ToVietnamese()
                             </span>
 
+                            @if (item.NegativeApprovalStatus == "REQUESTED")
+                            {
+                                <span class="negative-approval-list-badge">
+                                    <i class="fas fa-user-check" aria-hidden="true"></i>
+                                    Chờ duyệt xuất âm
+                                </span>
+
+                                @if (!item.CanReviewNegativeApproval
+                                    && !string.IsNullOrWhiteSpace(item.NegativeApprovalReviewMessage))
+                                {
+                                    <small class="negative-approval-list-message"
+                                           title="@item.NegativeApprovalReviewMessage">
+                                        @item.NegativeApprovalReviewMessage
+                                    </small>
+                                }
+                            }
+
                         </td>
 
                         <td>
@@ -79,6 +96,17 @@
                                     <i class="fas fa-eye"></i>
 
                                 </button>
+
+                                @if (item.CanReviewNegativeApproval)
+                                {
+                                    <button type="button"
+                                            class="btn btn-sm btn-success btn-detail btn-open-negative-review"
+                                            title="Mở chi tiết để duyệt xuất âm"
+                                            data-id="@item.InventoryDocumentId">
+                                        <i class="fas fa-user-check" aria-hidden="true"></i>
+                                        Mở để duyệt
+                                    </button>
+                                }
 
                                 @if (item.Status == InventoryDocumentStatus.DRAFT)
                                 {

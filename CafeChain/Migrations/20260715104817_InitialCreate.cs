@@ -95,6 +95,24 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "DocumentNumberCounters",
+                columns: table => new
+                {
+                    DocumentNumberCounterId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    CounterKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    DateKey = table.Column<int>(type: "int", nullable: false),
+                    LastValue = table.Column<int>(type: "int", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DocumentNumberCounters", x => x.DocumentNumberCounterId);
+                    table.CheckConstraint("CK_DocumentNumberCounter_Value", "[LastValue] > 0");
+                });
+
+            migrationBuilder.CreateTable(
                 name: "DrinkCategories",
                 columns: table => new
                 {
@@ -108,28 +126,6 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_DrinkCategories", x => x.CategoryId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InventoryDocumentSnapshots",
-                columns: table => new
-                {
-                    InventoryDocumentSnapshotId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
-                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    DocumentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    StoreName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    StaffName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    VatAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    FinalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryDocumentSnapshots", x => x.InventoryDocumentSnapshotId);
                 });
 
             migrationBuilder.CreateTable(
@@ -307,6 +303,7 @@ namespace CafeChain.Migrations
                     ReferenceId = table.Column<int>(type: "int", nullable: true),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     RequestBody = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
                     ResponseBody = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
                     ExpiredAt = table.Column<DateTime>(type: "datetime2", nullable: false)
@@ -615,30 +612,6 @@ namespace CafeChain.Migrations
                         principalTable: "Countries",
                         principalColumn: "CountryId",
                         onDelete: ReferentialAction.SetNull);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "InventoryDocumentSnapshotDetails",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InventoryDocumentSnapshotId = table.Column<int>(type: "int", nullable: false),
-                    ItemName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    UnitName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryDocumentSnapshotDetails", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_InventoryDocumentSnapshotDetails_InventoryDocumentSnapshots_InventoryDocumentSnapshotId",
-                        column: x => x.InventoryDocumentSnapshotId,
-                        principalTable: "InventoryDocumentSnapshots",
-                        principalColumn: "InventoryDocumentSnapshotId",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -1874,37 +1847,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "StoreInventorySnapshots",
-                columns: table => new
-                {
-                    StoreInventorySnapshotId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    IngredientId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    AvgCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_StoreInventorySnapshots", x => x.StoreInventorySnapshotId);
-                    table.CheckConstraint("CK_StoreInventorySnapshot_AvgCost", "[AvgCost] >= 0");
-                    table.CheckConstraint("CK_StoreInventorySnapshot_Quantity", "[Quantity] >= 0");
-                    table.ForeignKey(
-                        name: "FK_StoreInventorySnapshots_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
-                        principalTable: "Ingredients",
-                        principalColumn: "IngredientId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_StoreInventorySnapshots_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "StoreInventoryWriterConfigurations",
                 columns: table => new
                 {
@@ -2006,62 +1948,6 @@ namespace CafeChain.Migrations
                         principalTable: "Stores",
                         principalColumn: "StoreId",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "BranchReceipts",
-                columns: table => new
-                {
-                    BranchReceiptId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    ReceiptCode = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    SupplierId = table.Column<int>(type: "int", nullable: true),
-                    Status = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
-                    ReceiptKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
-                    ReferenceNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    ReceivedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReceivedByStaffId = table.Column<int>(type: "int", nullable: true),
-                    ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ConfirmedByStaffId = table.Column<int>(type: "int", nullable: true),
-                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_BranchReceipts", x => x.BranchReceiptId);
-                    table.ForeignKey(
-                        name: "FK_BranchReceipts_Staffs_ConfirmedByStaffId",
-                        column: x => x.ConfirmedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_BranchReceipts_Staffs_CreatedByStaffId",
-                        column: x => x.CreatedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_BranchReceipts_Staffs_ReceivedByStaffId",
-                        column: x => x.ReceivedByStaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_BranchReceipts_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_BranchReceipts_Suppliers_SupplierId",
-                        column: x => x.SupplierId,
-                        principalTable: "Suppliers",
-                        principalColumn: "SupplierId",
-                        onDelete: ReferentialAction.Restrict);
                 });
 
             migrationBuilder.CreateTable(
@@ -2171,6 +2057,7 @@ namespace CafeChain.Migrations
                     Status = table.Column<int>(type: "int", nullable: false),
                     RequestKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     IsProcessing = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false),
                     ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ConfirmedBy = table.Column<int>(type: "int", nullable: true),
                     Purpose = table.Column<int>(type: "int", nullable: false),
@@ -2179,6 +2066,7 @@ namespace CafeChain.Migrations
                     PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     SupplierId = table.Column<int>(type: "int", nullable: true),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    NegativeReason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     VatAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     FinalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: true)
@@ -2224,9 +2112,11 @@ namespace CafeChain.Migrations
                     ConfirmedByStaffId = table.Column<int>(type: "int", nullable: true),
                     CancelledByStaffId = table.Column<int>(type: "int", nullable: true),
                     ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    DispatchedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CancelledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -2808,8 +2698,8 @@ namespace CafeChain.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_InventoryDocumentDetails", x => x.InventoryDocumentDetailId);
-                    table.CheckConstraint("CK_InventoryDocumentDetail_BaseQuantity", "[BaseQuantity] > 0");
-                    table.CheckConstraint("CK_InventoryDocumentDetail_Quantity", "[Quantity] > 0");
+                    table.CheckConstraint("CK_InventoryDocumentDetail_BaseQuantity", "[BaseQuantity] >= 0");
+                    table.CheckConstraint("CK_InventoryDocumentDetail_Quantity", "[Quantity] >= 0");
                     table.CheckConstraint("CK_InventoryDocumentDetail_TotalAmount", "[TotalAmount] IS NULL OR [TotalAmount] >= 0");
                     table.CheckConstraint("CK_InventoryDocumentDetail_UnitPrice", "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
                     table.ForeignKey(
@@ -2829,6 +2719,157 @@ namespace CafeChain.Migrations
                         column: x => x.UnitId,
                         principalTable: "Units",
                         principalColumn: "UnitId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryDocumentSnapshots",
+                columns: table => new
+                {
+                    InventoryDocumentSnapshotId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
+                    Type = table.Column<int>(type: "int", nullable: false),
+                    Purpose = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    NegativeApprovalId = table.Column<long>(type: "bigint", nullable: true),
+                    BeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    AfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    EffectiveMaxNegativeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    PolicyVersion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    CostComplete = table.Column<bool>(type: "bit", nullable: false),
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    DocumentDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    StoreName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    StaffName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PartnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    VatAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    FinalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryDocumentSnapshots", x => x.InventoryDocumentSnapshotId);
+                    table.ForeignKey(
+                        name: "FK_InventoryDocumentSnapshots_InventoryDocuments_InventoryDocumentId",
+                        column: x => x.InventoryDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryNegativeApprovals",
+                columns: table => new
+                {
+                    InventoryNegativeApprovalId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryDocumentId = table.Column<int>(type: "int", nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    RequesterStaffId = table.Column<int>(type: "int", nullable: false),
+                    ApproverStaffId = table.Column<int>(type: "int", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: false),
+                    ReviewNote = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    PolicyVersion = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    RequestKey = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PayloadHash = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    RequestedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ScopeAuthorized = table.Column<bool>(type: "bit", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryNegativeApprovals", x => x.InventoryNegativeApprovalId);
+                    table.CheckConstraint("CK_InventoryNegativeApproval_Status", "[Status] IN ('REQUESTED','APPROVED','REJECTED','CANCELLED')");
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeApprovals_InventoryDocuments_InventoryDocumentId",
+                        column: x => x.InventoryDocumentId,
+                        principalTable: "InventoryDocuments",
+                        principalColumn: "InventoryDocumentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeApprovals_Staffs_ApproverStaffId",
+                        column: x => x.ApproverStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeApprovals_Staffs_RequesterStaffId",
+                        column: x => x.RequesterStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeApprovals_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BranchReceipts",
+                columns: table => new
+                {
+                    BranchReceiptId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ReceiptCode = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: false),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    SupplierId = table.Column<int>(type: "int", nullable: true),
+                    SourceInventoryTransferId = table.Column<int>(type: "int", nullable: true),
+                    Status = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    ReceiptKey = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    ReferenceNumber = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    ReceivedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ReceivedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    ConfirmedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ConfirmedByStaffId = table.Column<int>(type: "int", nullable: true),
+                    Notes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BranchReceipts", x => x.BranchReceiptId);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_InventoryTransfers_SourceInventoryTransferId",
+                        column: x => x.SourceInventoryTransferId,
+                        principalTable: "InventoryTransfers",
+                        principalColumn: "InventoryTransferId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_Staffs_ConfirmedByStaffId",
+                        column: x => x.ConfirmedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_Staffs_CreatedByStaffId",
+                        column: x => x.CreatedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_Staffs_ReceivedByStaffId",
+                        column: x => x.ReceivedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceipts_Suppliers_SupplierId",
+                        column: x => x.SupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3112,6 +3153,60 @@ namespace CafeChain.Migrations
                         principalTable: "WorkShifts",
                         principalColumn: "ShiftId",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryDocumentSnapshotDetails",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryDocumentSnapshotId = table.Column<int>(type: "int", nullable: false),
+                    ItemName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    UnitName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryDocumentSnapshotDetails", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_InventoryDocumentSnapshotDetails_InventoryDocumentSnapshots_InventoryDocumentSnapshotId",
+                        column: x => x.InventoryDocumentSnapshotId,
+                        principalTable: "InventoryDocumentSnapshots",
+                        principalColumn: "InventoryDocumentSnapshotId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryNegativeApprovalLines",
+                columns: table => new
+                {
+                    InventoryNegativeApprovalLineId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryNegativeApprovalId = table.Column<long>(type: "bigint", nullable: false),
+                    InventoryDocumentDetailId = table.Column<int>(type: "int", nullable: false),
+                    StoreInventoryId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    BeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    IssueQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    ProjectedAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    EffectiveMaxNegativeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    InventoryRowVersion = table.Column<byte[]>(type: "varbinary(max)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryNegativeApprovalLines", x => x.InventoryNegativeApprovalLineId);
+                    table.CheckConstraint("CK_InventoryNegativeApprovalLine_Identity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                    table.CheckConstraint("CK_InventoryNegativeApprovalLine_Quantity", "[IssueQty] > 0 AND [EffectiveMaxNegativeQty] >= 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeApprovalLines_InventoryNegativeApprovals_InventoryNegativeApprovalId",
+                        column: x => x.InventoryNegativeApprovalId,
+                        principalTable: "InventoryNegativeApprovals",
+                        principalColumn: "InventoryNegativeApprovalId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -3421,6 +3516,8 @@ namespace CafeChain.Migrations
                     UnitId = table.Column<int>(type: "int", nullable: false),
                     Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    DispatchedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    ReceivedBaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
                     SourceBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     SourceAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     DestinationBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
@@ -3504,58 +3601,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InventoryCostLayers",
-                columns: table => new
-                {
-                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    IngredientId = table.Column<int>(type: "int", nullable: true),
-                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
-                    StoreId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    RemainingQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
-                    SourceProductionRunId = table.Column<int>(type: "int", nullable: true),
-                    SourceOrderRefundId = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryCostLayers", x => x.InventoryCostLayerId);
-                    table.CheckConstraint("CK_InventoryCostLayers_ExactlyOneIdentity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
-                    table.ForeignKey(
-                        name: "FK_InventoryCostLayers_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
-                        principalTable: "Ingredients",
-                        principalColumn: "IngredientId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostLayers_OrderRefunds_SourceOrderRefundId",
-                        column: x => x.SourceOrderRefundId,
-                        principalTable: "OrderRefunds",
-                        principalColumn: "OrderRefundId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostLayers_PreparedItems_PreparedItemId",
-                        column: x => x.PreparedItemId,
-                        principalTable: "PreparedItems",
-                        principalColumn: "PreparedItemId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostLayers_ProductionRuns_SourceProductionRunId",
-                        column: x => x.SourceProductionRunId,
-                        principalTable: "ProductionRuns",
-                        principalColumn: "ProductionRunId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostLayers_Stores_StoreId",
-                        column: x => x.StoreId,
-                        principalTable: "Stores",
-                        principalColumn: "StoreId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "SalesCostGaps",
                 columns: table => new
                 {
@@ -3598,34 +3643,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InventoryCostAllocations",
-                columns: table => new
-                {
-                    InventoryCostAllocationId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InventoryDocumentDetailId = table.Column<int>(type: "int", nullable: false),
-                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryCostAllocations", x => x.InventoryCostAllocationId);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostAllocations_InventoryCostLayers_InventoryCostLayerId",
-                        column: x => x.InventoryCostLayerId,
-                        principalTable: "InventoryCostLayers",
-                        principalColumn: "InventoryCostLayerId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryCostAllocations_InventoryDocumentDetails_InventoryDocumentDetailId",
-                        column: x => x.InventoryDocumentDetailId,
-                        principalTable: "InventoryDocumentDetails",
-                        principalColumn: "InventoryDocumentDetailId",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RefundCostGaps",
                 columns: table => new
                 {
@@ -3665,7 +3682,9 @@ namespace CafeChain.Migrations
                     BranchReceiptLineId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     BranchReceiptId = table.Column<int>(type: "int", nullable: false),
-                    RestockRequestId = table.Column<int>(type: "int", nullable: false),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: true),
+                    SourceInventoryTransferDetailId = table.Column<int>(type: "int", nullable: true),
+                    SourceTransferCostAllocationId = table.Column<long>(type: "bigint", nullable: true),
                     RestockRequestFulfillmentId = table.Column<int>(type: "int", nullable: true),
                     IngredientId = table.Column<int>(type: "int", nullable: true),
                     PreparedItemId = table.Column<int>(type: "int", nullable: true),
@@ -3706,6 +3725,12 @@ namespace CafeChain.Migrations
                         column: x => x.IngredientId,
                         principalTable: "Ingredients",
                         principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_BranchReceiptLines_InventoryTransferDetails_SourceInventoryTransferDetailId",
+                        column: x => x.SourceInventoryTransferDetailId,
+                        principalTable: "InventoryTransferDetails",
+                        principalColumn: "InventoryTransferDetailId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_BranchReceiptLines_PreparedItems_PreparedItemId",
@@ -3772,6 +3797,7 @@ namespace CafeChain.Migrations
                     UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     InventoryDocumentId = table.Column<int>(type: "int", nullable: true),
+                    InventoryDocumentDetailId = table.Column<int>(type: "int", nullable: true),
                     InventoryTransferId = table.Column<int>(type: "int", nullable: true),
                     InventoryTransferDetailId = table.Column<int>(type: "int", nullable: true),
                     ReferenceOrderId = table.Column<int>(type: "int", nullable: true),
@@ -3799,6 +3825,12 @@ namespace CafeChain.Migrations
                         column: x => x.InventoryConsolidationRunId,
                         principalTable: "InventoryConsolidationRuns",
                         principalColumn: "InventoryConsolidationRunId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransactions_InventoryDocumentDetails_InventoryDocumentDetailId",
+                        column: x => x.InventoryDocumentDetailId,
+                        principalTable: "InventoryDocumentDetails",
+                        principalColumn: "InventoryDocumentDetailId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryTransactions_InventoryDocuments_InventoryDocumentId",
@@ -3851,39 +3883,61 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ProductionCostAllocations",
+                name: "InventoryNegativeCostGaps",
                 columns: table => new
                 {
-                    ProductionCostAllocationId = table.Column<int>(type: "int", nullable: false)
+                    InventoryNegativeCostGapId = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    ProductionRunId = table.Column<int>(type: "int", nullable: false),
-                    InventoryTransactionId = table.Column<int>(type: "int", nullable: false),
-                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    SourceType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    StoreInventoryId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    SalesCostGapId = table.Column<int>(type: "int", nullable: true),
+                    InventoryDocumentDetailId = table.Column<int>(type: "int", nullable: true),
+                    InventoryTransactionId = table.Column<int>(type: "int", nullable: true),
+                    InventoryNegativeApprovalId = table.Column<long>(type: "bigint", nullable: true),
+                    OriginalQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    OutstandingQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    OccurredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ProductionCostAllocations", x => x.ProductionCostAllocationId);
+                    table.PrimaryKey("PK_InventoryNegativeCostGaps", x => x.InventoryNegativeCostGapId);
+                    table.CheckConstraint("CK_InventoryNegativeCostGap_Identity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                    table.CheckConstraint("CK_InventoryNegativeCostGap_Quantity", "[OriginalQuantity] > 0 AND [OutstandingQuantity] >= 0 AND [OutstandingQuantity] <= [OriginalQuantity]");
+                    table.CheckConstraint("CK_InventoryNegativeCostGap_Source", "[SourceType] IN ('POS_SALE','MANUAL_DOCUMENT','LEGACY_BALANCE')");
+                    table.CheckConstraint("CK_InventoryNegativeCostGap_Status", "[Status] IN ('OPEN','PARTIALLY_SETTLED','SETTLED','CANCELLED')");
                     table.ForeignKey(
-                        name: "FK_ProductionCostAllocations_InventoryCostLayers_InventoryCostLayerId",
-                        column: x => x.InventoryCostLayerId,
-                        principalTable: "InventoryCostLayers",
-                        principalColumn: "InventoryCostLayerId",
+                        name: "FK_InventoryNegativeCostGaps_InventoryDocumentDetails_InventoryDocumentDetailId",
+                        column: x => x.InventoryDocumentDetailId,
+                        principalTable: "InventoryDocumentDetails",
+                        principalColumn: "InventoryDocumentDetailId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ProductionCostAllocations_InventoryTransactions_InventoryTransactionId",
+                        name: "FK_InventoryNegativeCostGaps_InventoryNegativeApprovals_InventoryNegativeApprovalId",
+                        column: x => x.InventoryNegativeApprovalId,
+                        principalTable: "InventoryNegativeApprovals",
+                        principalColumn: "InventoryNegativeApprovalId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeCostGaps_InventoryTransactions_InventoryTransactionId",
                         column: x => x.InventoryTransactionId,
                         principalTable: "InventoryTransactions",
                         principalColumn: "InventoryTransactionId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
-                        name: "FK_ProductionCostAllocations_ProductionRuns_ProductionRunId",
-                        column: x => x.ProductionRunId,
-                        principalTable: "ProductionRuns",
-                        principalColumn: "ProductionRunId",
+                        name: "FK_InventoryNegativeCostGaps_SalesCostGaps_SalesCostGapId",
+                        column: x => x.SalesCostGapId,
+                        principalTable: "SalesCostGaps",
+                        principalColumn: "SalesCostGapId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryNegativeCostGaps_StoreInventories_StoreInventoryId",
+                        column: x => x.StoreInventoryId,
+                        principalTable: "StoreInventories",
+                        principalColumn: "StoreInventoryId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3938,6 +3992,190 @@ namespace CafeChain.Migrations
                         column: x => x.ActorStaffId,
                         principalTable: "Staffs",
                         principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryCostAllocations",
+                columns: table => new
+                {
+                    InventoryCostAllocationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryDocumentDetailId = table.Column<int>(type: "int", nullable: false),
+                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryCostAllocations", x => x.InventoryCostAllocationId);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostAllocations_InventoryDocumentDetails_InventoryDocumentDetailId",
+                        column: x => x.InventoryDocumentDetailId,
+                        principalTable: "InventoryDocumentDetails",
+                        principalColumn: "InventoryDocumentDetailId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryCostGapSettlements",
+                columns: table => new
+                {
+                    InventoryCostGapSettlementId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryNegativeCostGapId = table.Column<long>(type: "bigint", nullable: false),
+                    InboundInventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryCostGapSettlements", x => x.InventoryCostGapSettlementId);
+                    table.CheckConstraint("CK_InventoryCostGapSettlement_Quantity", "[Quantity] > 0 AND [UnitCost] >= 0 AND [TotalCost] >= 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryCostGapSettlements_InventoryNegativeCostGaps_InventoryNegativeCostGapId",
+                        column: x => x.InventoryNegativeCostGapId,
+                        principalTable: "InventoryNegativeCostGaps",
+                        principalColumn: "InventoryNegativeCostGapId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryCostLayers",
+                columns: table => new
+                {
+                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    StoreId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    RemainingQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETDATE()"),
+                    SourceProductionRunId = table.Column<int>(type: "int", nullable: true),
+                    SourceOrderRefundId = table.Column<int>(type: "int", nullable: true),
+                    SourceInventoryDocumentDetailId = table.Column<int>(type: "int", nullable: true),
+                    SourceBranchReceiptLineId = table.Column<int>(type: "int", nullable: true),
+                    SourceTransferCostAllocationId = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryCostLayers", x => x.InventoryCostLayerId);
+                    table.CheckConstraint("CK_InventoryCostLayers_ExactlyOneIdentity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_BranchReceiptLines_SourceBranchReceiptLineId",
+                        column: x => x.SourceBranchReceiptLineId,
+                        principalTable: "BranchReceiptLines",
+                        principalColumn: "BranchReceiptLineId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_InventoryDocumentDetails_SourceInventoryDocumentDetailId",
+                        column: x => x.SourceInventoryDocumentDetailId,
+                        principalTable: "InventoryDocumentDetails",
+                        principalColumn: "InventoryDocumentDetailId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_OrderRefunds_SourceOrderRefundId",
+                        column: x => x.SourceOrderRefundId,
+                        principalTable: "OrderRefunds",
+                        principalColumn: "OrderRefundId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_PreparedItems_PreparedItemId",
+                        column: x => x.PreparedItemId,
+                        principalTable: "PreparedItems",
+                        principalColumn: "PreparedItemId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_ProductionRuns_SourceProductionRunId",
+                        column: x => x.SourceProductionRunId,
+                        principalTable: "ProductionRuns",
+                        principalColumn: "ProductionRunId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryCostLayers_Stores_StoreId",
+                        column: x => x.StoreId,
+                        principalTable: "Stores",
+                        principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryTransferCostAllocations",
+                columns: table => new
+                {
+                    InventoryTransferCostAllocationId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryTransferDetailId = table.Column<int>(type: "int", nullable: false),
+                    SourceInventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    ReceivedQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "decimal(18,6)", nullable: false),
+                    TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTransferCostAllocations", x => x.InventoryTransferCostAllocationId);
+                    table.CheckConstraint("CK_InventoryTransferCostAllocation_Quantity", "[Quantity] > 0 AND [ReceivedQuantity] >= 0 AND [ReceivedQuantity] <= [Quantity] AND [UnitCost] > 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferCostAllocations_InventoryCostLayers_SourceInventoryCostLayerId",
+                        column: x => x.SourceInventoryCostLayerId,
+                        principalTable: "InventoryCostLayers",
+                        principalColumn: "InventoryCostLayerId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferCostAllocations_InventoryTransferDetails_InventoryTransferDetailId",
+                        column: x => x.InventoryTransferDetailId,
+                        principalTable: "InventoryTransferDetails",
+                        principalColumn: "InventoryTransferDetailId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ProductionCostAllocations",
+                columns: table => new
+                {
+                    ProductionCostAllocationId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    ProductionRunId = table.Column<int>(type: "int", nullable: false),
+                    InventoryTransactionId = table.Column<int>(type: "int", nullable: false),
+                    InventoryCostLayerId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    UnitCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ProductionCostAllocations", x => x.ProductionCostAllocationId);
+                    table.ForeignKey(
+                        name: "FK_ProductionCostAllocations_InventoryCostLayers_InventoryCostLayerId",
+                        column: x => x.InventoryCostLayerId,
+                        principalTable: "InventoryCostLayers",
+                        principalColumn: "InventoryCostLayerId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ProductionCostAllocations_InventoryTransactions_InventoryTransactionId",
+                        column: x => x.InventoryTransactionId,
+                        principalTable: "InventoryTransactions",
+                        principalColumn: "InventoryTransactionId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_ProductionCostAllocations_ProductionRuns_ProductionRunId",
+                        column: x => x.ProductionRunId,
+                        principalTable: "ProductionRuns",
+                        principalColumn: "ProductionRunId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -4253,9 +4491,10 @@ namespace CafeChain.Migrations
                 values: new object[,]
                 {
                     { 1, "Toạ độ trung tâm mặc định (VD: TPHCM - 10.8231, 106.6297)", "Map_Default_Center", "10.8231, 106.6297" },
-                    { 2001, "Cho phép tồn kho âm có kiểm soát.", "inventory_allow_negative_stock", "false" },
-                    { 2002, "Yêu cầu quản lý/admin xác nhận khi giao dịch làm âm kho.", "inventory_require_manager_approval_for_negative_stock", "false" },
-                    { 2003, "Ngưỡng âm kho mặc định nếu tồn kho nguyên liệu không cấu hình riêng.", "inventory_default_max_negative_quantity", "0" }
+                    { 2001, "Cho phép phiếu xuất ngoài SALE/GIFT/DEBT/SAMPLE gửi yêu cầu xuất âm.", "inventory_manual_external_export_negative_enabled", "false" },
+                    { 2002, "Bắt buộc maker-checker cho phiếu xuất ngoài làm âm kho.", "inventory_manual_external_export_approval_required", "true" },
+                    { 2003, "Hạn mức âm mặc định cho phiếu xuất ngoài.", "inventory_manual_external_export_default_max_negative_quantity", "0" },
+                    { 2004, "Phiên bản policy phiếu xuất ngoài làm âm kho.", "inventory_manual_external_export_policy_version", "manual-export-v1" }
                 });
 
             migrationBuilder.InsertData(
@@ -4929,6 +5168,13 @@ namespace CafeChain.Migrations
                 column: "BranchReceiptId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BranchReceiptLines_BranchReceiptId_SourceTransferCostAllocationId",
+                table: "BranchReceiptLines",
+                columns: new[] { "BranchReceiptId", "SourceTransferCostAllocationId" },
+                unique: true,
+                filter: "[SourceTransferCostAllocationId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BranchReceiptLines_IngredientId",
                 table: "BranchReceiptLines",
                 column: "IngredientId");
@@ -4974,6 +5220,16 @@ namespace CafeChain.Migrations
                 column: "RestockRequestId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BranchReceiptLines_SourceInventoryTransferDetailId",
+                table: "BranchReceiptLines",
+                column: "SourceInventoryTransferDetailId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchReceiptLines_SourceTransferCostAllocationId",
+                table: "BranchReceiptLines",
+                column: "SourceTransferCostAllocationId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BranchReceiptLines_SupplierId",
                 table: "BranchReceiptLines",
                 column: "SupplierId");
@@ -4992,6 +5248,11 @@ namespace CafeChain.Migrations
                 name: "IX_BranchReceipts_ReceivedByStaffId",
                 table: "BranchReceipts",
                 column: "ReceivedByStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BranchReceipts_SourceInventoryTransferId",
+                table: "BranchReceipts",
+                column: "SourceInventoryTransferId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_BranchReceipts_Status",
@@ -5112,6 +5373,12 @@ namespace CafeChain.Migrations
                 columns: new[] { "ProvinceId", "Name" },
                 unique: true,
                 filter: "[ProvinceId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DocumentNumberCounters_CounterKey_DateKey",
+                table: "DocumentNumberCounters",
+                columns: new[] { "CounterKey", "DateKey" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_DrinkCategories_CategoryCode",
@@ -5320,6 +5587,17 @@ namespace CafeChain.Migrations
                 columns: new[] { "InventoryDocumentDetailId", "InventoryCostLayerId" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryCostGapSettlements_InboundInventoryCostLayerId",
+                table: "InventoryCostGapSettlements",
+                column: "InboundInventoryCostLayerId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryCostGapSettlements_InventoryNegativeCostGapId_InboundInventoryCostLayerId",
+                table: "InventoryCostGapSettlements",
+                columns: new[] { "InventoryNegativeCostGapId", "InboundInventoryCostLayerId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryCostLayers_CreatedAt",
                 table: "InventoryCostLayers",
                 column: "CreatedAt");
@@ -5335,10 +5613,30 @@ namespace CafeChain.Migrations
                 column: "PreparedItemId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryCostLayers_SourceBranchReceiptLineId",
+                table: "InventoryCostLayers",
+                column: "SourceBranchReceiptLineId",
+                unique: true,
+                filter: "[SourceBranchReceiptLineId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryCostLayers_SourceInventoryDocumentDetailId",
+                table: "InventoryCostLayers",
+                column: "SourceInventoryDocumentDetailId",
+                unique: true,
+                filter: "[SourceInventoryDocumentDetailId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryCostLayers_SourceOrderRefundId",
                 table: "InventoryCostLayers",
                 column: "SourceOrderRefundId",
                 filter: "[SourceOrderRefundId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryCostLayers_SourceTransferCostAllocationId",
+                table: "InventoryCostLayers",
+                column: "SourceTransferCostAllocationId",
+                filter: "[SourceTransferCostAllocationId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryCostLayers_StoreId",
@@ -5483,7 +5781,75 @@ namespace CafeChain.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryDocumentSnapshots_InventoryDocumentId",
                 table: "InventoryDocumentSnapshots",
-                column: "InventoryDocumentId");
+                column: "InventoryDocumentId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovalLines_InventoryNegativeApprovalId_InventoryDocumentDetailId",
+                table: "InventoryNegativeApprovalLines",
+                columns: new[] { "InventoryNegativeApprovalId", "InventoryDocumentDetailId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_ApproverStaffId",
+                table: "InventoryNegativeApprovals",
+                column: "ApproverStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_InventoryDocumentId",
+                table: "InventoryNegativeApprovals",
+                column: "InventoryDocumentId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_RequesterStaffId",
+                table: "InventoryNegativeApprovals",
+                column: "RequesterStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_RequestKey_RequesterStaffId",
+                table: "InventoryNegativeApprovals",
+                columns: new[] { "RequestKey", "RequesterStaffId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_Status_RequestedAt",
+                table: "InventoryNegativeApprovals",
+                columns: new[] { "Status", "RequestedAt" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeApprovals_StoreId",
+                table: "InventoryNegativeApprovals",
+                column: "StoreId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeCostGaps_InventoryDocumentDetailId",
+                table: "InventoryNegativeCostGaps",
+                column: "InventoryDocumentDetailId",
+                unique: true,
+                filter: "[InventoryDocumentDetailId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeCostGaps_InventoryNegativeApprovalId",
+                table: "InventoryNegativeCostGaps",
+                column: "InventoryNegativeApprovalId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeCostGaps_InventoryTransactionId",
+                table: "InventoryNegativeCostGaps",
+                column: "InventoryTransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeCostGaps_SalesCostGapId",
+                table: "InventoryNegativeCostGaps",
+                column: "SalesCostGapId",
+                unique: true,
+                filter: "[SalesCostGapId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryNegativeCostGaps_StoreInventoryId_Status_OccurredAt",
+                table: "InventoryNegativeCostGaps",
+                columns: new[] { "StoreInventoryId", "Status", "OccurredAt" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactions_BranchReceiptLineId",
@@ -5575,6 +5941,13 @@ namespace CafeChain.Migrations
                 filter: "[InventoryConsolidationRunId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "UX_InventoryTransactions_DocumentDetail_Type",
+                table: "InventoryTransactions",
+                columns: new[] { "InventoryDocumentDetailId", "Type" },
+                unique: true,
+                filter: "[InventoryDocumentDetailId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "UX_InventoryTransactions_OrderRefund_Inventory_Type",
                 table: "InventoryTransactions",
                 columns: new[] { "OrderRefundId", "StoreInventoryId", "Type" },
@@ -5594,6 +5967,17 @@ namespace CafeChain.Migrations
                 columns: new[] { "InventoryTransferDetailId", "Type" },
                 unique: true,
                 filter: "[InventoryTransferDetailId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferCostAllocations_InventoryTransferDetailId_SourceInventoryCostLayerId",
+                table: "InventoryTransferCostAllocations",
+                columns: new[] { "InventoryTransferDetailId", "SourceInventoryCostLayerId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferCostAllocations_SourceInventoryCostLayerId",
+                table: "InventoryTransferCostAllocations",
+                column: "SourceInventoryCostLayerId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransferDetails_IngredientId",
@@ -6800,27 +7184,6 @@ namespace CafeChain.Migrations
                 filter: "[RecipeId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_StoreInventorySnapshots_IngredientId",
-                table: "StoreInventorySnapshots",
-                column: "IngredientId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StoreInventorySnapshots_StoreId",
-                table: "StoreInventorySnapshots",
-                column: "StoreId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StoreInventorySnapshots_StoreId_IngredientId",
-                table: "StoreInventorySnapshots",
-                columns: new[] { "StoreId", "IngredientId" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_StoreInventorySnapshots_UpdatedAt",
-                table: "StoreInventorySnapshots",
-                column: "UpdatedAt");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_StoreIPs_StoreId",
                 table: "StoreIPs",
                 column: "StoreId");
@@ -7075,6 +7438,38 @@ namespace CafeChain.Migrations
                 principalTable: "InventoryTransactions",
                 principalColumn: "InventoryTransactionId",
                 onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_BranchReceiptLines_InventoryTransferCostAllocations_SourceTransferCostAllocationId",
+                table: "BranchReceiptLines",
+                column: "SourceTransferCostAllocationId",
+                principalTable: "InventoryTransferCostAllocations",
+                principalColumn: "InventoryTransferCostAllocationId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_InventoryCostAllocations_InventoryCostLayers_InventoryCostLayerId",
+                table: "InventoryCostAllocations",
+                column: "InventoryCostLayerId",
+                principalTable: "InventoryCostLayers",
+                principalColumn: "InventoryCostLayerId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_InventoryCostGapSettlements_InventoryCostLayers_InboundInventoryCostLayerId",
+                table: "InventoryCostGapSettlements",
+                column: "InboundInventoryCostLayerId",
+                principalTable: "InventoryCostLayers",
+                principalColumn: "InventoryCostLayerId",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_InventoryCostLayers_InventoryTransferCostAllocations_SourceTransferCostAllocationId",
+                table: "InventoryCostLayers",
+                column: "SourceTransferCostAllocationId",
+                principalTable: "InventoryTransferCostAllocations",
+                principalColumn: "InventoryTransferCostAllocationId",
+                onDelete: ReferentialAction.Restrict);
         }
 
         /// <inheritdoc />
@@ -7193,6 +7588,10 @@ namespace CafeChain.Migrations
                 table: "InventoryConsolidationRuns");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_InventoryCostLayers_Stores_StoreId",
+                table: "InventoryCostLayers");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_InventoryDocuments_Stores_StoreId",
                 table: "InventoryDocuments");
 
@@ -7249,6 +7648,14 @@ namespace CafeChain.Migrations
                 table: "BranchReceiptLines");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_InventoryCostLayers_Ingredients_IngredientId",
+                table: "InventoryCostLayers");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_InventoryDocumentDetails_Ingredients_IngredientId",
+                table: "InventoryDocumentDetails");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_InventoryTransferDetails_Ingredients_IngredientId",
                 table: "InventoryTransferDetails");
 
@@ -7267,6 +7674,14 @@ namespace CafeChain.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_BranchReceiptLines_InventoryTransactions_InventoryTransactionId",
                 table: "BranchReceiptLines");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_BranchReceiptLines_InventoryTransferCostAllocations_SourceTransferCostAllocationId",
+                table: "BranchReceiptLines");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_InventoryCostLayers_InventoryTransferCostAllocations_SourceTransferCostAllocationId",
+                table: "InventoryCostLayers");
 
             migrationBuilder.DropTable(
                 name: "AccountPermissionOverrides");
@@ -7299,6 +7714,9 @@ namespace CafeChain.Migrations
                 name: "DashboardSummaryDto");
 
             migrationBuilder.DropTable(
+                name: "DocumentNumberCounters");
+
+            migrationBuilder.DropTable(
                 name: "DrinkDefaultToppings");
 
             migrationBuilder.DropTable(
@@ -7320,6 +7738,9 @@ namespace CafeChain.Migrations
                 name: "InventoryCostAllocations");
 
             migrationBuilder.DropTable(
+                name: "InventoryCostGapSettlements");
+
+            migrationBuilder.DropTable(
                 name: "InventoryDebts");
 
             migrationBuilder.DropTable(
@@ -7327,6 +7748,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "InventoryDto");
+
+            migrationBuilder.DropTable(
+                name: "InventoryNegativeApprovalLines");
 
             migrationBuilder.DropTable(
                 name: "InventoryWriterModeTransitions");
@@ -7422,9 +7846,6 @@ namespace CafeChain.Migrations
                 name: "StoreDrinks");
 
             migrationBuilder.DropTable(
-                name: "StoreInventorySnapshots");
-
-            migrationBuilder.DropTable(
                 name: "StoreInventoryWriterConfigurations");
 
             migrationBuilder.DropTable(
@@ -7467,7 +7888,7 @@ namespace CafeChain.Migrations
                 name: "WheelSpins");
 
             migrationBuilder.DropTable(
-                name: "InventoryDocumentDetails");
+                name: "InventoryNegativeCostGaps");
 
             migrationBuilder.DropTable(
                 name: "InventoryDocumentSnapshots");
@@ -7483,9 +7904,6 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "Ratings");
-
-            migrationBuilder.DropTable(
-                name: "SalesCostGaps");
 
             migrationBuilder.DropTable(
                 name: "SalesCostAllocations");
@@ -7515,10 +7933,10 @@ namespace CafeChain.Migrations
                 name: "WheelPrizes");
 
             migrationBuilder.DropTable(
-                name: "InventoryCostLayers");
+                name: "InventoryNegativeApprovals");
 
             migrationBuilder.DropTable(
-                name: "OrderToppings");
+                name: "SalesCostGaps");
 
             migrationBuilder.DropTable(
                 name: "PermissionGroups");
@@ -7528,6 +7946,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "WheelConfigs");
+
+            migrationBuilder.DropTable(
+                name: "OrderToppings");
 
             migrationBuilder.DropTable(
                 name: "OrderDetails");
@@ -7566,16 +7987,22 @@ namespace CafeChain.Migrations
                 name: "InventoryTransactions");
 
             migrationBuilder.DropTable(
-                name: "BranchReceiptLines");
-
-            migrationBuilder.DropTable(
                 name: "InventoryConsolidationRuns");
 
             migrationBuilder.DropTable(
-                name: "InventoryDocuments");
+                name: "StoreInventories");
 
             migrationBuilder.DropTable(
-                name: "InventoryTransferDetails");
+                name: "InventoryTransferCostAllocations");
+
+            migrationBuilder.DropTable(
+                name: "InventoryCostLayers");
+
+            migrationBuilder.DropTable(
+                name: "BranchReceiptLines");
+
+            migrationBuilder.DropTable(
+                name: "InventoryDocumentDetails");
 
             migrationBuilder.DropTable(
                 name: "OrderRefunds");
@@ -7584,10 +8011,13 @@ namespace CafeChain.Migrations
                 name: "ProductionRuns");
 
             migrationBuilder.DropTable(
-                name: "StoreInventories");
+                name: "InventoryTransferDetails");
 
             migrationBuilder.DropTable(
-                name: "Suppliers");
+                name: "InventoryDocuments");
+
+            migrationBuilder.DropTable(
+                name: "Orders");
 
             migrationBuilder.DropTable(
                 name: "InventoryTransfers");
@@ -7596,10 +8026,7 @@ namespace CafeChain.Migrations
                 name: "RestockRequestFulfillments");
 
             migrationBuilder.DropTable(
-                name: "Orders");
-
-            migrationBuilder.DropTable(
-                name: "RestockRequests");
+                name: "Suppliers");
 
             migrationBuilder.DropTable(
                 name: "Customers");
@@ -7617,13 +8044,16 @@ namespace CafeChain.Migrations
                 name: "WorkShifts");
 
             migrationBuilder.DropTable(
-                name: "StockAlerts");
+                name: "RestockRequests");
 
             migrationBuilder.DropTable(
                 name: "MemberLevels");
 
             migrationBuilder.DropTable(
                 name: "PosTerminals");
+
+            migrationBuilder.DropTable(
+                name: "StockAlerts");
 
             migrationBuilder.DropTable(
                 name: "Recipes");

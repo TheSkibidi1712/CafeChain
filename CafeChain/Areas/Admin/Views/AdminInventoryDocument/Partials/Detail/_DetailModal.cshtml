@@ -84,3 +84,43 @@
     </div>
 
 </div>
+
+@if (Model.NegativeApproval != null)
+{
+    <div class="modal-footer inventory-negative-approval-footer">
+        <div class="inventory-negative-approval-summary">
+            <i class="fas fa-shield-halved" aria-hidden="true"></i>
+            <div>
+                <strong>Phê duyệt xuất âm #@Model.NegativeApproval.ApprovalId</strong>
+                <span>Trạng thái: @Model.NegativeApproval.Status</span>
+            </div>
+        </div>
+
+        @if (Model.CanReviewNegativeApproval)
+        {
+            <div class="voucher-approval-actions" data-negative-approval-actions>
+                <button type="button"
+                        class="btn btn-outline-danger btn-reject-negative"
+                        data-document-id="@Model.InventoryDocumentId"
+                        data-url="@Url.Action("RejectNegative", "AdminInventoryDocument", new { area = "Admin", id = Model.InventoryDocumentId })">
+                    <i class="fas fa-xmark"></i>
+                    Từ chối
+                </button>
+                <button type="button"
+                        class="btn btn-success btn-approve-negative"
+                        data-document-id="@Model.InventoryDocumentId"
+                        data-url="@Url.Action("ApproveNegative", "AdminInventoryDocument", new { area = "Admin", id = Model.InventoryDocumentId })">
+                    <i class="fas fa-check"></i>
+                    Duyệt xuất âm
+                </button>
+            </div>
+        }
+        else if (!string.IsNullOrWhiteSpace(Model.NegativeApprovalReviewMessage))
+        {
+            <div class="alert alert-info voucher-approval-message mb-0" role="status">
+                <i class="fas fa-circle-info" aria-hidden="true"></i>
+                <span>@Model.NegativeApprovalReviewMessage</span>
+            </div>
+        }
+    </div>
+}

@@ -50,7 +50,7 @@ public sealed class OllamaClient : IOllamaClient
                 return Failure("Ollama trả về nội dung rỗng.");
 
             _logger.LogInformation("Ollama request completed. Model={Model} Feature={Feature} PayloadSize={PayloadSize} ElapsedMs={ElapsedMs}",
-                _options.Model, "SupplierSuggestion", userPayload.Length, stopwatch.ElapsedMilliseconds);
+                _options.Model, "StructuredSuggestion", userPayload.Length, stopwatch.ElapsedMilliseconds);
             return new OllamaResultDTO { Success = true, Content = content };
         }
         catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)

@@ -105,8 +105,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             await _validationService.ValidateConfirmAsync(document);
 
-            await _snapshotService.CreateSnapshotAsync(document);
-
             var processResult =
                 await _processService.ExecuteProcessAsync(document);
 
@@ -115,6 +113,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             document.ConfirmedBy = confirmedByStaffId;
 
             _repository.UpdateDocument(document);
+
+            await _snapshotService.CreateSnapshotAsync(document);
 
             var log =
                 new AuditLog

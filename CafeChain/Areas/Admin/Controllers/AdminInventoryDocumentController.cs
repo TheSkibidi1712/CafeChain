@@ -10,6 +10,7 @@ using System.Diagnostics;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [AutoValidateAntiforgeryToken]
     public class AdminInventoryDocumentController : AdminBaseController
     {
         private readonly IAdminInventoryDocumentService _service;
@@ -99,11 +100,21 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> StoreExportIngredients(int storeId)
+        public async Task<IActionResult> StoreInventoryIngredients(
+            int storeId,
+            InventoryDocumentType type,
+            InventoryDocumentPurpose purpose = InventoryDocumentPurpose.NONE)
         {
-            var data = await _serviceCreate.GetStoreExportIngredientsAsync(storeId);
+            try
+            {
+                var data = await _serviceCreate.GetStoreInventoryIngredientsAsync(storeId, type, purpose);
 
-            return Json(data);
+                return Json(data);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
         }
 
         [HttpGet]
@@ -134,6 +145,23 @@ namespace CafeChain.Areas.Admin.Controllers
         // AJAX
         // CALCULATE
         // =====================================================
+
+        [HttpPost]
+        public async Task<IActionResult> Preflight([FromBody] CreateInventoryDocumentDTO dto)
+        {
+            try
+            {
+                return Json(new { success = true, preflight = await _serviceCreate.PreflightAsync(dto) });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return UnprocessableEntity(new { success = false, message = ex.Message });
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> Calculate([FromBody] CreateInventoryDocumentDTO dto)
@@ -193,11 +221,16 @@ namespace CafeChain.Areas.Admin.Controllers
                     ex,
                     "Invalid inventory document draft request.");
 
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict while saving inventory document draft.");
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (DbUpdateException ex)
             {
@@ -225,11 +258,11 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         // =====================================================
-        // CREATE
+        // SUBMIT
         // =====================================================
 
         [HttpPost]
-        public async Task<IActionResult> Create([FromBody] CreateInventoryDocumentDTO dto)
+        public async Task<IActionResult> Submit([FromBody] CreateInventoryDocumentDTO dto)
         {
             try
             {
@@ -239,6 +272,8 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     success = true,
                     id = result.DocumentId,
+                    status = result.Status.ToString(),
+                    approvalId = result.ApprovalId,
                     warnings = result.Warnings
                 });
             }
@@ -248,11 +283,16 @@ namespace CafeChain.Areas.Admin.Controllers
                     ex,
                     "Invalid create and confirm inventory document request.");
 
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException ex)
+            {
+                _logger.LogWarning(ex, "Concurrency conflict while submitting inventory document.");
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (DbUpdateException ex)
             {
@@ -325,16 +365,22 @@ namespace CafeChain.Areas.Admin.Controllers
                 {
                     success = true,
                     id = result.DocumentId,
+                    status = result.Status.ToString(),
+                    approvalId = result.ApprovalId,
                     warnings = result.Warnings
                 });
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch (DbUpdateException ex)
             {
@@ -366,6 +412,48 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
         // CANCEL
         // =====================================================
+
+        [HttpPost]
+        public async Task<IActionResult> ApproveNegative(int id, [FromBody] InventoryNegativeReviewDTO dto)
+        {
+            try
+            {
+                return Json(new { success = true, document = await _serviceCreate.ApproveNegativeAsync(id, dto.ReviewNote) });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MutationFailure(ex);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> RejectNegative(int id, [FromBody] InventoryNegativeReviewDTO dto)
+        {
+            try
+            {
+                return Json(new { success = true, document = await _serviceCreate.RejectNegativeAsync(id, dto.ReviewNote ?? string.Empty) });
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return MutationFailure(ex);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> CancelInventoryDocument(int documentId, string? requestKey)
@@ -409,11 +497,15 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (InvalidOperationException ex)
             {
-                return BadRequest(new
-                {
-                    success = false,
-                    message = ex.Message
-                });
+                return MutationFailure(ex);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
             }
             catch
             {
@@ -467,6 +559,27 @@ namespace CafeChain.Areas.Admin.Controllers
             return File(file, contentType, $"InventoryDocument_{dto.DocumentId}.{extension}");
         }
 
+        [HttpGet]
+        public async Task<IActionResult> ExportFile(int id, InventoryDocumentExportType exportType)
+        {
+            var dto = new ExportInventoryDocumentDTO
+            {
+                DocumentId = id,
+                ExportType = exportType
+            };
+            var file = await _service.ExportFileAsync(dto);
+            if (file == null)
+                return UnprocessableEntity("Phiếu chưa CONFIRMED hoặc không có confirmed snapshot.");
+
+            var isPdf = exportType == InventoryDocumentExportType.PDF;
+            return File(
+                file,
+                isPdf
+                    ? "application/pdf"
+                    : "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                $"InventoryDocument_{id}.{(isPdf ? "pdf" : "docx")}");
+        }
+
         private object ErrorResponse(string message, Exception exception)
         {
             var traceId =
@@ -490,6 +603,31 @@ namespace CafeChain.Areas.Admin.Controllers
                 message,
                 traceId
             };
+        }
+
+        private IActionResult MutationFailure(InvalidOperationException exception)
+        {
+            var message = exception.Message;
+            if (message.Contains("IDEMPOTENCY_KEY_REUSED", StringComparison.Ordinal)
+                || message.Contains("CONCURRENCY", StringComparison.Ordinal)
+                || message.Contains("ROW_VERSION", StringComparison.Ordinal)
+                || message.Contains("STALE", StringComparison.Ordinal)
+                || message.Contains("REQUEST_IN_PROGRESS", StringComparison.Ordinal)
+                || message.Contains("REQUEST_PREVIOUSLY_FAILED", StringComparison.Ordinal)
+                || message.Contains("REQUEST_EXPIRED", StringComparison.Ordinal)
+                || message.Contains("REQUEST_KEY_UNAVAILABLE", StringComparison.Ordinal))
+            {
+                return Conflict(new { success = false, message });
+            }
+
+            if (message.Contains("REQUIRED", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("INVALID", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("bắt buộc", StringComparison.OrdinalIgnoreCase))
+            {
+                return BadRequest(new { success = false, message });
+            }
+
+            return UnprocessableEntity(new { success = false, message });
         }
 
     }

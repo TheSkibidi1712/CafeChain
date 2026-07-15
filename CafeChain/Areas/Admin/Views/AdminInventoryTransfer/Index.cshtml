@@ -31,7 +31,10 @@
         </div>
 
         <div class="transfer-header-actions">
-            <a class="transfer-primary-button" href="/Admin/AdminInventoryTransfer/Create">
+            <a class="transfer-primary-button"
+               asp-area="Admin"
+               asp-controller="AdminInventoryTransfer"
+               asp-action="Create">
                 <i class="fas fa-plus"></i>
                 Tạo phiếu chuyển kho
             </a>
@@ -97,7 +100,10 @@
                         Lọc
                     </button>
 
-                    <a class="transfer-ghost-button" href="/Admin/AdminInventoryTransfer/Index">
+                    <a class="transfer-ghost-button"
+                       asp-area="Admin"
+                       asp-controller="AdminInventoryTransfer"
+                       asp-action="Index">
                         <i class="fas fa-rotate-left"></i>
                         Xóa lọc
                     </a>
@@ -165,7 +171,10 @@
                                     <td class="text-end">@item.DetailCount</td>
                                     <td class="text-end">
                                         <a class="transfer-outline-button transfer-table-action"
-                                           href="/Admin/AdminInventoryTransfer/Detail?id=@item.InventoryTransferId">
+                                           asp-area="Admin"
+                                           asp-controller="AdminInventoryTransfer"
+                                           asp-action="Detail"
+                                           asp-route-id="@item.InventoryTransferId">
                                             <i class="fas fa-eye"></i>
                                             Xem
                                         </a>
@@ -179,7 +188,15 @@
 
             <div class="transfer-pagination">
                 <a class="transfer-ghost-button @(Model.Page <= 1 ? "disabled" : "")"
-                   href="/Admin/AdminInventoryTransfer/Index?Page=@previousPage&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&FromStoreId=@Model.FromStoreId&ToStoreId=@Model.ToStoreId">
+                   asp-area="Admin"
+                   asp-controller="AdminInventoryTransfer"
+                   asp-action="Index"
+                   asp-route-Page="@previousPage"
+                   asp-route-PageSize="@Model.PageSize"
+                   asp-route-Keyword="@Model.Keyword"
+                   asp-route-Status="@Model.Status"
+                   asp-route-FromStoreId="@Model.FromStoreId"
+                   asp-route-ToStoreId="@Model.ToStoreId">
                     <i class="fas fa-chevron-left"></i>
                     Trước
                 </a>
@@ -187,7 +204,15 @@
                 <span>Trang @Model.Page / @Model.TotalPages</span>
 
                 <a class="transfer-ghost-button @(Model.Page >= Model.TotalPages ? "disabled" : "")"
-                   href="/Admin/AdminInventoryTransfer/Index?Page=@nextPage&PageSize=@Model.PageSize&Keyword=@Model.Keyword&Status=@Model.Status&FromStoreId=@Model.FromStoreId&ToStoreId=@Model.ToStoreId">
+                   asp-area="Admin"
+                   asp-controller="AdminInventoryTransfer"
+                   asp-action="Index"
+                   asp-route-Page="@nextPage"
+                   asp-route-PageSize="@Model.PageSize"
+                   asp-route-Keyword="@Model.Keyword"
+                   asp-route-Status="@Model.Status"
+                   asp-route-FromStoreId="@Model.FromStoreId"
+                   asp-route-ToStoreId="@Model.ToStoreId">
                     Sau
                     <i class="fas fa-chevron-right"></i>
                 </a>

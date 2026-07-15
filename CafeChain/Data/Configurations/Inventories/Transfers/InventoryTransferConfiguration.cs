@@ -47,6 +47,8 @@ namespace CafeChain.Data.Configurations.Inventories.Transfers
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.RowVersion).IsRowVersion();
+
             entity.HasOne(x => x.FromStore)
                 .WithMany(x => x.FromTransfers)
                 .HasForeignKey(x => x.FromStoreId)

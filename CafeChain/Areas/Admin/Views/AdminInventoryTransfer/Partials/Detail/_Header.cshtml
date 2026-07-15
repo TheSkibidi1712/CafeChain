@@ -25,12 +25,18 @@
     </div>
 
     <div class="transfer-header-actions">
-        <a class="transfer-back-link" href="/Admin/AdminInventoryTransfer/Index">
+        <a class="transfer-back-link"
+           asp-area="Admin"
+           asp-controller="AdminInventoryTransfer"
+           asp-action="Index">
             <i class="fas fa-arrow-left"></i>
             Danh sách phiếu
         </a>
 
-        <a class="transfer-back-link" href="/Admin/AdminInventoryTransfer/Create">
+        <a class="transfer-back-link"
+           asp-area="Admin"
+           asp-controller="AdminInventoryTransfer"
+           asp-action="Create">
             <i class="fas fa-plus"></i>
             Tạo phiếu mới
         </a>

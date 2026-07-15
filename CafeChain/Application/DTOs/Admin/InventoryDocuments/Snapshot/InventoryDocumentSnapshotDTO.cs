@@ -6,6 +6,14 @@
 
         public int InventoryDocumentId { get; set; }
 
+        public CafeChain.Models.Enums.Inventory.InventoryDocumentType Type { get; set; }
+
+        public CafeChain.Models.Enums.Inventory.InventoryDocumentPurpose Purpose { get; set; }
+
+        public CafeChain.Models.Enums.Inventory.InventoryDocumentStatus Status { get; set; }
+
+        public bool CostComplete { get; set; }
+
         public string Code { get; set; }
 
         public DateTime DocumentDate { get; set; }

@@ -5,6 +5,10 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 {
     public class CreateInventoryDocumentDTO
     {
+        public int? DocumentId { get; set; }
+
+        public string? RowVersion { get; set; }
+
         // =====================================================
         // HEADER
         // =====================================================
@@ -22,6 +26,7 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
         public DateTime DocumentDate { get; set; }
 
         public string? Note { get; set; }
+        public string? NegativeReason { get; set; }
 
         public string? RequestKey { get; set; }
 

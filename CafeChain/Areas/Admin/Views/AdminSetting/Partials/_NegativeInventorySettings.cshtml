@@ -1,0 +1,173 @@
+@using CafeChain.Application.DTOs.Admin.Settings
+@model NegativeInventorySettingsDTO
+
+@{
+    const string formId = "negativeInventorySettingsForm";
+    var statusClass = !Model.IsConfigurationValid
+        ? "text-bg-danger"
+        : Model.Enabled ? "text-bg-success" : "text-bg-secondary";
+    var statusText = !Model.IsConfigurationValid
+        ? "Cấu hình lỗi"
+        : Model.Enabled ? "Bật có kiểm soát" : "Đang tắt";
+    var stores = Model.Items
+        .GroupBy(x => new { x.StoreId, x.StoreName })
+        .Select(x => x.Key)
+        .OrderBy(x => x.StoreId)
+        .ToList();
+    Func<decimal, string> formatQuantity = value => value.ToString("#,##0.###");
+    Func<decimal, string> formatInput = value => value.ToString(
+        "0.###",
+        System.Globalization.CultureInfo.InvariantCulture);
+}
+
+<div class="tab-pane fade" id="negative-inventory" role="tabpanel" aria-labelledby="negative-inventory-tab">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                <h5 class="fw-bold mb-0">Xuất âm thủ công</h5>
+                <span class="badge rounded-pill @statusClass">@statusText</span>
+            </div>
+            <p class="text-muted mb-0">
+                Chỉ mở quy trình xin duyệt cho EXPORT với SALE, GIFT, DEBT hoặc SAMPLE; không tự xác nhận phiếu.
+            </p>
+        </div>
+        <div class="form-check form-switch fs-5">
+            <input class="form-check-input" type="checkbox" role="switch"
+                   id="negativeInventoryEnabled" name="Enabled" value="true"
+                   form="@formId" checked="@Model.Enabled" disabled="@(!Model.IsConfigurationValid)" />
+            <input type="hidden" name="Enabled" value="false" form="@formId" />
+            <label class="form-check-label fw-semibold" for="negativeInventoryEnabled">
+                Cho phép gửi yêu cầu xuất âm kho
+            </label>
+        </div>
+    </div>
+
+    @if (!Model.IsConfigurationValid)
+    {
+        <div class="alert alert-danger border-0 shadow-sm">
+            <i class="fas fa-triangle-exclamation me-2"></i>
+            @Model.ConfigurationError
+        </div>
+    }
+
+    <div class="alert alert-warning border-0 shadow-sm">
+        <i class="fas fa-shield-halved me-2"></i>
+        Chỉ bật sau khi SQL Server gate trong <strong>NegativeInventoryAcceptance.md</strong> đã đạt.
+        Hiện có <strong>@Model.PendingApprovalCount</strong> yêu cầu đang chờ; thay đổi policy hoặc hạn mức sẽ làm các yêu cầu đó stale.
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-lg-4">
+            <label class="form-label fw-bold text-muted small text-uppercase">Hạn mức âm mặc định</label>
+            <div class="input-group">
+                <input type="number" min="0" max="999999999999999.999" step="0.001"
+                       class="form-control" name="DefaultMaxNegativeQuantity"
+                       value="@formatInput(Model.DefaultMaxNegativeQuantity)"
+                       form="@formId" disabled="@(!Model.IsConfigurationValid)" />
+                <span class="input-group-text">base unit</span>
+            </div>
+            <div class="form-text">Item có MaxNegativeQty = NULL sẽ dùng giá trị này.</div>
+        </div>
+        <div class="col-lg-4">
+            <label class="form-label fw-bold text-muted small text-uppercase">Maker-checker</label>
+            <input type="text" class="form-control" value="Bắt buộc phê duyệt: true" readonly />
+            <div class="form-text">Không thể tắt yêu cầu phê duyệt từ giao diện.</div>
+        </div>
+        <div class="col-lg-4">
+            <label class="form-label fw-bold text-muted small text-uppercase">Policy version</label>
+            <input type="text" class="form-control font-monospace" value="@Model.PolicyVersion" readonly />
+            <div class="form-text">Server tự tạo version mới khi cấu hình thực sự thay đổi.</div>
+        </div>
+    </div>
+
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-4">
+            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryStoreFilter">Cửa hàng</label>
+            <select id="negativeInventoryStoreFilter" class="form-select">
+                <option value="">Tất cả cửa hàng</option>
+                @foreach (var store in stores)
+                {
+                    <option value="@store.StoreId">#@store.StoreId — @store.StoreName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label fw-bold text-muted small text-uppercase" for="negativeInventoryItemSearch">Tìm item</label>
+            <input id="negativeInventoryItemSearch" type="search" class="form-control" placeholder="Mã, tên hoặc Item ID..." />
+        </div>
+        <div class="col-md-3 text-md-end">
+            <span class="text-muted small"><span id="negativeInventoryVisibleCount">@Model.Items.Count</span> / @Model.Items.Count item</span>
+        </div>
+    </div>
+
+    <div class="table-responsive border rounded-3 bg-white">
+        <table class="table table-hover align-middle mb-0" id="negativeInventoryItemsTable">
+            <thead class="table-light">
+                <tr>
+                    <th>Cửa hàng</th>
+                    <th>Item</th>
+                    <th class="text-end">Tồn</th>
+                    <th style="min-width:180px">Chế độ</th>
+                    <th style="min-width:150px">Hạn mức riêng</th>
+                    <th>Hạn mức hiệu lực</th>
+                    <th>Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @for (var index = 0; index < Model.Items.Count; index++)
+                {
+                    var item = Model.Items[index];
+                    var searchText = $"{item.ItemId} {item.ItemCode} {item.ItemName}".ToLowerInvariant();
+                    <tr class="negative-inventory-item-row" data-store-id="@item.StoreId" data-search="@searchText">
+                        <td>
+                            <div class="fw-semibold">#@item.StoreId</div>
+                            <div class="small text-muted">@item.StoreName</div>
+                        </td>
+                        <td>
+                            <div class="fw-semibold">@item.ItemCode — @item.ItemName</div>
+                            <div class="small text-muted">@item.ItemType #@item.ItemId · base: @item.BaseUnitCode</div>
+                        </td>
+                        <td class="text-end">
+                            <div>@formatQuantity(item.AvailableQty) @item.BaseUnitCode</div>
+                            <div class="small text-muted">Reserved: @formatQuantity(item.ReservedQty)</div>
+                        </td>
+                        <td>
+                            <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
+                            <input type="hidden" name="Items[@index].RowVersion" value="@item.RowVersion" form="@formId" />
+                            <select class="form-select form-select-sm negative-limit-mode"
+                                    name="Items[@index].LimitMode" form="@formId"
+                                    disabled="@(!Model.IsConfigurationValid)">
+                                <option value="@NegativeInventoryLimitModes.Blocked" selected="@(item.LimitMode == NegativeInventoryLimitModes.Blocked)">Chặn</option>
+                                <option value="@NegativeInventoryLimitModes.Default" selected="@(item.LimitMode == NegativeInventoryLimitModes.Default)">Theo mặc định</option>
+                                <option value="@NegativeInventoryLimitModes.Custom" selected="@(item.LimitMode == NegativeInventoryLimitModes.Custom)">Hạn mức riêng</option>
+                            </select>
+                        </td>
+                        <td>
+                            <input type="number" min="0.001" max="999999999999999.999" step="0.001"
+                                   class="form-control form-control-sm negative-custom-limit"
+                                   name="Items[@index].MaxNegativeQuantity"
+                                   value="@(item.MaxNegativeQty.HasValue ? formatInput(item.MaxNegativeQty.Value) : null)"
+                                   form="@formId"
+                                   disabled="@(item.LimitMode != NegativeInventoryLimitModes.Custom || !Model.IsConfigurationValid)" />
+                        </td>
+                        <td>
+                            <strong>@formatQuantity(item.EffectiveMaxNegativeQty)</strong> @item.BaseUnitCode
+                        </td>
+                        <td>
+                            <span class="badge @(item.CanRequestNegative ? "text-bg-success" : "text-bg-secondary")">
+                                @item.EligibilityText
+                            </span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-end border-top pt-4 mt-4">
+        <button type="submit" class="btn btn-danger px-5 py-2 fw-bold rounded-3 shadow-sm"
+                form="@formId" disabled="@(!Model.IsConfigurationValid)">
+            <i class="fas fa-shield-halved me-2"></i>Lưu cấu hình âm kho
+        </button>
+    </div>
+</div>

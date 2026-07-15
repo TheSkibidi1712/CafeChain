@@ -18,6 +18,8 @@ namespace CafeChain.Models.Inventories.Transfers
 
         public decimal Quantity { get; set; }
         public decimal BaseQuantity { get; set; }
+        public decimal DispatchedBaseQuantity { get; set; }
+        public decimal ReceivedBaseQuantity { get; set; }
 
         public decimal? SourceBeforeQty { get; set; }
         public decimal? SourceAfterQty { get; set; }

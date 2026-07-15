@@ -36,8 +36,13 @@ namespace CafeChain.Models.Inventories.Costing
         /// Does not reprice original historical layers.
         /// </summary>
         public int? SourceOrderRefundId { get; set; }
+        public int? SourceInventoryDocumentDetailId { get; set; }
+        public int? SourceBranchReceiptLineId { get; set; }
+        public long? SourceTransferCostAllocationId { get; set; }
 
         public virtual ProductionRun? SourceProductionRun { get; set; }
         public virtual OrderRefund? SourceOrderRefund { get; set; }
+        public virtual CafeChain.Models.Inventories.Stock.BranchReceiptLine? SourceBranchReceiptLine { get; set; }
+        public virtual CafeChain.Models.Inventories.Transfers.InventoryTransferCostAllocation? SourceTransferCostAllocation { get; set; }
     }
 }
