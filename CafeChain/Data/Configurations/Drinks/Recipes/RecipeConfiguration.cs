@@ -83,6 +83,10 @@ namespace CafeChain.Data.Configurations.Drinks.Recipes
 
             entity.HasIndex(x => x.RecipeCode);
             entity.HasIndex(x => new { x.DrinkId, x.SizeId });
+            entity.HasIndex(x => new { x.DrinkId, x.SizeId })
+                .IsUnique()
+                .HasFilter("[DrinkId] IS NOT NULL AND [SizeId] IS NOT NULL AND [ToppingId] IS NULL AND [Active] = 1 AND [Status] = 'Active'")
+                .HasDatabaseName("UX_Recipes_OneActive_Drink_Size");
             entity.HasIndex(x => x.ToppingId);
             entity.HasIndex(x => x.PreparedItemId);
             entity.HasIndex(x => x.OutputUnitId);

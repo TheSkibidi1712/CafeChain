@@ -787,13 +787,12 @@ namespace CafeChain.Tests.POS
             using var ctx = CreateDbContext();
             EnsureUnits(ctx);
             var svc = CreateRecipeService(ctx);
-            // Use a free drink/size pair not already seeded active uniquely — version of drink 1 size 1 ok as create new with different? 
-            // Seed already has drink1 size1. Create still allowed today (no unique). Use drink 1 size 1 still.
+            // Drink 3 / size 2 is an active DrinkSize without an exact seeded Recipe.
             var result = await svc.CreateRecipeAsync(new RecipeCreateVM
             {
                 RecipeType = "POS",
-                DrinkId = 1,
-                SizeId = 1,
+                DrinkId = 3,
+                SizeId = 2,
                 Active = true,
                 EffectiveDate = DateTime.Today,
                 Details = OneIngredientDetail()
