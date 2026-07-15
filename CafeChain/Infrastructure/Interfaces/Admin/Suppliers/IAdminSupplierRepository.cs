@@ -5,8 +5,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.Suppliers
     public interface IAdminSupplierRepository
     {
         // ===== LIST & DETAIL =====
-        Task<List<Supplier>> GetAllAsync(string? search, bool? status);
-        Task<Supplier?> GetByIdAsync(int id);
+        Task<List<Supplier>> GetAllAsync(string? search, bool? status, IReadOnlyCollection<int>? storeScope = null);
+        Task<Supplier?> GetByIdAsync(int id, IReadOnlyCollection<int>? storeScope = null);
 
         // ===== SUPPLIER =====
         Task CreateAsync(Supplier supplier);

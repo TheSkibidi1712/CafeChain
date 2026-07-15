@@ -165,6 +165,7 @@ namespace CafeChain.Data
         public DbSet<SupplierContact> SupplierContacts { get; set; }
         public DbSet<SupplierPhone> SupplierPhones { get; set; }
         public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
+        public DbSet<SupplierStore> SupplierStores { get; set; }
 
         // Transactions
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }

@@ -2,6 +2,7 @@ using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -18,19 +19,24 @@ namespace CafeChain.Areas.Admin.Controllers
             RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse;
         private readonly IAdminSupplierService _service;
         private readonly IAdminActorContextAccessor _actorContext;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
         public AdminSupplierController(
             IAdminSupplierService service,
-            IAdminActorContextAccessor actorContext)
+            IAdminActorContextAccessor actorContext,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _service = service;
             _actorContext = actorContext;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         // ===== INDEX =====
         public async Task<IActionResult> Index(string? search, bool? status)
         {
-            var data = await _service.GetAllAsync(search, status);
+            var storeScope = await ResolveStoreScopeAsync();
+            var data = await _service.GetAllAsync(search, status, storeScope);
+            ViewBag.CanMutateSupplier = CanMutateSupplier();
             return View(data);
         }
 
@@ -38,7 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _service.GetByIdAsync(id);
+            var data = await _service.GetByIdAsync(id, await ResolveStoreScopeAsync());
             if (data == null)
                 return Json(new { success = false, message = "Không tìm thấy nhà cung cấp" });
 
@@ -209,6 +215,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetIngredientOffers(int supplierId)
         {
+            if (!await CanReadSupplierAsync(supplierId))
+                return SupplierScopeDenied();
             var data = await _service.GetIngredientOffersAsync(supplierId);
             return Json(new { success = true, data });
         }
@@ -219,6 +227,8 @@ namespace CafeChain.Areas.Admin.Controllers
             var data = await _service.GetIngredientOfferByIdAsync(id);
             if (data == null)
                 return Json(new { success = false, message = "Không tìm thấy bảng giá gói mua" });
+            if (!await CanReadSupplierAsync(data.SupplierId))
+                return SupplierScopeDenied();
             return Json(new { success = true, data });
         }
 
@@ -290,6 +300,11 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetPriceHistory(int ingredientSupplierId)
         {
+            var offer = await _service.GetIngredientOfferByIdAsync(ingredientSupplierId);
+            if (offer == null)
+                return Json(new { success = false, message = "Không tìm thấy bảng giá gói mua" });
+            if (!await CanReadSupplierAsync(offer.SupplierId))
+                return SupplierScopeDenied();
             var data = await _service.GetIngredientOfferPriceHistoryAsync(ingredientSupplierId);
             return Json(new { success = true, data });
         }
@@ -306,6 +321,80 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var data = await _service.GetContentUnitDropdownAsync();
             return Json(new { success = true, data });
+        }
+
+        // ===================== STORE SCOPE =====================
+
+        [HttpGet]
+        public async Task<IActionResult> GetSupplierStores(int supplierId)
+        {
+            if (!await CanReadSupplierAsync(supplierId))
+                return SupplierScopeDenied();
+
+            var data = await _service.GetSupplierStoresAsync(
+                supplierId,
+                await ResolveStoreScopeAsync());
+            return Json(new { success = true, data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetStoreOptions()
+        {
+            var data = await _service.GetStoreDropdownAsync(await ResolveStoreScopeAsync());
+            return Json(new { success = true, data });
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> SaveSupplierStore([FromBody] AdminSupplierStoreSaveDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu phạm vi cửa hàng không hợp lệ" });
+
+            try
+            {
+                await _service.SaveSupplierStoreAsync(dto);
+                return Json(new { success = true, message = "Đã cập nhật phạm vi cửa hàng" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        private bool CanMutateSupplier() =>
+            User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.AccountantWarehouse);
+
+        private async Task<bool> CanReadSupplierAsync(int supplierId)
+        {
+            var supplier = await _service.GetByIdAsync(supplierId, await ResolveStoreScopeAsync());
+            return supplier != null;
+        }
+
+        private async Task<IReadOnlyCollection<int>?> ResolveStoreScopeAsync()
+        {
+            if (CanMutateSupplier())
+                return null;
+
+            var actor = _actorContext.Get(User);
+            var allowed = await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId);
+            var ids = allowed.Select(x => x.StoreId).ToHashSet();
+
+            if (User.IsInRole(RoleConstants.StoreManager) && actor.StoreId > 0)
+                ids.Add(actor.StoreId);
+
+            return ids.ToList();
+        }
+
+        private JsonResult SupplierScopeDenied()
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Json(new
+            {
+                success = false,
+                message = "Nhà cung cấp không thuộc phạm vi cửa hàng bạn được phép xem."
+            });
         }
 
     }

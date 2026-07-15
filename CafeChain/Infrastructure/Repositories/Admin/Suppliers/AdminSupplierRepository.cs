@@ -15,13 +15,26 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
         }
 
         // ===== GET ALL =====
-        public async Task<List<Supplier>> GetAllAsync(string? search, bool? status)
+        public async Task<List<Supplier>> GetAllAsync(
+            string? search,
+            bool? status,
+            IReadOnlyCollection<int>? storeScope = null)
         {
             var query = _context.Suppliers
                 .Include(x => x.Phones)
                 .Include(x => x.Contacts)
                 .Include(x => x.IngredientSuppliers)
+                .Include(x => x.SupplierStores)
                 .AsQueryable();
+
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return new List<Supplier>();
+
+                query = query.Where(x => x.SupplierStores.Any(ss =>
+                    ss.Active && storeScope.Contains(ss.StoreId)));
+            }
 
             if (!string.IsNullOrWhiteSpace(search))
             {
@@ -38,12 +51,25 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
         }
 
         // ===== GET BY ID (full detail) =====
-        public async Task<Supplier?> GetByIdAsync(int id)
+        public async Task<Supplier?> GetByIdAsync(
+            int id,
+            IReadOnlyCollection<int>? storeScope = null)
         {
-            return await _context.Suppliers
+            var query = _context.Suppliers
                 .Include(x => x.Phones)
                 .Include(x => x.Contacts)
-                .FirstOrDefaultAsync(x => x.SupplierId == id);
+                .Include(x => x.SupplierStores).ThenInclude(x => x.Store)
+                .AsQueryable();
+
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return null;
+                query = query.Where(x => x.SupplierStores.Any(ss =>
+                    ss.Active && storeScope.Contains(ss.StoreId)));
+            }
+
+            return await query.FirstOrDefaultAsync(x => x.SupplierId == id);
         }
 
         // ===== CREATE =====

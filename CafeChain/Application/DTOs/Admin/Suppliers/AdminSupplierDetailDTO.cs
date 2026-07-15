@@ -15,6 +15,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
 
         public List<AdminSupplierPhoneDTO> Phones { get; set; } = new();
         public List<AdminSupplierContactDTO> Contacts { get; set; } = new();
+        public List<AdminSupplierStoreDTO> Stores { get; set; } = new();
     }
 
     public class AdminSupplierPhoneDTO

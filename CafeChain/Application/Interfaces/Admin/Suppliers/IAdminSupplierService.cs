@@ -5,8 +5,13 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
     public interface IAdminSupplierService
     {
         // ===== LIST & DETAIL =====
-        Task<List<AdminSupplierDTO>> GetAllAsync(string? search, bool? status);
-        Task<AdminSupplierDetailDTO?> GetByIdAsync(int id);
+        Task<List<AdminSupplierDTO>> GetAllAsync(
+            string? search,
+            bool? status,
+            IReadOnlyCollection<int>? storeScope = null);
+        Task<AdminSupplierDetailDTO?> GetByIdAsync(
+            int id,
+            IReadOnlyCollection<int>? storeScope = null);
 
         // ===== CRUD MAIN =====
         Task<string> GenerateNextCodeAsync();   // Trả về mã NCC tiếp theo (NCC00001)
@@ -34,5 +39,12 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(int ingredientSupplierId);
         Task<List<object>> GetIngredientDropdownAsync();
         Task<List<object>> GetContentUnitDropdownAsync();
+
+        // ===== STORE SCOPE =====
+        Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
+            int supplierId,
+            IReadOnlyCollection<int>? storeScope = null);
+        Task<List<object>> GetStoreDropdownAsync(IReadOnlyCollection<int>? storeScope = null);
+        Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto);
     }
 }

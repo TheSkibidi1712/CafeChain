@@ -37,6 +37,9 @@ namespace CafeChain.Models.Inventories.Suppliers
         public virtual ICollection<InventoryDocument> InventoryDocuments { get; set; }
             = new List<InventoryDocument>();
 
+        public virtual ICollection<SupplierStore> SupplierStores { get; set; }
+            = new List<SupplierStore>();
+
 
     }
 }

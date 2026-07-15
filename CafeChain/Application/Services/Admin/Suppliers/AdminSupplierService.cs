@@ -29,16 +29,21 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         }
 
         // ===== GET ALL =====
-        public async Task<List<AdminSupplierDTO>> GetAllAsync(string? search, bool? status)
+        public async Task<List<AdminSupplierDTO>> GetAllAsync(
+            string? search,
+            bool? status,
+            IReadOnlyCollection<int>? storeScope = null)
         {
-            var data = await _repo.GetAllAsync(search, status);
+            var data = await _repo.GetAllAsync(search, status, storeScope);
             return data.Select(MapToListDTO).ToList();
         }
 
         // ===== GET BY ID =====
-        public async Task<AdminSupplierDetailDTO?> GetByIdAsync(int id)
+        public async Task<AdminSupplierDetailDTO?> GetByIdAsync(
+            int id,
+            IReadOnlyCollection<int>? storeScope = null)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _repo.GetByIdAsync(id, storeScope);
             if (entity == null) return null;
             return MapToDetailDTO(entity);
         }
@@ -268,7 +273,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 PrimaryPhone = primaryPhone?.PhoneNumber,
                 PrimaryContactName = primaryContact?.Name,
                 PrimaryContactPhone = primaryContact?.PhoneNumber,
-                ActiveOfferCount = x.IngredientSuppliers.Count(o => o.Active)
+                ActiveOfferCount = x.IngredientSuppliers.Count(o => o.Active),
+                ActiveStoreCount = x.SupplierStores.Count(o => o.Active)
             };
         }
 
@@ -301,9 +307,27 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary
-                }).ToList()
+                }).ToList(),
+
+                Stores = x.SupplierStores
+                    .OrderBy(s => s.Store.Name)
+                    .Select(MapSupplierStore)
+                    .ToList()
             };
         }
+
+        private static AdminSupplierStoreDTO MapSupplierStore(SupplierStore x) => new()
+        {
+            SupplierStoreId = x.SupplierStoreId,
+            SupplierId = x.SupplierId,
+            StoreId = x.StoreId,
+            StoreName = x.Store?.Name ?? "",
+            Active = x.Active,
+            LeadTimeOverrideDays = x.LeadTimeOverrideDays,
+            DeliverySchedule = x.DeliverySchedule,
+            Note = x.Note,
+            RowVersion = Convert.ToBase64String(x.RowVersion)
+        };
 
         private static string Normalize(string text) => text?.Trim() ?? "";
 
@@ -641,6 +665,117 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return rows.Cast<object>().ToList();
         }
 
+        // ===== STORE SCOPE =====
+
+        public async Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
+            int supplierId,
+            IReadOnlyCollection<int>? storeScope = null)
+        {
+            var supplierExists = await _context.Suppliers
+                .AsNoTracking()
+                .AnyAsync(x => x.SupplierId == supplierId);
+            if (!supplierExists)
+                throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+            var query = _context.SupplierStores
+                .AsNoTracking()
+                .Include(x => x.Store)
+                .Where(x => x.SupplierId == supplierId);
+
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return new List<AdminSupplierStoreDTO>();
+                query = query.Where(x => storeScope.Contains(x.StoreId));
+            }
+
+            return await query
+                .OrderBy(x => x.Store.Name)
+                .Select(x => new AdminSupplierStoreDTO
+                {
+                    SupplierStoreId = x.SupplierStoreId,
+                    SupplierId = x.SupplierId,
+                    StoreId = x.StoreId,
+                    StoreName = x.Store.Name,
+                    Active = x.Active,
+                    LeadTimeOverrideDays = x.LeadTimeOverrideDays,
+                    DeliverySchedule = x.DeliverySchedule,
+                    Note = x.Note,
+                    RowVersion = Convert.ToBase64String(x.RowVersion)
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<object>> GetStoreDropdownAsync(
+            IReadOnlyCollection<int>? storeScope = null)
+        {
+            var query = _context.Stores.AsNoTracking().Where(x => x.Active);
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return new List<object>();
+                query = query.Where(x => storeScope.Contains(x.StoreId));
+            }
+
+            var stores = await query
+                .OrderBy(x => x.Name)
+                .Select(x => new { storeId = x.StoreId, name = x.Name })
+                .ToListAsync();
+            return stores.Cast<object>().ToList();
+        }
+
+        public async Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto)
+        {
+            var supplierActive = await _context.Suppliers
+                .AnyAsync(x => x.SupplierId == dto.SupplierId && x.Active);
+            if (!supplierActive)
+                throw new InvalidOperationException("Nhà cung cấp không tồn tại hoặc đang ngừng hoạt động.");
+
+            var storeActive = await _context.Stores
+                .AnyAsync(x => x.StoreId == dto.StoreId && x.Active);
+            if (!storeActive)
+                throw new InvalidOperationException("Cửa hàng không tồn tại hoặc đang ngừng hoạt động.");
+
+            var entity = await _context.SupplierStores
+                .FirstOrDefaultAsync(x => x.SupplierId == dto.SupplierId && x.StoreId == dto.StoreId);
+            var now = DateTime.UtcNow;
+            if (entity == null)
+            {
+                entity = new SupplierStore
+                {
+                    SupplierId = dto.SupplierId,
+                    StoreId = dto.StoreId,
+                    CreatedAt = now
+                };
+                _context.SupplierStores.Add(entity);
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+            {
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                    Convert.FromBase64String(dto.RowVersion);
+            }
+
+            entity.Active = dto.Active;
+            entity.LeadTimeOverrideDays = dto.LeadTimeOverrideDays;
+            entity.DeliverySchedule = Clean(dto.DeliverySchedule);
+            entity.Note = Clean(dto.Note);
+            entity.UpdatedAt = now;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "Phạm vi cửa hàng vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
+            catch (DbUpdateException ex) when (IsSupplierStoreUniqueCollision(ex))
+            {
+                throw new InvalidOperationException("Nhà cung cấp đã được gán cho cửa hàng này.");
+            }
+        }
+
         private async Task ClearPrimaryAsync(int ingredientId, int? excludeId)
         {
             var others = await _context.IngredientSuppliers
@@ -652,6 +787,16 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             foreach (var o in others)
                 o.IsPrimary = false;
+        }
+
+        private static bool IsSupplierStoreUniqueCollision(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("SupplierStores", StringComparison.OrdinalIgnoreCase)
+                   && (message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("2627", StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<IngredientSupplier?> LoadOfferTrackedAsync(int id, bool asNoTracking)
