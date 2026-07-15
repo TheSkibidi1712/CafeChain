@@ -80,6 +80,7 @@ namespace CafeChain.Application.DTOs.POS
         public int ToppingId { get; set; }
         public string? Name { get; set; }
         public decimal? Price { get; set; }
+        public decimal? AcceptedPrice { get; set; }
     }
 
     public class OfflinePaymentSnapshotDTO
