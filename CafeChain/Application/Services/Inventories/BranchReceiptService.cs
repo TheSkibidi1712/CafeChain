@@ -76,6 +76,14 @@ namespace CafeChain.Application.Services.Inventories
             if (!createAuth.IsSuccess)
                 return FailDetail(createAuth.Message, createAuth.ErrorCode);
 
+            if (request.SupplierId.HasValue
+                && !await IsSupplierAssignedToStoreAsync(request.SupplierId.Value, request.StoreId))
+            {
+                return FailDetail(
+                    "Nhà cung cấp không hoạt động hoặc chưa được gán cho cửa hàng này.",
+                    BranchReceiptErrorCodes.SupplierNotAssigned);
+            }
+
             var receiptKey = (request.ReceiptKey ?? string.Empty).Trim();
             if (string.IsNullOrEmpty(receiptKey) || receiptKey.Length > 100)
                 return FailDetail("ReceiptKey bắt buộc (tối đa 100 ký tự).", BranchReceiptErrorCodes.ReceiptKeyRequired);
@@ -700,6 +708,119 @@ namespace CafeChain.Application.Services.Inventories
             }
         }
 
+        public async Task<ServiceResult<List<BranchReceiptSupplierOptionDto>>> GetSupplierOptionsAsync(
+            int storeId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            var auth = await AuthorizeReceiptAccessAsync(
+                storeId, actorStaffId, actorStoreId, roleNames, mutation: true);
+            if (!auth.IsSuccess)
+            {
+                return ServiceResult<List<BranchReceiptSupplierOptionDto>>.Failure(
+                    auth.Message,
+                    errorCode: auth.ErrorCode);
+            }
+
+            var rows = await _context.SupplierStores
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId && x.Active && x.Supplier.Active)
+                .OrderBy(x => x.Supplier.Name)
+                .Select(x => new BranchReceiptSupplierOptionDto
+                {
+                    SupplierId = x.SupplierId,
+                    SupplierCode = x.Supplier.Code ?? string.Empty,
+                    SupplierName = x.Supplier.Name ?? string.Empty,
+                    LeadTimeOverrideDays = x.LeadTimeOverrideDays,
+                    DeliverySchedule = x.DeliverySchedule
+                })
+                .ToListAsync();
+
+            return ServiceResult<List<BranchReceiptSupplierOptionDto>>.Success(rows);
+        }
+
+        public async Task<ServiceResult<List<BranchReceiptOfferOptionDto>>> GetOfferOptionsAsync(
+            int storeId,
+            int supplierId,
+            int? restockRequestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            var auth = await AuthorizeReceiptAccessAsync(
+                storeId, actorStaffId, actorStoreId, roleNames, mutation: true);
+            if (!auth.IsSuccess)
+            {
+                return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
+                    auth.Message,
+                    errorCode: auth.ErrorCode);
+            }
+
+            if (!await IsSupplierAssignedToStoreAsync(supplierId, storeId))
+            {
+                return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
+                    "Nhà cung cấp không hoạt động hoặc chưa được gán cho cửa hàng này.",
+                    errorCode: BranchReceiptErrorCodes.SupplierNotAssigned);
+            }
+
+            int? ingredientId = null;
+            if (restockRequestId.HasValue)
+            {
+                var request = await _context.RestockRequests
+                    .AsNoTracking()
+                    .Where(x => x.RestockRequestId == restockRequestId.Value && x.StoreId == storeId)
+                    .Select(x => new { x.IngredientId })
+                    .FirstOrDefaultAsync();
+                if (request == null)
+                {
+                    return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
+                        "Không tìm thấy yêu cầu nhập hàng của cửa hàng.",
+                        errorCode: BranchReceiptErrorCodes.RequestNotFound);
+                }
+                ingredientId = request.IngredientId;
+            }
+
+            var query = _context.IngredientSuppliers
+                .AsNoTracking()
+                .Where(x => x.SupplierId == supplierId
+                            && x.Active
+                            && x.Supplier.Active
+                            && x.Ingredient.Active
+                            && x.PackageQuantity.HasValue
+                            && x.PackageQuantity.Value > 0
+                            && x.CurrentPrice > 0
+                            && x.UnitId > 0);
+            if (ingredientId.HasValue)
+                query = query.Where(x => x.IngredientId == ingredientId.Value);
+            else if (restockRequestId.HasValue)
+                query = query.Where(_ => false);
+
+            var rows = await query
+                .OrderBy(x => x.Ingredient.Name)
+                .ThenByDescending(x => x.IsPrimary)
+                .Select(x => new BranchReceiptOfferOptionDto
+                {
+                    IngredientSupplierId = x.IngredientSupplierId,
+                    SupplierId = x.SupplierId,
+                    IngredientId = x.IngredientId,
+                    IngredientName = x.Ingredient.Name,
+                    PackageUnitId = x.UnitId,
+                    PackageUnitName = x.Unit.Name,
+                    PackageQuantity = x.PackageQuantity!.Value,
+                    PackagePrice = x.CurrentPrice,
+                    MinimumOrderPackageCount = x.MinimumOrderPackageCount ?? 0,
+                    LeadTimeDays = x.LeadTimeDays ?? 0,
+                    PackageDisplay = string.Empty
+                })
+                .ToListAsync();
+
+            foreach (var row in rows)
+                row.PackageDisplay = $"{row.PackageQuantity:0.####} {row.PackageUnitName} / gói";
+
+            return ServiceResult<List<BranchReceiptOfferOptionDto>>.Success(rows);
+        }
+
         private async Task<ServiceResult<(CreateBranchReceiptLineInput Input, RestockRequest Request, decimal BaseQty, int BaseUnitId, decimal UnitCost, decimal LineTotal)>> BuildLineSnapshotAsync(
             CreateBranchReceiptLineInput input,
             int storeId,
@@ -712,10 +833,10 @@ namespace CafeChain.Application.Services.Inventories
                     errorCode: BranchReceiptErrorCodes.RequestNotFound);
             }
 
-            if (input.InputQuantity <= 0 || input.InputUnitId <= 0)
+            if (input.InputQuantity <= 0)
             {
                 return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
-                    "InputQuantity và InputUnitId phải hợp lệ.",
+                    "Số lượng thực nhận phải lớn hơn 0.",
                     errorCode: BranchReceiptErrorCodes.QuantityInvalid);
             }
 
@@ -739,16 +860,105 @@ namespace CafeChain.Application.Services.Inventories
                     errorCode: BranchReceiptErrorCodes.StoreMismatch);
             }
 
+            // New supplier-package path: server owns the purchasing snapshot. Client values
+            // are display hints only and must not override current package identity/price.
+            if (input.IngredientSupplierId.HasValue)
+            {
+                if (!request.IngredientId.HasValue)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        "Gói mua nhà cung cấp chỉ áp dụng cho yêu cầu nguyên liệu.",
+                        errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+                }
+
+                var offer = await _context.IngredientSuppliers
+                    .AsNoTracking()
+                    .Include(x => x.Supplier)
+                    .Include(x => x.Ingredient)
+                    .Include(x => x.Unit)
+                    .FirstOrDefaultAsync(x => x.IngredientSupplierId == input.IngredientSupplierId.Value);
+
+                if (offer == null
+                    || !offer.Active
+                    || !offer.Supplier.Active
+                    || !offer.Ingredient.Active
+                    || !offer.PackageQuantity.HasValue
+                    || offer.PackageQuantity.Value <= 0
+                    || offer.CurrentPrice <= 0
+                    || offer.UnitId <= 0)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        "Gói mua không tồn tại, đã ngừng hoạt động hoặc thiếu quy cách/giá.",
+                        errorCode: BranchReceiptErrorCodes.OfferNotAvailable);
+                }
+
+                if (offer.IngredientId != request.IngredientId.Value)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        "Gói mua không khớp nguyên liệu của yêu cầu nhập.",
+                        errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+                }
+
+                if (headerSupplierId.HasValue && headerSupplierId.Value != offer.SupplierId)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        "Gói mua không thuộc nhà cung cấp trên phiếu nhận.",
+                        errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+                }
+
+                if (!await IsSupplierAssignedToStoreAsync(offer.SupplierId, storeId))
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        "Nhà cung cấp của gói mua chưa được gán cho cửa hàng.",
+                        errorCode: BranchReceiptErrorCodes.SupplierNotAssigned);
+                }
+
+                var minimumPackages = offer.MinimumOrderPackageCount.GetValueOrDefault();
+                if (minimumPackages > 0 && input.InputQuantity < minimumPackages)
+                {
+                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                        $"Số gói nhận phải đạt MOQ tối thiểu {minimumPackages:N0} gói.",
+                        errorCode: BranchReceiptErrorCodes.MinimumOrderNotMet);
+                }
+
+                input.SupplierId = offer.SupplierId;
+                input.InputUnitId = offer.UnitId;
+                input.PackageUnitId = offer.UnitId;
+                input.PackageQuantity = offer.PackageQuantity.Value;
+                input.ActualPackagePrice = offer.CurrentPrice;
+            }
+
+            if (input.InputUnitId <= 0)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Đơn vị nhận không hợp lệ.",
+                    errorCode: BranchReceiptErrorCodes.QuantityInvalid);
+            }
+
             int baseUnitId;
             decimal baseQty;
+            var hasPackageSnapshot = input.PackageQuantity.HasValue && input.PackageQuantity.Value > 0;
+            var physicalQuantity = hasPackageSnapshot
+                ? input.InputQuantity * input.PackageQuantity!.Value
+                : input.InputQuantity;
+            var physicalUnitId = hasPackageSnapshot
+                ? input.PackageUnitId.GetValueOrDefault(input.InputUnitId)
+                : input.InputUnitId;
+
+            if (physicalUnitId <= 0)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Đơn vị nội dung gói mua không hợp lệ.",
+                    errorCode: BranchReceiptErrorCodes.QuantityInvalid);
+            }
 
             if (request.IngredientId.HasValue)
             {
                 baseUnitId = request.Ingredient!.BaseUnitId;
                 var conv = await _unitConversion.ConvertAsync(
                     request.IngredientId.Value,
-                    input.InputQuantity,
-                    input.InputUnitId,
+                    physicalQuantity,
+                    physicalUnitId,
                     baseUnitId);
                 if (!conv.IsSuccess)
                 {
@@ -763,8 +973,8 @@ namespace CafeChain.Application.Services.Inventories
             {
                 baseUnitId = request.PreparedItem!.BaseUnitId;
                 var conv = await _physicalConversion.ConvertAsync(
-                    input.InputQuantity,
-                    input.InputUnitId,
+                    physicalQuantity,
+                    physicalUnitId,
                     baseUnitId);
                 if (!conv.IsSuccess)
                 {
@@ -800,7 +1010,7 @@ namespace CafeChain.Application.Services.Inventories
             decimal unitCost;
             decimal lineTotal;
 
-            if (input.PackageQuantity.HasValue && input.PackageQuantity.Value > 0)
+            if (hasPackageSnapshot)
             {
                 // Package path: InputQuantity packages × package price = line total;
                 // each package has PackageQuantity in package unit → convert content to base if needed.
@@ -826,22 +1036,19 @@ namespace CafeChain.Application.Services.Inventories
                     errorCode: BranchReceiptErrorCodes.ReceiptCostIncomplete);
             }
 
-            // Optional: prefill validation from IngredientSupplier — never re-read CurrentPrice after confirm (snapshot only).
-            if (input.IngredientSupplierId.HasValue)
-            {
-                var offer = await _context.IngredientSuppliers
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(x => x.IngredientSupplierId == input.IngredientSupplierId.Value);
-                if (offer == null || (request.IngredientId.HasValue && offer.IngredientId != request.IngredientId.Value))
-                {
-                    return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
-                        "IngredientSupplier không khớp nguyên liệu yêu cầu.",
-                        errorCode: BranchReceiptErrorCodes.IdentityMismatch);
-                }
-            }
-
             return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Success(
                 (input, request, baseQty, baseUnitId, unitCost, lineTotal));
+        }
+
+        private Task<bool> IsSupplierAssignedToStoreAsync(int supplierId, int storeId)
+        {
+            return _context.SupplierStores
+                .AsNoTracking()
+                .AnyAsync(x => x.SupplierId == supplierId
+                               && x.StoreId == storeId
+                               && x.Active
+                               && x.Supplier.Active
+                               && x.Store.Active);
         }
 
         private async Task<decimal> SumFulfillmentPostingsAsync(int restockRequestId)

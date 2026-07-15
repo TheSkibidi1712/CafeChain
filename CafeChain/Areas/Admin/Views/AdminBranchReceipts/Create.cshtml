@@ -1,7 +1,10 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.CreateBranchReceiptRequest
+@using CafeChain.Application.DTOs.Admin.RestockRequests
 @{
     ViewData["Title"] = "Tạo phiếu nhận hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    var supplierOptions = ViewBag.SupplierOptions as IReadOnlyList<BranchReceiptSupplierOptionDto>
+        ?? Array.Empty<BranchReceiptSupplierOptionDto>();
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -38,8 +41,15 @@
                         <div class="ops-help">Khóa hệ thống dùng để nhận diện thao tác gửi lại; không chỉnh sửa.</div>
                     </div>
                     <div class="col-md-3">
-                        <label class="ops-form-label" asp-for="SupplierId">Mã nhà cung cấp</label>
-                        <input class="ops-input w-100" asp-for="SupplierId" type="number" min="1" placeholder="Không bắt buộc" />
+                        <label class="ops-form-label" asp-for="SupplierId">Nhà cung cấp</label>
+                        <select class="ops-select w-100" asp-for="SupplierId" id="receiptSupplier" required>
+                            <option value="">Chọn nhà cung cấp</option>
+                            @foreach (var supplier in supplierOptions)
+                            {
+                                <option value="@supplier.SupplierId">@supplier.SupplierCode · @supplier.SupplierName</option>
+                            }
+                        </select>
+                        <div class="ops-help">Chỉ hiển thị nhà cung cấp đang được gán cho cửa hàng.</div>
                     </div>
                     <div class="col-md-3">
                         <label class="ops-form-label" asp-for="ReferenceNumber">Số tham chiếu</label>
@@ -68,29 +78,29 @@
                                 <input class="ops-input w-100" asp-for="Lines[i].RestockRequestId" type="number" min="1" required />
                             </div>
                             <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">SL thực nhận <span class="text-danger">*</span></label>
+                                <label class="ops-form-label">Số gói thực nhận <span class="text-danger">*</span></label>
                                 <input class="ops-input w-100" asp-for="Lines[i].InputQuantity" type="number" step="0.001" min="0.001" required />
                             </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Đơn vị nhập <span class="text-danger">*</span></label>
-                                <input class="ops-input w-100" asp-for="Lines[i].InputUnitId" type="number" min="1" required />
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Giá gói/đơn vị <span class="text-danger">*</span></label>
-                                <input class="ops-input w-100" asp-for="Lines[i].ActualPackagePrice" type="number" step="0.01" min="0.01" required />
-                            </div>
-                            <div class="col-lg-1 col-md-6">
-                                <label class="ops-form-label">SL/gói</label>
-                                <input class="ops-input w-100" asp-for="Lines[i].PackageQuantity" type="number" step="0.001" min="0.001" />
-                            </div>
-                            <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Đơn vị gói</label>
-                                <input class="ops-input w-100" asp-for="Lines[i].PackageUnitId" type="number" min="1" />
+                            <div class="col-lg-7 col-md-12">
+                                <label class="ops-form-label">Gói mua nguyên liệu <span class="text-danger">*</span></label>
+                                <select class="ops-select w-100 receipt-offer"
+                                        asp-for="Lines[i].IngredientSupplierId"
+                                        data-line-index="@i"
+                                        data-current-offer="@Model.Lines[i].IngredientSupplierId"
+                                        required>
+                                    <option value="">Nhập mã yêu cầu và chọn nhà cung cấp trước</option>
+                                </select>
+                                <div class="ops-help offer-summary" data-line-index="@i">Giá và quy cách được lấy từ offer hiện hành rồi lưu snapshot trên phiếu.</div>
+                                <input asp-for="Lines[i].InputUnitId" type="hidden" />
+                                <input asp-for="Lines[i].ActualPackagePrice" type="hidden" />
+                                <input asp-for="Lines[i].PackageQuantity" type="hidden" />
+                                <input asp-for="Lines[i].PackageUnitId" type="hidden" />
+                                <input asp-for="Lines[i].SupplierId" type="hidden" />
                             </div>
                         </div>
                     </div>
                 }
-                <div class="ops-notice ops-notice-info mb-0"><strong>Kiểm soát dữ liệu:</strong> giá vốn phải lớn hơn 0 và tổng nhận không được vượt số lượng yêu cầu còn lại.</div>
+                <div class="ops-notice ops-notice-info mb-0"><strong>Kiểm soát dữ liệu:</strong> hệ thống nhân số gói × lượng trong gói, quy đổi về đơn vị tồn kho và lưu giá gói làm snapshot. Tổng nhận không được vượt yêu cầu còn lại.</div>
             </div>
         </section>
 
@@ -100,3 +110,92 @@
         </div>
     </form>
 </main>
+
+<script>
+    (() => {
+        const storeId = @Model.StoreId;
+        const supplier = document.getElementById('receiptSupplier');
+        const money = new Intl.NumberFormat('vi-VN');
+
+        const updateOfferFields = (select) => {
+            const index = select.dataset.lineIndex;
+            const option = select.selectedOptions[0];
+            const summary = document.querySelector(`.offer-summary[data-line-index="${index}"]`);
+            const setValue = (name, value) => {
+                const field = document.querySelector(`[name="Lines[${index}].${name}"]`);
+                if (field) field.value = value ?? '';
+            };
+
+            if (!option?.dataset.offerId) {
+                summary.textContent = 'Chọn một gói mua hợp lệ để hệ thống chụp giá và quy cách.';
+                ['InputUnitId', 'ActualPackagePrice', 'PackageQuantity', 'PackageUnitId', 'SupplierId']
+                    .forEach(name => setValue(name, ''));
+                return;
+            }
+
+            setValue('InputUnitId', option.dataset.unitId);
+            setValue('PackageUnitId', option.dataset.unitId);
+            setValue('PackageQuantity', option.dataset.packageQuantity);
+            setValue('ActualPackagePrice', option.dataset.packagePrice);
+            setValue('SupplierId', supplier.value);
+            summary.textContent = `${option.dataset.packageDisplay} · ${money.format(Number(option.dataset.packagePrice))} đ/gói · MOQ ${option.dataset.moq} gói`;
+        };
+
+        const loadOffers = async (select) => {
+            const index = select.dataset.lineIndex;
+            const requestInput = document.querySelector(`[name="Lines[${index}].RestockRequestId"]`);
+            const supplierId = supplier.value;
+            const requestId = requestInput?.value;
+            select.innerHTML = '<option value="">Đang tải gói mua...</option>';
+            select.disabled = true;
+
+            if (!supplierId || !requestId) {
+                select.innerHTML = '<option value="">Nhập mã yêu cầu và chọn nhà cung cấp trước</option>';
+                select.disabled = false;
+                updateOfferFields(select);
+                return;
+            }
+
+            try {
+                const url = `@Url.Action("OfferOptions", "AdminBranchReceipts", new { area = "Admin" })?storeId=${storeId}&supplierId=${supplierId}&restockRequestId=${requestId}`;
+                const response = await fetch(url, { headers: { 'Accept': 'application/json' } });
+                const payload = await response.json();
+                if (!response.ok || !payload.success) throw new Error(payload.message || 'Không tải được gói mua.');
+
+                select.innerHTML = '<option value="">Chọn gói mua</option>';
+                for (const offer of payload.data ?? []) {
+                    const option = document.createElement('option');
+                    option.value = offer.ingredientSupplierId;
+                    option.textContent = `${offer.ingredientName} · ${offer.packageDisplay} · ${money.format(offer.packagePrice)} đ`;
+                    option.dataset.offerId = offer.ingredientSupplierId;
+                    option.dataset.unitId = offer.packageUnitId;
+                    option.dataset.packageQuantity = offer.packageQuantity;
+                    option.dataset.packagePrice = offer.packagePrice;
+                    option.dataset.packageDisplay = offer.packageDisplay;
+                    option.dataset.moq = offer.minimumOrderPackageCount || 0;
+                    select.appendChild(option);
+                }
+                if ((payload.data ?? []).length === 0) {
+                    select.innerHTML = '<option value="">Không có gói mua active cho nguyên liệu này</option>';
+                } else if (select.dataset.currentOffer) {
+                    select.value = select.dataset.currentOffer;
+                }
+            } catch (error) {
+                select.innerHTML = `<option value="">${error.message}</option>`;
+            } finally {
+                select.disabled = false;
+                updateOfferFields(select);
+            }
+        };
+
+        const offerSelects = [...document.querySelectorAll('.receipt-offer')];
+        supplier?.addEventListener('change', () => offerSelects.forEach(loadOffers));
+        for (const select of offerSelects) {
+            const index = select.dataset.lineIndex;
+            document.querySelector(`[name="Lines[${index}].RestockRequestId"]`)
+                ?.addEventListener('change', () => loadOffers(select));
+            select.addEventListener('change', () => updateOfferFields(select));
+            if (supplier?.value) loadOffers(select);
+        }
+    })();
+</script>

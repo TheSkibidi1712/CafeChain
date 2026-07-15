@@ -29,5 +29,19 @@ namespace CafeChain.Application.Interfaces.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames);
+
+        Task<ServiceResult<List<BranchReceiptSupplierOptionDto>>> GetSupplierOptionsAsync(
+            int storeId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
+
+        Task<ServiceResult<List<BranchReceiptOfferOptionDto>>> GetOfferOptionsAsync(
+            int storeId,
+            int supplierId,
+            int? restockRequestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
     }
 }
