@@ -135,6 +135,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.Profitability.PriceSuggestionService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizePricingService,
                 CafeChain.Application.Services.Admin.Profitability.DrinkSizePricingService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuBackfillPlanner,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuBackfillPlanner>();
 
             // Admin - Toppings
             services.AddScoped<IAdminToppingService, AdminToppingService>();
