@@ -394,7 +394,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     PackageUnitId = entity.UnitId,
                     EffectiveDate = DateTime.UtcNow,
                     IsCurrent = true,
-                    Note = "Khởi tạo gói mua"
+                    Note = "Khởi tạo gói mua",
+                    CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -419,6 +420,10 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.CurrentPrice != dto.CurrentPrice
                 || entity.PackageQuantity != dto.PackageQuantity
                 || entity.UnitId != dto.UnitId;
+
+            if (packageOrPriceChanged)
+                throw new InvalidOperationException(
+                    "Giá hoặc quy cách gói phải được cập nhật bằng chức năng Đổi giá để bảo toàn lịch sử.");
 
             // Require PackageQuantity when:
             // - re-activating, or
@@ -453,26 +458,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 if (dto.IsPrimary)
                     await ClearPrimaryAsync(dto.IngredientId, excludeId: entity.IngredientSupplierId);
-
-                if (packageOrPriceChanged)
-                {
-                    var currentHistories = await _context.Set<IngredientSupplierPriceHistory>()
-                        .Where(h => h.IngredientSupplierId == entity.IngredientSupplierId && h.IsCurrent)
-                        .ToListAsync();
-                    foreach (var h in currentHistories)
-                        h.IsCurrent = false;
-
-                    _context.Set<IngredientSupplierPriceHistory>().Add(new IngredientSupplierPriceHistory
-                    {
-                        IngredientSupplierId = entity.IngredientSupplierId,
-                        Price = dto.CurrentPrice,
-                        PackageQuantity = dto.PackageQuantity,
-                        PackageUnitId = dto.UnitId,
-                        EffectiveDate = DateTime.UtcNow,
-                        IsCurrent = true,
-                        Note = "Cập nhật gói mua / giá"
-                    });
-                }
 
                 entity.IngredientId = dto.IngredientId;
                 entity.SupplierId = dto.SupplierId;
@@ -519,6 +504,103 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             entity.Active = active;
             await _context.SaveChangesAsync();
+        }
+
+        public async Task ChangeIngredientOfferPriceAsync(
+            AdminIngredientSupplierPriceChangeDTO dto,
+            int actorStaffId)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Reason))
+                throw new InvalidOperationException("Lý do đổi giá là bắt buộc.");
+
+            await using var tx = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var entity = await _context.IngredientSuppliers
+                    .SingleOrDefaultAsync(x => x.IngredientSupplierId == dto.IngredientSupplierId)
+                    ?? throw new InvalidOperationException("Không tìm thấy gói cung cấp.");
+
+                if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+                    _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                        Convert.FromBase64String(dto.RowVersion);
+
+                var validation = await _packageValidator.ValidateAsync(
+                    entity.IngredientId,
+                    entity.SupplierId,
+                    dto.PackageUnitId,
+                    dto.PackageQuantity,
+                    dto.PackagePrice,
+                    entity.Active,
+                    requirePackageQuantity: true,
+                    excludeIngredientSupplierId: entity.IngredientSupplierId);
+                if (!validation.IsSuccess)
+                    throw new InvalidOperationException(validation.Message);
+
+                var currentRows = await _context.IngredientSupplierPriceHistories
+                    .Where(x => x.IngredientSupplierId == entity.IngredientSupplierId && x.IsCurrent)
+                    .ToListAsync();
+                foreach (var current in currentRows)
+                    current.IsCurrent = false;
+                await _context.SaveChangesAsync();
+
+                var now = DateTime.UtcNow;
+                _context.IngredientSupplierPriceHistories.Add(new IngredientSupplierPriceHistory
+                {
+                    IngredientSupplierId = entity.IngredientSupplierId,
+                    Price = dto.PackagePrice,
+                    PackageQuantity = dto.PackageQuantity,
+                    PackageUnitId = dto.PackageUnitId,
+                    EffectiveDate = now,
+                    IsCurrent = true,
+                    Note = dto.Reason.Trim(),
+                    CreatedByStaffId = actorStaffId > 0 ? actorStaffId : null,
+                    CreatedAtUtc = now
+                });
+
+                entity.CurrentPrice = dto.PackagePrice;
+                entity.PackageQuantity = dto.PackageQuantity;
+                entity.UnitId = dto.PackageUnitId;
+                entity.UpdatedAt = now;
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await tx.RollbackAsync();
+                throw new InvalidOperationException(
+                    "Gói cung cấp vừa được cập nhật. Vui lòng tải lại trước khi đổi giá.");
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(
+            int ingredientSupplierId)
+        {
+            return await _context.IngredientSupplierPriceHistories
+                .AsNoTracking()
+                .Include(x => x.PackageUnit)
+                .Where(x => x.IngredientSupplierId == ingredientSupplierId)
+                .OrderByDescending(x => x.EffectiveDate)
+                .ThenByDescending(x => x.IngredientSupplierPriceHistoryId)
+                .Select(x => new AdminIngredientSupplierPriceHistoryDTO
+                {
+                    IngredientSupplierPriceHistoryId = x.IngredientSupplierPriceHistoryId,
+                    Price = x.Price,
+                    PackageQuantity = x.PackageQuantity,
+                    PackageUnitId = x.PackageUnitId,
+                    PackageUnitName = x.PackageUnit != null ? x.PackageUnit.Name : "",
+                    EffectiveDateUtc = x.EffectiveDate,
+                    IsCurrent = x.IsCurrent,
+                    Note = x.Note,
+                    CreatedByStaffId = x.CreatedByStaffId,
+                    CreatedAtUtc = x.CreatedAtUtc
+                })
+                .ToListAsync();
         }
 
         public async Task<List<object>> GetIngredientDropdownAsync()

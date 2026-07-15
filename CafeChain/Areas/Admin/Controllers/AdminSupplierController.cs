@@ -1,6 +1,7 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Actor;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,10 +17,14 @@ namespace CafeChain.Areas.Admin.Controllers
         private const string SupplierMutationRoles =
             RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse;
         private readonly IAdminSupplierService _service;
+        private readonly IAdminActorContextAccessor _actorContext;
 
-        public AdminSupplierController(IAdminSupplierService service)
+        public AdminSupplierController(
+            IAdminSupplierService service,
+            IAdminActorContextAccessor actorContext)
         {
             _service = service;
+            _actorContext = actorContext;
         }
 
         // ===== INDEX =====
@@ -260,6 +265,33 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> ChangeIngredientOfferPrice(
+            [FromBody] AdminIngredientSupplierPriceChangeDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu đổi giá không hợp lệ" });
+
+            try
+            {
+                var actor = _actorContext.Get(User);
+                await _service.ChangeIngredientOfferPriceAsync(dto, actor.StaffId);
+                return Json(new { success = true, message = "Đã cập nhật giá và lưu lịch sử" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPriceHistory(int ingredientSupplierId)
+        {
+            var data = await _service.GetIngredientOfferPriceHistoryAsync(ingredientSupplierId);
+            return Json(new { success = true, data });
         }
 
         [HttpGet]

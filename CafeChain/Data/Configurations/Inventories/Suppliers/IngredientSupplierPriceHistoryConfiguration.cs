@@ -33,7 +33,10 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                 .HasColumnType("decimal(18,5)");
 
             entity.Property(x => x.EffectiveDate)
-                .HasDefaultValueSql("GETDATE()");
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(x => x.CreatedAtUtc)
+                .HasDefaultValueSql("GETUTCDATE()");
 
             entity.Property(x => x.IsCurrent)
                 .HasDefaultValue(true);
@@ -52,6 +55,12 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             });
 
             entity.HasIndex(x => x.PackageUnitId);
+
+            entity.HasIndex(x => new { x.IngredientSupplierId, x.IsCurrent })
+                .IsUnique()
+                .HasFilter("[IsCurrent] = 1");
+
+            entity.HasIndex(x => x.CreatedByStaffId);
 
             // ================= RELATION =================
 

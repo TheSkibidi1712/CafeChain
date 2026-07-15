@@ -72,4 +72,38 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
 
         public bool Active { get; set; }
     }
+
+    public class AdminIngredientSupplierPriceChangeDTO
+    {
+        [Required]
+        public int IngredientSupplierId { get; set; }
+
+        [Range(typeof(decimal), "0", "9999999999999999")]
+        public decimal PackagePrice { get; set; }
+
+        [Range(typeof(decimal), "0.00001", "999999999")]
+        public decimal PackageQuantity { get; set; }
+
+        [Required]
+        public int PackageUnitId { get; set; }
+
+        [Required, MaxLength(500)]
+        public string Reason { get; set; } = "";
+
+        public string? RowVersion { get; set; }
+    }
+
+    public class AdminIngredientSupplierPriceHistoryDTO
+    {
+        public int IngredientSupplierPriceHistoryId { get; set; }
+        public decimal Price { get; set; }
+        public decimal? PackageQuantity { get; set; }
+        public int? PackageUnitId { get; set; }
+        public string PackageUnitName { get; set; } = "";
+        public DateTime EffectiveDateUtc { get; set; }
+        public bool IsCurrent { get; set; }
+        public string? Note { get; set; }
+        public int? CreatedByStaffId { get; set; }
+        public DateTime CreatedAtUtc { get; set; }
+    }
 }
