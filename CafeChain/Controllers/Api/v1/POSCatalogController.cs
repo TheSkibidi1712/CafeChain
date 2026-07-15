@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Admin.Profitability;
 using CafeChain.Application.Interfaces.POS;
