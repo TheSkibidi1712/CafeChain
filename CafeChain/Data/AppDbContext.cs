@@ -80,6 +80,10 @@ namespace CafeChain.Data
         public DbSet<Drink> Drinks { get; set; }
         public DbSet<DrinkCategory> DrinkCategories { get; set; }
         public DbSet<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
+        public DbSet<DrinkSizeToppingPolicy> DrinkSizeToppingPolicies { get; set; }
+        public DbSet<DrinkSizeToppingPolicyAudit> DrinkSizeToppingPolicyAudits { get; set; }
+        public DbSet<DrinkSizePriceAudit> DrinkSizePriceAudits { get; set; }
+        public DbSet<PosCatalogState> PosCatalogStates { get; set; }
         public DbSet<DrinkImage> DrinkImages { get; set; }
         public DbSet<DrinkSize> DrinkSizes { get; set; }
         public DbSet<DrinkTopping> DrinkToppings { get; set; }
