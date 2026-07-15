@@ -33,6 +33,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Chỉ Chủ doanh nghiệp được cập nhật chính sách topping mặc định.");
             if (request.QuantityPerDrink <= 0)
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Số lượng topping trên mỗi đồ uống phải lớn hơn 0.");
+            if (request.IsRequired && !request.IsDefaultSelected)
+                return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Topping bắt buộc phải được chọn mặc định.");
             if (!IsValidCombination(request.PriceTreatment, request.CostTreatment))
                 return ServiceResult<DrinkSizeToppingPolicyDto>.Failure("Cặp quy tắc giá bán và giá vốn topping không hợp lệ.");
 
@@ -79,6 +81,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
             entity.DrinkSizeId = request.DrinkSizeId;
             entity.ToppingId = request.ToppingId;
             entity.IsDefaultSelected = request.IsDefaultSelected;
+            entity.IsRequired = request.IsRequired;
             entity.PriceTreatment = request.PriceTreatment;
             entity.CostTreatment = request.CostTreatment;
             entity.QuantityPerDrink = request.QuantityPerDrink;
@@ -132,13 +135,14 @@ namespace CafeChain.Application.Services.Admin.Profitability
         {
             PolicyId = x.DrinkSizeToppingPolicyId, DrinkSizeId = x.DrinkSizeId, ToppingId = x.ToppingId,
             ToppingName = x.Topping?.Name ?? string.Empty, ToppingPrice = x.Topping?.Price ?? 0,
-            IsDefaultSelected = x.IsDefaultSelected, PriceTreatment = x.PriceTreatment, CostTreatment = x.CostTreatment,
+            IsDefaultSelected = x.IsDefaultSelected, IsRequired = x.IsRequired,
+            PriceTreatment = x.PriceTreatment, CostTreatment = x.CostTreatment,
             QuantityPerDrink = x.QuantityPerDrink, IsActive = x.IsActive,
             RowVersion = x.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(x.RowVersion)
         };
 
         private static string Serialize(DrinkSizeToppingPolicy x) => JsonSerializer.Serialize(new
-        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.IsActive });
+        { x.DrinkSizeId, x.ToppingId, x.IsDefaultSelected, x.IsRequired, x.PriceTreatment, x.CostTreatment, x.QuantityPerDrink, x.IsActive });
 
         private static bool IsActiveDuplicate(DbUpdateException ex)
         {

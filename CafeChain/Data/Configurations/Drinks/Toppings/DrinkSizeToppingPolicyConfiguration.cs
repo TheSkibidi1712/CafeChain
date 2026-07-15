@@ -13,12 +13,14 @@ namespace CafeChain.Data.Configurations.Drinks.Toppings
                 table.HasCheckConstraint("CK_DrinkSizeToppingPolicies_Quantity", "[QuantityPerDrink] > 0");
                 table.HasCheckConstraint("CK_DrinkSizeToppingPolicies_PriceTreatment", "[PriceTreatment] IN ('INCLUDED_IN_BASE_PRICE','ADD_TOPPING_PRICE')");
                 table.HasCheckConstraint("CK_DrinkSizeToppingPolicies_CostTreatment", "[CostTreatment] IN ('INCLUDED_IN_DRINK_RECIPE','ADD_TOPPING_RECIPE_COST','DISPLAY_ONLY')");
+                table.HasCheckConstraint("CK_DrinkSizeToppingPolicies_RequiredDefault", "[IsRequired] = 0 OR [IsDefaultSelected] = 1");
             });
 
             entity.HasKey(x => x.DrinkSizeToppingPolicyId);
             entity.Property(x => x.PriceTreatment).IsRequired().HasMaxLength(40);
             entity.Property(x => x.CostTreatment).IsRequired().HasMaxLength(40);
             entity.Property(x => x.QuantityPerDrink).HasColumnType("decimal(18,5)");
+            entity.Property(x => x.IsRequired).HasDefaultValue(false);
             entity.Property(x => x.CreatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();

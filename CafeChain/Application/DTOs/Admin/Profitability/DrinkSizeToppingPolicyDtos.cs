@@ -8,6 +8,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public string ToppingName { get; init; } = string.Empty;
         public decimal ToppingPrice { get; init; }
         public bool IsDefaultSelected { get; init; }
+        public bool IsRequired { get; init; }
         public string PriceTreatment { get; init; } = string.Empty;
         public string CostTreatment { get; init; } = string.Empty;
         public decimal QuantityPerDrink { get; init; }
@@ -21,6 +22,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
         public int DrinkSizeId { get; set; }
         public int ToppingId { get; set; }
         public bool IsDefaultSelected { get; set; }
+        public bool IsRequired { get; set; }
         public string PriceTreatment { get; set; } = string.Empty;
         public string CostTreatment { get; set; } = string.Empty;
         public decimal QuantityPerDrink { get; set; }
