@@ -11,7 +11,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int SupplierId { get; set; }
         public string SupplierName { get; set; } = "";
         public decimal CurrentPrice { get; set; }
-        public decimal PackageQuantity { get; set; }
+        public decimal? PackageQuantity { get; set; }
         public int UnitId { get; set; }
         public string UnitCode { get; set; } = "";
         public string UnitName { get; set; } = "";
@@ -46,7 +46,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int UnitId { get; set; }
 
         [Range(typeof(decimal), "0.00001", "999999999")]
-        public decimal PackageQuantity { get; set; }
+        public decimal? PackageQuantity { get; set; }
 
         [Required]
         public decimal CurrentPrice { get; set; }

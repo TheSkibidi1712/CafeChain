@@ -36,7 +36,8 @@ namespace CafeChain.Tests
                         property.SetColumnType("TEXT");
                     }
 
-                    if (defaultSql?.Contains("SYSUTCDATETIME", StringComparison.OrdinalIgnoreCase) == true)
+                    if (defaultSql?.Contains("SYSUTCDATETIME", StringComparison.OrdinalIgnoreCase) == true
+                        || defaultSql?.Contains("GETUTCDATE", StringComparison.OrdinalIgnoreCase) == true)
                     {
                         property.SetDefaultValueSql("datetime('now')");
                     }

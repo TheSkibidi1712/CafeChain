@@ -372,6 +372,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
         public async Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto)
         {
+            ValidateOfferOperationalTerms(dto);
+
             var requirePackage = dto.Active;
             var validation = await _packageValidator.ValidateAsync(
                 dto.IngredientId,
@@ -440,14 +442,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var entity = await LoadOfferTrackedAsync(dto.IngredientSupplierId.Value, asNoTracking: false)
                 ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
 
+            ValidateOfferOperationalTerms(dto);
+
             var packageOrPriceChanged =
                 entity.CurrentPrice != dto.CurrentPrice
                 || entity.PackageQuantity != dto.PackageQuantity
                 || entity.UnitId != dto.UnitId;
-
-            if (packageOrPriceChanged)
-                throw new InvalidOperationException(
-                    "Giá hoặc quy cách gói phải được cập nhật bằng chức năng Đổi giá để bảo toàn lịch sử.");
 
             // Require PackageQuantity when:
             // - re-activating, or
@@ -482,6 +482,30 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 if (dto.IsPrimary)
                     await ClearPrimaryAsync(dto.IngredientId, excludeId: entity.IngredientSupplierId);
+
+                if (packageOrPriceChanged)
+                {
+                    var currentHistories = await _context.IngredientSupplierPriceHistories
+                        .Where(x => x.IngredientSupplierId == entity.IngredientSupplierId && x.IsCurrent)
+                        .ToListAsync();
+                    foreach (var history in currentHistories)
+                        history.IsCurrent = false;
+
+                    await _context.SaveChangesAsync();
+
+                    var now = DateTime.UtcNow;
+                    _context.IngredientSupplierPriceHistories.Add(new IngredientSupplierPriceHistory
+                    {
+                        IngredientSupplierId = entity.IngredientSupplierId,
+                        Price = dto.CurrentPrice,
+                        PackageQuantity = dto.PackageQuantity,
+                        PackageUnitId = dto.UnitId,
+                        EffectiveDate = now,
+                        IsCurrent = true,
+                        Note = "Cập nhật gói mua / giá",
+                        CreatedAtUtc = now
+                    });
+                }
 
                 entity.IngredientId = dto.IngredientId;
                 entity.SupplierId = dto.SupplierId;
@@ -789,6 +813,15 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 o.IsPrimary = false;
         }
 
+        private static void ValidateOfferOperationalTerms(AdminIngredientSupplierSaveDTO dto)
+        {
+            if (dto.MinimumOrderPackageCount.HasValue && dto.MinimumOrderPackageCount.Value <= 0)
+                throw new InvalidOperationException("MOQ phải là số gói lớn hơn 0.");
+
+            if (dto.LeadTimeDays.HasValue && dto.LeadTimeDays.Value < 0)
+                throw new InvalidOperationException("Thời gian giao hàng không được âm.");
+        }
+
         private static bool IsSupplierStoreUniqueCollision(DbUpdateException ex)
         {
             var message = ex.InnerException?.Message ?? ex.Message;
@@ -829,7 +862,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 SupplierName = x.Supplier?.Name ?? "",
                 CurrentPrice = x.CurrentPrice,
-                PackageQuantity = x.PackageQuantity ?? 0m,
+                PackageQuantity = x.PackageQuantity,
                 UnitId = x.UnitId,
                 UnitCode = unitCode,
                 UnitName = x.Unit?.Name ?? "",
