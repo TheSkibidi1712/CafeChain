@@ -109,6 +109,28 @@ namespace CafeChain.Application.Services.POS
                 .GroupBy(x => x.DrinkId)
                 .ToDictionary(x => x.Key, x => x.Select(y => y.Topping).ToList());
 
+            var drinkSizeIds = menuRows.Select(x => x.DrinkSizeId).Distinct().ToArray();
+            var policiesByDrinkSize = await _context.DrinkSizeToppingPolicies.AsNoTracking()
+                .Where(x => drinkSizeIds.Contains(x.DrinkSizeId) && x.IsActive)
+                .OrderBy(x => x.DrinkSizeId)
+                .ThenBy(x => x.ToppingId)
+                .Select(x => new
+                {
+                    x.DrinkSizeId,
+                    Policy = new POSToppingPolicyDto
+                    {
+                        ToppingId = x.ToppingId,
+                        IsDefaultSelected = x.IsDefaultSelected,
+                        IsRequired = x.IsRequired,
+                        PriceTreatment = x.PriceTreatment,
+                        QuantityPerDrink = x.QuantityPerDrink
+                    }
+                })
+                .ToListAsync(cancellationToken);
+            var toppingPolicies = policiesByDrinkSize
+                .GroupBy(x => x.DrinkSizeId)
+                .ToDictionary(x => x.Key, x => x.Select(y => y.Policy).ToList());
+
             var menuItems = menuRows
                 .GroupBy(x => x.DrinkSize.DrinkId)
                 .Select(group =>
@@ -129,7 +151,9 @@ namespace CafeChain.Application.Services.POS
                             PriceSource = row.GetPriceSource(),
                             IsAvailable = state.IsSellable,
                             AvailabilityStatus = state.OperationalStatus,
-                            AvailabilityReason = state.Reason
+                            AvailabilityReason = state.Reason,
+                            ToppingPolicies = toppingPolicies.GetValueOrDefault(row.DrinkSizeId)
+                                ?? new List<POSToppingPolicyDto>()
                         };
                     }).ToList();
                     var best = sizes.FirstOrDefault(x => x.AvailabilityStatus == StoreMenuAvailabilityStatuses.Available)

@@ -55,7 +55,12 @@ namespace CafeChain.Controllers.Api.v1
             var result = await _orderService.CommitOrderAsync(dto, CurrentStaffId, CurrentStoreId);
 
             if (!result.IsSuccess)
-                return Ok(new { success = false, message = result.Message });
+            {
+                var payload = new { success = false, message = result.Message, errorCode = result.ErrorCode };
+                return POSCatalogSaleErrorCodes.IsConflict(result.ErrorCode)
+                    ? Conflict(payload)
+                    : Ok(payload);
+            }
 
             var orderId = ExtractOrderId(result.Data);
             var requiresPayment = RequiresPaymentResponse(result.Data);
@@ -124,6 +129,12 @@ namespace CafeChain.Controllers.Api.v1
                         {
                             DrinkId = d.ItemId,
                             SizeId = d.SizeId,
+                            StoreMenuItemId = d.StoreMenuItemId,
+                            DrinkSizeId = d.DrinkSizeId,
+                            AcceptedBasePrice = d.AcceptedBasePrice,
+                            AcceptedUnitPrice = d.UnitPrice,
+                            PriceSource = d.PriceSource,
+                            CatalogVersion = d.CatalogVersion,
                             Quantity = d.Quantity,
                             Toppings = d.Toppings ?? new List<POSOrderToppingDto>()
                         }).ToList() ?? new List<POSOrderItemDto>(),
@@ -181,6 +192,7 @@ namespace CafeChain.Controllers.Api.v1
                     {
                         itemResult.Status = "failed";
                         itemResult.Error = commitResult.Message;
+                        itemResult.ErrorCode = commitResult.ErrorCode;
                         failedCount++;
                     }
                 }
@@ -275,6 +287,67 @@ namespace CafeChain.Controllers.Api.v1
 
             if (orderDto.Details == null || !orderDto.Details.Any())
                 return "Giỏ hàng offline trống.";
+
+            if (orderDto.Details.Any(item =>
+                !item.StoreMenuItemId.HasValue
+                || !item.DrinkSizeId.HasValue
+                || !item.SizeId.HasValue
+                || !item.AcceptedBasePrice.HasValue
+                || !item.CatalogVersion.HasValue
+                || string.IsNullOrWhiteSpace(item.PriceSource)
+                || item.Quantity <= 0
+                || item.UnitPrice < 0))
+            {
+                return $"{POSCatalogSaleErrorCodes.SnapshotRequired}: Thiếu snapshot Store Menu cho đơn offline.";
+            }
+
+            var calculatedTotal = orderDto.Details.Sum(item => item.UnitPrice * item.Quantity);
+            if (calculatedTotal != orderDto.TotalAmount
+                || orderDto.Details.Any(item => item.TotalPrice != item.UnitPrice * item.Quantity))
+                return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Tổng đơn offline không khớp snapshot chi tiết.";
+
+            if (orderDto.PaymentSnapshot == null
+                || orderDto.PaymentSnapshot.Amount != orderDto.TotalAmount
+                || orderDto.PaymentSnapshot.ReceivedAmount < orderDto.TotalAmount
+                || orderDto.PaymentSnapshot.ChangeAmount
+                    != orderDto.PaymentSnapshot.ReceivedAmount - orderDto.TotalAmount
+                || orderDto.ReceivedAmount != orderDto.PaymentSnapshot.ReceivedAmount
+                || orderDto.ChangeAmount != orderDto.PaymentSnapshot.ChangeAmount)
+            {
+                return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Snapshot thanh toán offline không hợp lệ.";
+            }
+
+            if (orderDto.CartSnapshot == null || orderDto.CartSnapshot.Count != orderDto.Details.Count)
+                return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Cart snapshot offline không khớp chi tiết đơn.";
+
+            for (var index = 0; index < orderDto.Details.Count; index++)
+            {
+                var detail = orderDto.Details[index];
+                var cart = orderDto.CartSnapshot[index];
+                if (cart.MenuItemId != detail.ItemId
+                    || cart.StoreMenuItemId != detail.StoreMenuItemId
+                    || cart.DrinkSizeId != detail.DrinkSizeId
+                    || cart.SizeId != detail.SizeId
+                    || cart.Quantity != detail.Quantity
+                    || cart.UnitPrice != detail.UnitPrice
+                    || cart.EffectivePrice != detail.AcceptedBasePrice
+                    || cart.CatalogVersion != detail.CatalogVersion
+                    || !string.Equals(cart.PriceSource, detail.PriceSource, StringComparison.Ordinal))
+                {
+                    return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Cart snapshot offline bị thay đổi so với chi tiết đơn.";
+                }
+
+                var detailToppings = (detail.Toppings ?? new List<POSOrderToppingDto>())
+                    .OrderBy(x => x.ToppingId)
+                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice })
+                    .ToArray();
+                var cartToppings = (cart.Toppings ?? new List<OfflineCartSnapshotToppingDTO>())
+                    .OrderBy(x => x.ToppingId)
+                    .Select(x => new { x.ToppingId, Price = x.AcceptedPrice ?? x.Price })
+                    .ToArray();
+                if (!detailToppings.SequenceEqual(cartToppings))
+                    return $"{POSCatalogSaleErrorCodes.SnapshotInvalid}: Topping snapshot offline không khớp.";
+            }
 
             // Soft-removal: reject legacy offline voucher/loyalty payloads (no silent reprice).
             if (!string.IsNullOrWhiteSpace(orderDto.VoucherCode)

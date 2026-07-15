@@ -69,6 +69,12 @@ namespace CafeChain.Application.DTOs.POS
     {
         public int DrinkId { get; set; }
         public int? SizeId { get; set; }
+        public int? StoreMenuItemId { get; set; }
+        public int? DrinkSizeId { get; set; }
+        public decimal? AcceptedBasePrice { get; set; }
+        public decimal? AcceptedUnitPrice { get; set; }
+        public string? PriceSource { get; set; }
+        public long? CatalogVersion { get; set; }
         public int Quantity { get; set; } = 1;
         public string? Note { get; set; }
         public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
@@ -80,6 +86,8 @@ namespace CafeChain.Application.DTOs.POS
     public class POSOrderToppingDto
     {
         public int ToppingId { get; set; }
+        public decimal? AcceptedPrice { get; set; }
+        public string? Name { get; set; }
     }
 
     /// <summary>

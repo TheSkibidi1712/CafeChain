@@ -68,5 +68,16 @@ namespace CafeChain.Application.DTOs.POS
         public string AvailabilityStatus { get; set; } = string.Empty;
 
         public string? AvailabilityReason { get; set; }
+
+        public List<POSToppingPolicyDto> ToppingPolicies { get; set; } = new();
+    }
+
+    public class POSToppingPolicyDto
+    {
+        public int ToppingId { get; set; }
+        public bool IsDefaultSelected { get; set; }
+        public bool IsRequired { get; set; }
+        public string PriceTreatment { get; set; } = string.Empty;
+        public decimal QuantityPerDrink { get; set; }
     }
 }

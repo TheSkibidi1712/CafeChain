@@ -31,6 +31,7 @@ interface OfflineSyncApiResponse {
     status: 'created' | 'duplicate' | 'failed'
     orderId?: number
     error?: string
+    errorCode?: string
   }>
 }
 
@@ -242,12 +243,21 @@ export async function syncPendingOrders(): Promise<number> {
           paymentSnapshot: order.paymentSnapshot,
           details: order.items.map((i) => ({
             itemId: i.menuItemId,
+            storeMenuItemId: i.storeMenuItemId,
+            drinkSizeId: i.drinkSizeId,
             itemName: i.name,
             sizeId: i.sizeId ?? null,
             quantity: i.quantity,
+            acceptedBasePrice: i.effectivePrice,
             unitPrice: i.unitPrice,
+            priceSource: i.priceSource,
+            catalogVersion: i.catalogVersion,
             totalPrice: i.unitPrice * i.quantity,
-            toppings: i.toppings ?? [],
+            toppings: (i.toppings ?? []).map((topping) => ({
+              toppingId: topping.toppingId,
+              name: topping.name,
+              acceptedPrice: topping.acceptedPrice,
+            })),
           })),
         }],
       })
@@ -267,7 +277,9 @@ export async function syncPendingOrders(): Promise<number> {
           await db.cartSyncQueue.update(order.queueId!, {
             syncStatus: 'Failed',
             retryCount: order.retryCount + 1,
-            lastError: result?.error || 'Server rejected order',
+            lastError: result?.errorCode
+              ? `${result.errorCode}: ${result.error || 'Server rejected order'}`
+              : result?.error || 'Server rejected order',
           })
           console.warn(`[OfflineSync] ❌ Order failed: ${order.clientOrderId}`, result?.error)
         }

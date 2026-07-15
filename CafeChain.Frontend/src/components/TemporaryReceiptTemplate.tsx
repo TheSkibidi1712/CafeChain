@@ -41,10 +41,15 @@ export default function TemporaryReceiptTemplate({ order }: TemporaryReceiptTemp
     ? order.cartSnapshot
     : order.items.map((item) => ({
       menuItemId: item.menuItemId,
+      storeMenuItemId: item.storeMenuItemId,
+      drinkSizeId: item.drinkSizeId,
       name: item.name,
       sizeId: item.sizeId,
       quantity: item.quantity,
       unitPrice: item.unitPrice,
+      effectivePrice: item.effectivePrice,
+      priceSource: item.priceSource,
+      catalogVersion: item.catalogVersion,
       note: item.note,
       toppings: item.toppings,
     }))

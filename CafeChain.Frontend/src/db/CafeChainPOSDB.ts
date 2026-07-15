@@ -68,6 +68,15 @@ export interface MenuItemSize {
   isAvailable: boolean
   availabilityStatus: string
   availabilityReason?: string | null
+  toppingPolicies?: ToppingPolicy[]
+}
+
+export interface ToppingPolicy {
+  toppingId: number
+  isDefaultSelected: boolean
+  isRequired: boolean
+  priceTreatment: 'INCLUDED_IN_BASE_PRICE' | 'ADD_TOPPING_PRICE' | string
+  quantityPerDrink: number
 }
 
 export interface CatalogState {
@@ -81,6 +90,11 @@ export interface ToppingOption {
   name: string
   price: number
   imageUrl?: string
+  acceptedPrice?: number
+  isRequired?: boolean
+  isDefaultSelected?: boolean
+  priceTreatment?: string
+  quantityPerDrink?: number
 }
 
 /**
@@ -96,17 +110,23 @@ export interface CartQueueToppingSnapshot {
   toppingId: number
   name?: string
   price?: number
+  acceptedPrice?: number
 }
 
 export interface CartQueueItemSnapshot {
   cartId?: string
   menuItemId: number
+  storeMenuItemId: number
+  drinkSizeId: number
   name: string
   categoryId?: number
   sizeId?: number | null
   sizeName?: string
   quantity: number
   unitPrice: number
+  effectivePrice: number
+  priceSource: string
+  catalogVersion: number
   note?: string
   detailText?: string
   toppings?: CartQueueToppingSnapshot[]
@@ -146,12 +166,17 @@ export interface CartSyncQueueItem {
   /** Danh sách sản phẩm trong đơn */
   items: Array<{
     menuItemId: number
+    storeMenuItemId: number
+    drinkSizeId: number
     name: string
     sizeId?: number | null
     quantity: number
     unitPrice: number
+    effectivePrice: number
+    priceSource: string
+    catalogVersion: number
     note?: string
-    toppings?: Array<{ toppingId: number }>
+    toppings?: Array<{ toppingId: number; name?: string; acceptedPrice: number }>
   }>
   /** Snapshot đầy đủ của giỏ hàng lúc thu ngân bấm thanh toán */
   cartSnapshot: CartQueueItemSnapshot[]

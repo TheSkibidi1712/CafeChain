@@ -13,4 +13,16 @@ namespace CafeChain.Application.Constants
         public static bool IsSellable(string status) =>
             status is Available or LowStock;
     }
+
+    public static class POSCatalogSaleErrorCodes
+    {
+        public const string SnapshotRequired = "CATALOG_SNAPSHOT_REQUIRED";
+        public const string SnapshotInvalid = "CATALOG_SNAPSHOT_INVALID";
+        public const string SnapshotStale = "CATALOG_SNAPSHOT_STALE";
+        public const string ItemUnavailable = "CATALOG_ITEM_UNAVAILABLE";
+        public const string ToppingInvalid = "CATALOG_TOPPING_INVALID";
+
+        public static bool IsConflict(string? errorCode) => errorCode is
+            SnapshotRequired or SnapshotInvalid or SnapshotStale or ItemUnavailable or ToppingInvalid;
+    }
 }

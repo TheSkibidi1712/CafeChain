@@ -30,11 +30,22 @@ async function request<T>(
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => '')
+      let errorData: T | null = null
+      let errorMessage = errorText || response.statusText
+      if (errorText) {
+        try {
+          errorData = JSON.parse(errorText) as T
+          const message = (errorData as { message?: unknown } | null)?.message
+          if (typeof message === 'string' && message.trim()) errorMessage = message
+        } catch {
+          // Non-JSON error bodies remain available as plain text.
+        }
+      }
       return {
-        data: null,
+        data: errorData,
         ok: false,
         status: response.status,
-        error: errorText || response.statusText,
+        error: errorMessage,
       }
     }
 

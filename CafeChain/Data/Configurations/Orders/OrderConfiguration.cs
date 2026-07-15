@@ -123,6 +123,12 @@ namespace CafeChain.Data.Configurations.Orders
             entity.Property(x => x.Price)
                 .HasColumnType("decimal(18,2)");
 
+            entity.Property(x => x.AcceptedBasePrice)
+                .HasColumnType("decimal(18,2)");
+
+            entity.Property(x => x.PriceSource)
+                .HasMaxLength(32);
+
             entity.Property(x => x.Quantity)
                 .IsRequired();
 
@@ -156,10 +162,22 @@ namespace CafeChain.Data.Configurations.Orders
                 .HasForeignKey(x => x.SizeId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            entity.HasOne(x => x.StoreMenuItem)
+                .WithMany()
+                .HasForeignKey(x => x.StoreMenuItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.DrinkSize)
+                .WithMany()
+                .HasForeignKey(x => x.DrinkSizeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // INDEX
             entity.HasIndex(x => x.OrderId);
             entity.HasIndex(x => x.DrinkId);
             entity.HasIndex(x => x.SizeId);
+            entity.HasIndex(x => x.StoreMenuItemId);
+            entity.HasIndex(x => x.DrinkSizeId);
 
            
 
