@@ -309,12 +309,12 @@
 
                 <!-- ━━━ 📦 KHO & CUNG ỨNG ━━━ -->
                 <a href="#collapseInventory" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminInventorydocument,AdminInventoryTransfer,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminInventorydocument,AdminInventoryTransfer,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests")">
+                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests")">
                     <i class="fas fa-warehouse section-icon"></i> Kho & Cung ứng
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminInventorydocument,AdminInventoryTransfer,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
                         <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-circle"></i> Tồn kho cửa hàng</a>
                         <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> Ngưỡng tồn kho</a>
@@ -323,9 +323,21 @@
                         <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>
                         <a asp-area="Admin" asp-controller="AdminIngredient" asp-action="Index" class="@Html.IsActive("AdminIngredient")"><i class="fas fa-circle"></i> Nguyên liệu</a>
                         <a asp-area="Admin" asp-controller="AdminUnitConversion" asp-action="Index" class="@Html.IsActive("AdminUnitConversion")"><i class="fas fa-circle"></i> Đơn vị và quy đổi</a>
+                        <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
+                    </div>
+                </div>
+
+                <!-- ━━━ 📦 Phiếu Kho ━━━ -->
+                <a href="#collapseInventory" data-bs-toggle="collapse"
+                   aria-expanded="@(Html.IsActive("AdminInventorydocument,AdminInventoryTransfer") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer")">
+                    <i class="fas fa-warehouse section-icon"></i> Phiếu Kho
+                    <i class="fas fa-chevron-down chevron"></i>
+                </a>
+                <div class="collapse @Html.IsActive("AdminInventorydocument,AdminInventoryTransfer", cssClass: "show")" id="collapseInventory">
+                    <div class="sidebar-sub">
                         <a asp-area="Admin" asp-controller="AdminInventorydocument" asp-action="Index" class="@Html.IsActive("AdminInventorydocument")"><i class="fas fa-circle"></i> Phiếu kho</a>
                         <a asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Index" class="@Html.IsActive("AdminInventoryTransfer")"><i class="fas fa-circle"></i> Phiếu chuyển kho</a>
-                        <a asp-area="Admin" asp-controller="AdminSupplier" asp-action="Index" class="@Html.IsActive("AdminSupplier")"><i class="fas fa-circle"></i> Nhà cung cấp</a>
                     </div>
                 </div>
 
