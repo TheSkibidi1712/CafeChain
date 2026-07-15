@@ -26,6 +26,7 @@ namespace CafeChain.Tests.POS
     /// Phase 4 (#143) SQL proof: no PinHash column under EnsureCreated model; OTP flows work without PIN schema.
     /// Dedicated DB: CafeChain_OtpSecurityPhase4Tests.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class POSOtpSecurityPhase4SqlServerTests : IAsyncLifetime
     {
         private const string Database = "CafeChain_OtpSecurityPhase4Tests";

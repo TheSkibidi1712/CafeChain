@@ -14,6 +14,7 @@ namespace CafeChain.Tests.POS
     /// EnsureCreated schema must not expose PIN credential column under active model.
     /// Dedicated DB: CafeChain_OtpSecurityPhase3Tests.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class POSOtpSecurityPhase3SqlServerTests : IAsyncLifetime
     {
         private const string Database = "CafeChain_OtpSecurityPhase3Tests";

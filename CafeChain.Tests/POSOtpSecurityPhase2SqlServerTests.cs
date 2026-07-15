@@ -27,6 +27,7 @@ namespace CafeChain.Tests.POS
     /// <summary>
     /// Phase 2 (#141) SQL concurrency — CafeChain_OtpSecurityPhase2Tests.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class POSOtpSecurityPhase2SqlServerTests : IAsyncLifetime
     {
         private const string Database = "CafeChain_OtpSecurityPhase2Tests";

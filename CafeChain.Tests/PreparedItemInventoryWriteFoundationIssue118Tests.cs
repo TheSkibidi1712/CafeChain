@@ -19,7 +19,6 @@ using Xunit;
 
 namespace CafeChain.Tests
 {
-    [Trait("Category", "SqlServerIntegration")]
     public sealed class PreparedItemInventoryWriteFoundationIssue118Tests : IntegrationTestBase
     {
         private const int StoreId = 8118;

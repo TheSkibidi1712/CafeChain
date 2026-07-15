@@ -22,6 +22,7 @@ namespace CafeChain.Tests
     /// Issue #131 — SQL Server proofs for PreparedItem-only create + execute contract.
     /// Dedicated DB: CafeChain_Issue131Tests (not the local CafeChain app DB).
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class ProductionRunIssue131SqlServerTests : IAsyncLifetime
     {
         private const string Database = "CafeChain_Issue131Tests";

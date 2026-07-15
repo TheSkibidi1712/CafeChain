@@ -30,6 +30,7 @@ namespace CafeChain.Tests.POS
     /// Dedicated DB: CafeChain_OtpSecurityPhase1Tests (EnsureDeleted → EnsureCreated).
     /// Critical tests must not skip when SQL Server is available.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class POSOtpSecurityPhase1SqlServerTests : IAsyncLifetime
     {
         private const string Database = "CafeChain_OtpSecurityPhase1Tests";

@@ -23,6 +23,7 @@ namespace CafeChain.Tests
     /// Issue #133 — SQL Server concurrency for sales COGS.
     /// Dedicated DB: CafeChain_Issue133Tests.
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class PosSalesCogsSqlServerIssue133Tests : IAsyncLifetime
     {
         private const string Database = "CafeChain_Issue133Tests";

@@ -22,6 +22,7 @@ namespace CafeChain.Tests
     /// Issue #132 — SQL Server concurrency/valuation proofs.
     /// Dedicated DB: CafeChain_Issue132Tests (never the local operational CafeChain DB).
     /// </summary>
+    [Trait("Category", "SqlServerIntegration")]
     public sealed class ProductionRunValuationSqlServerIssue132Tests : IAsyncLifetime
     {
         private const string Database = "CafeChain_Issue132Tests";

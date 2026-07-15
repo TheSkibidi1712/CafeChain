@@ -30,7 +30,7 @@ jobs:
       run: dotnet build CafeChain/CafeChain.slnx --configuration Release --no-restore
 
     - name: Run tests
-      run: dotnet test CafeChain/CafeChain.slnx --configuration Release --no-build --verbosity normal
+      run: dotnet test CafeChain/CafeChain.slnx --configuration Release --no-build --filter "Category!=SqlServerIntegration" --verbosity normal
 
 # =========================
 # CD JOB
