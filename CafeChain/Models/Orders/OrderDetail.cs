@@ -1,5 +1,6 @@
 ﻿using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Inventory;
+using CafeChain.Models.Stores;
 
 namespace CafeChain.Models.Orders
 {
@@ -11,11 +12,16 @@ namespace CafeChain.Models.Orders
 
         public int DrinkId { get; set; }
         public int? SizeId { get; set; }
+        public int? StoreMenuItemId { get; set; }
+        public int? DrinkSizeId { get; set; }
         public string DrinkName { get; set; }
         public string? SizeName { get; set; }
 
         /// <summary>Selling price authority (DrinkSize + toppings). Not COGS.</summary>
         public decimal Price { get; set; }
+        public decimal? AcceptedBasePrice { get; set; }
+        public string? PriceSource { get; set; }
+        public long? AcceptedCatalogVersion { get; set; }
         public int Quantity { get; set; }
 
         public string Note { get; set; }
@@ -28,6 +34,8 @@ namespace CafeChain.Models.Orders
         public virtual Order Order { get; set; }
         public virtual Size Size { get; set; }
         public virtual Drink Drink { get; set; }
+        public virtual StoreMenuItem? StoreMenuItem { get; set; }
+        public virtual DrinkSize? DrinkSize { get; set; }
         public virtual ICollection<OrderTopping> OrderToppings { get; set; }
     }
 }

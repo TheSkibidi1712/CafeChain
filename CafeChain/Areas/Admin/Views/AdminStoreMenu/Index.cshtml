@@ -1,0 +1,146 @@
+@model CafeChain.ViewModels.Admin.StoreMenu.StoreMenuPageVM
+@{
+    ViewData["Title"] = "Menu cửa hàng";
+}
+
+<link rel="stylesheet" href="~/css/Admin/StoreMenu/store-menu.css" asp-append-version="true" />
+
+<main class="sm-page" id="storeMenuApp"
+      data-can-publish="@Model.CanPublish.ToString().ToLowerInvariant()"
+      data-can-operate="@Model.CanOperate.ToString().ToLowerInvariant()"
+      data-can-override-price="@Model.CanOverridePrice.ToString().ToLowerInvariant()">
+    @Html.AntiForgeryToken()
+
+    <header class="sm-header">
+        <div>
+            <nav aria-label="breadcrumb">Sản phẩm / Menu cửa hàng</nav>
+            <h1>Menu cửa hàng</h1>
+            <p>Quản lý từng SKU đồ uống theo cửa hàng, giá hiệu lực và khả năng bán hiện tại.</p>
+        </div>
+        <a class="sm-link-button" asp-area="Admin" asp-controller="AdminDrinkProfitability" asp-action="Index">
+            <i class="fas fa-chart-line" aria-hidden="true"></i>
+            Xem vốn &amp; lợi nhuận
+        </a>
+    </header>
+
+    <section class="sm-toolbar" aria-label="Bộ lọc menu cửa hàng">
+        <label class="sm-store-filter">
+            <span>Cửa hàng</span>
+            <select id="storeMenuStore" class="sm-control">
+                @foreach (var store in Model.Stores)
+                {
+                    <option value="@store.Id">@store.Name</option>
+                }
+            </select>
+        </label>
+        <label class="sm-search-filter">
+            <span>Tìm SKU</span>
+            <span class="sm-search-box">
+                <i class="fas fa-magnifying-glass" aria-hidden="true"></i>
+                <input id="storeMenuSearch" class="sm-control" type="search" placeholder="Tên, mã đồ uống hoặc size" autocomplete="off" />
+            </span>
+        </label>
+        <label>
+            <span>Trạng thái cấu hình</span>
+            <select id="configuredStatusFilter" class="sm-control">
+                <option value="">Tất cả</option>
+                <option value="DRAFT">Bản nháp</option>
+                <option value="SCHEDULED">Đã lên lịch</option>
+                <option value="ACTIVE">Đang bán</option>
+                <option value="PAUSED">Tạm dừng</option>
+                <option value="ENDED">Đã kết thúc</option>
+            </select>
+        </label>
+        <label>
+            <span>Khả năng bán</span>
+            <select id="operationalStatusFilter" class="sm-control">
+                <option value="">Tất cả</option>
+                <option value="AVAILABLE">Sẵn sàng</option>
+                <option value="LOW_STOCK">Sắp hết</option>
+                <option value="OUT_OF_STOCK">Hết nguyên liệu</option>
+                <option value="RECIPE_INVALID">BOM chưa hợp lệ</option>
+                <option value="TOPPING_UNAVAILABLE">Thiếu topping bắt buộc</option>
+                <option value="STORE_NOT_READY">Cửa hàng chưa sẵn sàng</option>
+            </select>
+        </label>
+        <button type="button" id="refreshStoreMenu" class="sm-icon-button sm-refresh" title="Tải lại menu">
+            <i class="fas fa-rotate" aria-hidden="true"></i>
+        </button>
+    </section>
+
+    <section class="sm-summary" id="storeMenuSummary" hidden>
+        <div><span>Tổng SKU</span><strong id="totalSkuCount">0</strong></div>
+        <div><span>Đang bán</span><strong id="activeSkuCount">0</strong></div>
+        <div><span>Không khả dụng</span><strong id="unavailableSkuCount">0</strong></div>
+        <div><span>Dùng giá riêng</span><strong id="overrideSkuCount">0</strong></div>
+    </section>
+
+    <section class="sm-content" aria-live="polite">
+        <div id="storeMenuLoading" class="sm-state">
+            <div class="sm-skeleton-grid" aria-hidden="true">
+                <span></span><span></span><span></span><span></span>
+            </div>
+            <strong>Đang tải menu cửa hàng...</strong>
+        </div>
+        <div id="storeMenuError" class="sm-state sm-state-error" hidden>
+            <i class="fas fa-triangle-exclamation" aria-hidden="true"></i>
+            <div><strong>Không tải được menu cửa hàng</strong><p id="storeMenuErrorMessage"></p></div>
+            <button type="button" id="retryStoreMenu" class="sm-secondary-button">Thử lại</button>
+        </div>
+        <div id="storeMenuEmpty" class="sm-state" hidden>
+            <i class="fas fa-list-check" aria-hidden="true"></i>
+            <strong id="storeMenuEmptyTitle">Chưa có SKU trong menu cửa hàng.</strong>
+            <p id="storeMenuEmptyMessage">Hãy kiểm tra dữ liệu StoreMenuItem hoặc thay đổi bộ lọc.</p>
+        </div>
+
+        <div class="sm-table-wrap" id="storeMenuTableWrap" hidden>
+            <table class="sm-table">
+                <thead>
+                    <tr>
+                        <th class="sm-order-column">Thứ tự</th>
+                        <th>SKU</th>
+                        <th>Trạng thái</th>
+                        <th class="sm-number">Giá bán</th>
+                        <th class="sm-number">FIFO / Margin</th>
+                        <th>Thời gian hiệu lực</th>
+                        <th class="sm-actions-column">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="storeMenuRows"></tbody>
+            </table>
+        </div>
+    </section>
+
+    <div class="sm-drawer-backdrop" id="storeMenuDrawerBackdrop" hidden></div>
+    <aside class="sm-drawer" id="storeMenuDrawer" aria-hidden="true" aria-labelledby="storeMenuDrawerTitle">
+        <header class="sm-drawer-header">
+            <div><span id="storeMenuDrawerEyebrow">Menu cửa hàng</span><h2 id="storeMenuDrawerTitle">Cập nhật SKU</h2></div>
+            <button type="button" class="sm-icon-button" data-close-drawer title="Đóng"><i class="fas fa-xmark"></i></button>
+        </header>
+        <div class="sm-drawer-body">
+            <section class="sm-drawer-summary" id="storeMenuDrawerSummary"></section>
+            <form id="storeMenuActionForm">
+                <input type="hidden" id="storeMenuActionType" />
+                <div id="storeMenuPriceFields" hidden>
+                    <label><span>Giá riêng tại cửa hàng (VND)</span><input id="storeMenuOverridePrice" class="sm-control" type="number" min="1" step="500" /></label>
+                    <p class="sm-field-note">Để trống khi chọn “Dùng giá toàn hệ thống”.</p>
+                </div>
+                <div id="storeMenuOrderFields" hidden>
+                    <label><span>Thứ tự hiển thị</span><input id="storeMenuDisplayOrder" class="sm-control" type="number" min="0" step="1" /></label>
+                </div>
+                <label><span>Lý do thay đổi</span><textarea id="storeMenuReason" class="sm-control" rows="3" maxlength="500" required></textarea></label>
+                <div id="storeMenuActionError" class="sm-inline-error" hidden></div>
+            </form>
+        </div>
+        <footer class="sm-drawer-footer">
+            <button type="button" class="sm-secondary-button" data-close-drawer>Hủy</button>
+            <button type="submit" form="storeMenuActionForm" id="storeMenuSubmitAction" class="sm-primary-button">Xác nhận</button>
+        </footer>
+    </aside>
+
+    <div id="storeMenuToast" class="sm-toast" role="status" hidden></div>
+</main>
+
+@section Scripts {
+    <script src="~/js/Admin/StoreMenu/store-menu.js" asp-append-version="true"></script>
+}

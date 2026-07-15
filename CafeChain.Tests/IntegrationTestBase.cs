@@ -28,11 +28,18 @@ namespace CafeChain.Tests
                 foreach (var property in entityType.GetProperties())
                 {
                     var columnType = property.GetColumnType();
+                    var defaultSql = property.GetDefaultValueSql();
 
                     // nvarchar(max) → TEXT (SQLite native)
                     if (columnType != null && columnType.Contains("max", StringComparison.OrdinalIgnoreCase))
                     {
                         property.SetColumnType("TEXT");
+                    }
+
+                    if (defaultSql?.Contains("SYSUTCDATETIME", StringComparison.OrdinalIgnoreCase) == true
+                        || defaultSql?.Contains("GETUTCDATE", StringComparison.OrdinalIgnoreCase) == true)
+                    {
+                        property.SetDefaultValueSql("datetime('now')");
                     }
 
                     // SQL Server [Timestamp]/IsRowVersion() tự generate + kiểm tra giá trị,

@@ -28,10 +28,33 @@ export default function ProductModifierModal({
   menuItem,
   onConfirm,
 }: ProductModifierModalProps) {
-  const [size, setSize] = useState<MenuItemSize | null>(menuItem?.sizes?.[0] ?? null)
+  const buildDefaultToppings = (selectedSize: MenuItemSize | null) => {
+    const policies = selectedSize?.toppingPolicies ?? []
+    return (menuItem?.availableToppings ?? [])
+      .filter((topping) => policies.some((policy) =>
+        policy.toppingId === topping.id && (policy.isDefaultSelected || policy.isRequired)))
+      .map((topping) => {
+        const policy = policies.find((item) => item.toppingId === topping.id)
+        const acceptedPrice = policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
+          ? 0
+          : topping.price * (policy?.quantityPerDrink ?? 1)
+        return {
+          ...topping,
+          acceptedPrice,
+          isRequired: policy?.isRequired ?? false,
+          isDefaultSelected: policy?.isDefaultSelected ?? false,
+          priceTreatment: policy?.priceTreatment,
+          quantityPerDrink: policy?.quantityPerDrink ?? 1,
+        }
+      })
+  }
+  const initialSize = menuItem?.sizes?.find((item) => item.isAvailable) ?? menuItem?.sizes?.[0] ?? null
+  const [size, setSize] = useState<MenuItemSize | null>(initialSize)
   const [ice, setIce] = useState<'0%' | '50%' | '100%'>('100%')
   const [sugar, setSugar] = useState<'0%' | '50%' | '100%'>('100%')
-  const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>([])
+  const [selectedToppings, setSelectedToppings] = useState<ToppingOption[]>(
+    () => buildDefaultToppings(initialSize)
+  )
 
   if (!isOpen || !menuItem) return null
 
@@ -41,13 +64,34 @@ export default function ProductModifierModal({
   const handleToppingToggle = (topping: ToppingOption) => {
     setSelectedToppings((prev) => {
       const exists = prev.find((t) => t.id === topping.id)
+      if (exists?.isRequired) return prev
       if (exists) return prev.filter((t) => t.id !== topping.id)
-      return [...prev, topping]
+
+      const policy = size?.toppingPolicies?.find((item) => item.toppingId === topping.id)
+      return [...prev, {
+        ...topping,
+        acceptedPrice: policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
+          ? 0
+          : topping.price * (policy?.quantityPerDrink ?? 1),
+        isRequired: policy?.isRequired ?? false,
+        isDefaultSelected: policy?.isDefaultSelected ?? false,
+        priceTreatment: policy?.priceTreatment,
+        quantityPerDrink: policy?.quantityPerDrink ?? 1,
+      }]
     })
   }
 
+  const handleSizeChange = (option: MenuItemSize) => {
+    if (!option.isAvailable) return
+    setSize(option)
+    setSelectedToppings(buildDefaultToppings(option))
+  }
+
   const basePrice = size?.price ?? menuItem.price
-  const toppingsPrice = selectedToppings.reduce((sum, topping) => sum + topping.price, 0)
+  const toppingsPrice = selectedToppings.reduce(
+    (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
+    0
+  )
   const totalPrice = basePrice + toppingsPrice
   const note = `Đá ${ice}, Đường ${sugar}`
 
@@ -96,8 +140,13 @@ export default function ProductModifierModal({
                   <button
                     key={option.sizeId}
                     type="button"
-                    onClick={() => setSize(option)}
+                    onClick={() => handleSizeChange(option)}
+                    disabled={!option.isAvailable}
+                    title={option.isAvailable ? option.sizeName : (option.availabilityReason ?? 'Tạm hết hàng')}
                     className={`py-2.5 rounded-xl text-xs font-bold border cursor-pointer transition-all ${
+                      !option.isAvailable
+                        ? 'bg-surface-muted border-border text-text-muted opacity-60 cursor-not-allowed'
+                        :
                       size?.sizeId === option.sizeId
                         ? 'bg-brand-orange text-white border-brand-orange shadow-[var(--shadow-button)]'
                         : 'bg-surface border-border text-text-primary hover:bg-brand-orange-light hover:text-brand-orange hover:border-brand-orange-border'
@@ -107,6 +156,11 @@ export default function ProductModifierModal({
                     <span className="block text-[10px] font-semibold mt-0.5">
                       {formatVND(option.price)}
                     </span>
+                    {!option.isAvailable && (
+                      <span className="block text-[9px] font-semibold mt-1">
+                        {option.availabilityReason ?? 'Tạm hết hàng'}
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>
@@ -165,6 +219,12 @@ export default function ProductModifierModal({
               <div className="divide-y divide-border border border-border rounded-xl overflow-hidden bg-surface">
                 {toppings.map((topping) => {
                   const isSelected = !!selectedToppings.find((t) => t.id === topping.id)
+                  const selected = selectedToppings.find((t) => t.id === topping.id)
+                  const policy = size?.toppingPolicies?.find((item) => item.toppingId === topping.id)
+                  const acceptedPrice = policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
+                    ? 0
+                    : topping.price * (policy?.quantityPerDrink ?? 1)
+                  const isRequired = selected?.isRequired ?? policy?.isRequired ?? false
                   return (
                     <label
                       key={topping.id}
@@ -177,14 +237,18 @@ export default function ProductModifierModal({
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleToppingToggle(topping)}
+                          disabled={isRequired}
                           className="w-4 h-4 rounded text-brand-orange accent-brand-orange focus:ring-brand-orange cursor-pointer"
                         />
                         <span className="text-xs font-semibold text-text-primary">
                           {topping.name}
                         </span>
+                        {isRequired && (
+                          <span className="text-[9px] font-bold text-brand-orange">Bắt buộc</span>
+                        )}
                       </div>
                       <span className="text-xs font-bold text-brand-orange">
-                        +{formatVND(topping.price)}
+                        {acceptedPrice === 0 ? 'Đã gồm' : `+${formatVND(acceptedPrice)}`}
                       </span>
                     </label>
                   )

@@ -6,10 +6,8 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int SupplierId { get; set; }
         public string Code { get; set; } = "";
         public string Name { get; set; } = "";
-        public string? TaxCode { get; set; }
-        public string? Website { get; set; }
         public string? Address { get; set; }
-        public decimal DebtAmount { get; set; }
+        public string? Note { get; set; }
         public bool Active { get; set; }
 
         // Số điện thoại chính
@@ -19,8 +17,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string? PrimaryContactName { get; set; }
         public string? PrimaryContactPhone { get; set; }
 
-        // Ngân hàng chính
-        public string? PrimaryBankName { get; set; }
-        public string? PrimaryAccountNumber { get; set; }
+        public int ActiveOfferCount { get; set; }
+        public int ActiveStoreCount { get; set; }
     }
 }

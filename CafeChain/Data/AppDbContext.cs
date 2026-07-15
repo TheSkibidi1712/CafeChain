@@ -5,7 +5,6 @@ using CafeChain.Models.Drinks;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Inventories.Configuration;
 using CafeChain.Models.Inventories.Costing;
-using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
@@ -81,6 +80,10 @@ namespace CafeChain.Data
         public DbSet<Drink> Drinks { get; set; }
         public DbSet<DrinkCategory> DrinkCategories { get; set; }
         public DbSet<DrinkDefaultTopping> DrinkDefaultToppings { get; set; }
+        public DbSet<DrinkSizeToppingPolicy> DrinkSizeToppingPolicies { get; set; }
+        public DbSet<DrinkSizeToppingPolicyAudit> DrinkSizeToppingPolicyAudits { get; set; }
+        public DbSet<DrinkSizePriceAudit> DrinkSizePriceAudits { get; set; }
+        public DbSet<PosCatalogState> PosCatalogStates { get; set; }
         public DbSet<DrinkImage> DrinkImages { get; set; }
         public DbSet<DrinkSize> DrinkSizes { get; set; }
         public DbSet<DrinkTopping> DrinkToppings { get; set; }
@@ -94,6 +97,8 @@ namespace CafeChain.Data
         // ========================= STORE =========================
         public DbSet<Store> Stores { get; set; }
         public DbSet<StoreDrink> StoreDrinks { get; set; }
+        public DbSet<StoreMenuItem> StoreMenuItems { get; set; }
+        public DbSet<StoreMenuItemAudit> StoreMenuItemAudits { get; set; }
         public DbSet<StoreInventory> StoreInventories { get; set; }
         public DbSet<StoreTopping> StoreToppings { get; set; }
         public DbSet<StoreIP> StoreIPs { get; set; }
@@ -123,9 +128,6 @@ namespace CafeChain.Data
         public DbSet<CafeChain.Models.Inventories.Refunds.OrderRefund> OrderRefunds { get; set; }
         public DbSet<CafeChain.Models.Inventories.Refunds.RefundCostReversal> RefundCostReversals { get; set; }
         public DbSet<CafeChain.Models.Inventories.Refunds.RefundCostGap> RefundCostGaps { get; set; }
-
-        // Debts
-        public DbSet<InventoryDebt> InventoryDebts { get; set; }
 
         // Documents
         public DbSet<InventoryDocument> InventoryDocuments { get; set; }
@@ -165,12 +167,11 @@ namespace CafeChain.Data
 
         // Suppliers
         public DbSet<Supplier> Suppliers { get; set; }
-        public DbSet<SupplierBankAccount> SupplierBankAccounts { get; set; }
-        public DbSet<SupplierContactPhone> SupplierContactPhones { get; set; }
         public DbSet<IngredientSupplierPriceHistory> IngredientSupplierPriceHistories { get; set; }
         public DbSet<SupplierContact> SupplierContacts { get; set; }
         public DbSet<SupplierPhone> SupplierPhones { get; set; }
         public DbSet<IngredientSupplier> IngredientSuppliers { get; set; }
+        public DbSet<SupplierStore> SupplierStores { get; set; }
 
         // Transactions
         public DbSet<InventoryTransaction> InventoryTransactions { get; set; }

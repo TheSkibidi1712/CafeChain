@@ -26,6 +26,11 @@ interface CartItem {
   cartId: string
   name: string
   price: number
+  acceptedBasePrice: number
+  storeMenuItemId: number
+  drinkSizeId: number
+  priceSource: string
+  catalogVersion: number
   categoryId: number
   quantity: number
   sizeId?: number | null
@@ -43,6 +48,7 @@ interface ShiftSummary {
 interface POSCommitApiResponse {
   success: boolean
   message?: string
+  errorCode?: string
   data?: {
     orderId?: number
     total?: number
@@ -91,6 +97,37 @@ const formatVND = (amount: number): string =>
 
 const getUnavailableReason = (item: MenuItem): string =>
   item.availabilityReason?.trim() || 'Tạm hết hàng'
+
+const applyToppingPolicy = (
+  topping: ToppingOption,
+  size: NonNullable<MenuItem['sizes']>[number]
+): ToppingOption => {
+  const policy = size.toppingPolicies?.find((item) => item.toppingId === topping.id)
+  return {
+    ...topping,
+    acceptedPrice: policy?.priceTreatment === 'INCLUDED_IN_BASE_PRICE'
+      ? 0
+      : topping.price * (policy?.quantityPerDrink ?? 1),
+    isRequired: policy?.isRequired ?? false,
+    isDefaultSelected: policy?.isDefaultSelected ?? false,
+    priceTreatment: policy?.priceTreatment,
+    quantityPerDrink: policy?.quantityPerDrink ?? 1,
+  }
+}
+
+const getDefaultToppings = (
+  item: MenuItem,
+  size: NonNullable<MenuItem['sizes']>[number]
+): ToppingOption[] => {
+  const defaultIds = new Set(
+    (size.toppingPolicies ?? [])
+      .filter((policy) => policy.isDefaultSelected || policy.isRequired)
+      .map((policy) => policy.toppingId)
+  )
+  return (item.availableToppings ?? [])
+    .filter((topping) => defaultIds.has(topping.id))
+    .map((topping) => applyToppingPolicy(topping, size))
+}
 
 const formatCountdown = (seconds: number): string => {
   const minutes = Math.floor(seconds / 60)
@@ -194,6 +231,32 @@ export default function POSLayout() {
   const hasPosIdentity = !!session.staffId && !!session.storeId
   const hasPendingPayment = pendingPayment !== null
   const isCartLocked = hasPendingPayment
+  const staleCartItems = useMemo(() => {
+    if (isCartLocked) return []
+
+    return cart.filter((line) => {
+      const currentItem = menuItems.find((item) => item.id === line.id)
+      const currentSize = currentItem?.sizes?.find((size) => size.drinkSizeId === line.drinkSizeId)
+      if (!currentItem || !currentSize || !currentSize.isAvailable) return true
+      if (currentItem.catalogVersion !== line.catalogVersion
+        || currentSize.storeMenuItemId !== line.storeMenuItemId
+        || currentSize.price !== line.acceptedBasePrice
+        || currentSize.priceSource !== line.priceSource) return true
+
+      const selectedIds = new Set(line.selectedToppings.map((topping) => topping.id))
+      if ((currentSize.toppingPolicies ?? []).some((policy) => policy.isRequired && !selectedIds.has(policy.toppingId))) {
+        return true
+      }
+
+      return line.selectedToppings.some((selected) => {
+        const current = currentItem.availableToppings?.find((topping) => topping.id === selected.id)
+        if (!current) return true
+        const expected = applyToppingPolicy(current, currentSize)
+        return expected.acceptedPrice !== (selected.acceptedPrice ?? selected.price)
+      })
+    })
+  }, [cart, isCartLocked, menuItems])
+  const hasStaleCart = staleCartItems.length > 0
   const parsedPendingCash = Math.max(0, Number(pendingCashInput) || 0)
   const pendingCashForCart = Math.min(parsedPendingCash, totalAmount)
   const remainingAfterPendingCash = Math.max(0, totalAmount - pendingCashForCart)
@@ -246,6 +309,12 @@ export default function POSLayout() {
       return
     }
 
+    if (!selection.size || !selection.size.isAvailable) {
+      showMessage('Size đã chọn hiện không khả dụng. Vui lòng chọn size khác.')
+      return
+    }
+    const selectedSize = selection.size
+
     const toppingKey = selection.selectedToppings
       .map((topping) => topping.id)
       .sort((a, b) => a - b)
@@ -274,6 +343,11 @@ export default function POSLayout() {
           cartId,
           name: item.name,
           price: selection.totalPrice,
+          acceptedBasePrice: selectedSize.price,
+          storeMenuItemId: selectedSize.storeMenuItemId,
+          drinkSizeId: selectedSize.drinkSizeId,
+          priceSource: selectedSize.priceSource,
+          catalogVersion: item.catalogVersion,
           categoryId: item.categoryId,
           quantity: 1,
           sizeId: selection.size?.sizeId ?? null,
@@ -297,13 +371,22 @@ export default function POSLayout() {
       return
     }
 
-    const defaultSize = item.sizes?.[0] ?? null
+    const defaultSize = item.sizes?.find((size) => size.isAvailable) ?? null
+    if (!defaultSize) {
+      showMessage(`Không thể thêm món: ${getUnavailableReason(item)}.`)
+      return
+    }
+    const defaultToppings = getDefaultToppings(item, defaultSize)
+    const toppingTotal = defaultToppings.reduce(
+      (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
+      0
+    )
     addToCartWithModifiers(item, {
       size: defaultSize,
       ice: '100%',
       sugar: '100%',
-      selectedToppings: [],
-      totalPrice: defaultSize?.price ?? item.price,
+      selectedToppings: defaultToppings,
+      totalPrice: defaultSize.price + toppingTotal,
       note: 'Đá 100%, Đường 100%',
     })
   }
@@ -347,6 +430,59 @@ export default function POSLayout() {
 
     clearCart()
   }, [clearCart, isCartLocked, showMessage])
+
+  const refreshStaleCart = () => {
+    if (isCartLocked || !hasStaleCart) return
+    if (!window.confirm('Catalog hoặc giá bán đã thay đổi. Cập nhật lại các món trong giỏ theo menu mới?')) return
+
+    let unresolvedCount = 0
+    const refreshed = cart.map((line) => {
+      const currentItem = menuItems.find((item) => item.id === line.id)
+      const currentSize = currentItem?.sizes?.find((size) => size.drinkSizeId === line.drinkSizeId)
+      if (!currentItem || !currentSize || !currentSize.isAvailable) {
+        unresolvedCount++
+        return line
+      }
+
+      const selectedIds = new Set(line.selectedToppings.map((topping) => topping.id))
+      const selected = (currentItem.availableToppings ?? [])
+        .filter((topping) => selectedIds.has(topping.id))
+        .map((topping) => applyToppingPolicy(topping, currentSize))
+      const defaults = getDefaultToppings(currentItem, currentSize)
+      const merged = Array.from(
+        new Map([...selected, ...defaults].map((topping) => [topping.id, topping])).values()
+      )
+      const toppingTotal = merged.reduce(
+        (sum, topping) => sum + (topping.acceptedPrice ?? topping.price),
+        0
+      )
+      const toppingNames = merged.map((topping) => topping.name).join(', ')
+
+      return {
+        ...line,
+        name: currentItem.name,
+        price: currentSize.price + toppingTotal,
+        acceptedBasePrice: currentSize.price,
+        storeMenuItemId: currentSize.storeMenuItemId,
+        drinkSizeId: currentSize.drinkSizeId,
+        priceSource: currentSize.priceSource,
+        catalogVersion: currentItem.catalogVersion,
+        sizeId: currentSize.sizeId,
+        sizeName: currentSize.sizeName,
+        selectedToppings: merged,
+        detailText: [
+          `Size ${currentSize.sizeName}`,
+          line.note,
+          toppingNames ? `+${toppingNames}` : '',
+        ].filter(Boolean).join(', '),
+      }
+    })
+
+    setCart(refreshed)
+    showMessage(unresolvedCount > 0
+      ? `Đã cập nhật giá. Còn ${unresolvedCount} món không khả dụng cần xóa hoặc thay thế.`
+      : 'Đã cập nhật giỏ theo catalog mới. Vui lòng kiểm tra lại tổng tiền.')
+  }
 
   const closePaymentModalManually = useCallback(() => {
     showMessage('Đang thanh toán. Hãy hủy giao dịch nếu muốn sửa giỏ.')
@@ -454,30 +590,45 @@ export default function POSLayout() {
   const buildOfflineQueueItems = (items: CartItem[]) =>
     items.map((ci) => ({
       menuItemId: ci.id,
+      storeMenuItemId: ci.storeMenuItemId,
+      drinkSizeId: ci.drinkSizeId,
       name: ci.name,
       sizeId: ci.sizeId ?? null,
       quantity: ci.quantity,
       unitPrice: ci.price,
+      effectivePrice: ci.acceptedBasePrice,
+      priceSource: ci.priceSource,
+      catalogVersion: ci.catalogVersion,
       note: ci.note,
-      toppings: ci.selectedToppings.map((topping) => ({ toppingId: topping.id })),
+      toppings: ci.selectedToppings.map((topping) => ({
+        toppingId: topping.id,
+        name: topping.name,
+        acceptedPrice: topping.acceptedPrice ?? topping.price,
+      })),
     }))
 
   const buildOfflineCartSnapshot = (items: CartItem[]) =>
     items.map((ci) => ({
       cartId: ci.cartId,
       menuItemId: ci.id,
+      storeMenuItemId: ci.storeMenuItemId,
+      drinkSizeId: ci.drinkSizeId,
       name: ci.name,
       categoryId: ci.categoryId,
       sizeId: ci.sizeId ?? null,
       sizeName: ci.sizeName,
       quantity: ci.quantity,
       unitPrice: ci.price,
+      effectivePrice: ci.acceptedBasePrice,
+      priceSource: ci.priceSource,
+      catalogVersion: ci.catalogVersion,
       note: ci.note,
       detailText: ci.detailText,
       toppings: ci.selectedToppings.map((topping) => ({
         toppingId: topping.id,
         name: topping.name,
-        price: topping.price,
+        price: topping.acceptedPrice ?? topping.price,
+        acceptedPrice: topping.acceptedPrice ?? topping.price,
       })),
     }))
 
@@ -554,9 +705,19 @@ export default function POSLayout() {
     items.map((ci) => ({
       drinkId: ci.id,
       sizeId: ci.sizeId,
+      storeMenuItemId: ci.storeMenuItemId,
+      drinkSizeId: ci.drinkSizeId,
+      acceptedBasePrice: ci.acceptedBasePrice,
+      acceptedUnitPrice: ci.price,
+      priceSource: ci.priceSource,
+      catalogVersion: ci.catalogVersion,
       quantity: ci.quantity,
       note: ci.note,
-      toppings: ci.selectedToppings.map((topping) => ({ toppingId: topping.id })),
+      toppings: ci.selectedToppings.map((topping) => ({
+        toppingId: topping.id,
+        name: topping.name,
+        acceptedPrice: topping.acceptedPrice ?? topping.price,
+      })),
     }))
 
   const handlePrintTemporaryReceipt = async () => {
@@ -607,6 +768,10 @@ export default function POSLayout() {
 
   const beginSplitCashFlow = () => {
     if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
+    if (hasStaleCart) {
+      showMessage('Giỏ hàng cần được cập nhật theo catalog mới trước khi thanh toán.')
+      return
+    }
     if (!hasOpenShift) {
       showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
       return
@@ -725,6 +890,10 @@ export default function POSLayout() {
 
   const openCashPaymentConfirmation = () => {
     if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
+    if (hasStaleCart) {
+      showMessage('Giỏ hàng cần được cập nhật theo catalog mới trước khi thanh toán.')
+      return
+    }
     if (!hasOpenShift) {
       showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
       return
@@ -855,6 +1024,10 @@ export default function POSLayout() {
     }
 
     if (checkoutInFlightRef.current || cart.length === 0 || hasPendingPayment) return
+    if (hasStaleCart) {
+      showMessage('Giỏ hàng cần được cập nhật theo catalog mới trước khi thanh toán.')
+      return
+    }
     if (!hasOpenShift) {
       showMessage('Bạn cần mở ca làm việc trước khi thanh toán.')
       return
@@ -1155,6 +1328,22 @@ export default function POSLayout() {
           </div>
         </div>
 
+        {hasStaleCart && !isCartLocked && (
+          <div className="mx-4 mt-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-amber-900">
+            <p className="text-[11px] font-extrabold">Catalog hoặc giá bán đã thay đổi</p>
+            <p className="mt-0.5 text-[10px] font-semibold leading-4">
+              Có {staleCartItems.length} món cần kiểm tra lại trước khi thanh toán.
+            </p>
+            <button
+              type="button"
+              onClick={refreshStaleCart}
+              className="mt-2 rounded-md border border-amber-400 bg-white px-2.5 py-1.5 text-[10px] font-extrabold text-amber-900 hover:bg-amber-100 transition-colors cursor-pointer"
+            >
+              Cập nhật và xác nhận lại
+            </button>
+          </div>
+        )}
+
         <div className="flex-1 overflow-y-auto px-4 py-2">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-text-muted">
@@ -1380,7 +1569,7 @@ export default function POSLayout() {
           <div className="flex gap-2">
             <button
               onClick={() => handleCheckout('cash')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || cashConfirmation !== null}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || cashConfirmation !== null}
               className="flex-1 py-3 rounded-xl bg-brand-orange text-white font-bold text-sm shadow-[var(--shadow-button)] hover:bg-brand-orange-hover active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (
@@ -1394,7 +1583,7 @@ export default function POSLayout() {
             </button>
             <button
               onClick={() => handleCheckout('banking')}
-              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || !isOnline || cashConfirmation !== null}
+              disabled={cart.length === 0 || isCheckingOut || !hasOpenShift || hasPendingPayment || hasStaleCart || !isOnline || cashConfirmation !== null}
               className="flex-1 py-3 rounded-xl bg-text-primary text-white font-bold text-sm hover:bg-gray-700 active:scale-[0.98] transition-all duration-150 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {isCheckingOut ? (

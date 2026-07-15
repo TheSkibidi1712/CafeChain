@@ -18,6 +18,13 @@ namespace CafeChain.Data.Configurations.Drinks.Sizes
             entity.Property(x => x.Active)
                 .HasDefaultValue(true);
 
+            entity.Property(x => x.UpdatedAtUtc)
+                .HasDefaultValueSql("SYSUTCDATETIME()");
+
+            entity.Property(x => x.RowVersion)
+                .IsRowVersion()
+                .IsConcurrencyToken();
+
             entity.HasOne(x => x.Drink)
                 .WithMany(x => x.DrinkSizes)
                 .HasForeignKey(x => x.DrinkId)

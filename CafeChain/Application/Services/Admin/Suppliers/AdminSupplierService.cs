@@ -29,18 +29,23 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         }
 
         // ===== GET ALL =====
-        public async Task<List<AdminSupplierDTO>> GetAllAsync(string? search, bool? status)
+        public async Task<List<AdminSupplierDTO>> GetAllAsync(
+            string? search,
+            bool? status,
+            IReadOnlyCollection<int>? storeScope = null)
         {
-            var data = await _repo.GetAllAsync(search, status);
+            var data = await _repo.GetAllAsync(search, status, storeScope);
             return data.Select(MapToListDTO).ToList();
         }
 
         // ===== GET BY ID =====
-        public async Task<AdminSupplierDetailDTO?> GetByIdAsync(int id)
+        public async Task<AdminSupplierDetailDTO?> GetByIdAsync(
+            int id,
+            IReadOnlyCollection<int>? storeScope = null)
         {
-            var entity = await _repo.GetByIdAsync(id);
+            var entity = await _repo.GetByIdAsync(id, storeScope);
             if (entity == null) return null;
-            return await MapToDetailDTOAsync(entity);
+            return MapToDetailDTO(entity);
         }
 
         // ===== GENERATE NEXT CODE =====
@@ -53,23 +58,15 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         public async Task<int> CreateAsync(AdminSupplierCreateDTO dto)
         {
             dto.Name = Normalize(dto.Name);
-
-            // Sinh mã tự động
-            var code = await _repo.GenerateNextCodeAsync();
-
-            // Ghép địa chỉ đầy đủ từ 3 cấp
-            string? fullAddress = await BuildFullAddressAsync(
-                dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
-
             var supplier = new Supplier
             {
-                Code = code,
+                Code = await _repo.GenerateNextCodeAsync(),
                 Name = dto.Name,
-                TaxCode = dto.TaxCode?.Trim(),
-                Website = dto.Website?.Trim(),
-                Address = fullAddress,
-                DebtAmount = 0,
+                Address = Clean(dto.Address),
+                Note = Clean(dto.Note),
                 Active = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow,
 
                 // Số điện thoại chính
                 Phones = new List<SupplierPhone>
@@ -81,25 +78,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     }
                 },
 
-                // Tài khoản ngân hàng chính
-                BankAccounts = new List<SupplierBankAccount>
-                {
-                    new SupplierBankAccount
-                    {
-                        BankName      = dto.PrimaryBankName.Trim(),
-                        AccountNumber = dto.PrimaryAccountNumber.Trim(),
-                        AccountHolder = dto.PrimaryAccountHolder.Trim(),
-                        IsPrimary     = true
-                    }
-                },
-
                 // Thông tin liên hệ chính
                 Contacts = new List<SupplierContact>
                 {
                     new SupplierContact
                     {
                         Name      = dto.PrimaryContactName.Trim(),
-                       // Phone     = dto.PrimaryContactPhone?.Trim(),
+                        PhoneNumber = Clean(dto.PrimaryContactPhone),
                         Email     = dto.PrimaryContactEmail?.Trim(),
                         Position  = dto.PrimaryContactPosition?.Trim(),
                         IsPrimary = true
@@ -118,19 +103,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 });
             }
 
-            // ===== TÀI KHOẢN NGÂN HÀNG PHỤ =====
-            foreach (var bk in dto.AdditionalBankAccounts
-                .Where(b => !string.IsNullOrWhiteSpace(b.BankName)))
-            {
-                supplier.BankAccounts.Add(new SupplierBankAccount
-                {
-                    BankName = bk.BankName.Trim(),
-                    AccountNumber = bk.AccountNumber.Trim(),
-                    AccountHolder = bk.AccountHolder.Trim(),
-                    IsPrimary = false
-                });
-            }
-
             // ===== NGƯỜI LIÊN HỆ PHỤ =====
             foreach (var ct in dto.AdditionalContacts
                 .Where(c => !string.IsNullOrWhiteSpace(c.Name)))
@@ -138,7 +110,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 supplier.Contacts.Add(new SupplierContact
                 {
                     Name = ct.Name.Trim(),
-                    //Phone = ct.Phone?.Trim(),
+                    PhoneNumber = Clean(ct.Phone),
                     Email = ct.Email?.Trim(),
                     Position = ct.Position?.Trim(),
                     IsPrimary = false
@@ -146,8 +118,20 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
 
             await _repo.CreateAsync(supplier);
-            await _repo.SaveChangesAsync();
-            return supplier.SupplierId;
+            for (var attempt = 0; attempt < 3; attempt++)
+            {
+                try
+                {
+                    await _repo.SaveChangesAsync();
+                    return supplier.SupplierId;
+                }
+                catch (DbUpdateException ex) when (IsUniqueCodeCollision(ex) && attempt < 2)
+                {
+                    supplier.Code = await _repo.GenerateNextCodeAsync();
+                }
+            }
+
+            throw new InvalidOperationException("Không thể sinh mã nhà cung cấp duy nhất sau nhiều lần thử.");
         }
 
         // ===== UPDATE =====
@@ -159,22 +143,27 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             dto.Name = Normalize(dto.Name);
 
-            entity.Name = dto.Name;
-            entity.TaxCode = dto.TaxCode?.Trim();
-            entity.Website = dto.Website?.Trim();
-            entity.Active = dto.Active;
-
-            // Chỉ cập nhật địa chỉ khi người dùng thực sự chọn/nhập địa chỉ mới
-            // → tránh xoá trắng địa chỉ cũ khi modal Edit không có trường địa chỉ
-            if (dto.ProvinceId.HasValue || dto.DistrictId.HasValue ||
-                dto.WardId.HasValue || !string.IsNullOrWhiteSpace(dto.StreetAddress))
+            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
             {
-                string? fullAddress = await BuildFullAddressAsync(
-                    dto.ProvinceId, dto.DistrictId, dto.WardId, dto.StreetAddress);
-                entity.Address = fullAddress;
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                    Convert.FromBase64String(dto.RowVersion);
             }
 
-            await _repo.SaveChangesAsync();
+            entity.Name = dto.Name;
+            entity.Address = Clean(dto.Address);
+            entity.Note = Clean(dto.Note);
+            entity.Active = dto.Active;
+            entity.UpdatedAt = DateTime.UtcNow;
+
+            try
+            {
+                await _repo.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "Nhà cung cấp vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
         }
 
         // ===== TOGGLE STATUS =====
@@ -207,31 +196,6 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             await _repo.SaveChangesAsync();
         }
 
-        // ===== BANK ACCOUNTS =====
-        public async Task AddBankAccountAsync(AdminSupplierBankAccountCreateDTO dto)
-        {
-            var bank = new SupplierBankAccount
-            {
-                SupplierId = dto.SupplierId,
-                BankName = dto.BankName.Trim(),
-                AccountNumber = dto.AccountNumber.Trim(),
-                AccountHolder = dto.AccountHolder.Trim(),
-                IsPrimary = false   // phụ
-            };
-            await _repo.AddBankAccountAsync(bank);
-            await _repo.SaveChangesAsync();
-        }
-
-        public async Task DeleteBankAccountAsync(int supplierBankAccountId)
-        {
-            var bank = await _repo.GetBankAccountByIdAsync(supplierBankAccountId);
-            if (bank == null) throw new Exception("Không tìm thấy tài khoản ngân hàng");
-            if (bank.IsPrimary) throw new Exception("Không thể xoá tài khoản ngân hàng chính");
-
-            await _repo.DeleteBankAccountAsync(bank);
-            await _repo.SaveChangesAsync();
-        }
-
         // ===== CONTACTS =====
         public async Task AddContactAsync(AdminSupplierContactCreateDTO dto)
         {
@@ -239,12 +203,26 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 SupplierId = dto.SupplierId,
                 Name = dto.Name.Trim(),
-                //Phone = dto.Phone?.Trim(),
+                PhoneNumber = Clean(dto.Phone),
                 Email = dto.Email?.Trim(),
                 Position = dto.Position?.Trim(),
                 IsPrimary = false   // phụ
             };
             await _repo.AddContactAsync(contact);
+            await _repo.SaveChangesAsync();
+        }
+
+        public async Task UpdateContactAsync(AdminSupplierContactUpdateDTO dto)
+        {
+            var contact = await _repo.GetContactByIdAsync(dto.SupplierContactId);
+            if (contact == null || contact.SupplierId != dto.SupplierId)
+                throw new InvalidOperationException("Không tìm thấy người liên hệ của nhà cung cấp.");
+
+            contact.Name = Normalize(dto.Name);
+            contact.PhoneNumber = Clean(dto.Phone);
+            contact.Email = Clean(dto.Email);
+            contact.Position = Clean(dto.Position);
+            contact.Active = dto.Active;
             await _repo.SaveChangesAsync();
         }
 
@@ -275,69 +253,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             await _repo.SaveChangesAsync();
         }
 
-        // ===== LOCATION =====
-        public async Task<List<Province>> GetProvincesAsync()
-        {
-            return await _context.Provinces.OrderBy(p => p.Name).ToListAsync();
-        }
-
-        public async Task<List<District>> GetDistrictsByProvinceAsync(int provinceId)
-        {
-            return await _context.Districts
-                .Where(d => d.ProvinceId == provinceId)
-                .OrderBy(d => d.Name)
-                .ToListAsync();
-        }
-
-        public async Task<List<Ward>> GetWardsByDistrictAsync(int districtId)
-        {
-            return await _context.Wards
-                .Where(w => w.DistrictId == districtId)
-                .OrderBy(w => w.Name)
-                .ToListAsync();
-        }
-
         // =============================================================
         // ==================== PRIVATE HELPERS ========================
         // =============================================================
 
-        /// <summary>
-        /// Ghép địa chỉ đầy đủ từ 3 cấp + số nhà.
-        /// Ví dụ: "123 Nguyễn Văn Linh, Phường Bình Chánh, Quận 8, TP. Hồ Chí Minh"
-        /// </summary>
-        private async Task<string?> BuildFullAddressAsync(
-            int? provinceId, int? districtId, int? wardId, string? streetAddress)
-        {
-            var parts = new List<string>();
-
-            if (!string.IsNullOrWhiteSpace(streetAddress))
-                parts.Add(streetAddress.Trim());
-
-            if (wardId.HasValue)
-            {
-                var ward = await _context.Wards.FindAsync(wardId.Value);
-                if (ward != null) parts.Add(ward.Name);
-            }
-
-            if (districtId.HasValue)
-            {
-                var district = await _context.Districts.FindAsync(districtId.Value);
-                if (district != null) parts.Add(district.Name);
-            }
-
-            if (provinceId.HasValue)
-            {
-                var province = await _context.Provinces.FindAsync(provinceId.Value);
-                if (province != null) parts.Add(province.Name);
-            }
-
-            return parts.Count > 0 ? string.Join(", ", parts) : null;
-        }
-
         private static AdminSupplierDTO MapToListDTO(Supplier x)
         {
             var primaryPhone = x.Phones.FirstOrDefault(p => p.IsPrimary);
-            var primaryBank = x.BankAccounts.FirstOrDefault(b => b.IsPrimary);
             var primaryContact = x.Contacts.FirstOrDefault(c => c.IsPrimary);
 
             return new AdminSupplierDTO
@@ -345,46 +267,30 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
-                TaxCode = x.TaxCode,
-                Website = x.Website,
                 Address = x.Address,
-                DebtAmount = x.DebtAmount,
+                Note = x.Note,
                 Active = x.Active,
                 PrimaryPhone = primaryPhone?.PhoneNumber,
                 PrimaryContactName = primaryContact?.Name,
-                //PrimaryContactPhone = primaryContact?.Phone,
-                PrimaryBankName = primaryBank?.BankName,
-                PrimaryAccountNumber = primaryBank?.AccountNumber,
+                PrimaryContactPhone = primaryContact?.PhoneNumber,
+                ActiveOfferCount = x.IngredientSuppliers.Count(o => o.Active),
+                ActiveStoreCount = x.SupplierStores.Count(o => o.Active)
             };
         }
 
-        private async Task<AdminSupplierDetailDTO> MapToDetailDTOAsync(Supplier x)
+        private static AdminSupplierDetailDTO MapToDetailDTO(Supplier x)
         {
-            // Parse lại địa chỉ để lấy ID từng cấp (nếu có)
-            // Vì Address là chuỗi ghép, ta không reverse-parse; thay vào đó
-            // cần lưu ID riêng → hiện tại ta dùng lookup ngược theo tên (best-effort).
-            // Cách chính xác hơn: lưu riêng ProvinceId/DistrictId/WardId vào Supplier entity.
-            // Tạm thời trả về null cho các ID để FE biết cần chọn lại nếu muốn thay đổi địa chỉ.
             return new AdminSupplierDetailDTO
             {
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
-                TaxCode = x.TaxCode,
-                Website = x.Website,
                 Address = x.Address,
-                DebtAmount = x.DebtAmount,
+                Note = x.Note,
                 Active = x.Active,
-
-                // Location IDs — null vì Supplier model chưa lưu riêng
-                // Frontend sẽ hiển thị Address text và cho phép chọn lại 3 cấp khi edit
-                ProvinceId = null,
-                ProvinceName = null,
-                DistrictId = null,
-                DistrictName = null,
-                WardId = null,
-                WardName = null,
-                StreetAddress = null,
+                CreatedAt = x.CreatedAt,
+                UpdatedAt = x.UpdatedAt,
+                RowVersion = Convert.ToBase64String(x.RowVersion),
 
                 Phones = x.Phones.Select(p => new AdminSupplierPhoneDTO
                 {
@@ -393,28 +299,50 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     IsPrimary = p.IsPrimary
                 }).ToList(),
 
-                BankAccounts = x.BankAccounts.Select(b => new AdminSupplierBankAccountDTO
-                {
-                    SupplierBankAccountId = b.SupplierBankAccountId,
-                    BankName = b.BankName ?? "",
-                    AccountNumber = b.AccountNumber ?? "",
-                    AccountHolder = b.AccountHolder ?? "",
-                    IsPrimary = b.IsPrimary
-                }).ToList(),
-
                 Contacts = x.Contacts.Select(c => new AdminSupplierContactDTO
                 {
                     SupplierContactId = c.SupplierContactId,
                     Name = c.Name ?? "",
-                    //Phone = c.Phone,
+                    Phone = c.PhoneNumber,
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary
-                }).ToList()
+                }).ToList(),
+
+                Stores = x.SupplierStores
+                    .OrderBy(s => s.Store.Name)
+                    .Select(MapSupplierStore)
+                    .ToList()
             };
         }
 
+        private static AdminSupplierStoreDTO MapSupplierStore(SupplierStore x) => new()
+        {
+            SupplierStoreId = x.SupplierStoreId,
+            SupplierId = x.SupplierId,
+            StoreId = x.StoreId,
+            StoreName = x.Store?.Name ?? "",
+            Active = x.Active,
+            LeadTimeOverrideDays = x.LeadTimeOverrideDays,
+            DeliverySchedule = x.DeliverySchedule,
+            Note = x.Note,
+            RowVersion = Convert.ToBase64String(x.RowVersion)
+        };
+
         private static string Normalize(string text) => text?.Trim() ?? "";
+
+        private static string? Clean(string? text) =>
+            string.IsNullOrWhiteSpace(text) ? null : text.Trim();
+
+        private static bool IsUniqueCodeCollision(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("IX_Suppliers_Code", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("2627", StringComparison.OrdinalIgnoreCase);
+        }
 
         // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
 
@@ -444,6 +372,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
         public async Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto)
         {
+            ValidateOfferOperationalTerms(dto);
+
             var requirePackage = dto.Active;
             var validation = await _packageValidator.ValidateAsync(
                 dto.IngredientId,
@@ -470,11 +400,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     UnitId = dto.UnitId,
                     PackageQuantity = dto.PackageQuantity,
                     CurrentPrice = dto.CurrentPrice,
-                    MinimumOrderQuantity = dto.MinimumOrderQuantity,
+                    MinimumOrderPackageCount = dto.MinimumOrderPackageCount,
                     LeadTimeDays = dto.LeadTimeDays,
                     IsPrimary = dto.IsPrimary,
                     Active = dto.Active,
-                    Note = dto.Note?.Trim()
+                    Note = dto.Note?.Trim(),
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
 
                 _context.IngredientSuppliers.Add(entity);
@@ -488,7 +420,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     PackageUnitId = entity.UnitId,
                     EffectiveDate = DateTime.UtcNow,
                     IsCurrent = true,
-                    Note = "Khởi tạo gói mua"
+                    Note = "Khởi tạo gói mua",
+                    CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -509,6 +442,8 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var entity = await LoadOfferTrackedAsync(dto.IngredientSupplierId.Value, asNoTracking: false)
                 ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
 
+            ValidateOfferOperationalTerms(dto);
+
             var packageOrPriceChanged =
                 entity.CurrentPrice != dto.CurrentPrice
                 || entity.PackageQuantity != dto.PackageQuantity
@@ -521,7 +456,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var reactivating = dto.Active && !entity.Active;
             var requirePackage = reactivating
                 || (dto.Active && packageOrPriceChanged)
-                || (dto.Active && dto.PackageQuantity.HasValue); // if user supplies package while Active, validate it
+                || dto.Active;
 
             var validation = await _packageValidator.ValidateAsync(
                 dto.IngredientId,
@@ -536,11 +471,11 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (!validation.IsSuccess)
                 throw new InvalidOperationException(validation.Message);
 
-            // Supplier/ingredient identity should not silently change to another unique pair without validation
             if (entity.IngredientId != dto.IngredientId || entity.SupplierId != dto.SupplierId)
-            {
-                // Allow only if validation passed unique check
-            }
+                throw new InvalidOperationException("Không được đổi nhà cung cấp hoặc nguyên liệu của gói đã tạo.");
+
+            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = Convert.FromBase64String(dto.RowVersion);
 
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
@@ -550,21 +485,25 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
                 if (packageOrPriceChanged)
                 {
-                    var currentHistories = await _context.Set<IngredientSupplierPriceHistory>()
-                        .Where(h => h.IngredientSupplierId == entity.IngredientSupplierId && h.IsCurrent)
+                    var currentHistories = await _context.IngredientSupplierPriceHistories
+                        .Where(x => x.IngredientSupplierId == entity.IngredientSupplierId && x.IsCurrent)
                         .ToListAsync();
-                    foreach (var h in currentHistories)
-                        h.IsCurrent = false;
+                    foreach (var history in currentHistories)
+                        history.IsCurrent = false;
 
-                    _context.Set<IngredientSupplierPriceHistory>().Add(new IngredientSupplierPriceHistory
+                    await _context.SaveChangesAsync();
+
+                    var now = DateTime.UtcNow;
+                    _context.IngredientSupplierPriceHistories.Add(new IngredientSupplierPriceHistory
                     {
                         IngredientSupplierId = entity.IngredientSupplierId,
                         Price = dto.CurrentPrice,
                         PackageQuantity = dto.PackageQuantity,
                         PackageUnitId = dto.UnitId,
-                        EffectiveDate = DateTime.UtcNow,
+                        EffectiveDate = now,
                         IsCurrent = true,
-                        Note = "Cập nhật gói mua / giá"
+                        Note = "Cập nhật gói mua / giá",
+                        CreatedAtUtc = now
                     });
                 }
 
@@ -573,11 +512,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 entity.UnitId = dto.UnitId;
                 entity.PackageQuantity = dto.PackageQuantity;
                 entity.CurrentPrice = dto.CurrentPrice;
-                entity.MinimumOrderQuantity = dto.MinimumOrderQuantity;
+                entity.MinimumOrderPackageCount = dto.MinimumOrderPackageCount;
                 entity.LeadTimeDays = dto.LeadTimeDays;
                 entity.IsPrimary = dto.IsPrimary;
                 entity.Active = dto.Active;
                 entity.Note = dto.Note?.Trim();
+                entity.UpdatedAt = DateTime.UtcNow;
 
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
@@ -612,6 +552,103 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             entity.Active = active;
             await _context.SaveChangesAsync();
+        }
+
+        public async Task ChangeIngredientOfferPriceAsync(
+            AdminIngredientSupplierPriceChangeDTO dto,
+            int actorStaffId)
+        {
+            if (string.IsNullOrWhiteSpace(dto.Reason))
+                throw new InvalidOperationException("Lý do đổi giá là bắt buộc.");
+
+            await using var tx = await _context.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
+            try
+            {
+                var entity = await _context.IngredientSuppliers
+                    .SingleOrDefaultAsync(x => x.IngredientSupplierId == dto.IngredientSupplierId)
+                    ?? throw new InvalidOperationException("Không tìm thấy gói cung cấp.");
+
+                if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+                    _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                        Convert.FromBase64String(dto.RowVersion);
+
+                var validation = await _packageValidator.ValidateAsync(
+                    entity.IngredientId,
+                    entity.SupplierId,
+                    dto.PackageUnitId,
+                    dto.PackageQuantity,
+                    dto.PackagePrice,
+                    entity.Active,
+                    requirePackageQuantity: true,
+                    excludeIngredientSupplierId: entity.IngredientSupplierId);
+                if (!validation.IsSuccess)
+                    throw new InvalidOperationException(validation.Message);
+
+                var currentRows = await _context.IngredientSupplierPriceHistories
+                    .Where(x => x.IngredientSupplierId == entity.IngredientSupplierId && x.IsCurrent)
+                    .ToListAsync();
+                foreach (var current in currentRows)
+                    current.IsCurrent = false;
+                await _context.SaveChangesAsync();
+
+                var now = DateTime.UtcNow;
+                _context.IngredientSupplierPriceHistories.Add(new IngredientSupplierPriceHistory
+                {
+                    IngredientSupplierId = entity.IngredientSupplierId,
+                    Price = dto.PackagePrice,
+                    PackageQuantity = dto.PackageQuantity,
+                    PackageUnitId = dto.PackageUnitId,
+                    EffectiveDate = now,
+                    IsCurrent = true,
+                    Note = dto.Reason.Trim(),
+                    CreatedByStaffId = actorStaffId > 0 ? actorStaffId : null,
+                    CreatedAtUtc = now
+                });
+
+                entity.CurrentPrice = dto.PackagePrice;
+                entity.PackageQuantity = dto.PackageQuantity;
+                entity.UnitId = dto.PackageUnitId;
+                entity.UpdatedAt = now;
+                await _context.SaveChangesAsync();
+                await tx.CommitAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await tx.RollbackAsync();
+                throw new InvalidOperationException(
+                    "Gói cung cấp vừa được cập nhật. Vui lòng tải lại trước khi đổi giá.");
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
+        public async Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(
+            int ingredientSupplierId)
+        {
+            return await _context.IngredientSupplierPriceHistories
+                .AsNoTracking()
+                .Include(x => x.PackageUnit)
+                .Where(x => x.IngredientSupplierId == ingredientSupplierId)
+                .OrderByDescending(x => x.EffectiveDate)
+                .ThenByDescending(x => x.IngredientSupplierPriceHistoryId)
+                .Select(x => new AdminIngredientSupplierPriceHistoryDTO
+                {
+                    IngredientSupplierPriceHistoryId = x.IngredientSupplierPriceHistoryId,
+                    Price = x.Price,
+                    PackageQuantity = x.PackageQuantity,
+                    PackageUnitId = x.PackageUnitId,
+                    PackageUnitName = x.PackageUnit != null ? x.PackageUnit.Name : "",
+                    EffectiveDateUtc = x.EffectiveDate,
+                    IsCurrent = x.IsCurrent,
+                    Note = x.Note,
+                    CreatedByStaffId = x.CreatedByStaffId,
+                    CreatedAtUtc = x.CreatedAtUtc
+                })
+                .ToListAsync();
         }
 
         public async Task<List<object>> GetIngredientDropdownAsync()
@@ -652,6 +689,117 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             return rows.Cast<object>().ToList();
         }
 
+        // ===== STORE SCOPE =====
+
+        public async Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
+            int supplierId,
+            IReadOnlyCollection<int>? storeScope = null)
+        {
+            var supplierExists = await _context.Suppliers
+                .AsNoTracking()
+                .AnyAsync(x => x.SupplierId == supplierId);
+            if (!supplierExists)
+                throw new InvalidOperationException("Không tìm thấy nhà cung cấp.");
+
+            var query = _context.SupplierStores
+                .AsNoTracking()
+                .Include(x => x.Store)
+                .Where(x => x.SupplierId == supplierId);
+
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return new List<AdminSupplierStoreDTO>();
+                query = query.Where(x => storeScope.Contains(x.StoreId));
+            }
+
+            return await query
+                .OrderBy(x => x.Store.Name)
+                .Select(x => new AdminSupplierStoreDTO
+                {
+                    SupplierStoreId = x.SupplierStoreId,
+                    SupplierId = x.SupplierId,
+                    StoreId = x.StoreId,
+                    StoreName = x.Store.Name,
+                    Active = x.Active,
+                    LeadTimeOverrideDays = x.LeadTimeOverrideDays,
+                    DeliverySchedule = x.DeliverySchedule,
+                    Note = x.Note,
+                    RowVersion = Convert.ToBase64String(x.RowVersion)
+                })
+                .ToListAsync();
+        }
+
+        public async Task<List<object>> GetStoreDropdownAsync(
+            IReadOnlyCollection<int>? storeScope = null)
+        {
+            var query = _context.Stores.AsNoTracking().Where(x => x.Active);
+            if (storeScope != null)
+            {
+                if (storeScope.Count == 0)
+                    return new List<object>();
+                query = query.Where(x => storeScope.Contains(x.StoreId));
+            }
+
+            var stores = await query
+                .OrderBy(x => x.Name)
+                .Select(x => new { storeId = x.StoreId, name = x.Name })
+                .ToListAsync();
+            return stores.Cast<object>().ToList();
+        }
+
+        public async Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto)
+        {
+            var supplierActive = await _context.Suppliers
+                .AnyAsync(x => x.SupplierId == dto.SupplierId && x.Active);
+            if (!supplierActive)
+                throw new InvalidOperationException("Nhà cung cấp không tồn tại hoặc đang ngừng hoạt động.");
+
+            var storeActive = await _context.Stores
+                .AnyAsync(x => x.StoreId == dto.StoreId && x.Active);
+            if (!storeActive)
+                throw new InvalidOperationException("Cửa hàng không tồn tại hoặc đang ngừng hoạt động.");
+
+            var entity = await _context.SupplierStores
+                .FirstOrDefaultAsync(x => x.SupplierId == dto.SupplierId && x.StoreId == dto.StoreId);
+            var now = DateTime.UtcNow;
+            if (entity == null)
+            {
+                entity = new SupplierStore
+                {
+                    SupplierId = dto.SupplierId,
+                    StoreId = dto.StoreId,
+                    CreatedAt = now
+                };
+                _context.SupplierStores.Add(entity);
+            }
+            else if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+            {
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
+                    Convert.FromBase64String(dto.RowVersion);
+            }
+
+            entity.Active = dto.Active;
+            entity.LeadTimeOverrideDays = dto.LeadTimeOverrideDays;
+            entity.DeliverySchedule = Clean(dto.DeliverySchedule);
+            entity.Note = Clean(dto.Note);
+            entity.UpdatedAt = now;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "Phạm vi cửa hàng vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
+            catch (DbUpdateException ex) when (IsSupplierStoreUniqueCollision(ex))
+            {
+                throw new InvalidOperationException("Nhà cung cấp đã được gán cho cửa hàng này.");
+            }
+        }
+
         private async Task ClearPrimaryAsync(int ingredientId, int? excludeId)
         {
             var others = await _context.IngredientSuppliers
@@ -663,6 +811,25 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             foreach (var o in others)
                 o.IsPrimary = false;
+        }
+
+        private static void ValidateOfferOperationalTerms(AdminIngredientSupplierSaveDTO dto)
+        {
+            if (dto.MinimumOrderPackageCount.HasValue && dto.MinimumOrderPackageCount.Value <= 0)
+                throw new InvalidOperationException("MOQ phải là số gói lớn hơn 0.");
+
+            if (dto.LeadTimeDays.HasValue && dto.LeadTimeDays.Value < 0)
+                throw new InvalidOperationException("Thời gian giao hàng không được âm.");
+        }
+
+        private static bool IsSupplierStoreUniqueCollision(DbUpdateException ex)
+        {
+            var message = ex.InnerException?.Message ?? ex.Message;
+            return message.Contains("SupplierStores", StringComparison.OrdinalIgnoreCase)
+                   && (message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
+                       || message.Contains("2627", StringComparison.OrdinalIgnoreCase));
         }
 
         private async Task<IngredientSupplier?> LoadOfferTrackedAsync(int id, bool asNoTracking)
@@ -701,11 +868,13 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 UnitName = x.Unit?.Name ?? "",
                 BaseUnitId = x.Ingredient?.BaseUnitId ?? 0,
                 BaseUnitCode = x.Ingredient?.BaseUnit?.UnitCode ?? "",
-                MinimumOrderQuantity = x.MinimumOrderQuantity,
+                MinimumOrderPackageCount = x.MinimumOrderPackageCount,
                 LeadTimeDays = x.LeadTimeDays,
                 IsPrimary = x.IsPrimary,
                 Active = x.Active,
                 Note = x.Note,
+                UpdatedAt = x.UpdatedAt,
+                RowVersion = Convert.ToBase64String(x.RowVersion),
                 HasCompletePackageDefinition = complete,
                 PackageDisplay = packageDisplay,
                 PriceDisplay = $"{x.CurrentPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))} ₫ / gói mua"

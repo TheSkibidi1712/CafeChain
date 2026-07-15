@@ -44,5 +44,8 @@ namespace CafeChain.Application.Constants
         public const string TransitionInvalid = "TRANSITION_INVALID";
         public const string ReceiptKeyRequired = "RECEIPT_KEY_REQUIRED";
         public const string DuplicateReceiptKey = "DUPLICATE_RECEIPT_KEY";
+        public const string SupplierNotAssigned = "SUPPLIER_NOT_ASSIGNED";
+        public const string OfferNotAvailable = "OFFER_NOT_AVAILABLE";
+        public const string MinimumOrderNotMet = "MINIMUM_ORDER_NOT_MET";
     }
 }

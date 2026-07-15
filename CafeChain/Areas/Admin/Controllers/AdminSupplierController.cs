@@ -1,24 +1,42 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
+    [Authorize(Roles = SupplierReadRoles)]
     public class AdminSupplierController : Controller
     {
+        private const string SupplierReadRoles =
+            RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse + "," +
+            RoleConstants.AreaManager + "," + RoleConstants.StoreManager;
+        private const string SupplierMutationRoles =
+            RoleConstants.BusinessOwner + "," + RoleConstants.AccountantWarehouse;
         private readonly IAdminSupplierService _service;
+        private readonly IAdminActorContextAccessor _actorContext;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
-        public AdminSupplierController(IAdminSupplierService service)
+        public AdminSupplierController(
+            IAdminSupplierService service,
+            IAdminActorContextAccessor actorContext,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _service = service;
+            _actorContext = actorContext;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         // ===== INDEX =====
         public async Task<IActionResult> Index(string? search, bool? status)
         {
-            var data = await _service.GetAllAsync(search, status);
+            var storeScope = await ResolveStoreScopeAsync();
+            var data = await _service.GetAllAsync(search, status, storeScope);
+            ViewBag.CanMutateSupplier = CanMutateSupplier();
             return View(data);
         }
 
@@ -26,7 +44,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetById(int id)
         {
-            var data = await _service.GetByIdAsync(id);
+            var data = await _service.GetByIdAsync(id, await ResolveStoreScopeAsync());
             if (data == null)
                 return Json(new { success = false, message = "Không tìm thấy nhà cung cấp" });
 
@@ -35,7 +53,6 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== GET NEXT CODE (auto-generate NCC code) =====
         [HttpGet]
-        [AllowAnonymous]
         public async Task<IActionResult> GetNextCode()
         {
             var code = await _service.GenerateNextCodeAsync();
@@ -44,6 +61,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== CREATE =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> Create([FromBody] AdminSupplierCreateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -62,6 +80,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== UPDATE =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> Update([FromBody] AdminSupplierUpdateDTO dto)
         {
             if (!ModelState.IsValid)
@@ -80,6 +99,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         // ===== TOGGLE STATUS =====
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> ToggleStatus(int id)
         {
             try
@@ -96,6 +116,7 @@ namespace CafeChain.Areas.Admin.Controllers
         // ===================== PHONES =====================
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> AddPhone([FromBody] AdminSupplierPhoneCreateDTO dto)
         {
             try
@@ -110,6 +131,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> DeletePhone(int supplierPhoneId)
         {
             try
@@ -123,39 +145,10 @@ namespace CafeChain.Areas.Admin.Controllers
             }
         }
 
-        // ===================== BANK ACCOUNTS =====================
-
-        [HttpPost]
-        public async Task<IActionResult> AddBankAccount([FromBody] AdminSupplierBankAccountCreateDTO dto)
-        {
-            try
-            {
-                await _service.AddBankAccountAsync(dto);
-                return Json(new { success = true, message = "Thêm tài khoản ngân hàng thành công" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> DeleteBankAccount(int supplierBankAccountId)
-        {
-            try
-            {
-                await _service.DeleteBankAccountAsync(supplierBankAccountId);
-                return Json(new { success = true, message = "Đã xoá tài khoản ngân hàng" });
-            }
-            catch (Exception ex)
-            {
-                return Json(new { success = false, message = ex.Message });
-            }
-        }
-
         // ===================== CONTACTS =====================
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> AddContact([FromBody] AdminSupplierContactCreateDTO dto)
         {
             try
@@ -170,6 +163,25 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> UpdateContact([FromBody] AdminSupplierContactUpdateDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu liên hệ không hợp lệ" });
+
+            try
+            {
+                await _service.UpdateContactAsync(dto);
+                return Json(new { success = true, message = "Đã cập nhật người liên hệ" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> DeleteContact(int supplierContactId)
         {
             try
@@ -184,6 +196,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> SetPrimaryContact(int supplierContactId)
         {
             try
@@ -202,6 +215,8 @@ namespace CafeChain.Areas.Admin.Controllers
         [HttpGet]
         public async Task<IActionResult> GetIngredientOffers(int supplierId)
         {
+            if (!await CanReadSupplierAsync(supplierId))
+                return SupplierScopeDenied();
             var data = await _service.GetIngredientOffersAsync(supplierId);
             return Json(new { success = true, data });
         }
@@ -212,10 +227,13 @@ namespace CafeChain.Areas.Admin.Controllers
             var data = await _service.GetIngredientOfferByIdAsync(id);
             if (data == null)
                 return Json(new { success = false, message = "Không tìm thấy bảng giá gói mua" });
+            if (!await CanReadSupplierAsync(data.SupplierId))
+                return SupplierScopeDenied();
             return Json(new { success = true, data });
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> CreateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -230,6 +248,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> UpdateIngredientOffer([FromBody] AdminIngredientSupplierSaveDTO dto)
         {
             try
@@ -244,6 +263,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> ToggleIngredientOffer([FromBody] AdminIngredientSupplierToggleDTO dto)
         {
             try
@@ -255,6 +275,38 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 return Json(new { success = false, message = ex.Message });
             }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> ChangeIngredientOfferPrice(
+            [FromBody] AdminIngredientSupplierPriceChangeDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu đổi giá không hợp lệ" });
+
+            try
+            {
+                var actor = _actorContext.Get(User);
+                await _service.ChangeIngredientOfferPriceAsync(dto, actor.StaffId);
+                return Json(new { success = true, message = "Đã cập nhật giá và lưu lịch sử" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetPriceHistory(int ingredientSupplierId)
+        {
+            var offer = await _service.GetIngredientOfferByIdAsync(ingredientSupplierId);
+            if (offer == null)
+                return Json(new { success = false, message = "Không tìm thấy bảng giá gói mua" });
+            if (!await CanReadSupplierAsync(offer.SupplierId))
+                return SupplierScopeDenied();
+            var data = await _service.GetIngredientOfferPriceHistoryAsync(ingredientSupplierId);
+            return Json(new { success = true, data });
         }
 
         [HttpGet]
@@ -271,33 +323,79 @@ namespace CafeChain.Areas.Admin.Controllers
             return Json(new { success = true, data });
         }
 
-        // ===================== LOCATION ENDPOINTS =====================
+        // ===================== STORE SCOPE =====================
 
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetProvinces()
+        public async Task<IActionResult> GetSupplierStores(int supplierId)
         {
-            var provinces = await _service.GetProvincesAsync();
-            var data = provinces.Select(p => new { code = p.ProvinceId, name = p.Name }).ToList();
-            return Json(data);
+            if (!await CanReadSupplierAsync(supplierId))
+                return SupplierScopeDenied();
+
+            var data = await _service.GetSupplierStoresAsync(
+                supplierId,
+                await ResolveStoreScopeAsync());
+            return Json(new { success = true, data });
         }
 
         [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetDistricts(int provinceId)
+        public async Task<IActionResult> GetStoreOptions()
         {
-            var districts = await _service.GetDistrictsByProvinceAsync(provinceId);
-            var data = districts.Select(d => new { code = d.DistrictId, name = d.Name }).ToList();
-            return Json(data);
+            var data = await _service.GetStoreDropdownAsync(await ResolveStoreScopeAsync());
+            return Json(new { success = true, data });
         }
 
-        [HttpGet]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetWards(int districtId)
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> SaveSupplierStore([FromBody] AdminSupplierStoreSaveDTO dto)
         {
-            var wards = await _service.GetWardsByDistrictAsync(districtId);
-            var data = wards.Select(w => new { code = w.WardId, name = w.Name }).ToList();
-            return Json(data);
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu phạm vi cửa hàng không hợp lệ" });
+
+            try
+            {
+                await _service.SaveSupplierStoreAsync(dto);
+                return Json(new { success = true, message = "Đã cập nhật phạm vi cửa hàng" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
         }
+
+        private bool CanMutateSupplier() =>
+            User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.AccountantWarehouse);
+
+        private async Task<bool> CanReadSupplierAsync(int supplierId)
+        {
+            var supplier = await _service.GetByIdAsync(supplierId, await ResolveStoreScopeAsync());
+            return supplier != null;
+        }
+
+        private async Task<IReadOnlyCollection<int>?> ResolveStoreScopeAsync()
+        {
+            if (CanMutateSupplier())
+                return null;
+
+            var actor = _actorContext.Get(User);
+            var allowed = await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId);
+            var ids = allowed.Select(x => x.StoreId).ToHashSet();
+
+            if (User.IsInRole(RoleConstants.StoreManager) && actor.StoreId > 0)
+                ids.Add(actor.StoreId);
+
+            return ids.ToList();
+        }
+
+        private JsonResult SupplierScopeDenied()
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return Json(new
+            {
+                success = false,
+                message = "Nhà cung cấp không thuộc phạm vi cửa hàng bạn được phép xem."
+            });
+        }
+
     }
 }

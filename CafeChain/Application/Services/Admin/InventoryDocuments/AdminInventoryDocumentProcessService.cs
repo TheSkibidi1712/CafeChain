@@ -5,7 +5,6 @@ using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Costing;
-using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
@@ -142,28 +141,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 AddLowStockWarning(result, document, detail, inventory);
             }
 
-            if (document.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE)
-            {
-                await _repository.AddDebtAsync(
-                    new InventoryDebt
-                    {
-                        InventoryDocumentId = document.InventoryDocumentId,
-
-                        InventoryDocument = document,
-
-                        PartnerType = InventoryPartnerType.SUPPLIER,
-
-                        PartnerId = document.SupplierId,
-
-                        PartnerName = document.Supplier?.Name ?? document.PartnerName ?? string.Empty,
-
-                        Amount = document.FinalAmount ?? 0,
-
-                        PaidAmount = 0,
-
-                        CreatedAt = DateTime.UtcNow
-                    });
-            }
         }
 
         // =====================================================
@@ -251,26 +228,6 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 }
             }
 
-            if (document.Purpose == InventoryDocumentPurpose.DEBT)
-            {
-                await _repository.AddDebtAsync(
-                    new InventoryDebt
-                    {
-                        InventoryDocumentId = document.InventoryDocumentId,
-
-                        PartnerType = document.PartnerType,
-
-                        PartnerId = document.PartnerId,
-
-                        PartnerName = document.PartnerName ?? "",
-
-                        Amount = document.FinalAmount ?? 0,
-
-                        PaidAmount = 0,
-
-                        CreatedAt = DateTime.UtcNow
-                    });
-            }
         }
 
         // =====================================================

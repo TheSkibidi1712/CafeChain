@@ -79,7 +79,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public IActionResult Create(int? restockRequestId = null, int? storeId = null)
+        public async Task<IActionResult> Create(int? restockRequestId = null, int? storeId = null)
         {
             if (!CanConfirmReceipts())
             {
@@ -98,6 +98,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             ViewBag.RestockRequestId = restockRequestId;
             ViewBag.StoreId = targetStoreId;
+            await PopulateSupplierOptionsAsync(targetStoreId, ctx);
             return View(new CreateBranchReceiptRequest
             {
                 StoreId = targetStoreId,
@@ -131,6 +132,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["ErrorMessage"] = result.Message ?? "Không tạo được phiếu nhận.";
                 ViewBag.RestockRequestId = model.Lines?.FirstOrDefault()?.RestockRequestId;
                 ViewBag.StoreId = model.StoreId;
+                await PopulateSupplierOptionsAsync(model.StoreId, ctx);
                 return View(model);
             }
 
@@ -164,6 +166,52 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["SuccessMessage"] = result.Message ?? "Đã xác nhận và nhập kho.";
 
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SupplierOptions(int storeId)
+        {
+            if (!CanConfirmReceipts())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var targetStoreId = HasCrossStoreDocumentRole() ? storeId : ctx.StoreId;
+            var result = await _receiptService.GetSupplierOptionsAsync(
+                targetStoreId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+            if (!result.IsSuccess)
+                return BadRequest(new { success = false, message = result.Message, errorCode = result.ErrorCode });
+            return Json(new { success = true, data = result.Data });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> OfferOptions(int storeId, int supplierId, int? restockRequestId)
+        {
+            if (!CanConfirmReceipts())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var targetStoreId = HasCrossStoreDocumentRole() ? storeId : ctx.StoreId;
+            var result = await _receiptService.GetOfferOptionsAsync(
+                targetStoreId,
+                supplierId,
+                restockRequestId,
+                ctx.StaffId,
+                ctx.StoreIdOrNull,
+                ctx.RoleNames);
+            if (!result.IsSuccess)
+                return BadRequest(new { success = false, message = result.Message, errorCode = result.ErrorCode });
+            return Json(new { success = true, data = result.Data });
+        }
+
+        private async Task PopulateSupplierOptionsAsync(
+            int storeId,
+            CafeChain.Application.DTOs.Admin.Actor.AdminActorContext actor)
+        {
+            var result = await _receiptService.GetSupplierOptionsAsync(
+                storeId, actor.StaffId, actor.StoreIdOrNull, actor.RoleNames);
+            ViewBag.SupplierOptions = result.IsSuccess
+                ? result.Data ?? new List<BranchReceiptSupplierOptionDto>()
+                : new List<BranchReceiptSupplierOptionDto>();
         }
 
         private bool CanViewReceipts() =>

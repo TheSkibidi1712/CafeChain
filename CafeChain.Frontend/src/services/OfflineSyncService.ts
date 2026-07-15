@@ -1,12 +1,27 @@
 import { db, type Category, type MenuItem, type CartSyncQueueItem } from '../db/CafeChainPOSDB'
 import { apiClient } from './apiClient'
-import { POS_TOKEN_KEY } from './posSession'
+import { POS_TOKEN_KEY, getPosSession } from './posSession'
 
 /** Số lần retry tối đa khi sync đơn offline */
 const MAX_RETRY_COUNT = 5
 
 /** Thời gian chờ giữa các lần retry (ms) — exponential backoff */
 const RETRY_BASE_DELAY_MS = 2000
+const CATALOG_VERSION_POLL_MS = 30_000
+
+interface CatalogVersionResponse {
+  storeId: number
+  version: number
+  updatedAtUtc: string
+}
+
+interface CatalogSnapshotResponse {
+  storeId: number
+  version: number
+  generatedAtUtc: string
+  categories: Array<Omit<Category, 'storeId' | 'catalogVersion' | 'syncedAt'>>
+  menuItems: Array<Omit<MenuItem, 'storeId' | 'catalogVersion' | 'syncedAt'>>
+}
 
 interface OfflineSyncApiResponse {
   success: boolean
@@ -16,23 +31,32 @@ interface OfflineSyncApiResponse {
     status: 'created' | 'duplicate' | 'failed'
     orderId?: number
     error?: string
+    errorCode?: string
   }>
 }
 
 const LEGACY_CATEGORY_NAMES = ['Cof' + 'fee', 'Tea', 'Smoothie', 'Pastry', 'Topping']
 const LEGACY_MENU_ITEM_NAMES = ['La' + 'tte', 'Es' + 'presso', 'Irish ' + 'Coffee']
 
-async function clearCatalogCache(): Promise<void> {
-  await db.transaction('rw', db.categories, db.menuItems, async () => {
+async function clearCatalogCache(storeId?: number): Promise<void> {
+  await db.transaction('rw', db.categories, db.menuItems, db.catalogStates, async () => {
+    if (storeId) {
+      await db.categories.where('storeId').equals(storeId).delete()
+      await db.menuItems.where('storeId').equals(storeId).delete()
+      await db.catalogStates.delete(storeId)
+      return
+    }
+
     await db.categories.clear()
     await db.menuItems.clear()
+    await db.catalogStates.clear()
   })
 }
 
-async function clearLegacySeedCatalogCache(): Promise<void> {
+async function clearLegacySeedCatalogCache(storeId: number): Promise<void> {
   const [categories, menuItems] = await Promise.all([
-    db.categories.toArray(),
-    db.menuItems.toArray(),
+    db.categories.where('storeId').equals(storeId).toArray(),
+    db.menuItems.where('storeId').equals(storeId).toArray(),
   ])
 
   const categoryNames = new Set(categories.map((category) => category.name))
@@ -41,7 +65,7 @@ async function clearLegacySeedCatalogCache(): Promise<void> {
   const hasLegacyMenuItems = LEGACY_MENU_ITEM_NAMES.every((name) => itemNames.has(name))
 
   if (hasLegacyCategories && hasLegacyMenuItems) {
-    await clearCatalogCache()
+    await clearCatalogCache(storeId)
     console.warn('[OfflineSync] Cleared legacy mock catalog cache from IndexedDB.')
   }
 }
@@ -51,98 +75,77 @@ async function clearLegacySeedCatalogCache(): Promise<void> {
 // ============================================================
 
 /**
- * Fetch danh mục đồ uống từ Backend API và ghi đè vào IndexedDB.
- * Gọi khi: App khởi động, hoặc khi online trở lại sau offline.
- *
- * @returns Số lượng categories đã sync
- * @throws Error nếu API không phản hồi (offline → giữ cache cũ)
- */
-export async function syncCategories(): Promise<number> {
-  try {
-    const response = await apiClient.get<Category[]>('/api/v1/pos/categories')
-
-    if (!response.ok || !response.data) {
-      if (response.status === 401 || response.status === 403) {
-        await clearCatalogCache()
-      }
-      throw new Error(response.error || 'Failed to fetch categories')
-    }
-
-    const data = response.data
-    const now = Date.now()
-
-    // Ghi đè toàn bộ categories (clear + bulk add)
-    await db.transaction('rw', db.categories, async () => {
-      await db.categories.clear()
-      await db.categories.bulkAdd(
-        data.map((cat) => ({ ...cat, syncedAt: now }))
-      )
-    })
-
-    console.log(`[OfflineSync] ✅ Synced ${data.length} categories`)
-    return data.length
-  } catch (error) {
-    console.warn('[OfflineSync] ⚠️ Categories sync failed — using cached data', error)
-    throw error
-  }
-}
-
-export async function syncMenuItems(): Promise<number> {
-  try {
-    const response = await apiClient.get<MenuItem[]>('/api/v1/pos/menu-items')
-
-    if (!response.ok || !response.data) {
-      if (response.status === 401 || response.status === 403) {
-        await clearCatalogCache()
-      }
-      throw new Error(response.error || 'Failed to fetch menu items')
-    }
-
-    const data = response.data
-    const now = Date.now()
-
-    // Ghi đè toàn bộ menuItems (clear + bulk add)
-    await db.transaction('rw', db.menuItems, async () => {
-      await db.menuItems.clear()
-      await db.menuItems.bulkAdd(
-        data.map((item) => ({ ...item, syncedAt: now }))
-      )
-    })
-
-    console.log(`[OfflineSync] ✅ Synced ${data.length} menu items`)
-    return data.length
-  } catch (error) {
-    console.warn('[OfflineSync] ⚠️ Menu items sync failed — using cached data', error)
-    throw error
-  }
-}
-
-/**
  * Đồng bộ toàn bộ catalog (categories + menuItems) từ Backend.
  * Nếu online → fetch mới. Nếu offline → giữ cache IndexedDB cũ.
  *
  * @returns Object chứa số lượng đã sync
  */
 export async function syncCatalog(): Promise<{ categories: number; menuItems: number }> {
-  let categories = 0
-  let menuItems = 0
-
-  if (!localStorage.getItem(POS_TOKEN_KEY)) {
+  const session = getPosSession()
+  if (!localStorage.getItem(POS_TOKEN_KEY) || !session.storeId) {
     await clearCatalogCache()
-    return { categories, menuItems }
+    return { categories: 0, menuItems: 0 }
   }
 
-  await clearLegacySeedCatalogCache()
+  const storeId = session.storeId
+  await clearLegacySeedCatalogCache(storeId)
+  const response = await apiClient.get<CatalogSnapshotResponse>('/api/v1/pos/catalog')
+  if (!response.ok || !response.data) {
+    if (response.status === 401 || response.status === 403) {
+      await clearCatalogCache(storeId)
+    }
+    throw new Error(response.error || 'Không tải được catalog cửa hàng.')
+  }
 
-  try {
-    categories = await syncCategories()
-  } catch { /* cache cũ vẫn ok */ }
+  const snapshot = response.data
+  if (snapshot.storeId !== storeId) {
+    throw new Error('Catalog trả về không thuộc cửa hàng hiện tại.')
+  }
 
-  try {
-    menuItems = await syncMenuItems()
-  } catch { /* cache cũ vẫn ok */ }
+  const now = Date.now()
+  await db.transaction('rw', db.categories, db.menuItems, db.catalogStates, async () => {
+    await db.categories.where('storeId').equals(storeId).delete()
+    await db.menuItems.where('storeId').equals(storeId).delete()
+    await db.categories.bulkPut(snapshot.categories.map((category) => ({
+      ...category,
+      storeId,
+      catalogVersion: snapshot.version,
+      syncedAt: now,
+    })))
+    await db.menuItems.bulkPut(snapshot.menuItems.map((item) => ({
+      ...item,
+      storeId,
+      catalogVersion: snapshot.version,
+      syncedAt: now,
+    })))
+    await db.catalogStates.put({ storeId, version: snapshot.version, syncedAt: now })
+  })
 
-  return { categories, menuItems }
+  console.log(`[OfflineSync] Synced Store #${storeId} catalog v${snapshot.version}: ${snapshot.categories.length} categories, ${snapshot.menuItems.length} items`)
+  return { categories: snapshot.categories.length, menuItems: snapshot.menuItems.length }
+}
+
+async function getServerCatalogVersion(): Promise<CatalogVersionResponse> {
+  const storeId = getPosSession().storeId
+  if (!storeId) throw new Error('Không xác định được cửa hàng POS.')
+  const response = await apiClient.get<CatalogVersionResponse>('/api/v1/pos/catalog/version')
+  if (!response.ok || !response.data) {
+    throw new Error(response.error || 'Không tải được phiên bản catalog.')
+  }
+  if (response.data.storeId !== storeId) throw new Error('Phiên bản catalog không thuộc cửa hàng hiện tại.')
+  return response.data
+}
+
+export async function refreshCatalogIfVersionChanged(): Promise<boolean> {
+  const storeId = getPosSession().storeId
+  if (!navigator.onLine || !localStorage.getItem(POS_TOKEN_KEY) || !storeId) return false
+
+  const server = await getServerCatalogVersion()
+  const localVersion = (await db.catalogStates.get(storeId))?.version ?? -1
+  if (localVersion === server.version) return false
+
+  await syncCatalog()
+  return true
 }
 
 // ============================================================
@@ -240,12 +243,21 @@ export async function syncPendingOrders(): Promise<number> {
           paymentSnapshot: order.paymentSnapshot,
           details: order.items.map((i) => ({
             itemId: i.menuItemId,
+            storeMenuItemId: i.storeMenuItemId,
+            drinkSizeId: i.drinkSizeId,
             itemName: i.name,
             sizeId: i.sizeId ?? null,
             quantity: i.quantity,
+            acceptedBasePrice: i.effectivePrice,
             unitPrice: i.unitPrice,
+            priceSource: i.priceSource,
+            catalogVersion: i.catalogVersion,
             totalPrice: i.unitPrice * i.quantity,
-            toppings: i.toppings ?? [],
+            toppings: (i.toppings ?? []).map((topping) => ({
+              toppingId: topping.toppingId,
+              name: topping.name,
+              acceptedPrice: topping.acceptedPrice,
+            })),
           })),
         }],
       })
@@ -265,7 +277,9 @@ export async function syncPendingOrders(): Promise<number> {
           await db.cartSyncQueue.update(order.queueId!, {
             syncStatus: 'Failed',
             retryCount: order.retryCount + 1,
-            lastError: result?.error || 'Server rejected order',
+            lastError: result?.errorCode
+              ? `${result.errorCode}: ${result.error || 'Server rejected order'}`
+              : result?.error || 'Server rejected order',
           })
           console.warn(`[OfflineSync] ❌ Order failed: ${order.clientOrderId}`, result?.error)
         }
@@ -328,10 +342,16 @@ export function registerConnectivityListeners(): () => void {
 
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
+  const catalogVersionTimer = window.setInterval(() => {
+    refreshCatalogIfVersionChanged().catch((error) => {
+      console.warn('[OfflineSync] Catalog version check failed — keeping cached prices', error)
+    })
+  }, CATALOG_VERSION_POLL_MS)
 
   return () => {
     window.removeEventListener('online', handleOnline)
     window.removeEventListener('offline', handleOffline)
+    window.clearInterval(catalogVersionTimer)
   }
 }
 
@@ -344,7 +364,8 @@ export function registerConnectivityListeners(): () => void {
  * POSLayout sidebar đọc cache được đồng bộ từ Backend API.
  */
 export async function getCategories(): Promise<Category[]> {
-  return db.categories.toArray()
+  const storeId = getPosSession().storeId
+  return storeId ? db.categories.where('storeId').equals(storeId).toArray() : []
 }
 
 /**
@@ -354,10 +375,12 @@ export async function getCategories(): Promise<Category[]> {
  * @param categoryId Filter theo danh mục. Nếu undefined → lấy tất cả.
  */
 export async function getMenuItemsByCategory(categoryId?: number): Promise<MenuItem[]> {
+  const storeId = getPosSession().storeId
+  if (!storeId) return []
   if (categoryId !== undefined) {
-    return db.menuItems.where('categoryId').equals(categoryId).toArray()
+    return db.menuItems.where('[storeId+categoryId]').equals([storeId, categoryId]).toArray()
   }
-  return db.menuItems.toArray()
+  return db.menuItems.where('storeId').equals(storeId).toArray()
 }
 
 /**

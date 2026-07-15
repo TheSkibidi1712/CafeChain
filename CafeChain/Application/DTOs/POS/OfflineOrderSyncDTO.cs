@@ -42,10 +42,15 @@ namespace CafeChain.Application.DTOs.POS
     public class OfflineOrderDetailDTO
     {
         public int ItemId { get; set; } // DrinkId
+        public int? StoreMenuItemId { get; set; }
+        public int? DrinkSizeId { get; set; }
         public string ItemName { get; set; }
         public int? SizeId { get; set; }
         public int Quantity { get; set; }
+        public decimal? AcceptedBasePrice { get; set; }
         public decimal UnitPrice { get; set; }
+        public string? PriceSource { get; set; }
+        public long? CatalogVersion { get; set; }
         public decimal TotalPrice { get; set; }
         public List<POSOrderToppingDto> Toppings { get; set; } = new List<POSOrderToppingDto>();
     }
@@ -54,12 +59,17 @@ namespace CafeChain.Application.DTOs.POS
     {
         public string? CartId { get; set; }
         public int MenuItemId { get; set; }
+        public int? StoreMenuItemId { get; set; }
+        public int? DrinkSizeId { get; set; }
         public string? Name { get; set; }
         public int? CategoryId { get; set; }
         public int? SizeId { get; set; }
         public string? SizeName { get; set; }
         public int Quantity { get; set; }
         public decimal UnitPrice { get; set; }
+        public decimal? EffectivePrice { get; set; }
+        public string? PriceSource { get; set; }
+        public long? CatalogVersion { get; set; }
         public string? Note { get; set; }
         public string? DetailText { get; set; }
         public List<OfflineCartSnapshotToppingDTO> Toppings { get; set; } = new();
@@ -70,6 +80,7 @@ namespace CafeChain.Application.DTOs.POS
         public int ToppingId { get; set; }
         public string? Name { get; set; }
         public decimal? Price { get; set; }
+        public decimal? AcceptedPrice { get; set; }
     }
 
     public class OfflinePaymentSnapshotDTO

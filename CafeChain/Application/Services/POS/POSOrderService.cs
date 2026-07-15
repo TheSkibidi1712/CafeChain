@@ -29,6 +29,7 @@ namespace CafeChain.Application.Services.POS
         private readonly IPrintDispatcher _printDispatcher;
         private readonly IPayOSService _payOSService;
         private readonly ILogger<POSOrderService> _logger;
+        private readonly IPOSStoreMenuSaleValidator? _storeMenuSaleValidator;
 
         public POSOrderService(
             IPOSOrderRepository repository,
@@ -37,6 +38,18 @@ namespace CafeChain.Application.Services.POS
             IPrintDispatcher printDispatcher,
             IPayOSService payOSService,
             ILogger<POSOrderService> logger)
+            : this(repository, workShiftService, voucherService, printDispatcher, payOSService, logger, null)
+        {
+        }
+
+        public POSOrderService(
+            IPOSOrderRepository repository,
+            IWorkShiftService workShiftService,
+            IAdminVoucherService voucherService,
+            IPrintDispatcher printDispatcher,
+            IPayOSService payOSService,
+            ILogger<POSOrderService> logger,
+            IPOSStoreMenuSaleValidator? storeMenuSaleValidator)
         {
             _repository = repository;
             _workShiftService = workShiftService;
@@ -44,6 +57,7 @@ namespace CafeChain.Application.Services.POS
             _printDispatcher = printDispatcher;
             _payOSService = payOSService;
             _logger = logger;
+            _storeMenuSaleValidator = storeMenuSaleValidator;
         }
 
         // ============================================================
@@ -212,6 +226,10 @@ namespace CafeChain.Application.Services.POS
             if (activeShift == null)
                 return ServiceResult<object>.Failure("Phiên két tiền đã đóng, vui lòng mở ca mới để tiếp tục bán hàng.");
 
+            var acceptedLines = await ValidateAcceptedLinesAsync(dto.Items, storeId, offline: false);
+            if (!acceptedLines.IsSuccess)
+                return ServiceResult<object>.Failure(acceptedLines.Message, errorCode: acceptedLines.ErrorCode);
+
             await _repository.BeginTransactionAsync();
             var transactionCommitted = false;
             try
@@ -220,8 +238,17 @@ namespace CafeChain.Application.Services.POS
                 decimal subTotal = 0;
                 var orderDetails = new List<OrderDetail>();
 
-                foreach (var item in dto.Items)
+                for (var itemIndex = 0; itemIndex < dto.Items.Count; itemIndex++)
                 {
+                    var item = dto.Items[itemIndex];
+                    if (acceptedLines.Data != null)
+                    {
+                        var accepted = acceptedLines.Data[itemIndex];
+                        subTotal += accepted.AcceptedUnitPrice * item.Quantity;
+                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted));
+                        continue;
+                    }
+
                     var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId, storeId);
                     if (drink == null)
                         return ServiceResult<object>.Failure($"Sản phẩm #{item.DrinkId} không tồn tại hoặc không bán tại cửa hàng này.");
@@ -536,6 +563,10 @@ namespace CafeChain.Application.Services.POS
                     errorCode: ProductScopeErrorCodes.FeatureNotAvailable);
             }
 
+            var acceptedLines = await ValidateAcceptedLinesAsync(dto.Items, storeId, offline: true);
+            if (!acceptedLines.IsSuccess)
+                return ServiceResult<object>.Failure(acceptedLines.Message, errorCode: acceptedLines.ErrorCode);
+
             await _repository.BeginTransactionAsync();
             var transactionCommitted = false;
 
@@ -544,12 +575,21 @@ namespace CafeChain.Application.Services.POS
                 decimal subTotal = 0;
                 var orderDetails = new List<OrderDetail>();
 
-                foreach (var item in dto.Items)
+                for (var itemIndex = 0; itemIndex < dto.Items.Count; itemIndex++)
                 {
+                    var item = dto.Items[itemIndex];
                     if (item.Quantity <= 0)
                     {
                         await _repository.RollbackTransactionAsync();
                         return ServiceResult<object>.Failure("Số lượng món trong đơn offline phải lớn hơn 0.");
+                    }
+
+                    if (acceptedLines.Data != null)
+                    {
+                        var accepted = acceptedLines.Data[itemIndex];
+                        subTotal += accepted.AcceptedUnitPrice * item.Quantity;
+                        orderDetails.Add(BuildAcceptedOrderDetail(item, accepted));
+                        continue;
                     }
 
                     var drink = await _repository.GetDrinkWithSizesAsync(item.DrinkId, storeId);
@@ -769,6 +809,63 @@ namespace CafeChain.Application.Services.POS
                 earnedPoints = 0,
                 isIdempotent = true
             } as object;
+        }
+
+        private async Task<ServiceResult<IReadOnlyList<POSAcceptedSaleLineDto>?>> ValidateAcceptedLinesAsync(
+            IReadOnlyList<POSOrderItemDto> items,
+            int storeId,
+            bool offline)
+        {
+            // Compatibility path for existing non-Store-Menu callers and focused legacy tests.
+            // Production DI always supplies the validator and therefore requires full snapshots.
+            if (_storeMenuSaleValidator == null)
+                return ServiceResult<IReadOnlyList<POSAcceptedSaleLineDto>?>.Success(null);
+
+            var accepted = new List<POSAcceptedSaleLineDto>(items.Count);
+            var validationAtUtc = DateTime.UtcNow;
+            foreach (var item in items)
+            {
+                var result = offline
+                    ? await _storeMenuSaleValidator.ValidateOfflineAsync(item, storeId)
+                    : await _storeMenuSaleValidator.ValidateOnlineAsync(item, storeId, validationAtUtc);
+                if (!result.IsSuccess || result.Data == null)
+                {
+                    return ServiceResult<IReadOnlyList<POSAcceptedSaleLineDto>?>.Failure(
+                        result.Message,
+                        errorCode: result.ErrorCode);
+                }
+
+                accepted.Add(result.Data);
+            }
+
+            return ServiceResult<IReadOnlyList<POSAcceptedSaleLineDto>?>.Success(accepted);
+        }
+
+        private static OrderDetail BuildAcceptedOrderDetail(
+            POSOrderItemDto item,
+            POSAcceptedSaleLineDto accepted)
+        {
+            return new OrderDetail
+            {
+                DrinkId = accepted.DrinkId,
+                SizeId = accepted.SizeId,
+                StoreMenuItemId = accepted.StoreMenuItemId,
+                DrinkSizeId = accepted.DrinkSizeId,
+                DrinkName = accepted.DrinkName,
+                SizeName = accepted.SizeName,
+                Price = accepted.AcceptedUnitPrice,
+                AcceptedBasePrice = accepted.AcceptedBasePrice,
+                PriceSource = accepted.PriceSource,
+                AcceptedCatalogVersion = accepted.CatalogVersion,
+                Quantity = item.Quantity,
+                Note = item.Note ?? string.Empty,
+                OrderToppings = accepted.Toppings.Select(x => new OrderTopping
+                {
+                    ToppingId = x.ToppingId,
+                    ToppingName = x.Name,
+                    Price = x.AcceptedPrice
+                }).ToList()
+            };
         }
 
         private static decimal ResolveCashReceivedAmount(decimal receivedAmount, decimal total)

@@ -1,5 +1,8 @@
 using CafeChain.Application.DTOs.POS;
+using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.POS;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +19,24 @@ namespace CafeChain.Controllers.Api.v1
         private readonly AppDbContext _context;
         private readonly IUnitConversionService _unitConversion;
         private readonly ILogger<POSCatalogController> _logger;
+        private readonly IDrinkSizePricingService? _pricingService;
+        private readonly IPOSCatalogSnapshotService? _catalogSnapshotService;
 
+        public POSCatalogController(
+            AppDbContext context,
+            IUnitConversionService unitConversion,
+            IDrinkSizePricingService pricingService,
+            IPOSCatalogSnapshotService catalogSnapshotService,
+            ILogger<POSCatalogController> logger)
+        {
+            _context = context;
+            _unitConversion = unitConversion;
+            _pricingService = pricingService;
+            _catalogSnapshotService = catalogSnapshotService;
+            _logger = logger;
+        }
+
+        // Compatibility constructor for focused controller tests that do not exercise catalog versioning.
         public POSCatalogController(
             AppDbContext context,
             IUnitConversionService unitConversion,
@@ -25,6 +45,34 @@ namespace CafeChain.Controllers.Api.v1
             _context = context;
             _unitConversion = unitConversion;
             _logger = logger;
+        }
+
+        [HttpGet("catalog/version")]
+        public async Task<IActionResult> GetCatalogVersion(CancellationToken cancellationToken)
+        {
+            if (_catalogSnapshotService != null)
+            {
+                var snapshot = await _catalogSnapshotService.BuildAsync(CurrentStoreId, DateTime.UtcNow, cancellationToken);
+                return Ok(new PosCatalogVersionDto
+                {
+                    StoreId = snapshot.StoreId,
+                    Version = snapshot.Version,
+                    UpdatedAtUtc = snapshot.GeneratedAtUtc
+                });
+            }
+            if (_pricingService == null)
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Catalog version service is unavailable." });
+            return Ok(await _pricingService.GetCatalogVersionAsync(CurrentStoreId, cancellationToken));
+        }
+
+        [HttpGet("catalog")]
+        public async Task<IActionResult> GetCatalog(CancellationToken cancellationToken)
+        {
+            if (_catalogSnapshotService == null)
+                return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Catalog snapshot service is unavailable." });
+
+            var snapshot = await _catalogSnapshotService.BuildAsync(CurrentStoreId, DateTime.UtcNow, cancellationToken);
+            return Ok(snapshot);
         }
 
         /// <summary>

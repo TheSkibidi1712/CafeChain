@@ -11,15 +11,15 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         [Required(ErrorMessage = "Tên NCC không được để trống")]
         public string Name { get; set; } = "";
 
-        public string? TaxCode { get; set; }
-        public string? Website { get; set; }
+        [MaxLength(500)]
+        public string? Address { get; set; }
+
+        [MaxLength(1000)]
+        public string? Note { get; set; }
+
         public bool Active { get; set; }
 
-        // ===== ĐỊA CHỈ 3 CẤP =====
-        public int? ProvinceId { get; set; }
-        public int? DistrictId { get; set; }
-        public int? WardId { get; set; }
-        public string? StreetAddress { get; set; }
+        public string? RowVersion { get; set; }
     }
 
     // DTO thêm số điện thoại phụ
@@ -29,21 +29,6 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
 
         [Required(ErrorMessage = "Số điện thoại không được để trống")]
         public string PhoneNumber { get; set; } = "";
-    }
-
-    // DTO thêm tài khoản ngân hàng phụ
-    public class AdminSupplierBankAccountCreateDTO
-    {
-        public int SupplierId { get; set; }
-
-        [Required(ErrorMessage = "Tên ngân hàng không được để trống")]
-        public string BankName { get; set; } = "";
-
-        [Required(ErrorMessage = "Số tài khoản không được để trống")]
-        public string AccountNumber { get; set; } = "";
-
-        [Required(ErrorMessage = "Chủ tài khoản không được để trống")]
-        public string AccountHolder { get; set; } = "";
     }
 
     // DTO thêm người liên hệ phụ
@@ -57,5 +42,11 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Position { get; set; }
+    }
+
+    public class AdminSupplierContactUpdateDTO : AdminSupplierContactCreateDTO
+    {
+        public int SupplierContactId { get; set; }
+        public bool Active { get; set; } = true;
     }
 }

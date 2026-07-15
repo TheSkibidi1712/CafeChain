@@ -22,7 +22,15 @@ namespace CafeChain.Models.Inventories.Suppliers
         public decimal CurrentPrice { get; set; }
 
         // MOQ
-        public decimal? MinimumOrderQuantity { get; set; }
+        public int? MinimumOrderPackageCount { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Schema.NotMapped]
+        [Obsolete("Use MinimumOrderPackageCount; MOQ is a package count.")]
+        public decimal? MinimumOrderQuantity
+        {
+            get => MinimumOrderPackageCount;
+            set => MinimumOrderPackageCount = value.HasValue ? decimal.ToInt32(value.Value) : null;
+        }
 
         // thời gian giao
         public int? LeadTimeDays { get; set; }
@@ -33,6 +41,12 @@ namespace CafeChain.Models.Inventories.Suppliers
         public bool Active { get; set; }
 
         public string? Note { get; set; }
+
+        public DateTime CreatedAt { get; set; }
+        public DateTime UpdatedAt { get; set; }
+
+        [System.ComponentModel.DataAnnotations.Timestamp]
+        public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
         // ================= NAVIGATION =================
 

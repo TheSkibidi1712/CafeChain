@@ -67,12 +67,13 @@ function renderDrinkUI(data) {
                                id="price-${d.drinkSizeId}"
                                value="${d.price ?? 0}"
                                class="form-control form-control-sm mb-2"
-                               disabled />
+                               disabled
+                               aria-label="Giá bán toàn hệ thống" />
 
                         <button class="btn btn-sm btn-primary w-100 mb-1"
                                 id="btn-edit-${d.drinkSizeId}"
                                 onclick="toggleEdit(${d.drinkSizeId})">
-                            Chỉnh sửa
+                            Quản lý giá
                         </button>
 
                         <button class="btn btn-sm btn-outline-danger w-100"
@@ -196,34 +197,7 @@ function confirmAssign() {
 // EDIT PRICE INLINE
 // =========================
 function toggleEdit(drinkSizeId) {
-    let input = document.getElementById(`price-${drinkSizeId}`);
-    let btn = document.getElementById(`btn-edit-${drinkSizeId}`);
-
-    if (input.disabled) {
-        input.disabled = false;
-        input.focus();
-        btn.innerText = "Lưu";
-        btn.classList.replace("btn-primary", "btn-success");
-    } else {
-        let price = input.value;
-
-        if (!price || price <= 0) {
-            toast("Giá không hợp lệ", "error");
-            return;
-        }
-
-        fetch(`/Admin/AdminSize/UpdatePrice?drinkSizeId=${drinkSizeId}&price=${price}`, {
-            method: 'POST',
-            headers: { 'RequestVerificationToken': getSizeAntiForgeryToken() }
-        })
-            .then(() => {
-                input.disabled = true;
-                btn.innerText = "Chỉnh sửa";
-                btn.classList.replace("btn-success", "btn-primary");
-
-                toast("Cập nhật thành công");
-            });
-    }
+    window.location.href = '/Admin/AdminDrinkProfitability';
 }
 
 // =========================

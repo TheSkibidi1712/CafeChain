@@ -23,6 +23,10 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public string? Note { get; set; }
 
+        public int? CreatedByStaffId { get; set; }
+
+        public DateTime CreatedAtUtc { get; set; }
+
         public virtual IngredientSupplier IngredientSupplier { get; set; }
 
         public virtual Unit? PackageUnit { get; set; }

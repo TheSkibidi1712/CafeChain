@@ -35,5 +35,8 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>Thông báo lỗi nếu failed</summary>
         public string? Error { get; set; }
+
+        /// <summary>Mã lỗi máy đọc được, dùng cho conflict snapshot/catalog.</summary>
+        public string? ErrorCode { get; set; }
     }
 }

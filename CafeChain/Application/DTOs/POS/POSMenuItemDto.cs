@@ -44,6 +44,10 @@ namespace CafeChain.Application.DTOs.POS
     /// </summary>
     public class POSMenuItemSizeDto
     {
+        public int StoreMenuItemId { get; set; }
+
+        public int DrinkSizeId { get; set; }
+
         /// <summary>Size.SizeId</summary>
         public int SizeId { get; set; }
 
@@ -52,5 +56,28 @@ namespace CafeChain.Application.DTOs.POS
 
         /// <summary>DrinkSize.Price</summary>
         public decimal Price { get; set; }
+
+        public decimal GlobalPrice { get; set; }
+
+        public decimal? StoreOverride { get; set; }
+
+        public string PriceSource { get; set; } = string.Empty;
+
+        public bool IsAvailable { get; set; }
+
+        public string AvailabilityStatus { get; set; } = string.Empty;
+
+        public string? AvailabilityReason { get; set; }
+
+        public List<POSToppingPolicyDto> ToppingPolicies { get; set; } = new();
+    }
+
+    public class POSToppingPolicyDto
+    {
+        public int ToppingId { get; set; }
+        public bool IsDefaultSelected { get; set; }
+        public bool IsRequired { get; set; }
+        public string PriceTreatment { get; set; } = string.Empty;
+        public decimal QuantityPerDrink { get; set; }
     }
 }

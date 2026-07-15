@@ -1,5 +1,4 @@
 ﻿using CafeChain.Models.Enums.Inventory;
-using CafeChain.Models.Inventories.Debts;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Staffs;
@@ -61,7 +60,6 @@ namespace CafeChain.Models.Inventories.Documents
 
         public virtual ICollection<InventoryDocumentDetail> Details { get; set; } = new List<InventoryDocumentDetail>();
         public virtual ICollection<InventoryTransaction> InventoryTransactions { get; set; } = new List<InventoryTransaction>();
-        public virtual ICollection<InventoryDebt> Debts { get; set; } = new List<InventoryDebt>();
         public virtual InventoryDocumentSnapshot? Snapshot { get; set; }
         public virtual InventoryNegativeApproval? NegativeApproval { get; set; }
     }

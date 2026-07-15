@@ -1,13 +1,17 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
-using CafeChain.Models.Locations;
 
 namespace CafeChain.Application.Interfaces.Admin.Suppliers
 {
     public interface IAdminSupplierService
     {
         // ===== LIST & DETAIL =====
-        Task<List<AdminSupplierDTO>> GetAllAsync(string? search, bool? status);
-        Task<AdminSupplierDetailDTO?> GetByIdAsync(int id);
+        Task<List<AdminSupplierDTO>> GetAllAsync(
+            string? search,
+            bool? status,
+            IReadOnlyCollection<int>? storeScope = null);
+        Task<AdminSupplierDetailDTO?> GetByIdAsync(
+            int id,
+            IReadOnlyCollection<int>? storeScope = null);
 
         // ===== CRUD MAIN =====
         Task<string> GenerateNextCodeAsync();   // Trả về mã NCC tiếp theo (NCC00001)
@@ -19,19 +23,11 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task AddPhoneAsync(AdminSupplierPhoneCreateDTO dto);
         Task DeletePhoneAsync(int supplierPhoneId);
 
-        // ===== BANK ACCOUNTS =====
-        Task AddBankAccountAsync(AdminSupplierBankAccountCreateDTO dto);
-        Task DeleteBankAccountAsync(int supplierBankAccountId);
-
         // ===== CONTACTS =====
         Task AddContactAsync(AdminSupplierContactCreateDTO dto);
+        Task UpdateContactAsync(AdminSupplierContactUpdateDTO dto);
         Task DeleteContactAsync(int supplierContactId);
         Task SetPrimaryContactAsync(int supplierContactId);
-
-        // ===== LOCATION =====
-        Task<List<Province>> GetProvincesAsync();
-        Task<List<District>> GetDistrictsByProvinceAsync(int provinceId);
-        Task<List<Ward>> GetWardsByDistrictAsync(int districtId);
 
         // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
         Task<List<AdminIngredientSupplierDTO>> GetIngredientOffersAsync(int supplierId);
@@ -39,7 +35,16 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
         Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
         Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active);
+        Task ChangeIngredientOfferPriceAsync(AdminIngredientSupplierPriceChangeDTO dto, int actorStaffId);
+        Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(int ingredientSupplierId);
         Task<List<object>> GetIngredientDropdownAsync();
         Task<List<object>> GetContentUnitDropdownAsync();
+
+        // ===== STORE SCOPE =====
+        Task<List<AdminSupplierStoreDTO>> GetSupplierStoresAsync(
+            int supplierId,
+            IReadOnlyCollection<int>? storeScope = null);
+        Task<List<object>> GetStoreDropdownAsync(IReadOnlyCollection<int>? storeScope = null);
+        Task SaveSupplierStoreAsync(AdminSupplierStoreSaveDTO dto);
     }
 }

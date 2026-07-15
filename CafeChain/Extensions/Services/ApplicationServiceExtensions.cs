@@ -25,7 +25,6 @@ using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
-using CafeChain.Application.Services.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
@@ -127,6 +126,30 @@ namespace CafeChain.Extensions.Services
 
             // Admin - DrinkSizes
             services.AddScoped<IAdminDrinkSizeService, AdminDrinkSizeService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeRecipeResolver,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeRecipeResolver>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeToppingPolicyService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeToppingPolicyService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeProfitabilityQueryService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeProfitabilityQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IPriceSuggestionService,
+                CafeChain.Application.Services.Admin.Profitability.PriceSuggestionService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizePricingService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizePricingService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuBackfillPlanner,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuBackfillPlanner>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuAvailabilityEvaluator,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuAvailabilityEvaluator>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreCatalogVersionService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreCatalogVersionService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuPricingService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuPricingService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuWorkspaceService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuWorkspaceService>();
+            services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSCatalogSnapshotService,
+                CafeChain.Application.Services.POS.POSCatalogSnapshotService>();
+            services.AddScoped<CafeChain.Application.Interfaces.POS.IPOSStoreMenuSaleValidator,
+                CafeChain.Application.Services.POS.POSStoreMenuSaleValidator>();
 
             // Admin - Toppings
             services.AddScoped<IAdminToppingService, AdminToppingService>();

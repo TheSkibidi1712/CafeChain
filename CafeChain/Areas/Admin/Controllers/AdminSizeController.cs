@@ -243,16 +243,12 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             var guard = await EnsurePermissionAsync(PermissionConstants.SizeAssignDrink);
             if (guard != null) return guard;
-            if (price <= 0)
-                return BadRequest("Giá không hợp lệ");
-
-            await _drinkSizeService.UpdatePriceAsync(new DrinkSizeDto
+            return Conflict(new
             {
-                DrinkSizeId = drinkSizeId,
-                Price = price
+                success = false,
+                message = "Giá bán phải được cập nhật tại màn hình Vốn và lợi nhuận để bảo đảm audit và kiểm soát đồng thời.",
+                redirectUrl = Url.Action("Index", "AdminDrinkProfitability", new { area = "Admin" })
             });
-
-            return Ok();
         }
 
         [HttpPost]

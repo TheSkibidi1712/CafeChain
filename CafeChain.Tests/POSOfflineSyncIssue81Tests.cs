@@ -522,12 +522,34 @@ namespace CafeChain.Tests.POS
                     new()
                     {
                         ItemId = 10,
+                        StoreMenuItemId = 100,
+                        DrinkSizeId = 200,
                         ItemName = "Americano",
                         SizeId = 2,
                         Quantity = 1,
+                        AcceptedBasePrice = 45000m,
                         UnitPrice = 45000m,
+                        PriceSource = StoreMenuPriceSources.Global,
+                        CatalogVersion = 1,
                         TotalPrice = 45000m,
                         Toppings = new List<POSOrderToppingDto>()
+                    }
+                },
+                CartSnapshot = new List<OfflineCartSnapshotItemDTO>
+                {
+                    new()
+                    {
+                        MenuItemId = 10,
+                        StoreMenuItemId = 100,
+                        DrinkSizeId = 200,
+                        Name = "Americano",
+                        SizeId = 2,
+                        Quantity = 1,
+                        UnitPrice = 45000m,
+                        EffectivePrice = 45000m,
+                        PriceSource = StoreMenuPriceSources.Global,
+                        CatalogVersion = 1,
+                        Toppings = new List<OfflineCartSnapshotToppingDTO>()
                     }
                 }
             };

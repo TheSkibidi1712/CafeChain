@@ -145,4 +145,28 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public List<int> InventoryTransactionIds { get; set; } = new();
         public List<(int RestockRequestId, string NewStatus, decimal ReceivedQty)> RequestUpdates { get; set; } = new();
     }
+
+    public class BranchReceiptSupplierOptionDto
+    {
+        public int SupplierId { get; set; }
+        public string SupplierCode { get; set; } = string.Empty;
+        public string SupplierName { get; set; } = string.Empty;
+        public int? LeadTimeOverrideDays { get; set; }
+        public string? DeliverySchedule { get; set; }
+    }
+
+    public class BranchReceiptOfferOptionDto
+    {
+        public int IngredientSupplierId { get; set; }
+        public int SupplierId { get; set; }
+        public int IngredientId { get; set; }
+        public string IngredientName { get; set; } = string.Empty;
+        public int PackageUnitId { get; set; }
+        public string PackageUnitName { get; set; } = string.Empty;
+        public decimal PackageQuantity { get; set; }
+        public decimal PackagePrice { get; set; }
+        public decimal MinimumOrderPackageCount { get; set; }
+        public int LeadTimeDays { get; set; }
+        public string PackageDisplay { get; set; } = string.Empty;
+    }
 }
