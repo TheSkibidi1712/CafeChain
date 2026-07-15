@@ -79,7 +79,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     new SupplierContact
                     {
                         Name      = dto.PrimaryContactName.Trim(),
-                       // Phone     = dto.PrimaryContactPhone?.Trim(),
+                        PhoneNumber = Clean(dto.PrimaryContactPhone),
                         Email     = dto.PrimaryContactEmail?.Trim(),
                         Position  = dto.PrimaryContactPosition?.Trim(),
                         IsPrimary = true
@@ -105,7 +105,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 supplier.Contacts.Add(new SupplierContact
                 {
                     Name = ct.Name.Trim(),
-                    //Phone = ct.Phone?.Trim(),
+                    PhoneNumber = Clean(ct.Phone),
                     Email = ct.Email?.Trim(),
                     Position = ct.Position?.Trim(),
                     IsPrimary = false
@@ -198,12 +198,26 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 SupplierId = dto.SupplierId,
                 Name = dto.Name.Trim(),
-                //Phone = dto.Phone?.Trim(),
+                PhoneNumber = Clean(dto.Phone),
                 Email = dto.Email?.Trim(),
                 Position = dto.Position?.Trim(),
                 IsPrimary = false   // phụ
             };
             await _repo.AddContactAsync(contact);
+            await _repo.SaveChangesAsync();
+        }
+
+        public async Task UpdateContactAsync(AdminSupplierContactUpdateDTO dto)
+        {
+            var contact = await _repo.GetContactByIdAsync(dto.SupplierContactId);
+            if (contact == null || contact.SupplierId != dto.SupplierId)
+                throw new InvalidOperationException("Không tìm thấy người liên hệ của nhà cung cấp.");
+
+            contact.Name = Normalize(dto.Name);
+            contact.PhoneNumber = Clean(dto.Phone);
+            contact.Email = Clean(dto.Email);
+            contact.Position = Clean(dto.Position);
+            contact.Active = dto.Active;
             await _repo.SaveChangesAsync();
         }
 
@@ -253,7 +267,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 Active = x.Active,
                 PrimaryPhone = primaryPhone?.PhoneNumber,
                 PrimaryContactName = primaryContact?.Name,
-                PrimaryContactPhone = null,
+                PrimaryContactPhone = primaryContact?.PhoneNumber,
                 ActiveOfferCount = x.IngredientSuppliers.Count(o => o.Active)
             };
         }
@@ -283,7 +297,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 {
                     SupplierContactId = c.SupplierContactId,
                     Name = c.Name ?? "",
-                    Phone = null,
+                    Phone = c.PhoneNumber,
                     Email = c.Email,
                     Position = c.Position,
                     IsPrimary = c.IsPrimary

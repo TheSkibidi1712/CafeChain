@@ -43,4 +43,10 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string? Email { get; set; }
         public string? Position { get; set; }
     }
+
+    public class AdminSupplierContactUpdateDTO : AdminSupplierContactCreateDTO
+    {
+        public int SupplierContactId { get; set; }
+        public bool Active { get; set; } = true;
+    }
 }

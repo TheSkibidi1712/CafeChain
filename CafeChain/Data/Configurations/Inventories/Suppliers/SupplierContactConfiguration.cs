@@ -21,6 +21,9 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             entity.Property(x => x.Email)
                 .HasMaxLength(150);
 
+            entity.Property(x => x.PhoneNumber)
+                .HasMaxLength(20);
+
             entity.Property(x => x.Position)
                 .HasMaxLength(100);
 
@@ -39,16 +42,13 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
 
             entity.HasIndex(x => x.Email);
 
+            entity.HasIndex(x => new { x.SupplierId, x.PhoneNumber });
+
             // ================= RELATION =================
 
             entity.HasOne(x => x.Supplier)
                 .WithMany(x => x.Contacts)
                 .HasForeignKey(x => x.SupplierId)
-                .OnDelete(DeleteBehavior.Cascade);
-
-            entity.HasMany(x => x.Phones)
-                .WithOne(x => x.SupplierContact)
-                .HasForeignKey(x => x.SupplierContactId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             // ================= SEED =================
@@ -59,6 +59,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierContactId = 1,
                     SupplierId = 1,
                     Name = "Nguyễn Văn A",
+                    PhoneNumber = "0901111111",
                     Email = "a@supplier.com",
                     Position = "Manager",
                     IsPrimary = true,
@@ -70,6 +71,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierContactId = 2,
                     SupplierId = 2,
                     Name = "Trần Văn B",
+                    PhoneNumber = "0902222222",
                     Email = "b@supplier.com",
                     Position = "Sales",
                     IsPrimary = true,
@@ -81,6 +83,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierContactId = 3,
                     SupplierId = 3,
                     Name = "Lê Văn C",
+                    PhoneNumber = "0903333333",
                     Email = "c@supplier.com",
                     Position = "Owner",
                     IsPrimary = true,
@@ -92,6 +95,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierContactId = 4,
                     SupplierId = 4,
                     Name = "Phạm Văn D",
+                    PhoneNumber = "0904444444",
                     Email = "d@supplier.com",
                     Position = "Director",
                     IsPrimary = true,
@@ -103,6 +107,7 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                     SupplierContactId = 5,
                     SupplierId = 5,
                     Name = "Hoàng Văn E",
+                    PhoneNumber = "0905555555",
                     Email = "e@supplier.com",
                     Position = "Manager",
                     IsPrimary = true,

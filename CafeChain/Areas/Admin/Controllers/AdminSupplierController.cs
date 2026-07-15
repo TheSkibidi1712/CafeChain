@@ -153,6 +153,24 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [Authorize(Roles = SupplierMutationRoles)]
+        public async Task<IActionResult> UpdateContact([FromBody] AdminSupplierContactUpdateDTO dto)
+        {
+            if (!ModelState.IsValid)
+                return Json(new { success = false, message = "Dữ liệu liên hệ không hợp lệ" });
+
+            try
+            {
+                await _service.UpdateContactAsync(dto);
+                return Json(new { success = true, message = "Đã cập nhật người liên hệ" });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        [Authorize(Roles = SupplierMutationRoles)]
         public async Task<IActionResult> DeleteContact(int supplierContactId)
         {
             try

@@ -10,6 +10,8 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public string? Email { get; set; }
 
+        public string? PhoneNumber { get; set; }
+
         public string? Position { get; set; }
 
         public bool IsPrimary { get; set; }
@@ -20,7 +22,5 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public virtual Supplier Supplier { get; set; }
 
-        public virtual ICollection<SupplierContactPhone> Phones { get; set; }
-            = new List<SupplierContactPhone>();
     }
 }
