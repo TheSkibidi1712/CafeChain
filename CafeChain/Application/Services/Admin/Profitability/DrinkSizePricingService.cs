@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Profitability;
 using CafeChain.Application.Interfaces.Admin.Profitability;
+using CafeChain.Application.Interfaces.Admin.StoreMenu;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Drinks;
@@ -12,11 +13,17 @@ namespace CafeChain.Application.Services.Admin.Profitability
     {
         private readonly AppDbContext _context;
         private readonly IDrinkSizeProfitabilityQueryService _profitability;
+        private readonly IStoreCatalogVersionService _catalogVersions;
 
-        public DrinkSizePricingService(AppDbContext context, IDrinkSizeProfitabilityQueryService profitability)
+        public DrinkSizePricingService(
+            AppDbContext context,
+            IDrinkSizeProfitabilityQueryService profitability,
+            IStoreCatalogVersionService? catalogVersions = null)
         {
             _context = context;
             _profitability = profitability;
+            _catalogVersions = catalogVersions
+                ?? new CafeChain.Application.Services.Admin.StoreMenu.StoreCatalogVersionService(context);
         }
 
         public async Task<ServiceResult<DrinkSizePriceUpdateResult>> UpdatePriceAsync(UpdateDrinkSizePriceRequest request, int storeIdForCostCheck, int actorStaffId, CancellationToken cancellationToken = default)
@@ -43,6 +50,19 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 return ServiceResult<DrinkSizePriceUpdateResult>.Failure(
                     "Giá đã được người khác cập nhật. Vui lòng tải lại trước khi lưu.", errorCode: "PRICE_CHANGED_BY_ANOTHER_USER");
 
+            if (drinkSize.Price == request.NewSellingPrice)
+            {
+                var currentCatalog = await _catalogVersions.GetAsync(storeIdForCostCheck, cancellationToken);
+                return ServiceResult<DrinkSizePriceUpdateResult>.Success(new DrinkSizePriceUpdateResult
+                {
+                    DrinkSizeId = drinkSize.DrinkSizeId,
+                    OldPrice = drinkSize.Price,
+                    NewPrice = drinkSize.Price,
+                    RowVersion = drinkSize.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(drinkSize.RowVersion),
+                    CatalogVersion = currentCatalog.Version
+                }, "Giá toàn hệ thống không thay đổi.");
+            }
+
             var preview = await _profitability.PreviewAsync(storeIdForCostCheck, drinkSize.DrinkId, DateTime.UtcNow, actorStaffId, cancellationToken);
             var costStatus = preview.IsSuccess
                 ? preview.Data.Sizes.FirstOrDefault(x => x.DrinkSizeId == drinkSize.DrinkSizeId)?.CostStatus ?? ProfitabilityCostStatuses.Incomplete
@@ -57,17 +77,18 @@ namespace CafeChain.Application.Services.Admin.Profitability
             drinkSize.Price = request.NewSellingPrice;
             drinkSize.UpdatedAtUtc = DateTime.UtcNow;
 
-            var catalog = await _context.PosCatalogStates.FirstOrDefaultAsync(x => x.PosCatalogStateId == 1, cancellationToken);
-            if (catalog == null)
-            {
-                catalog = new PosCatalogState { PosCatalogStateId = 1, Version = 1, UpdatedAtUtc = DateTime.UtcNow };
-                _context.PosCatalogStates.Add(catalog);
-            }
-            else
-            {
-                catalog.Version++;
-                catalog.UpdatedAtUtc = DateTime.UtcNow;
-            }
+            var now = DateTime.UtcNow;
+            var affectedStoreIds = await _context.StoreMenuItems.AsNoTracking()
+                .Where(x => x.DrinkSizeId == drinkSize.DrinkSizeId
+                    && x.PriceOverride == null
+                    && x.IsEnabled
+                    && x.PublishedAtUtc.HasValue
+                    && (!x.EffectiveFromUtc.HasValue || x.EffectiveFromUtc.Value <= now)
+                    && (!x.EffectiveToUtc.HasValue || x.EffectiveToUtc.Value > now))
+                .Select(x => x.StoreId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+            var catalogVersions = await _catalogVersions.InvalidateAsync(affectedStoreIds, now, cancellationToken);
 
             _context.DrinkSizePriceAudits.Add(new DrinkSizePriceAudit
             {
@@ -77,7 +98,7 @@ namespace CafeChain.Application.Services.Admin.Profitability
                 ActorStaffId = actorStaffId,
                 Reason = string.IsNullOrWhiteSpace(request.Reason) ? "Cập nhật giá bán toàn hệ thống" : request.Reason.Trim(),
                 CostStatus = costStatus,
-                CreatedAtUtc = DateTime.UtcNow
+                CreatedAtUtc = now
             });
 
             await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
@@ -91,8 +112,10 @@ namespace CafeChain.Application.Services.Admin.Profitability
                     OldPrice = oldPrice,
                     NewPrice = drinkSize.Price,
                     RowVersion = drinkSize.RowVersion.Length == 0 ? string.Empty : Convert.ToBase64String(drinkSize.RowVersion),
-                    CatalogVersion = catalog.Version
-                }, "Đã cập nhật giá bán toàn hệ thống và làm mới phiên bản catalog.");
+                    CatalogVersion = catalogVersions.Count == 0 ? 0 : catalogVersions.Values.Max()
+                }, affectedStoreIds.Count == 0
+                    ? "Đã cập nhật giá bán toàn hệ thống; chưa có menu cửa hàng fallback cần làm mới."
+                    : $"Đã cập nhật giá bán toàn hệ thống và làm mới {affectedStoreIds.Count} catalog cửa hàng fallback.");
             }
             catch (DbUpdateConcurrencyException)
             {
@@ -102,13 +125,8 @@ namespace CafeChain.Application.Services.Admin.Profitability
             }
         }
 
-        public async Task<PosCatalogVersionDto> GetCatalogVersionAsync(CancellationToken cancellationToken = default)
-        {
-            var state = await _context.PosCatalogStates.AsNoTracking().FirstOrDefaultAsync(x => x.PosCatalogStateId == 1, cancellationToken);
-            return state == null
-                ? new PosCatalogVersionDto { Version = 0, UpdatedAtUtc = DateTime.UnixEpoch }
-                : new PosCatalogVersionDto { Version = state.Version, UpdatedAtUtc = state.UpdatedAtUtc };
-        }
+        public Task<PosCatalogVersionDto> GetCatalogVersionAsync(int storeId, CancellationToken cancellationToken = default) =>
+            _catalogVersions.GetAsync(storeId, cancellationToken);
 
         private async Task<bool> IsBusinessOwnerAsync(int staffId, CancellationToken ct) => await _context.Staffs.AsNoTracking()
             .AnyAsync(s => s.StaffId == staffId && s.Active && s.Account.AccountRoles.Any(ar => ar.Role.Active && ar.Role.Name == RoleConstants.BusinessOwner), ct);

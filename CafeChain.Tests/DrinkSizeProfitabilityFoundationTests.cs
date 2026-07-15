@@ -339,6 +339,16 @@ public sealed class DrinkSizeProfitabilityFoundationTests : IntegrationTestBase
         context.Sizes.Add(new Size { SizeId = SizeId, SizeCode = "PF-M", Name = "PF Size M", Description = "Profitability", Active = true });
         context.Drinks.Add(new Drink { DrinkId = DrinkId, DrinkCode = "PF-DRINK", Name = "Profit Drink", Description = "Test", ProductTypeId = 1, Active = true, CreatedAt = DateTime.UtcNow });
         context.DrinkSizes.Add(new DrinkSize { DrinkSizeId = DrinkSizeId, DrinkId = DrinkId, SizeId = SizeId, Price = 30_000, Active = true, UpdatedAtUtc = DateTime.UtcNow });
+        context.StoreMenuItems.Add(new StoreMenuItem
+        {
+            StoreMenuItemId = 9140,
+            StoreId = StoreId,
+            DrinkSizeId = DrinkSizeId,
+            IsEnabled = true,
+            PublishedAtUtc = DateTime.UtcNow.AddDays(-1),
+            CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+            UpdatedAtUtc = DateTime.UtcNow.AddDays(-1)
+        });
         context.Ingredients.Add(new Ingredient { IngredientId = IngredientId, Code = "PF-ING", Name = "Ingredient", BaseUnitId = UnitId, Active = true });
 
         if (includeExactRecipe)

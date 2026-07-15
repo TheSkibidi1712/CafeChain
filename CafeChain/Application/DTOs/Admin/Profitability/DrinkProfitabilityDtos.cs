@@ -114,6 +114,7 @@ namespace CafeChain.Application.DTOs.Admin.Profitability
 
     public sealed class PosCatalogVersionDto
     {
+        public int StoreId { get; init; }
         public long Version { get; init; }
         public DateTime UpdatedAtUtc { get; init; }
     }

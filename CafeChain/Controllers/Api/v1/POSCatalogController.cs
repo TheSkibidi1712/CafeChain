@@ -47,7 +47,7 @@ namespace CafeChain.Controllers.Api.v1
         {
             if (_pricingService == null)
                 return StatusCode(StatusCodes.Status503ServiceUnavailable, new { message = "Catalog version service is unavailable." });
-            return Ok(await _pricingService.GetCatalogVersionAsync(cancellationToken));
+            return Ok(await _pricingService.GetCatalogVersionAsync(CurrentStoreId, cancellationToken));
         }
 
         /// <summary>

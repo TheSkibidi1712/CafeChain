@@ -189,6 +189,16 @@ public sealed class DrinkSizeProfitabilitySqlServerTests : IAsyncLifetime
         _drinkSizeId = drinkSize.DrinkSizeId;
         _ownerStaffId = staff.StaffId;
 
+        context.StoreMenuItems.Add(new StoreMenuItem
+        {
+            StoreId = _storeId,
+            DrinkSizeId = _drinkSizeId,
+            IsEnabled = true,
+            PublishedAtUtc = DateTime.UtcNow.AddDays(-1),
+            CreatedAtUtc = DateTime.UtcNow.AddDays(-1),
+            UpdatedAtUtc = DateTime.UtcNow.AddDays(-1)
+        });
+
         var recipe = new Recipe { RecipeCode = "PF-SQL-RCP", Name = "PF SQL Recipe", DrinkId = _drinkId, SizeId = _sizeId, Active = true, Status = "Active", EffectiveDate = DateTime.UtcNow.AddDays(-1) };
         context.Recipes.Add(recipe);
         await context.SaveChangesAsync();

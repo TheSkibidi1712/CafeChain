@@ -10,17 +10,13 @@ namespace CafeChain.Data.Configurations.Drinks
         {
             entity.ToTable("PosCatalogStates");
             entity.HasKey(x => x.PosCatalogStateId);
-            entity.Property(x => x.PosCatalogStateId).ValueGeneratedNever();
             entity.Property(x => x.Version).HasDefaultValue(0L);
             entity.Property(x => x.UpdatedAtUtc).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.RowVersion).IsRowVersion().IsConcurrencyToken();
-
-            entity.HasData(new PosCatalogState
-            {
-                PosCatalogStateId = 1,
-                Version = 0,
-                UpdatedAtUtc = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc)
-            });
+            entity.HasOne(x => x.Store).WithOne(x => x.PosCatalogState)
+                .HasForeignKey<PosCatalogState>(x => x.StoreId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasIndex(x => x.StoreId).IsUnique();
         }
     }
 }

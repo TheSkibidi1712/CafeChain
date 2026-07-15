@@ -98,6 +98,7 @@ namespace CafeChain.Data
         public DbSet<Store> Stores { get; set; }
         public DbSet<StoreDrink> StoreDrinks { get; set; }
         public DbSet<StoreMenuItem> StoreMenuItems { get; set; }
+        public DbSet<StoreMenuItemAudit> StoreMenuItemAudits { get; set; }
         public DbSet<StoreInventory> StoreInventories { get; set; }
         public DbSet<StoreTopping> StoreToppings { get; set; }
         public DbSet<StoreIP> StoreIPs { get; set; }

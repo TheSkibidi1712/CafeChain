@@ -139,6 +139,10 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuBackfillPlanner>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuAvailabilityEvaluator,
                 CafeChain.Application.Services.Admin.StoreMenu.StoreMenuAvailabilityEvaluator>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreCatalogVersionService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreCatalogVersionService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.StoreMenu.IStoreMenuPricingService,
+                CafeChain.Application.Services.Admin.StoreMenu.StoreMenuPricingService>();
 
             // Admin - Toppings
             services.AddScoped<IAdminToppingService, AdminToppingService>();
