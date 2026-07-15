@@ -1,559 +1,269 @@
 @model List<CafeChain.Application.DTOs.Admin.Suppliers.AdminSupplierDTO>
-
-@section Styles {
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-    <link rel="stylesheet" href="~/css/Admin/Supplier/supplier.css" />
+@{
+    ViewData["Title"] = "Nhà cung cấp & nguồn hàng";
+    var canMutate = ViewBag.CanMutateSupplier is true;
+    var activeCount = Model.Count(x => x.Active);
+    var offerCount = Model.Sum(x => x.ActiveOfferCount);
+    var storeCount = Model.Sum(x => x.ActiveStoreCount);
 }
 
-<div class="sup-page">
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Supplier/supplier.css" asp-append-version="true" />
+}
 
-    <!-- HEADER -->
-    <div class="sup-header">
+<main class="supplier-page" data-can-mutate="@canMutate.ToString().ToLowerInvariant()">
+    <header class="supplier-page-header">
         <div>
-            <h2 class="sup-title"><i class="fa fa-truck-field"></i> Quản lý Nhà cung cấp</h2>
-            <p class="sup-subtitle">Quản lý thông tin NCC, số điện thoại, ngân hàng và liên hệ</p>
+            <p class="supplier-eyebrow">Mua hàng / Nguồn cung</p>
+            <h1>Nhà cung cấp & nguồn hàng</h1>
+            <p class="supplier-subtitle">Quản lý đầu mối, gói mua, lịch sử giá và phạm vi phục vụ cửa hàng.</p>
         </div>
-        <button class="sup-btn sup-btn-primary" id="btnCreate">
-            <i class="fa fa-plus"></i> Thêm NCC
-        </button>
-    </div>
+        @if (canMutate)
+        {
+            <button type="button" class="supplier-btn supplier-btn-primary" id="createSupplierButton">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                Thêm nhà cung cấp
+            </button>
+        }
+    </header>
 
-    <!-- FILTER -->
-    <div class="sup-filter-bar">
-        <input id="searchBox" class="sup-input" placeholder="🔍 Tìm mã, tên nhà cung cấp..." />
-        <select id="statusFilter" class="sup-select">
-            <option value="">Tất cả trạng thái</option>
-            <option value="true">Hoạt động</option>
-            <option value="false">Ngưng</option>
+    <section class="supplier-metrics" aria-label="Tổng quan nguồn cung">
+        <div><strong>@Model.Count</strong><span>Tổng nhà cung cấp</span></div>
+        <div><strong>@activeCount</strong><span>Đang hoạt động</span></div>
+        <div><strong>@offerCount</strong><span>Gói mua active</span></div>
+        <div><strong>@storeCount</strong><span>Lượt gán cửa hàng</span></div>
+    </section>
+
+    <section class="supplier-toolbar" aria-label="Bộ lọc nhà cung cấp">
+        <label class="supplier-search">
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, số điện thoại" autocomplete="off" />
+        </label>
+        <select id="supplierStatusFilter" aria-label="Lọc trạng thái">
+            <option value="all">Tất cả trạng thái</option>
+            <option value="active">Đang hoạt động</option>
+            <option value="inactive">Ngừng hoạt động</option>
         </select>
-        <button class="sup-btn sup-btn-dark" id="btnFilter">Lọc</button>
-    </div>
+        <span class="supplier-result-count" id="supplierResultCount">@Model.Count kết quả</span>
+    </section>
 
-    <!-- TABLE -->
-    <div class="sup-table-wrap">
-        <table class="sup-table">
-            <thead>
-                <tr>
-                    <th>Mã</th>
-                    <th>Tên NCC</th>
-                    <th>SĐT chính</th>
-                    <th>Người liên hệ</th>
-                    <th>Gói cung cấp</th>
-                    <th>Trạng thái</th>
-                    <th width="120"></th>
-                </tr>
-            </thead>
-            <tbody id="supplierTable">
-                @foreach (var item in Model)
-                {
-                    <tr data-id="@item.SupplierId">
-                        <td><span class="sup-code">@item.Code</span></td>
-                        <td><b>@item.Name</b><br /><small class="text-muted">@item.Address</small></td>
-                        <td>@(item.PrimaryPhone ?? "—")</td>
-                        <td>
-                            @if (item.PrimaryContactName != null)
-                            {
-                                <span>@item.PrimaryContactName</span><br />
-                                <small class="text-muted">@item.PrimaryContactPhone</small>
-                            }
-                            else
-                            {
-                                <span>—</span>
-                            }
-                        </td>
-                        <td>@item.ActiveOfferCount đang hoạt động</td>
-                        <td>
-                            <span class="sup-badge @(item.Active ? "badge-active" : "badge-inactive")">
-                                @(item.Active ? "Hoạt động" : "Ngưng")
-                            </span>
-                        </td>
-                        <td class="text-center">
-                            <i class="fa fa-pen-to-square sup-icon-btn edit-btn" data-id="@item.SupplierId" title="Sửa"></i>
-                            <i class="fa fa-list-ul sup-icon-btn detail-btn" data-id="@item.SupplierId" title="Chi tiết"></i>
-                            <i class="fa fa-lock sup-icon-btn toggle-btn" data-id="@item.SupplierId" title="Tắt/Bật"></i>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<!-- TOAST -->
-<div id="supToast"></div>
-
-<!-- ========== MODAL: TẠO MỚI NCC (WIZARD 2 BƯỚC) ========== -->
-<div id="createModal" class="sup-modal">
-    <div class="sup-modal-box sup-modal-lg">
-        <div class="sup-modal-header">
-            <h5><i class="fa fa-plus-circle"></i> Thêm Nhà Cung Cấp Mới</h5>
-            <span class="sup-close" data-close="createModal">✖</span>
-        </div>
-
-        @* ── STEP INDICATOR ── *@
-        <div class="sup-wizard-steps">
-            <div class="sup-wizard-step active" data-step="1">
-                <div class="sup-step-num">1</div>
-                <span>Thông tin & Địa chỉ</span>
-            </div>
-            <div class="sup-wizard-line"></div>
-            <div class="sup-wizard-step" data-step="2">
-                <div class="sup-step-num">2</div>
-                <span>SĐT, Ngân hàng & Liên hệ</span>
-            </div>
-        </div>
-
-        <div class="sup-modal-body">
-
-            @* ═══════════════ BƯỚC 1: THÔNG TIN CƠ BẢN + ĐỊA CHỈ ═══════════════ *@
-            <div id="createStep1" class="sup-wizard-panel active">
-
-                @* ── THÔNG TIN CƠ BẢN ── *@
-                <h6 class="sup-section-title"><i class="fa fa-building"></i> Thông tin cơ bản</h6>
-                <div class="sup-grid-2">
-                    <div>
-                        <label>Mã NCC</label>
-                        <div class="sup-code-badge" id="c-code-display">
-                            <i class="fa fa-tag"></i> đang tải...
-                        </div>
-                        <input type="hidden" id="c-code" />
-                    </div>
-                    <div>
-                        <label>Tên NCC <span class="req">*</span></label>
-                        <input id="c-name" class="sup-input" placeholder="Tên nhà cung cấp" />
-                    </div>
-                    <div>
-                        <label>Mã số thuế</label>
-                        <input id="c-taxcode" class="sup-input" placeholder="10 hoặc 13 chữ số" maxlength="13" inputmode="numeric" />
-                    </div>
-                    <div>
-                        <label>Website</label>
-                        <input id="c-website" class="sup-input" placeholder="https://..." />
-                    </div>
-                </div>
-
-                @* ── ĐỊA CHỈ ── *@
-                <hr class="sup-divider" />
-                <h6 class="sup-section-title"><i class="fa fa-location-dot"></i> Địa chỉ</h6>
-                <div class="sup-grid-2">
-                    <div>
-                        <label>Tỉnh / Thành phố</label>
-                        <select id="c-province" class="sup-select">
-                            <option value="">— Chọn Tỉnh/Thành phố —</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Quận / Huyện</label>
-                        <select id="c-district" class="sup-select" disabled>
-                            <option value="">— Chọn Quận/Huyện —</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Phường / Xã</label>
-                        <select id="c-ward" class="sup-select" disabled>
-                            <option value="">— Chọn Phường/Xã —</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label>Số nhà / Tên đường</label>
-                        <input id="c-street" class="sup-input" placeholder="VD: 123 Nguyễn Văn Linh" />
-                    </div>
-                </div>
-
-                @* ── SỐ ĐIỆN THOẠI ── *@
-                <hr class="sup-divider" />
-                <h6 class="sup-section-title"><i class="fa fa-phone"></i> Số điện thoại</h6>
-
-                @* Chính (cố định) *@
-                <div class="sup-primary-item-row">
-                    <span class="tag-primary sup-flex-tag">Chính</span>
-                    <input id="c-phone" class="sup-input" placeholder="SĐT chính (10-11 số, bắt đầu 0) *" maxlength="11" inputmode="numeric" />
-                </div>
-
-                @* Danh sách SĐT phụ đã thêm *@
-                <div id="c-phone-extra-list"></div>
-
-                @* Form thêm SĐT phụ *@
-                <div class="sup-secondary-add-row">
-                    <input id="c-phone-extra" class="sup-input" placeholder="SĐT phụ (10-11 số, bắt đầu 0)" maxlength="11" inputmode="numeric" />
-                    <button type="button" class="sup-btn sup-btn-secondary" id="btnCAddPhone">
-                        <i class="fa fa-plus"></i> Thêm SĐT phụ
-                    </button>
-                </div>
-
-            </div>
-
-            @* ═══════════════ BƯỚC 2: NGÂN HÀNG + LIÊN HỆ ═══════════════ *@
-            <div id="createStep2" class="sup-wizard-panel">
-
-                @* ── TÀI KHOẢN NGÂN HÀNG ── *@
-                <h6 class="sup-section-title"><i class="fa fa-building-columns"></i> Tài khoản ngân hàng</h6>
-
-                <div class="sup-primary-label-row"><span class="tag-primary">Chính</span></div>
-                <div class="sup-grid-3">
-                    <div>
-                        <label>Tên ngân hàng <span class="req">*</span></label>
-                        <div class="bank-picker" id="c-bankpicker">
-                            <div class="bank-picker-display" id="c-bankpicker-display">
-                                <span class="bank-picker-val" id="c-bankpicker-val">Chọn ngân hàng</span>
-                                <i class="fa fa-chevron-down bank-picker-arrow"></i>
-                            </div>
-                            <div class="bank-picker-dropdown" id="c-bankpicker-dropdown">
-                                <input class="bank-picker-search" placeholder="🔍 Tìm ngân hàng..." />
-                                <ul class="bank-picker-list" id="c-bankpicker-list"></ul>
-                            </div>
-                            <input type="hidden" id="c-bankname" />
-                        </div>
-                    </div>
-                    <div>
-                        <label>Số tài khoản <span class="req">*</span></label>
-                        <input id="c-accnumber" class="sup-input" placeholder="Chỉ nhập số (tối thiểu 6 số)" maxlength="20" inputmode="numeric" />
-                    </div>
-                    <div>
-                        <label>Chủ tài khoản <span class="req">*</span></label>
-                        <input id="c-accholder" class="sup-input" placeholder="Chủ tài khoản" />
-                    </div>
-                </div>
-
-                @* Danh sách TK ngân hàng phụ đã thêm *@
-                <div id="c-bank-extra-list"></div>
-
-                @* Nút hiện form thêm TK phụ *@
-                <div class="sup-secondary-toggle-row">
-                    <button type="button" class="sup-btn sup-btn-secondary" id="btnCShowBankForm">
-                        <i class="fa fa-plus"></i> Thêm TK ngân hàng phụ
-                    </button>
-                </div>
-                @* Form thêm TK ngân hàng phụ (ẩn mặc định) *@
-                <div id="c-bank-extra-form" class="sup-secondary-expand" style="display:none">
-                    <div class="sup-secondary-form-header">
-                        <span class="tag-sub">Phụ</span>
-                        <span class="sup-form-hint">Nhập thông tin tài khoản ngân hàng phụ</span>
-                    </div>
-                    <div class="sup-grid-3">
-                        <div>
-                            <div class="bank-picker" id="c2-bankpicker">
-                                <div class="bank-picker-display" id="c2-bankpicker-display">
-                                    <span class="bank-picker-val" id="c2-bankpicker-val">Chọn ngân hàng</span>
-                                    <i class="fa fa-chevron-down bank-picker-arrow"></i>
-                                </div>
-                                <div class="bank-picker-dropdown" id="c2-bankpicker-dropdown">
-                                    <input class="bank-picker-search" placeholder="🔍 Tìm ngân hàng..." />
-                                    <ul class="bank-picker-list" id="c2-bankpicker-list"></ul>
-                                </div>
-                                <input type="hidden" id="c2-bankname" />
-                            </div>
-                        </div>
-                        <div>
-                            <input id="c2-accnumber" class="sup-input" placeholder="Số TK (chỉ nhập số)" maxlength="20" inputmode="numeric" />
-                        </div>
-                        <div>
-                            <input id="c2-accholder" class="sup-input" placeholder="Chủ tài khoản" />
-                        </div>
-                    </div>
-                    <div class="sup-secondary-form-actions">
-                        <button type="button" class="sup-btn sup-btn-dark" id="btnCAddBank">
-                            <i class="fa fa-check"></i> Xác nhận thêm
-                        </button>
-                        <button type="button" class="sup-btn sup-btn-secondary" id="btnCCancelBank">Hủy</button>
-                    </div>
-                </div>
-
-                @* ── NGƯỜI LIÊN HỆ ── *@
-                <hr class="sup-divider" />
-                <h6 class="sup-section-title"><i class="fa fa-user-tie"></i> Người liên hệ</h6>
-
-                <div class="sup-primary-label-row"><span class="tag-primary">Chính</span></div>
-                <div class="sup-grid-2">
-                    <div>
-                        <label>Họ tên <span class="req">*</span></label>
-                        <input id="c-cname" class="sup-input" placeholder="Tên người liên hệ" />
-                    </div>
-                    <div>
-                        <label>Chức vụ</label>
-                        <input id="c-cposition" class="sup-input" placeholder="VD: Giám đốc kinh doanh" />
-                    </div>
-                    <div>
-                        <label>SĐT người liên hệ</label>
-                        <input id="c-cphone" class="sup-input" placeholder="10-11 số, bắt đầu bằng 0" maxlength="11" inputmode="numeric" />
-                    </div>
-                    <div>
-                        <label>Email</label>
-                        <input id="c-cemail" class="sup-input" placeholder="vd: ten@congty.com" type="email" autocomplete="email" />
-                    </div>
-                </div>
-
-                @* Danh sách người liên hệ phụ đã thêm *@
-                <div id="c-contact-extra-list"></div>
-
-                @* Nút hiện form thêm liên hệ phụ *@
-                <div class="sup-secondary-toggle-row">
-                    <button type="button" class="sup-btn sup-btn-secondary" id="btnCShowContactForm">
-                        <i class="fa fa-plus"></i> Thêm người liên hệ phụ
-                    </button>
-                </div>
-                @* Form thêm người liên hệ phụ (ẩn mặc định) *@
-                <div id="c-contact-extra-form" class="sup-secondary-expand" style="display:none">
-                    <div class="sup-secondary-form-header">
-                        <span class="tag-sub">Phụ</span>
-                        <span class="sup-form-hint">Nhập thông tin người liên hệ phụ</span>
-                    </div>
-                    <div class="sup-grid-2">
-                        <div>
-                            <input id="c2-cname" class="sup-input" placeholder="Họ tên *" />
-                        </div>
-                        <div>
-                            <input id="c2-cposition" class="sup-input" placeholder="Chức vụ" />
-                        </div>
-                        <div>
-                            <input id="c2-cphone" class="sup-input" placeholder="SĐT (10-11 số, bắt đầu 0)" maxlength="11" inputmode="numeric" />
-                        </div>
-                        <div>
-                            <input id="c2-cemail" class="sup-input" placeholder="Email (vd: ten@congty.com)" type="email" />
-                        </div>
-                    </div>
-                    <div class="sup-secondary-form-actions">
-                        <button type="button" class="sup-btn sup-btn-dark" id="btnCAddContact">
-                            <i class="fa fa-check"></i> Xác nhận thêm
-                        </button>
-                        <button type="button" class="sup-btn sup-btn-secondary" id="btnCCancelContact">Hủy</button>
-                    </div>
-                </div>
-
-            </div>
-
-        </div>
-        <div class="sup-modal-footer">
-            <button class="sup-btn sup-btn-secondary" id="btnWizardPrev" style="display:none"><i class="fa fa-arrow-left"></i> Quay lại</button>
-            <div style="flex:1"></div>
-            <button class="sup-btn sup-btn-primary" id="btnWizardNext"><i class="fa fa-arrow-right"></i> Tiếp theo</button>
-            <button class="sup-btn sup-btn-success" id="btnSaveCreate" style="display:none"><i class="fa fa-floppy-disk"></i> Lưu</button>
-            <button class="sup-btn sup-btn-secondary" data-close="createModal">Đóng</button>
-        </div>
-    </div>
-</div>
-
-<!-- ========== MODAL: SỬA THÔNG TIN NCC ========== -->
-<div id="editModal" class="sup-modal">
-    <div class="sup-modal-box">
-        <div class="sup-modal-header">
-            <h5><i class="fa fa-pen-to-square"></i> Sửa Nhà Cung Cấp</h5>
-            <span class="sup-close" data-close="editModal">✖</span>
-        </div>
-        <div class="sup-modal-body">
-            <input type="hidden" id="e-id" />
-            <div class="sup-grid-2">
-                <div>
-                    <label>Mã NCC</label>
-                    <div class="sup-code-badge" id="e-code-display">
-                        <i class="fa fa-tag"></i> <span id="e-code-text"></span>
-                    </div>
-                </div>
-                <div>
-                    <label>Tên NCC <span class="req">*</span></label>
-                    <input id="e-name" class="sup-input" />
-                </div>
-                <div>
-                    <label>Mã số thuế</label>
-                    <input id="e-taxcode" class="sup-input" placeholder="10 hoặc 13 chữ số" maxlength="13" inputmode="numeric" />
-                </div>
-                <div>
-                    <label>Website</label>
-                    <input id="e-website" class="sup-input" />
-                </div>
-
-                <div class="sup-col-2">
-                    <label>Trạng thái</label>
-                    <select id="e-active" class="sup-select">
-                        <option value="true">Hoạt động</option>
-                        <option value="false">Ngưng</option>
-                    </select>
-                </div>
-            </div>
-        </div>
-        <div class="sup-modal-footer">
-            <button class="sup-btn sup-btn-success" id="btnSaveEdit"><i class="fa fa-floppy-disk"></i> Lưu</button>
-            <button class="sup-btn sup-btn-secondary" data-close="editModal">Đóng</button>
-        </div>
-    </div>
-</div>
-
-<!-- ========== MODAL: CHI TIẾT (TABS) ========== -->
-<div id="detailModal" class="sup-modal">
-    <div class="sup-modal-box sup-modal-xl">
-        <div class="sup-modal-header">
-            <h5 id="detailTitle"><i class="fa fa-list-ul"></i> Chi tiết NCC</h5>
-            <span class="sup-close" data-close="detailModal">✖</span>
-        </div>
-        <div class="sup-modal-body">
-            <input type="hidden" id="d-supplierId" />
-
-            <!-- TABS -->
-            <div class="sup-tabs">
-                <button class="sup-tab active" data-tab="tabPhones"><i class="fa fa-phone"></i> Điện thoại</button>
-                <button class="sup-tab" data-tab="tabBanks"><i class="fa fa-building-columns"></i> Ngân hàng</button>
-                <button class="sup-tab" data-tab="tabContacts"><i class="fa fa-user-tie"></i> Liên hệ</button>
-                <button class="sup-tab" data-tab="tabIngredientOffers"><i class="fa fa-box-open"></i> Nguyên liệu cung cấp</button>
-            </div>
-
-            <!-- TAB: PHONES -->
-            <div id="tabPhones" class="sup-tab-panel active">
-                <div class="sup-sub-add">
-                    <input id="ph-number" class="sup-input" placeholder="SĐT phụ (10-11 số, bắt đầu 0)" maxlength="11" inputmode="numeric" />
-                    <button class="sup-btn sup-btn-primary" id="btnAddPhone"><i class="fa fa-plus"></i> Thêm</button>
-                </div>
-                <table class="sup-table mt-2">
-                    <thead><tr><th>Số điện thoại</th><th>Loại</th><th></th></tr></thead>
-                    <tbody id="phoneList"></tbody>
-                </table>
-            </div>
-
-            <!-- TAB: BANKS -->
-            <div id="tabBanks" class="sup-tab-panel">
-                <div class="sup-sub-add sup-grid-3">
-                    <div class="bank-picker" id="bk-bankpicker">
-                        <div class="bank-picker-display" id="bk-bankpicker-display">
-                            <span class="bank-picker-val" id="bk-bankpicker-val">Chọn ngân hàng</span>
-                            <i class="fa fa-chevron-down bank-picker-arrow"></i>
-                        </div>
-                        <div class="bank-picker-dropdown" id="bk-bankpicker-dropdown">
-                            <input class="bank-picker-search" placeholder="🔍 Tìm ngân hàng..." />
-                            <ul class="bank-picker-list" id="bk-bankpicker-list"></ul>
-                        </div>
-                        <input type="hidden" id="bk-name" />
-                    </div>
-                    <input id="bk-number" class="sup-input" placeholder="Số TK (chỉ nhập số)" maxlength="20" inputmode="numeric" />
-                    <input id="bk-holder" class="sup-input" placeholder="Chủ tài khoản" />
-                </div>
-                <div class="text-end mb-2">
-                    <button class="sup-btn sup-btn-primary" id="btnAddBank"><i class="fa fa-plus"></i> Thêm STK</button>
-                </div>
-                <table class="sup-table">
-                    <thead><tr><th>Ngân hàng</th><th>Số TK</th><th>Chủ TK</th><th>Loại</th><th></th></tr></thead>
-                    <tbody id="bankList"></tbody>
-                </table>
-            </div>
-
-            <!-- TAB: CONTACTS -->
-            <div id="tabContacts" class="sup-tab-panel">
-
-                <!-- Nút mở form thêm liên hệ -->
-                <div class="ct-add-toggle-row">
-                    <button class="sup-btn sup-btn-secondary" id="btnShowAddContactForm">
-                        <i class="fa fa-plus"></i> Thêm người liên hệ phụ
-                    </button>
-                </div>
-
-                <!-- Form thêm liên hệ phụ (ẩn mặc định) -->
-                <div id="ct-add-form" class="sup-secondary-expand ct-add-form-box" style="display:none">
-                    <div class="sup-secondary-form-header">
-                        <span class="tag-sub">Phụ</span>
-                        <span class="sup-form-hint">Thêm người liên hệ phụ mới</span>
-                    </div>
-                    <div class="sup-grid-2">
-                        <div>
-                            <label>Họ tên <span class="req">*</span></label>
-                            <input id="ct-name" class="sup-input" placeholder="Tên người liên hệ" />
-                        </div>
-                        <div>
-                            <label>Chức vụ</label>
-                            <input id="ct-position" class="sup-input" placeholder="VD: Giám đốc kinh doanh" />
-                        </div>
-                        <div>
-                            <label>SĐT</label>
-                            <input id="ct-phone" class="sup-input" placeholder="10-11 số, bắt đầu 0" maxlength="11" inputmode="numeric" />
-                        </div>
-                        <div>
-                            <label>Email</label>
-                            <input id="ct-email" class="sup-input" placeholder="ten@congty.com" type="email" autocomplete="email" />
-                        </div>
-                    </div>
-                    <div class="sup-secondary-form-actions">
-                        <button class="sup-btn sup-btn-dark" id="btnAddContact">
-                            <i class="fa fa-check"></i> Xác nhận thêm
-                        </button>
-                        <button class="sup-btn sup-btn-secondary" id="btnCancelAddContact">Hủy</button>
-                    </div>
-                </div>
-
-                <!-- Danh sách người liên hệ dạng card -->
-                <div id="contactList" class="ct-card-list"></div>
-            </div>
-
-            <!-- TAB: NGUYÊN LIỆU CUNG CẤP (#111) -->
-            <div id="tabIngredientOffers" class="sup-tab-panel">
-                <div class="sup-sub-add" style="margin-bottom:10px">
-                    <button type="button" class="sup-btn sup-btn-primary" id="btnShowOfferForm">
-                        <i class="fa fa-plus"></i> Thêm gói mua
-                    </button>
-                </div>
-
-                <div id="offer-form" class="sup-secondary-expand" style="display:none;margin-bottom:12px">
-                    <input type="hidden" id="of-id" value="" />
-                    <div class="sup-grid-2">
-                        <div>
-                            <label>Nguyên liệu <span class="req">*</span></label>
-                            <select id="of-ingredient" class="sup-input"></select>
-                        </div>
-                        <div>
-                            <label>Đơn vị nội dung <span class="req">*</span></label>
-                            <select id="of-unit" class="sup-input"></select>
-                        </div>
-                        <div>
-                            <label>Giá một gói mua (₫) <span class="req">*</span></label>
-                            <input id="of-price" class="sup-input" type="number" min="0" step="1" placeholder="VD: 140000" />
-                        </div>
-                        <div>
-                            <label>Hàm lượng trong gói <span class="req">*</span></label>
-                            <input id="of-packageQty" class="sup-input" type="number" min="0" step="any" placeholder="VD: 1 hoặc 750" />
-                        </div>
-                        <div>
-                            <label>MOQ</label>
-                            <input id="of-moq" class="sup-input" type="number" min="0" step="any" />
-                        </div>
-                        <div>
-                            <label>Lead time (ngày)</label>
-                            <input id="of-lead" class="sup-input" type="number" min="0" step="1" />
-                        </div>
-                        <div>
-                            <label><input type="checkbox" id="of-primary" /> Nhà cung cấp chính</label>
-                        </div>
-                        <div>
-                            <label><input type="checkbox" id="of-active" checked /> Active</label>
-                        </div>
-                        <div style="grid-column:1/-1">
-                            <label>Ghi chú</label>
-                            <input id="of-note" class="sup-input" placeholder="Ghi chú gói mua" />
-                        </div>
-                    </div>
-                    <div class="sup-secondary-form-actions" style="margin-top:8px">
-                        <button type="button" class="sup-btn sup-btn-dark" id="btnSaveOffer"><i class="fa fa-check"></i> Lưu gói mua</button>
-                        <button type="button" class="sup-btn sup-btn-secondary" id="btnCancelOffer">Hủy</button>
-                    </div>
-                    <div id="offer-form-error" class="text-danger" style="margin-top:6px"></div>
-                </div>
-
-                <table class="sup-table">
+    <div class="supplier-workspace">
+        <section class="supplier-list-panel" aria-label="Danh sách nhà cung cấp">
+            <div class="supplier-table-scroll">
+                <table class="supplier-table">
                     <thead>
                         <tr>
-                            <th>Nguyên liệu</th>
-                            <th>Giá gói mua</th>
-                            <th>Hàm lượng</th>
-                            <th>Gói</th>
-                            <th>Chính</th>
-                            <th>TT</th>
-                            <th></th>
+                            <th>Nhà cung cấp</th>
+                            <th>Đầu mối</th>
+                            <th>Gói mua</th>
+                            <th>Cửa hàng</th>
+                            <th>Trạng thái</th>
+                            <th><span class="visually-hidden">Thao tác</span></th>
                         </tr>
                     </thead>
-                    <tbody id="offerList"></tbody>
+                    <tbody id="supplierRows">
+                        @foreach (var item in Model)
+                        {
+                            <tr data-supplier-id="@item.SupplierId"
+                                data-status="@(item.Active ? "active" : "inactive")"
+                                data-search="@($"{item.Code} {item.Name} {item.PrimaryPhone} {item.PrimaryContactName} {item.PrimaryContactPhone}".ToLowerInvariant())">
+                                <td>
+                                    <span class="supplier-code">@item.Code</span>
+                                    <strong>@item.Name</strong>
+                                    <small>@(string.IsNullOrWhiteSpace(item.Address) ? "Chưa cập nhật địa chỉ" : item.Address)</small>
+                                </td>
+                                <td>
+                                    <span>@(item.PrimaryContactName ?? "Chưa có đầu mối")</span>
+                                    <small>@(item.PrimaryContactPhone ?? item.PrimaryPhone ?? "Chưa có số điện thoại")</small>
+                                </td>
+                                <td><strong class="supplier-number">@item.ActiveOfferCount</strong><small>đang dùng</small></td>
+                                <td><strong class="supplier-number">@item.ActiveStoreCount</strong><small>được gán</small></td>
+                                <td><span class="supplier-status @(item.Active ? "is-active" : "is-inactive")">@(item.Active ? "Đang hoạt động" : "Ngừng hoạt động")</span></td>
+                                <td><button type="button" class="supplier-btn supplier-btn-light open-supplier" data-id="@item.SupplierId">Xem chi tiết</button></td>
+                            </tr>
+                        }
+                    </tbody>
                 </table>
             </div>
-        </div>
-        <div class="sup-modal-footer">
-            <button class="sup-btn sup-btn-secondary" data-close="detailModal">Đóng</button>
+            <div class="supplier-empty @(Model.Count == 0 ? "" : "is-hidden")" id="supplierEmptyState">
+                <i class="fa-solid fa-box-open" aria-hidden="true"></i>
+                <strong>Không có nhà cung cấp phù hợp</strong>
+                <span>Thay đổi từ khóa hoặc trạng thái để xem kết quả khác.</span>
+            </div>
+        </section>
+
+        <aside class="supplier-detail" id="supplierDetail" aria-label="Chi tiết nhà cung cấp" aria-hidden="true">
+            <div class="supplier-detail-placeholder" id="supplierDetailPlaceholder">
+                <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i>
+                <strong>Chọn một nhà cung cấp</strong>
+                <span>Thông tin vận hành sẽ hiển thị tại đây.</span>
+            </div>
+
+            <div class="supplier-detail-content is-hidden" id="supplierDetailContent">
+                <header class="supplier-detail-header">
+                    <div>
+                        <span class="supplier-code" id="detailCode"></span>
+                        <h2 id="detailName"></h2>
+                        <p id="detailSummary"></p>
+                    </div>
+                    <button type="button" class="supplier-icon-button" id="closeSupplierDetail" title="Đóng chi tiết" aria-label="Đóng chi tiết">
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                </header>
+
+                <nav class="supplier-tabs" aria-label="Nội dung nhà cung cấp">
+                    <button type="button" class="is-active" data-tab="overview">Tổng quan</button>
+                    <button type="button" data-tab="contacts">Liên hệ</button>
+                    <button type="button" data-tab="offers">Gói mua</button>
+                    <button type="button" data-tab="pricing">Lịch sử giá</button>
+                    <button type="button" data-tab="stores">Cửa hàng</button>
+                    <button type="button" data-tab="audit">Theo dõi</button>
+                </nav>
+
+                <div class="supplier-tab-body">
+                    <section class="supplier-tab is-active" data-tab-panel="overview">
+                        <form id="supplierOverviewForm" class="supplier-form">
+                            <input type="hidden" id="overviewSupplierId" />
+                            <input type="hidden" id="overviewRowVersion" />
+                            <div class="supplier-form-grid">
+                                <label><span>Tên nhà cung cấp</span><input id="overviewName" required maxlength="200" /></label>
+                                <label><span>Trạng thái</span><select id="overviewActive"><option value="true">Đang hoạt động</option><option value="false">Ngừng hoạt động</option></select></label>
+                                <label class="is-wide"><span>Địa chỉ</span><input id="overviewAddress" maxlength="500" /></label>
+                                <label class="is-wide"><span>Ghi chú</span><textarea id="overviewNote" rows="4" maxlength="1000"></textarea></label>
+                            </div>
+                            @if (canMutate)
+                            {
+                                <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">Lưu thông tin</button></div>
+                            }
+                        </form>
+                    </section>
+
+                    <section class="supplier-tab" data-tab-panel="contacts">
+                        <div class="supplier-section-heading"><div><h3>Số điện thoại</h3><p>Hotline và số liên hệ chung của nhà cung cấp.</p></div></div>
+                        @if (canMutate)
+                        {
+                            <form class="supplier-inline-form" id="addPhoneForm"><input id="newPhone" placeholder="Số điện thoại mới" required maxlength="20" /><button class="supplier-btn supplier-btn-light" type="submit">Thêm số</button></form>
+                        }
+                        <div class="supplier-stack" id="phoneList"></div>
+
+                        <div class="supplier-section-heading supplier-section-spaced"><div><h3>Người liên hệ</h3><p>Đầu mối nhận báo giá và xử lý giao hàng.</p></div></div>
+                        @if (canMutate)
+                        {
+                            <form class="supplier-form supplier-subform" id="contactForm">
+                                <input type="hidden" id="contactId" />
+                                <div class="supplier-form-grid">
+                                    <label><span>Họ tên</span><input id="contactName" required /></label>
+                                    <label><span>Chức vụ</span><input id="contactPosition" /></label>
+                                    <label><span>Điện thoại</span><input id="contactPhone" /></label>
+                                    <label><span>Email</span><input id="contactEmail" type="email" /></label>
+                                </div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelContactEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-light" type="submit" id="saveContactButton">Thêm liên hệ</button></div>
+                            </form>
+                        }
+                        <div class="supplier-stack" id="contactList"></div>
+                    </section>
+
+                    <section class="supplier-tab" data-tab-panel="offers">
+                        <div class="supplier-section-heading"><div><h3>Gói mua nguyên liệu</h3><p>Giá được hiểu theo một gói mua; MOQ là số gói tối thiểu.</p></div></div>
+                        @if (canMutate)
+                        {
+                            <form class="supplier-form supplier-subform" id="offerForm">
+                                <input type="hidden" id="offerId" />
+                                <input type="hidden" id="offerRowVersion" />
+                                <div class="supplier-form-grid supplier-form-grid-three">
+                                    <label><span>Nguyên liệu</span><select id="offerIngredient" required></select></label>
+                                    <label><span>Đơn vị nội dung</span><select id="offerUnit" required></select></label>
+                                    <label><span>Lượng trong gói</span><input id="offerPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
+                                    <label><span>Giá một gói</span><input id="offerPrice" type="number" min="0" step="1" required /></label>
+                                    <label><span>MOQ (số gói)</span><input id="offerMoq" type="number" min="1" step="1" /></label>
+                                    <label><span>Lead time (ngày)</span><input id="offerLeadTime" type="number" min="0" step="1" /></label>
+                                    <label class="supplier-check"><input id="offerPrimary" type="checkbox" /><span>Nguồn cung chính</span></label>
+                                    <label class="supplier-check"><input id="offerActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
+                                    <label class="is-wide"><span>Ghi chú</span><input id="offerNote" /></label>
+                                </div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelOfferEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveOfferButton">Thêm gói mua</button></div>
+                            </form>
+                        }
+                        <div class="supplier-stack" id="offerList"></div>
+                    </section>
+
+                    <section class="supplier-tab" data-tab-panel="pricing">
+                        <div class="supplier-section-heading"><div><h3>Thay đổi & lịch sử giá</h3><p>Mỗi thay đổi tạo một bản ghi giá mới và đóng bản ghi hiện hành trước đó.</p></div></div>
+                        <div class="supplier-empty-inline" id="pricingEmpty">Chọn “Đổi giá” từ một gói mua để xem lịch sử.</div>
+                        <div class="is-hidden" id="pricingWorkspace">
+                            <div class="supplier-pricing-title"><strong id="pricingOfferName"></strong><span id="pricingCurrentValue"></span></div>
+                            @if (canMutate)
+                            {
+                                <form class="supplier-form supplier-subform" id="priceChangeForm">
+                                    <input type="hidden" id="priceOfferId" />
+                                    <input type="hidden" id="priceRowVersion" />
+                                    <div class="supplier-form-grid">
+                                        <label><span>Giá gói mới</span><input id="newPackagePrice" type="number" min="0" step="1" required /></label>
+                                        <label><span>Lượng trong gói</span><input id="newPackageQuantity" type="number" min="0.00001" step="0.00001" required /></label>
+                                        <label><span>Đơn vị nội dung</span><select id="newPackageUnit" required></select></label>
+                                        <label><span>Lý do thay đổi</span><input id="priceReason" maxlength="500" required /></label>
+                                    </div>
+                                    <div class="supplier-form-actions"><button class="supplier-btn supplier-btn-primary" type="submit">Xác nhận đổi giá</button></div>
+                                </form>
+                            }
+                            <div class="supplier-history" id="priceHistoryList"></div>
+                        </div>
+                    </section>
+
+                    <section class="supplier-tab" data-tab-panel="stores">
+                        <div class="supplier-section-heading"><div><h3>Phạm vi cửa hàng</h3><p>Cửa hàng chỉ nhận hàng từ nhà cung cấp đã được gán và đang hoạt động.</p></div></div>
+                        @if (canMutate)
+                        {
+                            <form class="supplier-form supplier-subform" id="storeAssignmentForm">
+                                <input type="hidden" id="supplierStoreId" />
+                                <input type="hidden" id="supplierStoreRowVersion" />
+                                <div class="supplier-form-grid">
+                                    <label><span>Cửa hàng</span><select id="assignmentStore" required></select></label>
+                                    <label><span>Lead time riêng (ngày)</span><input id="assignmentLeadTime" type="number" min="0" step="1" /></label>
+                                    <label><span>Lịch giao hàng</span><input id="assignmentSchedule" maxlength="300" /></label>
+                                    <label class="supplier-check"><input id="assignmentActive" type="checkbox" checked /><span>Đang hoạt động</span></label>
+                                    <label class="is-wide"><span>Ghi chú</span><input id="assignmentNote" maxlength="1000" /></label>
+                                </div>
+                                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet is-hidden" id="cancelStoreEdit">Hủy sửa</button><button class="supplier-btn supplier-btn-primary" type="submit" id="saveStoreButton">Gán cửa hàng</button></div>
+                            </form>
+                        }
+                        <div class="supplier-stack" id="storeList"></div>
+                    </section>
+
+                    <section class="supplier-tab" data-tab-panel="audit">
+                        <div class="supplier-section-heading"><div><h3>Dấu vết cập nhật</h3><p>Mốc thời gian của hồ sơ nhà cung cấp.</p></div></div>
+                        <dl class="supplier-audit-list"><div><dt>Khởi tạo</dt><dd id="auditCreatedAt"></dd></div><div><dt>Cập nhật gần nhất</dt><dd id="auditUpdatedAt"></dd></div><div><dt>Phiên bản dữ liệu</dt><dd id="auditVersion"></dd></div></dl>
+                    </section>
+                </div>
+            </div>
+        </aside>
+    </div>
+</main>
+
+@if (canMutate)
+{
+    <div class="supplier-modal" id="createSupplierModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="createSupplierTitle">
+        <div class="supplier-modal-panel">
+            <header><div><p class="supplier-eyebrow">Hồ sơ nguồn cung</p><h2 id="createSupplierTitle">Thêm nhà cung cấp</h2></div><button type="button" class="supplier-icon-button" data-close-modal aria-label="Đóng"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button></header>
+            <form class="supplier-form" id="createSupplierForm">
+                <div class="supplier-form-grid">
+                    <label><span>Tên nhà cung cấp</span><input id="createName" required maxlength="200" /></label>
+                    <label><span>Điện thoại chính</span><input id="createPhone" required maxlength="20" /></label>
+                    <label><span>Người liên hệ chính</span><input id="createContactName" required maxlength="200" /></label>
+                    <label><span>Điện thoại đầu mối</span><input id="createContactPhone" maxlength="20" /></label>
+                    <label><span>Email đầu mối</span><input id="createContactEmail" type="email" maxlength="200" /></label>
+                    <label><span>Chức vụ</span><input id="createContactPosition" maxlength="100" /></label>
+                    <label class="is-wide"><span>Địa chỉ</span><input id="createAddress" maxlength="500" /></label>
+                    <label class="is-wide"><span>Ghi chú</span><textarea id="createNote" rows="3" maxlength="1000"></textarea></label>
+                </div>
+                <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button><button class="supplier-btn supplier-btn-primary" type="submit">Tạo nhà cung cấp</button></div>
+            </form>
         </div>
     </div>
-</div>
+}
+
+<div class="supplier-toast-region" id="supplierToasts" aria-live="polite"></div>
+
 @section Scripts {
-    <script src="~/js/Admin/Supplier/supplier.js"></script>
+    <script src="~/js/Admin/Supplier/supplier.js" asp-append-version="true"></script>
 }

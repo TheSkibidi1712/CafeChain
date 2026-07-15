@@ -1,1075 +1,591 @@
-/* ============================================================
-   SUPPLIER MANAGEMENT — supplier.js
-   Handles: Create (+ secondary items), Edit, Toggle, Detail Tabs
-   ============================================================ */
+(() => {
+    'use strict';
 
-const SUP_BASE = '/Admin/AdminSupplier';
+    const API = '/Admin/AdminSupplier';
+    const page = document.querySelector('.supplier-page');
+    if (!page) return;
 
-// ===================== VALIDATION HELPERS =====================
-
-/** Số điện thoại VN: 10-11 số, bắt đầu bằng 0 */
-function isValidPhone(val) { return /^0\d{9,10}$/.test(val); }
-
-/** Mã số thuế VN: 10 hoặc 13 chữ số */
-function isValidTaxCode(val) { return /^\d{10}(\d{3})?$/.test(val); }
-
-/** Email chuẩn doanh nghiệp */
-function isValidEmail(val) {
-    return /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(val);
-}
-
-/** Số tài khoản ngân hàng: chỉ số, tối thiểu 6 ký tự */
-function isValidBankNumber(val) { return /^\d{6,}$/.test(val); }
-
-/** Họ tên: chỉ chữ cái (có dấu VN) và khoảng trắng */
-function isValidName(val) {
-    return val.trim().length > 0 && /^[\p{L}\s]+$/u.test(val.trim());
-}
-
-// ─── BLOCK KEYS ─────────────────────────────────────────────────────────────
-
-function blockNonNumeric(selector) {
-    const ALLOWED_KEYS = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End'];
-    $(document).on('keydown', selector, function (e) {
-        if (ALLOWED_KEYS.includes(e.key)) return;
-        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
-        if (!/^\d$/.test(e.key)) { e.preventDefault(); supFlashError(this); }
-    });
-    $(document).on('paste', selector, function (e) {
-        e.preventDefault();
-        const pasted = (e.originalEvent.clipboardData || window.clipboardData)
-            .getData('text').replace(/[^\d]/g, '');
-        const el = this;
-        const start = el.selectionStart, end = el.selectionEnd;
-        const cur = $(this).val();
-        const maxLen = parseInt($(this).attr('maxlength')) || 999;
-        const newVal = (cur.slice(0, start) + pasted + cur.slice(end)).slice(0, maxLen);
-        $(this).val(newVal);
-    });
-    $(document).on('input', selector, function () {
-        const cur = $(this).val();
-        const clean = cur.replace(/[^\d]/g, '');
-        if (cur !== clean) $(this).val(clean);
-    });
-}
-
-function blockSpecialCharsInName(selector) {
-    const ALLOWED_KEYS = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'Home', 'End', ' '];
-    $(document).on('keydown', selector, function (e) {
-        if (ALLOWED_KEYS.includes(e.key)) return;
-        if ((e.ctrlKey || e.metaKey) && ['a', 'c', 'v', 'x'].includes(e.key.toLowerCase())) return;
-        if (/^\p{L}$/u.test(e.key)) return;
-        e.preventDefault();
-        supFlashError(this);
-    });
-    $(document).on('paste', selector, function (e) {
-        e.preventDefault();
-        const pasted = (e.originalEvent.clipboardData || window.clipboardData)
-            .getData('text').replace(/[^\p{L}\s]/gu, '');
-        const el = this;
-        const start = el.selectionStart, end = el.selectionEnd;
-        const cur = $(this).val();
-        $(this).val(cur.slice(0, start) + pasted + cur.slice(end));
-    });
-    $(document).on('input', selector, function () {
-        const cur = $(this).val();
-        const clean = cur.replace(/[^\p{L}\s]/gu, '');
-        if (cur !== clean) $(this).val(clean);
-    });
-}
-
-function supFlashError(el) {
-    $(el).addClass('input-error-flash');
-    setTimeout(() => $(el).removeClass('input-error-flash'), 400);
-}
-
-// Áp dụng ràng buộc sau khi DOM ready
-$(function () {
-    // Chỉ số: MST
-    blockNonNumeric('#c-taxcode');
-    blockNonNumeric('#e-taxcode');
-    // Chỉ số: SĐT
-    blockNonNumeric('#c-phone');
-    blockNonNumeric('#c-phone-extra');
-    blockNonNumeric('#ph-number');
-    blockNonNumeric('#c-cphone');
-    blockNonNumeric('#c2-cphone');
-    blockNonNumeric('#ct-phone');
-    // Chỉ số: Số TK
-    blockNonNumeric('#c-accnumber');
-    blockNonNumeric('#c2-accnumber');
-    blockNonNumeric('#bk-number');
-    // Chỉ chữ cái: Họ tên
-    blockSpecialCharsInName('#c-cname');
-    blockSpecialCharsInName('#c2-cname');
-    blockSpecialCharsInName('#ct-name');
-});
-
-// ===================== TOAST =====================
-function supToast(msg, type = 'success') {
-    const el = $('<div class="sup-toast-item sup-toast-' + type + '">' + msg + '</div>');
-    $('#supToast').append(el);
-    setTimeout(() => el.remove(), 3100);
-}
-
-// ===================== MODAL HELPERS =====================
-function supOpen(id) { $('#' + id).addClass('open'); }
-function supClose(id) { $('#' + id).removeClass('open'); }
-
-$(document).on('click', '[data-close]', function () {
-    supClose($(this).data('close'));
-});
-
-$(document).on('click', '.sup-modal', function (e) {
-    if ($(e.target).hasClass('sup-modal')) supClose($(this).attr('id'));
-});
-
-// ===================== FILTER =====================
-$('#btnFilter').on('click', function () {
-    const search = $('#searchBox').val().trim();
-    const status = $('#statusFilter').val();
-    let url = SUP_BASE + '/Index?';
-    if (search) url += 'search=' + encodeURIComponent(search) + '&';
-    if (status !== '') url += 'status=' + status;
-    window.location.href = url;
-});
-
-$('#searchBox').on('keydown', function (e) {
-    if (e.key === 'Enter') $('#btnFilter').click();
-});
-
-// ===================== BANK PICKER =====================
-const BANKS_VN = [
-    'Agribank – Ngân hàng Nông nghiệp và PTNT Việt Nam',
-    'BIDV – Ngân hàng Đầu tư và Phát triển Việt Nam',
-    'Vietcombank – Ngân hàng Ngoại thương Việt Nam',
-    'VietinBank – Ngân hàng Công thương Việt Nam',
-    'MB Bank – Ngân hàng Quân đội',
-    'Techcombank – Ngân hàng Kỹ thương Việt Nam',
-    'ACB – Ngân hàng Á Châu',
-    'VPBank – Ngân hàng Việt Nam Thịnh Vượng',
-    'TPBank – Ngân hàng Tiên Phong',
-    'Sacombank – Ngân hàng Sài Gòn Thương Tín',
-    'HDBank – Ngân hàng Phát triển TP.HCM',
-    'VIB – Ngân hàng Quốc tế Việt Nam',
-    'OCB – Ngân hàng Phương Đông',
-    'MSB – Ngân hàng Hàng Hải Việt Nam',
-    'SeABank – Ngân hàng Đông Nam Á',
-    'LienVietPostBank – Ngân hàng Bưu điện Liên Việt',
-    'SHB – Ngân hàng Sài Gòn – Hà Nội',
-    'Eximbank – Ngân hàng Xuất nhập khẩu Việt Nam',
-    'NAB – Nam A Bank',
-    'PVcomBank – Ngân hàng Đại Chúng Việt Nam',
-    'OceanBank – Ngân hàng Đại Dương',
-    'GPBank – Ngân hàng Dầu khí Toàn cầu',
-    'CBBank – Ngân hàng Xây dựng',
-    'Bac A Bank – Ngân hàng Bắc Á',
-    'KienLong Bank – Ngân hàng Kiên Long',
-    'ABBank – Ngân hàng An Bình',
-    'BaoViet Bank – Ngân hàng Bảo Việt',
-    'VietBank – Ngân hàng Việt Nam Thương Tín',
-    'SCB – Ngân hàng Sài Gòn',
-    'NCB – Ngân hàng Quốc dân',
-    'PGBank – Ngân hàng Thịnh vượng và Phát triển',
-    'Saigonbank – Ngân hàng Sài Gòn Công Thương',
-    'VietCapitalBank – Ngân hàng Bản Việt',
-    'IVB – Ngân hàng Indovina',
-    'HSBC Việt Nam',
-    'Standard Chartered Việt Nam',
-    'Citibank Việt Nam',
-    'Shinhan Bank Việt Nam',
-    'Woori Bank Việt Nam',
-    'UOB Việt Nam',
-    'CIMB Bank Việt Nam',
-    'Hong Leong Bank Việt Nam',
-    'MHB – Ngân hàng Phát triển Nhà ĐBSCL',
-    'DongA Bank – Ngân hàng Đông Á',
-    'Viet A Bank – Ngân hàng Việt Á',
-];
-
-function initBankPicker(displayId, valSpanId, dropdownId, listId, hiddenId) {
-    const $display = $('#' + displayId);
-    const $valSpan = $('#' + valSpanId);
-    const $dropdown = $('#' + dropdownId);
-    const $list = $('#' + listId);
-    const $hidden = $('#' + hiddenId);
-    const $search = $dropdown.find('.bank-picker-search');
-
-    function renderList(filter) {
-        const filtered = filter
-            ? BANKS_VN.filter(b => b.toLowerCase().includes(filter.toLowerCase()))
-            : BANKS_VN;
-        if (filtered.length === 0) {
-            $list.html('<li class="bank-picker-empty">Không tìm thấy ngân hàng</li>');
-        } else {
-            $list.html(filtered.map(b =>
-                `<li class="bank-picker-item" data-val="${b}">${b}</li>`
-            ).join(''));
-        }
-    }
-
-    renderList('');
-
-    $display.on('click', function (e) {
-        e.stopPropagation();
-        const isOpen = $dropdown.hasClass('open');
-        $('.bank-picker-dropdown').removeClass('open');
-        if (!isOpen) {
-            $dropdown.addClass('open');
-            $search.val('').focus();
-            renderList('');
-        }
-    });
-
-    $search.on('input', function () { renderList($(this).val()); });
-    $search.on('click', function (e) { e.stopPropagation(); });
-
-    $list.on('click', '.bank-picker-item', function () {
-        const val = $(this).data('val');
-        $hidden.val(val);
-        $valSpan.text(val).addClass('selected');
-        $dropdown.removeClass('open');
-    });
-}
-
-$(document).on('click', function (e) {
-    if (!$(e.target).closest('.bank-picker').length) {
-        $('.bank-picker-dropdown').removeClass('open');
-    }
-});
-
-function resetBankPicker(valSpanId, hiddenId) {
-    $('#' + valSpanId).text('Chọn ngân hàng').removeClass('selected');
-    $('#' + hiddenId).val('');
-}
-
-$(function () {
-    initBankPicker('c-bankpicker-display', 'c-bankpicker-val', 'c-bankpicker-dropdown', 'c-bankpicker-list', 'c-bankname');
-    initBankPicker('c2-bankpicker-display', 'c2-bankpicker-val', 'c2-bankpicker-dropdown', 'c2-bankpicker-list', 'c2-bankname');
-    initBankPicker('bk-bankpicker-display', 'bk-bankpicker-val', 'bk-bankpicker-dropdown', 'bk-bankpicker-list', 'bk-name');
-});
-
-// ===================== LOCATION CASCADE (chỉ cho Create modal) =====================
-let provincesLoaded = false;
-
-$(function () {
-    // Đăng ký sự kiện cascade cho c-province / c-district
-    $(document).on('change', '#c-province', function () {
-        $('#c-district').html('<option value="">— Chọn Quận/Huyện —</option>').prop('disabled', true);
-        $('#c-ward').html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
-        const pid = $(this).val();
-        if (!pid) return;
-        $.ajax({
-            url: SUP_BASE + '/GetDistricts',
-            data: { provinceId: pid },
-            success: function (data) {
-                data.forEach(d => $('#c-district').append(`<option value="${d.code}">${d.name}</option>`));
-                $('#c-district').prop('disabled', false);
-            },
-            error: function (xhr) {
-                console.error('Lỗi tải Quận/Huyện:', xhr.status, xhr.responseText);
-                supToast('Lỗi tải dữ liệu Quận/Huyện', 'error');
-            }
-        });
-    });
-
-    $(document).on('change', '#c-district', function () {
-        $('#c-ward').html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
-        const did = $(this).val();
-        if (!did) return;
-        $.ajax({
-            url: SUP_BASE + '/GetWards',
-            data: { districtId: did },
-            success: function (data) {
-                data.forEach(w => $('#c-ward').append(`<option value="${w.code}">${w.name}</option>`));
-                $('#c-ward').prop('disabled', false);
-            },
-            error: function (xhr) {
-                console.error('Lỗi tải Phường/Xã:', xhr.status, xhr.responseText);
-                supToast('Lỗi tải dữ liệu Phường/Xã', 'error');
-            }
-        });
-    });
-});
-
-function loadProvinces() {
-    if (provincesLoaded) return;
-    $('#c-province').html('<option value="">— Đang tải... —</option>');
-    $.ajax({
-        url: SUP_BASE + '/GetProvinces',
-        success: function (data) {
-            $('#c-province').html('<option value="">— Chọn Tỉnh/Thành phố —</option>');
-            if (data && data.length > 0) {
-                data.forEach(p => $('#c-province').append(`<option value="${p.code}">${p.name}</option>`));
-                provincesLoaded = true;
-            } else {
-                console.warn('GetProvinces trả về rỗng');
-                supToast('Không có dữ liệu tỉnh/thành trong hệ thống', 'error');
-            }
-        },
-        error: function (xhr) {
-            console.error('Lỗi tải Tỉnh/Thành:', xhr.status, xhr.responseText);
-            $('#c-province').html('<option value="">— Lỗi tải dữ liệu —</option>');
-            supToast('Lỗi tải danh sách tỉnh thành', 'error');
-        }
-    });
-}
-
-// ===================== SECONDARY ITEMS — Create modal =====================
-let cExtraPhones = [];
-let cExtraBanks = [];
-let cExtraContacts = [];
-
-// ── Render phones ──
-function renderCExtraPhones() {
-    if (cExtraPhones.length === 0) { $('#c-phone-extra-list').html(''); return; }
-    let html = '<div class="sup-extra-chips">';
-    cExtraPhones.forEach((p, i) => {
-        html += `<span class="sup-extra-chip">
-            <span class="tag-sub">Phụ</span>
-            <span class="sup-chip-val">${p}</span>
-            <i class="fa fa-xmark sup-chip-del extra-del-phone" data-idx="${i}"></i>
-        </span>`;
-    });
-    html += '</div>';
-    $('#c-phone-extra-list').html(html);
-}
-
-// ── Render banks ──
-function renderCExtraBanks() {
-    if (cExtraBanks.length === 0) { $('#c-bank-extra-list').html(''); return; }
-    let html = '<table class="sup-extra-table"><tbody>';
-    cExtraBanks.forEach((b, i) => {
-        html += `<tr>
-            <td><span class="tag-sub">Phụ</span></td>
-            <td>${b.bankName}</td>
-            <td>${b.accountNumber}</td>
-            <td>${b.accountHolder}</td>
-            <td><i class="fa fa-trash-can sup-chip-del extra-del-bank" data-idx="${i}" title="Xoá"></i></td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
-    $('#c-bank-extra-list').html(html);
-}
-
-// ── Render contacts ──
-function renderCExtraContacts() {
-    if (cExtraContacts.length === 0) { $('#c-contact-extra-list').html(''); return; }
-    let html = '<table class="sup-extra-table"><tbody>';
-    cExtraContacts.forEach((c, i) => {
-        html += `<tr>
-            <td><span class="tag-sub">Phụ</span></td>
-            <td>${c.name}</td>
-            <td>${c.position || '—'}</td>
-            <td>${c.phone || '—'}</td>
-            <td>${c.email || '—'}</td>
-            <td><i class="fa fa-trash-can sup-chip-del extra-del-contact" data-idx="${i}" title="Xoá"></i></td>
-        </tr>`;
-    });
-    html += '</tbody></table>';
-    $('#c-contact-extra-list').html(html);
-}
-
-// ── Delete handlers ──
-$(document).on('click', '.extra-del-phone', function () { cExtraPhones.splice($(this).data('idx'), 1); renderCExtraPhones(); });
-$(document).on('click', '.extra-del-bank', function () { cExtraBanks.splice($(this).data('idx'), 1); renderCExtraBanks(); });
-$(document).on('click', '.extra-del-contact', function () { cExtraContacts.splice($(this).data('idx'), 1); renderCExtraContacts(); });
-
-// ── Add phone phụ ──
-$('#btnCAddPhone').on('click', function () {
-    const ph = $('#c-phone-extra').val().trim();
-    if (!ph) { supToast('Nhập số điện thoại phụ', 'error'); return; }
-    if (!isValidPhone(ph)) { supToast('SĐT phụ không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
-    cExtraPhones.push(ph);
-    $('#c-phone-extra').val('');
-    renderCExtraPhones();
-});
-
-// ── Bank phụ: show/hide form ──
-$('#btnCShowBankForm').on('click', function () {
-    $('#c-bank-extra-form').slideDown(180);
-    $(this).hide();
-});
-$('#btnCCancelBank').on('click', function () {
-    $('#c-bank-extra-form').slideUp(180);
-    $('#btnCShowBankForm').show();
-    resetBankPicker('c2-bankpicker-val', 'c2-bankname');
-    $('#c2-accnumber,#c2-accholder').val('');
-});
-
-// ── Add bank phụ ──
-$('#btnCAddBank').on('click', function () {
-    const bankName = $('#c2-bankname').val().trim();
-    const accountNumber = $('#c2-accnumber').val().trim();
-    const accountHolder = $('#c2-accholder').val().trim();
-    if (!bankName) { supToast('Vui lòng chọn ngân hàng phụ', 'error'); return; }
-    if (!accountNumber) { supToast('Nhập số tài khoản', 'error'); return; }
-    if (!isValidBankNumber(accountNumber)) { supToast('Số TK chỉ chứa chữ số (tối thiểu 6 số)', 'error'); return; }
-    if (!accountHolder) { supToast('Nhập chủ tài khoản', 'error'); return; }
-    cExtraBanks.push({ bankName, accountNumber, accountHolder });
-    renderCExtraBanks();
-    resetBankPicker('c2-bankpicker-val', 'c2-bankname');
-    $('#c2-accnumber,#c2-accholder').val('');
-    $('#c-bank-extra-form').slideUp(180);
-    $('#btnCShowBankForm').show();
-});
-
-// ── Contact phụ: show/hide form ──
-$('#btnCShowContactForm').on('click', function () {
-    $('#c-contact-extra-form').slideDown(180);
-    $(this).hide();
-});
-$('#btnCCancelContact').on('click', function () {
-    $('#c-contact-extra-form').slideUp(180);
-    $('#btnCShowContactForm').show();
-    $('#c2-cname,#c2-cposition,#c2-cphone,#c2-cemail').val('');
-});
-
-// ── Add contact phụ ──
-$('#btnCAddContact').on('click', function () {
-    const name = $('#c2-cname').val().trim();
-    const position = $('#c2-cposition').val().trim() || null;
-    const phone = $('#c2-cphone').val().trim() || null;
-    const email = $('#c2-cemail').val().trim() || null;
-    if (!name) { supToast('Nhập tên người liên hệ phụ', 'error'); return; }
-    if (!isValidName(name)) { supToast('Họ tên không được chứa số hay ký tự đặc biệt', 'error'); return; }
-    if (phone && !isValidPhone(phone)) { supToast('SĐT phụ không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
-    if (email && !isValidEmail(email)) { supToast('Email không đúng định dạng', 'error'); return; }
-    cExtraContacts.push({ name, position, phone, email });
-    renderCExtraContacts();
-    $('#c2-cname,#c2-cposition,#c2-cphone,#c2-cemail').val('');
-    $('#c-contact-extra-form').slideUp(180);
-    $('#btnCShowContactForm').show();
-});
-
-// ===================== CREATE WIZARD =====================
-let currentWizardStep = 1;
-
-function setWizardStep(step) {
-    currentWizardStep = step;
-    // Panels
-    $('.sup-wizard-panel').removeClass('active');
-    $('#createStep' + step).addClass('active');
-    // Step indicators
-    $('.sup-wizard-step').removeClass('active done');
-    if (step === 1) {
-        $('.sup-wizard-step[data-step="1"]').addClass('active');
-        $('.sup-wizard-line').removeClass('done');
-    } else {
-        $('.sup-wizard-step[data-step="1"]').addClass('done');
-        $('.sup-wizard-step[data-step="2"]').addClass('active');
-        $('.sup-wizard-line').addClass('done');
-    }
-    // Buttons
-    $('#btnWizardPrev').toggle(step > 1);
-    $('#btnWizardNext').toggle(step < 2);
-    $('#btnSaveCreate').toggle(step === 2);
-    // Scroll to top of modal body
-    $('#createModal .sup-modal-body').scrollTop(0);
-}
-
-// Validate step 1 before proceeding
-function validateStep1() {
-    const name = $('#c-name').val().trim();
-    const phone = $('#c-phone').val().trim();
-    if (!name) { supToast('Tên NCC không được để trống', 'error'); return false; }
-    if (!phone) { supToast('SĐT chính không được để trống', 'error'); return false; }
-    if (!isValidPhone(phone)) { supToast('SĐT chính không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return false; }
-    const taxCode = ($('#c-taxcode').val() || '').trim();
-    if (taxCode && !isValidTaxCode(taxCode)) { supToast('Mã số thuế không hợp lệ (10 hoặc 13 chữ số)', 'error'); return false; }
-    return true;
-}
-
-$('#btnWizardNext').on('click', function () {
-    if (currentWizardStep === 1 && validateStep1()) {
-        setWizardStep(2);
-    }
-});
-
-$('#btnWizardPrev').on('click', function () {
-    if (currentWizardStep === 2) {
-        setWizardStep(1);
-    }
-});
-
-$('#btnCreate').on('click', function () {
-    // Reset form cơ bản
-    $('#c-name,#c-taxcode,#c-website,#c-street').val('');
-    $('#c-phone,#c-phone-extra').val('');
-    resetBankPicker('c-bankpicker-val', 'c-bankname');
-    $('#c-accnumber,#c-accholder').val('');
-    $('#c-cname,#c-cposition,#c-cphone,#c-cemail').val('');
-
-    // Reset địa chỉ
-    $('#c-district').html('<option value="">— Chọn Quận/Huyện —</option>').prop('disabled', true);
-    $('#c-ward').html('<option value="">— Chọn Phường/Xã —</option>').prop('disabled', true);
-
-    // Reset extra items
-    cExtraPhones = []; cExtraBanks = []; cExtraContacts = [];
-    renderCExtraPhones(); renderCExtraBanks(); renderCExtraContacts();
-
-    // Ẩn các form phụ và hiện lại nút thêm
-    $('#c-bank-extra-form,#c-contact-extra-form').hide();
-    $('#btnCShowBankForm,#btnCShowContactForm').show();
-
-    // Reset wizard về bước 1
-    setWizardStep(1);
-
-    // Tải danh sách tỉnh/thành (force reload mỗi lần mở)
-    provincesLoaded = false;
-    loadProvinces();
-
-    // Tải mã NCC tự động
-    $('#c-code-display').html('<i class="fa fa-spinner fa-spin"></i> Đang tạo mã...');
-    $('#c-code').val('');
-    fetch(SUP_BASE + '/GetNextCode')
-        .then(r => r.ok ? r.json() : Promise.reject(r.statusText))
-        .then(res => {
-            if (res.success) {
-                $('#c-code').val(res.code);
-                $('#c-code-display').html('<i class="fa fa-tag"></i> ' + res.code);
-            } else throw new Error(res.message);
-        })
-        .catch(e => {
-            console.error('Lỗi tải mã:', e);
-            $('#c-code-display').html('<i class="fa fa-exclamation-triangle" style="color:red"></i> Lỗi tạo mã');
-            supToast('Không thể tạo mã NCC. Kiểm tra kết nối máy chủ.', 'error');
-        });
-
-    supOpen('createModal');
-});
-
-$('#btnSaveCreate').on('click', function () {
-    const dto = {
-        name: $('#c-name').val().trim(),
-        taxCode: ($('#c-taxcode').val() || '').trim() || null,
-        website: ($('#c-website').val() || '').trim() || null,
-
-        provinceId: parseInt($('#c-province').val()) || null,
-        districtId: parseInt($('#c-district').val()) || null,
-        wardId: parseInt($('#c-ward').val()) || null,
-        streetAddress: ($('#c-street').val() || '').trim() || null,
-
-        primaryPhone: ($('#c-phone').val() || '').trim(),
-
-        primaryBankName: ($('#c-bankname').val() || '').trim(),
-        primaryAccountNumber: ($('#c-accnumber').val() || '').trim(),
-        primaryAccountHolder: ($('#c-accholder').val() || '').trim(),
-
-        primaryContactName: ($('#c-cname').val() || '').trim(),
-        primaryContactPosition: ($('#c-cposition').val() || '').trim() || null,
-        primaryContactPhone: ($('#c-cphone').val() || '').trim() || null,
-        primaryContactEmail: ($('#c-cemail').val() || '').trim() || null,
-
-        // Danh sách phụ (thu thập từ memory)
-        additionalPhones: cExtraPhones,
-        additionalBankAccounts: cExtraBanks,
-        additionalContacts: cExtraContacts,
+    const canMutate = page.dataset.canMutate === 'true';
+    const state = {
+        supplierId: null,
+        detail: null,
+        offers: [],
+        stores: [],
+        ingredients: [],
+        units: [],
+        pricingOffer: null
     };
 
-    // --- Validate bắt buộc ---
-    if (!dto.name) { supToast('Tên NCC không được để trống', 'error'); return; }
-    if (!dto.primaryPhone) { supToast('SĐT chính không được để trống', 'error'); return; }
-    if (!isValidPhone(dto.primaryPhone)) { supToast('SĐT chính không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
-    if (dto.taxCode && !isValidTaxCode(dto.taxCode)) { supToast('Mã số thuế không hợp lệ (10 hoặc 13 chữ số)', 'error'); return; }
-    if (!dto.primaryBankName) { supToast('Vui lòng chọn ngân hàng chính', 'error'); return; }
-    if (!dto.primaryAccountNumber) { supToast('Số tài khoản chính không được để trống', 'error'); return; }
-    if (!isValidBankNumber(dto.primaryAccountNumber)) { supToast('Số tài khoản chỉ được chứa chữ số (tối thiểu 6 số)', 'error'); return; }
-    if (!dto.primaryAccountHolder) { supToast('Chủ tài khoản chính không được để trống', 'error'); return; }
-    if (!dto.primaryContactName) { supToast('Họ tên người liên hệ chính không được để trống', 'error'); return; }
-    if (!isValidName(dto.primaryContactName)) { supToast('Họ tên không được chứa số hay ký tự đặc biệt', 'error'); return; }
-    if (dto.primaryContactPhone && !isValidPhone(dto.primaryContactPhone)) { supToast('SĐT người liên hệ không hợp lệ', 'error'); return; }
-    if (dto.primaryContactEmail && !isValidEmail(dto.primaryContactEmail)) { supToast('Email người liên hệ không đúng định dạng', 'error'); return; }
+    const $ = (selector, root = document) => root.querySelector(selector);
+    const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+    const detailPanel = $('#supplierDetail');
+    const detailContent = $('#supplierDetailContent');
+    const detailPlaceholder = $('#supplierDetailPlaceholder');
 
-    $.ajax({
-        url: SUP_BASE + '/Create',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(dto),
-        success: function (res) {
-            if (res.success) {
-                supToast(res.message);
-                supClose('createModal');
-                setTimeout(() => location.reload(), 800);
-            } else {
-                supToast(res.message, 'error');
-            }
-        },
-        error: function () { supToast('Lỗi kết nối máy chủ', 'error'); }
-    });
-});
+    const escapeHtml = (value) => String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#039;');
 
-// ===================== EDIT =====================
-$(document).on('click', '.edit-btn', function () {
-    const id = $(this).data('id');
-    $.get(SUP_BASE + '/GetById', { id }, function (res) {
-        if (!res.success) { supToast(res.message, 'error'); return; }
-        const d = res.data;
-        $('#e-id').val(d.supplierId);
-        $('#e-code-text').text(d.code);
-        $('#e-name').val(d.name);
-        $('#e-taxcode').val(d.taxCode || '');
-        $('#e-website').val(d.website || '');
-        $('#e-active').val(d.active.toString());
-        supOpen('editModal');
-    });
-});
+    const formatMoney = (value) => `${new Intl.NumberFormat('vi-VN').format(Number(value || 0))} đ`;
+    const formatDate = (value) => value
+        ? new Intl.DateTimeFormat('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
+        : 'Chưa có dữ liệu';
 
-$('#btnSaveEdit').on('click', function () {
-    const dto = {
-        supplierId: parseInt($('#e-id').val()),
-        name: ($('#e-name').val() || '').trim(),
-        taxCode: ($('#e-taxcode').val() || '').trim() || null,
-        website: ($('#e-website').val() || '').trim() || null,
-        active: $('#e-active').val() === 'true',
-        // Không gửi địa chỉ → service giữ nguyên địa chỉ cũ
-    };
-
-    if (!dto.name) { supToast('Tên NCC không được để trống', 'error'); return; }
-    if (dto.taxCode && !isValidTaxCode(dto.taxCode)) { supToast('Mã số thuế không hợp lệ (10 hoặc 13 chữ số)', 'error'); return; }
-
-    $.ajax({
-        url: SUP_BASE + '/Update',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(dto),
-        success: function (res) {
-            if (res.success) {
-                supToast(res.message);
-                supClose('editModal');
-                setTimeout(() => location.reload(), 800);
-            } else {
-                supToast(res.message, 'error');
-            }
-        },
-        error: function () { supToast('Lỗi kết nối máy chủ', 'error'); }
-    });
-});
-
-// ===================== TOGGLE STATUS =====================
-$(document).on('click', '.toggle-btn', function () {
-    const id = $(this).data('id');
-    if (!confirm('Xác nhận thay đổi trạng thái?')) return;
-    $.post(SUP_BASE + '/ToggleStatus', { id }, function (res) {
-        if (res.success) { supToast(res.message); setTimeout(() => location.reload(), 800); }
-        else supToast(res.message, 'error');
-    });
-});
-
-// ===================== DETAIL MODAL =====================
-let currentSupplierId = null;
-
-function loadDetail(id) {
-    $.get(SUP_BASE + '/GetById', { id }, function (res) {
-        if (!res.success) { supToast(res.message, 'error'); return; }
-        const d = res.data;
-        currentSupplierId = d.supplierId;
-        $('#d-supplierId').val(d.supplierId);
-        $('#detailTitle').html('<i class="fa fa-list-ul"></i> Chi tiết: ' + d.name + ' <span class="sup-code">' + d.code + '</span>');
-        renderPhones(d.phones);
-        renderBanks(d.bankAccounts);
-        renderContacts(d.contacts);
-        loadIngredientOffers(d.supplierId);
-        resetOfferForm();
-        supOpen('detailModal');
-    });
-}
-
-$(document).on('click', '.detail-btn', function () {
-    loadDetail($(this).data('id'));
-    resetBankPicker('bk-bankpicker-val', 'bk-name');
-    $('#bk-number,#bk-holder').val('');
-});
-
-// ----- TABS -----
-$(document).on('click', '.sup-tab', function () {
-    const target = $(this).data('tab');
-    $('.sup-tab').removeClass('active');
-    $('.sup-tab-panel').removeClass('active');
-    $(this).addClass('active');
-    $('#' + target).addClass('active');
-});
-
-// ===================== PHONES (tab chi tiết) =====================
-function renderPhones(phones) {
-    let html = '';
-    phones.forEach(p => {
-        const tag = p.isPrimary
-            ? '<span class="tag-primary">Chính</span>'
-            : '<span class="tag-sub">Phụ</span>';
-        const del = p.isPrimary
-            ? ''
-            : `<i class="fa fa-trash-can sup-icon-btn del-phone" data-id="${p.supplierPhoneId}" title="Xoá"></i>`;
-        html += `<tr><td>${p.phoneNumber}</td><td>${tag}</td><td class="text-center">${del}</td></tr>`;
-    });
-    $('#phoneList').html(html || '<tr><td colspan="3" class="text-center text-muted">Chưa có SĐT nào</td></tr>');
-}
-
-$('#btnAddPhone').on('click', function () {
-    const phone = $('#ph-number').val().trim();
-    if (!phone) { supToast('Nhập số điện thoại', 'error'); return; }
-    if (!isValidPhone(phone)) { supToast('SĐT không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
-    $.ajax({
-        url: SUP_BASE + '/AddPhone',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ supplierId: currentSupplierId, phoneNumber: phone }),
-        success: function (res) {
-            if (res.success) { supToast(res.message); $('#ph-number').val(''); loadDetail(currentSupplierId); }
-            else supToast(res.message, 'error');
+    async function api(path, options = {}) {
+        const init = { ...options, headers: { Accept: 'application/json', ...(options.headers || {}) } };
+        if (options.body && typeof options.body !== 'string') {
+            init.headers['Content-Type'] = 'application/json';
+            init.body = JSON.stringify(options.body);
         }
-    });
-});
-
-$(document).on('click', '.del-phone', function () {
-    const id = $(this).data('id');
-    if (!confirm('Xoá số điện thoại này?')) return;
-    $.post(SUP_BASE + '/DeletePhone', { supplierPhoneId: id }, function (res) {
-        if (res.success) { supToast(res.message); loadDetail(currentSupplierId); }
-        else supToast(res.message, 'error');
-    });
-});
-
-// ===================== BANKS (tab chi tiết) =====================
-function renderBanks(banks) {
-    let html = '';
-    banks.forEach(b => {
-        const tag = b.isPrimary
-            ? '<span class="tag-primary">Chính</span>'
-            : '<span class="tag-sub">Phụ</span>';
-        const del = b.isPrimary
-            ? ''
-            : `<i class="fa fa-trash-can sup-icon-btn del-bank" data-id="${b.supplierBankAccountId}" title="Xoá"></i>`;
-        html += `<tr>
-            <td>${b.bankName}</td>
-            <td>${b.accountNumber}</td>
-            <td>${b.accountHolder}</td>
-            <td>${tag}</td>
-            <td class="text-center">${del}</td>
-        </tr>`;
-    });
-    $('#bankList').html(html || '<tr><td colspan="5" class="text-center text-muted">Chưa có tài khoản nào</td></tr>');
-}
-
-$('#btnAddBank').on('click', function () {
-    const bankName = $('#bk-name').val().trim();
-    const accountNumber = $('#bk-number').val().trim();
-    const accountHolder = $('#bk-holder').val().trim();
-    if (!bankName) { supToast('Vui lòng chọn ngân hàng', 'error'); return; }
-    if (!accountNumber) { supToast('Số tài khoản không được để trống', 'error'); return; }
-    if (!isValidBankNumber(accountNumber)) { supToast('Số tài khoản chỉ được chứa chữ số (tối thiểu 6 số)', 'error'); return; }
-    if (!accountHolder) { supToast('Chủ tài khoản không được để trống', 'error'); return; }
-    $.ajax({
-        url: SUP_BASE + '/AddBankAccount',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ supplierId: currentSupplierId, bankName, accountNumber, accountHolder }),
-        success: function (res) {
-            if (res.success) {
-                supToast(res.message);
-                resetBankPicker('bk-bankpicker-val', 'bk-name');
-                $('#bk-number,#bk-holder').val('');
-                loadDetail(currentSupplierId);
-            } else supToast(res.message, 'error');
+        const response = await fetch(`${API}${path}`, init);
+        let payload;
+        try { payload = await response.json(); }
+        catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ.'); }
+        if (!response.ok || payload.success === false) {
+            throw new Error(payload.message || `Yêu cầu thất bại (HTTP ${response.status}).`);
         }
-    });
-});
-
-$(document).on('click', '.del-bank', function () {
-    const id = $(this).data('id');
-    if (!confirm('Xoá tài khoản ngân hàng này?')) return;
-    $.post(SUP_BASE + '/DeleteBankAccount', { supplierBankAccountId: id }, function (res) {
-        if (res.success) { supToast(res.message); loadDetail(currentSupplierId); }
-        else supToast(res.message, 'error');
-    });
-});
-
-// ===================== CONTACTS (tab chi tiết) =====================
-function renderContacts(contacts) {
-    if (!contacts || contacts.length === 0) {
-        $('#contactList').html('<div class="ct-empty"><i class="fa fa-user-slash"></i><span>Chưa có người liên hệ nào</span></div>');
-        return;
+        return payload;
     }
 
-    let html = '';
-
-    // Hiển thị contact chính trước
-    const primary = contacts.filter(c => c.isPrimary);
-    const secondary = contacts.filter(c => !c.isPrimary);
-
-    primary.forEach(c => {
-        html += `
-        <div class="ct-card ct-card-primary">
-            <div class="ct-card-badge">
-                <span class="tag-primary"><i class="fa fa-star"></i> Chính</span>
-            </div>
-            <div class="ct-card-body">
-                <div class="ct-card-name">
-                    <i class="fa fa-user-tie ct-icon-primary"></i>
-                    <strong>${c.name}</strong>
-                    ${c.position ? `<span class="ct-position">${c.position}</span>` : ''}
-                </div>
-                <div class="ct-card-info">
-                    ${c.phone ? `<span><i class="fa fa-phone"></i> ${c.phone}</span>` : ''}
-                    ${c.email ? `<span><i class="fa fa-envelope"></i> ${c.email}</span>` : ''}
-                </div>
-            </div>
-            <div class="ct-card-actions">
-                <span class="ct-no-action-hint"><i class="fa fa-shield-halved"></i> Đầu mối chính</span>
-            </div>
-        </div>`;
-    });
-
-    secondary.forEach(c => {
-        html += `
-        <div class="ct-card ct-card-secondary">
-            <div class="ct-card-badge">
-                <span class="tag-sub">Phụ</span>
-            </div>
-            <div class="ct-card-body">
-                <div class="ct-card-name">
-                    <i class="fa fa-user ct-icon-secondary"></i>
-                    <strong>${c.name}</strong>
-                    ${c.position ? `<span class="ct-position">${c.position}</span>` : ''}
-                </div>
-                <div class="ct-card-info">
-                    ${c.phone ? `<span><i class="fa fa-phone"></i> ${c.phone}</span>` : ''}
-                    ${c.email ? `<span><i class="fa fa-envelope"></i> ${c.email}</span>` : ''}
-                </div>
-            </div>
-            <div class="ct-card-actions">
-                <button class="sup-btn sup-btn-xs btn-set-primary-contact" data-id="${c.supplierContactId}" title="Đặt làm liên hệ chính">
-                    <i class="fa fa-star"></i> Đặt làm chính
-                </button>
-                <i class="fa fa-trash-can sup-icon-btn del-contact" data-id="${c.supplierContactId}" title="Xoá liên hệ này"></i>
-            </div>
-        </div>`;
-    });
-
-    $('#contactList').html(html);
-}
-
-// ── Toggle form thêm liên hệ phụ ──
-$('#btnShowAddContactForm').on('click', function () {
-    $('#ct-add-form').slideDown(180);
-    $(this).hide();
-    $('#ct-name').focus();
-});
-$('#btnCancelAddContact').on('click', function () {
-    $('#ct-add-form').slideUp(180);
-    $('#btnShowAddContactForm').show();
-    $('#ct-name,#ct-position,#ct-phone,#ct-email').val('');
-});
-
-$('#btnAddContact').on('click', function () {
-    const name = $('#ct-name').val().trim();
-    const position = $('#ct-position').val().trim() || null;
-    const phone = $('#ct-phone').val().trim() || null;
-    const email = $('#ct-email').val().trim() || null;
-    if (!name) { supToast('Nhập tên người liên hệ', 'error'); return; }
-    if (!isValidName(name)) { supToast('Họ tên không được chứa số hay ký tự đặc biệt', 'error'); return; }
-    if (phone && !isValidPhone(phone)) { supToast('SĐT người liên hệ không hợp lệ (10-11 số, bắt đầu bằng 0)', 'error'); return; }
-    if (email && !isValidEmail(email)) { supToast('Email không đúng định dạng (vd: ten@congty.com)', 'error'); return; }
-    $.ajax({
-        url: SUP_BASE + '/AddContact',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ supplierId: currentSupplierId, name, position, phone, email }),
-        success: function (res) {
-            if (res.success) {
-                supToast(res.message);
-                $('#ct-name,#ct-position,#ct-phone,#ct-email').val('');
-                $('#ct-add-form').slideUp(180);
-                $('#btnShowAddContactForm').show();
-                loadDetail(currentSupplierId);
-            } else supToast(res.message, 'error');
-        }
-    });
-});
-
-// ── Đặt làm liên hệ chính ──
-$(document).on('click', '.btn-set-primary-contact', function () {
-    const id = $(this).data('id');
-    if (!confirm('Đặt người này làm đầu mối liên hệ chính?')) return;
-    $.post(SUP_BASE + '/SetPrimaryContact', { supplierContactId: id }, function (res) {
-        if (res.success) { supToast(res.message); loadDetail(currentSupplierId); }
-        else supToast(res.message, 'error');
-    });
-});
-
-$(document).on('click', '.del-contact', function () {
-    const id = $(this).data('id');
-    if (!confirm('Xoá liên hệ này?')) return;
-    $.post(SUP_BASE + '/DeleteContact', { supplierContactId: id }, function (res) {
-        if (res.success) { supToast(res.message); loadDetail(currentSupplierId); }
-        else supToast(res.message, 'error');
-    });
-});
-
-// ===================== INGREDIENT OFFERS (#111) =====================
-let offerIngredients = [];
-let offerUnits = [];
-
-function loadIngredientOffers(supplierId) {
-    $.get(SUP_BASE + '/GetIngredientOffers', { supplierId }, function (res) {
-        if (!res.success) {
-            $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Không tải được</td></tr>');
-            return;
-        }
-        renderOffers(res.data || []);
-    }).fail(function () {
-        $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Lỗi tải gói mua</td></tr>');
-    });
-}
-
-function renderOffers(offers) {
-    if (!offers.length) {
-        $('#offerList').html('<tr><td colspan="7" class="text-center text-muted">Chưa có gói mua nguyên liệu</td></tr>');
-        return;
+    function toast(message, type = 'success') {
+        const item = document.createElement('div');
+        item.className = `supplier-toast${type === 'error' ? ' is-error' : ''}`;
+        item.textContent = message;
+        $('#supplierToasts').append(item);
+        window.setTimeout(() => item.remove(), 4200);
     }
-    let html = '';
-    offers.forEach(function (o) {
-        const incomplete = !o.hasCompletePackageDefinition
-            ? ' <span class="tag-sub">Thiếu gói</span>'
-            : '';
-        const primary = o.isPrimary ? '<span class="tag-primary">Chính</span>' : '';
-        const active = o.active ? 'Active' : 'Tắt';
-        html += '<tr>'
-            + '<td>' + (o.ingredientName || '') + incomplete
-            + '<div class="text-muted" style="font-size:11px">' + (o.ingredientCode || '') + '</div></td>'
-            + '<td>' + (o.priceDisplay || '') + '</td>'
-            + '<td>' + (o.packageDisplay || '') + '</td>'
-            + '<td>' + (o.unitCode || '') + '</td>'
-            + '<td>' + primary + '</td>'
-            + '<td>' + active + '</td>'
-            + '<td class="text-center">'
-            + '<i class="fa fa-pen sup-icon-btn edit-offer" data-id="' + o.ingredientSupplierId + '" title="Sửa"></i> '
-            + '<i class="fa fa-power-off sup-icon-btn toggle-offer" data-id="' + o.ingredientSupplierId
-            + '" data-active="' + (!o.active) + '" title="Bật/Tắt"></i>'
-            + '</td></tr>';
-    });
-    $('#offerList').html(html);
-}
 
-function ensureOfferDropdowns(done) {
-    const loadIng = offerIngredients.length
-        ? $.Deferred().resolve().promise()
-        : $.get(SUP_BASE + '/GetIngredientOptions').then(function (res) {
-            offerIngredients = res.data || [];
-            const $sel = $('#of-ingredient').empty().append('<option value="">-- Chọn NL --</option>');
-            offerIngredients.forEach(function (i) {
-                $sel.append('<option value="' + i.ingredientId + '">' + i.name + ' (' + i.code + ')</option>');
-            });
-        });
-    const loadUnit = offerUnits.length
-        ? $.Deferred().resolve().promise()
-        : $.get(SUP_BASE + '/GetContentUnitOptions').then(function (res) {
-            offerUnits = res.data || [];
-            const $sel = $('#of-unit').empty().append('<option value="">-- Đơn vị --</option>');
-            offerUnits.forEach(function (u) {
-                $sel.append('<option value="' + u.unitId + '">' + u.unitCode + ' — ' + u.name + '</option>');
-            });
-        });
-    $.when(loadIng, loadUnit).always(function () { if (done) done(); });
-}
-
-function resetOfferForm() {
-    $('#of-id').val('');
-    $('#of-ingredient').val('').prop('disabled', false);
-    $('#of-unit').val('');
-    $('#of-price').val('');
-    $('#of-packageQty').val('');
-    $('#of-moq').val('');
-    $('#of-lead').val('');
-    $('#of-primary').prop('checked', false);
-    $('#of-active').prop('checked', true);
-    $('#of-note').val('');
-    $('#offer-form-error').text('');
-    $('#offer-form').hide();
-}
-
-$(document).on('click', '#btnShowOfferForm', function () {
-    ensureOfferDropdowns(function () {
-        resetOfferForm();
-        $('#of-active').prop('checked', true);
-        $('#offer-form').show();
-    });
-});
-
-$(document).on('click', '#btnCancelOffer', function () { resetOfferForm(); });
-
-$(document).on('click', '#btnSaveOffer', function () {
-    const idVal = $('#of-id').val();
-    const dto = {
-        ingredientSupplierId: idVal ? parseInt(idVal, 10) : null,
-        supplierId: currentSupplierId,
-        ingredientId: parseInt($('#of-ingredient').val(), 10) || 0,
-        unitId: parseInt($('#of-unit').val(), 10) || 0,
-        packageQuantity: $('#of-packageQty').val() === '' ? null : parseFloat($('#of-packageQty').val()),
-        currentPrice: parseFloat($('#of-price').val()),
-        minimumOrderQuantity: $('#of-moq').val() === '' ? null : parseFloat($('#of-moq').val()),
-        leadTimeDays: $('#of-lead').val() === '' ? null : parseInt($('#of-lead').val(), 10),
-        isPrimary: $('#of-primary').is(':checked'),
-        active: $('#of-active').is(':checked'),
-        note: $('#of-note').val()
-    };
-    if (!dto.ingredientId || !dto.unitId || isNaN(dto.currentPrice)) {
-        $('#offer-form-error').text('Vui lòng nhập nguyên liệu, đơn vị và giá gói mua.');
-        return;
-    }
-    const url = idVal ? (SUP_BASE + '/UpdateIngredientOffer') : (SUP_BASE + '/CreateIngredientOffer');
-    $.ajax({
-        url: url,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify(dto),
-        success: function (res) {
-            if (res.success) {
-                supToast(res.message);
-                resetOfferForm();
-                loadIngredientOffers(currentSupplierId);
-            } else {
-                $('#offer-form-error').text(res.message || 'Lỗi lưu');
-                supToast(res.message || 'Lỗi lưu', 'error');
+    function setBusy(element, busy) {
+        if (!element) return;
+        element.classList.toggle('supplier-loading', busy);
+        $$('button, input, select, textarea', element).forEach(control => {
+            if (busy) {
+                control.dataset.wasDisabled = control.disabled ? 'true' : 'false';
+                control.disabled = true;
+            } else if (control.dataset.wasDisabled !== 'true') {
+                control.disabled = false;
             }
-        },
-        error: function () { $('#offer-form-error').text('Lỗi kết nối'); }
-    });
-});
-
-$(document).on('click', '.edit-offer', function () {
-    const id = $(this).data('id');
-    ensureOfferDropdowns(function () {
-        $.get(SUP_BASE + '/GetIngredientOffer', { id: id }, function (res) {
-            if (!res.success) { supToast(res.message, 'error'); return; }
-            const o = res.data;
-            $('#offer-form').show();
-            $('#of-id').val(o.ingredientSupplierId);
-            $('#of-ingredient').val(o.ingredientId).prop('disabled', true);
-            $('#of-unit').val(o.unitId);
-            $('#of-price').val(o.currentPrice);
-            $('#of-packageQty').val(o.packageQuantity != null ? o.packageQuantity : '');
-            $('#of-moq').val(o.minimumOrderQuantity != null ? o.minimumOrderQuantity : '');
-            $('#of-lead').val(o.leadTimeDays != null ? o.leadTimeDays : '');
-            $('#of-primary').prop('checked', !!o.isPrimary);
-            $('#of-active').prop('checked', !!o.active);
-            $('#of-note').val(o.note || '');
-            $('#offer-form-error').text('');
         });
-    });
-});
+    }
 
-$(document).on('click', '.toggle-offer', function () {
-    const id = $(this).data('id');
-    const active = $(this).data('active') === true || $(this).data('active') === 'true';
-    $.ajax({
-        url: SUP_BASE + '/ToggleIngredientOffer',
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({ ingredientSupplierId: id, active: active }),
-        success: function (res) {
-            if (res.success) { supToast(res.message); loadIngredientOffers(currentSupplierId); }
-            else supToast(res.message, 'error');
+    function emptyStack(message) {
+        return `<div class="supplier-empty-inline">${escapeHtml(message)}</div>`;
+    }
+
+    function applyFilters() {
+        const query = ($('#supplierSearch')?.value || '').trim().toLocaleLowerCase('vi');
+        const status = $('#supplierStatusFilter')?.value || 'all';
+        let count = 0;
+        $$('#supplierRows tr').forEach(row => {
+            const matchesText = !query || (row.dataset.search || '').includes(query);
+            const matchesStatus = status === 'all' || row.dataset.status === status;
+            const visible = matchesText && matchesStatus;
+            row.classList.toggle('is-hidden', !visible);
+            if (visible) count += 1;
+        });
+        $('#supplierResultCount').textContent = `${count} kết quả`;
+        $('#supplierEmptyState').classList.toggle('is-hidden', count !== 0);
+    }
+
+    $('#supplierSearch')?.addEventListener('input', applyFilters);
+    $('#supplierStatusFilter')?.addEventListener('change', applyFilters);
+
+    function selectTab(tabName) {
+        $$('.supplier-tabs button').forEach(button => button.classList.toggle('is-active', button.dataset.tab === tabName));
+        $$('.supplier-tab').forEach(panel => panel.classList.toggle('is-active', panel.dataset.tabPanel === tabName));
+    }
+    $$('.supplier-tabs button').forEach(button => button.addEventListener('click', () => selectTab(button.dataset.tab)));
+
+    function openDetailShell() {
+        detailPanel.classList.add('is-open');
+        detailPanel.setAttribute('aria-hidden', 'false');
+        detailPlaceholder.classList.add('is-hidden');
+        detailContent.classList.remove('is-hidden');
+    }
+
+    function closeDetail() {
+        detailPanel.classList.remove('is-open');
+        detailPanel.setAttribute('aria-hidden', 'true');
+        $$('#supplierRows tr').forEach(row => row.classList.remove('is-selected'));
+        if (window.innerWidth < 1180) {
+            detailContent.classList.add('is-hidden');
+            detailPlaceholder.classList.remove('is-hidden');
         }
+    }
+    $('#closeSupplierDetail')?.addEventListener('click', closeDetail);
+
+    async function loadReferenceData() {
+        if (!canMutate || (state.ingredients.length && state.units.length)) return;
+        const [ingredientPayload, unitPayload] = await Promise.all([
+            api('/GetIngredientOptions'),
+            api('/GetContentUnitOptions')
+        ]);
+        state.ingredients = ingredientPayload.data || [];
+        state.units = unitPayload.data || [];
+        fillSelect($('#offerIngredient'), state.ingredients, 'ingredientId', item => `${item.code} · ${item.name}`);
+        fillSelect($('#offerUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+        fillSelect($('#newPackageUnit'), state.units, 'unitId', item => `${item.unitCode} · ${item.name}`);
+    }
+
+    function fillSelect(select, items, valueKey, labelFactory, placeholder = 'Chọn dữ liệu') {
+        if (!select) return;
+        const current = select.value;
+        select.innerHTML = `<option value="">${escapeHtml(placeholder)}</option>`;
+        for (const item of items) {
+            const option = document.createElement('option');
+            option.value = item[valueKey];
+            option.textContent = labelFactory(item);
+            select.append(option);
+        }
+        if (current) select.value = current;
+    }
+
+    async function openSupplier(id) {
+        state.supplierId = Number(id);
+        openDetailShell();
+        selectTab('overview');
+        setBusy(detailContent, true);
+        $$('#supplierRows tr').forEach(row => row.classList.toggle('is-selected', Number(row.dataset.supplierId) === state.supplierId));
+
+        try {
+            const detailPayload = await api(`/GetById?id=${state.supplierId}`);
+            state.detail = detailPayload.data;
+            renderDetail();
+            await Promise.all([loadOffers(), loadStores(), loadReferenceData()]);
+        } catch (error) {
+            toast(error.message, 'error');
+            closeDetail();
+        } finally {
+            setBusy(detailContent, false);
+            applyReadOnlyMode();
+        }
+    }
+
+    $$('.open-supplier').forEach(button => button.addEventListener('click', event => {
+        event.stopPropagation();
+        openSupplier(button.dataset.id);
+    }));
+    $$('#supplierRows tr').forEach(row => row.addEventListener('click', event => {
+        if (event.target.closest('button')) return;
+        openSupplier(row.dataset.supplierId);
+    }));
+
+    function renderDetail() {
+        const d = state.detail;
+        $('#detailCode').textContent = d.code;
+        $('#detailName').textContent = d.name;
+        $('#detailSummary').textContent = d.address || 'Chưa cập nhật địa chỉ';
+        $('#overviewSupplierId').value = d.supplierId;
+        $('#overviewRowVersion').value = d.rowVersion || '';
+        $('#overviewName').value = d.name || '';
+        $('#overviewAddress').value = d.address || '';
+        $('#overviewNote').value = d.note || '';
+        $('#overviewActive').value = String(Boolean(d.active));
+        $('#auditCreatedAt').textContent = formatDate(d.createdAt);
+        $('#auditUpdatedAt').textContent = formatDate(d.updatedAt);
+        $('#auditVersion').textContent = d.rowVersion || 'Chưa có dữ liệu';
+        renderPhones();
+        renderContacts();
+    }
+
+    function applyReadOnlyMode() {
+        if (canMutate) return;
+        $$('#supplierDetail input, #supplierDetail select, #supplierDetail textarea').forEach(control => control.disabled = true);
+    }
+
+    function renderPhones() {
+        const root = $('#phoneList');
+        const rows = state.detail?.phones || [];
+        if (!rows.length) { root.innerHTML = emptyStack('Chưa có số điện thoại.'); return; }
+        root.innerHTML = rows.map(phone => `
+            <div class="supplier-stack-item">
+                <div class="supplier-stack-item-main"><strong>${escapeHtml(phone.phoneNumber)}</strong><small>${phone.isPrimary ? 'Số điện thoại chính' : 'Số điện thoại phụ'}</small></div>
+                ${canMutate && !phone.isPrimary ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-danger delete-phone" data-id="${phone.supplierPhoneId}">Xóa số</button></div>` : ''}
+            </div>`).join('');
+        $$('.delete-phone', root).forEach(button => button.addEventListener('click', () => deletePhone(button.dataset.id)));
+    }
+
+    function renderContacts() {
+        const root = $('#contactList');
+        const rows = state.detail?.contacts || [];
+        if (!rows.length) { root.innerHTML = emptyStack('Chưa có người liên hệ.'); return; }
+        root.innerHTML = rows.map(contact => `
+            <div class="supplier-stack-item">
+                <div class="supplier-stack-item-main">
+                    <strong>${escapeHtml(contact.name)} ${contact.isPrimary ? '<span class="supplier-status is-current">Đầu mối chính</span>' : ''}</strong>
+                    <span>${escapeHtml(contact.position || 'Chưa có chức vụ')}</span>
+                    <small>${escapeHtml([contact.phone, contact.email].filter(Boolean).join(' · ') || 'Chưa có điện thoại/email')}</small>
+                </div>
+                ${canMutate ? `<div class="supplier-stack-actions">
+                    <button type="button" class="supplier-btn supplier-btn-light edit-contact" data-id="${contact.supplierContactId}">Sửa</button>
+                    ${contact.isPrimary ? '' : `<button type="button" class="supplier-btn supplier-btn-light primary-contact" data-id="${contact.supplierContactId}">Đặt làm chính</button><button type="button" class="supplier-btn supplier-btn-danger delete-contact" data-id="${contact.supplierContactId}">Xóa</button>`}
+                </div>` : ''}
+            </div>`).join('');
+        $$('.edit-contact', root).forEach(button => button.addEventListener('click', () => beginContactEdit(Number(button.dataset.id))));
+        $$('.primary-contact', root).forEach(button => button.addEventListener('click', () => setPrimaryContact(button.dataset.id)));
+        $$('.delete-contact', root).forEach(button => button.addEventListener('click', () => deleteContact(button.dataset.id)));
+    }
+
+    async function refreshDetailData() {
+        const payload = await api(`/GetById?id=${state.supplierId}`);
+        state.detail = payload.data;
+        renderDetail();
+    }
+
+    $('#supplierOverviewForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        if (!canMutate) return;
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api('/Update', { method: 'POST', body: {
+                supplierId: state.supplierId,
+                name: $('#overviewName').value.trim(),
+                address: $('#overviewAddress').value.trim() || null,
+                note: $('#overviewNote').value.trim() || null,
+                active: $('#overviewActive').value === 'true',
+                rowVersion: $('#overviewRowVersion').value
+            }});
+            toast('Đã lưu thông tin nhà cung cấp.');
+            window.location.reload();
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
     });
-});
+
+    $('#addPhoneForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api('/AddPhone', { method: 'POST', body: { supplierId: state.supplierId, phoneNumber: $('#newPhone').value.trim() } });
+            $('#newPhone').value = '';
+            await refreshDetailData();
+            toast('Đã thêm số điện thoại.');
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    async function deletePhone(id) {
+        if (!window.confirm('Xóa số điện thoại này?')) return;
+        try { await api(`/DeletePhone?supplierPhoneId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa số điện thoại.'); }
+        catch (error) { toast(error.message, 'error'); }
+    }
+
+    function resetContactForm() {
+        $('#contactForm')?.reset();
+        $('#contactId').value = '';
+        $('#cancelContactEdit')?.classList.add('is-hidden');
+        if ($('#saveContactButton')) $('#saveContactButton').textContent = 'Thêm liên hệ';
+    }
+
+    function beginContactEdit(id) {
+        const contact = (state.detail.contacts || []).find(item => item.supplierContactId === id);
+        if (!contact) return;
+        $('#contactId').value = id;
+        $('#contactName').value = contact.name || '';
+        $('#contactPosition').value = contact.position || '';
+        $('#contactPhone').value = contact.phone || '';
+        $('#contactEmail').value = contact.email || '';
+        $('#cancelContactEdit').classList.remove('is-hidden');
+        $('#saveContactButton').textContent = 'Lưu liên hệ';
+    }
+    $('#cancelContactEdit')?.addEventListener('click', resetContactForm);
+
+    $('#contactForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const id = Number($('#contactId').value || 0);
+        const body = {
+            supplierContactId: id || undefined,
+            supplierId: state.supplierId,
+            name: $('#contactName').value.trim(),
+            phone: $('#contactPhone').value.trim() || null,
+            email: $('#contactEmail').value.trim() || null,
+            position: $('#contactPosition').value.trim() || null,
+            active: true
+        };
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api(id ? '/UpdateContact' : '/AddContact', { method: 'POST', body });
+            resetContactForm();
+            await refreshDetailData();
+            toast(id ? 'Đã cập nhật người liên hệ.' : 'Đã thêm người liên hệ.');
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    async function setPrimaryContact(id) {
+        try { await api(`/SetPrimaryContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã cập nhật đầu mối chính.'); }
+        catch (error) { toast(error.message, 'error'); }
+    }
+    async function deleteContact(id) {
+        if (!window.confirm('Xóa người liên hệ này?')) return;
+        try { await api(`/DeleteContact?supplierContactId=${id}`, { method: 'POST' }); await refreshDetailData(); toast('Đã xóa người liên hệ.'); }
+        catch (error) { toast(error.message, 'error'); }
+    }
+
+    async function loadOffers() {
+        const payload = await api(`/GetIngredientOffers?supplierId=${state.supplierId}`);
+        state.offers = payload.data || [];
+        renderOffers();
+    }
+
+    function renderOffers() {
+        const root = $('#offerList');
+        if (!state.offers.length) { root.innerHTML = emptyStack('Chưa có gói mua nguyên liệu.'); return; }
+        root.innerHTML = state.offers.map(offer => `
+            <div class="supplier-stack-item">
+                <div class="supplier-stack-item-main">
+                    <strong>${escapeHtml(offer.ingredientName)} ${offer.isPrimary ? '<span class="supplier-status is-current">Nguồn chính</span>' : ''}</strong>
+                    <span>${escapeHtml(offer.packageDisplay)} · ${escapeHtml(offer.priceDisplay)}</span>
+                    <small>MOQ ${offer.minimumOrderPackageCount || 0} gói · Lead time ${offer.leadTimeDays || 0} ngày · ${offer.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small>
+                </div>
+                <div class="supplier-stack-actions">
+                    <button type="button" class="supplier-btn supplier-btn-light view-price" data-id="${offer.ingredientSupplierId}">Đổi giá & lịch sử</button>
+                    ${canMutate ? `<button type="button" class="supplier-btn supplier-btn-light edit-offer" data-id="${offer.ingredientSupplierId}">Sửa metadata</button><button type="button" class="supplier-btn ${offer.active ? 'supplier-btn-danger' : 'supplier-btn-light'} toggle-offer" data-id="${offer.ingredientSupplierId}" data-active="${!offer.active}">${offer.active ? 'Ngừng dùng' : 'Kích hoạt'}</button>` : ''}
+                </div>
+            </div>`).join('');
+        $$('.view-price', root).forEach(button => button.addEventListener('click', () => openPricing(Number(button.dataset.id))));
+        $$('.edit-offer', root).forEach(button => button.addEventListener('click', () => beginOfferEdit(Number(button.dataset.id))));
+        $$('.toggle-offer', root).forEach(button => button.addEventListener('click', () => toggleOffer(Number(button.dataset.id), button.dataset.active === 'true')));
+    }
+
+    function resetOfferForm() {
+        $('#offerForm')?.reset();
+        $('#offerId').value = '';
+        $('#offerRowVersion').value = '';
+        $('#offerActive').checked = true;
+        ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(id => { if ($(`#${id}`)) $(`#${id}`).disabled = false; });
+        $('#cancelOfferEdit')?.classList.add('is-hidden');
+        if ($('#saveOfferButton')) $('#saveOfferButton').textContent = 'Thêm gói mua';
+    }
+
+    function beginOfferEdit(id) {
+        const offer = state.offers.find(item => item.ingredientSupplierId === id);
+        if (!offer) return;
+        $('#offerId').value = id;
+        $('#offerRowVersion').value = offer.rowVersion || '';
+        $('#offerIngredient').value = offer.ingredientId;
+        $('#offerUnit').value = offer.unitId;
+        $('#offerPackageQuantity').value = offer.packageQuantity;
+        $('#offerPrice').value = offer.currentPrice;
+        $('#offerMoq').value = offer.minimumOrderPackageCount || '';
+        $('#offerLeadTime').value = offer.leadTimeDays ?? '';
+        $('#offerPrimary').checked = Boolean(offer.isPrimary);
+        $('#offerActive').checked = Boolean(offer.active);
+        $('#offerNote').value = offer.note || '';
+        ['offerIngredient', 'offerUnit', 'offerPackageQuantity', 'offerPrice'].forEach(fieldId => $(`#${fieldId}`).disabled = true);
+        $('#cancelOfferEdit').classList.remove('is-hidden');
+        $('#saveOfferButton').textContent = 'Lưu metadata';
+        $('#offerForm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+    $('#cancelOfferEdit')?.addEventListener('click', resetOfferForm);
+
+    $('#offerForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const id = Number($('#offerId').value || 0);
+        const current = id ? state.offers.find(item => item.ingredientSupplierId === id) : null;
+        const body = {
+            ingredientSupplierId: id || null,
+            supplierId: state.supplierId,
+            ingredientId: current?.ingredientId ?? Number($('#offerIngredient').value),
+            unitId: current?.unitId ?? Number($('#offerUnit').value),
+            packageQuantity: current?.packageQuantity ?? Number($('#offerPackageQuantity').value),
+            currentPrice: current?.currentPrice ?? Number($('#offerPrice').value),
+            minimumOrderPackageCount: $('#offerMoq').value ? Number($('#offerMoq').value) : null,
+            leadTimeDays: $('#offerLeadTime').value ? Number($('#offerLeadTime').value) : null,
+            isPrimary: $('#offerPrimary').checked,
+            active: $('#offerActive').checked,
+            note: $('#offerNote').value.trim() || null,
+            rowVersion: current?.rowVersion || null
+        };
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api(id ? '/UpdateIngredientOffer' : '/CreateIngredientOffer', { method: 'POST', body });
+            resetOfferForm();
+            await loadOffers();
+            toast(id ? 'Đã cập nhật gói mua.' : 'Đã thêm gói mua.');
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    async function toggleOffer(id, active) {
+        try {
+            await api('/ToggleIngredientOffer', { method: 'POST', body: { ingredientSupplierId: id, active } });
+            await loadOffers();
+            toast(active ? 'Đã kích hoạt gói mua.' : 'Đã ngừng sử dụng gói mua.');
+        } catch (error) { toast(error.message, 'error'); }
+    }
+
+    async function openPricing(id) {
+        const offer = state.offers.find(item => item.ingredientSupplierId === id);
+        if (!offer) return;
+        state.pricingOffer = offer;
+        selectTab('pricing');
+        $('#pricingEmpty').classList.add('is-hidden');
+        $('#pricingWorkspace').classList.remove('is-hidden');
+        $('#pricingOfferName').textContent = offer.ingredientName;
+        $('#pricingCurrentValue').textContent = `${offer.priceDisplay} · ${offer.packageDisplay}`;
+        if (canMutate) {
+            $('#priceOfferId').value = id;
+            $('#priceRowVersion').value = offer.rowVersion || '';
+            $('#newPackagePrice').value = offer.currentPrice;
+            $('#newPackageQuantity').value = offer.packageQuantity;
+            $('#newPackageUnit').value = offer.unitId;
+            $('#priceReason').value = '';
+        }
+        await loadPriceHistory(id);
+    }
+
+    async function loadPriceHistory(id) {
+        const root = $('#priceHistoryList');
+        root.innerHTML = emptyStack('Đang tải lịch sử giá...');
+        try {
+            const payload = await api(`/GetPriceHistory?ingredientSupplierId=${id}`);
+            const rows = payload.data || [];
+            root.innerHTML = rows.length ? rows.map(row => `
+                <div class="supplier-history-row">
+                    <time>${escapeHtml(formatDate(row.effectiveDateUtc))}</time>
+                    <div><strong>${escapeHtml(formatMoney(row.price))}</strong><small>${escapeHtml(`${row.packageQuantity || 0} ${row.packageUnitName || ''} / gói · ${row.note || 'Không có ghi chú'}`)}</small></div>
+                    <span class="supplier-status ${row.isCurrent ? 'is-current' : ''}">${row.isCurrent ? 'Hiện hành' : 'Đã đóng'}</span>
+                </div>`).join('') : emptyStack('Chưa có lịch sử giá.');
+        } catch (error) { root.innerHTML = emptyStack(error.message); }
+    }
+
+    $('#priceChangeForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api('/ChangeIngredientOfferPrice', { method: 'POST', body: {
+                ingredientSupplierId: Number($('#priceOfferId').value),
+                packagePrice: Number($('#newPackagePrice').value),
+                packageQuantity: Number($('#newPackageQuantity').value),
+                packageUnitId: Number($('#newPackageUnit').value),
+                reason: $('#priceReason').value.trim(),
+                rowVersion: $('#priceRowVersion').value
+            }});
+            await loadOffers();
+            const currentId = Number($('#priceOfferId').value);
+            const refreshed = state.offers.find(item => item.ingredientSupplierId === currentId);
+            if (refreshed) await openPricing(currentId);
+            toast('Đã cập nhật giá và lưu lịch sử.');
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    async function loadStores() {
+        const [assignmentPayload, optionPayload] = await Promise.all([
+            api(`/GetSupplierStores?supplierId=${state.supplierId}`),
+            api('/GetStoreOptions')
+        ]);
+        state.stores = assignmentPayload.data || [];
+        renderStores();
+        if (canMutate) fillSelect($('#assignmentStore'), optionPayload.data || [], 'storeId', item => item.name, 'Chọn cửa hàng');
+    }
+
+    function renderStores() {
+        const root = $('#storeList');
+        if (!state.stores.length) { root.innerHTML = emptyStack('Chưa gán nhà cung cấp cho cửa hàng.'); return; }
+        root.innerHTML = state.stores.map(store => `
+            <div class="supplier-stack-item">
+                <div class="supplier-stack-item-main"><strong>${escapeHtml(store.storeName)}</strong><span>${escapeHtml(store.deliverySchedule || 'Chưa có lịch giao hàng')}</span><small>Lead time riêng: ${store.leadTimeOverrideDays ?? 'Theo gói mua'} · ${store.active ? 'Đang hoạt động' : 'Ngừng hoạt động'}</small></div>
+                ${canMutate ? `<div class="supplier-stack-actions"><button type="button" class="supplier-btn supplier-btn-light edit-store" data-id="${store.supplierStoreId}">Chỉnh sửa</button></div>` : ''}
+            </div>`).join('');
+        $$('.edit-store', root).forEach(button => button.addEventListener('click', () => beginStoreEdit(Number(button.dataset.id))));
+    }
+
+    function resetStoreForm() {
+        $('#storeAssignmentForm')?.reset();
+        $('#supplierStoreId').value = '';
+        $('#supplierStoreRowVersion').value = '';
+        $('#assignmentStore').disabled = false;
+        $('#assignmentActive').checked = true;
+        $('#cancelStoreEdit')?.classList.add('is-hidden');
+        if ($('#saveStoreButton')) $('#saveStoreButton').textContent = 'Gán cửa hàng';
+    }
+
+    function beginStoreEdit(id) {
+        const store = state.stores.find(item => item.supplierStoreId === id);
+        if (!store) return;
+        $('#supplierStoreId').value = id;
+        $('#supplierStoreRowVersion').value = store.rowVersion || '';
+        $('#assignmentStore').value = store.storeId;
+        $('#assignmentStore').disabled = true;
+        $('#assignmentLeadTime').value = store.leadTimeOverrideDays ?? '';
+        $('#assignmentSchedule').value = store.deliverySchedule || '';
+        $('#assignmentNote').value = store.note || '';
+        $('#assignmentActive').checked = Boolean(store.active);
+        $('#cancelStoreEdit').classList.remove('is-hidden');
+        $('#saveStoreButton').textContent = 'Lưu phạm vi';
+    }
+    $('#cancelStoreEdit')?.addEventListener('click', resetStoreForm);
+
+    $('#storeAssignmentForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        const existing = state.stores.find(item => item.supplierStoreId === Number($('#supplierStoreId').value));
+        setBusy(form, true);
+        try {
+            await api('/SaveSupplierStore', { method: 'POST', body: {
+                supplierStoreId: existing?.supplierStoreId || null,
+                supplierId: state.supplierId,
+                storeId: existing?.storeId || Number($('#assignmentStore').value),
+                leadTimeOverrideDays: $('#assignmentLeadTime').value ? Number($('#assignmentLeadTime').value) : null,
+                deliverySchedule: $('#assignmentSchedule').value.trim() || null,
+                note: $('#assignmentNote').value.trim() || null,
+                active: $('#assignmentActive').checked,
+                rowVersion: existing?.rowVersion || null
+            }});
+            resetStoreForm();
+            await loadStores();
+            toast('Đã cập nhật phạm vi cửa hàng.');
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    const modal = $('#createSupplierModal');
+    function setModalOpen(open) {
+        if (!modal) return;
+        modal.classList.toggle('is-open', open);
+        modal.setAttribute('aria-hidden', String(!open));
+        document.body.style.overflow = open ? 'hidden' : '';
+        if (open) window.setTimeout(() => $('#createName')?.focus(), 50);
+    }
+    $('#createSupplierButton')?.addEventListener('click', () => setModalOpen(true));
+    $$('[data-close-modal]').forEach(button => button.addEventListener('click', () => setModalOpen(false)));
+    modal?.addEventListener('click', event => { if (event.target === modal) setModalOpen(false); });
+
+    $('#createSupplierForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        const form = event.currentTarget;
+        setBusy(form, true);
+        try {
+            await api('/Create', { method: 'POST', body: {
+                name: $('#createName').value.trim(),
+                address: $('#createAddress').value.trim() || null,
+                note: $('#createNote').value.trim() || null,
+                primaryPhone: $('#createPhone').value.trim(),
+                primaryContactName: $('#createContactName').value.trim(),
+                primaryContactPhone: $('#createContactPhone').value.trim() || null,
+                primaryContactEmail: $('#createContactEmail').value.trim() || null,
+                primaryContactPosition: $('#createContactPosition').value.trim() || null,
+                additionalPhones: [],
+                additionalContacts: []
+            }});
+            toast('Đã tạo nhà cung cấp.');
+            window.location.reload();
+        } catch (error) { toast(error.message, 'error'); }
+        finally { setBusy(form, false); }
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key !== 'Escape') return;
+        if (modal?.classList.contains('is-open')) setModalOpen(false);
+        else closeDetail();
+    });
+})();
