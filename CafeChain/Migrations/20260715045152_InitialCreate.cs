@@ -2570,12 +2570,13 @@ namespace CafeChain.Migrations
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ResolvedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ResolvedReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                    ResolvedReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_StockAlerts", x => x.StockAlertId);
-                    table.CheckConstraint("CK_StockAlerts_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
+                    table.CheckConstraint("CK_StockAlerts_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
                     table.ForeignKey(
                         name: "FK_StockAlerts_Ingredients_IngredientId",
                         column: x => x.IngredientId,
@@ -2832,50 +2833,6 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "InventoryTransferDetails",
-                columns: table => new
-                {
-                    InventoryTransferDetailId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    InventoryTransferId = table.Column<int>(type: "int", nullable: false),
-                    IngredientId = table.Column<int>(type: "int", nullable: false),
-                    UnitId = table.Column<int>(type: "int", nullable: false),
-                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
-                    SourceBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    SourceAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    DestinationBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    DestinationAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
-                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_InventoryTransferDetails", x => x.InventoryTransferDetailId);
-                    table.CheckConstraint("CK_InventoryTransferDetail_BaseQuantity", "[BaseQuantity] > 0");
-                    table.CheckConstraint("CK_InventoryTransferDetail_Quantity", "[Quantity] > 0");
-                    table.CheckConstraint("CK_InventoryTransferDetail_UnitPrice", "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
-                    table.ForeignKey(
-                        name: "FK_InventoryTransferDetails_Ingredients_IngredientId",
-                        column: x => x.IngredientId,
-                        principalTable: "Ingredients",
-                        principalColumn: "IngredientId",
-                        onDelete: ReferentialAction.Restrict);
-                    table.ForeignKey(
-                        name: "FK_InventoryTransferDetails_InventoryTransfers_InventoryTransferId",
-                        column: x => x.InventoryTransferId,
-                        principalTable: "InventoryTransfers",
-                        principalColumn: "InventoryTransferId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_InventoryTransferDetails_Units_UnitId",
-                        column: x => x.UnitId,
-                        principalTable: "Units",
-                        principalColumn: "UnitId",
-                        onDelete: ReferentialAction.Restrict);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "RestockRequests",
                 columns: table => new
                 {
@@ -2895,12 +2852,13 @@ namespace CafeChain.Migrations
                     UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     HandledByStaffId = table.Column<int>(type: "int", nullable: true),
-                    HandledAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                    HandledAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_RestockRequests", x => x.RestockRequestId);
-                    table.CheckConstraint("CK_RestockRequests_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
+                    table.CheckConstraint("CK_RestockRequests_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
                     table.ForeignKey(
                         name: "FK_RestockRequests_Ingredients_IngredientId",
                         column: x => x.IngredientId,
@@ -2942,6 +2900,47 @@ namespace CafeChain.Migrations
                         column: x => x.StoreId,
                         principalTable: "Stores",
                         principalColumn: "StoreId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "StockAlertTransitions",
+                columns: table => new
+                {
+                    StockAlertTransitionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    StockAlertId = table.Column<int>(type: "int", nullable: false),
+                    PreviousStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    NewStatus = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    PreviousAlertType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: true),
+                    NewAlertType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    PreviousSeverity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: true),
+                    NewSeverity = table.Column<string>(type: "nvarchar(16)", maxLength: 16, nullable: false),
+                    OnHandSnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    ReservedSnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    AvailableSnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    MinLevelSnapshot = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    SourceType = table.Column<string>(type: "nvarchar(64)", maxLength: 64, nullable: false),
+                    SourceId = table.Column<int>(type: "int", nullable: true),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    ActorStaffId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_StockAlertTransitions", x => x.StockAlertTransitionId);
+                    table.ForeignKey(
+                        name: "FK_StockAlertTransitions_Staffs_ActorStaffId",
+                        column: x => x.ActorStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_StockAlertTransitions_StockAlerts_StockAlertId",
+                        column: x => x.StockAlertId,
+                        principalTable: "StockAlerts",
+                        principalColumn: "StockAlertId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3112,6 +3111,54 @@ namespace CafeChain.Migrations
                         column: x => x.WorkShiftId,
                         principalTable: "WorkShifts",
                         principalColumn: "ShiftId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "RestockFulfillmentPostings",
+                columns: table => new
+                {
+                    RestockFulfillmentPostingId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: false),
+                    SourceDocumentType = table.Column<string>(type: "nvarchar(32)", maxLength: 32, nullable: false),
+                    SourceDocumentId = table.Column<int>(type: "int", nullable: false),
+                    SourceDocumentLineId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    BaseUnitId = table.Column<int>(type: "int", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_RestockFulfillmentPostings", x => x.RestockFulfillmentPostingId);
+                    table.CheckConstraint("CK_RestockFulfillmentPosting_Identity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                    table.CheckConstraint("CK_RestockFulfillmentPosting_Quantity", "[Quantity] > 0");
+                    table.ForeignKey(
+                        name: "FK_RestockFulfillmentPostings_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockFulfillmentPostings_PreparedItems_PreparedItemId",
+                        column: x => x.PreparedItemId,
+                        principalTable: "PreparedItems",
+                        principalColumn: "PreparedItemId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockFulfillmentPostings_RestockRequests_RestockRequestId",
+                        column: x => x.RestockRequestId,
+                        principalTable: "RestockRequests",
+                        principalColumn: "RestockRequestId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockFulfillmentPostings_Units_BaseUnitId",
+                        column: x => x.BaseUnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3357,6 +3404,72 @@ namespace CafeChain.Migrations
                         column: x => x.PointTransactionTypeId,
                         principalTable: "PointTransactionTypes",
                         principalColumn: "PointTransactionTypeId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "InventoryTransferDetails",
+                columns: table => new
+                {
+                    InventoryTransferDetailId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InventoryTransferId = table.Column<int>(type: "int", nullable: false),
+                    IngredientId = table.Column<int>(type: "int", nullable: true),
+                    PreparedItemId = table.Column<int>(type: "int", nullable: true),
+                    RestockRequestId = table.Column<int>(type: "int", nullable: true),
+                    RestockRequestFulfillmentId = table.Column<int>(type: "int", nullable: true),
+                    UnitId = table.Column<int>(type: "int", nullable: false),
+                    Quantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    BaseQuantity = table.Column<decimal>(type: "decimal(18,3)", nullable: false),
+                    SourceBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    SourceAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    DestinationBeforeQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    DestinationAfterQty = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
+                    UnitPrice = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_InventoryTransferDetails", x => x.InventoryTransferDetailId);
+                    table.CheckConstraint("CK_InventoryTransferDetail_BaseQuantity", "[BaseQuantity] > 0");
+                    table.CheckConstraint("CK_InventoryTransferDetail_ExactlyOneIdentity", "([IngredientId] IS NOT NULL AND [PreparedItemId] IS NULL) OR ([IngredientId] IS NULL AND [PreparedItemId] IS NOT NULL)");
+                    table.CheckConstraint("CK_InventoryTransferDetail_Quantity", "[Quantity] > 0");
+                    table.CheckConstraint("CK_InventoryTransferDetail_UnitPrice", "[UnitPrice] IS NULL OR [UnitPrice] >= 0");
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_Ingredients_IngredientId",
+                        column: x => x.IngredientId,
+                        principalTable: "Ingredients",
+                        principalColumn: "IngredientId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_InventoryTransfers_InventoryTransferId",
+                        column: x => x.InventoryTransferId,
+                        principalTable: "InventoryTransfers",
+                        principalColumn: "InventoryTransferId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_PreparedItems_PreparedItemId",
+                        column: x => x.PreparedItemId,
+                        principalTable: "PreparedItems",
+                        principalColumn: "PreparedItemId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_RestockRequestFulfillments_RestockRequestFulfillmentId",
+                        column: x => x.RestockRequestFulfillmentId,
+                        principalTable: "RestockRequestFulfillments",
+                        principalColumn: "RestockRequestFulfillmentId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_RestockRequests_RestockRequestId",
+                        column: x => x.RestockRequestId,
+                        principalTable: "RestockRequests",
+                        principalColumn: "RestockRequestId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransferDetails_Units_UnitId",
+                        column: x => x.UnitId,
+                        principalTable: "Units",
+                        principalColumn: "UnitId",
                         onDelete: ReferentialAction.Restrict);
                 });
 
@@ -3660,6 +3773,7 @@ namespace CafeChain.Migrations
                     TotalCost = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
                     InventoryDocumentId = table.Column<int>(type: "int", nullable: true),
                     InventoryTransferId = table.Column<int>(type: "int", nullable: true),
+                    InventoryTransferDetailId = table.Column<int>(type: "int", nullable: true),
                     ReferenceOrderId = table.Column<int>(type: "int", nullable: true),
                     ProductionRunId = table.Column<int>(type: "int", nullable: true),
                     SourceRecipeId = table.Column<int>(type: "int", nullable: true),
@@ -3692,6 +3806,12 @@ namespace CafeChain.Migrations
                         principalTable: "InventoryDocuments",
                         principalColumn: "InventoryDocumentId",
                         onDelete: ReferentialAction.SetNull);
+                    table.ForeignKey(
+                        name: "FK_InventoryTransactions_InventoryTransferDetails_InventoryTransferDetailId",
+                        column: x => x.InventoryTransferDetailId,
+                        principalTable: "InventoryTransferDetails",
+                        principalColumn: "InventoryTransferDetailId",
+                        onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_InventoryTransactions_InventoryTransfers_InventoryTransferId",
                         column: x => x.InventoryTransferId,
@@ -3780,6 +3900,7 @@ namespace CafeChain.Migrations
                     OccurredAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     BranchReceiptId = table.Column<int>(type: "int", nullable: true),
+                    InventoryTransferId = table.Column<int>(type: "int", nullable: true),
                     InventoryTransactionId = table.Column<int>(type: "int", nullable: true),
                     QuantityBefore = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
                     QuantityAfter = table.Column<decimal>(type: "decimal(18,3)", nullable: true),
@@ -3799,6 +3920,12 @@ namespace CafeChain.Migrations
                         column: x => x.InventoryTransactionId,
                         principalTable: "InventoryTransactions",
                         principalColumn: "InventoryTransactionId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_RestockRequestTransitions_InventoryTransfers_InventoryTransferId",
+                        column: x => x.InventoryTransferId,
+                        principalTable: "InventoryTransfers",
+                        principalColumn: "InventoryTransferId",
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_RestockRequestTransitions_RestockRequests_RestockRequestId",
@@ -5379,6 +5506,11 @@ namespace CafeChain.Migrations
                 column: "InventoryDocumentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransactions_InventoryTransferDetailId",
+                table: "InventoryTransactions",
+                column: "InventoryTransferDetailId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransactions_InventoryTransferId",
                 table: "InventoryTransactions",
                 column: "InventoryTransferId");
@@ -5457,6 +5589,13 @@ namespace CafeChain.Migrations
                 filter: "[ProductionRunId] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
+                name: "UX_InventoryTransactions_TransferDetail_Type",
+                table: "InventoryTransactions",
+                columns: new[] { "InventoryTransferDetailId", "Type" },
+                unique: true,
+                filter: "[InventoryTransferDetailId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransferDetails_IngredientId",
                 table: "InventoryTransferDetails",
                 column: "IngredientId");
@@ -5470,7 +5609,30 @@ namespace CafeChain.Migrations
                 name: "IX_InventoryTransferDetails_InventoryTransferId_IngredientId",
                 table: "InventoryTransferDetails",
                 columns: new[] { "InventoryTransferId", "IngredientId" },
-                unique: true);
+                unique: true,
+                filter: "[IngredientId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_InventoryTransferId_PreparedItemId",
+                table: "InventoryTransferDetails",
+                columns: new[] { "InventoryTransferId", "PreparedItemId" },
+                unique: true,
+                filter: "[PreparedItemId] IS NOT NULL");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_PreparedItemId",
+                table: "InventoryTransferDetails",
+                column: "PreparedItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_RestockRequestFulfillmentId",
+                table: "InventoryTransferDetails",
+                column: "RestockRequestFulfillmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_InventoryTransferDetails_RestockRequestId",
+                table: "InventoryTransferDetails",
+                column: "RestockRequestId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_InventoryTransferDetails_UnitId",
@@ -6117,6 +6279,32 @@ namespace CafeChain.Migrations
                 columns: new[] { "Status", "ExpiredAt" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_RestockFulfillmentPostings_BaseUnitId",
+                table: "RestockFulfillmentPostings",
+                column: "BaseUnitId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockFulfillmentPostings_IngredientId",
+                table: "RestockFulfillmentPostings",
+                column: "IngredientId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockFulfillmentPostings_PreparedItemId",
+                table: "RestockFulfillmentPostings",
+                column: "PreparedItemId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockFulfillmentPostings_RestockRequestId_CreatedAtUtc",
+                table: "RestockFulfillmentPostings",
+                columns: new[] { "RestockRequestId", "CreatedAtUtc" });
+
+            migrationBuilder.CreateIndex(
+                name: "UX_RestockFulfillmentPosting_SourceLine_Request",
+                table: "RestockFulfillmentPostings",
+                columns: new[] { "SourceDocumentType", "SourceDocumentId", "SourceDocumentLineId", "RestockRequestId" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RestockRequestFulfillments_CreatedByStaffId",
                 table: "RestockRequestFulfillments",
                 column: "CreatedByStaffId");
@@ -6172,11 +6360,25 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
-                name: "UX_RestockRequest_Open_StockAlert",
+                name: "UX_RestockRequest_Active_StockAlert",
                 table: "RestockRequests",
                 column: "StockAlertId",
                 unique: true,
-                filter: "[Status] = 'SUBMITTED'");
+                filter: "[StockAlertId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_RestockRequest_Active_Store_Ingredient",
+                table: "RestockRequests",
+                columns: new[] { "StoreId", "IngredientId" },
+                unique: true,
+                filter: "[IngredientId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_RestockRequest_Active_Store_PreparedItem",
+                table: "RestockRequests",
+                columns: new[] { "StoreId", "PreparedItemId" },
+                unique: true,
+                filter: "[PreparedItemId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RestockRequestTransitions_ActorStaffId",
@@ -6192,6 +6394,11 @@ namespace CafeChain.Migrations
                 name: "IX_RestockRequestTransitions_InventoryTransactionId",
                 table: "RestockRequestTransitions",
                 column: "InventoryTransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_RestockRequestTransitions_InventoryTransferId",
+                table: "RestockRequestTransitions",
+                column: "InventoryTransferId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RestockRequestTransitions_OccurredAtUtc",
@@ -6454,25 +6661,38 @@ namespace CafeChain.Migrations
                 column: "StoreId");
 
             migrationBuilder.CreateIndex(
-                name: "UX_StockAlert_Open_Store_Ingredient",
+                name: "IX_StockAlerts_StoreId_RecipeId",
+                table: "StockAlerts",
+                columns: new[] { "StoreId", "RecipeId" });
+
+            migrationBuilder.CreateIndex(
+                name: "UX_StockAlert_Active_Store_Ingredient",
                 table: "StockAlerts",
                 columns: new[] { "StoreId", "IngredientId" },
                 unique: true,
-                filter: "[IngredientId] IS NOT NULL AND [Status] = 'OPEN'");
+                filter: "[IngredientId] IS NOT NULL AND [Status] IN ('OPEN','CONFIRMED')");
 
             migrationBuilder.CreateIndex(
-                name: "UX_StockAlert_Open_Store_PreparedItem",
+                name: "UX_StockAlert_Active_Store_PreparedItem",
                 table: "StockAlerts",
                 columns: new[] { "StoreId", "PreparedItemId" },
                 unique: true,
-                filter: "[PreparedItemId] IS NOT NULL AND [Status] = 'OPEN'");
+                filter: "[PreparedItemId] IS NOT NULL AND [Status] IN ('OPEN','CONFIRMED')");
 
             migrationBuilder.CreateIndex(
-                name: "UX_StockAlert_Open_Store_Recipe",
-                table: "StockAlerts",
-                columns: new[] { "StoreId", "RecipeId" },
-                unique: true,
-                filter: "[RecipeId] IS NOT NULL AND [Status] = 'OPEN'");
+                name: "IX_StockAlertTransitions_ActorStaffId",
+                table: "StockAlertTransitions",
+                column: "ActorStaffId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlertTransitions_SourceType_SourceId",
+                table: "StockAlertTransitions",
+                columns: new[] { "SourceType", "SourceId" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_StockAlertTransitions_StockAlertId_CreatedAtUtc",
+                table: "StockAlertTransitions",
+                columns: new[] { "StockAlertId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_StockTakeDetails_IngredientId",
@@ -7029,6 +7249,10 @@ namespace CafeChain.Migrations
                 table: "BranchReceiptLines");
 
             migrationBuilder.DropForeignKey(
+                name: "FK_InventoryTransferDetails_Ingredients_IngredientId",
+                table: "InventoryTransferDetails");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_RestockRequests_Ingredients_IngredientId",
                 table: "RestockRequests");
 
@@ -7105,9 +7329,6 @@ namespace CafeChain.Migrations
                 name: "InventoryDto");
 
             migrationBuilder.DropTable(
-                name: "InventoryTransferDetails");
-
-            migrationBuilder.DropTable(
                 name: "InventoryWriterModeTransitions");
 
             migrationBuilder.DropTable(
@@ -7153,6 +7374,9 @@ namespace CafeChain.Migrations
                 name: "RequestDeduplications");
 
             migrationBuilder.DropTable(
+                name: "RestockFulfillmentPostings");
+
+            migrationBuilder.DropTable(
                 name: "RestockRequestTransitions");
 
             migrationBuilder.DropTable(
@@ -7187,6 +7411,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "StaffShifts");
+
+            migrationBuilder.DropTable(
+                name: "StockAlertTransitions");
 
             migrationBuilder.DropTable(
                 name: "StockTakeDetails");
@@ -7348,7 +7575,7 @@ namespace CafeChain.Migrations
                 name: "InventoryDocuments");
 
             migrationBuilder.DropTable(
-                name: "InventoryTransfers");
+                name: "InventoryTransferDetails");
 
             migrationBuilder.DropTable(
                 name: "OrderRefunds");
@@ -7360,10 +7587,13 @@ namespace CafeChain.Migrations
                 name: "StoreInventories");
 
             migrationBuilder.DropTable(
-                name: "RestockRequestFulfillments");
+                name: "Suppliers");
 
             migrationBuilder.DropTable(
-                name: "Suppliers");
+                name: "InventoryTransfers");
+
+            migrationBuilder.DropTable(
+                name: "RestockRequestFulfillments");
 
             migrationBuilder.DropTable(
                 name: "Orders");
