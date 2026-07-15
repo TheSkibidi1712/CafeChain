@@ -25,7 +25,6 @@ using CafeChain.Application.Interfaces.Cloudinaries;
 using CafeChain.Application.Interfaces.Customers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.POS;
-using CafeChain.Application.Services.POS;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
@@ -126,6 +125,16 @@ namespace CafeChain.Extensions.Services
 
             // Admin - DrinkSizes
             services.AddScoped<IAdminDrinkSizeService, AdminDrinkSizeService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeRecipeResolver,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeRecipeResolver>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeToppingPolicyService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeToppingPolicyService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizeProfitabilityQueryService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizeProfitabilityQueryService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IPriceSuggestionService,
+                CafeChain.Application.Services.Admin.Profitability.PriceSuggestionService>();
+            services.AddScoped<CafeChain.Application.Interfaces.Admin.Profitability.IDrinkSizePricingService,
+                CafeChain.Application.Services.Admin.Profitability.DrinkSizePricingService>();
 
             // Admin - Toppings
             services.AddScoped<IAdminToppingService, AdminToppingService>();

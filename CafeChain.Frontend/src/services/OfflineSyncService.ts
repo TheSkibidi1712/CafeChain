@@ -7,6 +7,13 @@ const MAX_RETRY_COUNT = 5
 
 /** Thời gian chờ giữa các lần retry (ms) — exponential backoff */
 const RETRY_BASE_DELAY_MS = 2000
+const CATALOG_VERSION_KEY = 'pos_catalog_version'
+const CATALOG_VERSION_POLL_MS = 30_000
+
+interface CatalogVersionResponse {
+  version: number
+  updatedAtUtc: string
+}
 
 interface OfflineSyncApiResponse {
   success: boolean
@@ -27,6 +34,7 @@ async function clearCatalogCache(): Promise<void> {
     await db.categories.clear()
     await db.menuItems.clear()
   })
+  localStorage.removeItem(CATALOG_VERSION_KEY)
 }
 
 async function clearLegacySeedCatalogCache(): Promise<void> {
@@ -126,6 +134,8 @@ export async function syncMenuItems(): Promise<number> {
 export async function syncCatalog(): Promise<{ categories: number; menuItems: number }> {
   let categories = 0
   let menuItems = 0
+  let categoriesSynced = false
+  let menuItemsSynced = false
 
   if (!localStorage.getItem(POS_TOKEN_KEY)) {
     await clearCatalogCache()
@@ -136,13 +146,39 @@ export async function syncCatalog(): Promise<{ categories: number; menuItems: nu
 
   try {
     categories = await syncCategories()
+    categoriesSynced = true
   } catch { /* cache cũ vẫn ok */ }
 
   try {
     menuItems = await syncMenuItems()
+    menuItemsSynced = true
   } catch { /* cache cũ vẫn ok */ }
 
+  if (categoriesSynced && menuItemsSynced) {
+    const version = await getServerCatalogVersion().catch(() => null)
+    if (version) localStorage.setItem(CATALOG_VERSION_KEY, String(version.version))
+  }
+
   return { categories, menuItems }
+}
+
+async function getServerCatalogVersion(): Promise<CatalogVersionResponse> {
+  const response = await apiClient.get<CatalogVersionResponse>('/api/v1/pos/catalog/version')
+  if (!response.ok || !response.data) {
+    throw new Error(response.error || 'Không tải được phiên bản catalog.')
+  }
+  return response.data
+}
+
+export async function refreshCatalogIfVersionChanged(): Promise<boolean> {
+  if (!navigator.onLine || !localStorage.getItem(POS_TOKEN_KEY)) return false
+
+  const server = await getServerCatalogVersion()
+  const localVersion = Number(localStorage.getItem(CATALOG_VERSION_KEY) ?? '-1')
+  if (Number.isFinite(localVersion) && localVersion === server.version) return false
+
+  await syncCatalog()
+  return true
 }
 
 // ============================================================
@@ -328,10 +364,16 @@ export function registerConnectivityListeners(): () => void {
 
   window.addEventListener('online', handleOnline)
   window.addEventListener('offline', handleOffline)
+  const catalogVersionTimer = window.setInterval(() => {
+    refreshCatalogIfVersionChanged().catch((error) => {
+      console.warn('[OfflineSync] Catalog version check failed — keeping cached prices', error)
+    })
+  }, CATALOG_VERSION_POLL_MS)
 
   return () => {
     window.removeEventListener('online', handleOnline)
     window.removeEventListener('offline', handleOffline)
+    window.clearInterval(catalogVersionTimer)
   }
 }
 
