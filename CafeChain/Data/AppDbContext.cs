@@ -164,6 +164,8 @@ namespace CafeChain.Data
         public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
         public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
         public DbSet<PurchaseOrderReceiptPosting> PurchaseOrderReceiptPostings { get; set; }
+        public DbSet<SupplierReceiptIssue> SupplierReceiptIssues { get; set; }
+        public DbSet<SupplierReceiptIssueTransition> SupplierReceiptIssueTransitions { get; set; }
 
         // Stock Take
         public DbSet<StockTakeSession> StockTakeSessions { get; set; }

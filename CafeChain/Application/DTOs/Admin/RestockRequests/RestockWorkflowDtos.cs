@@ -39,6 +39,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public bool StockRecoveredExternally { get; set; }
         public List<RestockTimelineItemDto> Timeline { get; set; } = new();
         public List<PurchaseOrderListItemDto> PurchaseOrders { get; set; } = new();
+        public List<SupplierReceiptIssueListItemDto> SupplierIssues { get; set; } = new();
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();
         public List<RestockFulfillmentDto> Fulfillments { get; set; } = new();
         public List<RestockFulfillmentPostingDto> FulfillmentPostings { get; set; } = new();

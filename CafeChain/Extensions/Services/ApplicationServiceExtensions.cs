@@ -296,6 +296,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IRestockPurchaseAllocationProvider, PurchaseOrderQuantityProvider>();
             services.AddScoped<IRestockAllocationService, RestockAllocationService>();
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
+            services.AddScoped<ISupplierQualityService, SupplierQualityService>();
             services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 
             // Staff notifications read/mark (Issue #101)

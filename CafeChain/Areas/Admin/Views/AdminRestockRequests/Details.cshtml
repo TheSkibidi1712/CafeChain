@@ -24,6 +24,17 @@
         "DRAFT" => "Bản nháp", "APPROVED" => "Đã duyệt", "MARKED_AS_SENT" => "Đã gửi nhà cung cấp",
         "PARTIALLY_RECEIVED" => "Đã nhận một phần", "COMPLETED" => "Hoàn tất", "CANCELLED" => "Đã hủy", _ => value
     };
+    string SupplierIssueStatusLabel(string value) => value switch
+    {
+        "OPEN" => "Đang mở", "UNDER_REVIEW" => "Đang xem xét", "RESOLVED" => "Đã xử lý",
+        "DISMISSED" => "Đã bỏ qua", "CLOSED" => "Đã đóng", _ => value
+    };
+    string SupplierIssueTypeLabel(string value) => value switch
+    {
+        "LATE_DELIVERY" => "Giao trễ", "SHORT_DELIVERY" => "Giao thiếu", "WRONG_ITEM" => "Sai mặt hàng",
+        "DAMAGED" => "Hư hỏng", "EXPIRED" => "Hết hạn", "QUALITY_FAILURE" => "Không đạt chất lượng",
+        "PACKAGING_FAILURE" => "Lỗi bao bì", "DOCUMENT_MISMATCH" => "Sai chứng từ", _ => "Khác"
+    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -150,6 +161,22 @@
                                 <td class="number">@order.TotalAmount.ToString("N0") đ</td>
                                 <td><a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@order.PurchaseOrderId">Xem PO</a></td>
                             </tr>
+                        }
+                        </tbody></table></div>
+                    }
+                </div>
+            </section>
+
+            <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Sự cố nhà cung cấp</h2></div>
+                <div class="ops-panel-body p-0">
+                    @if (Model.SupplierIssues.Count == 0) { <div class="p-3 ops-secondary">Chưa có sự cố nhà cung cấp liên quan.</div> }
+                    else
+                    {
+                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:720px"><thead><tr><th>Nhà cung cấp</th><th>Sự cố</th><th>Trạng thái</th><th class="number">Ảnh hưởng</th><th>Chứng từ</th></tr></thead><tbody>
+                        @foreach (var issue in Model.SupplierIssues)
+                        {
+                            <tr><td>@issue.SupplierName</td><td><strong>@SupplierIssueTypeLabel(issue.IssueType)</strong><div class="ops-secondary">@issue.Description</div></td><td><span class="ops-badge @(issue.Status == "RESOLVED" ? "ops-badge-success" : issue.Status == "OPEN" ? "ops-badge-warning" : "ops-badge-neutral")">@SupplierIssueStatusLabel(issue.Status)</span></td><td class="number">@issue.AffectedBaseQuantity.ToString("N3")</td><td><a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" asp-route-storeId="@issue.StoreId" asp-route-supplierId="@issue.SupplierId">@issue.BranchReceiptCode</a></td></tr>
                         }
                         </tbody></table></div>
                     }

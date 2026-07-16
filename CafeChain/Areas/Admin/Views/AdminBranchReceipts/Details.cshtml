@@ -47,7 +47,7 @@
             <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
             <div class="ops-table-scroll">
                 <table class="ops-table" style="min-width:900px">
-                    <thead><tr><th>Yêu cầu nhập</th><th>Mặt hàng</th><th class="number">SL nhập</th><th class="number">SL quy đổi</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th></tr></thead>
+                    <thead><tr><th>Yêu cầu nhập</th><th>Mặt hàng</th><th class="number">SL nhập</th><th class="number">Chấp nhận</th><th class="number">Loại bỏ</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var line in Model.Lines)
                     {
@@ -57,9 +57,11 @@
                             <td><strong>@identity</strong><div class="ops-secondary">Dòng #@line.BranchReceiptLineId</div></td>
                             <td class="number">@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
                             <td class="number">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
+                            <td class="number">@line.RejectedBaseQuantity.ToString("N3")</td>
                             <td class="number">@line.BaseUnitCostSnapshot.ToString("N4")</td>
                             <td class="number fw-bold">@line.LineTotalCost.ToString("N0") đ</td>
                             <td>@(line.InventoryTransactionId.HasValue ? $"#{line.InventoryTransactionId}" : "Chưa ghi kho")</td>
+                            <td>@if(isConfirmed && line.PurchaseOrderLineId.HasValue){<a class="ops-btn" asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Create" asp-route-branchReceiptLineId="@line.BranchReceiptLineId">Ghi sự cố</a>}</td>
                         </tr>
                     }
                     </tbody>

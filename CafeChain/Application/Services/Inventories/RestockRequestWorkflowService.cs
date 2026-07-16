@@ -623,6 +623,40 @@ namespace CafeChain.Application.Services.Inventories
                 TotalAmount = x.Lines.Sum(l => l.PackageCount * l.PackagePriceSnapshot)
             }).ToList();
 
+            var supplierIssueEntities = await _context.SupplierReceiptIssues.AsNoTracking()
+                .Include(x => x.Supplier).Include(x => x.Store)
+                .Include(x => x.PurchaseOrder)
+                .Include(x => x.PurchaseOrderLine).ThenInclude(x => x.Ingredient)
+                .Include(x => x.BranchReceipt)
+                .Include(x => x.ReportedByStaff)
+                .Where(x => x.PurchaseOrderLine.RestockRequestId == r.RestockRequestId)
+                .OrderByDescending(x => x.ReportedAtUtc)
+                .ToListAsync();
+            var supplierIssues = supplierIssueEntities.Select(x => new SupplierReceiptIssueListItemDto
+            {
+                SupplierReceiptIssueId = x.SupplierReceiptIssueId,
+                SupplierId = x.SupplierId,
+                SupplierName = x.Supplier.Name,
+                StoreId = x.StoreId,
+                StoreName = x.Store.Name,
+                PurchaseOrderId = x.PurchaseOrderId,
+                PurchaseOrderCode = x.PurchaseOrder.Code,
+                PurchaseOrderLineId = x.PurchaseOrderLineId,
+                BranchReceiptId = x.BranchReceiptId,
+                BranchReceiptCode = x.BranchReceipt.ReceiptCode,
+                BranchReceiptLineId = x.BranchReceiptLineId,
+                IngredientName = x.PurchaseOrderLine.Ingredient.Name,
+                IssueType = x.IssueType,
+                Status = x.Status,
+                AffectedBaseQuantity = x.AffectedBaseQuantity,
+                Description = x.Description,
+                ResolutionNote = x.ResolutionNote,
+                DismissReason = x.DismissReason,
+                ReportedByName = x.ReportedByStaff.FullName,
+                ReportedAtUtc = x.ReportedAtUtc,
+                RowVersion = Convert.ToBase64String(x.RowVersion ?? Array.Empty<byte>())
+            }).ToList();
+
             var fulfillments = await _context.RestockRequestFulfillments
                 .AsNoTracking()
                 .Where(f => f.RestockRequestId == r.RestockRequestId)
@@ -702,6 +736,7 @@ namespace CafeChain.Application.Services.Inventories
                 RemainingCloseReason = r.RemainingCloseReason,
                 Timeline = timeline,
                 PurchaseOrders = purchaseOrders,
+                SupplierIssues = supplierIssues,
                 Receipts = receipts,
                 Fulfillments = fulfillments,
                 FulfillmentPostings = postings
