@@ -60,6 +60,15 @@ public sealed class SupplierQualityService : ISupplierQualityService
         if (input.AffectedBaseQuantity > maxAffected)
             return Fail($"Số lượng ảnh hưởng vượt tổng lượng đã xử lý {maxAffected:N3}.");
 
+        var duplicateExists = await _context.SupplierReceiptIssues
+            .AsNoTracking()
+            .AnyAsync(x => x.BranchReceiptLineId == input.BranchReceiptLineId
+                && x.IssueType == input.IssueType
+                && (x.Status == SupplierReceiptIssueStatuses.Open
+                    || x.Status == SupplierReceiptIssueStatuses.UnderReview));
+        if (duplicateExists)
+            return Fail("Dòng nhận đã có sự cố cùng loại đang được xử lý.", "SUPPLIER_ISSUE_ACTIVE_DUPLICATE");
+
         var now = DateTime.UtcNow;
         var issue = new SupplierReceiptIssue
         {
@@ -75,7 +84,8 @@ public sealed class SupplierQualityService : ISupplierQualityService
             Description = Trim(input.Description, 1000)!,
             ReportedByStaffId = actorStaffId,
             ReportedAtUtc = now,
-            UpdatedAtUtc = now
+            UpdatedAtUtc = now,
+            RowVersion = new byte[] { 0 }
         };
         issue.Transitions.Add(new SupplierReceiptIssueTransition
         {
@@ -114,9 +124,10 @@ public sealed class SupplierQualityService : ISupplierQualityService
             return Fail($"Không thể chuyển sự cố từ {issue.Status} sang {input.TargetStatus}.");
 
         if (!TryParseRowVersion(input.RowVersion, out var expectedVersion))
-            return Fail("Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.");
-        if (expectedVersion.Length > 0)
-            _context.Entry(issue).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+            return Fail("Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+        if (!issue.RowVersion.SequenceEqual(expectedVersion))
+            return Fail("Sự cố vừa được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+        _context.Entry(issue).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
         var previous = issue.Status;
         var now = DateTime.UtcNow;
@@ -155,7 +166,7 @@ public sealed class SupplierQualityService : ISupplierQualityService
         }
         catch (DbUpdateConcurrencyException)
         {
-            return Fail("Sự cố vừa được cập nhật bởi người khác. Vui lòng tải lại.");
+            return Fail("Sự cố vừa được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
         }
 
         return ServiceResult<SupplierReceiptIssueListItemDto>.Success(
@@ -171,7 +182,7 @@ public sealed class SupplierQualityService : ISupplierQualityService
         int actorStaffId,
         IReadOnlyCollection<string> roles)
     {
-        if (storeId <= 0 || fromUtc >= toUtc)
+        if (storeId <= 0 || fromUtc >= toUtc || toUtc - fromUtc > TimeSpan.FromDays(366))
             return ServiceResult<SupplierQualityDashboardDto>.Failure("Cửa hàng hoặc khoảng thời gian không hợp lệ.");
         if (!await CanAccessAsync(actorStaffId, storeId, roles))
             return ServiceResult<SupplierQualityDashboardDto>.Failure(
@@ -216,7 +227,11 @@ public sealed class SupplierQualityService : ISupplierQualityService
 
         var orders = await _context.PurchaseOrders.AsNoTracking()
             .Where(x => x.StoreId == storeId && x.SupplierId == supplierId
-                && x.Status == PurchaseOrderStatuses.Completed)
+                && x.Status == PurchaseOrderStatuses.Completed
+                && x.Lines.Any(line => line.ReceiptPostings.Any(posting =>
+                    posting.BranchReceiptLine.BranchReceipt.Status == BranchReceiptStatuses.Confirmed
+                    && posting.BranchReceiptLine.BranchReceipt.ReceivedAt >= fromUtc
+                    && posting.BranchReceiptLine.BranchReceipt.ReceivedAt < toUtc)))
             .Include(x => x.Lines)
                 .ThenInclude(x => x.ReceiptPostings)
                     .ThenInclude(x => x.BranchReceiptLine)
@@ -372,10 +387,16 @@ public sealed class SupplierQualityService : ISupplierQualityService
 
     private static bool TryParseRowVersion(string value, out byte[] rowVersion)
     {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            rowVersion = Array.Empty<byte>();
+            return false;
+        }
+
         try
         {
-            rowVersion = string.IsNullOrWhiteSpace(value) ? Array.Empty<byte>() : Convert.FromBase64String(value);
-            return true;
+            rowVersion = Convert.FromBase64String(value);
+            return rowVersion.Length > 0;
         }
         catch (FormatException)
         {
@@ -404,6 +425,6 @@ public sealed class SupplierQualityService : ISupplierQualityService
         return trimmed.Length <= maxLength ? trimmed : trimmed[..maxLength];
     }
 
-    private static ServiceResult<SupplierReceiptIssueListItemDto> Fail(string message) =>
-        ServiceResult<SupplierReceiptIssueListItemDto>.Failure(message);
+    private static ServiceResult<SupplierReceiptIssueListItemDto> Fail(string message, string? errorCode = null) =>
+        ServiceResult<SupplierReceiptIssueListItemDto>.Failure(message, errorCode: errorCode);
 }

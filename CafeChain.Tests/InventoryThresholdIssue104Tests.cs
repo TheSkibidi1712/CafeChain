@@ -50,7 +50,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 1m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(ManagerAccountId, invId, 10m);
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 10m);
 
             Assert.True(result.IsSuccess);
             Assert.Contains("thành công", result.Message);
@@ -72,7 +72,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, OtherStoreId, IngredientId, null, qty: 3m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(ManagerAccountId, invId, 8m);
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 8m);
 
             Assert.False(result.IsSuccess);
             Assert.Contains("quyền", result.Message);
@@ -89,7 +89,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(AwAccountId, invId, 10m);
+            var result = await UpdateAsync(service, ctx, AwAccountId, invId, 10m);
 
             Assert.False(result.IsSuccess);
             Assert.Equal("Bạn không có quyền cập nhật ngưỡng tồn kho.", result.Message);
@@ -106,7 +106,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(SalesAccountId, invId, 10m);
+            var result = await UpdateAsync(service, ctx, SalesAccountId, invId, 10m);
 
             Assert.False(result.IsSuccess);
             Assert.Contains("quyền cập nhật ngưỡng", result.Message);
@@ -122,7 +122,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(SsAccountId, invId, 10m);
+            var result = await UpdateAsync(service, ctx, SsAccountId, invId, 10m);
 
             Assert.False(result.IsSuccess);
             Assert.Contains("quyền cập nhật ngưỡng", result.Message);
@@ -142,7 +142,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 4m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(AmAccountId, invId, 7m);
+            var result = await UpdateAsync(service, ctx, AmAccountId, invId, 7m);
 
             Assert.True(result.IsSuccess);
             Assert.Equal(7m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
@@ -161,7 +161,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, OtherStoreId, IngredientId, null, qty: 4m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(AmAccountId, invId, 7m);
+            var result = await UpdateAsync(service, ctx, AmAccountId, invId, 7m);
 
             Assert.False(result.IsSuccess);
             Assert.Contains("quyền", result.Message);
@@ -180,7 +180,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 1m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(BoAccountId, invId, 3m);
+            var result = await UpdateAsync(service, ctx, BoAccountId, invId, 3m);
 
             Assert.True(result.IsSuccess);
             Assert.Equal(3m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
@@ -196,10 +196,48 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: 2m);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(ManagerAccountId, invId, -1m);
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, -1m);
 
             Assert.False(result.IsSuccess);
             Assert.Contains("không được âm", result.Message);
+            Assert.Equal(2m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
+        }
+
+        [Fact]
+        public async Task MissingRowVersion_Rejected()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-version@test.local");
+            var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, 5m, 0m, 2m);
+            var service = CreateService(ctx);
+
+            var result = await service.UpdateMinStockLevelAsync(
+                ManagerAccountId, invId, 4m, null);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("VALIDATION_ROW_VERSION_REQUIRED", result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task StaleRowVersion_Rejected()
+        {
+            using var ctx = CreateDbContext();
+            EnsureBase(ctx);
+            EnsureStaffWithRole(ctx, ManagerAccountId, ManagerStaffId, StoreId,
+                RoleConstants.StoreManager, "mgr104-stale@test.local");
+            var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, 5m, 0m, 2m);
+            var service = CreateService(ctx);
+
+            var result = await service.UpdateMinStockLevelAsync(
+                ManagerAccountId,
+                invId,
+                4m,
+                System.Convert.ToBase64String(new byte[] { 9 }));
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal("RESOURCE_CHANGED_BY_ANOTHER_USER", result.ErrorCode);
             Assert.Equal(2m, (await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
         }
 
@@ -213,7 +251,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 5m, reserved: 0m, min: 12m);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(ManagerAccountId, invId, null);
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, null);
 
             Assert.True(result.IsSuccess);
             Assert.Null((await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId)).MinStockLevel);
@@ -229,7 +267,7 @@ namespace CafeChain.Tests.POS
             var invId = await SeedInventoryAsync(ctx, StoreId, null, RecipeId, qty: 2m, reserved: 0m, min: null);
             var service = CreateService(ctx);
 
-            var result = await service.UpdateMinStockLevelAsync(ManagerAccountId, invId, 5m);
+            var result = await UpdateAsync(service, ctx, ManagerAccountId, invId, 5m);
 
             Assert.True(result.IsSuccess);
             var row = await ctx.StoreInventories.SingleAsync(i => i.StoreInventoryId == invId);
@@ -247,7 +285,7 @@ namespace CafeChain.Tests.POS
                 RoleConstants.StoreManager, "mgr104f@test.local");
             var invId = await SeedInventoryAsync(ctx, StoreId, IngredientId, null, qty: 2m, reserved: 0m, min: null);
             var thresholdService = CreateService(ctx);
-            Assert.True((await thresholdService.UpdateMinStockLevelAsync(ManagerAccountId, invId, 10m)).IsSuccess);
+            Assert.True((await UpdateAsync(thresholdService, ctx, ManagerAccountId, invId, 10m)).IsSuccess);
 
             var alertService = new StockAlertService(
                 ctx, new Mock<ILogger<StockAlertService>>().Object);
@@ -520,6 +558,26 @@ namespace CafeChain.Tests.POS
             ctx.StoreInventories.Add(row);
             await ctx.SaveChangesAsync();
             return row.StoreInventoryId;
+        }
+
+        private static async Task<CafeChain.Application.Results.ServiceResult> UpdateAsync(
+            InventoryThresholdService service,
+            CafeChain.Data.AppDbContext context,
+            int accountId,
+            int storeInventoryId,
+            decimal? minStockLevel)
+        {
+            var rowVersion = await context.StoreInventories
+                .AsNoTracking()
+                .Where(x => x.StoreInventoryId == storeInventoryId)
+                .Select(x => x.RowVersion)
+                .SingleAsync();
+
+            return await service.UpdateMinStockLevelAsync(
+                accountId,
+                storeInventoryId,
+                minStockLevel,
+                System.Convert.ToBase64String(rowVersion));
         }
     }
 }

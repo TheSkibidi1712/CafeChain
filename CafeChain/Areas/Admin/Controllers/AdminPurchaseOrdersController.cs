@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -15,40 +16,45 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IPhysicalUnitConversionService _conversion;
         private readonly IAdminActorContextAccessor _actor;
         private readonly AppDbContext _context;
+        private readonly IScopeAuthorizationService _scopeAuthorization;
 
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
             IRestockAllocationService allocations,
             IPhysicalUnitConversionService conversion,
             IAdminActorContextAccessor actor,
-            AppDbContext context)
+            AppDbContext context,
+            IScopeAuthorizationService scopeAuthorization)
         {
             _service = service;
             _allocations = allocations;
             _conversion = conversion;
             _actor = actor;
             _context = context;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(int? storeId = null, string? status = null)
         {
-            if (!CanManage()) return Forbid();
-            return View(await _service.ListAsync(storeId, status));
+            if (!CanRead()) return Forbid();
+            var actor = _actor.Get(User);
+            return View(await _service.ListAsync(storeId, status, actor.StaffId, actor.RoleNames));
         }
 
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            if (!CanManage()) return Forbid();
-            var result = await _service.GetDetailAsync(id);
-            return result.IsSuccess && result.Data != null ? View(result.Data) : NotFound();
+            if (!CanRead()) return Forbid();
+            var actor = _actor.Get(User);
+            var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
+            return result.IsSuccess && result.Data != null ? View(result.Data) : Forbid();
         }
 
         [HttpGet]
         public async Task<IActionResult> Create(int? restockRequestId = null)
         {
-            if (!CanManage()) return Forbid();
+            if (!CanCreate()) return Forbid();
             var model = new CreatePurchaseOrderRequest { Lines = new() { new() } };
             if (restockRequestId.HasValue)
             {
@@ -93,7 +99,7 @@ namespace CafeChain.Areas.Admin.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreatePurchaseOrderRequest model)
         {
-            if (!CanManage()) return Forbid();
+            if (!CanCreate()) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.CreateDraftAsync(model, actor.StaffId, actor.RoleNames);
             if (!result.IsSuccess || result.Data == null)
@@ -106,35 +112,41 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public Task<IActionResult> Approve(int id) => Transition(id, true);
+        public Task<IActionResult> Approve(int id, string rowVersion) => Transition(id, rowVersion, true);
 
         [HttpPost, ValidateAntiForgeryToken]
-        public Task<IActionResult> MarkSent(int id) => Transition(id, false);
+        public Task<IActionResult> MarkSent(int id, string rowVersion) => Transition(id, rowVersion, false);
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int id, string reason)
+        public async Task<IActionResult> Cancel(int id, string rowVersion, string reason)
         {
-            if (!CanManage()) return Forbid();
+            if (!User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
             var actor = _actor.Get(User);
-            var result = await _service.CancelAsync(id, actor.StaffId, actor.RoleNames, reason);
+            var result = await _service.CancelAsync(id, rowVersion, actor.StaffId, actor.RoleNames, reason);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        private async Task<IActionResult> Transition(int id, bool approve)
+        private async Task<IActionResult> Transition(int id, string rowVersion, bool approve)
         {
-            if (!CanManage()) return Forbid();
+            if (approve && !User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
+            if (!approve && !User.IsInRole(RoleConstants.AccountantWarehouse)) return Forbid();
             var actor = _actor.Get(User);
             var result = approve
-                ? await _service.ApproveAsync(id, actor.StaffId, actor.RoleNames)
-                : await _service.MarkSentAsync(id, actor.StaffId, actor.RoleNames);
+                ? await _service.ApproveAsync(id, rowVersion, actor.StaffId, actor.RoleNames)
+                : await _service.MarkSentAsync(id, rowVersion, actor.StaffId, actor.RoleNames);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToAction(nameof(Details), new { id });
         }
 
         private async Task PopulateAsync(int storeId)
         {
-            ViewBag.Stores = await _context.Stores.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).ToListAsync();
+            var actor = _actor.Get(User);
+            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
+                .Select(x => x.StoreId).ToList();
+            ViewBag.Stores = await _context.Stores.AsNoTracking()
+                .Where(x => x.Active && allowedStoreIds.Contains(x.StoreId))
+                .OrderBy(x => x.Name).ToListAsync();
             ViewBag.Suppliers = await _context.Suppliers.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).ToListAsync();
             ViewBag.Offers = await _context.IngredientSuppliers.AsNoTracking()
                 .Include(x => x.Ingredient).Include(x => x.Supplier).Include(x => x.Unit)
@@ -142,9 +154,14 @@ namespace CafeChain.Areas.Admin.Controllers
                 .OrderBy(x => x.Ingredient.Name).ToListAsync();
         }
 
-        private bool CanManage() =>
+        private bool CanRead() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.AreaManager)
+            || User.IsInRole(RoleConstants.StoreManager);
+
+        private bool CanCreate() =>
+            User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.BusinessOwner);
     }
 }

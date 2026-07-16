@@ -1139,6 +1139,9 @@ const InventoryCreate = (() => {
                         option.dataset.unitId =
                             item.unitId ?? item.UnitId;
 
+                        option.dataset.ingredientSupplierId =
+                            item.ingredientSupplierId ?? item.IngredientSupplierId ?? "";
+
                         option.dataset.unitName =
                             item.unitName ?? item.UnitName ?? "";
 
@@ -2219,6 +2222,9 @@ const InventoryCreate = (() => {
                 )
             )
             .map(row => ({
+                ingredientSupplierId:
+                    readInt(row.querySelector(".ingredient-select")?.selectedOptions?.[0]?.dataset?.ingredientSupplierId),
+
                 ingredientId:
                     readInt(
                         row.querySelector(".ingredient-id")?.value ||

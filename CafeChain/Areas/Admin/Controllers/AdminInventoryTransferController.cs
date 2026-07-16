@@ -156,7 +156,13 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+                return Conflict(new
+                {
+                    success = false,
+                    code = BranchReceiptErrorCodes.ResourceChanged,
+                    message = "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại.",
+                    traceId = HttpContext.TraceIdentifier
+                });
             }
             catch (Exception ex)
             {
@@ -201,7 +207,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+                return ResourceChangedFailure();
             }
             catch (Exception ex)
             {
@@ -241,7 +247,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+                return ResourceChangedFailure();
             }
         }
 
@@ -271,7 +277,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+                return ResourceChangedFailure();
             }
         }
 
@@ -331,7 +337,7 @@ namespace CafeChain.Areas.Admin.Controllers
             }
             catch (DbUpdateConcurrencyException)
             {
-                return Conflict(new { success = false, message = "CONCURRENCY_CONFLICT" });
+                return ResourceChangedFailure();
             }
             catch (Exception ex)
             {
@@ -351,7 +357,8 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.SystemAdmin);
 
         private bool CanMutateTransfers() =>
-            IsGlobalDocumentRole() || User.IsInRole(RoleConstants.AreaManager);
+            User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.AccountantWarehouse);
 
         private async Task<List<int>?> ResolveReadStoreScopeAsync()
         {
@@ -415,6 +422,26 @@ namespace CafeChain.Areas.Admin.Controllers
         private IActionResult MutationFailure(InvalidOperationException exception)
         {
             var message = exception.Message;
+            if (message == BranchReceiptErrorCodes.ResourceChanged)
+            {
+                return Conflict(new
+                {
+                    success = false,
+                    code = BranchReceiptErrorCodes.ResourceChanged,
+                    message = "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại.",
+                    traceId = HttpContext.TraceIdentifier
+                });
+            }
+            if (message == BranchReceiptErrorCodes.ValidationRowVersionRequired)
+            {
+                return BadRequest(new
+                {
+                    success = false,
+                    code = BranchReceiptErrorCodes.ValidationRowVersionRequired,
+                    message = "Thiếu phiên bản dữ liệu. Vui lòng tải lại.",
+                    traceId = HttpContext.TraceIdentifier
+                });
+            }
             if (message.Contains("IDEMPOTENCY_KEY_REUSED", StringComparison.Ordinal)
                 || message.Contains("CONCURRENCY", StringComparison.Ordinal)
                 || message.Contains("ROW_VERSION", StringComparison.Ordinal)
@@ -436,5 +463,14 @@ namespace CafeChain.Areas.Admin.Controllers
 
             return UnprocessableEntity(new { success = false, message });
         }
+
+        private IActionResult ResourceChangedFailure() =>
+            Conflict(new
+            {
+                success = false,
+                code = BranchReceiptErrorCodes.ResourceChanged,
+                message = "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại.",
+                traceId = HttpContext.TraceIdentifier
+            });
     }
 }

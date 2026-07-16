@@ -442,6 +442,9 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             var entity = await LoadOfferTrackedAsync(dto.IngredientSupplierId.Value, asNoTracking: false)
                 ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
 
+            var expectedVersion = ParseRequiredRowVersion(dto.RowVersion);
+            EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
+
             ValidateOfferOperationalTerms(dto);
 
             var packageOrPriceChanged =
@@ -474,8 +477,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             if (entity.IngredientId != dto.IngredientId || entity.SupplierId != dto.SupplierId)
                 throw new InvalidOperationException("Không được đổi nhà cung cấp hoặc nguyên liệu của gói đã tạo.");
 
-            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
-                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = Convert.FromBase64String(dto.RowVersion);
+            _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
             await using var tx = await _context.Database.BeginTransactionAsync();
             try
@@ -522,6 +524,12 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 await _context.SaveChangesAsync();
                 await tx.CommitAsync();
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                await tx.RollbackAsync();
+                throw new InvalidOperationException(
+                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
+            }
             catch
             {
                 await tx.RollbackAsync();
@@ -529,10 +537,16 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
         }
 
-        public async Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active)
+        public async Task ToggleIngredientOfferActiveAsync(
+            int ingredientSupplierId,
+            bool active,
+            string? rowVersion)
         {
             var entity = await LoadOfferTrackedAsync(ingredientSupplierId, asNoTracking: false)
                 ?? throw new InvalidOperationException("Không tìm thấy bảng giá gói mua.");
+            var expectedVersion = ParseRequiredRowVersion(rowVersion);
+            EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
+            _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
             if (active)
             {
@@ -551,7 +565,15 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             }
 
             entity.Active = active;
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                throw new InvalidOperationException(
+                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
+            }
         }
 
         public async Task ChangeIngredientOfferPriceAsync(
@@ -569,9 +591,9 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                     .SingleOrDefaultAsync(x => x.IngredientSupplierId == dto.IngredientSupplierId)
                     ?? throw new InvalidOperationException("Không tìm thấy gói cung cấp.");
 
-                if (!string.IsNullOrWhiteSpace(dto.RowVersion))
-                    _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
-                        Convert.FromBase64String(dto.RowVersion);
+                var expectedVersion = ParseRequiredRowVersion(dto.RowVersion);
+                EnsureRowVersionMatches(entity.RowVersion, expectedVersion);
+                _context.Entry(entity).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
                 var validation = await _packageValidator.ValidateAsync(
                     entity.IngredientId,
@@ -617,7 +639,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
             {
                 await tx.RollbackAsync();
                 throw new InvalidOperationException(
-                    "Gói cung cấp vừa được cập nhật. Vui lòng tải lại trước khi đổi giá.");
+                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại trước khi đổi giá.");
             }
             catch
             {
@@ -820,6 +842,33 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             if (dto.LeadTimeDays.HasValue && dto.LeadTimeDays.Value < 0)
                 throw new InvalidOperationException("Thời gian giao hàng không được âm.");
+        }
+
+        private static byte[] ParseRequiredRowVersion(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                throw new InvalidOperationException(
+                    "VALIDATION_ROW_VERSION_REQUIRED: Thiếu phiên bản dữ liệu. Vui lòng tải lại.");
+
+            try
+            {
+                var parsed = Convert.FromBase64String(value);
+                if (parsed.Length == 0)
+                    throw new FormatException();
+                return parsed;
+            }
+            catch (FormatException)
+            {
+                throw new InvalidOperationException(
+                    "VALIDATION_ROW_VERSION_REQUIRED: Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại.");
+            }
+        }
+
+        private static void EnsureRowVersionMatches(byte[] current, byte[] expected)
+        {
+            if (!(current ?? Array.Empty<byte>()).SequenceEqual(expected))
+                throw new InvalidOperationException(
+                    "RESOURCE_CHANGED_BY_ANOTHER_USER: Gói cung cấp vừa được cập nhật. Vui lòng tải lại.");
         }
 
         private static bool IsSupplierStoreUniqueCollision(DbUpdateException ex)

@@ -17,40 +17,46 @@ namespace CafeChain.Application.Interfaces.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string? reason = null);
+            string? reason,
+            string? rowVersion);
 
         Task<ServiceResult<RestockRequestWorkflowDetailDto>> SubmitAsync(
             int requestId,
             int actorStaffId,
             int? actorStoreId,
-            IReadOnlyCollection<string> roleNames);
+            IReadOnlyCollection<string> roleNames,
+            string? rowVersion);
 
         Task<ServiceResult<RestockRequestWorkflowDetailDto>> CloseRemainingAsync(
             int requestId,
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string reason);
+            string reason,
+            string? rowVersion);
 
         Task<ServiceResult<RestockRequestWorkflowDetailDto>> RejectAsync(
             int requestId,
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string reason);
+            string reason,
+            string? rowVersion);
 
         Task<ServiceResult<RestockRequestWorkflowDetailDto>> CancelAsync(
             int requestId,
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string? reason = null);
+            string? reason,
+            string? rowVersion);
 
         Task<ServiceResult<RestockFulfillmentDto>> LinkFulfillmentAsync(
             int requestId,
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            LinkRestockFulfillmentRequest input);
+            LinkRestockFulfillmentRequest input,
+            string? rowVersion);
     }
 }

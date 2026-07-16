@@ -69,34 +69,15 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateDraft(int storeId, int ingredientId, int analysisWindowDays = 30)
+        public async Task<IActionResult> CreateDraft(int storeId, int ingredientId, string idempotencyKey)
         {
             var actor = _actorAccessor.Get(User);
-            var suggestions = await _suggestions.GetForStoreAsync(
-                storeId, actor.StaffId, actor.RoleNames, analysisWindowDays);
-            var item = suggestions.Data?.Items.FirstOrDefault(x => x.IngredientId == ingredientId);
-            if (!suggestions.IsSuccess || item == null || item.Status != ReorderSuggestionStatuses.Ready
-                || !item.SuggestedBaseQuantity.HasValue || item.SuggestedBaseQuantity <= 0
-                || !item.MinLevel.HasValue || !item.AverageDailyUsage.HasValue || !item.LeadTimeDays.HasValue)
-            {
-                TempData["ErrorMessage"] = suggestions.Message ?? "Gợi ý không còn đủ điều kiện để tạo yêu cầu nhập.";
-                return RedirectToAction(nameof(Index), new { storeId, analysisWindowDays });
-            }
-
             var created = await _restockRequests.CreateDraftFromSuggestionAsync(
                 new CreateRestockDraftFromSuggestionDto
                 {
                     StoreId = storeId,
                     IngredientId = ingredientId,
-                    RequestedQuantity = item.SuggestedBaseQuantity.Value,
-                    SuggestedQuantity = item.SuggestedBaseQuantity.Value,
-                    AnalysisWindowDays = analysisWindowDays,
-                    AvailableSnapshot = item.AvailableQuantity,
-                    MinLevelSnapshot = item.MinLevel.Value,
-                    AverageDailyUsageSnapshot = item.AverageDailyUsage.Value,
-                    LeadTimeDaysSnapshot = item.LeadTimeDays.Value,
-                    IncomingQuantitySnapshot = item.IncomingApprovedPoQuantity,
-                    SuggestionReason = item.Reason
+                    IdempotencyKey = idempotencyKey
                 },
                 actor.StaffId);
 
@@ -104,7 +85,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 created.Message ?? (created.IsSuccess ? "Đã tạo yêu cầu nhập nháp." : "Không tạo được yêu cầu nhập.");
             if (created.IsSuccess && created.Data != null)
                 return RedirectToAction("Details", "AdminRestockRequests", new { id = created.Data.RestockRequestId });
-            return RedirectToAction(nameof(Index), new { storeId, analysisWindowDays });
+            return RedirectToAction(nameof(Index), new { storeId });
         }
 
         private async Task<List<SelectListItem>> GetAccessibleStoresAsync(

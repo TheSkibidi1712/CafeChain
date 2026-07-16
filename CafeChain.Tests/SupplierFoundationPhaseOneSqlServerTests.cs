@@ -133,7 +133,7 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
                 {
                     RestockRequestId = requestId,
                     IngredientSupplierId = catalog.OfferId,
-                    InputQuantity = 2,
+                    ActualReceivedQuantity = 2,
                     InputUnitId = catalog.UnitId,
                     ActualPackagePrice = 1
                 }
@@ -142,9 +142,9 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
         Assert.True(draft.IsSuccess, draft.Message);
 
         var first = await service.ConfirmAsync(
-            draft.Data!.BranchReceiptId, actorStaffId, storeId, WarehouseRoles);
+            draft.Data!.BranchReceiptId, actorStaffId, storeId, WarehouseRoles, draft.Data.RowVersion);
         var replay = await service.ConfirmAsync(
-            draft.Data.BranchReceiptId, actorStaffId, storeId, WarehouseRoles);
+            draft.Data.BranchReceiptId, actorStaffId, storeId, WarehouseRoles, draft.Data.RowVersion);
         Assert.True(first.IsSuccess, first.Message);
         Assert.False(first.Data!.WasReplay);
         Assert.True(replay.IsSuccess, replay.Message);

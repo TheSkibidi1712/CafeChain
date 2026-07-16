@@ -400,7 +400,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     ?? throw new InvalidOperationException("Không tìm thấy phiếu chuyển kho.");
 
                 await EnsureTransferScopeAsync(transfer.FromStoreId, transfer.ToStoreId);
-                EnsureTransferRowVersion(transfer.RowVersion, dto.RowVersion);
+                EnsureTransferRowVersion(transfer, dto.RowVersion);
 
                 if (transfer.Status != InventoryTransferStatus.DRAFT)
                 {
@@ -572,6 +572,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     await _repository.CommitTransactionAsync();
                     return replay;
                 }
+                EnsureTransferRowVersion(transfer, dto.RowVersion);
                 if (transfer.Status != InventoryTransferStatus.DISPATCHED)
                     throw new InvalidOperationException("Chỉ phiếu DISPATCHED mới được nhận kho.");
                 if (dto.Lines.Count == 0)
@@ -1322,10 +1323,10 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             };
         }
 
-        private static void EnsureTransferRowVersion(byte[] current, string? suppliedBase64)
+        private void EnsureTransferRowVersion(InventoryTransfer transfer, string? suppliedBase64)
         {
             if (string.IsNullOrWhiteSpace(suppliedBase64))
-                throw new InvalidOperationException("ROW_VERSION_REQUIRED");
+                throw new InvalidOperationException(BranchReceiptErrorCodes.ValidationRowVersionRequired);
 
             byte[] supplied;
             try
@@ -1334,11 +1335,12 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             }
             catch (FormatException)
             {
-                throw new InvalidOperationException("ROW_VERSION_INVALID");
+                throw new InvalidOperationException(BranchReceiptErrorCodes.ValidationRowVersionRequired);
             }
 
-            if (!current.SequenceEqual(supplied))
-                throw new InvalidOperationException("CONCURRENCY_CONFLICT");
+            if (supplied.Length == 0 || !transfer.RowVersion.SequenceEqual(supplied))
+                throw new InvalidOperationException(BranchReceiptErrorCodes.ResourceChanged);
+
         }
 
         private async Task<decimal> EstimateBaseUnitCostAsync(int storeId, int ingredientId)

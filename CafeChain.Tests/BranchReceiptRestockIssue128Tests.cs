@@ -34,7 +34,7 @@ namespace CafeChain.Tests
         private const int WarehouseStaffId = 12811;
         private const int SupervisorStaffId = 12812;
 
-        private static readonly string[] ManagerRoles = { RoleConstants.StoreManager };
+        private static readonly string[] ManagerRoles = { RoleConstants.AccountantWarehouse };
         private static readonly string[] WarehouseRoles = { RoleConstants.AccountantWarehouse };
         private static readonly string[] SupervisorRoles = { RoleConstants.ShiftSupervisor };
 
@@ -72,7 +72,7 @@ namespace CafeChain.Tests
             Assert.True(draft.IsSuccess, draft.Message);
 
             var confirm = await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
             Assert.True(confirm.IsSuccess, confirm.Message);
             Assert.False(confirm.Data!.WasReplay);
             Assert.Equal(BranchReceiptStatuses.Confirmed, confirm.Data.Status);
@@ -106,6 +106,60 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task PartialReceipt_ActualMinusRejected_IsOnlyQuantityPostedToInventory()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 10m);
+            var service = CreateReceiptService(ctx);
+            var input = NewReceiptRequest(requestId, 10m, UnitGram, 100m, "k-partial-rejected");
+            input.Lines[0].RejectedQuantity = 2m;
+            input.Lines[0].RejectionIssueType = SupplierReceiptIssueTypes.Damaged;
+            input.Lines[0].RejectionReason = "Bao bì rách khi giao nhận";
+
+            var draft = await service.CreateDraftAsync(input, ManagerStaffId, ManagerRoles);
+            Assert.True(draft.IsSuccess, draft.Message);
+            var confirm = await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
+
+            Assert.True(confirm.IsSuccess, confirm.Message);
+            var line = await ctx.BranchReceiptLines.SingleAsync();
+            Assert.Equal(8m, line.ReceivedBaseQuantity);
+            Assert.Equal(2m, line.RejectedBaseQuantity);
+            var inventory = await ctx.StoreInventories.SingleAsync(x =>
+                x.StoreId == StoreId && x.IngredientId == IngredientId);
+            Assert.Equal(8m, inventory.AvailableQty);
+            Assert.Equal(8m, (await ctx.InventoryCostLayers.SingleAsync(x =>
+                x.SourceBranchReceiptLineId == line.BranchReceiptLineId)).Quantity);
+            Assert.Equal(8m, (await ctx.InventoryTransactions.SingleAsync(x =>
+                x.BranchReceiptLineId == line.BranchReceiptLineId)).Quantity);
+            Assert.Equal(8m, (await ctx.RestockFulfillmentPostings.SingleAsync(x =>
+                x.SourceDocumentLineId == line.BranchReceiptLineId
+                && x.SourceDocumentType == RestockFulfillmentDocumentTypes.BranchReceipt)).Quantity);
+        }
+
+        [Fact]
+        public async Task PartialReceipt_InvalidRejectedQuantityOrMissingReason_IsRejected()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 20m);
+            var service = CreateReceiptService(ctx);
+            var exceeds = NewReceiptRequest(requestId, 10m, UnitGram, 100m, "k-rejected-exceeds");
+            exceeds.Lines[0].RejectedQuantity = 11m;
+            var exceedsResult = await service.CreateDraftAsync(exceeds, ManagerStaffId, ManagerRoles);
+
+            var missingReason = NewReceiptRequest(requestId, 10m, UnitGram, 100m, "k-rejected-reason");
+            missingReason.Lines[0].RejectedQuantity = 2m;
+            missingReason.Lines[0].RejectionIssueType = SupplierReceiptIssueTypes.Damaged;
+            var reasonResult = await service.CreateDraftAsync(missingReason, ManagerStaffId, ManagerRoles);
+
+            Assert.False(exceedsResult.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.RejectedExceedsActualReceived, exceedsResult.ErrorCode);
+            Assert.False(reasonResult.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.RejectionReasonRequired, reasonResult.ErrorCode);
+            Assert.Empty(ctx.BranchReceipts);
+        }
+
+        [Fact]
         public async Task PartialThenComplete_DerivesStatusFromConfirmedSums()
         {
             using var ctx = CreateDbContext();
@@ -115,7 +169,7 @@ namespace CafeChain.Tests
             var d1 = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 600m, UnitGram, 60_000m, "k-partial-1"), ManagerStaffId, ManagerRoles);
             Assert.True(d1.IsSuccess, d1.Message);
-            var c1 = await service.ConfirmAsync(d1.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+            var c1 = await service.ConfirmAsync(d1.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, d1.Data.RowVersion);
             Assert.True(c1.IsSuccess, c1.Message);
 
             var req = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
@@ -124,7 +178,7 @@ namespace CafeChain.Tests
             var d2 = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 400m, UnitGram, 40_000m, "k-partial-2"), ManagerStaffId, ManagerRoles);
             Assert.True(d2.IsSuccess, d2.Message);
-            var c2 = await service.ConfirmAsync(d2.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+            var c2 = await service.ConfirmAsync(d2.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, d2.Data.RowVersion);
             Assert.True(c2.IsSuccess, c2.Message);
 
             req = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
@@ -152,7 +206,7 @@ namespace CafeChain.Tests
             var d1 = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 80m, UnitGram, 8_000m, "k-over-1"), ManagerStaffId, ManagerRoles);
             Assert.True(d1.IsSuccess, d1.Message);
-            Assert.True((await service.ConfirmAsync(d1.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles)).IsSuccess);
+            Assert.True((await service.ConfirmAsync(d1.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, d1.Data.RowVersion)).IsSuccess);
 
             var d2 = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 30m, UnitGram, 3_000m, "k-over-2"), ManagerStaffId, ManagerRoles);
@@ -188,9 +242,9 @@ namespace CafeChain.Tests
                 requestId, 200m, UnitGram, 20_000m, "k-replay"), ManagerStaffId, ManagerRoles);
             var id = draft.Data!.BranchReceiptId;
 
-            var c1 = await service.ConfirmAsync(id, ManagerStaffId, StoreId, ManagerRoles);
+            var c1 = await service.ConfirmAsync(id, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
             Assert.True(c1.IsSuccess);
-            var c2 = await service.ConfirmAsync(id, ManagerStaffId, StoreId, ManagerRoles);
+            var c2 = await service.ConfirmAsync(id, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
             Assert.True(c2.IsSuccess, c2.Message);
             Assert.True(c2.Data!.WasReplay);
 
@@ -203,6 +257,33 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task Confirm_MissingOrStaleRowVersionRejected()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            var service = CreateReceiptService(ctx);
+            var draft = await service.CreateDraftAsync(NewReceiptRequest(
+                requestId, 20m, UnitGram, 2_000m, "k-version"), ManagerStaffId, ManagerRoles);
+            Assert.True(draft.IsSuccess, draft.Message);
+
+            var missing = await service.ConfirmAsync(
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, null);
+            var stale = await service.ConfirmAsync(
+                draft.Data.BranchReceiptId,
+                ManagerStaffId,
+                StoreId,
+                ManagerRoles,
+                Convert.ToBase64String(new byte[] { 9 }));
+
+            Assert.False(missing.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missing.ErrorCode);
+            Assert.False(stale.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
+            Assert.Equal(BranchReceiptStatuses.Draft,
+                (await ctx.BranchReceipts.AsNoTracking().SingleAsync()).Status);
+        }
+
+        [Fact]
         public async Task Workflow_StartRejectCancel_NoInventoryMutation()
         {
             using var ctx = CreateDbContext();
@@ -210,7 +291,8 @@ namespace CafeChain.Tests
             var workflow = CreateWorkflowService(ctx);
 
             var start = await workflow.StartProcessingAsync(
-                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "begin");
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "begin",
+                await RequestVersionAsync(ctx, requestId));
             Assert.True(start.IsSuccess, start.Message);
             Assert.Equal(RestockRequestStatuses.Processing, start.Data!.Status);
 
@@ -221,14 +303,16 @@ namespace CafeChain.Tests
             // separate request for reject
             var requestId2 = await SeedSubmittedRequestAsync(ctx, requested: 50m, alertSuffix: 2);
             var reject = await workflow.RejectAsync(
-                requestId2, WarehouseStaffId, StoreId, WarehouseRoles, "hết NCC");
+                requestId2, WarehouseStaffId, StoreId, WarehouseRoles, "hết NCC",
+                await RequestVersionAsync(ctx, requestId2));
             Assert.True(reject.IsSuccess, reject.Message);
             Assert.Equal(RestockRequestStatuses.Rejected, reject.Data!.Status);
             Assert.Equal(0, await ctx.InventoryTransactions.CountAsync());
 
             var requestId3 = await SeedSubmittedRequestAsync(ctx, requested: 50m, alertSuffix: 3);
             var cancel = await workflow.CancelAsync(
-                requestId3, ManagerStaffId, StoreId, ManagerRoles, "nhầm");
+                requestId3, ManagerStaffId, StoreId, ManagerRoles, "nhầm",
+                await RequestVersionAsync(ctx, requestId3));
             Assert.True(cancel.IsSuccess, cancel.Message);
             Assert.Equal(RestockRequestStatuses.Cancelled, cancel.Data!.Status);
         }
@@ -240,7 +324,8 @@ namespace CafeChain.Tests
             var requestId = await SeedSubmittedRequestAsync(ctx, requested: 100m);
             var workflow = CreateWorkflowService(ctx);
             Assert.True((await workflow.RejectAsync(
-                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "no")).IsSuccess);
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "no",
+                await RequestVersionAsync(ctx, requestId))).IsSuccess);
 
             var service = CreateReceiptService(ctx);
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
@@ -261,7 +346,7 @@ namespace CafeChain.Tests
             Assert.True(draft.IsSuccess);
 
             var confirm = await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, WarehouseStaffId, StoreId, WarehouseRoles);
+                draft.Data!.BranchReceiptId, WarehouseStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
             Assert.True(confirm.IsSuccess, confirm.Message);
         }
 
@@ -283,9 +368,26 @@ namespace CafeChain.Tests
             Assert.True(detail.IsSuccess, detail.Message);
 
             var confirm = await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, SupervisorStaffId, StoreId, SupervisorRoles);
+                draft.Data!.BranchReceiptId, SupervisorStaffId, StoreId, SupervisorRoles, draft.Data.RowVersion);
             Assert.False(confirm.IsSuccess);
             Assert.Equal(BranchReceiptErrorCodes.Unauthorized, confirm.ErrorCode);
+        }
+
+        [Theory]
+        [InlineData(RoleConstants.StoreManager)]
+        [InlineData(RoleConstants.AreaManager)]
+        public async Task StoreManagerAndAreaManager_CannotCreateReceipt(string role)
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+
+            var result = await CreateReceiptService(ctx).CreateDraftAsync(
+                NewReceiptRequest(requestId, 10m, UnitGram, 1_000m, $"k-forbidden-{role}"),
+                ManagerStaffId,
+                new[] { role });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, result.ErrorCode);
         }
 
         [Fact]
@@ -318,7 +420,7 @@ namespace CafeChain.Tests
                     SourceType = RestockFulfillmentSourceTypes.Supplier,
                     PlannedBaseQuantity = 100m,
                     Notes = "PO-1"
-                });
+                }, await RequestVersionAsync(ctx, requestId));
             Assert.True(link.IsSuccess, link.Message);
             Assert.Equal(0, await ctx.InventoryTransactions.CountAsync());
             Assert.Equal(1, await ctx.RestockRequestFulfillments.CountAsync());
@@ -340,7 +442,7 @@ namespace CafeChain.Tests
                     SourceType = RestockFulfillmentSourceTypes.Supplier,
                     PlannedBaseQuantity = 50m,
                     InventoryDocumentDetailId = 999
-                });
+                }, await RequestVersionAsync(ctx, requestId));
             Assert.False(link.IsSuccess);
             Assert.Equal(0, await ctx.RestockRequestFulfillments.CountAsync());
         }
@@ -354,10 +456,11 @@ namespace CafeChain.Tests
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 40m, UnitGram, 4_000m, "k-partial-cancel"), ManagerStaffId, ManagerRoles);
             Assert.True((await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles)).IsSuccess);
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion)).IsSuccess);
 
             var cancel = await CreateWorkflowService(ctx).CancelAsync(
-                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "late");
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles, "late",
+                await RequestVersionAsync(ctx, requestId));
             Assert.False(cancel.IsSuccess);
             Assert.Equal(BranchReceiptErrorCodes.TransitionInvalid, cancel.ErrorCode);
             var req = await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId);
@@ -379,7 +482,7 @@ namespace CafeChain.Tests
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 40m, UnitGram, 4_000m, "k-alert-alias"), ManagerStaffId, ManagerRoles);
             var confirm = await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
 
             Assert.True(confirm.IsSuccess, confirm.Message);
             Assert.True(confirm.Data!.AlertEvaluationFailed);
@@ -406,7 +509,7 @@ namespace CafeChain.Tests
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 40m, UnitGram, 4_000m, "k-alert"), ManagerStaffId, ManagerRoles);
             var confirm = await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles);
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
 
             Assert.True(confirm.IsSuccess, confirm.Message);
             Assert.True(confirm.Data!.AlertEvaluationFailed);
@@ -423,13 +526,14 @@ namespace CafeChain.Tests
             var requestId = await SeedSubmittedRequestAsync(ctx, requested: 100m);
             var workflow = CreateWorkflowService(ctx);
             Assert.True((await workflow.StartProcessingAsync(
-                requestId, WarehouseStaffId, StoreId, WarehouseRoles)).IsSuccess);
+                requestId, WarehouseStaffId, StoreId, WarehouseRoles, null,
+                await RequestVersionAsync(ctx, requestId))).IsSuccess);
 
             var service = CreateReceiptService(ctx);
             var draft = await service.CreateDraftAsync(NewReceiptRequest(
                 requestId, 100m, UnitGram, 10_000m, "k-tl"), ManagerStaffId, ManagerRoles);
             Assert.True((await service.ConfirmAsync(
-                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles)).IsSuccess);
+                draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion)).IsSuccess);
 
             var detail = await workflow.GetWorkflowDetailAsync(
                 requestId, ManagerStaffId, StoreId, ManagerRoles);
@@ -451,7 +555,7 @@ namespace CafeChain.Tests
                     new CreateBranchReceiptLineInput
                     {
                         RestockRequestId = requestId,
-                        InputQuantity = inputQty,
+                        ActualReceivedQuantity = inputQty,
                         InputUnitId = unitId,
                         ActualPackagePrice = price
                     }
@@ -487,6 +591,12 @@ namespace CafeChain.Tests
                 new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 NullLogger<RestockRequestWorkflowService>.Instance,
                 new RestockAllocationService(ctx, new NoPurchaseOrderAllocationProvider()));
+
+        private static async Task<string> RequestVersionAsync(AppDbContext ctx, int requestId) =>
+            Convert.ToBase64String(await ctx.RestockRequests.AsNoTracking()
+                .Where(x => x.RestockRequestId == requestId)
+                .Select(x => x.RowVersion)
+                .SingleAsync());
 
         private async Task<int> SeedProcessingRequestAsync(AppDbContext ctx, decimal requested)
         {

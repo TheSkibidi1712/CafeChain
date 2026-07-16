@@ -268,7 +268,10 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             try
             {
-                await _service.ToggleIngredientOfferActiveAsync(dto.IngredientSupplierId, dto.Active);
+                await _service.ToggleIngredientOfferActiveAsync(
+                    dto.IngredientSupplierId,
+                    dto.Active,
+                    dto.RowVersion);
                 return Json(new { success = true, message = "Đã cập nhật trạng thái gói mua" });
             }
             catch (Exception ex)

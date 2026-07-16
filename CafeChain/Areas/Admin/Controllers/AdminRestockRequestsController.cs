@@ -103,6 +103,7 @@ namespace CafeChain.Areas.Admin.Controllers
                             CreatedByName = simple.Data.CreatedByName,
                             CreatedAt = simple.Data.CreatedAt,
                             UpdatedAt = simple.Data.UpdatedAt,
+                            RowVersion = simple.Data.RowVersion,
                             IngredientId = simple.Data.IngredientId,
                             RecipeId = simple.Data.RecipeId,
                             PreparedItemId = simple.Data.PreparedItemId,
@@ -129,7 +130,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Submit(int id)
+        public async Task<IActionResult> Submit(int id, string? rowVersion)
         {
             if (!CanSubmit())
             {
@@ -139,7 +140,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.SubmitAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -147,7 +148,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> StartProcessing(int id, string? reason = null)
+        public async Task<IActionResult> StartProcessing(int id, string? reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
             {
@@ -157,7 +158,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.StartProcessingAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -165,7 +166,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reject(int id, string reason)
+        public async Task<IActionResult> Reject(int id, string reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
             {
@@ -175,7 +176,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.RejectAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -183,7 +184,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Cancel(int id, string? reason = null)
+        public async Task<IActionResult> Cancel(int id, string? reason, string? rowVersion)
         {
             if (!CanCancel())
             {
@@ -193,7 +194,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.CancelAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -201,7 +202,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CloseRemaining(int id, string reason)
+        public async Task<IActionResult> CloseRemaining(int id, string reason, string? rowVersion)
         {
             if (!CanWarehouseActions())
             {
@@ -211,7 +212,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.CloseRemainingAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -219,7 +220,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> LinkFulfillment(int id, LinkRestockFulfillmentRequest model)
+        public async Task<IActionResult> LinkFulfillment(int id, LinkRestockFulfillmentRequest model, string? rowVersion)
         {
             if (!CanWarehouseActions())
             {
@@ -229,7 +230,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _workflow.LinkFulfillmentAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, model);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, model, rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
                 result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
             return RedirectToAction(nameof(Details), new { id });
@@ -243,22 +244,19 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool CanWarehouseActions() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.BusinessOwner);
 
         private bool CanCreateReceipt() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.BusinessOwner);
 
         private bool CanCancel() =>
             CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
 
         private bool CanSubmit() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            || User.IsInRole(RoleConstants.BusinessOwner);
 
         private async Task<int> ResolveAuthorizedStoreIdAsync(
             int staffId,

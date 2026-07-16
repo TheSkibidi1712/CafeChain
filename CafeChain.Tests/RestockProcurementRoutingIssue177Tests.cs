@@ -35,10 +35,15 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
         var service = CreateWorkflow(context);
 
         var submitted = await service.SubmitAsync(
-            request.RestockRequestId, ManagerId, StoreId, new[] { RoleConstants.StoreManager });
+            request.RestockRequestId,
+            ManagerId,
+            StoreId,
+            new[] { RoleConstants.StoreManager },
+            Convert.ToBase64String(request.RowVersion));
         var accepted = await service.StartProcessingAsync(
             request.RestockRequestId, WarehouseId, null,
-            new[] { RoleConstants.AccountantWarehouse }, "Ưu tiên điều chuyển trước");
+            new[] { RoleConstants.AccountantWarehouse }, "Ưu tiên điều chuyển trước",
+            submitted.Data!.RowVersion);
 
         Assert.True(submitted.IsSuccess, submitted.Message);
         Assert.True(accepted.IsSuccess, accepted.Message);
@@ -48,6 +53,67 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
         Assert.NotNull(stored.AcceptedAtUtc);
         Assert.Equal("Ưu tiên điều chuyển trước", stored.ProcessingNote);
         Assert.Equal(2, await context.RestockRequestTransitions.CountAsync());
+    }
+
+    [Fact]
+    public async Task RestockRequest_AreaManagerMutation_IsRejected()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedRequestAsync(context, RestockRequestStatuses.Submitted, 20m);
+
+        var result = await CreateWorkflow(context).StartProcessingAsync(
+            request.RestockRequestId,
+            ManagerId,
+            StoreId,
+            new[] { RoleConstants.AreaManager },
+            "attempt",
+            Convert.ToBase64String(request.RowVersion));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.Unauthorized, result.ErrorCode);
+        Assert.Equal(RestockRequestStatuses.Submitted,
+            (await context.RestockRequests.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task RestockSubmit_RevalidatesRequestedQuantity()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedRequestAsync(context, RestockRequestStatuses.Draft, 0m);
+        var service = CreateWorkflow(context);
+
+        var result = await service.SubmitAsync(
+            request.RestockRequestId,
+            ManagerId,
+            StoreId,
+            new[] { RoleConstants.StoreManager },
+            Convert.ToBase64String(request.RowVersion));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.QuantityInvalid, result.ErrorCode);
+        Assert.Equal(RestockRequestStatuses.Draft,
+            (await context.RestockRequests.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task RestockSubmit_MissingOrStaleRowVersionRejected()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedRequestAsync(context, RestockRequestStatuses.Draft, 10m);
+        var service = CreateWorkflow(context);
+
+        var missing = await service.SubmitAsync(
+            request.RestockRequestId, ManagerId, StoreId,
+            new[] { RoleConstants.StoreManager }, null);
+        var stale = await service.SubmitAsync(
+            request.RestockRequestId, ManagerId, StoreId,
+            new[] { RoleConstants.StoreManager },
+            Convert.ToBase64String(new byte[] { 9 }));
+
+        Assert.False(missing.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missing.ErrorCode);
+        Assert.False(stale.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
     }
 
     [Fact]
@@ -147,10 +213,12 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
 
         var missingReason = await service.CloseRemainingAsync(
             request.RestockRequestId, WarehouseId, null,
-            new[] { RoleConstants.AccountantWarehouse }, "");
+            new[] { RoleConstants.AccountantWarehouse }, "",
+            await RequestVersionAsync(context, request.RestockRequestId));
         var closed = await service.CloseRemainingAsync(
             request.RestockRequestId, WarehouseId, null,
-            new[] { RoleConstants.AccountantWarehouse }, "Nhà cung cấp ngừng mặt hàng");
+            new[] { RoleConstants.AccountantWarehouse }, "Nhà cung cấp ngừng mặt hàng",
+            await RequestVersionAsync(context, request.RestockRequestId));
 
         Assert.False(missingReason.IsSuccess);
         Assert.True(closed.IsSuccess, closed.Message);
@@ -182,12 +250,18 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
             new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()));
     }
 
+    private static async Task<string> RequestVersionAsync(AppDbContext context, int requestId) =>
+        Convert.ToBase64String(await context.RestockRequests.AsNoTracking()
+            .Where(x => x.RestockRequestId == requestId)
+            .Select(x => x.RowVersion)
+            .SingleAsync());
+
     private static async Task<RestockRequest> SeedRequestAsync(
         AppDbContext context,
         string status,
         decimal quantity)
     {
-        if (!await context.Stores.AnyAsync())
+        if (!await context.Stores.AnyAsync(x => x.StoreId == StoreId))
         {
             context.Stores.AddRange(
                 new Store
@@ -222,6 +296,15 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
                 Name = "Ingredient #177",
                 BaseUnitId = UnitId,
                 Active = true
+            });
+            context.StoreInventories.Add(new StoreInventory
+            {
+                StoreId = StoreId,
+                IngredientId = IngredientId,
+                AvailableQty = 0,
+                ReservedQty = 0,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
             });
             context.Accounts.AddRange(
                 new Account
@@ -273,7 +356,8 @@ public sealed class RestockProcurementRoutingIssue177Tests : IntegrationTestBase
             Priority = RestockRequestPriorities.Normal,
             CreatedByStaffId = ManagerId,
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            UpdatedAt = DateTime.UtcNow,
+            RowVersion = new byte[] { 0 }
         };
         context.RestockRequests.Add(request);
         await context.SaveChangesAsync();

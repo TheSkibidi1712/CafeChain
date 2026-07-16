@@ -34,7 +34,7 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
         Task<AdminIngredientSupplierDTO?> GetIngredientOfferByIdAsync(int ingredientSupplierId);
         Task<int> CreateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
         Task UpdateIngredientOfferAsync(AdminIngredientSupplierSaveDTO dto);
-        Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active);
+        Task ToggleIngredientOfferActiveAsync(int ingredientSupplierId, bool active, string? rowVersion);
         Task ChangeIngredientOfferPriceAsync(AdminIngredientSupplierPriceChangeDTO dto, int actorStaffId);
         Task<List<AdminIngredientSupplierPriceHistoryDTO>> GetIngredientOfferPriceHistoryAsync(int ingredientSupplierId);
         Task<List<object>> GetIngredientDropdownAsync();

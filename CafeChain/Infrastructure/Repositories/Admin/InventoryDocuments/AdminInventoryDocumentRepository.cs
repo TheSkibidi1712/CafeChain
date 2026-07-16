@@ -651,6 +651,30 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .ToListAsync();
         }
 
+        public async Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIdsAsync(
+            IEnumerable<int> ingredientSupplierIds)
+        {
+            var ids = ingredientSupplierIds.Where(x => x > 0).Distinct().ToList();
+            if (ids.Count == 0) return [];
+
+            return await _context.IngredientSuppliers
+                .AsNoTracking()
+                .Include(x => x.Supplier)
+                .Include(x => x.Unit)
+                .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+                .Include(x => x.Ingredient).ThenInclude(x => x.UnitConversions).ThenInclude(x => x.FromUnit)
+                .Where(x => ids.Contains(x.IngredientSupplierId) && x.Active)
+                .ToListAsync();
+        }
+
+        public Task<bool> IsActiveSupplierStoreAsync(int supplierId, int storeId) =>
+            _context.SupplierStores.AsNoTracking().AnyAsync(x =>
+                x.SupplierId == supplierId
+                && x.StoreId == storeId
+                && x.Active
+                && x.Supplier.Active
+                && x.Store.Active);
+
         // =====================================================
         // AUDIT LOG
         // =====================================================

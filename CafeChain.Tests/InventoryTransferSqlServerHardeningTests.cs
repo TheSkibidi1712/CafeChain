@@ -187,10 +187,15 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
         }
         await using (var receive = CreateContext())
         {
+            var rowVersion = Convert.ToBase64String(await receive.InventoryTransfers.AsNoTracking()
+                .Where(x => x.InventoryTransferId == transferId)
+                .Select(x => x.RowVersion)
+                .SingleAsync());
             var result = await CreateTransferService(receive).ReceiveAsync(
                 transferId,
                 new InventoryTransferReceiveDTO
                 {
+                    RowVersion = rowVersion,
                     RequestKey = "sql-transfer-receive-1",
                     ReceivedAt = DateTime.UtcNow,
                     Lines =
@@ -293,7 +298,7 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
             new ScopeAuthorizationService(context),
             NullLogger<StockAlertManagerService>.Instance);
         var result = await service.ConfirmAsync(
-            alertId, _staffId, _destinationStoreId, "outside scope");
+            alertId, _staffId, _destinationStoreId, "outside scope", null);
 
         Assert.False(result.IsSuccess);
         Assert.Equal(StockAlertStatuses.Open,

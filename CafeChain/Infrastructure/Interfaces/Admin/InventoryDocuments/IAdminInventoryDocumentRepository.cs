@@ -162,6 +162,8 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 
         Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIngredientIdsAsync(IEnumerable<int> ingredientIds);
+        Task<List<IngredientSupplier>> GetActiveIngredientSuppliersByIdsAsync(IEnumerable<int> ingredientSupplierIds);
+        Task<bool> IsActiveSupplierStoreAsync(int supplierId, int storeId);
 
         Task<string> GenerateDocumentCodeAsync(InventoryDocumentType type, InventoryDocumentPurpose? purpose = null);
 

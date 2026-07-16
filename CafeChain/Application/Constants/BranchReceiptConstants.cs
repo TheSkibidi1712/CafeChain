@@ -47,5 +47,15 @@ namespace CafeChain.Application.Constants
         public const string SupplierNotAssigned = "SUPPLIER_NOT_ASSIGNED";
         public const string OfferNotAvailable = "OFFER_NOT_AVAILABLE";
         public const string MinimumOrderNotMet = "MINIMUM_ORDER_NOT_MET";
+        public const string ActualReceivedRequired = "ACTUAL_RECEIVED_REQUIRED";
+        public const string ActualReceivedNotPositive = "ACTUAL_RECEIVED_NOT_POSITIVE";
+        public const string RejectedQuantityNegative = "REJECTED_QUANTITY_NEGATIVE";
+        public const string RejectedExceedsActualReceived = "REJECTED_EXCEEDS_ACTUAL_RECEIVED";
+        public const string RejectionReasonRequired = "REJECTION_REASON_REQUIRED";
+        public const string ReceiptExceedsRemaining = "RECEIPT_EXCEEDS_REMAINING";
+        public const string PoLineScopeMismatch = "PO_LINE_SCOPE_MISMATCH";
+        public const string ReceiptStaleVersion = "RECEIPT_STALE_VERSION";
+        public const string ValidationRowVersionRequired = "VALIDATION_ROW_VERSION_REQUIRED";
+        public const string ResourceChanged = "RESOURCE_CHANGED_BY_ANOTHER_USER";
     }
 }

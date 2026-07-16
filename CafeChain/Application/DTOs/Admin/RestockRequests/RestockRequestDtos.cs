@@ -36,6 +36,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int? SuggestionLeadTimeDaysSnapshot { get; set; }
         public decimal? SuggestionIncomingQuantitySnapshot { get; set; }
         public string? SuggestionReason { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
     }
 
     public class RestockRequestListResultDto

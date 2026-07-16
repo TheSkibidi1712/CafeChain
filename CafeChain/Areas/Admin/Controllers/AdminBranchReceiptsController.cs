@@ -163,7 +163,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Confirm(int id)
+        public async Task<IActionResult> Confirm(int id, string? rowVersion)
         {
             if (!CanConfirmReceipts())
             {
@@ -173,7 +173,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var ctx = _actor.Get(User);
             var result = await _receiptService.ConfirmAsync(
-                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, rowVersion);
 
             if (!result.IsSuccess)
             {
@@ -244,10 +244,8 @@ namespace CafeChain.Areas.Admin.Controllers
             || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanConfirmReceipts() =>
-            User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager);
+            User.IsInRole(RoleConstants.AccountantWarehouse)
+            || User.IsInRole(RoleConstants.BusinessOwner);
 
         private bool HasCrossStoreDocumentRole() =>
             User.IsInRole(RoleConstants.BusinessOwner)

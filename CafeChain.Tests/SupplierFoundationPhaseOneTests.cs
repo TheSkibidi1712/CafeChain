@@ -113,7 +113,8 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
             PackagePrice = 672_000m,
             PackageQuantity = 24m,
             PackageUnitId = CanUnitId,
-            Reason = "Điều chỉnh giá tháng mới"
+            Reason = "Điều chỉnh giá tháng mới",
+            RowVersion = await OfferVersionAsync(ctx, offerId)
         }, ActorStaffId);
 
         var offer = await ctx.IngredientSuppliers.SingleAsync(x => x.IngredientSupplierId == offerId);
@@ -204,7 +205,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
                 {
                     RestockRequestId = requestId,
                     IngredientSupplierId = offerId,
-                    InputQuantity = 2m,
+                    ActualReceivedQuantity = 2m,
                     InputUnitId = CanUnitId,
                     ActualPackagePrice = 1m
                 }
@@ -226,11 +227,12 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
             PackagePrice = 720_000m,
             PackageQuantity = 24m,
             PackageUnitId = CanUnitId,
-            Reason = "Giá mới sau khi lập phiếu"
+            Reason = "Giá mới sau khi lập phiếu",
+            RowVersion = await OfferVersionAsync(ctx, offerId)
         }, ActorStaffId);
 
         var confirmed = await receiptService.ConfirmAsync(
-            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles);
+            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
         Assert.True(confirmed.IsSuccess, confirmed.Message);
         Assert.False(confirmed.Data!.WasReplay);
 
@@ -246,7 +248,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
         Assert.Equal(27_000m, fifo.UnitCost);
 
         var replay = await receiptService.ConfirmAsync(
-            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles);
+            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
         Assert.True(replay.IsSuccess, replay.Message);
         Assert.True(replay.Data!.WasReplay);
         Assert.Equal(1, await ctx.InventoryTransactions.CountAsync(x =>
@@ -269,7 +271,10 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
             Active = true
         });
         var offerId = await supplierService.CreateIngredientOfferAsync(NewOffer(supplierId));
-        await supplierService.ToggleIngredientOfferActiveAsync(offerId, false);
+        await supplierService.ToggleIngredientOfferActiveAsync(
+            offerId,
+            false,
+            await OfferVersionAsync(ctx, offerId));
         var requestId = await SeedProcessingRequestAsync(ctx, 48m);
         var receiptService = CreateReceiptService(ctx);
 
@@ -289,7 +294,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
                 {
                     RestockRequestId = requestId,
                     IngredientSupplierId = offerId,
-                    InputQuantity = 2m,
+                    ActualReceivedQuantity = 2m,
                     InputUnitId = CanUnitId,
                     ActualPackagePrice = 648_000m
                 }
@@ -443,5 +448,15 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
         ctx.RestockRequests.Add(request);
         await ctx.SaveChangesAsync();
         return request.RestockRequestId;
+    }
+
+    private static async Task<string> OfferVersionAsync(AppDbContext context, int offerId)
+    {
+        var version = await context.IngredientSuppliers
+            .AsNoTracking()
+            .Where(x => x.IngredientSupplierId == offerId)
+            .Select(x => x.RowVersion)
+            .SingleAsync();
+        return Convert.ToBase64String(version);
     }
 }

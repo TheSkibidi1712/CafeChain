@@ -10,19 +10,22 @@ namespace CafeChain.Application.Interfaces.Inventories
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string note);
+            string note,
+            string? rowVersion);
 
         Task<ServiceResult> RejectAsync(
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string reason);
+            string reason,
+            string? rowVersion);
 
         Task<ServiceResult> CloseAsync(
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string reason);
+            string reason,
+            string? rowVersion);
 
         Task<ServiceResult<StockAlertListResultDto>> ListForStoreAsync(
             int storeId,

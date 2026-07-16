@@ -27,6 +27,7 @@ namespace CafeChain.Application.DTOs.Admin.StockAlerts
 
     public class StockAlertDetailDto : StockAlertListItemDto
     {
+        public string RowVersion { get; set; } = string.Empty;
         public int? ReportedByStaffId { get; set; }
         public DateTime? ReportedAt { get; set; }
         public int? ConfirmedByStaffId { get; set; }

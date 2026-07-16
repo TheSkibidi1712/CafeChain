@@ -70,6 +70,7 @@ public sealed class InventoryTransferPreparedItemTests
             FromStoreId = 1,
             ToStoreId = 2,
             Status = InventoryTransferStatus.DRAFT,
+            RowVersion = new byte[] { 1 },
             CreatedByStaffId = 7,
             CreatedAt = DateTime.UtcNow,
             Details = [detail]
@@ -235,8 +236,28 @@ public sealed class InventoryTransferPreparedItemTests
         repository.Verify(x => x.AddInventoryTransactionAsync(It.IsAny<InventoryTransaction>()), Times.Once);
         repository.Verify(x => x.AddCostLayerAsync(It.IsAny<InventoryCostLayer>()), Times.Never);
 
+        var missingVersion = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveAsync(
+            transferId,
+            new InventoryTransferReceiveDTO
+            {
+                RequestKey = "receive-missing-version",
+                Lines = [new() { InventoryTransferDetailId = detailId, ReceivedBaseQuantity = 1m }]
+            }));
+        Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missingVersion.Message);
+
+        var staleVersion = await Assert.ThrowsAsync<InvalidOperationException>(() => service.ReceiveAsync(
+            transferId,
+            new InventoryTransferReceiveDTO
+            {
+                RowVersion = Convert.ToBase64String(new byte[] { 9 }),
+                RequestKey = "receive-stale-version",
+                Lines = [new() { InventoryTransferDetailId = detailId, ReceivedBaseQuantity = 1m }]
+            }));
+        Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, staleVersion.Message);
+
         var partial = await service.ReceiveAsync(transferId, new InventoryTransferReceiveDTO
         {
+            RowVersion = first.RowVersion,
             RequestKey = "receive-1",
             Lines =
             [
@@ -254,6 +275,7 @@ public sealed class InventoryTransferPreparedItemTests
             transferId,
             new InventoryTransferReceiveDTO
             {
+                RowVersion = partial.RowVersion,
                 RequestKey = "receive-over",
                 Lines =
                 [
@@ -267,6 +289,7 @@ public sealed class InventoryTransferPreparedItemTests
 
         var completed = await service.ReceiveAsync(transferId, new InventoryTransferReceiveDTO
         {
+            RowVersion = partial.RowVersion,
             RequestKey = "receive-2",
             Lines =
             [

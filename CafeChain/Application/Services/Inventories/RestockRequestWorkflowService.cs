@@ -38,19 +38,29 @@ namespace CafeChain.Application.Services.Inventories
             int requestId,
             int actorStaffId,
             int? actorStoreId,
-            IReadOnlyCollection<string> roleNames)
+            IReadOnlyCollection<string> roleNames,
+            string? rowVersion)
         {
             if (!CanSubmit(roleNames))
                 return Fail("Bạn không có quyền gửi yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
 
+            if (!TryParseRequiredRowVersion(rowVersion, out var expectedVersion))
+                return Fail("Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+
             var request = await LoadRequestTrackedAsync(requestId);
             if (request == null)
                 return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            if (!request.RowVersion.SequenceEqual(expectedVersion))
+                return Fail("Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ResourceChanged);
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
             if (request.Status != RestockRequestStatuses.Draft)
                 return Fail($"Chỉ gửi yêu cầu ở trạng thái DRAFT. Hiện tại: {request.Status}.", BranchReceiptErrorCodes.TransitionInvalid);
+
+            var validation = await ValidateForSubmitAsync(request);
+            if (!validation.IsSuccess)
+                return Fail(validation.Message, validation.ErrorCode);
 
             var previous = request.Status;
             request.Status = RestockRequestStatuses.Submitted;
@@ -82,7 +92,15 @@ namespace CafeChain.Application.Services.Inventories
                     CreatedAt = DateTime.UtcNow
                 });
             }
-            await _context.SaveChangesAsync();
+            _context.Entry(request).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Fail("Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trang.", BranchReceiptErrorCodes.ResourceChanged);
+            }
 
             return ServiceResult<RestockRequestWorkflowDetailDto>.Success(
                 await MapWorkflowDetailAsync(request),
@@ -111,7 +129,8 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string? reason = null)
+            string? reason,
+            string? rowVersion)
         {
             if (!CanWarehouseProcess(roleNames))
                 return Fail("Chỉ Kế toán/kho hoặc quản trị được chuyển PROCESSING.", BranchReceiptErrorCodes.Unauthorized);
@@ -123,6 +142,10 @@ namespace CafeChain.Application.Services.Inventories
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
+
+            var versionError = ApplyRequiredRowVersion(request, rowVersion);
+            if (versionError != null)
+                return FailVersion(versionError);
 
             if (request.Status != RestockRequestStatuses.Submitted)
             {
@@ -141,7 +164,14 @@ namespace CafeChain.Application.Services.Inventories
             request.UpdatedAt = DateTime.UtcNow;
 
             AddTransition(request, previous, RestockRequestStatuses.Processing, actorStaffId, reason, null, null, null, null, null);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return FailVersion(BranchReceiptErrorCodes.ResourceChanged);
+            }
 
             _logger.LogInformation(
                 "[RestockWorkflow] StartProcessing RequestId={Id} ByStaff={Staff}",
@@ -157,7 +187,8 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string reason)
+            string reason,
+            string? rowVersion)
         {
             if (!CanWarehouseProcess(roleNames))
                 return Fail("Chỉ Kế toán/kho hoặc quản trị được từ chối yêu cầu.", BranchReceiptErrorCodes.Unauthorized);
@@ -172,6 +203,10 @@ namespace CafeChain.Application.Services.Inventories
             var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
+
+            var versionError = ApplyRequiredRowVersion(request, rowVersion);
+            if (versionError != null)
+                return FailVersion(versionError);
 
             if (request.Status != RestockRequestStatuses.Submitted)
             {
@@ -190,7 +225,14 @@ namespace CafeChain.Application.Services.Inventories
             AddTransition(
                 request, previous, RestockRequestStatuses.Rejected, actorStaffId,
                 reason.Trim(), null, null, null, null, null);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return FailVersion(BranchReceiptErrorCodes.ResourceChanged);
+            }
 
             _logger.LogInformation(
                 "[RestockWorkflow] Reject RequestId={Id} ByStaff={Staff}",
@@ -206,7 +248,8 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string? reason = null)
+            string? reason,
+            string? rowVersion)
         {
             if (!CanCancel(roleNames))
                 return Fail("Bạn không có quyền hủy yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
@@ -235,6 +278,13 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     await transaction.RollbackAsync();
                     return Fail(auth.Message, auth.ErrorCode);
+                }
+
+                var versionError = ApplyRequiredRowVersion(request, rowVersion);
+                if (versionError != null)
+                {
+                    await transaction.RollbackAsync();
+                    return FailVersion(versionError);
                 }
 
                 // StoreManager can cancel own store SUBMITTED; warehouse/admin wider.
@@ -275,6 +325,12 @@ namespace CafeChain.Application.Services.Inventories
                     await MapWorkflowDetailAsync(request),
                     "Đã hủy yêu cầu nhập hàng.");
             }
+            catch (DbUpdateConcurrencyException)
+            {
+                try { await transaction.RollbackAsync(); } catch { /* ignore */ }
+                _context.ChangeTracker.Clear();
+                return FailVersion(BranchReceiptErrorCodes.ResourceChanged);
+            }
             catch (Exception ex)
             {
                 try { await transaction.RollbackAsync(); } catch { /* ignore */ }
@@ -289,7 +345,8 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            string reason)
+            string reason,
+            string? rowVersion)
         {
             if (!CanWarehouseProcess(roleNames))
                 return Fail("Chỉ bộ phận kho hoặc quản trị được đóng phần còn lại.", BranchReceiptErrorCodes.Unauthorized);
@@ -305,6 +362,9 @@ namespace CafeChain.Application.Services.Inventories
                 var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
                 if (!auth.IsSuccess)
                     return Fail(auth.Message, auth.ErrorCode);
+                var versionError = ApplyRequiredRowVersion(request, rowVersion);
+                if (versionError != null)
+                    return FailVersion(versionError);
                 if (request.Status is not (RestockRequestStatuses.Processing or RestockRequestStatuses.PartiallyReceived))
                     return Fail($"Không thể đóng phần còn lại ở trạng thái {request.Status}.", BranchReceiptErrorCodes.TransitionInvalid);
 
@@ -335,7 +395,7 @@ namespace CafeChain.Application.Services.Inventories
             {
                 await transaction.RollbackAsync();
                 _context.ChangeTracker.Clear();
-                return Fail("Yêu cầu vừa được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ConcurrencyConflict);
+                return FailVersion(BranchReceiptErrorCodes.ResourceChanged);
             }
         }
 
@@ -344,7 +404,8 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             int? actorStoreId,
             IReadOnlyCollection<string> roleNames,
-            LinkRestockFulfillmentRequest input)
+            LinkRestockFulfillmentRequest input,
+            string? rowVersion)
         {
             if (!CanWarehouseProcess(roleNames))
                 return ServiceResult<RestockFulfillmentDto>.Failure(
@@ -389,6 +450,11 @@ namespace CafeChain.Application.Services.Inventories
             if (!auth.IsSuccess)
                 return ServiceResult<RestockFulfillmentDto>.Failure(auth.Message, errorCode: auth.ErrorCode);
 
+            var versionError = ApplyRequiredRowVersion(request, rowVersion);
+            if (versionError != null)
+                return ServiceResult<RestockFulfillmentDto>.Failure(
+                    VersionMessage(versionError), errorCode: versionError);
+
             if (request.Status is RestockRequestStatuses.Rejected
                 or RestockRequestStatuses.Cancelled
                 or RestockRequestStatuses.Completed)
@@ -424,7 +490,16 @@ namespace CafeChain.Application.Services.Inventories
             };
 
             _context.RestockRequestFulfillments.Add(fulfillment);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return ServiceResult<RestockFulfillmentDto>.Failure(
+                    VersionMessage(BranchReceiptErrorCodes.ResourceChanged),
+                    errorCode: BranchReceiptErrorCodes.ResourceChanged);
+            }
 
             // No inventory mutation by design.
             return ServiceResult<RestockFulfillmentDto>.Success(new RestockFulfillmentDto
@@ -493,6 +568,88 @@ namespace CafeChain.Application.Services.Inventories
             await _context.RestockFulfillmentPostings
                 .AsNoTracking()
                 .AnyAsync(p => p.RestockRequestId == restockRequestId);
+
+        private async Task<ServiceResult> ValidateForSubmitAsync(RestockRequest request)
+        {
+            if (request.RequestedQuantity <= 0)
+                return ServiceResult.Failure("Số lượng yêu cầu phải lớn hơn 0.", errorCode: BranchReceiptErrorCodes.QuantityInvalid);
+
+            var identityCount = (request.IngredientId.HasValue ? 1 : 0)
+                + (request.PreparedItemId.HasValue ? 1 : 0);
+            if (identityCount != 1)
+                return ServiceResult.Failure("Yêu cầu nhập phải có đúng một identity Ingredient hoặc PreparedItem.", errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+
+            bool identityIsActive;
+            bool inventoryExists;
+            if (request.IngredientId.HasValue)
+            {
+                var ingredient = await _context.Ingredients
+                    .AsNoTracking()
+                    .Where(x => x.IngredientId == request.IngredientId.Value && x.Active)
+                    .Select(x => new { x.BaseUnitId })
+                    .SingleOrDefaultAsync();
+                identityIsActive = ingredient != null
+                    && await _context.Units.AsNoTracking()
+                        .AnyAsync(x => x.UnitId == ingredient.BaseUnitId && x.Active);
+                inventoryExists = await _context.StoreInventories
+                    .AsNoTracking()
+                    .AnyAsync(x => x.StoreId == request.StoreId
+                        && x.IngredientId == request.IngredientId.Value
+                        && !x.PreparedItemId.HasValue
+                        && !x.RecipeId.HasValue);
+            }
+            else
+            {
+                var preparedItem = await _context.PreparedItems
+                    .AsNoTracking()
+                    .Where(x => x.PreparedItemId == request.PreparedItemId!.Value && x.Active)
+                    .Select(x => new { x.BaseUnitId })
+                    .SingleOrDefaultAsync();
+                identityIsActive = preparedItem != null
+                    && await _context.Units.AsNoTracking()
+                        .AnyAsync(x => x.UnitId == preparedItem.BaseUnitId && x.Active);
+                inventoryExists = await _context.StoreInventories
+                    .AsNoTracking()
+                    .AnyAsync(x => x.StoreId == request.StoreId
+                        && (x.PreparedItemId == request.PreparedItemId.Value
+                            || (request.RecipeId.HasValue && x.RecipeId == request.RecipeId.Value)));
+            }
+
+            if (!identityIsActive)
+                return ServiceResult.Failure("Mặt hàng hoặc đơn vị cơ sở không còn hoạt động.", errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+            if (!inventoryExists)
+                return ServiceResult.Failure("Mặt hàng không thuộc tồn kho của cửa hàng.", errorCode: BranchReceiptErrorCodes.StoreMismatch);
+
+            var hasOtherActiveRequest = await _context.RestockRequests
+                .AsNoTracking()
+                .AnyAsync(x => x.RestockRequestId != request.RestockRequestId
+                    && x.StoreId == request.StoreId
+                    && RestockRequestStatuses.ActiveValues.Contains(x.Status)
+                    && (request.IngredientId.HasValue
+                        ? x.IngredientId == request.IngredientId
+                        : x.PreparedItemId == request.PreparedItemId));
+            if (hasOtherActiveRequest)
+                return ServiceResult.Failure("Đã có yêu cầu nhập đang hoạt động cho mặt hàng này.", errorCode: BranchReceiptErrorCodes.TransitionInvalid);
+
+            return ServiceResult.Success();
+        }
+
+        private static bool TryParseRequiredRowVersion(string? value, out byte[] rowVersion)
+        {
+            rowVersion = Array.Empty<byte>();
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            try
+            {
+                rowVersion = Convert.FromBase64String(value);
+                return rowVersion.Length > 0;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
 
         private void AddTransition(
             RestockRequest request,
@@ -714,6 +871,7 @@ namespace CafeChain.Application.Services.Inventories
                 RecipeId = r.RecipeId,
                 PreparedItemId = r.PreparedItemId,
                 CreatedByStaffId = r.CreatedByStaffId,
+                RowVersion = Convert.ToBase64String(r.RowVersion ?? Array.Empty<byte>()),
                 AlertType = r.StockAlert?.AlertType,
                 AlertStatus = r.StockAlert?.Status,
                 AlertCurrentQtySnapshot = r.StockAlert?.CurrentQtySnapshot,
@@ -780,16 +938,32 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanWarehouseProcess(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.AccountantWarehouse)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AreaManager);
+            || roles.Contains(RoleConstants.BusinessOwner);
 
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
             CanWarehouseProcess(roles) || roles.Contains(RoleConstants.StoreManager);
 
         private static bool CanSubmit(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AreaManager);
+            || roles.Contains(RoleConstants.BusinessOwner);
+
+        private string? ApplyRequiredRowVersion(RestockRequest request, string? rowVersion)
+        {
+            if (!TryParseRequiredRowVersion(rowVersion, out var expectedVersion))
+                return BranchReceiptErrorCodes.ValidationRowVersionRequired;
+            if (!request.RowVersion.SequenceEqual(expectedVersion))
+                return BranchReceiptErrorCodes.ResourceChanged;
+            _context.Entry(request).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+            return null;
+        }
+
+        private static ServiceResult<RestockRequestWorkflowDetailDto> FailVersion(string code) =>
+            Fail(VersionMessage(code), code);
+
+        private static string VersionMessage(string code) =>
+            code == BranchReceiptErrorCodes.ValidationRowVersionRequired
+                ? "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang."
+                : "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trước khi thao tác.";
 
         private static bool IsStoreManagerOnly(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)

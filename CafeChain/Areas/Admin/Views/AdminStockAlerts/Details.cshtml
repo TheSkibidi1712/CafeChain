@@ -169,6 +169,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="managerNote">Ghi chú xác nhận <span class="text-danger">*</span></label>
                                 <textarea id="managerNote" name="managerNote" class="ops-textarea" maxlength="500" required placeholder="Nêu kết quả kiểm tra và hướng xử lý..."></textarea>
@@ -179,6 +180,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="rejectReason">Lý do báo sai <span class="text-danger">*</span></label>
                                 <textarea id="rejectReason" name="rejectReason" class="ops-textarea" maxlength="500" required placeholder="Nêu lý do số liệu hoặc báo cáo không chính xác..."></textarea>
@@ -189,6 +191,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <label class="ops-form-label" for="closeReason">Đóng thủ công</label>
                             <textarea id="closeReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
                             <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>
@@ -221,6 +224,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu <span class="text-danger">*</span></label>
                                 <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" required value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
@@ -244,6 +248,7 @@
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="id" value="@Model.StockAlertId" />
                             <input type="hidden" name="storeId" value="@Model.StoreId" />
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <label class="ops-form-label" for="confirmedCloseReason">Đóng cảnh báo không tạo yêu cầu</label>
                             <textarea id="confirmedCloseReason" name="closeReason" class="ops-textarea" maxlength="500" required placeholder="Lý do đóng cảnh báo..."></textarea>
                             <button type="submit" class="ops-btn w-100 mt-2">Đóng cảnh báo</button>

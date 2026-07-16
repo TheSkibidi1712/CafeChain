@@ -27,7 +27,7 @@
         <div asp-validation-summary="ModelOnly" class="ops-notice ops-notice-error" role="alert"></div>
     }
 
-    <form method="post" asp-action="Create">
+    <form method="post" asp-action="Create" id="branchReceiptForm">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="StoreId" />
 
@@ -80,11 +80,29 @@
                             </div>
                             <div class="col-lg-2 col-md-6">
                                 <label class="ops-form-label">Số gói thực nhận <span class="text-danger">*</span></label>
-                                <input class="ops-input w-100" asp-for="Lines[i].InputQuantity" type="number" step="0.001" min="0.001" required />
+                                <input class="ops-input w-100 receipt-actual" asp-for="Lines[i].ActualReceivedQuantity" data-line-index="@i" type="number" step="0.001" min="0.001" required />
+                                <span asp-validation-for="Lines[i].ActualReceivedQuantity" class="text-danger"></span>
                             </div>
                             <div class="col-lg-2 col-md-6">
-                                <label class="ops-form-label">Lượng loại bỏ (base)</label>
-                                <input class="ops-input w-100" asp-for="Lines[i].RejectedBaseQuantity" type="number" step="0.001" min="0" />
+                                <label class="ops-form-label">Số gói bị loại</label>
+                                <input class="ops-input w-100 receipt-rejected" asp-for="Lines[i].RejectedQuantity" data-line-index="@i" type="number" step="0.001" min="0" />
+                                <span asp-validation-for="Lines[i].RejectedQuantity" class="text-danger"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="ops-form-label">Loại sự cố khi có hàng bị loại</label>
+                                <select class="ops-select w-100 receipt-rejection-type" asp-for="Lines[i].RejectionIssueType" data-line-index="@i">
+                                    <option value="">Không có hàng bị loại</option>
+                                    <option value="QUALITY_FAILURE">Không đạt chất lượng</option>
+                                    <option value="DAMAGED">Hư hỏng</option>
+                                    <option value="EXPIRED">Hết hạn</option>
+                                    <option value="WRONG_ITEM">Sai mặt hàng</option>
+                                    <option value="OTHER">Khác</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="ops-form-label">Lý do loại bỏ</label>
+                                <input class="ops-input w-100 receipt-rejection-reason" asp-for="Lines[i].RejectionReason" data-line-index="@i" maxlength="500" />
+                                <span asp-validation-for="Lines[i].RejectionReason" class="text-danger"></span>
                             </div>
                             <div class="col-lg-5 col-md-12">
                                 <label class="ops-form-label">Gói mua nguyên liệu <span class="text-danger">*</span></label>
@@ -111,7 +129,7 @@
 
         <div class="ops-actions justify-content-end">
             <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId">Hủy</a>
-            <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu bản nháp</button>
+            <button type="submit" class="ops-btn ops-btn-primary" id="saveReceiptButton"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu bản nháp</button>
         </div>
     </form>
 </main>
@@ -120,7 +138,54 @@
     (() => {
         const storeId = @Model.StoreId;
         const supplier = document.getElementById('receiptSupplier');
+        const form = document.getElementById('branchReceiptForm');
+        const saveButton = document.getElementById('saveReceiptButton');
         const money = new Intl.NumberFormat('vi-VN');
+
+        const validateReceiptLine = (index) => {
+            const actual = document.querySelector(`.receipt-actual[data-line-index="${index}"]`);
+            const rejected = document.querySelector(`.receipt-rejected[data-line-index="${index}"]`);
+            const issueType = document.querySelector(`.receipt-rejection-type[data-line-index="${index}"]`);
+            const reason = document.querySelector(`.receipt-rejection-reason[data-line-index="${index}"]`);
+            const actualValue = Number(actual?.value || 0);
+            const rejectedValue = Number(rejected?.value || 0);
+
+            rejected?.setCustomValidity(rejectedValue > actualValue
+                ? 'Số gói bị loại không được vượt số gói thực nhận.'
+                : '');
+            issueType?.setCustomValidity(rejectedValue > 0 && !issueType.value
+                ? 'Chọn loại sự cố cho hàng bị loại.'
+                : '');
+            reason?.setCustomValidity(rejectedValue > 0 && !reason.value.trim()
+                ? 'Nhập lý do loại bỏ.'
+                : '');
+        };
+
+        const lineIndexes = [...document.querySelectorAll('.receipt-actual')]
+            .map(input => input.dataset.lineIndex);
+        for (const index of lineIndexes) {
+            for (const selector of ['.receipt-actual', '.receipt-rejected', '.receipt-rejection-type', '.receipt-rejection-reason']) {
+                document.querySelector(`${selector}[data-line-index="${index}"]`)
+                    ?.addEventListener('input', () => validateReceiptLine(index));
+                document.querySelector(`${selector}[data-line-index="${index}"]`)
+                    ?.addEventListener('change', () => validateReceiptLine(index));
+            }
+            validateReceiptLine(index);
+        }
+
+        form?.addEventListener('submit', (event) => {
+            lineIndexes.forEach(validateReceiptLine);
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                form.querySelector(':invalid')?.focus();
+                form.reportValidity();
+                return;
+            }
+
+            saveButton.disabled = true;
+            saveButton.setAttribute('aria-busy', 'true');
+            saveButton.textContent = 'Đang lưu...';
+        });
 
         const updateOfferFields = (select) => {
             const index = select.dataset.lineIndex;

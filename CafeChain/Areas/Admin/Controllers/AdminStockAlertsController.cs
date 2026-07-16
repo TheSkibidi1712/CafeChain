@@ -81,7 +81,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Confirm(int id, string managerNote, int? storeId = null)
+        public async Task<IActionResult> Confirm(int id, string managerNote, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
             {
@@ -94,7 +94,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0 || targetStoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.ConfirmAsync(id, staffId, targetStoreId, managerNote ?? string.Empty);
+            var result = await _service.ConfirmAsync(id, staffId, targetStoreId, managerNote ?? string.Empty, rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -105,7 +105,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reject(int id, string rejectReason, int? storeId = null)
+        public async Task<IActionResult> Reject(int id, string rejectReason, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
             {
@@ -118,7 +118,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId <= 0 || targetStoreId <= 0)
                 return Unauthorized();
 
-            var result = await _service.RejectAsync(id, staffId, targetStoreId, rejectReason ?? string.Empty);
+            var result = await _service.RejectAsync(id, staffId, targetStoreId, rejectReason ?? string.Empty, rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -129,7 +129,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Close(int id, string closeReason, int? storeId = null)
+        public async Task<IActionResult> Close(int id, string closeReason, string? rowVersion, int? storeId = null)
         {
             if (!CanManage())
                 return Forbid();
@@ -141,7 +141,8 @@ namespace CafeChain.Areas.Admin.Controllers
                 id,
                 staffId,
                 targetStoreId,
-                closeReason ?? string.Empty);
+                closeReason ?? string.Empty,
+                rowVersion);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }
@@ -179,13 +180,13 @@ namespace CafeChain.Areas.Admin.Controllers
 
         private bool CanView() =>
             CanManage()
+            || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.ShiftSupervisor)
             || User.IsInRole(RoleConstants.SalesStaff);
 
         private bool CanManage() =>
             User.IsInRole(RoleConstants.StoreManager)
-            || User.IsInRole(RoleConstants.AreaManager)
             || User.IsInRole(RoleConstants.BusinessOwner);
 
         private int ResolveStaffId()

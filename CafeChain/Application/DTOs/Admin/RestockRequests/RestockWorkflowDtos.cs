@@ -105,6 +105,8 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? InputUnitName { get; set; }
         public decimal ReceivedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionIssueType { get; set; }
         public int BaseUnitId { get; set; }
         public string? BaseUnitName { get; set; }
         public decimal? ActualPackagePrice { get; set; }
@@ -117,6 +119,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
 
     public class BranchReceiptDetailDto : BranchReceiptListItemDto
     {
+        public string RowVersion { get; set; } = string.Empty;
         public string? ReferenceNumber { get; set; }
         public string? Notes { get; set; }
         public int CreatedByStaffId { get; set; }
@@ -132,8 +135,10 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int RestockRequestId { get; set; }
         public int? PurchaseOrderLineId { get; set; }
         public int? RestockRequestFulfillmentId { get; set; }
-        public decimal InputQuantity { get; set; }
-        public decimal RejectedBaseQuantity { get; set; }
+        public decimal ActualReceivedQuantity { get; set; }
+        public decimal RejectedQuantity { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionIssueType { get; set; }
         public int InputUnitId { get; set; }
         /// <summary>Actual package/unit price confirmed by operator (required for post).</summary>
         public decimal ActualPackagePrice { get; set; }

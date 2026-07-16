@@ -107,7 +107,7 @@
                 <div class="ops-panel-body">
                     @if (canSubmit && Model.Status == "DRAFT")
                     {
-                        <form method="post" asp-action="Submit" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button></form>
+                        <form method="post" asp-action="Submit" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-paper-plane" aria-hidden="true"></i> Gửi yêu cầu nhập</button></form>
                     }
                     @if (Model.Timeline.Count == 0) { <div class="ops-secondary">Chưa có lịch sử chuyển trạng thái.</div> }
                     else
@@ -206,12 +206,13 @@
                 <div class="ops-panel-body">
                     @if (canWarehouse && Model.Status == "SUBMITTED")
                     {
-                        <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-play" aria-hidden="true"></i> Tiếp nhận xử lý</button></form>
+                        <form method="post" asp-action="StartProcessing" asp-route-id="@Model.RestockRequestId" class="mb-3">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button type="submit" class="ops-btn ops-btn-primary w-100"><i class="fa-solid fa-play" aria-hidden="true"></i> Tiếp nhận xử lý</button></form>
                     }
                     @if (canWarehouse && Model.Status == "SUBMITTED")
                     {
                         <form method="post" asp-action="Reject" asp-route-id="@Model.RestockRequestId" class="mb-3">
                             @Html.AntiForgeryToken()
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <label class="ops-form-label" for="rejectReason">Từ chối yêu cầu</label>
                             <textarea id="rejectReason" name="reason" class="ops-textarea" required placeholder="Lý do từ chối..."></textarea>
                             <button type="submit" class="ops-btn ops-btn-danger w-100 mt-2">Từ chối yêu cầu</button>
@@ -221,6 +222,7 @@
                     {
                         <form method="post" asp-action="Cancel" asp-route-id="@Model.RestockRequestId">
                             @Html.AntiForgeryToken()
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <label class="ops-form-label" for="cancelReason">Hủy yêu cầu</label>
                             <input id="cancelReason" name="reason" class="ops-input w-100" placeholder="Lý do hủy" />
                             <button type="submit" class="ops-btn w-100 mt-2">Hủy yêu cầu</button>
@@ -232,6 +234,7 @@
                         <a class="ops-btn w-100 mb-3" asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-toStoreId="@Model.StoreId"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Tạo điều chuyển phần còn lại</a>
                         <form method="post" asp-action="CloseRemaining" asp-route-id="@Model.RestockRequestId">
                             @Html.AntiForgeryToken()
+                            <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                             <label class="ops-form-label" for="closeRemainingReason">Đóng phần còn lại</label>
                             <textarea id="closeRemainingReason" name="reason" class="ops-textarea" required placeholder="Lý do không tiếp tục nhận phần còn lại..."></textarea>
                             <button type="submit" class="ops-btn w-100 mt-2">Đóng phần còn lại</button>

@@ -35,7 +35,7 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: true);
             var service = CreateService(ctx);
 
-            var result = await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "Đã kiểm tra, đúng thiếu hàng.");
+            var result = await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "Đã kiểm tra, đúng thiếu hàng.", await AlertVersionAsync(ctx, alertId));
 
             Assert.True(result.IsSuccess);
             var alert = await ctx.StockAlerts.SingleAsync(a => a.StockAlertId == alertId);
@@ -56,10 +56,31 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: false);
             var service = CreateService(ctx);
 
-            var result = await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "  ");
+            var result = await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "  ", await AlertVersionAsync(ctx, alertId));
 
             Assert.False(result.IsSuccess);
             Assert.Equal(StockAlertStatuses.Open, (await ctx.StockAlerts.SingleAsync()).Status);
+        }
+
+        [Fact]
+        public async Task AlertTransition_MissingAndStaleRowVersion_AreRejected()
+        {
+            using var ctx = CreateDbContext();
+            var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: false);
+            var service = CreateService(ctx);
+
+            var missing = await service.ConfirmAsync(
+                alertId, ManagerStaffId, StoreId, "Đã kiểm tra.", null);
+            var stale = await service.ConfirmAsync(
+                alertId, ManagerStaffId, StoreId, "Đã kiểm tra.",
+                System.Convert.ToBase64String(new byte[] { 9 }));
+
+            Assert.False(missing.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missing.ErrorCode);
+            Assert.False(stale.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
+            Assert.Equal(StockAlertStatuses.Open,
+                (await ctx.StockAlerts.AsNoTracking().SingleAsync(x => x.StockAlertId == alertId)).Status);
         }
 
         [Fact]
@@ -69,7 +90,7 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: true);
             var service = CreateService(ctx);
 
-            var result = await service.RejectAsync(alertId, ManagerStaffId, StoreId, "Kho vật lý vẫn còn đủ.");
+            var result = await service.RejectAsync(alertId, ManagerStaffId, StoreId, "Kho vật lý vẫn còn đủ.", await AlertVersionAsync(ctx, alertId));
 
             Assert.True(result.IsSuccess);
             var alert = await ctx.StockAlerts.SingleAsync(a => a.StockAlertId == alertId);
@@ -89,7 +110,7 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: false);
             var service = CreateService(ctx);
 
-            var result = await service.RejectAsync(alertId, ManagerStaffId, StoreId, "");
+            var result = await service.RejectAsync(alertId, ManagerStaffId, StoreId, "", await AlertVersionAsync(ctx, alertId));
 
             Assert.False(result.IsSuccess);
             Assert.Equal(StockAlertStatuses.Open, (await ctx.StockAlerts.SingleAsync()).Status);
@@ -104,7 +125,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
             var service = CreateService(ctx);
 
-            var result = await service.ConfirmAsync(alertId, SalesStaffId, StoreId, "Ghi chú đủ dài.");
+            var result = await service.ConfirmAsync(alertId, SalesStaffId, StoreId, "Ghi chú đủ dài.", await AlertVersionAsync(ctx, alertId));
             Assert.False(result.IsSuccess);
             Assert.Contains("không có quyền", result.Message);
         }
@@ -118,7 +139,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
             var service = CreateService(ctx);
 
-            var result = await service.ConfirmAsync(alertId, SupervisorStaffId, StoreId, "Ghi chú đủ dài.");
+            var result = await service.ConfirmAsync(alertId, SupervisorStaffId, StoreId, "Ghi chú đủ dài.", await AlertVersionAsync(ctx, alertId));
             Assert.False(result.IsSuccess);
         }
 
@@ -131,7 +152,7 @@ namespace CafeChain.Tests.POS
             await ctx.SaveChangesAsync();
             var service = CreateService(ctx);
 
-            var result = await service.RejectAsync(alertId, AccountantStaffId, StoreId, "Lý do đủ dài.");
+            var result = await service.RejectAsync(alertId, AccountantStaffId, StoreId, "Lý do đủ dài.", await AlertVersionAsync(ctx, alertId));
             Assert.False(result.IsSuccess);
         }
 
@@ -142,7 +163,7 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: false);
             var service = CreateService(ctx);
 
-            var result = await service.ConfirmAsync(alertId, ManagerStaffId, OtherStoreId, "Ghi chú xác nhận đủ dài.");
+            var result = await service.ConfirmAsync(alertId, ManagerStaffId, OtherStoreId, "Ghi chú xác nhận đủ dài.", await AlertVersionAsync(ctx, alertId));
 
             Assert.False(result.IsSuccess);
             Assert.Contains("cửa hàng", result.Message, System.StringComparison.OrdinalIgnoreCase);
@@ -155,13 +176,13 @@ namespace CafeChain.Tests.POS
             var service = CreateService(ctx);
 
             var resolvedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.Resolved);
-            Assert.False((await service.ConfirmAsync(resolvedId, ManagerStaffId, StoreId, "Ghi chú.")).IsSuccess);
+            Assert.False((await service.ConfirmAsync(resolvedId, ManagerStaffId, StoreId, "Ghi chú.", await AlertVersionAsync(ctx, resolvedId))).IsSuccess);
 
             var confirmedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.Confirmed);
-            Assert.False((await service.RejectAsync(confirmedId, ManagerStaffId, StoreId, "Lý do.")).IsSuccess);
+            Assert.False((await service.RejectAsync(confirmedId, ManagerStaffId, StoreId, "Lý do.", await AlertVersionAsync(ctx, confirmedId))).IsSuccess);
 
             var rejectedId = await SeedAlertWithStatusAsync(ctx, StockAlertStatuses.Rejected);
-            Assert.False((await service.ConfirmAsync(rejectedId, ManagerStaffId, StoreId, "Ghi chú.")).IsSuccess);
+            Assert.False((await service.ConfirmAsync(rejectedId, ManagerStaffId, StoreId, "Ghi chú.", await AlertVersionAsync(ctx, rejectedId))).IsSuccess);
         }
 
         [Fact]
@@ -171,7 +192,7 @@ namespace CafeChain.Tests.POS
             var alertId = await SeedOpenAlertAsync(ctx, StoreId, withReporter: false);
             var service = CreateService(ctx);
 
-            await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "Xác nhận không có người báo.");
+            await service.ConfirmAsync(alertId, ManagerStaffId, StoreId, "Xác nhận không có người báo.", await AlertVersionAsync(ctx, alertId));
 
             Assert.Equal(0, await ctx.StaffNotifications.CountAsync());
         }
@@ -193,6 +214,12 @@ namespace CafeChain.Tests.POS
                 ctx,
                 new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
                 new Mock<ILogger<StockAlertManagerService>>().Object);
+
+        private static async Task<string> AlertVersionAsync(CafeChain.Data.AppDbContext ctx, int alertId) =>
+            System.Convert.ToBase64String(await ctx.StockAlerts.AsNoTracking()
+                .Where(x => x.StockAlertId == alertId)
+                .Select(x => x.RowVersion)
+                .SingleAsync());
 
         private async Task<int> SeedOpenAlertAsync(
             CafeChain.Data.AppDbContext ctx,

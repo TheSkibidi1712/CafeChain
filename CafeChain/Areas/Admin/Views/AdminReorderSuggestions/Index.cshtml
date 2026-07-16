@@ -146,7 +146,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="storeId" value="@item.StoreId" />
                                         <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                        <input type="hidden" name="analysisWindowDays" value="@Model.AnalysisWindowDays" />
+                                        <input type="hidden" name="idempotencyKey" value="REORDER-@item.StoreId-@item.IngredientId-@Guid.NewGuid().ToString("N")" />
                                         <button type="submit" class="btn btn-sm btn-primary" disabled="@(!ready || !canCreateDraft)">Tạo yêu cầu nhập</button>
                                     </form>
                                 }

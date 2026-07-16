@@ -109,7 +109,8 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
         public async Task<ServiceResult> UpdateMinStockLevelAsync(
             int accountId,
             int storeInventoryId,
-            decimal? minStockLevel)
+            decimal? minStockLevel,
+            string? rowVersion)
         {
             if (accountId <= 0)
                 return ServiceResult.Failure("Không xác định được tài khoản.");
@@ -127,11 +128,37 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 return ServiceResult.Failure("Ngưỡng tồn tối thiểu không được âm.");
             }
 
+            if (string.IsNullOrWhiteSpace(rowVersion))
+            {
+                return ServiceResult.Failure(
+                    "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.",
+                    errorCode: "VALIDATION_ROW_VERSION_REQUIRED");
+            }
+
+            byte[] expectedVersion;
+            try
+            {
+                expectedVersion = Convert.FromBase64String(rowVersion);
+            }
+            catch (FormatException)
+            {
+                return ServiceResult.Failure(
+                    "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.",
+                    errorCode: "VALIDATION_ROW_VERSION_REQUIRED");
+            }
+
             var row = await _context.StoreInventories
                 .FirstOrDefaultAsync(i => i.StoreInventoryId == storeInventoryId);
 
             if (row == null)
                 return ServiceResult.Failure("Không tìm thấy dòng tồn kho.");
+
+            if (!row.RowVersion.SequenceEqual(expectedVersion))
+            {
+                return ServiceResult.Failure(
+                    "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trang.",
+                    errorCode: "RESOURCE_CHANGED_BY_ANOTHER_USER");
+            }
 
             var allowed = await GetAccessibleStoreIdsAsync(accountId);
             if (!allowed.Contains(row.StoreId))
@@ -146,7 +173,18 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
             row.MinStockLevel = minStockLevel;
             row.LastUpdated = DateTime.UtcNow;
 
-            await _context.SaveChangesAsync();
+            _context.Entry(row).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return ServiceResult.Failure(
+                    "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trang.",
+                    errorCode: "RESOURCE_CHANGED_BY_ANOTHER_USER");
+            }
 
             // Defensive: quantities must remain unchanged after save.
             if (row.AvailableQty != beforeQty || row.ReservedQty != beforeReserved)
@@ -303,6 +341,7 @@ namespace CafeChain.Application.Services.Admin.StoreInventories
                 AvailableQty = i.AvailableQty,
                 ReservedQty = i.ReservedQty,
                 MinStockLevel = i.MinStockLevel,
+                RowVersion = Convert.ToBase64String(i.RowVersion ?? Array.Empty<byte>()),
                 LastUpdated = i.LastUpdated
             };
         }

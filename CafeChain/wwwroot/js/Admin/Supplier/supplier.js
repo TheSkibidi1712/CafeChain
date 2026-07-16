@@ -414,8 +414,16 @@
     });
 
     async function toggleOffer(id, active) {
+        const offer = state.offers.find(item => item.ingredientSupplierId === id);
+        if (!offer?.rowVersion) {
+            toast('Dữ liệu gói mua đã thay đổi. Vui lòng tải lại trước khi cập nhật.', 'error');
+            return;
+        }
         try {
-            await api('/ToggleIngredientOffer', { method: 'POST', body: { ingredientSupplierId: id, active } });
+            await api('/ToggleIngredientOffer', {
+                method: 'POST',
+                body: { ingredientSupplierId: id, active, rowVersion: offer.rowVersion }
+            });
             await loadOffers();
             toast(active ? 'Đã kích hoạt gói mua.' : 'Đã ngừng sử dụng gói mua.');
         } catch (error) { toast(error.message, 'error'); }

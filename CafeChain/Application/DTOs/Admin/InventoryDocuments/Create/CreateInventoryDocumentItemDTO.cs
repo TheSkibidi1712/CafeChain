@@ -7,6 +7,8 @@ namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
         [Required]
         public int IngredientId { get; set; }
 
+        public int? IngredientSupplierId { get; set; }
+
         [Required]
         public int UnitId { get; set; }
 

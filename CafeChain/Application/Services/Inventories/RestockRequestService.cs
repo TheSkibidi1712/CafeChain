@@ -23,15 +23,18 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestService> _logger;
+        private readonly IReorderSuggestionService? _reorderSuggestions;
 
         public RestockRequestService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
-            ILogger<RestockRequestService> logger)
+            ILogger<RestockRequestService> logger,
+            IReorderSuggestionService? reorderSuggestions = null)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
+            _reorderSuggestions = reorderSuggestions;
         }
 
         public async Task<ServiceResult<CreateRestockRequestResultDto>> CreateFromConfirmedAlertAsync(
@@ -254,16 +257,33 @@ namespace CafeChain.Application.Services.Inventories
         {
             if (input.StoreId <= 0 || input.IngredientId <= 0 || actorStaffId <= 0)
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Thông tin tạo yêu cầu nhập không hợp lệ.");
-            if (input.RequestedQuantity <= 0 || input.SuggestedQuantity <= 0)
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Số lượng đề nghị và yêu cầu phải lớn hơn 0.");
-            if (input.AnalysisWindowDays is < 1 or > 365
-                || input.MinLevelSnapshot < 0
-                || input.AverageDailyUsageSnapshot < 0
-                || input.LeadTimeDaysSnapshot < 0
-                || input.IncomingQuantitySnapshot < 0)
-                return ServiceResult<CreateRestockRequestResultDto>.Failure("Evidence của gợi ý nhập hàng không hợp lệ.");
+            var idempotencyKey = input.IdempotencyKey?.Trim();
+            if (string.IsNullOrWhiteSpace(idempotencyKey) || idempotencyKey.Length > 100)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("IdempotencyKey bắt buộc và tối đa 100 ký tự.");
             if (!await IsAuthorizedRequesterAsync(actorStaffId, input.StoreId))
                 return ServiceResult<CreateRestockRequestResultDto>.Failure("Bạn không có quyền tạo yêu cầu nhập hàng tại cửa hàng này.");
+
+            if (_reorderSuggestions == null)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Dịch vụ tính gợi ý nhập hàng chưa được cấu hình.");
+            var actorRoles = await _context.Staffs.AsNoTracking()
+                .Where(x => x.StaffId == actorStaffId && x.Active)
+                .SelectMany(x => x.Account.AccountRoles)
+                .Where(x => x.Role.Active)
+                .Select(x => x.Role.Name)
+                .ToListAsync();
+            var suggestions = await _reorderSuggestions.GetForStoreAsync(
+                input.StoreId, actorStaffId, actorRoles, analysisWindowDays: 30);
+            var suggestion = suggestions.Data?.Items.SingleOrDefault(x => x.IngredientId == input.IngredientId);
+            if (!suggestions.IsSuccess || suggestion == null
+                || suggestion.Status != ReorderSuggestionStatuses.Ready
+                || suggestion.SuggestedBaseQuantity.GetValueOrDefault() <= 0
+                || !suggestion.MinLevel.HasValue
+                || !suggestion.AverageDailyUsage.HasValue
+                || !suggestion.LeadTimeDays.HasValue)
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Failure(
+                    suggestions.Message ?? "Gợi ý không còn đủ điều kiện để tạo yêu cầu nhập.");
+            }
 
             var inventory = await _context.StoreInventories
                 .AsNoTracking()
@@ -296,17 +316,17 @@ namespace CafeChain.Application.Services.Inventories
                 StockAlertId = null,
                 StoreId = input.StoreId,
                 IngredientId = input.IngredientId,
-                RequestedQuantity = input.RequestedQuantity,
-                SuggestedQuantity = input.SuggestedQuantity,
-                SuggestionAnalysisWindowDays = input.AnalysisWindowDays,
-                SuggestionAvailableSnapshot = input.AvailableSnapshot,
-                SuggestionMinLevelSnapshot = input.MinLevelSnapshot,
-                SuggestionAverageDailyUsageSnapshot = input.AverageDailyUsageSnapshot,
-                SuggestionLeadTimeDaysSnapshot = input.LeadTimeDaysSnapshot,
-                SuggestionIncomingQuantitySnapshot = input.IncomingQuantitySnapshot,
-                SuggestionReason = string.IsNullOrWhiteSpace(input.SuggestionReason)
+                RequestedQuantity = suggestion.SuggestedBaseQuantity!.Value,
+                SuggestedQuantity = suggestion.SuggestedBaseQuantity.Value,
+                SuggestionAnalysisWindowDays = suggestions.Data!.AnalysisWindowDays,
+                SuggestionAvailableSnapshot = suggestion.AvailableQuantity,
+                SuggestionMinLevelSnapshot = suggestion.MinLevel,
+                SuggestionAverageDailyUsageSnapshot = suggestion.AverageDailyUsage,
+                SuggestionLeadTimeDaysSnapshot = suggestion.LeadTimeDays,
+                SuggestionIncomingQuantitySnapshot = suggestion.IncomingApprovedPoQuantity,
+                SuggestionReason = string.IsNullOrWhiteSpace(suggestion.Reason)
                     ? null
-                    : input.SuggestionReason.Trim()[..Math.Min(input.SuggestionReason.Trim().Length, 500)],
+                    : suggestion.Reason.Trim()[..Math.Min(suggestion.Reason.Trim().Length, 500)],
                 Status = RestockRequestStatuses.Draft,
                 Priority = RestockRequestPriorities.Normal,
                 CreatedByStaffId = actorStaffId,

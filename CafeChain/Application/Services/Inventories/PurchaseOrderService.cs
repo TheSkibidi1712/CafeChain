@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Procurement;
@@ -15,15 +16,18 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IPhysicalUnitConversionService _conversion;
         private readonly IRestockAllocationService _allocations;
+        private readonly IScopeAuthorizationService? _scopeAuthorization;
 
         public PurchaseOrderService(
             AppDbContext context,
             IPhysicalUnitConversionService conversion,
-            IRestockAllocationService allocations)
+            IRestockAllocationService allocations,
+            IScopeAuthorizationService? scopeAuthorization = null)
         {
             _context = context;
             _conversion = conversion;
             _allocations = allocations;
+            _scopeAuthorization = scopeAuthorization;
         }
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CreateDraftAsync(
@@ -31,10 +35,16 @@ namespace CafeChain.Application.Services.Inventories
             int actorStaffId,
             IReadOnlyCollection<string> roles)
         {
-            if (!CanManage(roles)) return Fail("Bạn không có quyền tạo đơn mua hàng.");
+            if (!CanCreate(roles)) return Fail("Bạn không có quyền tạo đơn mua hàng.");
             if (input.StoreId <= 0 || input.SupplierId <= 0 || input.Lines.Count == 0)
                 return Fail("Cửa hàng, nhà cung cấp và ít nhất một dòng hàng là bắt buộc.");
             if (input.Lines.Any(x => x.PackageCount <= 0)) return Fail("Số gói đặt phải lớn hơn 0.");
+            if (!await CanAccessStoreAsync(actorStaffId, input.StoreId))
+                return Fail("Bạn không có quyền tạo đơn mua hàng cho cửa hàng này.");
+            if (input.ExpectedDeliveryAtUtc.HasValue && input.ExpectedDeliveryAtUtc.Value < DateTime.UtcNow)
+                return Fail("Ngày giao dự kiến không được trước ngày đặt hàng.");
+            if (input.Lines.GroupBy(x => x.IngredientId).Any(x => x.Key <= 0 || x.Count() > 1))
+                return Fail("Mỗi nguyên liệu chỉ được xuất hiện một lần trong đơn mua hàng.");
             if (input.Lines.Where(x => x.RestockRequestId.HasValue)
                 .GroupBy(x => x.RestockRequestId!.Value)
                 .Any(x => x.Count() > 1))
@@ -58,6 +68,7 @@ namespace CafeChain.Application.Services.Inventories
                     CreatedByStaffId = actorStaffId,
                     CreatedAtUtc = DateTime.UtcNow,
                     UpdatedAtUtc = DateTime.UtcNow,
+                    RowVersion = Guid.NewGuid().ToByteArray(),
                     Note = Trim(input.Note, 1000)
                 };
 
@@ -65,12 +76,18 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     var offer = await _context.IngredientSuppliers.AsNoTracking()
                         .Include(x => x.Ingredient)
+                        .Include(x => x.Supplier)
+                        .Include(x => x.Unit)
                         .SingleOrDefaultAsync(x => x.IngredientSupplierId == requested.IngredientSupplierId);
                     if (offer == null || !offer.Active || offer.SupplierId != input.SupplierId
                         || offer.IngredientId != requested.IngredientId)
                         return Fail("Gói mua không khớp nhà cung cấp hoặc nguyên liệu.");
+                    if (!offer.Supplier.Active || !offer.Ingredient.Active || !offer.Unit.Active)
+                        return Fail("Nhà cung cấp, nguyên liệu hoặc đơn vị của gói mua không còn hoạt động.");
                     if (!offer.PackageQuantity.HasValue || offer.PackageQuantity.Value <= 0)
                         return Fail("Gói mua chưa cấu hình lượng trong gói.");
+                    if (offer.CurrentPrice <= 0)
+                        return Fail("Gói mua chưa có giá hợp lệ.");
                     if (requested.PackageCount < offer.MinimumOrderPackageCount.GetValueOrDefault())
                         return Fail($"Số gói đặt thấp hơn MOQ {offer.MinimumOrderPackageCount:N3}.");
 
@@ -125,43 +142,69 @@ namespace CafeChain.Application.Services.Inventories
             }
         }
 
-        public Task<ServiceResult<PurchaseOrderDetailDto>> ApproveAsync(int id, int actorStaffId, IReadOnlyCollection<string> roles) =>
-            TransitionAsync(id, PurchaseOrderStatuses.Draft, PurchaseOrderStatuses.Approved, actorStaffId, roles);
+        public Task<ServiceResult<PurchaseOrderDetailDto>> ApproveAsync(
+            int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles) =>
+            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Draft, PurchaseOrderStatuses.Approved, actorStaffId, roles, CanApprove);
 
-        public Task<ServiceResult<PurchaseOrderDetailDto>> MarkSentAsync(int id, int actorStaffId, IReadOnlyCollection<string> roles) =>
-            TransitionAsync(id, PurchaseOrderStatuses.Approved, PurchaseOrderStatuses.MarkedAsSent, actorStaffId, roles);
+        public Task<ServiceResult<PurchaseOrderDetailDto>> MarkSentAsync(
+            int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles) =>
+            TransitionAsync(id, rowVersion, PurchaseOrderStatuses.Approved, PurchaseOrderStatuses.MarkedAsSent, actorStaffId, roles, CanSend);
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CancelAsync(
-            int id, int actorStaffId, IReadOnlyCollection<string> roles, string reason)
+            int id, string rowVersion, int actorStaffId, IReadOnlyCollection<string> roles, string reason)
         {
-            if (!CanManage(roles)) return Fail("Bạn không có quyền hủy đơn mua hàng.");
+            if (!CanCancel(roles)) return Fail("Bạn không có quyền hủy đơn mua hàng.");
             if (string.IsNullOrWhiteSpace(reason)) return Fail("Lý do hủy là bắt buộc.");
+            if (!TryParseRowVersion(rowVersion, out var expectedVersion))
+                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
+            if (!await CanAccessStoreAsync(actorStaffId, order.StoreId))
+                return Fail("Bạn không có quyền hủy đơn mua hàng của cửa hàng này.");
             if (order.Status is PurchaseOrderStatuses.Completed or PurchaseOrderStatuses.Cancelled
                 || order.Lines.Any(x => x.ReceiptPostings.Count > 0))
                 return Fail("Không thể hủy đơn đã nhận hàng hoặc đã kết thúc.");
+            if (!RowVersionMatches(order.RowVersion, expectedVersion))
+                return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            SetExpectedRowVersion(order, expectedVersion);
             order.Status = PurchaseOrderStatuses.Cancelled;
             order.CancelledAtUtc = DateTime.UtcNow;
             order.UpdatedAtUtc = DateTime.UtcNow;
             order.Note = Trim($"{order.Note}\nCANCEL: {reason.Trim()}", 1000);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            }
             return ServiceResult<PurchaseOrderDetailDto>.Success(await MapAsync(id), "Đã hủy đơn mua hàng.");
         }
 
-        public async Task<ServiceResult<PurchaseOrderDetailDto>> GetDetailAsync(int id)
+        public async Task<ServiceResult<PurchaseOrderDetailDto>> GetDetailAsync(
+            int id, int actorStaffId, IReadOnlyCollection<string> roles)
         {
             var dto = await MapAsync(id);
-            return dto.PurchaseOrderId == 0 ? Fail("Không tìm thấy đơn mua hàng.") : ServiceResult<PurchaseOrderDetailDto>.Success(dto);
+            if (dto.PurchaseOrderId == 0) return Fail("Không tìm thấy đơn mua hàng.");
+            if (!CanRead(roles) || !await CanAccessStoreAsync(actorStaffId, dto.StoreId))
+                return Fail("Bạn không có quyền xem đơn mua hàng của cửa hàng này.");
+            return ServiceResult<PurchaseOrderDetailDto>.Success(dto);
         }
 
-        public async Task<IReadOnlyList<PurchaseOrderListItemDto>> ListAsync(int? storeId, string? status)
+        public async Task<IReadOnlyList<PurchaseOrderListItemDto>> ListAsync(
+            int? storeId, string? status, int actorStaffId, IReadOnlyCollection<string> roles)
         {
+            if (!CanRead(roles)) return Array.Empty<PurchaseOrderListItemDto>();
+            var allowedStoreIds = _scopeAuthorization == null
+                ? await _context.Stores.AsNoTracking().Select(x => x.StoreId).ToListAsync()
+                : (await _scopeAuthorization.GetAllowedStoresAsync(actorStaffId)).Select(x => x.StoreId).ToList();
             var query = _context.PurchaseOrders.AsNoTracking()
                 .Include(x => x.Store)
                 .Include(x => x.Supplier)
                 .Include(x => x.Lines)
+                .Where(x => allowedStoreIds.Contains(x.StoreId))
                 .AsQueryable();
             if (storeId.HasValue) query = query.Where(x => x.StoreId == storeId);
             if (!string.IsNullOrWhiteSpace(status)) query = query.Where(x => x.Status == status);
@@ -265,17 +308,32 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         private async Task<ServiceResult<PurchaseOrderDetailDto>> TransitionAsync(
-            int id, string expected, string next, int actorStaffId, IReadOnlyCollection<string> roles)
+            int id, string rowVersion, string expected, string next, int actorStaffId, IReadOnlyCollection<string> roles,
+            Func<IReadOnlyCollection<string>, bool> permission)
         {
-            if (!CanManage(roles)) return Fail("Bạn không có quyền cập nhật đơn mua hàng.");
+            if (!permission(roles)) return Fail("Bạn không có quyền cập nhật đơn mua hàng.");
+            if (!TryParseRowVersion(rowVersion, out var expectedVersion))
+                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
+            if (!await CanAccessStoreAsync(actorStaffId, order.StoreId))
+                return Fail("Bạn không có quyền cập nhật đơn mua hàng của cửa hàng này.");
             if (order.Status != expected) return Fail($"Chỉ chuyển {next} từ {expected}. Trạng thái hiện tại: {order.Status}.");
+            if (!RowVersionMatches(order.RowVersion, expectedVersion))
+                return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            SetExpectedRowVersion(order, expectedVersion);
             order.Status = next;
             order.UpdatedAtUtc = DateTime.UtcNow;
             if (next == PurchaseOrderStatuses.Approved) { order.ApprovedByStaffId = actorStaffId; order.ApprovedAtUtc = DateTime.UtcNow; }
             if (next == PurchaseOrderStatuses.MarkedAsSent) { order.SentByStaffId = actorStaffId; order.SentAtUtc = DateTime.UtcNow; }
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                return Fail("Đơn mua hàng đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            }
             return ServiceResult<PurchaseOrderDetailDto>.Success(await MapAsync(id), $"Đã chuyển đơn mua sang {next}.");
         }
 
@@ -314,6 +372,7 @@ namespace CafeChain.Application.Services.Inventories
                 ExpectedDeliveryAtUtc = order.ExpectedDeliveryAtUtc,
                 Note = order.Note,
                 TotalAmount = order.Lines.Sum(x => x.PackageCount * x.PackagePriceSnapshot),
+                RowVersion = Convert.ToBase64String(order.RowVersion ?? Array.Empty<byte>()),
                 Lines = order.Lines.Select(x =>
                 {
                     var accepted = x.ReceiptPostings.Sum(p => p.AcceptedBaseQuantity);
@@ -338,15 +397,45 @@ namespace CafeChain.Application.Services.Inventories
             };
         }
 
-        private static bool CanManage(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.AccountantWarehouse)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AreaManager);
+        private Task<bool> CanAccessStoreAsync(int actorStaffId, int storeId) =>
+            _scopeAuthorization?.CanAccessStoreAsync(actorStaffId, storeId) ?? Task.FromResult(true);
+
+        private static bool CanRead(IReadOnlyCollection<string> roles) =>
+            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
+                or RoleConstants.AreaManager or RoleConstants.StoreManager);
+
+        private static bool CanCreate(IReadOnlyCollection<string> roles) =>
+            roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner);
+
+        private static bool CanApprove(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
+        private static bool CanSend(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.AccountantWarehouse);
+        private static bool CanCancel(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
+
+        private static bool TryParseRowVersion(string? value, out byte[] rowVersion)
+        {
+            rowVersion = Array.Empty<byte>();
+            if (string.IsNullOrWhiteSpace(value)) return false;
+            try
+            {
+                rowVersion = Convert.FromBase64String(value);
+                return rowVersion.Length > 0;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
+        private static bool RowVersionMatches(byte[] current, byte[] expected) =>
+            current != null && current.SequenceEqual(expected);
+
+        private void SetExpectedRowVersion(PurchaseOrder order, byte[] expectedVersion) =>
+            _context.Entry(order).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
         private static string? Trim(string? value, int max) =>
             string.IsNullOrWhiteSpace(value) ? null : value.Trim()[..Math.Min(value.Trim().Length, max)];
 
-        private static ServiceResult<PurchaseOrderDetailDto> Fail(string message) =>
-            ServiceResult<PurchaseOrderDetailDto>.Failure(message);
+        private static ServiceResult<PurchaseOrderDetailDto> Fail(string message, string? code = null) =>
+            ServiceResult<PurchaseOrderDetailDto>.Failure(message, errorCode: code);
     }
 }

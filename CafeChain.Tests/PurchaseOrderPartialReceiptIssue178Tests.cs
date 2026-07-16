@@ -26,6 +26,70 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     private const int SupplierId = 17805;
 
     [Fact]
+    public async Task PurchaseOrder_AreaManagerMutationAndMissingOrStaleRowVersion_AreRejected()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var service = CreateService(context);
+        var offerId = await context.IngredientSuppliers
+            .Where(x => x.IngredientId == IngredientId && x.SupplierId == SupplierId)
+            .Select(x => x.IngredientSupplierId)
+            .SingleAsync();
+        var created = await service.CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines = { new() { RestockRequestId = request.RestockRequestId, IngredientId = IngredientId, IngredientSupplierId = offerId, PackageCount = 2m } }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        Assert.True(created.IsSuccess, created.Message);
+
+        var areaManager = await service.ApproveAsync(
+            created.Data!.PurchaseOrderId, created.Data.RowVersion, StaffId, new[] { RoleConstants.AreaManager });
+        var missing = await service.ApproveAsync(
+            created.Data.PurchaseOrderId, string.Empty, StaffId, new[] { RoleConstants.BusinessOwner });
+        var stale = await service.ApproveAsync(
+            created.Data.PurchaseOrderId,
+            Convert.ToBase64String(Guid.NewGuid().ToByteArray()),
+            StaffId,
+            new[] { RoleConstants.BusinessOwner });
+
+        Assert.False(areaManager.IsSuccess);
+        Assert.False(missing.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missing.ErrorCode);
+        Assert.False(stale.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
+        Assert.Equal(PurchaseOrderStatuses.Draft, (await context.PurchaseOrders.SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task PurchaseOrder_InactiveOfferRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedFoundationAsync(context, 20m);
+        var offer = await context.IngredientSuppliers.SingleAsync(x => x.SupplierId == SupplierId);
+        offer.Active = false;
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateDraftAsync(new CreatePurchaseOrderRequest
+        {
+            StoreId = StoreId,
+            SupplierId = SupplierId,
+            Lines =
+            {
+                new CreatePurchaseOrderLineRequest
+                {
+                    IngredientId = IngredientId,
+                    IngredientSupplierId = offer.IngredientSupplierId,
+                    PackageCount = 1m
+                }
+            }
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.False(result.IsSuccess);
+        Assert.Empty(context.PurchaseOrders);
+    }
+
+    [Fact]
     public async Task PurchaseOrderLine_CanLinkRestock_AndApprovalDoesNotFulfillRestock()
     {
         using var context = CreateDbContext();
@@ -51,9 +115,9 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             }
         }, StaffId, new[] { RoleConstants.AccountantWarehouse });
         var approved = await service.ApproveAsync(
-            created.Data!.PurchaseOrderId, StaffId, new[] { RoleConstants.AccountantWarehouse });
+            created.Data!.PurchaseOrderId, created.Data.RowVersion, StaffId, new[] { RoleConstants.BusinessOwner });
         var sent = await service.MarkSentAsync(
-            created.Data.PurchaseOrderId, StaffId, new[] { RoleConstants.AccountantWarehouse });
+            created.Data.PurchaseOrderId, approved.Data!.RowVersion, StaffId, new[] { RoleConstants.AccountantWarehouse });
 
         Assert.True(created.IsSuccess, created.Message);
         Assert.True(approved.IsSuccess, approved.Message);

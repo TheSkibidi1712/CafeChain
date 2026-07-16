@@ -174,10 +174,12 @@ namespace CafeChain.Application.Services.Inventories
                     RecipeId = p.Request.IngredientId.HasValue
                         ? null
                         : (p.Request.PreparedItemId.HasValue ? null : p.Request.RecipeId), // avoid Recipe-only if PI present
-                    InputQuantity = p.Input.InputQuantity,
+                    InputQuantity = p.Input.ActualReceivedQuantity,
                     InputUnitId = p.Input.InputUnitId,
                     ReceivedBaseQuantity = p.BaseQty,
-                    RejectedBaseQuantity = p.Input.RejectedBaseQuantity,
+                    RejectedBaseQuantity = p.Input.RejectedQuantity,
+                    RejectionReason = p.Input.RejectionReason,
+                    RejectionIssueType = p.Input.RejectionIssueType,
                     BaseUnitId = p.BaseUnitId,
                     SupplierId = p.Input.SupplierId ?? request.SupplierId,
                     IngredientSupplierId = p.Input.IngredientSupplierId,
@@ -299,13 +301,21 @@ namespace CafeChain.Application.Services.Inventories
             int branchReceiptId,
             int actorStaffId,
             int? actorStoreId,
-            IReadOnlyCollection<string> roleNames)
+            IReadOnlyCollection<string> roleNames,
+            string? rowVersion)
         {
             if (!CanCreateOrConfirmReceipt(roleNames))
             {
                 return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
                     "Bạn không có quyền xác nhận phiếu nhận.",
                     errorCode: BranchReceiptErrorCodes.Unauthorized);
+            }
+
+            if (!TryParseRequiredRowVersion(rowVersion, out var expectedVersion))
+            {
+                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                    "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.",
+                    errorCode: BranchReceiptErrorCodes.ValidationRowVersionRequired);
             }
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -353,6 +363,15 @@ namespace CafeChain.Application.Services.Inventories
                         $"Chỉ xác nhận phiếu DRAFT. Hiện tại: {receipt.Status}.",
                         errorCode: BranchReceiptErrorCodes.ReceiptNotDraft);
                 }
+
+                if (!receipt.RowVersion.SequenceEqual(expectedVersion))
+                {
+                    await transaction.RollbackAsync();
+                    return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                        "Phiếu nhận đã được người khác cập nhật. Vui lòng tải lại.",
+                        errorCode: BranchReceiptErrorCodes.ResourceChanged);
+                }
+                _context.Entry(receipt).Property(x => x.RowVersion).OriginalValue = expectedVersion;
 
                 if (receipt.Lines == null || receipt.Lines.Count == 0)
                 {
@@ -420,15 +439,18 @@ namespace CafeChain.Application.Services.Inventories
                             errorCode: BranchReceiptErrorCodes.IdentityMismatch);
                     }
 
-                    if (line.ReceivedBaseQuantity <= 0)
+                    if (line.ReceivedBaseQuantity < 0
+                        || line.RejectedBaseQuantity < 0
+                        || line.ReceivedBaseQuantity + line.RejectedBaseQuantity <= 0)
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            "Số lượng base phải > 0.",
+                            "Số lượng chấp nhận/loại bỏ không hợp lệ.",
                             errorCode: BranchReceiptErrorCodes.QuantityInvalid);
                     }
 
-                    if (line.BaseUnitCostSnapshot <= 0 || line.LineTotalCost <= 0)
+                    if (line.BaseUnitCostSnapshot <= 0
+                        || (line.ReceivedBaseQuantity > 0 && line.LineTotalCost <= 0))
                     {
                         await transaction.RollbackAsync();
                         return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
@@ -469,31 +491,34 @@ namespace CafeChain.Application.Services.Inventories
                 var requestUpdates = new Dictionary<int, RestockFulfillmentPostingResult>();
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
-                    var posting = await _fulfillmentPostingService.RegisterAsync(new RegisterRestockFulfillmentPostingCommand
+                    if (line.ReceivedBaseQuantity > 0)
                     {
-                        RestockRequestId = line.RestockRequestId!.Value,
-                        DestinationStoreId = receipt.StoreId,
-                        SourceDocumentType = RestockFulfillmentDocumentTypes.BranchReceipt,
-                        SourceDocumentId = receipt.BranchReceiptId,
-                        SourceDocumentLineId = line.BranchReceiptLineId,
-                        IngredientId = line.IngredientId,
-                        PreparedItemId = line.PreparedItemId,
-                        Quantity = line.ReceivedBaseQuantity,
-                        BaseUnitId = line.BaseUnitId,
-                        ActorStaffId = actorStaffId,
-                        Reason = $"BranchReceipt #{receipt.BranchReceiptId} CONFIRMED"
-                    });
-                    if (!posting.IsSuccess || posting.Data == null)
-                    {
-                        await transaction.RollbackAsync();
-                        return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            posting.Message,
-                            errorCode: posting.Message.Contains("vượt mục tiêu", StringComparison.OrdinalIgnoreCase)
-                                ? BranchReceiptErrorCodes.RestockOverReceiptNotAllowed
-                                : BranchReceiptErrorCodes.RequestStateInvalid);
-                    }
+                        var posting = await _fulfillmentPostingService.RegisterAsync(new RegisterRestockFulfillmentPostingCommand
+                        {
+                            RestockRequestId = line.RestockRequestId!.Value,
+                            DestinationStoreId = receipt.StoreId,
+                            SourceDocumentType = RestockFulfillmentDocumentTypes.BranchReceipt,
+                            SourceDocumentId = receipt.BranchReceiptId,
+                            SourceDocumentLineId = line.BranchReceiptLineId,
+                            IngredientId = line.IngredientId,
+                            PreparedItemId = line.PreparedItemId,
+                            Quantity = line.ReceivedBaseQuantity,
+                            BaseUnitId = line.BaseUnitId,
+                            ActorStaffId = actorStaffId,
+                            Reason = $"BranchReceipt #{receipt.BranchReceiptId} CONFIRMED"
+                        });
+                        if (!posting.IsSuccess || posting.Data == null)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                posting.Message,
+                                errorCode: posting.Message.Contains("vượt mục tiêu", StringComparison.OrdinalIgnoreCase)
+                                    ? BranchReceiptErrorCodes.RestockOverReceiptNotAllowed
+                                    : BranchReceiptErrorCodes.RequestStateInvalid);
+                        }
 
-                    requestUpdates[line.RestockRequestId!.Value] = posting.Data;
+                        requestUpdates[line.RestockRequestId!.Value] = posting.Data;
+                    }
 
                     if (line.PurchaseOrderLineId.HasValue)
                     {
@@ -518,6 +543,9 @@ namespace CafeChain.Application.Services.Inventories
 
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
+                    if (line.ReceivedBaseQuantity <= 0)
+                        continue;
+
                     StoreInventory inv;
                     if (line.IngredientId.HasValue)
                     {
@@ -623,6 +651,9 @@ namespace CafeChain.Application.Services.Inventories
                 var createdTxIds = new List<int>();
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
+                    if (line.ReceivedBaseQuantity <= 0)
+                        continue;
+
                     var inv = inventoryByLine[line.BranchReceiptLineId];
                     var before = inv.AvailableQty;
                     inv.AvailableQty += line.ReceivedBaseQuantity;
@@ -636,6 +667,7 @@ namespace CafeChain.Application.Services.Inventories
                         Quantity = line.ReceivedBaseQuantity,
                         RemainingQuantity = line.ReceivedBaseQuantity,
                         UnitCost = line.BaseUnitCostSnapshot,
+                        SourceBranchReceiptLineId = line.BranchReceiptLineId,
                         CreatedAt = now
                     });
 
@@ -750,6 +782,14 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
                     "Xung đột đồng thời khi xác nhận phiếu nhận.",
                     errorCode: BranchReceiptErrorCodes.ConcurrencyConflict);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                try { await transaction.RollbackAsync(); } catch { /* ignore */ }
+                _context.ChangeTracker.Clear();
+                return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                    "Phiếu nhận đã được người khác cập nhật. Vui lòng tải lại.",
+                    errorCode: BranchReceiptErrorCodes.ResourceChanged);
             }
             catch (Exception ex)
             {
@@ -887,11 +927,52 @@ namespace CafeChain.Application.Services.Inventories
                     errorCode: BranchReceiptErrorCodes.RequestNotFound);
             }
 
-            if (input.InputQuantity <= 0)
+            if (input.ActualReceivedQuantity <= 0)
             {
                 return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
                     "Số lượng thực nhận phải lớn hơn 0.",
-                    errorCode: BranchReceiptErrorCodes.QuantityInvalid);
+                    errorCode: BranchReceiptErrorCodes.ActualReceivedNotPositive);
+            }
+
+            if (input.RejectedQuantity < 0)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Số lượng loại bỏ không được âm.",
+                    errorCode: BranchReceiptErrorCodes.RejectedQuantityNegative);
+            }
+
+            if (input.RejectedQuantity > input.ActualReceivedQuantity)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Số lượng loại bỏ không được vượt số lượng thực nhận.",
+                    errorCode: BranchReceiptErrorCodes.RejectedExceedsActualReceived);
+            }
+
+            if (input.RejectedQuantity > 0
+                && (string.IsNullOrWhiteSpace(input.RejectionReason)
+                    || string.IsNullOrWhiteSpace(input.RejectionIssueType)))
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Hàng bị loại phải có loại sự cố và lý do.",
+                    errorCode: BranchReceiptErrorCodes.RejectionReasonRequired);
+            }
+
+            if (!string.IsNullOrWhiteSpace(input.RejectionIssueType)
+                && !SupplierReceiptIssueTypes.All.Contains(input.RejectionIssueType))
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Loại sự cố hàng bị loại không hợp lệ.",
+                    errorCode: BranchReceiptErrorCodes.RejectionReasonRequired);
+            }
+
+            input.RejectionReason = string.IsNullOrWhiteSpace(input.RejectionReason)
+                ? null
+                : input.RejectionReason.Trim();
+            if (input.RejectionReason?.Length > 500)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Lý do loại bỏ không được vượt quá 500 ký tự.",
+                    errorCode: BranchReceiptErrorCodes.RejectionReasonRequired);
             }
 
             var request = await _context.RestockRequests
@@ -968,7 +1049,7 @@ namespace CafeChain.Application.Services.Inventories
                 }
 
                 var minimumPackages = offer.MinimumOrderPackageCount.GetValueOrDefault();
-                if (minimumPackages > 0 && input.InputQuantity < minimumPackages)
+                if (minimumPackages > 0 && input.ActualReceivedQuantity < minimumPackages)
                 {
                     return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
                         $"Số gói nhận phải đạt MOQ tối thiểu {minimumPackages:N0} gói.",
@@ -993,8 +1074,8 @@ namespace CafeChain.Application.Services.Inventories
             decimal baseQty;
             var hasPackageSnapshot = input.PackageQuantity.HasValue && input.PackageQuantity.Value > 0;
             var physicalQuantity = hasPackageSnapshot
-                ? input.InputQuantity * input.PackageQuantity!.Value
-                : input.InputQuantity;
+                ? input.ActualReceivedQuantity * input.PackageQuantity!.Value
+                : input.ActualReceivedQuantity;
             var physicalUnitId = hasPackageSnapshot
                 ? input.PackageUnitId.GetValueOrDefault(input.InputUnitId)
                 : input.InputUnitId;
@@ -1053,6 +1134,21 @@ namespace CafeChain.Application.Services.Inventories
                     errorCode: BranchReceiptErrorCodes.QuantityInvalid);
             }
 
+            var rejectedBaseQty = Math.Round(
+                baseQty * input.RejectedQuantity / input.ActualReceivedQuantity,
+                3,
+                MidpointRounding.AwayFromZero);
+            var acceptedBaseQty = baseQty - rejectedBaseQty;
+            if (acceptedBaseQty < 0)
+            {
+                return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
+                    "Số lượng chấp nhận sau quy đổi không hợp lệ.",
+                    errorCode: BranchReceiptErrorCodes.RejectedExceedsActualReceived);
+            }
+
+            // From this point the DTO carries the canonical rejected quantity in base units.
+            input.RejectedQuantity = rejectedBaseQty;
+
             // Cost snapshot: fail-closed. Prefer explicit package price; compute base unit cost.
             if (input.ActualPackagePrice <= 0)
             {
@@ -1069,21 +1165,23 @@ namespace CafeChain.Application.Services.Inventories
                 // Package path: InputQuantity packages × package price = line total;
                 // each package has PackageQuantity in package unit → convert content to base if needed.
                 // Spec D5: InputQuantity packages × package content → base; cost from ActualPackagePrice.
-                lineTotal = Math.Round(input.InputQuantity * input.ActualPackagePrice, 2, MidpointRounding.AwayFromZero);
+                var actualLineTotal = Math.Round(input.ActualReceivedQuantity * input.ActualPackagePrice, 2, MidpointRounding.AwayFromZero);
                 unitCost = baseQty > 0
-                    ? Math.Round(lineTotal / baseQty, 4, MidpointRounding.AwayFromZero)
+                    ? Math.Round(actualLineTotal / baseQty, 4, MidpointRounding.AwayFromZero)
                     : 0m;
+                lineTotal = Math.Round(acceptedBaseQty * unitCost, 2, MidpointRounding.AwayFromZero);
             }
             else
             {
                 // Unit price already in input unit: total = input qty * price; unit cost in base.
-                lineTotal = Math.Round(input.InputQuantity * input.ActualPackagePrice, 2, MidpointRounding.AwayFromZero);
+                var actualLineTotal = Math.Round(input.ActualReceivedQuantity * input.ActualPackagePrice, 2, MidpointRounding.AwayFromZero);
                 unitCost = baseQty > 0
-                    ? Math.Round(lineTotal / baseQty, 4, MidpointRounding.AwayFromZero)
+                    ? Math.Round(actualLineTotal / baseQty, 4, MidpointRounding.AwayFromZero)
                     : 0m;
+                lineTotal = Math.Round(acceptedBaseQty * unitCost, 2, MidpointRounding.AwayFromZero);
             }
 
-            if (unitCost <= 0 || lineTotal <= 0)
+            if (unitCost <= 0 || (acceptedBaseQty > 0 && lineTotal <= 0))
             {
                 return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Failure(
                     "Không tạo cost layer giá 0 (RECEIPT_COST_INCOMPLETE).",
@@ -1091,7 +1189,7 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return ServiceResult<(CreateBranchReceiptLineInput, RestockRequest, decimal, int, decimal, decimal)>.Success(
-                (input, request, baseQty, baseUnitId, unitCost, lineTotal));
+                (input, request, acceptedBaseQty, baseUnitId, unitCost, lineTotal));
         }
 
         private Task<bool> IsSupplierAssignedToStoreAsync(int supplierId, int storeId)
@@ -1232,6 +1330,7 @@ namespace CafeChain.Application.Services.Inventories
                 ReceiptCode = r.ReceiptCode,
                 ReceiptKey = r.ReceiptKey,
                 Status = r.Status,
+                RowVersion = Convert.ToBase64String(r.RowVersion ?? Array.Empty<byte>()),
                 StoreId = r.StoreId,
                 SupplierId = r.SupplierId,
                 SupplierName = r.Supplier?.Name,
@@ -1258,6 +1357,8 @@ namespace CafeChain.Application.Services.Inventories
                     InputUnitName = l.InputUnit?.Name,
                     ReceivedBaseQuantity = l.ReceivedBaseQuantity,
                     RejectedBaseQuantity = l.RejectedBaseQuantity,
+                    RejectionReason = l.RejectionReason,
+                    RejectionIssueType = l.RejectionIssueType,
                     BaseUnitId = l.BaseUnitId,
                     BaseUnitName = l.BaseUnit?.Name,
                     ActualPackagePrice = l.ActualPackagePrice,
@@ -1292,6 +1393,23 @@ namespace CafeChain.Application.Services.Inventories
                 or RestockRequestStatuses.Processing
                 or RestockRequestStatuses.PartiallyReceived;
 
+        private static bool TryParseRequiredRowVersion(string? value, out byte[] rowVersion)
+        {
+            rowVersion = Array.Empty<byte>();
+            if (string.IsNullOrWhiteSpace(value))
+                return false;
+
+            try
+            {
+                rowVersion = Convert.FromBase64String(value);
+                return rowVersion.Length > 0;
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
+        }
+
         private static bool IdentityMatches(RestockRequest req, BranchReceiptLine line)
         {
             if (req.IngredientId.HasValue)
@@ -1316,6 +1434,12 @@ namespace CafeChain.Application.Services.Inventories
 
             if (roleNames.Contains(RoleConstants.AreaManager))
             {
+                if (mutation)
+                {
+                    return ServiceResult.Failure(
+                        "Quản lý vùng chỉ có quyền xem phiếu nhận.",
+                        errorCode: BranchReceiptErrorCodes.Unauthorized);
+                }
                 return actorStaffId > 0
                        && await _scopeAuthorization.CanAccessStoreAsync(actorStaffId, storeId)
                     ? ServiceResult.Success()
@@ -1324,9 +1448,9 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.Unauthorized);
             }
 
-            var allowedBranchRole = roleNames.Contains(RoleConstants.StoreManager)
-                || (!mutation && (roleNames.Contains(RoleConstants.ShiftSupervisor)
-                                   || roleNames.Contains(RoleConstants.SalesStaff)));
+            var allowedBranchRole = !mutation && (roleNames.Contains(RoleConstants.StoreManager)
+                                   || roleNames.Contains(RoleConstants.ShiftSupervisor)
+                                   || roleNames.Contains(RoleConstants.SalesStaff));
             if (allowedBranchRole)
             {
                 var staffStoreId = await _context.Staffs
@@ -1346,9 +1470,7 @@ namespace CafeChain.Application.Services.Inventories
         }
 
         private static bool CanCreateOrConfirmReceipt(IReadOnlyCollection<string> roles) =>
-            roles.Contains(RoleConstants.StoreManager)
-            || roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AreaManager)
+            roles.Contains(RoleConstants.BusinessOwner)
             || roles.Contains(RoleConstants.AccountantWarehouse);
 
         private static bool IsUniqueViolation(DbUpdateException ex)

@@ -45,6 +45,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Update(
             int storeInventoryId,
             string? minStockLevel,
+            string? rowVersion,
             int storeId = 0,
             string? search = null,
             int page = 1)
@@ -80,7 +81,11 @@ namespace CafeChain.Areas.Admin.Controllers
                 value = parsed;
             }
 
-            var result = await _service.UpdateMinStockLevelAsync(accountId, storeInventoryId, value);
+            var result = await _service.UpdateMinStockLevelAsync(
+                accountId,
+                storeInventoryId,
+                value,
+                rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else

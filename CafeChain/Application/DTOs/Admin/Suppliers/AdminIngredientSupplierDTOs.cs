@@ -21,6 +21,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int? LeadTimeDays { get; set; }
         public bool IsPrimary { get; set; }
         public bool Active { get; set; }
+        [MaxLength(500)]
         public string? Note { get; set; }
         public DateTime UpdatedAt { get; set; }
         public string RowVersion { get; set; } = "";
@@ -71,6 +72,9 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int IngredientSupplierId { get; set; }
 
         public bool Active { get; set; }
+
+        [Required]
+        public string RowVersion { get; set; } = string.Empty;
     }
 
     public class AdminIngredientSupplierPriceChangeDTO

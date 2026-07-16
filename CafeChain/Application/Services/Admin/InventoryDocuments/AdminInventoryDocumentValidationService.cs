@@ -129,6 +129,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             {
                 throw new InvalidOperationException("Nhà cung cấp đã ngừng hoạt động.");
             }
+
+            if (!await _repository.IsActiveSupplierStoreAsync(dto.SupplierId.Value, dto.StoreId))
+            {
+                throw new InvalidOperationException("Nhà cung cấp chưa được kích hoạt cho cửa hàng này.");
+            }
         }
 
         private static Task ValidateDetailsAsync(CreateInventoryDocumentDTO dto)

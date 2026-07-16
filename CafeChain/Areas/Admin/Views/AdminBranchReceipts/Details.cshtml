@@ -21,6 +21,7 @@
             {
                 <form method="post" asp-action="Confirm" asp-route-id="@Model.BranchReceiptId" onsubmit="return confirm('Xác nhận nhập kho? Thao tác không thể hoàn tác.');">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
                     <button type="submit" class="ops-btn ops-btn-primary"><i class="fa-solid fa-check" aria-hidden="true"></i> Xác nhận nhập kho</button>
                 </form>
             }

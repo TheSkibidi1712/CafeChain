@@ -39,6 +39,8 @@ namespace CafeChain.Models.Inventories.Stock
 
         public decimal ReceivedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionIssueType { get; set; }
 
         public int BaseUnitId { get; set; }
 

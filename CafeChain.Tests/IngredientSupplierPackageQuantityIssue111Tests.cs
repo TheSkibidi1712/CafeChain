@@ -255,7 +255,8 @@ namespace CafeChain.Tests.POS
                 UnitId = UnitKg,
                 PackageQuantity = 1m,
                 CurrentPrice = 2000,
-                Active = true
+                Active = true,
+                RowVersion = await OfferVersionAsync(ctx, id)
             });
 
             var histories = await ctx.Set<IngredientSupplierPriceHistory>()
@@ -296,7 +297,8 @@ namespace CafeChain.Tests.POS
                 UnitId = UnitG,
                 PackageQuantity = 1000m,
                 CurrentPrice = 10000,
-                Active = true
+                Active = true,
+                RowVersion = await OfferVersionAsync(ctx, id)
             });
 
             var current = await ctx.Set<IngredientSupplierPriceHistory>()
@@ -330,7 +332,8 @@ namespace CafeChain.Tests.POS
                 UnitId = UnitKg,
                 PackageQuantity = 1m,
                 CurrentPrice = 140000,
-                Active = true
+                Active = true,
+                RowVersion = await OfferVersionAsync(ctx, id)
             });
 
             var current = await ctx.Set<IngredientSupplierPriceHistory>()
@@ -420,6 +423,7 @@ namespace CafeChain.Tests.POS
             });
 
             // Invalid: Active with cleared package quantity while changing price (requires package)
+            var rowVersion = await OfferVersionAsync(ctx, id);
             await Assert.ThrowsAsync<InvalidOperationException>(() =>
                 svc.UpdateIngredientOfferAsync(new AdminIngredientSupplierSaveDTO
                 {
@@ -429,7 +433,8 @@ namespace CafeChain.Tests.POS
                     UnitId = UnitKg,
                     PackageQuantity = null,
                     CurrentPrice = 9999,
-                    Active = true
+                    Active = true,
+                    RowVersion = rowVersion
                 }));
 
             var offer = await ctx.IngredientSuppliers.AsNoTracking()
@@ -646,6 +651,18 @@ namespace CafeChain.Tests.POS
             Assert.NotNull(method);
             return (CafeChain.Application.DTOs.Admin.InventoryDocuments.Create.SupplierIngredientDTO)
                 method!.Invoke(null, new object[] { supplier })!;
+        }
+
+        private static async Task<string> OfferVersionAsync(
+            CafeChain.Data.AppDbContext context,
+            int ingredientSupplierId)
+        {
+            var version = await context.IngredientSuppliers
+                .AsNoTracking()
+                .Where(x => x.IngredientSupplierId == ingredientSupplierId)
+                .Select(x => x.RowVersion)
+                .SingleAsync();
+            return Convert.ToBase64String(version);
         }
     }
 }

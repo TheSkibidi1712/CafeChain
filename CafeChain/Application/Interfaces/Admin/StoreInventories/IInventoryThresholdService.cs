@@ -16,6 +16,7 @@ namespace CafeChain.Application.Interfaces.Admin.StoreInventories
         Task<ServiceResult> UpdateMinStockLevelAsync(
             int accountId,
             int storeInventoryId,
-            decimal? minStockLevel);
+            decimal? minStockLevel,
+            string? rowVersion);
     }
 }

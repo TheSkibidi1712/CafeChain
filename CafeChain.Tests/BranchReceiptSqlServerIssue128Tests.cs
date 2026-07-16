@@ -42,7 +42,7 @@ namespace CafeChain.Tests
         private int _storeId = 1;
         private int _unitId = 1;
         private int _managerStaffId;
-        private static readonly string[] ManagerRoles = { RoleConstants.StoreManager };
+        private static readonly string[] ManagerRoles = { RoleConstants.AccountantWarehouse };
 
         public async Task InitializeAsync()
         {
@@ -91,8 +91,8 @@ IF DB_ID(N'{Database}') IS NULL
             await using var ctx1 = CreateContext();
             await using var ctx2 = CreateContext();
             var results = await Task.WhenAll(
-                CreateService(ctx1).ConfirmAsync(receiptId, _managerStaffId, _storeId, ManagerRoles),
-                CreateService(ctx2).ConfirmAsync(receiptId, _managerStaffId, _storeId, ManagerRoles));
+                ConfirmReceiptAsync(CreateService(ctx1), ctx1, receiptId, _managerStaffId, _storeId, ManagerRoles),
+                ConfirmReceiptAsync(CreateService(ctx2), ctx2, receiptId, _managerStaffId, _storeId, ManagerRoles));
 
             Assert.All(results, r => Assert.True(r.IsSuccess, r.Message + " " + r.ErrorCode));
             Assert.Contains(results, r => r.Data!.WasReplay || !r.Data.WasReplay);
@@ -134,8 +134,8 @@ IF DB_ID(N'{Database}') IS NULL
             await using var ctx1 = CreateContext();
             await using var ctx2 = CreateContext();
             var results = await Task.WhenAll(
-                CreateService(ctx1).ConfirmAsync(receiptA, _managerStaffId, _storeId, ManagerRoles),
-                CreateService(ctx2).ConfirmAsync(receiptB, _managerStaffId, _storeId, ManagerRoles));
+                ConfirmReceiptAsync(CreateService(ctx1), ctx1, receiptA, _managerStaffId, _storeId, ManagerRoles),
+                ConfirmReceiptAsync(CreateService(ctx2), ctx2, receiptB, _managerStaffId, _storeId, ManagerRoles));
 
             var success = results.Count(r => r.IsSuccess);
             var over = results.Count(r =>
@@ -170,11 +170,11 @@ IF DB_ID(N'{Database}') IS NULL
                     Receipt(requestId, 100m, "sql-replay"), _managerStaffId, ManagerRoles);
                 Assert.True(draft.IsSuccess, draft.Message);
                 receiptId = draft.Data!.BranchReceiptId;
-                Assert.True((await svc.ConfirmAsync(receiptId, _managerStaffId, _storeId, ManagerRoles)).IsSuccess);
+                Assert.True((await ConfirmReceiptAsync(svc, seed, receiptId, _managerStaffId, _storeId, ManagerRoles)).IsSuccess);
             }
 
             await using var ctx = CreateContext();
-            var replay = await CreateService(ctx).ConfirmAsync(receiptId, _managerStaffId, _storeId, ManagerRoles);
+            var replay = await ConfirmReceiptAsync(CreateService(ctx), ctx, receiptId, _managerStaffId, _storeId, ManagerRoles);
             Assert.True(replay.IsSuccess);
             Assert.True(replay.Data!.WasReplay);
 
@@ -324,11 +324,15 @@ IF DB_ID(N'{Database}') IS NULL
 
             await using var firstContext = CreateContext();
             await using var secondContext = CreateContext();
+            var alertVersion = Convert.ToBase64String(await firstContext.StockAlerts.AsNoTracking()
+                .Where(x => x.StockAlertId == alertId)
+                .Select(x => x.RowVersion)
+                .SingleAsync());
             var results = await Task.WhenAll(
                 CreateAlertManager(firstContext).ConfirmAsync(
-                    alertId, _managerStaffId, _storeId, "confirm-a"),
+                    alertId, _managerStaffId, _storeId, "confirm-a", alertVersion),
                 CreateAlertManager(secondContext).ConfirmAsync(
-                    alertId, _managerStaffId, _storeId, "confirm-b"));
+                    alertId, _managerStaffId, _storeId, "confirm-b", alertVersion));
 
             Assert.Equal(1, results.Count(r => r.IsSuccess));
             await using var verify = CreateContext();
@@ -382,10 +386,14 @@ IF DB_ID(N'{Database}') IS NULL
 
             await using var ctxConfirm = CreateContext();
             await using var ctxCancel = CreateContext();
-            var confirmTask = CreateService(ctxConfirm).ConfirmAsync(
-                receiptId, _managerStaffId, _storeId, ManagerRoles);
+            var cancelVersion = Convert.ToBase64String(await ctxCancel.RestockRequests.AsNoTracking()
+                .Where(x => x.RestockRequestId == requestId)
+                .Select(x => x.RowVersion)
+                .SingleAsync());
+            var confirmTask = ConfirmReceiptAsync(
+                CreateService(ctxConfirm), ctxConfirm, receiptId, _managerStaffId, _storeId, ManagerRoles);
             var cancelTask = CreateWorkflow(ctxCancel).CancelAsync(
-                requestId, _warehouseStaffId, _storeId, WarehouseRoles, "race cancel");
+                requestId, _warehouseStaffId, _storeId, WarehouseRoles, "race cancel", cancelVersion);
             await Task.WhenAll(confirmTask, cancelTask);
             var confirm = await confirmTask;
             var cancel = await cancelTask;
@@ -494,8 +502,8 @@ IF DB_ID(N'{Database}') IS NULL
             }
 
             await using var ctx = CreateContext();
-            var confirm = await CreateService(ctx).ConfirmAsync(
-                receiptId, _managerStaffId, _storeId, ManagerRoles);
+            var confirm = await ConfirmReceiptAsync(
+                CreateService(ctx), ctx, receiptId, _managerStaffId, _storeId, ManagerRoles);
             Assert.False(confirm.IsSuccess);
 
             await using var verify = CreateContext();
@@ -570,7 +578,7 @@ IF DB_ID(N'{Database}') IS NULL
                     Receipt(requestId, 20m, "sql-pi-writer"), _managerStaffId, ManagerRoles);
                 Assert.True(draft.IsSuccess, draft.Message);
                 var confirm = await svc.ConfirmAsync(
-                    draft.Data!.BranchReceiptId, _managerStaffId, _storeId, ManagerRoles);
+                    draft.Data!.BranchReceiptId, _managerStaffId, _storeId, ManagerRoles, draft.Data.RowVersion);
                 Assert.True(confirm.IsSuccess, confirm.Message);
             }
 
@@ -623,14 +631,14 @@ IF DB_ID(N'{Database}') IS NULL
                         new CreateBranchReceiptLineInput
                         {
                             RestockRequestId = reqA,
-                            InputQuantity = 10m,
+                            ActualReceivedQuantity = 10m,
                             InputUnitId = _unitId,
                             ActualPackagePrice = 100m
                         },
                         new CreateBranchReceiptLineInput
                         {
                             RestockRequestId = reqB,
-                            InputQuantity = 15m,
+                            ActualReceivedQuantity = 15m,
                             InputUnitId = _unitId,
                             ActualPackagePrice = 150m
                         }
@@ -639,7 +647,7 @@ IF DB_ID(N'{Database}') IS NULL
                 var svc = CreateService(seed);
                 var draft = await svc.CreateDraftAsync(multi, _managerStaffId, ManagerRoles);
                 Assert.True(draft.IsSuccess, draft.Message);
-                var confirm = await svc.ConfirmAsync(draft.Data!.BranchReceiptId, _managerStaffId, _storeId, ManagerRoles);
+                var confirm = await svc.ConfirmAsync(draft.Data!.BranchReceiptId, _managerStaffId, _storeId, ManagerRoles, draft.Data.RowVersion);
                 Assert.True(confirm.IsSuccess, confirm.Message);
             }
 
@@ -660,7 +668,7 @@ IF DB_ID(N'{Database}') IS NULL
                     new CreateBranchReceiptLineInput
                     {
                         RestockRequestId = requestId,
-                        InputQuantity = qty,
+                        ActualReceivedQuantity = qty,
                         InputUnitId = _unitId,
                         ActualPackagePrice = qty * 10m
                     }
@@ -669,6 +677,27 @@ IF DB_ID(N'{Database}') IS NULL
 
         private int _warehouseStaffId;
         private static readonly string[] WarehouseRoles = { RoleConstants.AccountantWarehouse };
+
+        private static async Task<ServiceResult<ConfirmBranchReceiptResultDto>> ConfirmReceiptAsync(
+            BranchReceiptService service,
+            AppDbContext context,
+            int receiptId,
+            int actorStaffId,
+            int storeId,
+            IReadOnlyCollection<string> roles)
+        {
+            var rowVersion = await context.BranchReceipts
+                .AsNoTracking()
+                .Where(x => x.BranchReceiptId == receiptId)
+                .Select(x => x.RowVersion)
+                .SingleAsync();
+            return await service.ConfirmAsync(
+                receiptId,
+                actorStaffId,
+                storeId,
+                roles,
+                Convert.ToBase64String(rowVersion));
+        }
 
         private static BranchReceiptService CreateService(AppDbContext ctx)
         {

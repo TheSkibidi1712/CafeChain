@@ -33,20 +33,16 @@ public sealed class InventoryTransferAuthorizationTests
     }
 
     [Fact]
-    public async Task AreaManager_InScopeForBothStores_IsAllowed()
+    public async Task AreaManager_InScopeForBothStores_RemainsReadOnly()
     {
         var fixture = CreateController(RoleConstants.AreaManager, staffId: 42);
         fixture.Scope
             .Setup(x => x.CanAccessStoreAsync(42, It.IsAny<int>()))
             .ReturnsAsync(true);
-        fixture.Service
-            .Setup(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()))
-            .ReturnsAsync([]);
-
         var result = await fixture.Controller.Preflight(Transfer(1, 2));
 
-        Assert.IsType<JsonResult>(result);
-        fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Once);
+        Assert.IsType<ForbidResult>(result);
+        fixture.Service.Verify(x => x.ValidateStockAsync(It.IsAny<InventoryTransferMutationDTO>()), Times.Never);
     }
 
     [Fact]

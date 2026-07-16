@@ -1252,6 +1252,23 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
             var isQuantityOnlyDocument =
                 IsQuantityOnlyDocumentType(dto.Type);
 
+            Dictionary<int, IngredientSupplier> purchaseOffers = new();
+            var isPurchaseImport = dto.Type == InventoryDocumentType.IMPORT
+                && dto.Purpose == InventoryDocumentPurpose.IMPORT_PURCHASE;
+            if (isPurchaseImport)
+            {
+                if (!dto.SupplierId.HasValue)
+                    throw new InvalidOperationException("Chưa chọn nhà cung cấp.");
+                if (!await _repository.IsActiveSupplierStoreAsync(dto.SupplierId.Value, dto.StoreId))
+                    throw new InvalidOperationException("Nhà cung cấp chưa được kích hoạt cho cửa hàng này.");
+                if (dto.Details.Any(x => !x.IngredientSupplierId.HasValue || x.IngredientSupplierId <= 0))
+                    throw new InvalidOperationException("INGREDIENT_SUPPLIER_REQUIRED: Chọn gói mua đang hoạt động cho từng nguyên liệu.");
+
+                purchaseOffers = (await _repository.GetActiveIngredientSuppliersByIdsAsync(
+                        dto.Details.Select(x => x.IngredientSupplierId!.Value)))
+                    .ToDictionary(x => x.IngredientSupplierId);
+            }
+
             foreach (var item in dto.Details)
             {
                 if (item.Quantity <= 0 && !isStockTake)
@@ -1272,6 +1289,42 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
                 item.BaseQuantity =
                     item.Quantity * conversionFactor;
+
+                if (isPurchaseImport)
+                {
+                    if (!purchaseOffers.TryGetValue(item.IngredientSupplierId!.Value, out var offer)
+                        || offer.SupplierId != dto.SupplierId
+                        || offer.IngredientId != item.IngredientId
+                        || !offer.Active
+                        || !offer.Supplier.Active
+                        || !offer.Ingredient.Active
+                        || !offer.Unit.Active
+                        || !offer.PackageQuantity.HasValue
+                        || offer.PackageQuantity <= 0
+                        || offer.CurrentPrice <= 0)
+                    {
+                        throw new InvalidOperationException("INGREDIENT_SUPPLIER_INACTIVE: Gói mua không hợp lệ hoặc đã ngừng hoạt động.");
+                    }
+
+                    var packageUnitToBase = CalculateConversionFactorToBase(
+                        offer.Ingredient, offer.UnitId, throwIfMissing: true) ?? 0;
+                    var packageBaseQuantity = offer.PackageQuantity.Value * packageUnitToBase;
+                    if (packageBaseQuantity <= 0)
+                        throw new InvalidOperationException("PACKAGE_CONVERSION_INVALID: Không quy đổi được gói mua về đơn vị tồn kho.");
+
+                    var equivalentPackageCount = item.BaseQuantity / packageBaseQuantity;
+                    if (equivalentPackageCount < offer.MinimumOrderPackageCount.GetValueOrDefault())
+                        throw new InvalidOperationException($"MINIMUM_ORDER_NOT_MET: Số lượng nhập thấp hơn MOQ {offer.MinimumOrderPackageCount:N3} gói.");
+
+                    item.UnitPrice = Math.Round(
+                        offer.CurrentPrice * conversionFactor / packageBaseQuantity,
+                        4,
+                        MidpointRounding.AwayFromZero);
+                    item.CostPrice = Math.Round(
+                        offer.CurrentPrice / packageBaseQuantity,
+                        4,
+                        MidpointRounding.AwayFromZero);
+                }
 
                 if (isQuantityOnlyDocument)
                 {

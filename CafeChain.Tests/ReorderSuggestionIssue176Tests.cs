@@ -31,6 +31,19 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
     private const int ManagerStaffId = 17604;
 
     [Fact]
+    public void CreateRequestContract_DoesNotExposeClientAuthorityEvidence()
+    {
+        var properties = typeof(CreateRestockDraftFromSuggestionDto).GetProperties()
+            .Select(x => x.Name)
+            .OrderBy(x => x)
+            .ToArray();
+
+        Assert.Equal(
+            new[] { "IdempotencyKey", "IngredientId", "StoreId" }.OrderBy(x => x),
+            properties);
+    }
+
+    [Fact]
     public async Task Formula_UsesAvailable_MinLevel_LeadOverride_Incoming_PackageAndMoq()
     {
         using var context = CreateDbContext();
@@ -98,20 +111,12 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
     {
         using var context = CreateDbContext();
         await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m, seedManager: true);
-        var restock = CreateRestockService(context);
+        var restock = CreateRestockService(context, incoming: 5m);
         var input = new CreateRestockDraftFromSuggestionDto
         {
             StoreId = StoreId,
             IngredientId = IngredientId,
-            RequestedQuantity = 20m,
-            SuggestedQuantity = 20m,
-            AnalysisWindowDays = 30,
-            AvailableSnapshot = 5m,
-            MinLevelSnapshot = 10m,
-            AverageDailyUsageSnapshot = 10m,
-            LeadTimeDaysSnapshot = 2,
-            IncomingQuantitySnapshot = 5m,
-            SuggestionReason = "Đủ dữ liệu để tạo yêu cầu nhập nháp."
+            IdempotencyKey = "reorder-176-idempotent"
         };
 
         var first = await restock.CreateDraftFromSuggestionAsync(input, ManagerStaffId);
@@ -157,9 +162,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
             {
                 StoreId = OtherStoreId,
                 IngredientId = IngredientId,
-                RequestedQuantity = 1,
-                SuggestedQuantity = 1,
-                AnalysisWindowDays = 30
+                IdempotencyKey = "reorder-176-other-store"
             },
             ManagerStaffId);
 
@@ -181,11 +184,15 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
             scope.Object);
     }
 
-    private static RestockRequestService CreateRestockService(AppDbContext context)
+    private static RestockRequestService CreateRestockService(AppDbContext context, decimal incoming = 0)
     {
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
-        return new RestockRequestService(context, scope.Object, NullLogger<RestockRequestService>.Instance);
+        return new RestockRequestService(
+            context,
+            scope.Object,
+            NullLogger<RestockRequestService>.Instance,
+            CreateSuggestionService(context, incoming));
     }
 
     private static async Task SeedAsync(

@@ -55,6 +55,31 @@ public sealed class SupplierQualityIssue179Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task SameActiveIssueTypeForReceiptLine_IsRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedFoundationAsync(context);
+        var line = await SeedDeliveryAsync(context, "PO-179-DUP", 10m, 8m, 2m,
+            DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-1), BranchReceiptStatuses.Confirmed);
+        var service = CreateService(context);
+        var input = new CreateSupplierReceiptIssueRequest
+        {
+            BranchReceiptLineId = line.BranchReceiptLineId,
+            IssueType = SupplierReceiptIssueTypes.QualityFailure,
+            AffectedBaseQuantity = 2m,
+            Description = "Không đạt chất lượng."
+        };
+
+        var first = await service.CreateIssueAsync(input, StaffId, Roles);
+        var duplicate = await service.CreateIssueAsync(input, StaffId, Roles);
+
+        Assert.True(first.IsSuccess, first.Message);
+        Assert.False(duplicate.IsSuccess);
+        Assert.Equal("SUPPLIER_ISSUE_ACTIVE_DUPLICATE", duplicate.ErrorCode);
+        Assert.Single(await context.SupplierReceiptIssues.ToListAsync());
+    }
+
+    [Fact]
     public async Task DraftReceipt_AndCrossStoreAccess_AreRejected()
     {
         using var context = CreateDbContext();
@@ -118,6 +143,37 @@ public sealed class SupplierQualityIssue179Tests : IntegrationTestBase
     }
 
     [Fact]
+    public async Task Transition_MissingOrStaleRowVersionRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedFoundationAsync(context);
+        var line = await SeedDeliveryAsync(context, "PO-179-VERSION", 10m, 10m, 0m,
+            DateTime.UtcNow.AddDays(-2), DateTime.UtcNow.AddDays(-1), BranchReceiptStatuses.Confirmed);
+        var service = CreateService(context);
+        var created = await CreateIssueAsync(service, line.BranchReceiptLineId, SupplierReceiptIssueTypes.Other);
+
+        var missing = await service.TransitionAsync(created.SupplierReceiptIssueId,
+            new SupplierReceiptIssueTransitionRequest
+            {
+                TargetStatus = SupplierReceiptIssueStatuses.UnderReview,
+                Reason = "Kiểm tra",
+                RowVersion = string.Empty
+            }, StaffId, Roles);
+        var stale = await service.TransitionAsync(created.SupplierReceiptIssueId,
+            new SupplierReceiptIssueTransitionRequest
+            {
+                TargetStatus = SupplierReceiptIssueStatuses.UnderReview,
+                Reason = "Kiểm tra",
+                RowVersion = Convert.ToBase64String(new byte[] { 9 })
+            }, StaffId, Roles);
+
+        Assert.False(missing.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ValidationRowVersionRequired, missing.ErrorCode);
+        Assert.False(stale.IsSuccess);
+        Assert.Equal(BranchReceiptErrorCodes.ResourceChanged, stale.ErrorCode);
+    }
+
+    [Fact]
     public async Task Performance_UsesConfirmedEvidence_AndCountsEachIssueReceiptOnce()
     {
         using var context = CreateDbContext();
@@ -177,6 +233,24 @@ public sealed class SupplierQualityIssue179Tests : IntegrationTestBase
 
         Assert.True(dashboard.IsSuccess, dashboard.Message);
         Assert.Equal(SupplierPerformanceStatuses.InsufficientData, dashboard.Data!.Performance!.Status);
+    }
+
+    [Fact]
+    public async Task Dashboard_RangeOver366DaysRejected()
+    {
+        using var context = CreateDbContext();
+        await SeedFoundationAsync(context);
+
+        var result = await CreateService(context).GetDashboardAsync(
+            StoreId,
+            SupplierId,
+            DateTime.UtcNow.AddDays(-367),
+            DateTime.UtcNow,
+            StaffId,
+            Roles);
+
+        Assert.False(result.IsSuccess);
+        Assert.Contains("khoảng thời gian", result.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     private static async Task<SupplierReceiptIssueListItemDto> CreateIssueAsync(

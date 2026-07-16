@@ -19,6 +19,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
   OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)
   OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)
 )");
+                t.HasCheckConstraint(
+                    "CK_BranchReceiptLines_Quantities",
+                    "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
+                t.HasCheckConstraint(
+                    "CK_BranchReceiptLines_RejectionReason",
+                    "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
             });
 
             entity.HasKey(x => x.BranchReceiptLineId);
@@ -35,6 +41,9 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasColumnType("decimal(18,3)")
                 .HasDefaultValue(0m)
                 .IsRequired();
+
+            entity.Property(x => x.RejectionReason).HasMaxLength(500);
+            entity.Property(x => x.RejectionIssueType).HasMaxLength(40);
 
             entity.Property(x => x.ActualPackagePrice)
                 .HasColumnType("decimal(18,2)");

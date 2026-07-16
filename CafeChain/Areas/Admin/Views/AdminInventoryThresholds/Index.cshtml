@@ -90,6 +90,7 @@
                                     <form asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Update" method="post" class="ops-inline-actions">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="storeInventoryId" value="@item.StoreInventoryId" />
+                                        <input type="hidden" name="rowVersion" value="@item.RowVersion" />
                                         <input type="hidden" name="storeId" value="@Model.SelectedStoreId" />
                                         <input type="hidden" name="search" value="@search" />
                                         <input type="hidden" name="page" value="@currentPage" />

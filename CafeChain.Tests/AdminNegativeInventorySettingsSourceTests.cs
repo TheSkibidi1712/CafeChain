@@ -46,21 +46,17 @@ public sealed class AdminNegativeInventorySettingsSourceTests
     }
 
     [Fact]
-    public void Store_inventory_seed_remains_unchanged_and_fix_contains_runtime_example()
+    public void Store_inventory_seed_remains_unchanged()
     {
         var storeConfiguration = Read("CafeChain", "Data", "Configurations", "Stores", "StoreConfiguration.cs");
         var seedFour = Regex.Match(
             storeConfiguration,
             @"StoreInventoryId\s*=\s*4,[\s\S]*?LastUpdated\s*=\s*new DateTime\(2025,\s*1,\s*1\)",
             RegexOptions.CultureInvariant).Value;
-        var fix = Read("CafeChain", "FIX.md");
-
         Assert.NotEmpty(seedFour);
         Assert.Contains("StoreId = 3", seedFour, StringComparison.Ordinal);
         Assert.Contains("IngredientId = 2", seedFour, StringComparison.Ordinal);
         Assert.DoesNotContain("MaxNegativeQty", seedFour, StringComparison.Ordinal);
-        Assert.Contains("## 15. Xác định cửa hàng và item được phép xin xuất âm", fix, StringComparison.Ordinal);
-        Assert.Contains("Có thể xin xuất âm tối đa 5.000 ml", fix, StringComparison.Ordinal);
     }
 
     private static string Read(params string[] path) =>

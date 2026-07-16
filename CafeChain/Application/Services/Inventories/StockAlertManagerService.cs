@@ -36,7 +36,8 @@ namespace CafeChain.Application.Services.Inventories
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string note)
+            string note,
+            string? rowVersion)
         {
             var text = (note ?? string.Empty).Trim();
             if (text.Length < 1 || text.Length > MaxTextLength)
@@ -47,6 +48,9 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult.Failure(gate.Message);
 
             var alert = gate.Data!;
+            var versionFailure = ApplyRequiredRowVersion(alert, rowVersion);
+            if (versionFailure != null)
+                return versionFailure;
             var now = DateTime.UtcNow;
             var previousStatus = alert.Status;
 
@@ -66,7 +70,7 @@ namespace CafeChain.Application.Services.Inventories
             await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
 
             if (!await SaveManagerTransitionAsync())
-                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
+                return ResourceChanged();
 
             _logger.LogInformation(
                 "[StockAlert] CONFIRMED AlertId={AlertId} StoreId={StoreId} ByStaffId={StaffId}",
@@ -79,7 +83,8 @@ namespace CafeChain.Application.Services.Inventories
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string reason)
+            string reason,
+            string? rowVersion)
         {
             var text = (reason ?? string.Empty).Trim();
             if (text.Length < 1 || text.Length > MaxTextLength)
@@ -90,6 +95,9 @@ namespace CafeChain.Application.Services.Inventories
                 return ServiceResult.Failure(gate.Message);
 
             var alert = gate.Data!;
+            var versionFailure = ApplyRequiredRowVersion(alert, rowVersion);
+            if (versionFailure != null)
+                return versionFailure;
             var now = DateTime.UtcNow;
             var previousStatus = alert.Status;
 
@@ -108,7 +116,7 @@ namespace CafeChain.Application.Services.Inventories
             await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
 
             if (!await SaveManagerTransitionAsync())
-                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
+                return ResourceChanged();
 
             _logger.LogInformation(
                 "[StockAlert] REJECTED AlertId={AlertId} StoreId={StoreId} ByStaffId={StaffId}",
@@ -121,7 +129,8 @@ namespace CafeChain.Application.Services.Inventories
             int alertId,
             int managerStaffId,
             int managerStoreId,
-            string reason)
+            string reason,
+            string? rowVersion)
         {
             var text = (reason ?? string.Empty).Trim();
             if (text.Length < 1 || text.Length > MaxTextLength)
@@ -142,6 +151,10 @@ namespace CafeChain.Application.Services.Inventories
             if (!await IsAuthorizedManagerAsync(managerStaffId, managerStoreId))
                 return ServiceResult.Failure("Bạn không có quyền đóng cảnh báo tại cửa hàng này.");
 
+            var versionFailure = ApplyRequiredRowVersion(alert, rowVersion);
+            if (versionFailure != null)
+                return versionFailure;
+
             var previousStatus = alert.Status;
             alert.Status = StockAlertStatuses.Closed;
             alert.UpdatedAt = DateTime.UtcNow;
@@ -149,7 +162,7 @@ namespace CafeChain.Application.Services.Inventories
             await RecordTransitionAsync(alert, previousStatus, alert.AlertType, alert.Severity, managerStaffId, text);
 
             if (!await SaveManagerTransitionAsync())
-                return ServiceResult.Failure("Cảnh báo đã được người khác xử lý. Vui lòng tải lại.");
+                return ResourceChanged();
 
             return ServiceResult.Success("Đã đóng cảnh báo kho.");
         }
@@ -468,6 +481,7 @@ namespace CafeChain.Application.Services.Inventories
             var dto = new StockAlertDetailDto
             {
                 StockAlertId = a.StockAlertId,
+                RowVersion = Convert.ToBase64String(a.RowVersion ?? Array.Empty<byte>()),
                 StoreId = a.StoreId,
                 ItemName = ResolveItemName(a),
                 ItemTypeLabel = a.IngredientId.HasValue
@@ -501,6 +515,39 @@ namespace CafeChain.Application.Services.Inventories
             };
             return dto;
         }
+
+        private ServiceResult? ApplyRequiredRowVersion(StockAlert alert, string? rowVersion)
+        {
+            if (string.IsNullOrWhiteSpace(rowVersion))
+            {
+                return ServiceResult.Failure(
+                    "Thiếu phiên bản dữ liệu. Vui lòng tải lại trang.",
+                    errorCode: BranchReceiptErrorCodes.ValidationRowVersionRequired);
+            }
+
+            byte[] expected;
+            try
+            {
+                expected = Convert.FromBase64String(rowVersion);
+            }
+            catch (FormatException)
+            {
+                return ServiceResult.Failure(
+                    "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại trang.",
+                    errorCode: BranchReceiptErrorCodes.ValidationRowVersionRequired);
+            }
+
+            if (expected.Length == 0 || !alert.RowVersion.SequenceEqual(expected))
+                return ResourceChanged();
+
+            _context.Entry(alert).Property(x => x.RowVersion).OriginalValue = expected;
+            return null;
+        }
+
+        private static ServiceResult ResourceChanged() =>
+            ServiceResult.Failure(
+                "Dữ liệu đã được người khác cập nhật. Vui lòng tải lại trước khi thao tác.",
+                errorCode: BranchReceiptErrorCodes.ResourceChanged);
 
         private async Task<List<StockAlertMovementDto>> LoadRecentMovementsAsync(
             StockAlertDetailDto alert)

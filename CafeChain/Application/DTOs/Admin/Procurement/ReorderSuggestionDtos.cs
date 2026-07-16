@@ -42,14 +42,6 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
     {
         public int StoreId { get; set; }
         public int IngredientId { get; set; }
-        public decimal RequestedQuantity { get; set; }
-        public decimal SuggestedQuantity { get; set; }
-        public int AnalysisWindowDays { get; set; }
-        public decimal AvailableSnapshot { get; set; }
-        public decimal MinLevelSnapshot { get; set; }
-        public decimal AverageDailyUsageSnapshot { get; set; }
-        public int LeadTimeDaysSnapshot { get; set; }
-        public decimal IncomingQuantitySnapshot { get; set; }
-        public string SuggestionReason { get; set; } = string.Empty;
+        public string IdempotencyKey { get; set; } = string.Empty;
     }
 }
