@@ -1,4 +1,6 @@
 using CafeChain.Application.DTOs.Admin.InventoryThresholds;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.Application.Services.Admin.StoreInventories;
 using Microsoft.AspNetCore.Mvc;
@@ -15,10 +17,17 @@ namespace CafeChain.Areas.Admin.Controllers
     public class AdminInventoryThresholdsController : AdminBaseController
     {
         private readonly IInventoryThresholdService _service;
+        private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
-        public AdminInventoryThresholdsController(IInventoryThresholdService service)
+        public AdminInventoryThresholdsController(
+            IInventoryThresholdService service,
+            IAdminActorContextAccessor actor,
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
+            _actor = actor;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         [HttpGet]
@@ -28,6 +37,13 @@ namespace CafeChain.Areas.Admin.Controllers
             if (accountId <= 0)
                 return Unauthorized();
 
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                storeId > 0 ? storeId : null);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            storeId = storeScope.StoreId!.Value;
             var result = await _service.ListAsync(accountId, storeId, search, page, 20);
             if (!result.IsSuccess || result.Data == null)
             {
@@ -53,6 +69,12 @@ namespace CafeChain.Areas.Admin.Controllers
             var accountId = GetAccountId();
             if (accountId <= 0)
                 return Unauthorized();
+
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            storeId = storeScope.StoreId!.Value;
 
             if (!UserCanEditThreshold())
             {

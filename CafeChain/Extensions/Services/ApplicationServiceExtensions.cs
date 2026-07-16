@@ -29,6 +29,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 
 // ==========================================
 // Application - Services
@@ -66,6 +67,7 @@ using CafeChain.Application.Workers;
 using CafeChain.Application.Services.Admin.Permissions;
 using CafeChain.Application.Services.Systems;
 using CafeChain.Application.Services.AI;
+using CafeChain.Application.Services.Admin.StoreScope;
 
 namespace CafeChain.Extensions.Services
 {
@@ -186,6 +188,8 @@ namespace CafeChain.Extensions.Services
                 CafeChain.Application.Services.Admin.Recipes.RecipeBomTreeQueryService>();
             services.AddScoped<CafeChain.Application.Interfaces.Admin.Actor.IAdminActorContextAccessor,
                 CafeChain.Application.Services.Admin.Actor.AdminActorContextAccessor>();
+            services.AddScoped<IAdminSelectedStoreContext, AdminSessionSelectedStoreContext>();
+            services.AddScoped<IAdminStoreScopeResolver, AdminStoreScopeResolver>();
 
             // Admin - Production runs (#119 intent; #120 stock apply)
             services.AddScoped<

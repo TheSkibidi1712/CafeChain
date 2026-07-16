@@ -1,12 +1,10 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
-using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -15,42 +13,40 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IReorderSuggestionService _suggestions;
         private readonly IRestockRequestService _restockRequests;
         private readonly IAdminActorContextAccessor _actorAccessor;
-        private readonly IScopeAuthorizationService _scopeAuthorization;
-        private readonly AppDbContext _context;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
         public AdminReorderSuggestionsController(
             IReorderSuggestionService suggestions,
             IRestockRequestService restockRequests,
             IAdminActorContextAccessor actorAccessor,
-            IScopeAuthorizationService scopeAuthorization,
-            AppDbContext context)
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _suggestions = suggestions;
             _restockRequests = restockRequests;
             _actorAccessor = actorAccessor;
-            _scopeAuthorization = scopeAuthorization;
-            _context = context;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         [HttpGet]
         public async Task<IActionResult> Index(int? storeId, int analysisWindowDays = 30)
         {
             var actor = _actorAccessor.Get(User);
-            var stores = await GetAccessibleStoresAsync(actor.StaffId, actor.StoreId, actor.RoleNames);
-            var selectedStoreId = storeId.GetValueOrDefault();
-            if (selectedStoreId <= 0)
-                selectedStoreId = actor.StoreId;
-            if (selectedStoreId <= 0 && int.TryParse(stores.FirstOrDefault()?.Value, out var firstStoreId))
-                selectedStoreId = firstStoreId;
+            if (actor.StaffId <= 0)
+                return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var selectedStoreId = storeScope.StoreId!.Value;
+            var stores = storeScope.AccessibleStores
+                .Select(x => new SelectListItem(x.StoreName, x.StoreId.ToString()))
+                .ToList();
+            SetStoreScopeViewData(storeScope);
             ViewBag.Stores = stores;
             ViewBag.SelectedStoreId = selectedStoreId;
             ViewBag.CanCreateDraft = actor.RoleNames.Any(x =>
                 x.Equals(RoleConstants.StoreManager, StringComparison.OrdinalIgnoreCase)
                 || x.Equals(RoleConstants.BusinessOwner, StringComparison.OrdinalIgnoreCase)
                 || x.Equals(RoleConstants.AreaManager, StringComparison.OrdinalIgnoreCase));
-
-            if (selectedStoreId <= 0)
-                return View(new ReorderSuggestionListDto { AnalysisWindowDays = analysisWindowDays });
 
             var result = await _suggestions.GetForStoreAsync(
                 selectedStoreId, actor.StaffId, actor.RoleNames, analysisWindowDays);
@@ -72,10 +68,13 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> CreateDraft(int storeId, int ingredientId, string idempotencyKey)
         {
             var actor = _actorAccessor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
             var created = await _restockRequests.CreateDraftFromSuggestionAsync(
                 new CreateRestockDraftFromSuggestionDto
                 {
-                    StoreId = storeId,
+                    StoreId = storeScope.StoreId!.Value,
                     IngredientId = ingredientId,
                     IdempotencyKey = idempotencyKey
                 },
@@ -85,38 +84,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 created.Message ?? (created.IsSuccess ? "Đã tạo yêu cầu nhập nháp." : "Không tạo được yêu cầu nhập.");
             if (created.IsSuccess && created.Data != null)
                 return RedirectToAction("Details", "AdminRestockRequests", new { id = created.Data.RestockRequestId });
-            return RedirectToAction(nameof(Index), new { storeId });
-        }
-
-        private async Task<List<SelectListItem>> GetAccessibleStoresAsync(
-            int staffId,
-            int actorStoreId,
-            IReadOnlyCollection<string> roles)
-        {
-            var roleSet = roles.ToHashSet(StringComparer.OrdinalIgnoreCase);
-            var stores = await _context.Stores.AsNoTracking()
-                .OrderBy(x => x.Name)
-                .Select(x => new { x.StoreId, x.Name })
-                .ToListAsync();
-            if (roleSet.Contains(RoleConstants.StoreManager))
-                stores = stores.Where(x => x.StoreId == actorStoreId).ToList();
-            else if (roleSet.Contains(RoleConstants.AreaManager))
-            {
-                var allowed = new List<int>();
-                foreach (var store in stores)
-                {
-                    if (await _scopeAuthorization.CanAccessStoreAsync(staffId, store.StoreId))
-                        allowed.Add(store.StoreId);
-                }
-                stores = stores.Where(x => allowed.Contains(x.StoreId)).ToList();
-            }
-            else if (!roleSet.Contains(RoleConstants.BusinessOwner)
-                     && !roleSet.Contains(RoleConstants.AccountantWarehouse))
-            {
-                stores.Clear();
-            }
-
-            return stores.Select(x => new SelectListItem(x.Name, x.StoreId.ToString())).ToList();
+            return RedirectToAction(nameof(Index), new { storeId = storeScope.StoreId });
         }
     }
 }

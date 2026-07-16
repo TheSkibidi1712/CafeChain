@@ -1,8 +1,8 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,7 +16,7 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IPhysicalUnitConversionService _conversion;
         private readonly IAdminActorContextAccessor _actor;
         private readonly AppDbContext _context;
-        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
@@ -24,14 +24,14 @@ namespace CafeChain.Areas.Admin.Controllers
             IPhysicalUnitConversionService conversion,
             IAdminActorContextAccessor actor,
             AppDbContext context,
-            IScopeAuthorizationService scopeAuthorization)
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
             _allocations = allocations;
             _conversion = conversion;
             _actor = actor;
             _context = context;
-            _scopeAuthorization = scopeAuthorization;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         [HttpGet]
@@ -39,7 +39,12 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!CanRead()) return Forbid();
             var actor = _actor.Get(User);
-            return View(await _service.ListAsync(storeId, status, actor.StaffId, actor.RoleNames));
+            if (actor.StaffId <= 0) return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
+            SetStoreScopeViewData(storeScope);
+            ViewBag.StatusFilter = status;
+            return View(await _service.ListAsync(storeScope.StoreId, status, actor.StaffId, actor.RoleNames));
         }
 
         [HttpGet]
@@ -91,6 +96,12 @@ namespace CafeChain.Areas.Admin.Controllers
                             : 1);
                 }
             }
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                model.StoreId > 0 ? model.StoreId : null);
+            if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
+            model.StoreId = storeScope.StoreId!.Value;
             await PopulateAsync(model.StoreId);
             return View(model);
         }
@@ -101,6 +112,9 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!CanCreate()) return Forbid();
             var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, model.StoreId);
+            if (!storeScope.IsResolved) return StoreScopeFailure(storeScope);
+            model.StoreId = storeScope.StoreId!.Value;
             var result = await _service.CreateDraftAsync(model, actor.StaffId, actor.RoleNames);
             if (!result.IsSuccess || result.Data == null)
             {
@@ -142,11 +156,17 @@ namespace CafeChain.Areas.Admin.Controllers
         private async Task PopulateAsync(int storeId)
         {
             var actor = _actor.Get(User);
-            var allowedStoreIds = (await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId))
-                .Select(x => x.StoreId).ToList();
-            ViewBag.Stores = await _context.Stores.AsNoTracking()
-                .Where(x => x.Active && allowedStoreIds.Contains(x.StoreId))
-                .OrderBy(x => x.Name).ToListAsync();
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                storeId > 0 ? storeId : null);
+            ViewBag.Stores = storeScope.AccessibleStores
+                .Select(x => new CafeChain.Models.Stores.Store
+                {
+                    StoreId = x.StoreId,
+                    Name = x.StoreName,
+                    Active = true
+                })
+                .ToList();
             ViewBag.Suppliers = await _context.Suppliers.AsNoTracking().Where(x => x.Active).OrderBy(x => x.Name).ToListAsync();
             ViewBag.Offers = await _context.IngredientSuppliers.AsNoTracking()
                 .Include(x => x.Ingredient).Include(x => x.Supplier).Include(x => x.Unit)

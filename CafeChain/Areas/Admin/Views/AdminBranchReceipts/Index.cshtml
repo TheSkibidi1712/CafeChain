@@ -1,10 +1,13 @@
 @model List<CafeChain.Application.DTOs.Admin.RestockRequests.BranchReceiptListItemDto>
+@using CafeChain.Application.DTOs.Admin.StoreScope
 @{
     ViewData["Title"] = "Phiếu nhận hàng chi nhánh";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var statusFilter = ViewBag.StatusFilter as string;
     var storeId = ViewBag.StoreId as int? ?? 0;
     var canCreate = ViewBag.CanCreate as bool? ?? false;
+    var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
+        ?? Array.Empty<AdminStoreOptionDto>();
     string StatusLabel(string value) => value switch
     {
         "DRAFT" => "Bản nháp",
@@ -38,6 +41,23 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["WarningMessage"] != null) { <div class="ops-notice ops-notice-warning" role="status">@TempData["WarningMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
+
+    @if (stores.Count > 1)
+    {
+        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+            <input type="hidden" name="status" value="@statusFilter" />
+            <div class="ops-filter-group">
+                <label class="ops-form-label mb-0" for="receiptStoreId">Cửa hàng</label>
+                <select id="receiptStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId" selected="@(store.StoreId == storeId)">@store.StoreName</option>
+                    }
+                </select>
+            </div>
+            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+        </form>
+    }
 
     <nav class="ops-tabs" aria-label="Lọc trạng thái phiếu nhận">
         <a class="ops-tab @(string.IsNullOrEmpty(statusFilter) ? "active" : "")" asp-action="Index" asp-route-storeId="@storeId">Tất cả</a>

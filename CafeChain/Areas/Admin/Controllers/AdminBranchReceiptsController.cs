@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -16,15 +17,18 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IBranchReceiptService _receiptService;
         private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
         private readonly AppDbContext _context;
 
         public AdminBranchReceiptsController(
             IBranchReceiptService receiptService,
             IAdminActorContextAccessor actor,
+            IAdminStoreScopeResolver storeScopeResolver,
             AppDbContext context)
         {
             _receiptService = receiptService;
             _actor = actor;
+            _storeScopeResolver = storeScopeResolver;
             _context = context;
         }
 
@@ -38,23 +42,18 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            var targetStoreId = HasCrossStoreDocumentRole()
-                ? storeId.GetValueOrDefault()
-                : ctx.StoreId;
-            if (targetStoreId <= 0 && !HasCrossStoreDocumentRole())
+            if (ctx.StaffId <= 0)
                 return Unauthorized();
-
-            if (targetStoreId <= 0)
-            {
-                TempData["ErrorMessage"] = "Chọn cửa hàng để xem phiếu nhận.";
-                ViewBag.CanCreate = false;
-                return View(new List<BranchReceiptListItemDto>());
-            }
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
             var result = await _receiptService.ListForStoreAsync(
                 targetStoreId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, status);
             if (!result.IsSuccess)
                 return Forbid();
+            SetStoreScopeViewData(storeScope);
             ViewBag.StatusFilter = status;
             ViewBag.StoreId = targetStoreId;
             ViewBag.CanCreate = CanConfirmReceipts();
@@ -103,16 +102,13 @@ namespace CafeChain.Areas.Admin.Controllers
                 restockRequestId = poLine.RestockRequestId;
                 storeId = poLine.PurchaseOrder.StoreId;
             }
-            var targetStoreId = HasCrossStoreDocumentRole()
-                ? storeId.GetValueOrDefault()
-                : ctx.StoreId;
-            if (targetStoreId <= 0)
-            {
-                TempData["ErrorMessage"] = "Cần chọn cửa hàng trước khi tạo phiếu nhận.";
-                return RedirectToAction(nameof(Index));
-            }
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
             ViewBag.RestockRequestId = restockRequestId;
             ViewBag.StoreId = targetStoreId;
+            SetStoreScopeViewData(storeScope);
             await PopulateSupplierOptionsAsync(targetStoreId, ctx);
             return View(new CreateBranchReceiptRequest
             {
@@ -144,8 +140,10 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            if (!HasCrossStoreDocumentRole() && ctx.StoreId > 0)
-                model.StoreId = ctx.StoreId;
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, model.StoreId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            model.StoreId = storeScope.StoreId!.Value;
 
             var result = await _receiptService.CreateDraftAsync(model, ctx.StaffId, ctx.RoleNames);
             if (!result.IsSuccess || result.Data == null)
@@ -196,7 +194,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Forbid();
 
             var ctx = _actor.Get(User);
-            var targetStoreId = HasCrossStoreDocumentRole() ? storeId : ctx.StoreId;
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeApiFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
             var result = await _receiptService.GetSupplierOptionsAsync(
                 targetStoreId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
             if (!result.IsSuccess)
@@ -211,7 +212,10 @@ namespace CafeChain.Areas.Admin.Controllers
                 return Forbid();
 
             var ctx = _actor.Get(User);
-            var targetStoreId = HasCrossStoreDocumentRole() ? storeId : ctx.StoreId;
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeApiFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
             var result = await _receiptService.GetOfferOptionsAsync(
                 targetStoreId,
                 supplierId,
@@ -247,9 +251,19 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner);
 
-        private bool HasCrossStoreDocumentRole() =>
-            User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.AccountantWarehouse);
+        private IActionResult StoreScopeApiFailure(
+            CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution resolution)
+        {
+            var statusCode = resolution.Status
+                == CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreScopeResolutionStatus.StoreNotFound
+                ? StatusCodes.Status404NotFound
+                : StatusCodes.Status403Forbidden;
+            return StatusCode(statusCode, new
+            {
+                success = false,
+                errorCode = resolution.ErrorCode,
+                message = resolution.Message
+            });
+        }
     }
 }

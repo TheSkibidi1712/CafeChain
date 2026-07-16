@@ -1,4 +1,6 @@
 using CafeChain.Application.DTOs.Admin.StoreInventories;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Admin.StoreInventories;
 using CafeChain.ViewModels.Admin.StoreInventories;
 using Microsoft.AspNetCore.Mvc;
@@ -11,10 +13,17 @@ namespace CafeChain.Areas.Admin.Controllers
         private const int PageSize = 10;
 
         private readonly IAdminStoreInventoryService _service;
+        private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
-        public AdminStoreInventoryController(IAdminStoreInventoryService service)
+        public AdminStoreInventoryController(
+            IAdminStoreInventoryService service,
+            IAdminActorContextAccessor actor,
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
+            _actor = actor;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         // =====================================================
@@ -32,8 +41,14 @@ namespace CafeChain.Areas.Admin.Controllers
             if (accountId <= 0)
                 return Unauthorized();
 
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(
+                actor,
+                storeId > 0 ? storeId : null);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
             var stores = await _service.GetStoresByStaffAsync(accountId);
-            var selectedStoreId = ResolveSelectedStoreId(storeId, stores);
+            var selectedStoreId = storeScope.StoreId!.Value;
             var selectedType = NormalizeInventoryType(inventoryType);
 
             var (data, total) = await _service.GetInventoryByStaffAsync(
@@ -76,9 +91,14 @@ namespace CafeChain.Areas.Admin.Controllers
             if (accountId <= 0)
                 return Unauthorized();
 
+            var actor = _actor.Get(User);
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            storeId = storeScope.StoreId!.Value;
             var stores = await _service.GetStoresByStaffAsync(accountId);
 
-            if (!CanAccessStore(storeId, stores))
+            if (!stores.Any(x => x.StoreId == storeId))
                 return Forbid();
 
             var (data, total) = await _service.GetAllTransactionsByStaffAsync(
@@ -211,30 +231,6 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
         // PRIVATE - STORE ACCESS
         // =====================================================
-
-        private static int ResolveSelectedStoreId(
-            int requestedStoreId,
-            List<InventoryStoreDTO> stores)
-        {
-            if (!stores.Any())
-                return 0;
-
-            if (requestedStoreId > 0 &&
-                stores.Any(x => x.StoreId == requestedStoreId))
-            {
-                return requestedStoreId;
-            }
-
-            return stores.First().StoreId;
-        }
-
-        private static bool CanAccessStore(
-            int requestedStoreId,
-            List<InventoryStoreDTO> stores)
-        {
-            return requestedStoreId <= 0 ||
-                   stores.Any(x => x.StoreId == requestedStoreId);
-        }
 
         // =====================================================
         // PRIVATE - VIEWBAG

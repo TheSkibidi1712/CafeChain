@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using CafeChain.Application.DTOs.Admin.StoreScope;
+using CafeChain.ViewModels.Admin.StoreScope;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -7,7 +9,28 @@ namespace CafeChain.Areas.Admin.Controllers
     [Authorize(Policy = "RequireAdminPanelAccess")]
     public abstract class AdminBaseController : Controller
     {
-        // Controller cha - Nơi chứa các logic dùng chung cho toàn bộ Admin Area
-        // Các Controller con chỉ cần kế thừa AdminBaseController, không cần viết lại [Area] hay [Authorize]
+        protected IActionResult StoreScopeFailure(AdminStoreScopeResolution resolution)
+        {
+            Response.StatusCode = resolution.Status == AdminStoreScopeResolutionStatus.StoreNotFound
+                ? StatusCodes.Status404NotFound
+                : StatusCodes.Status403Forbidden;
+            return View("~/Areas/Admin/Views/Shared/StoreScopeError.cshtml", new AdminStoreScopeErrorVM
+            {
+                ErrorCode = resolution.ErrorCode ?? AdminStoreScopeErrorCodes.StoreScopeNotConfigured,
+                Message = resolution.Message
+                          ?? "Tài khoản chưa được cấu hình phạm vi cửa hàng. Vui lòng liên hệ quản trị viên."
+            });
+        }
+
+        protected void SetStoreScopeViewData(AdminStoreScopeResolution resolution)
+        {
+            ViewBag.StoreOptions = resolution.AccessibleStores;
+            ViewBag.SelectedStoreId = resolution.StoreId;
+            if (resolution.WarningCode == AdminStoreScopeErrorCodes.SelectedStoreNoLongerAccessible)
+            {
+                TempData["WarningMessage"] =
+                    "Cửa hàng đã chọn trước đó không còn trong phạm vi được cấp. Hệ thống đã chuyển sang cửa hàng hợp lệ.";
+            }
+        }
     }
 }

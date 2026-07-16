@@ -1,8 +1,8 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -15,18 +15,18 @@ namespace CafeChain.Areas.Admin.Controllers
         private readonly IRestockRequestService _service;
         private readonly IRestockRequestWorkflowService _workflow;
         private readonly IAdminActorContextAccessor _actor;
-        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
         public AdminRestockRequestsController(
             IRestockRequestService service,
             IRestockRequestWorkflowService workflow,
             IAdminActorContextAccessor actor,
-            IScopeAuthorizationService scopeAuthorization)
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
             _workflow = workflow;
             _actor = actor;
-            _scopeAuthorization = scopeAuthorization;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         [HttpGet]
@@ -42,14 +42,15 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(ctx.StaffId, ctx.StoreId, storeId);
-            if (targetStoreId <= 0)
-            {
-                TempData["ErrorMessage"] = "Vui lòng chọn cửa hàng nằm trong phạm vi được phân quyền.";
+            if (ctx.StaffId <= 0)
                 return Unauthorized();
-            }
+            var storeScope = await _storeScopeResolver.ResolveAsync(ctx, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
             var result = await _service.ListForStoreAsync(targetStoreId, status, page, 20);
+            SetStoreScopeViewData(storeScope);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tải được danh sách yêu cầu.";
@@ -57,7 +58,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.SelectedStoreId = targetStoreId;
             ViewBag.CanWarehouse = CanWarehouseActions();
             ViewBag.CanCreateReceipt = CanCreateReceipt();
             return View(result.Data);
@@ -258,23 +258,5 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.BusinessOwner);
 
-        private async Task<int> ResolveAuthorizedStoreIdAsync(
-            int staffId,
-            int actorStoreId,
-            int? requestedStoreId)
-        {
-            if (User.IsInRole(RoleConstants.StoreManager))
-                return actorStoreId > 0 && (!requestedStoreId.HasValue || requestedStoreId == actorStoreId)
-                    ? actorStoreId
-                    : 0;
-            if (User.IsInRole(RoleConstants.BusinessOwner)
-                || User.IsInRole(RoleConstants.AccountantWarehouse))
-                return requestedStoreId.GetValueOrDefault();
-            if (User.IsInRole(RoleConstants.AreaManager)
-                && requestedStoreId.GetValueOrDefault() > 0
-                && await _scopeAuthorization.CanAccessStoreAsync(staffId, requestedStoreId.Value))
-                return requestedStoreId.Value;
-            return 0;
-        }
     }
 }

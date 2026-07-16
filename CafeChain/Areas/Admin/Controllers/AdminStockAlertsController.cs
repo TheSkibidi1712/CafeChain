@@ -1,6 +1,7 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using Microsoft.AspNetCore.Mvc;
 
 namespace CafeChain.Areas.Admin.Controllers
@@ -13,16 +14,19 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IStockAlertManagerService _service;
         private readonly IRestockRequestService _restockService;
-        private readonly IScopeAuthorizationService _scopeAuthorization;
+        private readonly IAdminActorContextAccessor _actor;
+        private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
         public AdminStockAlertsController(
             IStockAlertManagerService service,
             IRestockRequestService restockService,
-            IScopeAuthorizationService scopeAuthorization)
+            IAdminActorContextAccessor actor,
+            IAdminStoreScopeResolver storeScopeResolver)
         {
             _service = service;
             _restockService = restockService;
-            _scopeAuthorization = scopeAuthorization;
+            _actor = actor;
+            _storeScopeResolver = storeScopeResolver;
         }
 
         [HttpGet]
@@ -34,12 +38,16 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction("Index", "AdminNotifications");
             }
 
-            var staffId = ResolveStaffId();
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: false);
-            if (targetStoreId <= 0 || staffId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
             var result = await _service.ListForStoreAsync(targetStoreId, status, page, 20);
+            SetStoreScopeViewData(storeScope);
             if (!result.IsSuccess || result.Data == null)
             {
                 TempData["ErrorMessage"] = result.Message ?? "Không tải được danh sách cảnh báo.";
@@ -47,7 +55,6 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             ViewBag.StatusFilter = status;
-            ViewBag.SelectedStoreId = targetStoreId;
             ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
@@ -61,9 +68,13 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(ResolveStaffId(), storeId, mutation: false);
-            if (targetStoreId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
             var result = await _service.GetDetailAsync(id, targetStoreId);
             if (!result.IsSuccess || result.Data == null)
@@ -74,7 +85,7 @@ namespace CafeChain.Areas.Admin.Controllers
 
             var openRestock = await _restockService.GetOpenByAlertAsync(id, targetStoreId);
             ViewBag.OpenRestockRequest = openRestock.IsSuccess ? openRestock.Data : null;
-            ViewBag.SelectedStoreId = targetStoreId;
+            SetStoreScopeViewData(storeScope);
             ViewBag.IsStoreManager = CanManage();
             return View(result.Data);
         }
@@ -89,12 +100,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var staffId = ResolveStaffId();
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
-            if (staffId <= 0 || targetStoreId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
-            var result = await _service.ConfirmAsync(id, staffId, targetStoreId, managerNote ?? string.Empty, rowVersion);
+            var result = await _service.ConfirmAsync(id, actor.StaffId, targetStoreId, managerNote ?? string.Empty, rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -113,12 +127,15 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var staffId = ResolveStaffId();
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
-            if (staffId <= 0 || targetStoreId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
-            var result = await _service.RejectAsync(id, staffId, targetStoreId, rejectReason ?? string.Empty, rowVersion);
+            var result = await _service.RejectAsync(id, actor.StaffId, targetStoreId, rejectReason ?? string.Empty, rowVersion);
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
@@ -133,13 +150,16 @@ namespace CafeChain.Areas.Admin.Controllers
         {
             if (!CanManage())
                 return Forbid();
-            var staffId = ResolveStaffId();
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
-            if (staffId <= 0 || targetStoreId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
             var result = await _service.CloseAsync(
                 id,
-                staffId,
+                actor.StaffId,
                 targetStoreId,
                 closeReason ?? string.Empty,
                 rowVersion);
@@ -162,13 +182,16 @@ namespace CafeChain.Areas.Admin.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var staffId = ResolveStaffId();
-            var targetStoreId = await ResolveAuthorizedStoreIdAsync(staffId, storeId, mutation: true);
-            if (staffId <= 0 || targetStoreId <= 0)
+            var actor = _actor.Get(User);
+            if (actor.StaffId <= 0)
                 return Unauthorized();
+            var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+            if (!storeScope.IsResolved)
+                return StoreScopeFailure(storeScope);
+            var targetStoreId = storeScope.StoreId!.Value;
 
             var result = await _restockService.CreateFromConfirmedAlertAsync(
-                id, staffId, targetStoreId, requestedQuantity, note, priority);
+                id, actor.StaffId, targetStoreId, requestedQuantity, note, priority);
 
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
@@ -189,38 +212,5 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.BusinessOwner);
 
-        private int ResolveStaffId()
-        {
-            var claim = User.FindFirst("StaffId")?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private int ResolveStoreId()
-        {
-            var claim = User.FindFirst("StoreId")?.Value;
-            return int.TryParse(claim, out var id) && id > 0 ? id : 0;
-        }
-
-        private async Task<int> ResolveAuthorizedStoreIdAsync(
-            int staffId,
-            int? requestedStoreId,
-            bool mutation)
-        {
-            var actorStoreId = ResolveStoreId();
-            if (User.IsInRole(RoleConstants.StoreManager)
-                || User.IsInRole(RoleConstants.ShiftSupervisor)
-                || User.IsInRole(RoleConstants.SalesStaff))
-                return actorStoreId > 0 && (!requestedStoreId.HasValue || requestedStoreId == actorStoreId)
-                    ? actorStoreId
-                    : 0;
-            if (User.IsInRole(RoleConstants.BusinessOwner)
-                || (!mutation && User.IsInRole(RoleConstants.AccountantWarehouse)))
-                return requestedStoreId.GetValueOrDefault();
-            if (User.IsInRole(RoleConstants.AreaManager)
-                && requestedStoreId.GetValueOrDefault() > 0
-                && await _scopeAuthorization.CanAccessStoreAsync(staffId, requestedStoreId.Value))
-                return requestedStoreId.Value;
-            return 0;
-        }
     }
 }

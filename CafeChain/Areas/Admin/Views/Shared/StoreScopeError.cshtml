@@ -1,0 +1,18 @@
+@model CafeChain.ViewModels.Admin.StoreScope.AdminStoreScopeErrorVM
+@{
+    ViewData["Title"] = "Phạm vi cửa hàng";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <section class="ops-panel">
+        <div class="ops-panel-body text-center py-5">
+            <i class="fa-solid fa-store-slash fa-2x text-danger mb-3" aria-hidden="true"></i>
+            <h1 class="ops-panel-title mb-2">Không thể xác định cửa hàng</h1>
+            <p class="ops-secondary mb-2">@Model.Message</p>
+            <code>@Model.ErrorCode</code>
+        </div>
+    </section>
+</main>

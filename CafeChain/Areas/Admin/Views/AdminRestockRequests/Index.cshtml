@@ -1,4 +1,5 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestListResultDto
+@using CafeChain.Application.DTOs.Admin.StoreScope
 @{
     ViewData["Title"] = "Yêu cầu nhập hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -7,6 +8,8 @@
     var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Math.Max(1, Model.PageSize)));
     var urgent = Model.Items.Count(x => x.Priority == "URGENT");
     var high = Model.Items.Count(x => x.Priority == "HIGH");
+    var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
+        ?? Array.Empty<AdminStoreOptionDto>();
     string StatusLabel(string value) => value switch
     {
         "SUBMITTED" => "Chờ tiếp nhận",
@@ -38,13 +41,31 @@
             <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho cửa hàng #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
-            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-check" aria-hidden="true"></i> Phiếu nhận hàng</a>
         </div>
     </header>
 
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
+    @if (TempData["WarningMessage"] != null) { <div class="ops-notice ops-notice-warning" role="status">@TempData["WarningMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
+
+    @if (stores.Count > 1)
+    {
+        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+            <input type="hidden" name="status" value="@statusFilter" />
+            <div class="ops-filter-group">
+                <label class="ops-form-label mb-0" for="restockStoreId">Cửa hàng</label>
+                <select id="restockStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>
+                    }
+                </select>
+            </div>
+            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+        </form>
+    }
 
     <section class="ops-metrics" aria-label="Tóm tắt yêu cầu trên trang">
         <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
@@ -81,7 +102,7 @@
                             <td><span class="ops-badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
                             <td>@(item.CreatedByName ?? "—")</td>
                             <td class="text-nowrap"><span class="ops-secondary">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
-                            <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
+                            <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId" asp-route-storeId="@item.StoreId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
                         </tr>
                     }
                     </tbody>

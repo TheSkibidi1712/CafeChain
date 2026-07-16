@@ -1,10 +1,10 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.SupplierQualityDashboardDto
 @using CafeChain.Models.Inventories.Suppliers
-@using CafeChain.Models.Stores
+@using CafeChain.Application.DTOs.Admin.StoreScope
 @{
     ViewData["Title"] = "Chất lượng nhà cung cấp";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
-    var stores = ViewBag.Stores as IReadOnlyList<Store> ?? Array.Empty<Store>();
+    var stores = ViewBag.Stores as IReadOnlyList<AdminStoreOptionDto> ?? Array.Empty<AdminStoreOptionDto>();
     var suppliers = ViewBag.Suppliers as IReadOnlyList<Supplier> ?? Array.Empty<Supplier>();
     var days = ViewBag.Days as int? ?? 90;
     var customFrom = ViewBag.CustomFrom as DateTime?;
@@ -31,7 +31,7 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
     <form method="get" class="ops-panel"><div class="ops-panel-body"><div class="row g-3 align-items-end">
-        <div class="col-md-2"><label class="ops-form-label">Cửa hàng</label><select class="ops-select w-100" name="storeId" required>@foreach(var store in stores){<option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.Name</option>}</select></div>
+        <div class="col-md-2"><label class="ops-form-label">Cửa hàng</label><select class="ops-select w-100" name="storeId" required>@foreach(var store in stores){<option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>}</select></div>
         <div class="col-md-2"><label class="ops-form-label">Nhà cung cấp</label><select class="ops-select w-100" name="supplierId"><option value="">Tất cả nhà cung cấp</option>@foreach(var supplier in suppliers){<option value="@supplier.SupplierId" selected="@(supplier.SupplierId == Model.SupplierId)">@supplier.Code · @supplier.Name</option>}</select></div>
         <div class="col-md-2"><label class="ops-form-label">Khoảng mặc định</label><select class="ops-select w-100" name="days"><option value="30" selected="@(days == 30)">30 ngày</option><option value="90" selected="@(days == 90)">90 ngày</option><option value="180" selected="@(days == 180)">180 ngày</option></select></div>
         <div class="col-md-2"><label class="ops-form-label">Từ ngày (tùy chọn)</label><input class="ops-input w-100" name="from" type="date" value="@(customFrom?.ToString("yyyy-MM-dd"))" /></div>

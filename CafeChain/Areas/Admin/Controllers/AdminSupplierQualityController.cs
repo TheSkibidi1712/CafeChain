@@ -1,8 +1,8 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
+using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
-using CafeChain.Application.Interfaces.Security;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,18 +16,18 @@ public sealed class AdminSupplierQualityController : AdminBaseController
 {
     private readonly ISupplierQualityService _service;
     private readonly IAdminActorContextAccessor _actor;
-    private readonly IScopeAuthorizationService _scopeAuthorization;
+    private readonly IAdminStoreScopeResolver _storeScopeResolver;
     private readonly AppDbContext _context;
 
     public AdminSupplierQualityController(
         ISupplierQualityService service,
         IAdminActorContextAccessor actor,
-        IScopeAuthorizationService scopeAuthorization,
+        IAdminStoreScopeResolver storeScopeResolver,
         AppDbContext context)
     {
         _service = service;
         _actor = actor;
-        _scopeAuthorization = scopeAuthorization;
+        _storeScopeResolver = storeScopeResolver;
         _context = context;
     }
 
@@ -40,7 +40,12 @@ public sealed class AdminSupplierQualityController : AdminBaseController
         DateTime? to = null)
     {
         var actor = _actor.Get(User);
-        var selectedStoreId = storeId.GetValueOrDefault(actor.StoreId);
+        if (actor.StaffId <= 0)
+            return Unauthorized();
+        var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
+        if (!storeScope.IsResolved)
+            return StoreScopeFailure(storeScope);
+        var selectedStoreId = storeScope.StoreId!.Value;
         var toUtc = to.HasValue ? ToUtcBoundary(to.Value.Date.AddDays(1)) : DateTime.UtcNow;
         var fromUtc = from.HasValue
             ? ToUtcBoundary(from.Value.Date)
@@ -48,7 +53,8 @@ public sealed class AdminSupplierQualityController : AdminBaseController
         var result = await _service.GetDashboardAsync(
             selectedStoreId, supplierId, fromUtc, toUtc, actor.StaffId, actor.RoleNames);
         if (!result.IsSuccess || result.Data == null) return Forbid();
-        ViewBag.Stores = await _scopeAuthorization.GetAllowedStoresAsync(actor.StaffId);
+        SetStoreScopeViewData(storeScope);
+        ViewBag.Stores = storeScope.AccessibleStores;
         ViewBag.Suppliers = await _context.Suppliers.AsNoTracking()
             .Where(x => x.Active && x.SupplierStores.Any(s => s.StoreId == selectedStoreId && s.Active))
             .OrderBy(x => x.Name)

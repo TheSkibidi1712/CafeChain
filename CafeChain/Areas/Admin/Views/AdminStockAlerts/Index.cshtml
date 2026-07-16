@@ -1,4 +1,5 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertListResultDto
+@using CafeChain.Application.DTOs.Admin.StoreScope
 @{
     ViewData["Title"] = "Cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -8,6 +9,8 @@
     var outCount = Model.Items.Count(x => x.AlertType == "OUT_OF_STOCK");
     var lowCount = Model.Items.Count(x => x.AlertType == "LOW_STOCK");
     var manualCount = Model.Items.Count(x => x.Source == "SALES_REPORT");
+    var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
+        ?? Array.Empty<AdminStoreOptionDto>();
     string StatusLabel(string value) => value switch
     {
         "OPEN" => "Chờ quản lý",
@@ -48,10 +51,10 @@
             <p class="ops-subtitle">Theo dõi thiếu hụt tại cửa hàng #@Model.StoreId. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</p>
         </div>
         <div class="ops-actions">
-            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index">
+            <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">
                 <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i> Xem tồn kho
             </a>
-            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index">
+            <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-storeId="@Model.StoreId">
                 <i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng
             </a>
         </div>
@@ -61,9 +64,30 @@
     {
         <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div>
     }
+    @if (TempData["WarningMessage"] != null)
+    {
+        <div class="ops-notice ops-notice-warning" role="status">@TempData["WarningMessage"]</div>
+    }
     @if (TempData["ErrorMessage"] != null)
     {
         <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div>
+    }
+
+    @if (stores.Count > 1)
+    {
+        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+            <input type="hidden" name="status" value="@statusFilter" />
+            <div class="ops-filter-group">
+                <label class="ops-form-label mb-0" for="stockAlertStoreId">Cửa hàng</label>
+                <select id="stockAlertStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
+                    @foreach (var store in stores)
+                    {
+                        <option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>
+                    }
+                </select>
+            </div>
+            <noscript><button type="submit" class="ops-btn">Áp dụng</button></noscript>
+        </form>
     }
 
     <section class="ops-metrics" aria-label="Tóm tắt cảnh báo trên trang">
