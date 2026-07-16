@@ -1,76 +1,201 @@
-﻿.custom-modal {
+/* ============================================================
+   INGREDIENT MANAGEMENT MODULE — CafeChain Admin
+   White-Orange Theme | Frontend Only
+   ============================================================ */
+
+/* ---- Custom Modal (non-Bootstrap, AJAX-driven) ---- */
+.custom-modal {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,0.5);
-    z-index: 999;
+    background: rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(3px);
+    z-index: 1055;
+    align-items: center;
+    justify-content: center;
 }
 
-    .custom-modal.show {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
+.custom-modal.show {
+    display: flex;
+}
 
 .modal-box {
-    width: 650px;
+    width: 700px;
+    max-width: 95vw;
     background: #fff;
-    border-radius: 12px;
-    animation: fadeIn 0.25s ease;
+    border-radius: 14px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 60px rgba(15, 23, 42, 0.14);
+    animation: ingModalIn 0.22s ease;
+    overflow: hidden;
 }
 
-.modal-header, .modal-footer {
-    padding: 12px;
-    border-bottom: 1px solid #ddd;
+@keyframes ingModalIn {
+    from { opacity: 0; transform: translateY(-16px) scale(0.97); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
 }
 
-.modal-footer {
-    border-top: 1px solid #ddd;
-    text-align: right;
+/* Modal sections */
+#ingredientModal .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
 }
 
-.modal-body {
-    padding: 15px;
+#ingredientModal .modal-header h5 {
+    margin: 0;
+    font-weight: 800;
+    font-size: 17px;
+    color: #111827;
 }
 
-.close-btn {
+#ingredientModal .close-btn {
     cursor: pointer;
+    font-size: 1.1rem;
+    color: #94a3b8;
+    transition: color 0.2s;
+    padding: 4px 8px;
+    border-radius: 6px;
+    line-height: 1;
 }
 
-.action-icon {
-    margin: 0 6px;
+#ingredientModal .close-btn:hover {
+    color: #dc2626;
+    background: #fee2e2;
+}
+
+#ingredientModal .modal-body {
+    padding: 24px;
+    background: #fff;
+}
+
+#ingredientModal .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #f0f0f0;
+    background: #f8fafc;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    border-radius: 0 0 14px 14px;
+}
+
+/* ---- Conversion section inside modal ---- */
+.ingredient-conv-section .card-header {
+    background: #fff7ed !important;
+    border-bottom: 1px solid #fed7aa !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 12px 16px !important;
+}
+
+.ingredient-conv-section .card-header h6 {
+    color: #ea580c;
+    font-weight: 800;
+    margin: 0;
+}
+
+/* ---- Table inside modal ---- */
+.ingredient-conv-section .table thead th {
+    background: #f8fafc !important;
+    color: #64748b !important;
+    font-size: 11px !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    padding: 10px 12px !important;
+    border-bottom: 1px solid #e5e7eb !important;
+}
+
+.ingredient-conv-section .table tbody td {
+    padding: 10px 12px !important;
+    vertical-align: middle;
+    border-bottom: 1px solid #f3f4f6 !important;
+}
+
+.ingredient-conv-section .table tbody tr:hover {
+    background: #fff7ed;
+}
+
+/* ---- Remove row btn inside conversion ---- */
+.btn-remove-conv {
+    width: 30px;
+    height: 30px;
+    border-radius: 7px;
+    border: 1px solid #fecaca;
+    background: #fff;
+    color: #dc2626;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    transition: all 0.2s;
+    padding: 0;
 }
-/* PAGINATION */
 
+.btn-remove-conv:hover {
+    background: #fee2e2;
+    border-color: #dc2626;
+}
+
+/* ---- Pagination ---- */
 .pagination {
-    margin-top: 15px;
     display: flex;
     gap: 5px;
     align-items: center;
+    flex-wrap: wrap;
 }
 
-/* FIX underline + style link như button */
 .page-btn {
-    padding: 6px 12px;
-    border: 1px solid #ccc;
-    background: white;
+    padding: 7px 14px;
+    border: 1px solid #e5e7eb;
+    background: #fff;
     cursor: pointer;
-    border-radius: 6px;
-    transition: 0.2s;
-    text-decoration: none; /* 🔥 QUAN TRỌNG: bỏ gạch chân */
-    color: #333;
-    font-weight: 500;
+    border-radius: 8px;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: #374151;
+    font-weight: 600;
+    font-size: 13px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-    /* hover */
-    .page-btn:hover {
-        background: #eee;
-    }
+.page-btn:hover {
+    background: #fff7ed;
+    border-color: #f97316;
+    color: #ea580c;
+}
 
-    /* active page */
-    .page-btn.active {
-        background: #333;
-        color: white;
-        border-color: #333;
-    }
+.page-btn.active {
+    background: #f97316;
+    color: #fff;
+    border-color: #f97316;
+    box-shadow: 0 4px 12px rgba(249, 115, 22, 0.25);
+}
+
+/* ---- Unit badge ---- */
+.unit-badge {
+    background: #ffedd5;
+    border: 1px solid #fed7aa;
+    color: #ea580c;
+    border-radius: 6px;
+    padding: 3px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    display: inline-block;
+}
+
+/* ---- Ingredient code cell ---- */
+.ing-code {
+    font-family: 'Courier New', monospace;
+    font-weight: 700;
+    color: #374151;
+    background: #f8fafc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 2px 8px;
+    font-size: 13px;
+}

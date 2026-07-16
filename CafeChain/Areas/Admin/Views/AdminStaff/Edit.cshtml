@@ -14,32 +14,25 @@
     };
 }
 
-<style>
-    .staff-container { max-width: 1200px; margin: 0 auto; padding: 20px 0; }
-    .form-label { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #868e96; margin-bottom: 5px; }
-    .form-control, .form-select { border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; padding: 10px 12px; }
-    .form-control:focus, .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.2rem rgba(217, 61, 32, 0.25); }
-    .btn-submit { background-color: #d93d20; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; }
-    .btn-submit:hover { background-color: #b52f16; }
-    .avatar-upload-box {
-        border: 2px dashed #ced4da; border-radius: 8px; width: 200px; height: 200px;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background-color: #f8f9fa; cursor: pointer; transition: all 0.3s; overflow: hidden;
-    }
-    .avatar-upload-box:hover { border-color: #d93d20; background-color: #fffaf9; }
-    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; }
-    .nav-tabs .nav-link { color: #6c757d; font-weight: 600; font-size: 13px; text-transform: uppercase; border: none; border-bottom: 3px solid transparent; padding: 12px 20px; }
-    .nav-tabs .nav-link.active { color: #d93d20; border-color: #d93d20; background-color: transparent; }
-    .scope-picker { display: none; }
-</style>
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/Staff/staff.css" asp-append-version="true" />
+}
 
-<div class="staff-container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <h3 class="fw-bold mb-1">Cập nhật nhân viên</h3>
-            <p class="text-muted small mb-0">Thiết lập thông tin và quyền hạn</p>
+<div class="admin-wo-page">
+    <div class="page-header">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:46px;height:46px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-user-edit" style="font-size:20px;color:#f97316;"></i>
+            </div>
+            <div>
+                <h3 class="fw-bold mb-0">Cập nhật nhân viên</h3>
+                <p class="mb-0">Thiết lập thông tin, vai trò và quyền hạn</p>
+            </div>
         </div>
-        <a asp-action="Index" class="btn btn-light border"><i class="fas fa-arrow-left"></i> Quay lại</a>
+        <a asp-action="Index" class="btn btn-outline-secondary d-flex align-items-center gap-2">
+            <i class="fas fa-arrow-left"></i> Quay lại danh sách
+        </a>
     </div>
 
     <form asp-action="Edit" method="post" enctype="multipart/form-data" id="editStaffForm">
@@ -50,8 +43,8 @@
         <input type="hidden" asp-for="ScopeRefId" id="HiddenScopeRefId" />
         <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
-        <div class="card shadow-sm border-0">
-            <div class="card-header bg-white border-bottom-0 pb-0 pt-3">
+        <div class="card admin-wo-card">
+            <div class="card-header border-bottom-0 pb-0 pt-3">
                 <ul class="nav nav-tabs" id="staffTabs" role="tablist">
                     <li class="nav-item" role="presentation">
                         <button class="nav-link active" id="tab-general" data-bs-toggle="tab" data-bs-target="#general" type="button" role="tab">Thông tin chung</button>
@@ -159,9 +152,9 @@
                                         <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('addressesContainerModal', 'Addresses', 3, 'Nhập địa chỉ')"><i class="fas fa-plus"></i></button>
                                     </div>
 
-                                    <!-- NHÓM PHÂN QUYỀN (3-COLUMN FLEXIBLE SCOPE) -->
+                                    <!-- NHÓM PHÂN QUYỀN -->
                                     <div class="col-12 mt-2">
-                                        <h6 class="fw-bold text-uppercase mb-3" style="color: #6c757d; font-size: 11px;">Nhóm phân quyền</h6>
+                                        <h6 class="scope-section-title"><i class="fas fa-shield-alt me-1"></i> Nhóm phân quyền</h6>
                                     </div>
                                     
                                     <div class="col-lg-4 mb-3">
@@ -237,9 +230,9 @@
                                 <input asp-for="TaxCode" class="form-control" />
                             </div>
                             <div class="col-12 mt-3">
-                                <h6 class="text-primary fw-bold mb-3"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
+                                <h6 class="fw-bold mb-3" style="color:#ea580c;"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
                                 <div class="table-responsive">
-                                    <table class="table table-bordered table-sm align-middle text-center" id="banksTableModal">
+                                    <table class="table table-bordered table-sm align-middle text-center banks-table" id="banksTableModal">
                                         <thead class="table-light">
                                             <tr>
                                                 <th>Chính</th>
@@ -333,8 +326,13 @@
 
                 </div>
             </div>
-            <div class="card-footer bg-white text-end border-0 pb-4 pe-4">
-                <button type="button" class="btn-submit px-5" onclick="validateAndSubmit(this)">Lưu thay đổi</button>
+            <div class="card-footer text-end border-0 pb-4 pe-4" style="background:#f8fafc;border-top:1px solid #e5e7eb;">
+                <a asp-action="Index" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-times me-1"></i> Hủy
+                </a>
+                <button type="button" class="btn btn-primary px-5" onclick="validateAndSubmit(this)">
+                    <i class="fas fa-save me-1"></i> Lưu thay đổi
+                </button>
             </div>
         </div>
     </form>

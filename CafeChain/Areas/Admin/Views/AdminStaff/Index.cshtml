@@ -4,217 +4,242 @@
     ViewData["Title"] = "Quản lý nhân sự";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var roles = ViewBag.Roles as List<CafeChain.Models.Permissions.Role>;
-    var stores = ViewBag.Stores as List<CafeChain.Models.Stores.Store>;
-    var scopeTypes = ViewBag.ScopeTypes as List<CafeChain.Models.Staffs.ScopeType>;
-    bool isStoreManager = ViewBag.IsStoreManager ?? false;
-    int currentStoreId = ViewBag.CurrentStoreId ?? 0;
-    string currentStoreName = ViewBag.CurrentStoreName ?? "";
 }
 
-<link rel="stylesheet" href="~/css/Admin/Staff/staff.css" />
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/Staff/staff.css" asp-append-version="true" />
+}
 
-<!-- ==================== HEADER ==================== -->
-<div class="staff-page-header">
-    <div>
-        <h2>Quản lý nhân sự</h2>
-        <p>Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+<div class="admin-wo-page">
+
+    
+    <div class="page-header">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:46px;height:46px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-users" style="font-size:20px;color:#f97316;"></i>
+            </div>
+            <div>
+                <h2 class="mb-0">Quản lý nhân sự</h2>
+                <p class="mb-0">Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-2"
+                data-bs-toggle="modal" data-bs-target="#createStaffModal">
+            <i class="fas fa-user-plus"></i> Thêm nhân viên
+        </button>
     </div>
-    <button type="button" class="btn-create-staff" data-bs-toggle="modal" data-bs-target="#createStaffModal">
-        <i class="fas fa-plus"></i> Thêm nhân viên mới
-    </button>
-</div>
 
-<!-- ==================== KPI CARDS ==================== -->
-<div class="staff-kpi-row">
-    <div class="staff-kpi-card">
-        <div class="kpi-icon total"><i class="fas fa-users"></i></div>
-        <div class="kpi-info">
-            <h4>@Model.TotalStaff</h4>
-            <span>Tổng nhân sự</span>
+    
+    <div class="staff-kpi-row mb-4">
+        <div class="staff-kpi-card">
+            <div class="kpi-icon total"><i class="fas fa-users"></i></div>
+            <div class="kpi-info">
+                <h4>@Model.TotalStaff</h4>
+                <span>Tổng nhân sự</span>
+            </div>
+        </div>
+        <div class="staff-kpi-card">
+            <div class="kpi-icon active"><i class="fas fa-user-check"></i></div>
+            <div class="kpi-info">
+                <h4>@Model.ActiveCount</h4>
+                <span>Đang làm việc</span>
+            </div>
+        </div>
+        <div class="staff-kpi-card">
+            <div class="kpi-icon inactive"><i class="fas fa-user-lock"></i></div>
+            <div class="kpi-info">
+                <h4>@Model.InactiveCount</h4>
+                <span>Đã khóa</span>
+            </div>
         </div>
     </div>
-    <div class="staff-kpi-card">
-        <div class="kpi-icon active"><i class="fas fa-user-check"></i></div>
-        <div class="kpi-info">
-            <h4>@Model.ActiveCount</h4>
-            <span>Đang làm việc</span>
-        </div>
-    </div>
-    <div class="staff-kpi-card">
-        <div class="kpi-icon inactive"><i class="fas fa-user-lock"></i></div>
-        <div class="kpi-info">
-            <h4>@Model.InactiveCount</h4>
-            <span>Đã khóa</span>
-        </div>
-    </div>
-</div>
 
-<!-- ==================== SEARCH & FILTER ==================== -->
-<form asp-action="Index" method="get" class="staff-toolbar">
-    <div class="staff-search-box">
-        <i class="fas fa-search"></i>
-        <input type="text" name="search" value="@Model.SearchTerm" placeholder="Tìm kiếm nhân viên theo tên hoặc email..." />
-    </div>
-    <select name="roleFilter" class="staff-filter-select" onchange="this.form.submit()">
-        <option value="">Tất cả vai trò</option>
-        @if (roles != null)
-        {
-            @foreach (var role in roles)
-            {
-                <option value="@role.RoleId" selected="@(Model.RoleFilter == role.RoleId)">@role.Name</option>
-            }
-        }
-    </select>
-</form>
+    
+    <div class="card admin-wo-card">
+        <div class="card-body p-4">
 
-<!-- ==================== STAFF TABLE ==================== -->
-<div class="staff-table-wrap">
-    <table class="staff-table">
-        <thead>
-            <tr>
-                <th>Tên nhân viên</th>
-                <th>Email</th>
-                <th>Vai trò</th>
-                <th>Cửa hàng</th>
-                <th>Trạng thái</th>
-                <th style="text-align:center">Thao tác</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if (Model.StaffList.Items == null || !Model.StaffList.Items.Any())
-            {
-                <tr>
-                    <td colspan="6" style="text-align:center; padding: 40px; color: #adb5bd;">
-                        <i class="fas fa-inbox" style="font-size:32px; margin-bottom:8px; display:block;"></i>
-                        Chưa có nhân viên nào.
-                    </td>
-                </tr>
-            }
-            @foreach (var item in Model.StaffList.Items)
-            {
-                <tr>
-                    <td>
-                        <div class="staff-name-cell">
-                            <img src="@item.AvatarUrl" alt="" class="staff-avatar" onerror="this.src='/Images/avatars/avtdf.jpg'" />
-                            <span class="name">@item.FullName</span>
-                        </div>
-                    </td>
-                    <td style="color: #495057;">@item.Email</td>
-                    <td>
-                        @foreach (var roleName in item.RoleNames)
+            
+            <form asp-action="Index" method="get" class="row g-2 mb-4 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label mb-1">Tìm kiếm nhân viên</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted">
+                            <i class="fas fa-search" style="font-size:13px;"></i>
+                        </span>
+                        <input type="text" name="search"
+                               value="@Model.SearchTerm"
+                               class="form-control border-start-0 ps-0"
+                               placeholder="Tên hoặc email nhân viên..." />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Vai trò</label>
+                    <select name="roleFilter" class="form-select" onchange="this.form.submit()">
+                        <option value="">Tất cả vai trò</option>
+                        @if (roles != null)
                         {
-                            var badgeClass = roleName switch
+                            @foreach (var role in roles)
                             {
-                                "Cashier" => "cashier",
-                                "Store Manager" => "store-manager",
-                                "Ward Manager" => "ward-manager",
-                                "Province Manager" => "province-manager",
-                                "Admin System" => "admin-system",
-                                _ => "cashier"
-                            };
-                            <span class="role-badge @badgeClass">@roleName</span>
+                                <option value="@role.RoleId"
+                                        selected="@(Model.RoleFilter == role.RoleId)">
+                                    @role.Name
+                                </option>
+                            }
                         }
-                    </td>
-                    <td style="color: #495057;">@item.StoreName</td>
-                    <td>
-                        @if (item.Active)
-                        {
-                            <span class="status-badge active"><span class="dot"></span> Đang làm việc</span>
-                        }
-                        else
-                        {
-                            <span class="status-badge inactive"><span class="dot"></span> Đã khóa</span>
-                        }
-                    </td>
-                    <td style="text-align:center">
-                        @if (item.CanEdit)
-                        {
-                            <a href="@Url.Action("Edit", "AdminStaff", new { area = "Admin", id = item.StaffId })" class="action-btn" title="Chỉnh sửa">
-                                <i class="fas fa-pen"></i>
-                            </a>
-                            <button type="button" class="action-btn @(item.Active ? "danger" : "")"
-                                    onclick="toggleStaffStatus(@item.StaffId, '@item.FullName', @item.Active.ToString().ToLower())"
-                                    title="@(item.Active ? "Khóa tài khoản" : "Mở khóa")">
-                                <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
-                            </button>
-                        }
-                        else
-                        {
-                            <span class="text-muted" style="font-size: 13px;"><i class="fas fa-ban"></i> Thuộc thẩm quyền cấp trên</span>
-                        }
-                    </td>
-                </tr>
-            }
-        </tbody>
-    </table>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fas fa-filter"></i> Lọc
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <a asp-action="Index" class="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center gap-2">
+                        <i class="fas fa-undo"></i> Đặt lại
+                    </a>
+                </div>
+            </form>
 
-    <!-- Pagination -->
-    <div class="staff-pagination">
-        <span class="info">Hiển thị @Model.StaffList.Items.Count / @Model.StaffList.TotalCount nhân viên</span>
-        <div class="page-btns">
-            <a asp-action="Index" asp-route-page="@(Model.StaffList.PageIndex - 1)"
-               asp-route-search="@Model.SearchTerm" asp-route-roleFilter="@Model.RoleFilter"
-               class="page-btn @(!Model.StaffList.HasPreviousPage ? "disabled" : "")">
-                <i class="fas fa-chevron-left"></i>
-            </a>
-            @for (int i = 1; i <= Model.StaffList.TotalPages; i++)
-            {
-                <a asp-action="Index" asp-route-page="@i"
-                   asp-route-search="@Model.SearchTerm" asp-route-roleFilter="@Model.RoleFilter"
-                   class="page-btn @(i == Model.StaffList.PageIndex ? "active" : "")">@i</a>
-            }
-            <a asp-action="Index" asp-route-page="@(Model.StaffList.PageIndex + 1)"
-               asp-route-search="@Model.SearchTerm" asp-route-roleFilter="@Model.RoleFilter"
-               class="page-btn @(!Model.StaffList.HasNextPage ? "disabled" : "")">
-                <i class="fas fa-chevron-right"></i>
-            </a>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted" style="font-size:13px;">
+                    <i class="fas fa-list-ul me-1"></i>
+                    Tìm thấy <strong>@Model.StaffList.TotalCount</strong> nhân viên
+                    @if (!string.IsNullOrEmpty(Model.SearchTerm))
+                    {
+                        <span> cho "<em>@Model.SearchTerm</em>"</span>
+                    }
+                </span>
+            </div>
+
+            
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th>Nhân viên</th>
+                            <th>Email</th>
+                            <th>Vai trò</th>
+                            <th>Cửa hàng</th>
+                            <th style="width:140px;">Trạng thái</th>
+                            <th style="width:100px;" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (Model.StaffList.Items == null || !Model.StaffList.Items.Any())
+                        {
+                            <tr>
+                                <td colspan="6" class="admin-wo-empty py-5">
+                                    <i class="fas fa-users-slash d-block mb-2" style="font-size:2rem;color:#fed7aa;"></i>
+                                    Chưa có nhân viên nào. Hãy thêm mới!
+                                </td>
+                            </tr>
+                        }
+                        @foreach (var item in Model.StaffList.Items)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="staff-name-cell">
+                                        <img src="@item.AvatarUrl"
+                                             class="staff-avatar"
+                                             alt="@item.FullName"
+                                             onerror="this.src='/Images/avatars/avtdf.jpg'" />
+                                        <span class="name">@item.FullName</span>
+                                    </div>
+                                </td>
+                                <td class="text-muted" style="font-size:13px;">@item.Email</td>
+                                <td>
+                                    @foreach (var roleName in item.RoleNames)
+                                    {
+                                        <span class="role-badge default">@roleName</span>
+                                    }
+                                </td>
+                                <td style="font-size:13px;">@item.StoreName</td>
+                                <td>
+                                    @if (item.Active)
+                                    {
+                                        <span class="status-badge active">
+                                            <span class="dot"></span> Đang làm việc
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="status-badge inactive">
+                                            <span class="dot"></span> Đã khóa
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    @if (item.CanEdit)
+                                    {
+                                        <a href="@Url.Action("Edit", "AdminStaff", new { area = "Admin", id = item.StaffId })"
+                                           class="action-btn me-1" title="Chỉnh sửa">
+                                            <i class="fas fa-pen"></i>
+                                        </a>
+                                        <button type="button"
+                                                class="action-btn @(item.Active ? "danger" : "success")"
+                                                onclick="toggleStaffStatus(@item.StaffId, '@item.FullName', @item.Active.ToString().ToLower())"
+                                                title="@(item.Active ? "Khóa tài khoản" : "Mở khóa")">
+                                            <i class="fas @(item.Active ? "fa-lock" : "fa-unlock")"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-light text-muted border" title="Không có quyền chỉnh sửa">
+                                            <i class="fas fa-ban me-1"></i> Thuộc cấp trên
+                                        </span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            
+            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                <span class="text-muted" style="font-size:13px;">
+                    Hiển thị @Model.StaffList.Items.Count / @Model.StaffList.TotalCount nhân viên
+                </span>
+                <div class="page-btns">
+                    <a asp-action="Index"
+                       asp-route-page="@(Model.StaffList.PageIndex - 1)"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-roleFilter="@Model.RoleFilter"
+                       class="page-btn @(!Model.StaffList.HasPreviousPage ? "disabled" : "")">
+                        <i class="fas fa-chevron-left" style="font-size:11px;"></i>
+                    </a>
+                    @for (int i = 1; i <= Model.StaffList.TotalPages; i++)
+                    {
+                        <a asp-action="Index"
+                           asp-route-page="@i"
+                           asp-route-search="@Model.SearchTerm"
+                           asp-route-roleFilter="@Model.RoleFilter"
+                           class="page-btn @(i == Model.StaffList.PageIndex ? "active" : "")">@i</a>
+                    }
+                    <a asp-action="Index"
+                       asp-route-page="@(Model.StaffList.PageIndex + 1)"
+                       asp-route-search="@Model.SearchTerm"
+                       asp-route-roleFilter="@Model.RoleFilter"
+                       class="page-btn @(!Model.StaffList.HasNextPage ? "disabled" : "")">
+                        <i class="fas fa-chevron-right" style="font-size:11px;"></i>
+                    </a>
+                </div>
+            </div>
+
         </div>
     </div>
 </div>
 
-<!-- ==================== MODAL: THÊM NHÂN VIÊN (PARTIAL) ==================== -->
+
 <partial name="_CreateStaffModal" model="new CafeChain.ViewModels.Admin.Staffs.StaffCreateVM()" />
 
 @section Scripts {
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // ==================== Avatar Preview ====================
-        document.getElementById('avatarInput').addEventListener('change', function (e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function (ev) {
-                    const img = document.getElementById('avatarPreview');
-                    img.src = ev.target.result;
-                    img.style.display = 'block';
-                    document.querySelector('#avatarUploadBox .placeholder-icon').style.display = 'none';
-                    document.querySelector('#avatarUploadBox .placeholder-text').style.display = 'none';
-                }
-                reader.readAsDataURL(file);
-            }
-        });
-
-        // ==================== Dynamic Phone/Address ====================
-        function addDynamicInput(containerId, fieldName, maxCount, label) {
-            const container = document.getElementById(containerId);
-            const currentCount = container.querySelectorAll('.dynamic-input-group').length;
-            if (currentCount >= maxCount) {
-                Swal.fire('Đã đạt giới hạn!', `Tối đa ${maxCount} mục.`, 'warning');
-                return;
-            }
-            const div = document.createElement('div');
-            div.className = 'dynamic-input-group';
-            div.innerHTML = `
-                <input type="text" name="${fieldName}" class="form-control" placeholder="${label}" maxlength="${fieldName === 'Phones' ? 15 : 300}" />
-                <button type="button" class="btn-remove-input" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
-            `;
-            container.appendChild(div);
-        }
-
-        // ==================== Toggle Status (SweetAlert2 + AJAX) ====================
+        // ==================== Toggle Status ====================
         function toggleStaffStatus(staffId, staffName, isActive) {
             const action = isActive ? 'khóa' : 'mở khóa';
             const icon = isActive ? 'warning' : 'question';
@@ -224,8 +249,8 @@
                 html: `Bạn có chắc muốn <strong>${action}</strong> tài khoản của <strong>${staffName}</strong>?`,
                 icon: icon,
                 showCancelButton: true,
-                confirmButtonColor: isActive ? '#e03131' : '#0ca678',
-                cancelButtonColor: '#868e96',
+                confirmButtonColor: isActive ? '#dc2626' : '#16a34a',
+                cancelButtonColor: '#6b7280',
                 confirmButtonText: isActive ? '<i class="fas fa-lock"></i> Khóa' : '<i class="fas fa-unlock"></i> Mở khóa',
                 cancelButtonText: 'Hủy bỏ'
             }).then((result) => {
@@ -240,13 +265,8 @@
                     .then(res => res.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire({
-                                title: 'Thành công!',
-                                text: data.message,
-                                icon: 'success',
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(() => location.reload());
+                            Swal.fire({ title: 'Thành công!', text: data.message, icon: 'success', timer: 1500, showConfirmButton: false })
+                                .then(() => location.reload());
                         } else {
                             Swal.fire('Lỗi!', data.message, 'error');
                         }
@@ -256,7 +276,7 @@
             });
         }
 
-        // ==================== Show SweetAlert for TempData messages ====================
+        // ==================== TempData Messages ====================
         @if (TempData["Success"] != null)
         {
             <text>
@@ -271,10 +291,7 @@
         }
     </script>
 
-    <!-- Anti-forgery token for AJAX -->
-    <form id="__AjaxAntiForgeryForm" asp-controller="AdminStaff" asp-action="ToggleStatus" method="post" style="display:none">
-    </form>
     
-    <!-- jQuery Unobtrusive Validation -->
+    <form id="__AjaxAntiForgeryForm" asp-controller="AdminStaff" asp-action="ToggleStatus" method="post" style="display:none"></form>
     <partial name="_ValidationScriptsPartial" />
 }

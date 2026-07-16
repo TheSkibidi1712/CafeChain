@@ -1,0 +1,318 @@
+/* Shared white-orange admin UI polish for frontend-only form/list redesigns. */
+:root {
+    --admin-wo-bg: #f8fafc;
+    --admin-wo-card: #ffffff;
+    --admin-wo-text: #111827;
+    --admin-wo-muted: #64748b;
+    --admin-wo-border: #e5e7eb;
+    --admin-wo-soft: #fff7ed;
+    --admin-wo-soft-strong: #ffedd5;
+    --admin-wo-primary: #f97316;
+    --admin-wo-primary-dark: #ea580c;
+    --admin-wo-success: #16a34a;
+    --admin-wo-danger: #dc2626;
+    --admin-wo-radius: 8px;
+    --admin-wo-shadow: 0 18px 42px rgba(15, 23, 42, .05);
+}
+
+.admin-wo-page {
+    background: var(--admin-wo-bg);
+    color: var(--admin-wo-text);
+}
+
+.admin-wo-page .admin-wo-hero,
+.admin-wo-page .page-header {
+    align-items: center;
+    background: var(--admin-wo-card);
+    border: 1px solid var(--admin-wo-border);
+    border-radius: var(--admin-wo-radius);
+    box-shadow: var(--admin-wo-shadow);
+    color: var(--admin-wo-text);
+    display: flex;
+    gap: 18px;
+    justify-content: space-between;
+    margin-bottom: 22px;
+    padding: 22px;
+}
+
+.admin-wo-page .admin-wo-hero h1,
+.admin-wo-page .admin-wo-hero h2,
+.admin-wo-page .admin-wo-hero h3,
+.admin-wo-page .page-header h1,
+.admin-wo-page .page-header h2,
+.admin-wo-page .page-header h3 {
+    color: var(--admin-wo-text);
+    font-weight: 800;
+    letter-spacing: 0;
+    margin-bottom: 4px;
+}
+
+.admin-wo-page .admin-wo-hero p,
+.admin-wo-page .page-header p {
+    color: var(--admin-wo-muted) !important;
+    margin: 0;
+}
+
+.admin-wo-page .admin-wo-hero i,
+.admin-wo-page .page-header i {
+    color: var(--admin-wo-primary) !important;
+}
+
+.admin-wo-page .card,
+.admin-wo-page .admin-wo-card,
+.admin-wo-page .uc-card,
+.admin-wo-page .conv-card,
+.admin-wo-page .table-custom,
+.admin-wo-page .history-card,
+.admin-wo-page .po-main-card {
+    background: var(--admin-wo-card);
+    border: 1px solid var(--admin-wo-border) !important;
+    border-radius: var(--admin-wo-radius) !important;
+    box-shadow: var(--admin-wo-shadow) !important;
+    overflow: hidden;
+}
+
+.admin-wo-page .card-header,
+.admin-wo-page .conv-header,
+.admin-wo-page .bom-header,
+.admin-wo-page .rb-card-header,
+.admin-wo-page .po-bom-header {
+    background: #fff !important;
+    border-bottom: 1px solid var(--admin-wo-border);
+    color: var(--admin-wo-text) !important;
+}
+
+.admin-wo-page .conv-header h5,
+.admin-wo-page .bom-header h5,
+.admin-wo-page .card-header h5,
+.admin-wo-page .card-header h6 {
+    color: var(--admin-wo-text);
+    font-weight: 800;
+}
+
+.admin-wo-page .btn-primary,
+.admin-wo-page .btn-danger,
+.admin-wo-page .btn-warning,
+.admin-wo-page .btn-bom-primary,
+.admin-wo-page .btn-conv-primary,
+.admin-wo-page .btn-primary-action,
+.admin-wo-page .btn-rb-save,
+.admin-wo-page .admin-wo-primary {
+    background: var(--admin-wo-primary) !important;
+    border-color: var(--admin-wo-primary) !important;
+    color: #fff !important;
+    font-weight: 800;
+    box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
+}
+
+.admin-wo-page .btn-primary:hover,
+.admin-wo-page .btn-danger:hover,
+.admin-wo-page .btn-warning:hover,
+.admin-wo-page .btn-bom-primary:hover,
+.admin-wo-page .btn-conv-primary:hover,
+.admin-wo-page .btn-primary-action:hover,
+.admin-wo-page .btn-rb-save:hover,
+.admin-wo-page .admin-wo-primary:hover {
+    background: var(--admin-wo-primary-dark) !important;
+    border-color: var(--admin-wo-primary-dark) !important;
+    color: #fff !important;
+}
+
+.admin-wo-page .btn-outline-primary,
+.admin-wo-page .btn-outline-info,
+.admin-wo-page .admin-wo-outline {
+    border-color: #fed7aa !important;
+    color: var(--admin-wo-primary-dark) !important;
+    font-weight: 800;
+}
+
+.admin-wo-page .btn-outline-primary:hover,
+.admin-wo-page .btn-outline-info:hover,
+.admin-wo-page .admin-wo-outline:hover {
+    background: var(--admin-wo-soft) !important;
+    border-color: var(--admin-wo-primary) !important;
+    color: var(--admin-wo-primary-dark) !important;
+}
+
+.admin-wo-page .form-control,
+.admin-wo-page .form-select,
+.admin-wo-page .select2-container--bootstrap-5 .select2-selection {
+    border: 1px solid #dbe3ef;
+    border-radius: var(--admin-wo-radius) !important;
+    min-height: 42px;
+}
+
+.admin-wo-page .form-control:focus,
+.admin-wo-page .form-select:focus,
+.admin-wo-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+    border-color: var(--admin-wo-primary);
+    box-shadow: 0 0 0 3px rgba(249, 115, 22, .14);
+}
+
+.admin-wo-page label,
+.admin-wo-page .form-label {
+    color: #334155;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.admin-wo-page .table,
+.admin-wo-page .perm-table {
+    margin-bottom: 0;
+}
+
+.admin-wo-page .table thead th,
+.admin-wo-page .perm-table thead th,
+.admin-wo-page .table-custom thead th {
+    background: #f8fafc !important;
+    border-bottom: 1px solid var(--admin-wo-border) !important;
+    color: var(--admin-wo-muted) !important;
+    font-size: 12px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0 !important;
+    padding: 14px 16px !important;
+    text-transform: uppercase;
+}
+
+.admin-wo-page .table tbody td,
+.admin-wo-page .perm-table tbody td,
+.admin-wo-page .table-custom tbody td {
+    border-bottom: 1px solid #eef2f7 !important;
+    padding: 14px 16px !important;
+    vertical-align: middle;
+}
+
+.admin-wo-page .table tbody tr:hover,
+.admin-wo-page .perm-table tbody tr:hover,
+.admin-wo-page .table-custom tbody tr:hover {
+    background: var(--admin-wo-soft);
+}
+
+.admin-wo-page .badge.bg-success,
+.admin-wo-page .badge-status-done {
+    background: #dcfce7 !important;
+    border: 1px solid #bbf7d0;
+    color: #15803d !important;
+}
+
+.admin-wo-page .badge.bg-danger {
+    background: #fee2e2 !important;
+    border: 1px solid #fecaca;
+    color: var(--admin-wo-danger) !important;
+}
+
+.admin-wo-page .badge.bg-info,
+.admin-wo-page .badge.bg-primary {
+    background: var(--admin-wo-soft-strong) !important;
+    border: 1px solid #fed7aa;
+    color: var(--admin-wo-primary-dark) !important;
+}
+
+.admin-wo-empty,
+.admin-wo-page .perm-empty,
+.admin-wo-page .transfer-empty-row td {
+    background: #fff;
+    color: var(--admin-wo-muted);
+    font-weight: 700;
+    text-align: center;
+}
+
+.admin-store-form-page #admin-map {
+    border: 1px solid var(--admin-wo-border) !important;
+    border-radius: var(--admin-wo-radius) !important;
+    box-shadow: var(--admin-wo-shadow) !important;
+    min-height: 450px;
+}
+
+.admin-store-form-page .leaflet-control-locate i {
+    color: var(--admin-wo-primary) !important;
+}
+
+.admin-store-form-page .alert-info {
+    background: var(--admin-wo-soft);
+    border-color: #fed7aa;
+    color: #9a3412;
+}
+
+.admin-ip-page code {
+    background: var(--admin-wo-soft) !important;
+    border: 1px solid #fed7aa;
+    color: var(--admin-wo-primary-dark) !important;
+}
+
+.admin-ip-form-page .card {
+    max-width: 720px !important;
+}
+
+.admin-unit-page .uc-badge-from {
+    background: #eef2ff;
+    border: 1px solid #c7d2fe;
+    color: #3730a3;
+}
+
+.admin-unit-page .uc-badge-to {
+    background: var(--admin-wo-soft-strong);
+    border: 1px solid #fed7aa;
+    color: var(--admin-wo-primary-dark);
+}
+
+.admin-unit-page .conv-formula-box {
+    background: #fffaf5;
+    border-color: #fed7aa;
+}
+
+.admin-unit-page .conv-equals {
+    color: var(--admin-wo-primary);
+}
+
+.admin-bom-index .badge-pos,
+.admin-bom-index .badge-sub {
+    background: var(--admin-wo-soft-strong);
+    border: 1px solid #fed7aa;
+    color: var(--admin-wo-primary-dark);
+}
+
+.admin-bom-index .table-custom,
+.admin-bom-visualize .card {
+    border-radius: var(--admin-wo-radius);
+}
+
+.admin-bom-visualize .node-content.bg-primary,
+.admin-bom-visualize .node-content.bg-primary.bg-opacity-10 {
+    background: var(--admin-wo-soft) !important;
+    border-color: #fed7aa !important;
+}
+
+.admin-bom-visualize .text-primary {
+    color: var(--admin-wo-primary-dark) !important;
+}
+
+.admin-bom-visualize .bg-primary {
+    background: var(--admin-wo-primary) !important;
+}
+
+.admin-production-page .po-title-section {
+    background: #fff;
+    border: 1px solid var(--admin-wo-border);
+    border-radius: var(--admin-wo-radius);
+    box-shadow: var(--admin-wo-shadow);
+    padding: 22px;
+}
+
+.admin-production-page .po-bom-badge {
+    background: var(--admin-wo-soft-strong);
+    color: var(--admin-wo-primary-dark);
+}
+
+@media (max-width: 768px) {
+    .admin-wo-page .admin-wo-hero,
+    .admin-wo-page .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .admin-wo-page .admin-wo-hero .btn,
+    .admin-wo-page .page-header .btn {
+        width: 100%;
+    }
+}

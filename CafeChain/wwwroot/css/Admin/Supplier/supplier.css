@@ -11,8 +11,13 @@
 .sup-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
     margin-bottom: 20px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    box-shadow: 0 18px 42px rgba(15,23,42,.05);
+    padding: 22px;
 }
 
 .sup-title {
@@ -39,8 +44,9 @@
 /* ---------- TABLE ---------- */
 .sup-table-wrap {
     background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 16px rgba(0,0,0,.07);
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 18px 42px rgba(15,23,42,.05);
     overflow: hidden;
 }
 
@@ -51,14 +57,17 @@
 }
 
     .sup-table thead {
-        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-        color: #fff;
+        background: #f8fafc;
+        color: #64748b;
     }
 
         .sup-table thead th {
-            padding: 12px 14px;
-            font-weight: 600;
-            letter-spacing: .3px;
+            padding: 14px 16px;
+            font-weight: 800;
+            letter-spacing: 0;
+            font-size: 12px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #e5e7eb;
         }
 
     .sup-table tbody tr {
@@ -67,7 +76,7 @@
     }
 
         .sup-table tbody tr:hover {
-            background: #f8fafc;
+            background: #fff7ed;
         }
 
     .sup-table tbody td {
@@ -78,8 +87,8 @@
 /* ---------- CODE CHIP ---------- */
 .sup-code {
     display: inline-block;
-    background: #eff6ff;
-    color: #2563eb;
+    background: #fff7ed;
+    color: #ea580c;
     padding: 2px 8px;
     border-radius: 6px;
     font-size: .78rem;
@@ -92,9 +101,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    color: #1d4ed8;
-    border: 1.5px solid #bfdbfe;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    color: #ea580c;
+    border: 1.5px solid #fed7aa;
     padding: 7px 12px;
     border-radius: 8px;
     font-size: .875rem;
@@ -152,11 +161,11 @@
     }
 
 .fa-pen-to-square {
-    color: #2563eb;
+    color: #f97316;
 }
 
 .fa-list-ul {
-    color: #7c3aed;
+    color: #ea580c;
 }
 
 .fa-lock {
@@ -191,8 +200,9 @@
     }
 
 .sup-btn-primary {
-    background: #2563eb;
+    background: #f97316;
     color: #fff;
+    box-shadow: 0 10px 22px rgba(249,115,22,.18);
 }
 
 .sup-btn-success {
@@ -201,7 +211,7 @@
 }
 
 .sup-btn-dark {
-    background: #1e293b;
+    background: #ea580c;
     color: #fff;
 }
 
@@ -231,8 +241,8 @@
 
     .sup-input:focus,
     .sup-select:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+        border-color: #f97316;
+        box-shadow: 0 0 0 3px rgba(249,115,22,.14);
     }
 
 .sup-filter-bar .sup-input {
@@ -330,8 +340,12 @@
     .sup-modal-header h5 {
         margin: 0;
         font-size: 1.05rem;
-        font-weight: 700;
+        font-weight: 800;
         color: #1e293b;
+    }
+
+    .sup-modal-header h5 i {
+        color: #f97316;
     }
 
 .sup-close {
@@ -360,8 +374,8 @@
 .sup-modal-body label {
     display: block;
     font-size: .8rem;
-    font-weight: 600;
-    color: #475569;
+    font-weight: 800;
+    color: #334155;
     margin-bottom: 5px;
 }
 
@@ -378,9 +392,13 @@
 
 .sup-section-title {
     font-size: .875rem;
-    font-weight: 700;
-    color: #475569;
+    font-weight: 800;
+    color: #334155;
     margin: 0 0 12px;
+}
+
+.sup-section-title i {
+    color: #f97316;
 }
 
 /* ---------- TABS ---------- */
@@ -407,13 +425,13 @@
 }
 
     .sup-tab:hover {
-        color: #2563eb;
+        color: #f97316;
     }
 
     .sup-tab.active {
-        color: #2563eb;
-        border-bottom-color: #2563eb;
-        background: #eff6ff;
+        color: #ea580c;
+        border-bottom-color: #f97316;
+        background: #fff7ed;
     }
 
 .sup-tab-panel {
@@ -468,6 +486,10 @@
     background: #dc2626;
 }
 
+.sup-toast-info {
+    background: #f97316;
+}
+
 @keyframes supToastIn {
     from {
         opacity: 0;
@@ -493,12 +515,13 @@
 /* ---------- PRIMARY BADGE IN TABLES ---------- */
 .tag-primary {
     display: inline-block;
-    background: #fef9c3;
-    color: #854d0e;
+    background: #ffedd5;
+    color: #ea580c;
     padding: 1px 7px;
     border-radius: 12px;
     font-size: .72rem;
     font-weight: 700;
+    border: 1px solid #fed7aa;
 }
 
 .tag-sub {
@@ -554,13 +577,13 @@
 }
 
     .bank-picker-display:hover {
-        border-color: #93c5fd;
+        border-color: #fed7aa;
     }
 
     .bank-picker-display:has(+ .bank-picker-dropdown.open),
     .bank-picker-display:focus {
-        border-color: #2563eb;
-        box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+        border-color: #f97316;
+        box-shadow: 0 0 0 3px rgba(249,115,22,.14);
     }
 
 .bank-picker-val {
@@ -667,8 +690,8 @@
 }
 
     .bank-picker-item:hover {
-        background: #eff6ff;
-        color: #2563eb;
+        background: #fff7ed;
+        color: #ea580c;
     }
 
 .bank-picker-empty {
@@ -886,9 +909,9 @@
 }
 
 .sup-wizard-step.active .sup-step-num {
-    background: #2563eb;
+    background: #f97316;
     color: #fff;
-    box-shadow: 0 2px 8px rgba(37,99,235,.35);
+    box-shadow: 0 2px 8px rgba(249,115,22,.35);
 }
 
 .sup-wizard-step.done .sup-step-num {
@@ -976,8 +999,8 @@
 
 /* Card người liên hệ chính */
 .ct-card-primary {
-    border-color: #fde68a;
-    background: linear-gradient(135deg, #fffbeb 0%, #fef9c3 100%);
+    border-color: #fed7aa;
+    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
 }
 
 /* Card người liên hệ phụ */
@@ -1037,17 +1060,17 @@
     }
 
     .ct-card-info .fa-phone {
-        color: #16a34a;
+        color: #f97316;
         font-size: .78rem;
     }
 
     .ct-card-info .fa-envelope {
-        color: #2563eb;
+        color: #ea580c;
         font-size: .78rem;
     }
 
 .ct-icon-primary {
-    color: #d97706;
+    color: #f97316;
     font-size: .9rem;
     flex-shrink: 0;
 }
@@ -1069,15 +1092,15 @@
 /* Gợi ý "Đầu mối chính" không thể thay đổi */
 .ct-no-action-hint {
     font-size: .75rem;
-    color: #92400e;
+    color: #ea580c;
     display: flex;
     align-items: center;
     gap: 5px;
     font-weight: 600;
-    background: #fef3c7;
+    background: #fff7ed;
     padding: 4px 10px;
     border-radius: 20px;
-    border: 1px solid #fde68a;
+    border: 1px solid #fed7aa;
 }
 
 /* Nút nhỏ "Đặt làm chính" */
@@ -1085,17 +1108,17 @@
     padding: 4px 10px !important;
     font-size: .76rem !important;
     border-radius: 6px !important;
-    background: #eff6ff !important;
-    color: #1d4ed8 !important;
-    border: 1.5px solid #bfdbfe !important;
+    background: #fff7ed !important;
+    color: #ea580c !important;
+    border: 1.5px solid #fed7aa !important;
     font-weight: 600 !important;
     transition: background .15s, border-color .15s !important;
     white-space: nowrap;
 }
 
     .sup-btn-xs:hover {
-        background: #dbeafe !important;
-        border-color: #93c5fd !important;
+        background: #ffedd5 !important;
+        border-color: #f97316 !important;
         filter: none !important;
     }
 
