@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Procurement;
 
-public sealed class SupplierReceiptIssue
+public class SupplierReceiptIssue
 {
     public int SupplierReceiptIssueId { get; set; }
     public int SupplierId { get; set; }
@@ -33,19 +33,19 @@ public sealed class SupplierReceiptIssue
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-    public Supplier Supplier { get; set; } = null!;
-    public Store Store { get; set; } = null!;
-    public PurchaseOrder PurchaseOrder { get; set; } = null!;
-    public PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
-    public BranchReceipt BranchReceipt { get; set; } = null!;
-    public BranchReceiptLine BranchReceiptLine { get; set; } = null!;
-    public Staff ReportedByStaff { get; set; } = null!;
-    public Staff? ResolvedByStaff { get; set; }
-    public Staff? DismissedByStaff { get; set; }
-    public ICollection<SupplierReceiptIssueTransition> Transitions { get; set; } = new List<SupplierReceiptIssueTransition>();
+    public virtual Supplier Supplier { get; set; } = null!;
+    public virtual Store Store { get; set; } = null!;
+    public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+    public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
+    public virtual BranchReceipt BranchReceipt { get; set; } = null!;
+    public virtual BranchReceiptLine BranchReceiptLine { get; set; } = null!;
+    public virtual Staff ReportedByStaff { get; set; } = null!;
+    public virtual Staff? ResolvedByStaff { get; set; }
+    public virtual Staff? DismissedByStaff { get; set; }
+    public virtual ICollection<SupplierReceiptIssueTransition> Transitions { get; set; } = new List<SupplierReceiptIssueTransition>();
 }
 
-public sealed class SupplierReceiptIssueTransition
+public class SupplierReceiptIssueTransition
 {
     public int SupplierReceiptIssueTransitionId { get; set; }
     public int SupplierReceiptIssueId { get; set; }
@@ -55,6 +55,6 @@ public sealed class SupplierReceiptIssueTransition
     public string Reason { get; set; } = string.Empty;
     public DateTime OccurredAtUtc { get; set; }
 
-    public SupplierReceiptIssue SupplierReceiptIssue { get; set; } = null!;
-    public Staff ActorStaff { get; set; } = null!;
+    public virtual SupplierReceiptIssue SupplierReceiptIssue { get; set; } = null!;
+    public virtual Staff ActorStaff { get; set; } = null!;
 }

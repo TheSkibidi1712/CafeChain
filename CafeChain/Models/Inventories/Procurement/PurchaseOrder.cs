@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace CafeChain.Models.Inventories.Procurement
 {
-    public sealed class PurchaseOrder
+    public class PurchaseOrder
     {
         public int PurchaseOrderId { get; set; }
         public string Code { get; set; } = string.Empty;
@@ -30,15 +30,15 @@ namespace CafeChain.Models.Inventories.Procurement
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-        public Store Store { get; set; } = null!;
-        public Supplier Supplier { get; set; } = null!;
-        public Staff CreatedByStaff { get; set; } = null!;
-        public Staff? ApprovedByStaff { get; set; }
-        public Staff? SentByStaff { get; set; }
-        public ICollection<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
+        public virtual Store Store { get; set; } = null!;
+        public virtual Supplier Supplier { get; set; } = null!;
+        public virtual Staff CreatedByStaff { get; set; } = null!;
+        public virtual Staff? ApprovedByStaff { get; set; }
+        public virtual Staff? SentByStaff { get; set; }
+        public virtual ICollection<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
     }
 
-    public sealed class PurchaseOrderLine
+    public class PurchaseOrderLine
     {
         public int PurchaseOrderLineId { get; set; }
         public int PurchaseOrderId { get; set; }
@@ -56,15 +56,15 @@ namespace CafeChain.Models.Inventories.Procurement
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-        public PurchaseOrder PurchaseOrder { get; set; } = null!;
-        public RestockRequest? RestockRequest { get; set; }
-        public Ingredient Ingredient { get; set; } = null!;
-        public IngredientSupplier IngredientSupplier { get; set; } = null!;
-        public Unit PackageUnitSnapshot { get; set; } = null!;
-        public ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
+        public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+        public virtual RestockRequest? RestockRequest { get; set; }
+        public virtual Ingredient Ingredient { get; set; } = null!;
+        public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
+        public virtual Unit PackageUnitSnapshot { get; set; } = null!;
+        public virtual ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
     }
 
-    public sealed class PurchaseOrderReceiptPosting
+    public class PurchaseOrderReceiptPosting
     {
         public int PurchaseOrderReceiptPostingId { get; set; }
         public int PurchaseOrderLineId { get; set; }
@@ -74,8 +74,8 @@ namespace CafeChain.Models.Inventories.Procurement
         public int CreatedByStaffId { get; set; }
         public DateTime CreatedAtUtc { get; set; }
 
-        public PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
-        public BranchReceiptLine BranchReceiptLine { get; set; } = null!;
-        public Staff CreatedByStaff { get; set; } = null!;
+        public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
+        public virtual BranchReceiptLine BranchReceiptLine { get; set; } = null!;
+        public virtual Staff CreatedByStaff { get; set; } = null!;
     }
 }
