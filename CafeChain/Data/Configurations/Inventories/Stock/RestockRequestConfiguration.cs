@@ -47,6 +47,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.Note)
                 .HasMaxLength(500);
 
+            entity.Property(x => x.ProcessingNote).HasMaxLength(500);
+            entity.Property(x => x.ClosedRemainingQuantity)
+                .HasColumnType("decimal(18,3)")
+                .HasDefaultValue(0m);
+            entity.Property(x => x.RemainingCloseReason).HasMaxLength(500);
+
             entity.Property(x => x.CreatedAt)
                 .IsRequired();
 
@@ -91,10 +97,22 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasForeignKey(x => x.HandledByStaffId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            entity.HasOne(x => x.AcceptedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.AcceptedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.RemainingClosedByStaff)
+                .WithMany()
+                .HasForeignKey(x => x.RemainingClosedByStaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             entity.HasIndex(x => x.StoreId);
             entity.HasIndex(x => x.StockAlertId);
             entity.HasIndex(x => x.Status);
             entity.HasIndex(x => x.CreatedByStaffId);
+            entity.HasIndex(x => x.AcceptedByStaffId);
+            entity.HasIndex(x => x.RemainingClosedByStaffId);
             entity.HasIndex(x => x.PreparedItemId)
                 .HasDatabaseName("IX_RestockRequests_PreparedItemId");
 

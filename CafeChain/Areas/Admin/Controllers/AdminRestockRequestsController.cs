@@ -86,6 +86,7 @@ namespace CafeChain.Areas.Admin.Controllers
                         ViewBag.CanWarehouse = CanWarehouseActions();
                         ViewBag.CanCreateReceipt = CanCreateReceipt();
                         ViewBag.CanCancel = CanCancel();
+                        ViewBag.CanSubmit = CanSubmit();
                         return View("Details", new RestockRequestWorkflowDetailDto
                         {
                             RestockRequestId = simple.Data.RestockRequestId,
@@ -122,7 +123,26 @@ namespace CafeChain.Areas.Admin.Controllers
             ViewBag.CanWarehouse = CanWarehouseActions();
             ViewBag.CanCreateReceipt = CanCreateReceipt();
             ViewBag.CanCancel = CanCancel();
+            ViewBag.CanSubmit = CanSubmit();
             return View(result.Data);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Submit(int id)
+        {
+            if (!CanSubmit())
+            {
+                TempData["ErrorMessage"] = "Không có quyền gửi yêu cầu nhập hàng.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var ctx = _actor.Get(User);
+            var result = await _workflow.SubmitAsync(
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
+                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         [HttpPost]
@@ -181,6 +201,24 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CloseRemaining(int id, string reason)
+        {
+            if (!CanWarehouseActions())
+            {
+                TempData["ErrorMessage"] = "Không có quyền đóng phần còn lại.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var ctx = _actor.Get(User);
+            var result = await _workflow.CloseRemainingAsync(
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames, reason);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
+                result.Message ?? (result.IsSuccess ? "OK" : "Thất bại");
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> LinkFulfillment(int id, LinkRestockFulfillmentRequest model)
         {
             if (!CanWarehouseActions())
@@ -201,9 +239,7 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
-            || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SalesStaff);
+            || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanWarehouseActions() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
@@ -219,14 +255,17 @@ namespace CafeChain.Areas.Admin.Controllers
         private bool CanCancel() =>
             CanWarehouseActions() || User.IsInRole(RoleConstants.StoreManager);
 
+        private bool CanSubmit() =>
+            User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.AreaManager);
+
         private async Task<int> ResolveAuthorizedStoreIdAsync(
             int staffId,
             int actorStoreId,
             int? requestedStoreId)
         {
-            if (User.IsInRole(RoleConstants.StoreManager)
-                || User.IsInRole(RoleConstants.ShiftSupervisor)
-                || User.IsInRole(RoleConstants.SalesStaff))
+            if (User.IsInRole(RoleConstants.StoreManager))
                 return actorStoreId > 0 && (!requestedStoreId.HasValue || requestedStoreId == actorStoreId)
                     ? actorStoreId
                     : 0;

@@ -59,6 +59,14 @@ namespace CafeChain.Models.Inventories.Stock
         /// <summary>Reserved for future warehouse processing.</summary>
         public DateTime? HandledAt { get; set; }
 
+        public int? AcceptedByStaffId { get; set; }
+        public DateTime? AcceptedAtUtc { get; set; }
+        public string? ProcessingNote { get; set; }
+        public decimal ClosedRemainingQuantity { get; set; }
+        public int? RemainingClosedByStaffId { get; set; }
+        public DateTime? RemainingClosedAtUtc { get; set; }
+        public string? RemainingCloseReason { get; set; }
+
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
@@ -69,6 +77,8 @@ namespace CafeChain.Models.Inventories.Stock
         public virtual PreparedItem? PreparedItem { get; set; }
         public virtual Staff CreatedByStaff { get; set; } = null!;
         public virtual Staff? HandledByStaff { get; set; }
+        public virtual Staff? AcceptedByStaff { get; set; }
+        public virtual Staff? RemainingClosedByStaff { get; set; }
         public virtual ICollection<RestockFulfillmentPosting> FulfillmentPostings { get; set; } = new List<RestockFulfillmentPosting>();
     }
 }

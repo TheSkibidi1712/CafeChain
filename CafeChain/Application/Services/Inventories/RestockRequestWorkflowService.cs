@@ -5,6 +5,7 @@ using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Inventories.Stock;
+using CafeChain.Models.Operations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -18,15 +19,73 @@ namespace CafeChain.Application.Services.Inventories
         private readonly AppDbContext _context;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<RestockRequestWorkflowService> _logger;
+        private readonly IRestockAllocationService _allocationService;
 
         public RestockRequestWorkflowService(
             AppDbContext context,
             IScopeAuthorizationService scopeAuthorization,
-            ILogger<RestockRequestWorkflowService> logger)
+            ILogger<RestockRequestWorkflowService> logger,
+            IRestockAllocationService allocationService)
         {
             _context = context;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
+            _allocationService = allocationService;
+        }
+
+        public async Task<ServiceResult<RestockRequestWorkflowDetailDto>> SubmitAsync(
+            int requestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            if (!CanSubmit(roleNames))
+                return Fail("Bạn không có quyền gửi yêu cầu nhập hàng.", BranchReceiptErrorCodes.Unauthorized);
+
+            var request = await LoadRequestTrackedAsync(requestId);
+            if (request == null)
+                return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+            var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
+            if (!auth.IsSuccess)
+                return Fail(auth.Message, auth.ErrorCode);
+            if (request.Status != RestockRequestStatuses.Draft)
+                return Fail($"Chỉ gửi yêu cầu ở trạng thái DRAFT. Hiện tại: {request.Status}.", BranchReceiptErrorCodes.TransitionInvalid);
+
+            var previous = request.Status;
+            request.Status = RestockRequestStatuses.Submitted;
+            request.UpdatedAt = DateTime.UtcNow;
+            AddTransition(
+                request, previous, request.Status, actorStaffId,
+                "Gửi yêu cầu nhập để bộ phận kho tiếp nhận.", null, null, null, null, null);
+
+            var recipients = await _context.Staffs
+                .AsNoTracking()
+                .Where(x => x.Active && x.Account.Active
+                    && x.Account.AccountRoles.Any(ar => ar.Role.Active
+                        && ar.Role.Name == RoleConstants.AccountantWarehouse))
+                .Select(x => x.StaffId)
+                .Distinct()
+                .ToListAsync();
+            foreach (var recipient in recipients)
+            {
+                _context.StaffNotifications.Add(new StaffNotification
+                {
+                    StoreId = request.StoreId,
+                    RecipientStaffId = recipient,
+                    Type = StaffNotificationTypes.RestockRequestSubmitted,
+                    Title = "Yêu cầu nhập hàng mới",
+                    Body = $"{ResolveItemName(request)} · {request.RequestedQuantity:N3} · {request.Store?.Name ?? $"Cửa hàng #{request.StoreId}"}",
+                    EntityType = StaffNotificationEntityTypes.RestockRequest,
+                    EntityId = request.RestockRequestId,
+                    IsRead = false,
+                    CreatedAt = DateTime.UtcNow
+                });
+            }
+            await _context.SaveChangesAsync();
+
+            return ServiceResult<RestockRequestWorkflowDetailDto>.Success(
+                await MapWorkflowDetailAsync(request),
+                "Đã gửi yêu cầu nhập hàng để tiếp nhận xử lý.");
         }
 
         public async Task<ServiceResult<RestockRequestWorkflowDetailDto>> GetWorkflowDetailAsync(
@@ -75,6 +134,9 @@ namespace CafeChain.Application.Services.Inventories
             request.Status = RestockRequestStatuses.Processing;
             request.HandledByStaffId = actorStaffId;
             request.HandledAt = DateTime.UtcNow;
+            request.AcceptedByStaffId = actorStaffId;
+            request.AcceptedAtUtc = DateTime.UtcNow;
+            request.ProcessingNote = string.IsNullOrWhiteSpace(reason) ? null : reason.Trim();
             request.UpdatedAt = DateTime.UtcNow;
 
             AddTransition(request, previous, RestockRequestStatuses.Processing, actorStaffId, reason, null, null, null, null, null);
@@ -110,22 +172,11 @@ namespace CafeChain.Application.Services.Inventories
             if (!auth.IsSuccess)
                 return Fail(auth.Message, auth.ErrorCode);
 
-            if (request.Status is not (RestockRequestStatuses.Submitted or RestockRequestStatuses.Processing))
+            if (request.Status != RestockRequestStatuses.Submitted)
             {
                 return Fail(
                     $"Không thể từ chối ở trạng thái {request.Status}.",
                     BranchReceiptErrorCodes.TransitionInvalid);
-            }
-
-            if (request.Status == RestockRequestStatuses.Processing)
-            {
-                var hasConfirmed = await HasFulfillmentPostingAsync(request.RestockRequestId);
-                if (hasConfirmed)
-                {
-                    return Fail(
-                        "Đã có phiếu nhận CONFIRMED — không thể REJECT. Hãy hoàn tất nhận hàng.",
-                        BranchReceiptErrorCodes.TransitionInvalid);
-                }
             }
 
             var previous = request.Status;
@@ -186,7 +237,7 @@ namespace CafeChain.Application.Services.Inventories
                 }
 
                 // StoreManager can cancel own store SUBMITTED; warehouse/admin wider.
-                if (request.Status is not (RestockRequestStatuses.Submitted or RestockRequestStatuses.Processing))
+                if (request.Status is not (RestockRequestStatuses.Draft or RestockRequestStatuses.Submitted))
                 {
                     await transaction.RollbackAsync();
                     return Fail(
@@ -194,19 +245,8 @@ namespace CafeChain.Application.Services.Inventories
                         BranchReceiptErrorCodes.TransitionInvalid);
                 }
 
-                if (request.Status == RestockRequestStatuses.Processing)
-                {
-                    var hasConfirmed = await HasFulfillmentPostingAsync(request.RestockRequestId);
-                    if (hasConfirmed)
-                    {
-                        await transaction.RollbackAsync();
-                        return Fail(
-                            "Đã có phiếu nhận CONFIRMED — không thể CANCEL.",
-                            BranchReceiptErrorCodes.TransitionInvalid);
-                    }
-                }
-
-                if (IsStoreManagerOnly(roleNames) && request.Status != RestockRequestStatuses.Submitted)
+                if (IsStoreManagerOnly(roleNames)
+                    && request.Status is not (RestockRequestStatuses.Draft or RestockRequestStatuses.Submitted))
                 {
                     await transaction.RollbackAsync();
                     return Fail(
@@ -240,6 +280,61 @@ namespace CafeChain.Application.Services.Inventories
                 _context.ChangeTracker.Clear();
                 _logger.LogError(ex, "[RestockWorkflow] Cancel failed RequestId={Id}", requestId);
                 return Fail("Không hủy được yêu cầu. Vui lòng thử lại.", BranchReceiptErrorCodes.ConfirmFailed);
+            }
+        }
+
+        public async Task<ServiceResult<RestockRequestWorkflowDetailDto>> CloseRemainingAsync(
+            int requestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames,
+            string reason)
+        {
+            if (!CanWarehouseProcess(roleNames))
+                return Fail("Chỉ bộ phận kho hoặc quản trị được đóng phần còn lại.", BranchReceiptErrorCodes.Unauthorized);
+            if (string.IsNullOrWhiteSpace(reason))
+                return Fail("Lý do đóng phần còn lại là bắt buộc.", BranchReceiptErrorCodes.TransitionInvalid);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var request = await LoadRestockRequestForUpdateAsync(requestId);
+                if (request == null)
+                    return Fail("Không tìm thấy yêu cầu nhập hàng.", BranchReceiptErrorCodes.RequestNotFound);
+                var auth = await AuthorizeViewAsync(request, actorStaffId, actorStoreId, roleNames);
+                if (!auth.IsSuccess)
+                    return Fail(auth.Message, auth.ErrorCode);
+                if (request.Status is not (RestockRequestStatuses.Processing or RestockRequestStatuses.PartiallyReceived))
+                    return Fail($"Không thể đóng phần còn lại ở trạng thái {request.Status}.", BranchReceiptErrorCodes.TransitionInvalid);
+
+                var summary = await _allocationService.GetSummaryAsync(requestId, lockRequest: false);
+                if (summary == null || summary.RemainingToReceiveQuantity <= 0)
+                    return Fail("Yêu cầu không còn số lượng cần đóng.", BranchReceiptErrorCodes.TransitionInvalid);
+
+                var previous = request.Status;
+                request.ClosedRemainingQuantity = summary.RemainingToReceiveQuantity;
+                request.RemainingClosedByStaffId = actorStaffId;
+                request.RemainingClosedAtUtc = DateTime.UtcNow;
+                request.RemainingCloseReason = reason.Trim()[..Math.Min(reason.Trim().Length, 500)];
+                request.Status = RestockRequestStatuses.Completed;
+                request.UpdatedAt = DateTime.UtcNow;
+                AddTransition(
+                    request, previous, request.Status, actorStaffId,
+                    $"CLOSE_REMAINING: {request.RemainingCloseReason}", null, null,
+                    summary.FulfilledQuantity, summary.FulfilledQuantity, null);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                await LoadDetailNavigationsAsync(request);
+                return ServiceResult<RestockRequestWorkflowDetailDto>.Success(
+                    await MapWorkflowDetailAsync(request),
+                    "Đã đóng phần còn lại; không phát sinh biến động tồn kho.");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+                return Fail("Yêu cầu vừa được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ConcurrencyConflict);
             }
         }
 
@@ -352,17 +447,30 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(r => r.CreatedByStaff)
                 .Include(r => r.Store)
                 .Include(r => r.StockAlert)
+                .Include(r => r.AcceptedByStaff)
                 .FirstOrDefaultAsync(r => r.RestockRequestId == requestId);
 
-        private async Task<RestockRequest?> LoadRequestTrackedAsync(int requestId) =>
-            await _context.RestockRequests
+        private async Task<RestockRequest?> LoadRequestTrackedAsync(int requestId)
+        {
+            var tracked = _context.ChangeTracker.Entries<RestockRequest>()
+                .Select(x => x.Entity)
+                .FirstOrDefault(x => x.RestockRequestId == requestId);
+            if (tracked != null)
+            {
+                await LoadDetailNavigationsAsync(tracked);
+                return tracked;
+            }
+
+            return await _context.RestockRequests
                 .Include(r => r.Ingredient)
                 .Include(r => r.Recipe)
                 .Include(r => r.PreparedItem)
                 .Include(r => r.CreatedByStaff)
                 .Include(r => r.Store)
                 .Include(r => r.StockAlert)
+                .Include(r => r.AcceptedByStaff)
                 .FirstOrDefaultAsync(r => r.RestockRequestId == requestId);
+        }
 
         /// <summary>SQL Server: UPDLOCK so cancel/reject serialize with BranchReceipt confirm.</summary>
         private async Task<RestockRequest?> LoadRestockRequestForUpdateAsync(int restockRequestId)
@@ -511,6 +619,27 @@ namespace CafeChain.Application.Services.Inventories
                 })
                 .ToListAsync();
 
+            var allocation = await _allocationService.GetSummaryAsync(r.RestockRequestId)
+                ?? new RestockAllocationSummaryDto
+                {
+                    RestockRequestId = r.RestockRequestId,
+                    RequestedQuantity = r.RequestedQuantity,
+                    FulfilledQuantity = received,
+                    RemainingToReceiveQuantity = remaining,
+                    RemainingUnallocatedQuantity = remaining
+                };
+            var hasTransfer = allocation.TransferAllocatedQuantity > 0;
+            var hasPurchase = allocation.PurchaseAllocatedQuantity > 0
+                || fulfillments.Any(x => x.SourceType == RestockFulfillmentSourceTypes.Supplier
+                    && x.Status != RestockFulfillmentStatuses.Cancelled);
+            var channel = hasTransfer && hasPurchase
+                ? RestockFulfillmentChannels.Mixed
+                : hasTransfer
+                    ? RestockFulfillmentChannels.Transfer
+                    : hasPurchase
+                        ? RestockFulfillmentChannels.ExternalPurchase
+                        : RestockFulfillmentChannels.Undecided;
+
             return new RestockRequestWorkflowDetailDto
             {
                 RestockRequestId = r.RestockRequestId,
@@ -539,6 +668,18 @@ namespace CafeChain.Application.Services.Inventories
                 RemainingQuantity = remaining,
                 TargetQuantity = target,
                 StockRecoveredExternally = stockRecoveredExternally,
+                FulfilledQuantity = allocation.FulfilledQuantity,
+                TransferAllocatedQuantity = allocation.TransferAllocatedQuantity,
+                PurchaseAllocatedQuantity = allocation.PurchaseAllocatedQuantity,
+                RemainingUnallocatedQuantity = allocation.RemainingUnallocatedQuantity,
+                RemainingToReceiveQuantity = allocation.RemainingToReceiveQuantity,
+                ClosedRemainingQuantity = allocation.ClosedRemainingQuantity,
+                FulfillmentChannel = channel,
+                AcceptedByStaffId = r.AcceptedByStaffId,
+                AcceptedByName = r.AcceptedByStaff?.FullName,
+                AcceptedAtUtc = r.AcceptedAtUtc,
+                ProcessingNote = r.ProcessingNote,
+                RemainingCloseReason = r.RemainingCloseReason,
                 Timeline = timeline,
                 Receipts = receipts,
                 Fulfillments = fulfillments,
@@ -567,9 +708,7 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.StoreMismatch);
             }
 
-            if (roleNames.Contains(RoleConstants.StoreManager)
-                || roleNames.Contains(RoleConstants.ShiftSupervisor)
-                || roleNames.Contains(RoleConstants.SalesStaff))
+            if (roleNames.Contains(RoleConstants.StoreManager))
             {
                 if (actorStoreId.HasValue && actorStoreId.Value == request.StoreId)
                     return ServiceResult.Success();
@@ -590,6 +729,11 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanCancel(IReadOnlyCollection<string> roles) =>
             CanWarehouseProcess(roles) || roles.Contains(RoleConstants.StoreManager);
+
+        private static bool CanSubmit(IReadOnlyCollection<string> roles) =>
+            roles.Contains(RoleConstants.StoreManager)
+            || roles.Contains(RoleConstants.BusinessOwner)
+            || roles.Contains(RoleConstants.AreaManager);
 
         private static bool IsStoreManagerOnly(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.StoreManager)
@@ -619,6 +763,17 @@ namespace CafeChain.Application.Services.Inventories
             if (string.IsNullOrWhiteSpace(existing)) return addition;
             var combined = existing.Trim() + "\n" + addition;
             return combined.Length > 500 ? combined[..500] : combined;
+        }
+
+        private async Task LoadDetailNavigationsAsync(RestockRequest request)
+        {
+            await _context.Entry(request).Reference(x => x.Ingredient).LoadAsync();
+            await _context.Entry(request).Reference(x => x.Recipe).LoadAsync();
+            await _context.Entry(request).Reference(x => x.PreparedItem).LoadAsync();
+            await _context.Entry(request).Reference(x => x.CreatedByStaff).LoadAsync();
+            await _context.Entry(request).Reference(x => x.Store).LoadAsync();
+            await _context.Entry(request).Reference(x => x.StockAlert).LoadAsync();
+            await _context.Entry(request).Reference(x => x.AcceptedByStaff).LoadAsync();
         }
 
         private static ServiceResult<RestockRequestWorkflowDetailDto> Fail(string message, string? code) =>

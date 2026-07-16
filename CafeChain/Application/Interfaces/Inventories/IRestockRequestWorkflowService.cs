@@ -19,6 +19,19 @@ namespace CafeChain.Application.Interfaces.Inventories
             IReadOnlyCollection<string> roleNames,
             string? reason = null);
 
+        Task<ServiceResult<RestockRequestWorkflowDetailDto>> SubmitAsync(
+            int requestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
+
+        Task<ServiceResult<RestockRequestWorkflowDetailDto>> CloseRemainingAsync(
+            int requestId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames,
+            string reason);
+
         Task<ServiceResult<RestockRequestWorkflowDetailDto>> RejectAsync(
             int requestId,
             int actorStaffId,

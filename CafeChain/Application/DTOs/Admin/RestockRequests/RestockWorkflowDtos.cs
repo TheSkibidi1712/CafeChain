@@ -22,6 +22,18 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public decimal ReceivedQuantity { get; set; }
         public decimal RemainingQuantity { get; set; }
         public decimal TargetQuantity { get; set; }
+        public decimal FulfilledQuantity { get; set; }
+        public decimal TransferAllocatedQuantity { get; set; }
+        public decimal PurchaseAllocatedQuantity { get; set; }
+        public decimal RemainingUnallocatedQuantity { get; set; }
+        public decimal RemainingToReceiveQuantity { get; set; }
+        public decimal ClosedRemainingQuantity { get; set; }
+        public string FulfillmentChannel { get; set; } = string.Empty;
+        public int? AcceptedByStaffId { get; set; }
+        public string? AcceptedByName { get; set; }
+        public DateTime? AcceptedAtUtc { get; set; }
+        public string? ProcessingNote { get; set; }
+        public string? RemainingCloseReason { get; set; }
         public bool StockRecoveredExternally { get; set; }
         public List<RestockTimelineItemDto> Timeline { get; set; } = new();
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();

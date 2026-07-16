@@ -485,7 +485,8 @@ namespace CafeChain.Tests
             new(
                 ctx,
                 new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
-                NullLogger<RestockRequestWorkflowService>.Instance);
+                NullLogger<RestockRequestWorkflowService>.Instance,
+                new RestockAllocationService(ctx, new NoPurchaseOrderAllocationProvider()));
 
         private async Task<int> SeedProcessingRequestAsync(AppDbContext ctx, decimal requested)
         {

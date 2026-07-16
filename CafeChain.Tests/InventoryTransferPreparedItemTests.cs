@@ -3,6 +3,7 @@ using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.DTOs.Systems;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
+using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Security;
@@ -192,6 +193,9 @@ public sealed class InventoryTransferPreparedItemTests
             .Returns(new AdminActorContext { StaffId = 7 });
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(7, It.IsAny<int>())).ReturnsAsync(true);
+        var allocations = new Mock<IRestockAllocationService>();
+        allocations.Setup(x => x.ValidateAllocationAsync(It.IsAny<RestockAllocationValidationRequest>()))
+            .ReturnsAsync(ServiceResult<RestockAllocationSummaryDto>.Success(new RestockAllocationSummaryDto()));
 
         var transactions = new List<InventoryTransaction>();
         var destinationLayers = new List<InventoryCostLayer>();
@@ -212,7 +216,8 @@ public sealed class InventoryTransferPreparedItemTests
             user.Object,
             actor.Object,
             scope.Object,
-            new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+            allocations.Object);
 
         var first = await service.ConfirmAsync(transferId, "confirm-1");
         var replay = await service.ConfirmAsync(transferId, "confirm-2");

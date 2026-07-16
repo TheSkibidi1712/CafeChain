@@ -3,6 +3,7 @@ using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.DTOs.POS;
 using CafeChain.Application.DTOs.Systems;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
+using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.InventoryDocuments;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Actor;
@@ -336,6 +337,9 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
             .Returns(new AdminActorContext { StaffId = _staffId });
         var scope = new Mock<IScopeAuthorizationService>();
         scope.Setup(x => x.CanAccessStoreAsync(_staffId, It.IsAny<int>())).ReturnsAsync(true);
+        var allocations = new Mock<IRestockAllocationService>();
+        allocations.Setup(x => x.ValidateAllocationAsync(It.IsAny<RestockAllocationValidationRequest>()))
+            .ReturnsAsync(ServiceResult<RestockAllocationSummaryDto>.Success(new RestockAllocationSummaryDto()));
         return new AdminInventoryTransferService(
             repository,
             dedup.Object,
@@ -346,7 +350,8 @@ public sealed class InventoryTransferSqlServerHardeningTests : IAsyncLifetime
             new FixedUserContext(_staffId),
             actor.Object,
             scope.Object,
-            new HttpContextAccessor { HttpContext = new DefaultHttpContext() });
+            new HttpContextAccessor { HttpContext = new DefaultHttpContext() },
+            allocations.Object);
     }
 
     private async Task SeedFoundationAsync(AppDbContext context)

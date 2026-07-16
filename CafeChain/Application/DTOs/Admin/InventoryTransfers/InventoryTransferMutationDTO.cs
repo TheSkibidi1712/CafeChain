@@ -12,6 +12,8 @@ namespace CafeChain.Application.DTOs.Admin.InventoryTransfers
         public InventoryTransferPurpose Purpose { get; set; } = InventoryTransferPurpose.REPLENISHMENT;
         public DateTime DocumentDate { get; set; } = DateTime.Today;
         public string? Note { get; set; }
+        public bool AllowRestockOverallocation { get; set; }
+        public string? RestockOverallocationReason { get; set; }
         public List<InventoryTransferDetailInputDTO> Details { get; set; } = [];
     }
 }

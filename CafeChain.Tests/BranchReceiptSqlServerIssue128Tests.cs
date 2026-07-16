@@ -709,7 +709,8 @@ IF DB_ID(N'{Database}') IS NULL
             new(
                 ctx,
                 new CafeChain.Application.Services.Security.ScopeAuthorizationService(ctx),
-                NullLogger<RestockRequestWorkflowService>.Instance);
+                NullLogger<RestockRequestWorkflowService>.Instance,
+                new RestockAllocationService(ctx, new NoPurchaseOrderAllocationProvider()));
 
         private static StockAlertManagerService CreateAlertManager(AppDbContext ctx) =>
             new(

@@ -1,5 +1,6 @@
 using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Application.DTOs.Admin.InventoryTransfers;
+using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.DTOs.Systems;
 using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Constants;
@@ -35,6 +36,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
         private readonly IInventoryIssuePolicy _inventoryIssuePolicy;
         private readonly IInventoryCostLayerConsumptionService _costLayerConsumptionService;
         private readonly IRestockFulfillmentPostingService _fulfillmentPostingService;
+        private readonly IRestockAllocationService _restockAllocationService;
         private readonly IStockAlertService _stockAlertService;
         private readonly IUserContext _userContext;
         private readonly IAdminActorContextAccessor _actorAccessor;
@@ -51,7 +53,8 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             IUserContext userContext,
             IAdminActorContextAccessor actorAccessor,
             IScopeAuthorizationService scopeAuthorization,
-            IHttpContextAccessor httpContextAccessor)
+            IHttpContextAccessor httpContextAccessor,
+            IRestockAllocationService restockAllocationService)
         {
             _repository = repository;
             _deduplicationService = deduplicationService;
@@ -63,6 +66,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
             _actorAccessor = actorAccessor;
             _scopeAuthorization = scopeAuthorization;
             _httpContextAccessor = httpContextAccessor;
+            _restockAllocationService = restockAllocationService;
         }
 
         public async Task<AdminInventoryTransferIndexVM> GetIndexAsync(
@@ -660,6 +664,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                         {
                             StoreInventoryId = inventory.StoreInventoryId,
                             InventoryTransferId = transfer.InventoryTransferId,
+                            InventoryTransferDetailId = detail.InventoryTransferDetailId,
                             BranchReceiptLine = receiptLine,
                             Type = InventoryTransactionTypeEnum.IN_TRANSFER,
                             StockStatus = inventory.AvailableQty < 0
@@ -1221,6 +1226,28 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 if (detail.BaseQuantity <= 0)
                 {
                     throw new InvalidOperationException("Số lượng quy đổi base phải lớn hơn 0.");
+                }
+
+                if (detail.RestockRequestId.HasValue)
+                {
+                    var actor = _actorAccessor.Get(_httpContextAccessor.HttpContext?.User!);
+                    var allocation = await _restockAllocationService.ValidateAllocationAsync(
+                        new RestockAllocationValidationRequest
+                        {
+                            RestockRequestId = detail.RestockRequestId.Value,
+                            DestinationStoreId = dto.ToStoreId,
+                            IngredientId = detail.IngredientId,
+                            PreparedItemId = detail.PreparedItemId,
+                            AllocationQuantity = detail.BaseQuantity,
+                            ExcludeInventoryTransferId = dto.TransferId,
+                            AllowOverallocationOverride = dto.AllowRestockOverallocation,
+                            OverrideReason = dto.RestockOverallocationReason,
+                            ActorStaffId = actor.StaffId,
+                            ActorRoles = actor.RoleNames,
+                            RequestKey = dto.RequestKey
+                        });
+                    if (!allocation.IsSuccess)
+                        throw new InvalidOperationException(allocation.Message);
                 }
             }
         }
