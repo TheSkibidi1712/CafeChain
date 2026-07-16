@@ -1,0 +1,27 @@
+.reorder-page { color: #172033; padding: 28px 32px 40px; }
+.reorder-header { align-items: flex-start; display: flex; gap: 24px; justify-content: space-between; margin-bottom: 20px; }
+.reorder-header h1 { font-size: 28px; font-weight: 750; margin: 2px 0 4px; }
+.reorder-header p { color: #667085; margin: 0; }
+.reorder-eyebrow { color: #f05a28 !important; font-size: 13px; font-weight: 700; }
+.reorder-filters { align-items: end; background: #fff; border: 1px solid #dfe3e8; border-radius: 8px; display: grid; gap: 14px; grid-template-columns: minmax(220px, 1fr) 180px auto; padding: 16px; }
+.reorder-filters label { color: #475467; display: block; font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+.reorder-note { align-items: center; background: #fff5eb; border-left: 3px solid #ff7a1a; display: flex; gap: 10px; margin: 12px 0; padding: 12px 14px; }
+.reorder-table-shell { background: #fff; border: 1px solid #dfe3e8; border-radius: 8px; min-height: 260px; overflow: hidden; }
+.reorder-table { margin: 0; min-width: 1260px; }
+.reorder-table th { background: #f8fafc; color: #475467; font-size: 12px; padding: 12px; white-space: nowrap; }
+.reorder-table td { font-size: 13px; padding: 14px 12px; vertical-align: top; }
+.reorder-table td > span, .reorder-table td > small { color: #667085; display: block; margin-top: 3px; }
+.reorder-status { border: 1px solid #d0d5dd; border-radius: 999px; color: #344054 !important; display: inline-block !important; font-size: 11px; font-weight: 700; padding: 3px 8px; }
+.reorder-status--ready { background: #ecfdf3; border-color: #abefc6; color: #067647 !important; }
+.reorder-status--missing_threshold, .reorder-status--insufficient_history, .reorder-status--no_active_supplier, .reorder-status--invalid_conversion, .reorder-status--missing_lead_time, .reorder-status--missing_cost { background: #fff7ed; border-color: #fed7aa; color: #c2410c !important; }
+.reorder-empty { color: #667085; padding: 68px 24px; text-align: center; }
+.reorder-empty i { color: #f79009; font-size: 28px; }
+.reorder-empty h2 { color: #344054; font-size: 18px; margin: 12px 0 4px; }
+.btn-primary { background: #f97316; border-color: #f97316; }
+.btn-primary:hover, .btn-primary:focus { background: #ea580c; border-color: #ea580c; }
+@media (max-width: 1024px) {
+    .reorder-page { padding: 22px 20px 36px; }
+    .reorder-header { align-items: stretch; flex-direction: column; }
+    .reorder-filters { grid-template-columns: 1fr 1fr; }
+    .reorder-filters .btn { grid-column: 1 / -1; }
+}

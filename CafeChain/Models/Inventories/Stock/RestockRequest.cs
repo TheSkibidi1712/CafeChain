@@ -16,7 +16,7 @@ namespace CafeChain.Models.Inventories.Stock
     {
         public int RestockRequestId { get; set; }
 
-        public int StockAlertId { get; set; }
+        public int? StockAlertId { get; set; }
 
         public int StoreId { get; set; }
 
@@ -30,6 +30,14 @@ namespace CafeChain.Models.Inventories.Stock
         public decimal RequestedQuantity { get; set; }
 
         public decimal? SuggestedQuantity { get; set; }
+
+        public int? SuggestionAnalysisWindowDays { get; set; }
+        public decimal? SuggestionAvailableSnapshot { get; set; }
+        public decimal? SuggestionMinLevelSnapshot { get; set; }
+        public decimal? SuggestionAverageDailyUsageSnapshot { get; set; }
+        public int? SuggestionLeadTimeDaysSnapshot { get; set; }
+        public decimal? SuggestionIncomingQuantitySnapshot { get; set; }
+        public string? SuggestionReason { get; set; }
 
         /// <summary>SUBMITTED | PROCESSING | COMPLETED | REJECTED | CANCELLED</summary>
         public string Status { get; set; } = string.Empty;
@@ -54,7 +62,7 @@ namespace CafeChain.Models.Inventories.Stock
         [Timestamp]
         public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-        public virtual StockAlert StockAlert { get; set; } = null!;
+        public virtual StockAlert? StockAlert { get; set; }
         public virtual Store Store { get; set; } = null!;
         public virtual Ingredient? Ingredient { get; set; }
         public virtual Recipe? Recipe { get; set; }

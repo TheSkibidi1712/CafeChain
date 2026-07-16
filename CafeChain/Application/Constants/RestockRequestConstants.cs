@@ -14,6 +14,7 @@ namespace CafeChain.Application.Constants
 
         public static readonly string[] ActiveValues =
         {
+            Draft,
             Submitted,
             Processing,
             PartiallyReceived

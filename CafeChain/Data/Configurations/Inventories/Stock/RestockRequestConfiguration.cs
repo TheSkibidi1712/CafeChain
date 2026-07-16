@@ -30,6 +30,12 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.Property(x => x.SuggestedQuantity)
                 .HasColumnType("decimal(18,3)");
 
+            entity.Property(x => x.SuggestionAvailableSnapshot).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.SuggestionMinLevelSnapshot).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.SuggestionAverageDailyUsageSnapshot).HasColumnType("decimal(18,5)");
+            entity.Property(x => x.SuggestionIncomingQuantitySnapshot).HasColumnType("decimal(18,3)");
+            entity.Property(x => x.SuggestionReason).HasMaxLength(500);
+
             entity.Property(x => x.Status)
                 .IsRequired()
                 .HasMaxLength(32);
@@ -94,17 +100,17 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 
             entity.HasIndex(x => x.StockAlertId)
                 .IsUnique()
-                .HasFilter("[StockAlertId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasFilter("[StockAlertId] IS NOT NULL AND [Status] IN ('DRAFT','SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
                 .HasDatabaseName("UX_RestockRequest_Active_StockAlert");
 
             entity.HasIndex(x => new { x.StoreId, x.IngredientId })
                 .IsUnique()
-                .HasFilter("[IngredientId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasFilter("[IngredientId] IS NOT NULL AND [Status] IN ('DRAFT','SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
                 .HasDatabaseName("UX_RestockRequest_Active_Store_Ingredient");
 
             entity.HasIndex(x => new { x.StoreId, x.PreparedItemId })
                 .IsUnique()
-                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] IN ('SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
+                .HasFilter("[PreparedItemId] IS NOT NULL AND [Status] IN ('DRAFT','SUBMITTED','PROCESSING','PARTIALLY_RECEIVED')")
                 .HasDatabaseName("UX_RestockRequest_Active_Store_PreparedItem");
         }
     }

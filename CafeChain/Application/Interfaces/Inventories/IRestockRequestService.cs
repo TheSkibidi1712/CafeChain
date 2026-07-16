@@ -1,4 +1,5 @@
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Results;
 
 namespace CafeChain.Application.Interfaces.Inventories
@@ -13,6 +14,10 @@ namespace CafeChain.Application.Interfaces.Inventories
             decimal requestedQuantity,
             string? note,
             string? priority);
+
+        Task<ServiceResult<CreateRestockRequestResultDto>> CreateDraftFromSuggestionAsync(
+            CreateRestockDraftFromSuggestionDto request,
+            int actorStaffId);
 
         Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
             int storeId,

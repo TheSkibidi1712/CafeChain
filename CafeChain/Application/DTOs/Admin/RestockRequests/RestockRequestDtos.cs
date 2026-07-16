@@ -3,7 +3,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class RestockRequestListItemDto
     {
         public int RestockRequestId { get; set; }
-        public int StockAlertId { get; set; }
+        public int? StockAlertId { get; set; }
         public int StoreId { get; set; }
         public string ItemName { get; set; } = string.Empty;
         public string ItemTypeLabel { get; set; } = string.Empty;
@@ -29,6 +29,13 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? AlertStatus { get; set; }
         public decimal? AlertCurrentQtySnapshot { get; set; }
         public decimal? AlertThresholdSnapshot { get; set; }
+        public int? SuggestionAnalysisWindowDays { get; set; }
+        public decimal? SuggestionAvailableSnapshot { get; set; }
+        public decimal? SuggestionMinLevelSnapshot { get; set; }
+        public decimal? SuggestionAverageDailyUsageSnapshot { get; set; }
+        public int? SuggestionLeadTimeDaysSnapshot { get; set; }
+        public decimal? SuggestionIncomingQuantitySnapshot { get; set; }
+        public string? SuggestionReason { get; set; }
     }
 
     public class RestockRequestListResultDto

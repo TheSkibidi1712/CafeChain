@@ -1,0 +1,55 @@
+namespace CafeChain.Application.DTOs.Admin.Procurement
+{
+    public sealed class ReorderSuggestionListDto
+    {
+        public int StoreId { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public int AnalysisWindowDays { get; set; }
+        public DateTime CalculatedAtUtc { get; set; }
+        public List<ReorderSuggestionItemDto> Items { get; set; } = new();
+    }
+
+    public sealed class ReorderSuggestionItemDto
+    {
+        public int StoreId { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public int IngredientId { get; set; }
+        public string IngredientCode { get; set; } = string.Empty;
+        public string IngredientName { get; set; } = string.Empty;
+        public string BaseUnitCode { get; set; } = string.Empty;
+        public decimal AvailableQuantity { get; set; }
+        public decimal? MinLevel { get; set; }
+        public decimal? AverageDailyUsage { get; set; }
+        public int? LeadTimeDays { get; set; }
+        public decimal IncomingApprovedPoQuantity { get; set; }
+        public decimal? ReorderPoint { get; set; }
+        public decimal? SuggestedBaseQuantity { get; set; }
+        public int? SuggestedPackageCount { get; set; }
+        public int? MinimumOrderPackageCount { get; set; }
+        public decimal? PackageBaseQuantity { get; set; }
+        public int? IngredientSupplierId { get; set; }
+        public int? SupplierId { get; set; }
+        public string? SupplierCode { get; set; }
+        public string? SupplierName { get; set; }
+        public decimal? PackagePrice { get; set; }
+        public decimal? EstimatedAmount { get; set; }
+        public string Status { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
+        public int? ActiveRestockRequestId { get; set; }
+    }
+
+    public sealed class CreateRestockDraftFromSuggestionDto
+    {
+        public int StoreId { get; set; }
+        public int IngredientId { get; set; }
+        public decimal RequestedQuantity { get; set; }
+        public decimal SuggestedQuantity { get; set; }
+        public int AnalysisWindowDays { get; set; }
+        public decimal AvailableSnapshot { get; set; }
+        public decimal MinLevelSnapshot { get; set; }
+        public decimal AverageDailyUsageSnapshot { get; set; }
+        public int LeadTimeDaysSnapshot { get; set; }
+        public decimal IncomingQuantitySnapshot { get; set; }
+        public string SuggestionReason { get; set; } = string.Empty;
+    }
+}

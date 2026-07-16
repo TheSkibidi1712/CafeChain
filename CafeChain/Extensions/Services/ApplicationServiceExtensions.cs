@@ -288,6 +288,8 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockShortageReportService, StockShortageReportService>();
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
+            services.AddScoped<IReorderSuggestionService, ReorderSuggestionService>();
+            services.AddScoped<IReorderIncomingQuantityProvider, NoPurchaseOrderIncomingQuantityProvider>();
             // Issue #128 — restock workflow + branch receipt posting
             services.AddScoped<IRestockRequestWorkflowService, RestockRequestWorkflowService>();
             services.AddScoped<IRestockFulfillmentPostingService, RestockFulfillmentPostingService>();

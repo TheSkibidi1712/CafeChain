@@ -1,0 +1,161 @@
+@model CafeChain.Application.DTOs.Admin.Procurement.ReorderSuggestionListDto
+@using CafeChain.Application.Constants
+@{
+    ViewData["Title"] = "Gợi ý nhập hàng";
+    var stores = ViewBag.Stores as IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>
+        ?? Enumerable.Empty<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+    var selectedStoreId = (int?)ViewBag.SelectedStoreId ?? Model.StoreId;
+    var canCreateDraft = (bool?)ViewBag.CanCreateDraft == true;
+    var labels = new Dictionary<string, string>
+    {
+        [ReorderSuggestionStatuses.Ready] = "Sẵn sàng",
+        [ReorderSuggestionStatuses.NoReorderNeeded] = "Chưa cần nhập",
+        [ReorderSuggestionStatuses.InsufficientHistory] = "Thiếu lịch sử",
+        [ReorderSuggestionStatuses.MissingThreshold] = "Thiếu ngưỡng tồn",
+        [ReorderSuggestionStatuses.NoActiveSupplier] = "Thiếu nguồn cung",
+        [ReorderSuggestionStatuses.InvalidConversion] = "Sai quy cách gói",
+        [ReorderSuggestionStatuses.MissingLeadTime] = "Thiếu thời gian giao",
+        [ReorderSuggestionStatuses.MissingCost] = "Thiếu giá mua",
+        [ReorderSuggestionStatuses.IncomingCoversDemand] = "Hàng về đã đủ",
+        [ReorderSuggestionStatuses.Unknown] = "Chưa xác định"
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Procurement/reorder-suggestions.css" asp-append-version="true" />
+}
+
+<main class="reorder-page">
+    <header class="reorder-header">
+        <div>
+            <p class="reorder-eyebrow">Nhà cung cấp / Lập kế hoạch</p>
+            <h1>Gợi ý nhập hàng</h1>
+            <p>Phân tích tiêu thụ, tồn khả dụng, ngưỡng an toàn và quy cách mua theo cửa hàng.</p>
+        </div>
+        <a asp-controller="AdminRestockRequests" asp-action="Index" class="btn btn-outline-secondary">
+            <i class="fas fa-list-check" aria-hidden="true"></i> Xem yêu cầu nhập
+        </a>
+    </header>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="alert alert-success" role="status">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="alert alert-danger" role="alert">@error</div>
+    }
+    @if (ViewBag.ErrorMessage is string loadError)
+    {
+        <div class="alert alert-danger" role="alert">@loadError</div>
+    }
+
+    <form method="get" class="reorder-filters">
+        <div>
+            <label for="storeId">Cửa hàng</label>
+            <select id="storeId" name="storeId" class="form-select">
+                @foreach (var store in stores)
+                {
+                    <option value="@store.Value" selected="@(store.Value == selectedStoreId.ToString())">@store.Text</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="analysisWindowDays">Kỳ phân tích</label>
+            <select id="analysisWindowDays" name="analysisWindowDays" class="form-select">
+                <option value="30" selected="@(Model.AnalysisWindowDays == 30)">30 ngày</option>
+                <option value="60" selected="@(Model.AnalysisWindowDays == 60)">60 ngày</option>
+                <option value="90" selected="@(Model.AnalysisWindowDays == 90)">90 ngày</option>
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="fas fa-rotate" aria-hidden="true"></i> Tính lại</button>
+    </form>
+
+    <div class="reorder-note" role="note">
+        <i class="fas fa-circle-info" aria-hidden="true"></i>
+        Đây là gợi ý đọc dữ liệu, không tự đặt hàng. “Tạo yêu cầu nhập” chỉ tạo bản nháp để quản lý kiểm tra.
+    </div>
+
+    <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
+        @if (!Model.Items.Any())
+        {
+            <div class="reorder-empty">
+                <i class="fas fa-box-open" aria-hidden="true"></i>
+                <h2>Chưa có dữ liệu gợi ý</h2>
+                <p>Chọn cửa hàng có tồn kho nguyên liệu để bắt đầu phân tích.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table reorder-table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nguyên liệu</th>
+                            <th>Tồn khả dụng</th>
+                            <th>Ngưỡng tối thiểu</th>
+                            <th>Dùng/ngày</th>
+                            <th>Lead time</th>
+                            <th>Đang về</th>
+                            <th>Đề xuất</th>
+                            <th>Nhà cung cấp</th>
+                            <th>Trạng thái</th>
+                            <th class="text-end">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    @foreach (var item in Model.Items)
+                    {
+                        var ready = item.Status == ReorderSuggestionStatuses.Ready;
+                        <tr>
+                            <td>
+                                <strong>@item.IngredientName</strong>
+                                <span>@item.IngredientCode</span>
+                            </td>
+                            <td>@item.AvailableQuantity.ToString("N3") @item.BaseUnitCode</td>
+                            <td>@(item.MinLevel?.ToString("N3") ?? "-")</td>
+                            <td>@(item.AverageDailyUsage?.ToString("N3") ?? "-")</td>
+                            <td>@(item.LeadTimeDays.HasValue ? $"{item.LeadTimeDays} ngày" : "-")</td>
+                            <td>@item.IncomingApprovedPoQuantity.ToString("N3")</td>
+                            <td>
+                                <strong>@(item.SuggestedBaseQuantity?.ToString("N3") ?? "-") @item.BaseUnitCode</strong>
+                                @if (item.SuggestedPackageCount.HasValue)
+                                {
+                                    <span>@item.SuggestedPackageCount gói · @((item.EstimatedAmount ?? 0).ToString("N0"))đ</span>
+                                }
+                            </td>
+                            <td>
+                                <strong>@(item.SupplierName ?? "-")</strong>
+                                @if (item.PackagePrice.HasValue)
+                                {
+                                    <span>@item.PackagePrice.Value.ToString("N0")đ/gói</span>
+                                }
+                            </td>
+                            <td>
+                                <span class="reorder-status reorder-status--@item.Status.ToLowerInvariant()">@(labels.GetValueOrDefault(item.Status, item.Status))</span>
+                                <small>@item.Reason</small>
+                            </td>
+                            <td class="text-end">
+                                @if (item.ActiveRestockRequestId.HasValue)
+                                {
+                                    <a asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.ActiveRestockRequestId" class="btn btn-sm btn-outline-secondary">Xem yêu cầu</a>
+                                }
+                                else
+                                {
+                                    <form asp-action="CreateDraft" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="storeId" value="@item.StoreId" />
+                                        <input type="hidden" name="ingredientId" value="@item.IngredientId" />
+                                        <input type="hidden" name="analysisWindowDays" value="@Model.AnalysisWindowDays" />
+                                        <button type="submit" class="btn btn-sm btn-primary" disabled="@(!ready || !canCreateDraft)">Tạo yêu cầu nhập</button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </section>
+</main>

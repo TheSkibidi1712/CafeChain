@@ -1,5 +1,6 @@
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
+using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
 using CafeChain.Application.Results;
@@ -247,6 +248,107 @@ namespace CafeChain.Application.Services.Inventories
                 "Đã gửi yêu cầu nhập hàng cho Kế toán/kho.");
         }
 
+        public async Task<ServiceResult<CreateRestockRequestResultDto>> CreateDraftFromSuggestionAsync(
+            CreateRestockDraftFromSuggestionDto input,
+            int actorStaffId)
+        {
+            if (input.StoreId <= 0 || input.IngredientId <= 0 || actorStaffId <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Thông tin tạo yêu cầu nhập không hợp lệ.");
+            if (input.RequestedQuantity <= 0 || input.SuggestedQuantity <= 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Số lượng đề nghị và yêu cầu phải lớn hơn 0.");
+            if (input.AnalysisWindowDays is < 1 or > 365
+                || input.MinLevelSnapshot < 0
+                || input.AverageDailyUsageSnapshot < 0
+                || input.LeadTimeDaysSnapshot < 0
+                || input.IncomingQuantitySnapshot < 0)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Evidence của gợi ý nhập hàng không hợp lệ.");
+            if (!await IsAuthorizedRequesterAsync(actorStaffId, input.StoreId))
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Bạn không có quyền tạo yêu cầu nhập hàng tại cửa hàng này.");
+
+            var inventory = await _context.StoreInventories
+                .AsNoTracking()
+                .Include(x => x.Ingredient)
+                .FirstOrDefaultAsync(x => x.StoreId == input.StoreId && x.IngredientId == input.IngredientId);
+            if (inventory?.Ingredient == null || !inventory.Ingredient.Active)
+                return ServiceResult<CreateRestockRequestResultDto>.Failure("Nguyên liệu không thuộc tồn kho đang hoạt động của cửa hàng.");
+
+            var existing = await _context.RestockRequests
+                .AsNoTracking()
+                .Where(x => x.StoreId == input.StoreId
+                    && x.IngredientId == input.IngredientId
+                    && RestockRequestStatuses.ActiveValues.Contains(x.Status))
+                .OrderBy(x => x.RestockRequestId)
+                .FirstOrDefaultAsync();
+            if (existing != null)
+            {
+                return ServiceResult<CreateRestockRequestResultDto>.Success(
+                    new CreateRestockRequestResultDto
+                    {
+                        RestockRequestId = existing.RestockRequestId,
+                        AlreadyExisted = true
+                    },
+                    "Đã có yêu cầu nhập đang mở cho nguyên liệu; hệ thống trả lại yêu cầu hiện có.");
+            }
+
+            var now = DateTime.UtcNow;
+            var request = new RestockRequest
+            {
+                StockAlertId = null,
+                StoreId = input.StoreId,
+                IngredientId = input.IngredientId,
+                RequestedQuantity = input.RequestedQuantity,
+                SuggestedQuantity = input.SuggestedQuantity,
+                SuggestionAnalysisWindowDays = input.AnalysisWindowDays,
+                SuggestionAvailableSnapshot = input.AvailableSnapshot,
+                SuggestionMinLevelSnapshot = input.MinLevelSnapshot,
+                SuggestionAverageDailyUsageSnapshot = input.AverageDailyUsageSnapshot,
+                SuggestionLeadTimeDaysSnapshot = input.LeadTimeDaysSnapshot,
+                SuggestionIncomingQuantitySnapshot = input.IncomingQuantitySnapshot,
+                SuggestionReason = string.IsNullOrWhiteSpace(input.SuggestionReason)
+                    ? null
+                    : input.SuggestionReason.Trim()[..Math.Min(input.SuggestionReason.Trim().Length, 500)],
+                Status = RestockRequestStatuses.Draft,
+                Priority = RestockRequestPriorities.Normal,
+                CreatedByStaffId = actorStaffId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                RowVersion = Array.Empty<byte>()
+            };
+
+            try
+            {
+                _context.RestockRequests.Add(request);
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateException ex) when (IsActiveRequestUniqueConflict(ex))
+            {
+                _context.ChangeTracker.Clear();
+                existing = await _context.RestockRequests
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.StoreId == input.StoreId
+                        && x.IngredientId == input.IngredientId
+                        && RestockRequestStatuses.ActiveValues.Contains(x.Status));
+                if (existing != null)
+                {
+                    return ServiceResult<CreateRestockRequestResultDto>.Success(
+                        new CreateRestockRequestResultDto
+                        {
+                            RestockRequestId = existing.RestockRequestId,
+                            AlreadyExisted = true
+                        },
+                        "Đã có yêu cầu nhập đang mở cho nguyên liệu; hệ thống trả lại yêu cầu hiện có.");
+                }
+                throw;
+            }
+
+            _logger.LogInformation(
+                "[RestockRequest] DRAFT from reorder suggestion Id={Id} StoreId={StoreId} IngredientId={IngredientId} ByStaffId={StaffId}",
+                request.RestockRequestId, request.StoreId, request.IngredientId, actorStaffId);
+            return ServiceResult<CreateRestockRequestResultDto>.Success(
+                new CreateRestockRequestResultDto { RestockRequestId = request.RestockRequestId },
+                "Đã tạo yêu cầu nhập nháp từ gợi ý.");
+        }
+
         public async Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
             int storeId,
             string? statusFilter,
@@ -449,7 +551,14 @@ namespace CafeChain.Application.Services.Inventories
                 AlertType = r.StockAlert?.AlertType,
                 AlertStatus = r.StockAlert?.Status,
                 AlertCurrentQtySnapshot = r.StockAlert?.CurrentQtySnapshot,
-                AlertThresholdSnapshot = r.StockAlert?.ThresholdSnapshot
+                AlertThresholdSnapshot = r.StockAlert?.ThresholdSnapshot,
+                SuggestionAnalysisWindowDays = r.SuggestionAnalysisWindowDays,
+                SuggestionAvailableSnapshot = r.SuggestionAvailableSnapshot,
+                SuggestionMinLevelSnapshot = r.SuggestionMinLevelSnapshot,
+                SuggestionAverageDailyUsageSnapshot = r.SuggestionAverageDailyUsageSnapshot,
+                SuggestionLeadTimeDaysSnapshot = r.SuggestionLeadTimeDaysSnapshot,
+                SuggestionIncomingQuantitySnapshot = r.SuggestionIncomingQuantitySnapshot,
+                SuggestionReason = r.SuggestionReason
             };
             return dto;
         }
