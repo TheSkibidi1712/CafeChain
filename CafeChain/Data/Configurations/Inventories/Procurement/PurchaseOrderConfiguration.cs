@@ -28,12 +28,17 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
     {
         public void Configure(EntityTypeBuilder<PurchaseOrderLine> b)
         {
-            b.ToTable("PurchaseOrderLines");
+            b.ToTable("PurchaseOrderLines", table =>
+                table.HasCheckConstraint(
+                    "CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative",
+                    "[ClosedRemainingQuantity] >= 0"));
             b.HasKey(x => x.PurchaseOrderLineId);
             b.Property(x => x.PackageQuantitySnapshot).HasPrecision(18, 3);
             b.Property(x => x.PackagePriceSnapshot).HasPrecision(18, 2);
             b.Property(x => x.PackageCount).HasPrecision(18, 3);
             b.Property(x => x.OrderedBaseQuantity).HasPrecision(18, 3);
+            b.Property(x => x.ClosedRemainingQuantity).HasPrecision(18, 3).HasDefaultValue(0m);
+            b.Property(x => x.CloseRemainingReason).HasMaxLength(500);
             b.Property(x => x.Note).HasMaxLength(500);
             b.Property(x => x.RowVersion).IsRowVersion();
             b.HasIndex(x => x.RestockRequestId);
@@ -42,6 +47,8 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.HasOne(x => x.Ingredient).WithMany().HasForeignKey(x => x.IngredientId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.IngredientSupplier).WithMany().HasForeignKey(x => x.IngredientSupplierId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.PackageUnitSnapshot).WithMany().HasForeignKey(x => x.PackageUnitIdSnapshot).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.ClosedRemainingByStaff).WithMany().HasForeignKey(x => x.ClosedRemainingByStaffId).OnDelete(DeleteBehavior.Restrict);
+            b.HasIndex(x => x.ClosedRemainingByStaffId);
         }
     }
 

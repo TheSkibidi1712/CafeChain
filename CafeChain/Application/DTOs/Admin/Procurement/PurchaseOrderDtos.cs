@@ -34,6 +34,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string? Note { get; set; }
         public decimal TotalAmount { get; set; }
         public string RowVersion { get; set; } = string.Empty;
+        public int? ActiveReceiptDraftId { get; set; }
         public List<PurchaseOrderLineDto> Lines { get; set; } = new();
     }
 
@@ -50,8 +51,21 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public decimal OrderedBaseQuantity { get; set; }
         public decimal AcceptedBaseQuantity { get; set; }
         public decimal RejectedBaseQuantity { get; set; }
+        public decimal ClosedRemainingQuantity { get; set; }
+        public string? CloseRemainingReason { get; set; }
+        public int? ClosedRemainingByStaffId { get; set; }
+        public DateTime? ClosedRemainingAtUtc { get; set; }
         public decimal RemainingBaseQuantity { get; set; }
+        public int ReceiptCount { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
         public int PromisedLeadTimeDaysSnapshot { get; set; }
+    }
+
+    public sealed class ClosePurchaseOrderLineRemainingRequest
+    {
+        public int PurchaseOrderLineId { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
+        public string Reason { get; set; } = string.Empty;
     }
 
     public sealed class PurchaseOrderListItemDto

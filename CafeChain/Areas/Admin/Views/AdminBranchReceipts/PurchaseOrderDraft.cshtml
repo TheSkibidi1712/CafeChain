@@ -1,0 +1,152 @@
+@model CafeChain.Application.DTOs.Admin.RestockRequests.PurchaseOrderReceiptDraftDto
+@using CafeChain.Application.Constants
+@{
+    ViewData["Title"] = "Kiểm đếm hàng theo PO";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+}
+
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+
+<main class="ops-shell">
+    <header class="ops-header">
+        <div>
+            <div class="ops-eyebrow">@Model.PurchaseOrderCode · @Model.StoreName</div>
+            <h1 class="ops-title">Kiểm đếm hàng từ @Model.SupplierName</h1>
+            <p class="ops-subtitle">Nhập số Nhà cung cấp thực tế mang đến và số CafeChain từ chối. Chỉ số lượng chấp nhận mới được nhập kho khi xác nhận phiếu.</p>
+        </div>
+        <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@Model.PurchaseOrderId">
+            <i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Về đơn mua
+        </a>
+    </header>
+
+    @if (TempData["SuccessMessage"] is string success)
+    {
+        <div class="ops-notice ops-notice-success">@success</div>
+    }
+    @if (TempData["ErrorMessage"] is string error)
+    {
+        <div class="ops-notice ops-notice-error">@error</div>
+    }
+
+    <section class="ops-metrics">
+        <div class="ops-metric"><span class="ops-metric-label">Phiếu kiểm đếm</span><strong class="ops-metric-value">@Model.ReceiptCode</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Cửa hàng</span><strong class="ops-metric-value">@Model.StoreName</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Nhà cung cấp</span><strong class="ops-metric-value">@Model.SupplierName</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Dòng còn phải giao</span><strong class="ops-metric-value warning">@Model.Lines.Count(x => x.RemainingBaseQuantity > 0)</strong></div>
+    </section>
+
+    <div class="ops-notice ops-notice-info">
+        Số thực giao và số từ chối dùng cùng đơn vị gói của PO. Số chấp nhận = thực giao - từ chối. Lưu nháp chưa làm thay đổi tồn kho.
+    </div>
+
+    <form asp-action="SavePurchaseOrderDraft" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="BranchReceiptId" value="@Model.BranchReceiptId" />
+        <input type="hidden" name="RowVersion" value="@Model.RowVersion" />
+
+        <section class="ops-panel">
+            <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin giao hàng</h2></div>
+            <div class="ops-panel-body">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label class="ops-form-label" for="referenceNumber">Số phiếu giao của Nhà cung cấp</label>
+                        <input class="ops-input w-100" id="referenceNumber" name="ReferenceNumber" value="@Model.ReferenceNumber" maxlength="100" />
+                    </div>
+                    <div class="col-md-7">
+                        <label class="ops-form-label" for="notes">Ghi chú kiểm đếm</label>
+                        <input class="ops-input w-100" id="notes" name="Notes" value="@Model.Notes" maxlength="1000" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="ops-panel">
+            <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng PO</h2></div>
+            <div class="ops-panel-body p-0">
+                <div class="ops-table-scroll">
+                    <table class="ops-table">
+                        <thead>
+                            <tr>
+                                <th>Nguyên liệu</th>
+                                <th class="number">Đặt</th>
+                                <th class="number">Đã chấp nhận</th>
+                                <th class="number">Còn phải giao</th>
+                                <th>Thực giao</th>
+                                <th>Từ chối</th>
+                                <th>Chấp nhận dự kiến</th>
+                                <th>Loại sự cố / lý do</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            var line = Model.Lines[i];
+                            var isClosed = line.RemainingBaseQuantity <= 0;
+                            <tr class="receipt-draft-line" data-line-index="@i">
+                                <td>
+                                    <strong class="ops-item-name">@line.IngredientName</strong>
+                                    <div class="ops-secondary">1 gói = @line.PackageQuantitySnapshot.ToString("N3") @line.PackageUnitName · @line.PackagePriceSnapshot.ToString("N0") đ/gói</div>
+                                    @if (line.RestockRequestId.HasValue)
+                                    {
+                                        <div class="ops-secondary">Yêu cầu nhập #@line.RestockRequestId</div>
+                                    }
+                                </td>
+                                <td class="number">@line.OrderedBaseQuantity.ToString("N3")</td>
+                                <td class="number">@line.PreviouslyAcceptedBaseQuantity.ToString("N3")</td>
+                                <td class="number"><strong>@line.RemainingBaseQuantity.ToString("N3")</strong></td>
+                                <td>
+                                    <input type="hidden" name="Lines[@i].PurchaseOrderLineId" value="@line.PurchaseOrderLineId" />
+                                    <input class="ops-input w-100 actual-quantity" type="number" step="0.001" min="0" name="Lines[@i].ActualReceivedQuantity" value="@line.ActualReceivedQuantity" disabled="@isClosed" aria-label="Số lượng thực giao của @line.IngredientName" />
+                                    <div class="ops-secondary">gói @line.PackageUnitName</div>
+                                </td>
+                                <td>
+                                    <input class="ops-input w-100 rejected-quantity" type="number" step="0.001" min="0" name="Lines[@i].RejectedQuantity" value="@line.RejectedQuantity" disabled="@isClosed" aria-label="Số lượng từ chối của @line.IngredientName" />
+                                </td>
+                                <td><strong class="accepted-preview">0</strong> gói</td>
+                                <td style="min-width:240px">
+                                    <select class="ops-select w-100 mb-2" name="Lines[@i].RejectionIssueType" disabled="@isClosed">
+                                        <option value="">Không có sự cố</option>
+                                        <option value="@SupplierReceiptIssueTypes.ShortDelivery" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.ShortDelivery)">Giao thiếu</option>
+                                        <option value="@SupplierReceiptIssueTypes.WrongItem" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.WrongItem)">Sai mặt hàng</option>
+                                        <option value="@SupplierReceiptIssueTypes.Damaged" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.Damaged)">Hư hỏng</option>
+                                        <option value="@SupplierReceiptIssueTypes.Expired" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.Expired)">Hết hạn</option>
+                                        <option value="@SupplierReceiptIssueTypes.QualityFailure" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.QualityFailure)">Không đạt chất lượng</option>
+                                        <option value="@SupplierReceiptIssueTypes.PackagingFailure" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.PackagingFailure)">Lỗi bao bì</option>
+                                        <option value="@SupplierReceiptIssueTypes.DocumentMismatch" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.DocumentMismatch)">Sai chứng từ</option>
+                                        <option value="@SupplierReceiptIssueTypes.Other" selected="@(line.RejectionIssueType == SupplierReceiptIssueTypes.Other)">Khác</option>
+                                    </select>
+                                    <input class="ops-input w-100" name="Lines[@i].RejectionReason" value="@line.RejectionReason" maxlength="500" placeholder="Lý do khi có hàng từ chối" disabled="@isClosed" />
+                                </td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <div class="ops-inline-actions mt-3">
+            <button class="ops-btn ops-btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Lưu phiếu kiểm đếm</button>
+            <a class="ops-btn" asp-action="Details" asp-route-id="@Model.BranchReceiptId">Xem phiếu hiện tại</a>
+        </div>
+    </form>
+</main>
+
+@section Scripts {
+    <script>
+        (() => {
+            const updatePreview = (row) => {
+                const actual = Number(row.querySelector('.actual-quantity')?.value || 0);
+                const rejected = Number(row.querySelector('.rejected-quantity')?.value || 0);
+                const preview = row.querySelector('.accepted-preview');
+                if (preview) preview.textContent = Math.max(0, actual - rejected).toLocaleString('vi-VN', { maximumFractionDigits: 3 });
+            };
+            document.querySelectorAll('.receipt-draft-line').forEach(row => {
+                row.querySelectorAll('.actual-quantity, .rejected-quantity').forEach(input => {
+                    input.addEventListener('input', () => updatePreview(row));
+                });
+                updatePreview(row);
+            });
+        })();
+    </script>
+}

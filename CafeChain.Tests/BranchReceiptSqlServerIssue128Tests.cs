@@ -42,7 +42,7 @@ namespace CafeChain.Tests
         private int _storeId = 1;
         private int _unitId = 1;
         private int _managerStaffId;
-        private static readonly string[] ManagerRoles = { RoleConstants.AccountantWarehouse };
+        private static readonly string[] ManagerRoles = { RoleConstants.StoreManager };
 
         public async Task InitializeAsync()
         {

@@ -3,6 +3,7 @@ using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Inventories.Transfers;
+using CafeChain.Models.Inventories.Procurement;
 
 namespace CafeChain.Models.Inventories.Stock
 {
@@ -18,6 +19,7 @@ namespace CafeChain.Models.Inventories.Stock
         public int StoreId { get; set; }
 
         public int? SupplierId { get; set; }
+        public int? PurchaseOrderId { get; set; }
         public int? SourceInventoryTransferId { get; set; }
 
         /// <summary>DRAFT | CONFIRMED</summary>
@@ -47,6 +49,7 @@ namespace CafeChain.Models.Inventories.Stock
 
         public virtual Store Store { get; set; } = null!;
         public virtual Supplier? Supplier { get; set; }
+        public virtual PurchaseOrder? PurchaseOrder { get; set; }
         public virtual InventoryTransfer? SourceInventoryTransfer { get; set; }
         public virtual Staff? ReceivedByStaff { get; set; }
         public virtual Staff? ConfirmedByStaff { get; set; }

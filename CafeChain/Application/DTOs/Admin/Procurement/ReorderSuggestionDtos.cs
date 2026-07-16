@@ -37,11 +37,4 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public string Reason { get; set; } = string.Empty;
         public int? ActiveRestockRequestId { get; set; }
     }
-
-    public sealed class CreateRestockDraftFromSuggestionDto
-    {
-        public int StoreId { get; set; }
-        public int IngredientId { get; set; }
-        public string IdempotencyKey { get; set; } = string.Empty;
-    }
 }

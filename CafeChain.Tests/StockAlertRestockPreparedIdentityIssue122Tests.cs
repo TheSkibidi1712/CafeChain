@@ -364,6 +364,44 @@ namespace CafeChain.Tests
         }
 
         [Fact]
+        public async Task ReorderSuggestion_CreatesOrOpensOneAlert_WithoutRestockRequest()
+        {
+            using var ctx = CreateDbContext();
+            await SeedStoreAsync(ctx, InventoryWriterMode.PreparedItem);
+            ctx.Ingredients.Add(new Ingredient
+            {
+                IngredientId = IngredientId,
+                Code = "ING122-REORDER",
+                Name = "Milk reorder",
+                BaseUnitId = UnitGram,
+                Active = true
+            });
+            ctx.StoreInventories.Add(new StoreInventory
+            {
+                StoreId = StoreId,
+                IngredientId = IngredientId,
+                AvailableQty = 0m,
+                MinStockLevel = 5m,
+                ReservedQty = 0m,
+                LastUpdated = DateTime.UtcNow,
+                RowVersion = new byte[] { 0 }
+            });
+            await ctx.SaveChangesAsync();
+            var service = CreateAlertService(ctx);
+
+            var first = await service.CreateOrOpenFromReorderSuggestionAsync(
+                StoreId, IngredientId, StockAlertSources.ManualCheck);
+            var second = await service.CreateOrOpenFromReorderSuggestionAsync(
+                StoreId, IngredientId, StockAlertSources.ManualCheck);
+
+            Assert.True(first.IsSuccess, first.Message);
+            Assert.True(second.IsSuccess, second.Message);
+            Assert.Equal(first.Data, second.Data);
+            Assert.Equal(StockAlertStatuses.Open, (await ctx.StockAlerts.SingleAsync()).Status);
+            Assert.Empty(ctx.RestockRequests);
+        }
+
+        [Fact]
         public async Task Restock_SecondSubmitSameAlert_RejectedOrIdempotent()
         {
             using var ctx = CreateDbContext();

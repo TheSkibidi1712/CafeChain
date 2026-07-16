@@ -196,7 +196,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!result.IsSuccess)
                 TempData["ErrorMessage"] = result.Message;
             else
-                TempData["SuccessMessage"] = result.Message ?? "Đã gửi yêu cầu nhập hàng cho Kế toán/kho.";
+                TempData["SuccessMessage"] = result.Message ?? "Đã tạo yêu cầu nhập hàng nháp.";
 
             return RedirectToAction(nameof(Details), new { id, storeId = targetStoreId });
         }

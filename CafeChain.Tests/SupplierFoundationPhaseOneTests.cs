@@ -33,6 +33,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
     private const int CanUnitId = 16711;
     private const int ActorStaffId = 16710;
     private static readonly string[] WarehouseRoles = { RoleConstants.AccountantWarehouse };
+    private static readonly string[] ReceiptRoles = { RoleConstants.BusinessOwner };
 
     [Fact]
     public async Task SupplierContactPhone_RoundTrips_WithoutContactPhoneJoinEntity()
@@ -210,7 +211,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
                     ActualPackagePrice = 1m
                 }
             }
-        }, ActorStaffId, WarehouseRoles);
+        }, ActorStaffId, ReceiptRoles);
 
         Assert.True(draft.IsSuccess, draft.Message);
         var draftLine = Assert.Single(draft.Data!.Lines);
@@ -232,7 +233,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
         }, ActorStaffId);
 
         var confirmed = await receiptService.ConfirmAsync(
-            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
+            draft.Data.BranchReceiptId, ActorStaffId, StoreId, ReceiptRoles, draft.Data.RowVersion);
         Assert.True(confirmed.IsSuccess, confirmed.Message);
         Assert.False(confirmed.Data!.WasReplay);
 
@@ -248,7 +249,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
         Assert.Equal(27_000m, fifo.UnitCost);
 
         var replay = await receiptService.ConfirmAsync(
-            draft.Data.BranchReceiptId, ActorStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
+            draft.Data.BranchReceiptId, ActorStaffId, StoreId, ReceiptRoles, draft.Data.RowVersion);
         Assert.True(replay.IsSuccess, replay.Message);
         Assert.True(replay.Data!.WasReplay);
         Assert.Equal(1, await ctx.InventoryTransactions.CountAsync(x =>
@@ -299,7 +300,7 @@ public class SupplierFoundationPhaseOneTests : IntegrationTestBase
                     ActualPackagePrice = 648_000m
                 }
             }
-        }, ActorStaffId, WarehouseRoles);
+        }, ActorStaffId, ReceiptRoles);
         Assert.False(draft.IsSuccess);
         Assert.Equal(BranchReceiptErrorCodes.OfferNotAvailable, draft.ErrorCode);
     }

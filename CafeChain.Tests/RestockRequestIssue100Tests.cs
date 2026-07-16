@@ -43,10 +43,10 @@ namespace CafeChain.Tests.POS
 
             Assert.True(result.IsSuccess);
             Assert.NotNull(result.Data);
-            Assert.True(result.Data!.NotifiedAccountantWarehouse);
+            Assert.False(result.Data!.NotifiedAccountantWarehouse);
 
             var req = await ctx.RestockRequests.SingleAsync();
-            Assert.Equal(RestockRequestStatuses.Submitted, req.Status);
+            Assert.Equal(RestockRequestStatuses.Draft, req.Status);
             Assert.Equal(IngredientId, req.IngredientId);
             Assert.Null(req.RecipeId);
             Assert.Equal(25.5m, req.RequestedQuantity);
@@ -59,11 +59,7 @@ namespace CafeChain.Tests.POS
             var alert = await ctx.StockAlerts.SingleAsync(a => a.StockAlertId == alertId);
             Assert.Equal(StockAlertStatuses.Confirmed, alert.Status);
 
-            Assert.Equal(1, await ctx.StaffNotifications.CountAsync(n =>
-                n.RecipientStaffId == AccountantStaffId &&
-                n.Type == StaffNotificationTypes.RestockRequestSubmitted &&
-                n.EntityType == StaffNotificationEntityTypes.RestockRequest &&
-                n.EntityId == req.RestockRequestId));
+            Assert.Empty(ctx.StaffNotifications);
         }
 
         [Fact]
@@ -241,7 +237,7 @@ namespace CafeChain.Tests.POS
             var service = CreateService(ctx);
             await service.CreateFromConfirmedAlertAsync(alertId, ManagerStaffId, StoreId, 3m, null, "NORMAL");
 
-            var list = await service.ListForStoreAsync(StoreId, RestockRequestStatuses.Submitted, 1, 20);
+            var list = await service.ListForStoreAsync(StoreId, RestockRequestStatuses.Draft, 1, 20);
             Assert.True(list.IsSuccess);
             Assert.Equal(1, list.Data!.Total);
 

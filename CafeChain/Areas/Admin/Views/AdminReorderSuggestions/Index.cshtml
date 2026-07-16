@@ -73,7 +73,7 @@
 
     <div class="reorder-note" role="note">
         <i class="fas fa-circle-info" aria-hidden="true"></i>
-        Đây là gợi ý đọc dữ liệu, không tự đặt hàng. “Tạo yêu cầu nhập” chỉ tạo bản nháp để quản lý kiểm tra.
+        Đây là gợi ý đọc dữ liệu, không tự đặt hàng. “Tạo/mở cảnh báo” đưa nguyên liệu vào bước xác nhận trước khi lập yêu cầu nhập nháp.
     </div>
 
     <section class="reorder-table-shell" aria-label="Danh sách gợi ý nhập hàng">
@@ -146,8 +146,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="storeId" value="@item.StoreId" />
                                         <input type="hidden" name="ingredientId" value="@item.IngredientId" />
-                                        <input type="hidden" name="idempotencyKey" value="REORDER-@item.StoreId-@item.IngredientId-@Guid.NewGuid().ToString("N")" />
-                                        <button type="submit" class="btn btn-sm btn-primary" disabled="@(!ready || !canCreateDraft)">Tạo yêu cầu nhập</button>
+                                        <button type="submit" class="btn btn-sm btn-primary" disabled="@(!ready || !canCreateDraft)">Tạo/mở cảnh báo</button>
                                     </form>
                                 }
                             </td>

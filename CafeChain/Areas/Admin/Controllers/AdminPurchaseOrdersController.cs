@@ -4,16 +4,23 @@ using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
-    public sealed class AdminPurchaseOrdersController : AdminBaseController
+    [Authorize(Roles =
+        RoleConstants.BusinessOwner + "," +
+        RoleConstants.AreaManager + "," +
+        RoleConstants.StoreManager + "," +
+        RoleConstants.ShiftSupervisor + "," +
+        RoleConstants.AccountantWarehouse)]
+    public sealed class AdminPurchaseOrdersController : AdminStoreScopedController
     {
         private readonly IPurchaseOrderService _service;
         private readonly IRestockAllocationService _allocations;
-        private readonly IPhysicalUnitConversionService _conversion;
+        private readonly IUnitConversionService _conversion;
         private readonly IAdminActorContextAccessor _actor;
         private readonly AppDbContext _context;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
@@ -21,7 +28,7 @@ namespace CafeChain.Areas.Admin.Controllers
         public AdminPurchaseOrdersController(
             IPurchaseOrderService service,
             IRestockAllocationService allocations,
-            IPhysicalUnitConversionService conversion,
+            IUnitConversionService conversion,
             IAdminActorContextAccessor actor,
             AppDbContext context,
             IAdminStoreScopeResolver storeScopeResolver)
@@ -53,7 +60,10 @@ namespace CafeChain.Areas.Admin.Controllers
             if (!CanRead()) return Forbid();
             var actor = _actor.Get(User);
             var result = await _service.GetDetailAsync(id, actor.StaffId, actor.RoleNames);
-            return result.IsSuccess && result.Data != null ? View(result.Data) : Forbid();
+            if (!result.IsSuccess || result.Data == null) return Forbid();
+            ViewBag.CanReceive = CanReceive();
+            ViewBag.CanCloseRemaining = User.IsInRole(RoleConstants.BusinessOwner);
+            return View(result.Data);
         }
 
         [HttpGet]
@@ -84,6 +94,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 if (offer != null)
                 {
                     var packageBaseQuantity = await _conversion.ConvertAsync(
+                        request.IngredientId.Value,
                         offer.PackageQuantity.GetValueOrDefault(),
                         offer.UnitId,
                         request.Ingredient!.BaseUnitId);
@@ -141,6 +152,21 @@ namespace CafeChain.Areas.Admin.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        [HttpPost, ValidateAntiForgeryToken]
+        public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason)
+        {
+            if (!User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
+            var actor = _actor.Get(User);
+            var result = await _service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
+            {
+                PurchaseOrderLineId = lineId,
+                RowVersion = rowVersion,
+                Reason = reason
+            }, actor.StaffId, actor.RoleNames);
+            TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         private async Task<IActionResult> Transition(int id, string rowVersion, bool approve)
         {
             if (approve && !User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
@@ -178,10 +204,16 @@ namespace CafeChain.Areas.Admin.Controllers
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
             || User.IsInRole(RoleConstants.AreaManager)
-            || User.IsInRole(RoleConstants.StoreManager);
+            || User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.ShiftSupervisor);
 
         private bool CanCreate() =>
             User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner);
+
+        private bool CanReceive() =>
+            User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.ShiftSupervisor);
     }
 }

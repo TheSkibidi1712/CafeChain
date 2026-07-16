@@ -107,6 +107,48 @@ namespace CafeChain.Application.Services.Inventories
             return ServiceResult<StockAlertEvaluationResultDto>.Success(summary);
         }
 
+        public async Task<ServiceResult<int>> CreateOrOpenFromReorderSuggestionAsync(
+            int storeId,
+            int ingredientId,
+            string source)
+        {
+            if (storeId <= 0 || ingredientId <= 0)
+                return ServiceResult<int>.Failure("Cửa hàng hoặc nguyên liệu không hợp lệ.");
+
+            var inventoryId = await _context.StoreInventories
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId && x.IngredientId == ingredientId)
+                .OrderBy(x => x.StoreInventoryId)
+                .Select(x => (int?)x.StoreInventoryId)
+                .FirstOrDefaultAsync();
+            if (!inventoryId.HasValue)
+                return ServiceResult<int>.Failure("Chưa có tồn kho nguyên liệu tại cửa hàng để tạo cảnh báo.");
+
+            var evaluation = await EvaluateStoreInventoryItemAsync(inventoryId.Value, source);
+            if (!evaluation.IsSuccess)
+                return ServiceResult<int>.Failure(evaluation.Message ?? "Không đánh giá được cảnh báo tồn kho.");
+
+            var alertId = await _context.StockAlerts
+                .AsNoTracking()
+                .Where(x => x.StoreId == storeId
+                    && x.IngredientId == ingredientId
+                    && StockAlertStatuses.ActiveValues.Contains(x.Status))
+                .OrderBy(x => x.StockAlertId)
+                .Select(x => (int?)x.StockAlertId)
+                .FirstOrDefaultAsync();
+            if (!alertId.HasValue)
+            {
+                return ServiceResult<int>.Failure(
+                    "Gợi ý hiện chưa tạo cảnh báo vì tồn thực tế chưa chạm ngưỡng cảnh báo. Vui lòng kiểm tra lại ngưỡng tồn.");
+            }
+
+            return ServiceResult<int>.Success(
+                alertId.Value,
+                evaluation.Data?.CreatedCount > 0
+                    ? "Đã tạo cảnh báo tồn kho để quản lý xác nhận."
+                    : "Đã mở cảnh báo tồn kho đang hoạt động.");
+        }
+
         private async Task EvaluateAllGroupsAsync(
             int storeId,
             InventoryWriterMode mode,

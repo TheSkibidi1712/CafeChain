@@ -26,6 +26,7 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
 {
     private const string Database = "CafeChain_SupplierFoundationTests";
     private static readonly string[] WarehouseRoles = { RoleConstants.AccountantWarehouse };
+    private static readonly string[] ReceiptRoles = { RoleConstants.BusinessOwner };
 
     private static string ConnectionString => SqlServerTestConnection.Create(Database);
 
@@ -138,13 +139,13 @@ public sealed class SupplierFoundationPhaseOneSqlServerTests : IAsyncLifetime
                     ActualPackagePrice = 1
                 }
             }
-        }, actorStaffId, WarehouseRoles);
+        }, actorStaffId, ReceiptRoles);
         Assert.True(draft.IsSuccess, draft.Message);
 
         var first = await service.ConfirmAsync(
-            draft.Data!.BranchReceiptId, actorStaffId, storeId, WarehouseRoles, draft.Data.RowVersion);
+            draft.Data!.BranchReceiptId, actorStaffId, storeId, ReceiptRoles, draft.Data.RowVersion);
         var replay = await service.ConfirmAsync(
-            draft.Data.BranchReceiptId, actorStaffId, storeId, WarehouseRoles, draft.Data.RowVersion);
+            draft.Data.BranchReceiptId, actorStaffId, storeId, ReceiptRoles, draft.Data.RowVersion);
         Assert.True(first.IsSuccess, first.Message);
         Assert.False(first.Data!.WasReplay);
         Assert.True(replay.IsSuccess, replay.Message);

@@ -11,6 +11,24 @@ namespace CafeChain.Application.Interfaces.Inventories
             int actorStaffId,
             IReadOnlyCollection<string> roleNames);
 
+        Task<ServiceResult<PurchaseOrderReceiptDraftDto>> CreateOrOpenPurchaseOrderDraftAsync(
+            int purchaseOrderId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
+
+        Task<ServiceResult<PurchaseOrderReceiptDraftDto>> GetPurchaseOrderDraftAsync(
+            int branchReceiptId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
+
+        Task<ServiceResult<PurchaseOrderReceiptDraftDto>> SavePurchaseOrderDraftAsync(
+            SavePurchaseOrderReceiptDraftRequest request,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames);
+
         Task<ServiceResult<BranchReceiptDetailDto>> GetDetailAsync(
             int branchReceiptId,
             int actorStaffId,

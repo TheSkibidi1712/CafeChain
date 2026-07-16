@@ -15,10 +15,6 @@ namespace CafeChain.Application.Interfaces.Inventories
             string? note,
             string? priority);
 
-        Task<ServiceResult<CreateRestockRequestResultDto>> CreateDraftFromSuggestionAsync(
-            CreateRestockDraftFromSuggestionDto request,
-            int actorStaffId);
-
         Task<ServiceResult<RestockRequestListResultDto>> ListForStoreAsync(
             int storeId,
             string? statusFilter,

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
@@ -16,6 +17,7 @@ using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Permissions;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
@@ -34,9 +36,31 @@ namespace CafeChain.Tests
         private const int WarehouseStaffId = 12811;
         private const int SupervisorStaffId = 12812;
 
-        private static readonly string[] ManagerRoles = { RoleConstants.AccountantWarehouse };
+        private static readonly string[] ManagerRoles = { RoleConstants.StoreManager };
         private static readonly string[] WarehouseRoles = { RoleConstants.AccountantWarehouse };
         private static readonly string[] SupervisorRoles = { RoleConstants.ShiftSupervisor };
+
+        [Fact]
+        public void BranchReceiptController_UsesReceiveGoodsRoleBoundary_IncludingShiftSupervisor()
+        {
+            Assert.Equal(
+                typeof(AdminStoreScopedController),
+                typeof(AdminBranchReceiptsController).BaseType);
+
+            var authorize = Assert.Single(
+                typeof(AdminBranchReceiptsController)
+                    .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+                    .Cast<AuthorizeAttribute>());
+            var roles = (authorize.Roles ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+            Assert.Contains(RoleConstants.BusinessOwner, roles);
+            Assert.Contains(RoleConstants.AreaManager, roles);
+            Assert.Contains(RoleConstants.StoreManager, roles);
+            Assert.Contains(RoleConstants.ShiftSupervisor, roles);
+            Assert.Contains(RoleConstants.AccountantWarehouse, roles);
+            Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
+        }
 
         [Fact]
         public async Task Draft_DoesNotMutateInventory_OrCreateTransaction()
@@ -335,7 +359,7 @@ namespace CafeChain.Tests
         }
 
         [Fact]
-        public async Task Warehouse_CanConfirm_AsGlobalDocumentProcessor()
+        public async Task AccountantWarehouse_CannotConfirmStoreReceiptByDefault()
         {
             using var ctx = CreateDbContext();
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
@@ -347,11 +371,12 @@ namespace CafeChain.Tests
 
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, WarehouseStaffId, StoreId, WarehouseRoles, draft.Data.RowVersion);
-            Assert.True(confirm.IsSuccess, confirm.Message);
+            Assert.False(confirm.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, confirm.ErrorCode);
         }
 
         [Fact]
-        public async Task ShiftSupervisor_CanReadOwnStore_ButCannotCreateOrConfirm()
+        public async Task ShiftSupervisor_OwnStore_CanReceiveAndConfirm()
         {
             using var ctx = CreateDbContext();
             EnsureStaff(ctx, SupervisorStaffId, RoleConstants.ShiftSupervisor, "ss128@test.local");
@@ -369,14 +394,72 @@ namespace CafeChain.Tests
 
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, SupervisorStaffId, StoreId, SupervisorRoles, draft.Data.RowVersion);
-            Assert.False(confirm.IsSuccess);
-            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, confirm.ErrorCode);
+            Assert.True(confirm.IsSuccess, confirm.Message);
         }
 
         [Theory]
         [InlineData(RoleConstants.StoreManager)]
+        [InlineData(RoleConstants.ShiftSupervisor)]
+        public async Task StoreScopedReceiver_OtherStore_IsRejected(string role)
+        {
+            using var ctx = CreateDbContext();
+            var actorStaffId = role == RoleConstants.StoreManager
+                ? ManagerStaffId
+                : SupervisorStaffId;
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            EnsureStaff(ctx, actorStaffId, role, $"other-{actorStaffId}@test.local");
+            await ctx.SaveChangesAsync();
+
+            EnsureOtherStore(ctx);
+            var actor = await ctx.Staffs.SingleAsync(x => x.StaffId == actorStaffId);
+            actor.StoreId = StoreId + 1;
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateReceiptService(ctx).CreateDraftAsync(
+                NewReceiptRequest(requestId, 10m, UnitGram, 1_000m, $"k-other-store-{role}"),
+                actorStaffId,
+                new[] { role });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task Cashier_CannotReceiveGoods()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+
+            var result = await CreateReceiptService(ctx).CreateDraftAsync(
+                NewReceiptRequest(requestId, 10m, UnitGram, 1_000m, "k-cashier"),
+                ManagerStaffId,
+                new[] { RoleConstants.SalesStaff });
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.Unauthorized, result.ErrorCode);
+        }
+
+        [Fact]
+        public async Task BusinessOwner_CanReceiveAcrossStores()
+        {
+            using var ctx = CreateDbContext();
+            var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
+            EnsureOtherStore(ctx);
+            var actor = await ctx.Staffs.SingleAsync(x => x.StaffId == ManagerStaffId);
+            actor.StoreId = StoreId + 1;
+            await ctx.SaveChangesAsync();
+
+            var result = await CreateReceiptService(ctx).CreateDraftAsync(
+                NewReceiptRequest(requestId, 10m, UnitGram, 1_000m, "k-owner-cross-store"),
+                ManagerStaffId,
+                new[] { RoleConstants.BusinessOwner });
+
+            Assert.True(result.IsSuccess, result.Message);
+        }
+
+        [Theory]
         [InlineData(RoleConstants.AreaManager)]
-        public async Task StoreManagerAndAreaManager_CannotCreateReceipt(string role)
+        public async Task AreaManager_CannotCreateReceipt(string role)
         {
             using var ctx = CreateDbContext();
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
@@ -468,9 +551,9 @@ namespace CafeChain.Tests
         }
 
         [Fact]
-        public async Task BranchReceipt_AlertEvaluationFailure_DoesNotRollbackReceipt()
+        public async Task BranchReceipt_AlertEvaluationFailure_RollsBackReceiptAtomically()
         {
-            // Alias of AlertFailure_DoesNotRollbackReceipt with explicit post-commit assertions.
+            // Inventory, fulfillment, PO and alert evaluation are one confirmation unit.
             using var ctx = CreateDbContext();
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
             var failingAlerts = new Mock<IStockAlertService>();
@@ -484,19 +567,19 @@ namespace CafeChain.Tests
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
 
-            Assert.True(confirm.IsSuccess, confirm.Message);
-            Assert.True(confirm.Data!.AlertEvaluationFailed);
-            Assert.Equal(BranchReceiptStatuses.Confirmed,
-                (await ctx.BranchReceipts.SingleAsync(r => r.BranchReceiptId == draft.Data.BranchReceiptId)).Status);
-            Assert.Equal(40m, (await ctx.StoreInventories.SingleAsync(i =>
-                i.StoreId == StoreId && i.IngredientId == IngredientId)).AvailableQty);
-            Assert.Equal(1, await ctx.InventoryTransactions.CountAsync());
-            Assert.Equal(RestockRequestStatuses.PartiallyReceived,
+            Assert.False(confirm.IsSuccess);
+            Assert.Equal(BranchReceiptErrorCodes.ConfirmFailed, confirm.ErrorCode);
+            Assert.Equal(BranchReceiptStatuses.Draft,
+                (await ctx.BranchReceipts.AsNoTracking().SingleAsync(r => r.BranchReceiptId == draft.Data.BranchReceiptId)).Status);
+            Assert.False(await ctx.StoreInventories.AsNoTracking().AnyAsync(i =>
+                i.StoreId == StoreId && i.IngredientId == IngredientId && i.AvailableQty != 0));
+            Assert.Equal(0, await ctx.InventoryTransactions.AsNoTracking().CountAsync());
+            Assert.Equal(RestockRequestStatuses.Processing,
                 (await ctx.RestockRequests.SingleAsync(r => r.RestockRequestId == requestId)).Status);
         }
 
         [Fact]
-        public async Task AlertFailure_DoesNotRollbackReceipt()
+        public async Task AlertFailure_RollsBackInventoryAndFulfillment()
         {
             using var ctx = CreateDbContext();
             var requestId = await SeedProcessingRequestAsync(ctx, requested: 100m);
@@ -511,12 +594,9 @@ namespace CafeChain.Tests
             var confirm = await service.ConfirmAsync(
                 draft.Data!.BranchReceiptId, ManagerStaffId, StoreId, ManagerRoles, draft.Data.RowVersion);
 
-            Assert.True(confirm.IsSuccess, confirm.Message);
-            Assert.True(confirm.Data!.AlertEvaluationFailed);
-            Assert.Equal(1, await ctx.InventoryTransactions.CountAsync());
-            var inv = await ctx.StoreInventories.SingleAsync(i =>
-                i.StoreId == StoreId && i.IngredientId == IngredientId);
-            Assert.Equal(40m, inv.AvailableQty);
+            Assert.False(confirm.IsSuccess);
+            Assert.Equal(0, await ctx.InventoryTransactions.AsNoTracking().CountAsync());
+            Assert.Equal(0, await ctx.RestockFulfillmentPostings.AsNoTracking().CountAsync());
         }
 
         [Fact]
@@ -714,6 +794,25 @@ namespace CafeChain.Tests
                     Active = true
                 });
             }
+        }
+
+        private static void EnsureOtherStore(AppDbContext ctx)
+        {
+            if (ctx.Stores.Any(s => s.StoreId == StoreId + 1)
+                || ctx.Stores.Local.Any(s => s.StoreId == StoreId + 1))
+            {
+                return;
+            }
+
+            ctx.Stores.Add(new Store
+            {
+                StoreId = StoreId + 1,
+                Name = "Store 128 khác",
+                Address = "x",
+                Phone = "0",
+                Active = true,
+                CreatedAt = DateTime.UtcNow
+            });
         }
 
         private static void EnsureStaff(AppDbContext ctx, int staffId, string roleName, string email)

@@ -31,19 +31,6 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
     private const int ManagerStaffId = 17604;
 
     [Fact]
-    public void CreateRequestContract_DoesNotExposeClientAuthorityEvidence()
-    {
-        var properties = typeof(CreateRestockDraftFromSuggestionDto).GetProperties()
-            .Select(x => x.Name)
-            .OrderBy(x => x)
-            .ToArray();
-
-        Assert.Equal(
-            new[] { "IdempotencyKey", "IngredientId", "StoreId" }.OrderBy(x => x),
-            properties);
-    }
-
-    [Fact]
     public async Task Formula_UsesAvailable_MinLevel_LeadOverride_Incoming_PackageAndMoq()
     {
         using var context = CreateDbContext();
@@ -107,40 +94,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
     }
 
     [Fact]
-    public async Task Suggestion_CreatesDraftWithEvidence_AndReusesActiveRequest()
-    {
-        using var context = CreateDbContext();
-        await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m, seedManager: true);
-        var restock = CreateRestockService(context, incoming: 5m);
-        var input = new CreateRestockDraftFromSuggestionDto
-        {
-            StoreId = StoreId,
-            IngredientId = IngredientId,
-            IdempotencyKey = "reorder-176-idempotent"
-        };
-
-        var first = await restock.CreateDraftFromSuggestionAsync(input, ManagerStaffId);
-        var second = await restock.CreateDraftFromSuggestionAsync(input, ManagerStaffId);
-
-        Assert.True(first.IsSuccess, first.Message);
-        Assert.True(second.IsSuccess, second.Message);
-        Assert.True(second.Data!.AlreadyExisted);
-        Assert.Equal(first.Data!.RestockRequestId, second.Data.RestockRequestId);
-        var request = await context.RestockRequests.SingleAsync();
-        Assert.Equal(RestockRequestStatuses.Draft, request.Status);
-        Assert.Null(request.StockAlertId);
-        Assert.Equal(20m, request.RequestedQuantity);
-        Assert.Equal(20m, request.SuggestedQuantity);
-        Assert.Equal(5m, request.SuggestionAvailableSnapshot);
-        Assert.Equal(10m, request.SuggestionMinLevelSnapshot);
-        Assert.Equal(10m, request.SuggestionAverageDailyUsageSnapshot);
-        Assert.Equal(2, request.SuggestionLeadTimeDaysSnapshot);
-        Assert.Equal(5m, request.SuggestionIncomingQuantitySnapshot);
-        Assert.Equal(1, await context.RestockRequests.CountAsync());
-    }
-
-    [Fact]
-    public async Task StoreManager_CannotReadOrCreateForAnotherStore()
+    public async Task StoreManager_CannotReadSuggestionForAnotherStore()
     {
         using var context = CreateDbContext();
         await SeedAsync(context, available: 5m, minLevel: 10m, consumption: 300m, seedManager: true);
@@ -157,17 +111,7 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
 
         var read = await CreateSuggestionService(context)
             .GetForStoreAsync(OtherStoreId, ManagerStaffId, new[] { RoleConstants.StoreManager });
-        var create = await CreateRestockService(context).CreateDraftFromSuggestionAsync(
-            new CreateRestockDraftFromSuggestionDto
-            {
-                StoreId = OtherStoreId,
-                IngredientId = IngredientId,
-                IdempotencyKey = "reorder-176-other-store"
-            },
-            ManagerStaffId);
-
         Assert.False(read.IsSuccess);
-        Assert.False(create.IsSuccess);
     }
 
     private static ReorderSuggestionService CreateSuggestionService(AppDbContext context, decimal incoming = 0)
@@ -182,17 +126,6 @@ public sealed class ReorderSuggestionIssue176Tests : IntegrationTestBase
             conversion.Object,
             new FixedIncomingProvider(IngredientId, incoming),
             scope.Object);
-    }
-
-    private static RestockRequestService CreateRestockService(AppDbContext context, decimal incoming = 0)
-    {
-        var scope = new Mock<IScopeAuthorizationService>();
-        scope.Setup(x => x.CanAccessStoreAsync(It.IsAny<int>(), It.IsAny<int>())).ReturnsAsync(true);
-        return new RestockRequestService(
-            context,
-            scope.Object,
-            NullLogger<RestockRequestService>.Instance,
-            CreateSuggestionService(context, incoming));
     }
 
     private static async Task SeedAsync(

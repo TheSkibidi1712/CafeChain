@@ -16,6 +16,10 @@
             <p class="ops-subtitle">Khóa chống trùng <code>@Model.ReceiptKey</code> · Nhận lúc @Model.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
         </div>
         <div class="ops-actions">
+            @if (Model.PurchaseOrderId.HasValue)
+            {
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@Model.PurchaseOrderId"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Xem PO</a>
+            }
             <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
             @if (canConfirm)
             {
@@ -31,10 +35,6 @@
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success" role="status">@TempData["SuccessMessage"]</div> }
     @if (TempData["WarningMessage"] != null) { <div class="ops-notice ops-notice-warning" role="status">@TempData["WarningMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error" role="alert">@TempData["ErrorMessage"]</div> }
-    @if (Model.AlertEvaluationFailed)
-    {
-        <div class="ops-notice ops-notice-warning" role="status">Kho đã được cập nhật nhưng đánh giá cảnh báo cần thử lại: @Model.AlertEvaluationMessage</div>
-    }
 
     <section class="ops-metrics" aria-label="Tóm tắt phiếu nhận">
         <div class="ops-metric"><span class="ops-metric-label">Trạng thái</span><strong class="ops-metric-value fs-5"><span class="ops-badge @(isConfirmed ? "ops-badge-success" : "ops-badge-neutral")">@(isConfirmed ? "Đã xác nhận" : "Bản nháp")</span></strong></div>
@@ -54,7 +54,16 @@
                     {
                         var identity = line.IngredientId.HasValue ? $"Nguyên liệu #{line.IngredientId}" : line.PreparedItemId.HasValue ? $"Bán thành phẩm #{line.PreparedItemId}" : $"Công thức legacy #{line.RecipeId}";
                         <tr>
-                            <td><a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId" asp-route-storeId="@Model.StoreId">#@line.RestockRequestId</a></td>
+                            <td>
+                                @if (line.RestockRequestId.HasValue)
+                                {
+                                    <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@line.RestockRequestId" asp-route-storeId="@Model.StoreId">#@line.RestockRequestId</a>
+                                }
+                                else
+                                {
+                                    <span class="ops-secondary">Mua chủ động theo PO</span>
+                                }
+                            </td>
                             <td><strong>@identity</strong><div class="ops-secondary">Dòng #@line.BranchReceiptLineId</div></td>
                             <td class="number">@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
                             <td class="number">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>

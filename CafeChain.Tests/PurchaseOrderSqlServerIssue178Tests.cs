@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
@@ -70,7 +71,7 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
         await using var verify = CreateContext();
         Assert.Equal(1, await verify.PurchaseOrderReceiptPostings.CountAsync());
         var quantities = await verify.PurchaseOrderReceiptPostings
-            .Select(x => x.AcceptedBaseQuantity + x.RejectedBaseQuantity)
+            .Select(x => x.AcceptedBaseQuantity)
             .ToListAsync();
         Assert.Equal(6m, quantities.Sum());
     }
@@ -135,11 +136,156 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
         Assert.Equal(RestockRequestStatuses.Completed, (await verify.RestockRequests.SingleAsync()).Status);
     }
 
+    [Fact]
+    public async Task SqlServer_ConcurrentCloseRemaining_OneWinner()
+    {
+        var seeded = await SeedOrderAsync(10m);
+        await using var firstContext = CreateContext();
+        await using var secondContext = CreateContext();
+        var firstVersion = Convert.ToBase64String(await firstContext.PurchaseOrderLines
+            .Where(x => x.PurchaseOrderLineId == seeded.PurchaseOrderLineId)
+            .Select(x => x.RowVersion)
+            .SingleAsync());
+        var secondVersion = Convert.ToBase64String(await secondContext.PurchaseOrderLines
+            .Where(x => x.PurchaseOrderLineId == seeded.PurchaseOrderLineId)
+            .Select(x => x.RowVersion)
+            .SingleAsync());
+
+        var results = await Task.WhenAll(
+            CloseRemainingAsync(firstContext, seeded, firstVersion, "Owner thứ nhất đóng phần còn lại"),
+            CloseRemainingAsync(secondContext, seeded, secondVersion, "Owner thứ hai đóng phần còn lại"));
+
+        Assert.Single(results.Where(x => x.IsSuccess));
+        Assert.Single(results.Where(x => !x.IsSuccess));
+        await using var verify = CreateContext();
+        var line = await verify.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(10m, line.ClosedRemainingQuantity);
+        Assert.NotNull(line.ClosedRemainingAtUtc);
+        Assert.Equal(seeded.StaffId, line.ClosedRemainingByStaffId);
+    }
+
+    [Fact]
+    public async Task SqlServer_CloseRemainingAndReceipt_DoNotOverComplete()
+    {
+        var seeded = await SeedOrderAsync(10m, 6m);
+        await using var closeContext = CreateContext();
+        await using var receiptContext = CreateContext();
+        var version = Convert.ToBase64String(await closeContext.PurchaseOrderLines
+            .Where(x => x.PurchaseOrderLineId == seeded.PurchaseOrderLineId)
+            .Select(x => x.RowVersion)
+            .SingleAsync());
+        var receiptLine = await receiptContext.BranchReceiptLines
+            .Include(x => x.BranchReceipt)
+            .SingleAsync(x => x.BranchReceiptLineId == seeded.ReceiptLineIds[0]);
+
+        await Task.WhenAll(
+            CloseRemainingAsync(closeContext, seeded, version, "Không yêu cầu giao bù sau kiểm tra"),
+            CreateService(receiptContext).RegisterReceiptPostingAsync(
+                receiptLine.BranchReceipt, receiptLine, seeded.StaffId));
+
+        await using var verify = CreateContext();
+        var line = await verify.PurchaseOrderLines.AsNoTracking()
+            .Include(x => x.ReceiptPostings)
+            .SingleAsync();
+        var accepted = line.ReceiptPostings.Sum(x => x.AcceptedBaseQuantity);
+        Assert.True(accepted + line.ClosedRemainingQuantity <= line.OrderedBaseQuantity);
+        Assert.Equal(line.OrderedBaseQuantity, accepted + line.ClosedRemainingQuantity);
+    }
+
+    [Fact]
+    public async Task SqlServer_RejectedQuantity_DoesNotReduceRemaining()
+    {
+        var seeded = await SeedOrderAsync(10m, 6m);
+        await using var context = CreateContext();
+        var receiptLine = await context.BranchReceiptLines
+            .Include(x => x.BranchReceipt)
+            .SingleAsync(x => x.BranchReceiptLineId == seeded.ReceiptLineIds[0]);
+        receiptLine.RejectedBaseQuantity = 2m;
+        receiptLine.RejectionIssueType = SupplierReceiptIssueTypes.Damaged;
+        receiptLine.RejectionReason = "Hai đơn vị bị từ chối";
+        await context.SaveChangesAsync();
+
+        var posted = await CreateService(context)
+            .RegisterReceiptPostingAsync(receiptLine.BranchReceipt, receiptLine, seeded.StaffId);
+
+        Assert.True(posted.IsSuccess, posted.Message);
+        await using var verify = CreateContext();
+        var line = await verify.PurchaseOrderLines.AsNoTracking()
+            .Include(x => x.ReceiptPostings)
+            .SingleAsync();
+        Assert.Equal(4m, line.OrderedBaseQuantity
+            - line.ReceiptPostings.Sum(x => x.AcceptedBaseQuantity)
+            - line.ClosedRemainingQuantity);
+        Assert.Equal(2m, line.ReceiptPostings.Sum(x => x.RejectedBaseQuantity));
+    }
+
+    [Fact]
+    public async Task SqlServer_CloseRemainingAudit_IsAtomic()
+    {
+        var seeded = await SeedOrderAsync(10m);
+        await using var context = CreateContext();
+        var version = Convert.ToBase64String(await context.PurchaseOrderLines
+            .Where(x => x.PurchaseOrderLineId == seeded.PurchaseOrderLineId)
+            .Select(x => x.RowVersion)
+            .SingleAsync());
+
+        var result = await CloseRemainingAsync(
+            context, seeded, version, "NCC xác nhận không giao bù; Owner chấp thuận");
+
+        Assert.True(result.IsSuccess, result.Message);
+        await using var verify = CreateContext();
+        var line = await verify.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(10m, line.ClosedRemainingQuantity);
+        Assert.Equal(seeded.StaffId, line.ClosedRemainingByStaffId);
+        Assert.NotNull(line.ClosedRemainingAtUtc);
+        Assert.Contains("Owner", line.CloseRemainingReason);
+        Assert.Equal(PurchaseOrderStatuses.Completed,
+            (await verify.PurchaseOrders.AsNoTracking().SingleAsync()).Status);
+        Assert.Empty(verify.InventoryTransactions);
+        Assert.Empty(verify.InventoryCostLayers);
+        Assert.Empty(verify.RestockFulfillmentPostings);
+    }
+
+    [Fact]
+    public async Task SqlServer_ClosedRemainingQuantity_CannotBeNegative()
+    {
+        var seeded = await SeedOrderAsync(10m);
+        await using var context = CreateContext();
+
+        var error = await Assert.ThrowsAsync<SqlException>(() =>
+            context.Database.ExecuteSqlInterpolatedAsync($"""
+                UPDATE PurchaseOrderLines
+                SET ClosedRemainingQuantity = {-1m}
+                WHERE PurchaseOrderLineId = {seeded.PurchaseOrderLineId}
+                """));
+
+        Assert.Equal(547, error.Number);
+    }
+
+    private static Task<CafeChain.Application.Results.ServiceResult<PurchaseOrderDetailDto>> CloseRemainingAsync(
+        AppDbContext context,
+        SeedResult seeded,
+        string rowVersion,
+        string reason) =>
+        CreateService(context).CloseLineRemainingAsync(
+            new ClosePurchaseOrderLineRemainingRequest
+            {
+                PurchaseOrderLineId = seeded.PurchaseOrderLineId,
+                RowVersion = rowVersion,
+                Reason = reason
+            },
+            seeded.StaffId,
+            new[] { RoleConstants.BusinessOwner });
+
     private static PurchaseOrderService CreateService(AppDbContext context)
     {
-        var conversion = new PhysicalUnitConversionService(
+        var physical = new PhysicalUnitConversionService(
             context,
             NullLogger<PhysicalUnitConversionService>.Instance);
+        var conversion = new UnitConversionService(
+            context,
+            NullLogger<UnitConversionService>.Instance,
+            physical);
         return new PurchaseOrderService(
             context,
             conversion,
@@ -310,6 +456,7 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             unit.UnitId,
             ingredient.IngredientId,
             request.RestockRequestId,
+            orderLine.PurchaseOrderLineId,
             receiptLineIds);
     }
 
@@ -319,5 +466,6 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
         int UnitId,
         int IngredientId,
         int RestockRequestId,
+        int PurchaseOrderLineId,
         IReadOnlyList<int> ReceiptLineIds);
 }

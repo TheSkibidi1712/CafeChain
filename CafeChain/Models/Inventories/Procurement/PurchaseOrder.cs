@@ -50,6 +50,10 @@ namespace CafeChain.Models.Inventories.Procurement
         public decimal PackagePriceSnapshot { get; set; }
         public decimal PackageCount { get; set; }
         public decimal OrderedBaseQuantity { get; set; }
+        public decimal ClosedRemainingQuantity { get; set; }
+        public string? CloseRemainingReason { get; set; }
+        public int? ClosedRemainingByStaffId { get; set; }
+        public DateTime? ClosedRemainingAtUtc { get; set; }
         public int PromisedLeadTimeDaysSnapshot { get; set; }
         public string? Note { get; set; }
 
@@ -61,6 +65,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual Ingredient Ingredient { get; set; } = null!;
         public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
         public virtual Unit PackageUnitSnapshot { get; set; } = null!;
+        public virtual Staff? ClosedRemainingByStaff { get; set; }
         public virtual ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
     }
 

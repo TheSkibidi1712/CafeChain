@@ -1,15 +1,18 @@
+using CafeChain.Areas.Admin.Controllers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Services.Inventories;
 using CafeChain.Data;
 using CafeChain.Models.Customers;
+using CafeChain.Models.Enums.Unit;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Suppliers;
 using CafeChain.Models.Staffs;
 using CafeChain.Models.Stores;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging.Abstractions;
 using Xunit;
@@ -24,6 +27,28 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
     private const int UnitId = 17803;
     private const int IngredientId = 17804;
     private const int SupplierId = 17805;
+
+    [Fact]
+    public void PurchaseOrderController_UsesReceiveGoodsRoleBoundary_IncludingShiftSupervisor()
+    {
+        Assert.Equal(
+            typeof(AdminStoreScopedController),
+            typeof(AdminPurchaseOrdersController).BaseType);
+
+        var authorize = Assert.Single(
+            typeof(AdminPurchaseOrdersController)
+                .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+                .Cast<AuthorizeAttribute>());
+        var roles = (authorize.Roles ?? string.Empty)
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+        Assert.Contains(RoleConstants.BusinessOwner, roles);
+        Assert.Contains(RoleConstants.AreaManager, roles);
+        Assert.Contains(RoleConstants.StoreManager, roles);
+        Assert.Contains(RoleConstants.ShiftSupervisor, roles);
+        Assert.Contains(RoleConstants.AccountantWarehouse, roles);
+        Assert.DoesNotContain(RoleConstants.SalesStaff, roles);
+    }
 
     [Fact]
     public async Task PurchaseOrder_AreaManagerMutationAndMissingOrStaleRowVersion_AreRejected()
@@ -278,7 +303,116 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         var incoming = await new PurchaseOrderQuantityProvider(context)
             .GetIncomingBaseQuantitiesAsync(StoreId, new[] { IngredientId });
 
-        Assert.Equal(10m, incoming[IngredientId]);
+        Assert.Equal(12m, incoming[IngredientId]);
+    }
+
+    [Fact]
+    public async Task RejectedQuantity_DoesNotReducePurchaseOrderRemaining()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var (order, line) = await SeedSentOrderAsync(context, request, 20m);
+        var receiptLine = await SeedReceiptLineAsync(context, line, request, 5m, 1m, "R178-REMAINING");
+        var service = CreateService(context);
+
+        var posted = await service.RegisterReceiptPostingAsync(receiptLine.BranchReceipt, receiptLine, StaffId);
+        var detail = await service.GetDetailAsync(
+            order.PurchaseOrderId, StaffId, new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(posted.IsSuccess, posted.Message);
+        Assert.True(detail.IsSuccess, detail.Message);
+        Assert.Equal(15m, detail.Data!.Lines.Single().RemainingBaseQuantity);
+        Assert.Equal(5m, detail.Data.Lines.Single().AcceptedBaseQuantity);
+        Assert.Equal(1m, detail.Data.Lines.Single().RejectedBaseQuantity);
+    }
+
+    [Fact]
+    public async Task CloseRemaining_RequiresOwnerAndReason_WritesAuditWithoutInventoryOrFulfillment()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var (order, line) = await SeedSentOrderAsync(context, request, 20m);
+        var service = CreateService(context);
+        var rowVersion = Convert.ToBase64String(line.RowVersion);
+
+        var unauthorized = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
+        {
+            PurchaseOrderLineId = line.PurchaseOrderLineId,
+            RowVersion = rowVersion,
+            Reason = "Không yêu cầu giao bù"
+        }, StaffId, new[] { RoleConstants.AccountantWarehouse });
+        var missingReason = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
+        {
+            PurchaseOrderLineId = line.PurchaseOrderLineId,
+            RowVersion = rowVersion,
+            Reason = " "
+        }, StaffId, new[] { RoleConstants.BusinessOwner });
+        var closed = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
+        {
+            PurchaseOrderLineId = line.PurchaseOrderLineId,
+            RowVersion = rowVersion,
+            Reason = "NCC ngừng giao phần thiếu; Owner chấp thuận"
+        }, StaffId, new[] { RoleConstants.BusinessOwner });
+
+        Assert.False(unauthorized.IsSuccess);
+        Assert.False(missingReason.IsSuccess);
+        Assert.True(closed.IsSuccess, closed.Message);
+        var persisted = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(20m, persisted.ClosedRemainingQuantity);
+        Assert.Equal(StaffId, persisted.ClosedRemainingByStaffId);
+        Assert.NotNull(persisted.ClosedRemainingAtUtc);
+        Assert.Contains("Owner", persisted.CloseRemainingReason);
+        Assert.Equal(PurchaseOrderStatuses.Completed,
+            (await context.PurchaseOrders.AsNoTracking().SingleAsync()).Status);
+        Assert.Empty(context.InventoryTransactions);
+        Assert.Empty(context.InventoryCostLayers);
+        Assert.Empty(context.RestockFulfillmentPostings);
+        Assert.Equal(RestockRequestStatuses.Processing,
+            (await context.RestockRequests.AsNoTracking().SingleAsync()).Status);
+    }
+
+    [Fact]
+    public async Task CloseRemaining_RequiresPositiveRemaining()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 20m);
+        var (_, line) = await SeedSentOrderAsync(context, request, 20m);
+        var receiptLine = await SeedReceiptLineAsync(context, line, request, 20m, 0m, "R178-FULL");
+        var service = CreateService(context);
+        Assert.True((await service.RegisterReceiptPostingAsync(
+            receiptLine.BranchReceipt, receiptLine, StaffId)).IsSuccess);
+
+        var result = await service.CloseLineRemainingAsync(
+            new ClosePurchaseOrderLineRemainingRequest
+            {
+                PurchaseOrderLineId = line.PurchaseOrderLineId,
+                RowVersion = Convert.ToBase64String(line.RowVersion),
+                Reason = "Không còn phần nào phải giao"
+            },
+            StaffId,
+            new[] { RoleConstants.BusinessOwner });
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(0m, (await context.PurchaseOrderLines.AsNoTracking().SingleAsync())
+            .ClosedRemainingQuantity);
+    }
+
+    [Fact]
+    public void PoUi_ShowsCompletedWithShortfallDistinctFromFullyReceived()
+    {
+        var root = FindRepoRoot();
+        var view = File.ReadAllText(Path.Combine(
+            root,
+            "CafeChain",
+            "Areas",
+            "Admin",
+            "Views",
+            "AdminPurchaseOrders",
+            "Details.cshtml"));
+
+        Assert.Contains("Đã nhận đủ", view);
+        Assert.Contains("Hoàn tất có phần không giao bù", view);
+        Assert.Contains("ClosedRemainingQuantity", view);
     }
 
     [Fact]
@@ -320,13 +454,85 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             x => x.Reason != null && x.Reason.StartsWith("OVER_ALLOCATION_OVERRIDE:"));
     }
 
+    [Fact]
+    public async Task PurchaseOrder_ConvertsIngredientSpecificPackageUnit_ToInventoryBaseUnit()
+    {
+        using var context = CreateDbContext();
+        var request = await SeedFoundationAsync(context, 480m);
+        const int packageUnitId = 17806;
+        context.Units.Add(new Unit
+        {
+            UnitId = packageUnitId,
+            UnitCode = "can178",
+            Name = "Can #178",
+            Type = UnitType.Dem,
+            Active = true
+        });
+        context.UnitConversions.Add(new UnitConversion
+        {
+            IngredientId = IngredientId,
+            FromUnitId = packageUnitId,
+            FromQuantity = 1m,
+            ToUnitId = UnitId,
+            ToQuantity = 10m,
+            Active = true
+        });
+        var offer = await context.IngredientSuppliers.SingleAsync(
+            x => x.IngredientId == IngredientId && x.SupplierId == SupplierId);
+        offer.UnitId = packageUnitId;
+        offer.PackageQuantity = 24m;
+        await context.SaveChangesAsync();
+
+        var result = await CreateService(context).CreateDraftAsync(
+            new CreatePurchaseOrderRequest
+            {
+                StoreId = StoreId,
+                SupplierId = SupplierId,
+                Lines =
+                {
+                    new CreatePurchaseOrderLineRequest
+                    {
+                        RestockRequestId = request.RestockRequestId,
+                        IngredientId = IngredientId,
+                        IngredientSupplierId = offer.IngredientSupplierId,
+                        PackageCount = 2m
+                    }
+                }
+            },
+            StaffId,
+            new[] { RoleConstants.AccountantWarehouse });
+
+        Assert.True(result.IsSuccess, result.Message);
+        var line = await context.PurchaseOrderLines.AsNoTracking().SingleAsync();
+        Assert.Equal(packageUnitId, line.PackageUnitIdSnapshot);
+        Assert.Equal(24m, line.PackageQuantitySnapshot);
+        Assert.Equal(480m, line.OrderedBaseQuantity);
+    }
+
     private static PurchaseOrderService CreateService(AppDbContext context)
     {
         var physical = new PhysicalUnitConversionService(context, NullLogger<PhysicalUnitConversionService>.Instance);
+        var conversion = new UnitConversionService(
+            context,
+            NullLogger<UnitConversionService>.Instance,
+            physical);
         return new PurchaseOrderService(
             context,
-            physical,
+            conversion,
             new RestockAllocationService(context, new NoPurchaseOrderAllocationProvider()));
+    }
+
+    private static string FindRepoRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null)
+        {
+            if (File.Exists(Path.Combine(directory.FullName, "CafeChain", "CafeChain.slnx")))
+                return directory.FullName;
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Không tìm thấy thư mục gốc CafeChain.slnx.");
     }
 
     private static async Task<RestockRequest> SeedFoundationAsync(AppDbContext context, decimal requested)

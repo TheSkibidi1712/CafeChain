@@ -7,6 +7,7 @@ using CafeChain.Application.Results;
 using CafeChain.Data;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.Models.Inventories.Costing;
+using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.Transactions;
 using CafeChain.Models.Stores;
@@ -240,6 +241,195 @@ namespace CafeChain.Application.Services.Inventories
                 "Đã tạo phiếu nhận nháp (chưa nhập kho).");
         }
 
+        public async Task<ServiceResult<PurchaseOrderReceiptDraftDto>> CreateOrOpenPurchaseOrderDraftAsync(
+            int purchaseOrderId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            if (!CanCreateOrConfirmReceipt(roleNames))
+                return FailPurchaseOrderDraft("Bạn không có quyền nhận hàng tại cửa hàng.", BranchReceiptErrorCodes.Unauthorized);
+            if (purchaseOrderId <= 0)
+                return FailPurchaseOrderDraft("PurchaseOrderId không hợp lệ.");
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                if (_context.Database.IsSqlServer())
+                {
+                    await _context.PurchaseOrders.FromSqlInterpolated(
+                            $@"SELECT * FROM PurchaseOrders WITH (UPDLOCK, HOLDLOCK, ROWLOCK)
+                               WHERE PurchaseOrderId = {purchaseOrderId}")
+                        .SingleOrDefaultAsync();
+                }
+
+                var order = await _context.PurchaseOrders
+                    .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
+                    .SingleOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId);
+                if (order == null)
+                    return FailPurchaseOrderDraft("Không tìm thấy đơn mua hàng.");
+
+                var auth = await AuthorizeReceiptAccessAsync(
+                    order.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
+                if (!auth.IsSuccess)
+                    return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
+                if (order.Status is not (PurchaseOrderStatuses.Approved
+                    or PurchaseOrderStatuses.MarkedAsSent
+                    or PurchaseOrderStatuses.PartiallyReceived))
+                    return FailPurchaseOrderDraft(
+                        $"PO không thể nhận hàng ở trạng thái {order.Status}.",
+                        BranchReceiptErrorCodes.RequestStateInvalid);
+
+                var hasRemaining = order.Lines.Any(x =>
+                    x.OrderedBaseQuantity
+                    - x.ReceiptPostings.Sum(p => p.AcceptedBaseQuantity)
+                    - x.ClosedRemainingQuantity > 0);
+                if (!hasRemaining)
+                    return FailPurchaseOrderDraft("PO đã nhận đủ hoặc đã đóng toàn bộ phần còn lại.");
+
+                var existing = await _context.BranchReceipts
+                    .Include(x => x.Lines)
+                    .FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId
+                        && x.Status == BranchReceiptStatuses.Draft);
+                if (existing == null)
+                {
+                    var now = DateTime.UtcNow;
+                    existing = new BranchReceipt
+                    {
+                        PurchaseOrderId = order.PurchaseOrderId,
+                        StoreId = order.StoreId,
+                        SupplierId = order.SupplierId,
+                        ReceiptCode = $"BR-PO-{order.PurchaseOrderId}-{now:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6].ToUpperInvariant()}",
+                        ReceiptKey = $"PO-{order.PurchaseOrderId}-{Guid.NewGuid():N}",
+                        Status = BranchReceiptStatuses.Draft,
+                        ReceivedAt = now,
+                        ReceivedByStaffId = actorStaffId,
+                        CreatedAt = now,
+                        CreatedByStaffId = actorStaffId
+                    };
+                    _context.BranchReceipts.Add(existing);
+                    await _context.SaveChangesAsync();
+                }
+
+                await transaction.CommitAsync();
+                return ServiceResult<PurchaseOrderReceiptDraftDto>.Success(
+                    await MapPurchaseOrderDraftAsync(existing.BranchReceiptId),
+                    existing.Lines.Count > 0
+                        ? "Đã mở lại phiếu kiểm đếm đang lưu."
+                        : "Đã tạo phiếu kiểm đếm nháp từ PO.");
+            }
+            catch (DbUpdateException ex) when (IsUniqueViolation(ex))
+            {
+                await transaction.RollbackAsync();
+                _context.ChangeTracker.Clear();
+                var winner = await _context.BranchReceipts.AsNoTracking()
+                    .FirstOrDefaultAsync(x => x.PurchaseOrderId == purchaseOrderId
+                        && x.Status == BranchReceiptStatuses.Draft);
+                if (winner != null)
+                    return ServiceResult<PurchaseOrderReceiptDraftDto>.Success(
+                        await MapPurchaseOrderDraftAsync(winner.BranchReceiptId),
+                        "Đã mở phiếu kiểm đếm được tạo bởi thao tác đồng thời.");
+                throw;
+            }
+        }
+
+        public async Task<ServiceResult<PurchaseOrderReceiptDraftDto>> GetPurchaseOrderDraftAsync(
+            int branchReceiptId,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            var receipt = await _context.BranchReceipts.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.BranchReceiptId == branchReceiptId);
+            if (receipt?.PurchaseOrderId == null || receipt.Status != BranchReceiptStatuses.Draft)
+                return FailPurchaseOrderDraft("Không tìm thấy phiếu kiểm đếm PO đang mở.");
+            var auth = await AuthorizeReceiptAccessAsync(
+                receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
+            if (!auth.IsSuccess)
+                return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
+            return ServiceResult<PurchaseOrderReceiptDraftDto>.Success(
+                await MapPurchaseOrderDraftAsync(branchReceiptId));
+        }
+
+        public async Task<ServiceResult<PurchaseOrderReceiptDraftDto>> SavePurchaseOrderDraftAsync(
+            SavePurchaseOrderReceiptDraftRequest request,
+            int actorStaffId,
+            int? actorStoreId,
+            IReadOnlyCollection<string> roleNames)
+        {
+            if (!CanCreateOrConfirmReceipt(roleNames))
+                return FailPurchaseOrderDraft("Bạn không có quyền lưu phiếu kiểm đếm.", BranchReceiptErrorCodes.Unauthorized);
+            if (!TryParseRequiredRowVersion(request.RowVersion, out var expectedVersion))
+                return FailPurchaseOrderDraft("Thiếu phiên bản dữ liệu. Vui lòng tải lại.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var receipt = await LoadReceiptForUpdateAsync(request.BranchReceiptId);
+                if (receipt?.PurchaseOrderId == null)
+                    return FailPurchaseOrderDraft("Không tìm thấy phiếu kiểm đếm PO.");
+                var auth = await AuthorizeReceiptAccessAsync(
+                    receipt.StoreId, actorStaffId, actorStoreId, roleNames, mutation: true);
+                if (!auth.IsSuccess)
+                    return FailPurchaseOrderDraft(auth.Message, auth.ErrorCode);
+                if (receipt.Status != BranchReceiptStatuses.Draft)
+                    return FailPurchaseOrderDraft("Chỉ được sửa phiếu DRAFT.", BranchReceiptErrorCodes.ReceiptNotDraft);
+                if (!receipt.RowVersion.SequenceEqual(expectedVersion))
+                    return FailPurchaseOrderDraft("Phiếu đã được người khác cập nhật. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+                _context.Entry(receipt).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+
+                var order = await _context.PurchaseOrders
+                    .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+                    .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
+                    .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
+                    .SingleAsync(x => x.PurchaseOrderId == receipt.PurchaseOrderId.Value);
+                if (order.StoreId != receipt.StoreId || order.SupplierId != receipt.SupplierId)
+                    return FailPurchaseOrderDraft("PO và phiếu nhận không cùng Store/Supplier.", BranchReceiptErrorCodes.PoLineScopeMismatch);
+
+                var submitted = request.Lines
+                    .Where(x => x.ActualReceivedQuantity.GetValueOrDefault() > 0)
+                    .ToList();
+                if (submitted.Count == 0)
+                    return FailPurchaseOrderDraft("Nhập số lượng Nhà cung cấp giao cho ít nhất một dòng.", BranchReceiptErrorCodes.ActualReceivedNotPositive);
+                if (submitted.GroupBy(x => x.PurchaseOrderLineId).Any(x => x.Count() > 1))
+                    return FailPurchaseOrderDraft("Một dòng PO không được xuất hiện nhiều lần trong phiếu.");
+
+                var newLines = new List<BranchReceiptLine>();
+                foreach (var input in submitted)
+                {
+                    var poLine = order.Lines.SingleOrDefault(x => x.PurchaseOrderLineId == input.PurchaseOrderLineId);
+                    if (poLine == null)
+                        return FailPurchaseOrderDraft("Dòng PO không thuộc đơn mua đang nhận.", BranchReceiptErrorCodes.PoLineScopeMismatch);
+                    var built = await BuildPurchaseOrderReceiptLineAsync(receipt, poLine, input);
+                    if (!built.IsSuccess || built.Data == null)
+                        return FailPurchaseOrderDraft(built.Message, built.ErrorCode);
+                    newLines.Add(built.Data);
+                }
+
+                _context.BranchReceiptLines.RemoveRange(receipt.Lines);
+                receipt.Lines.Clear();
+                foreach (var line in newLines)
+                    receipt.Lines.Add(line);
+                receipt.ReferenceNumber = string.IsNullOrWhiteSpace(request.ReferenceNumber)
+                    ? null : request.ReferenceNumber.Trim()[..Math.Min(request.ReferenceNumber.Trim().Length, 100)];
+                receipt.Notes = string.IsNullOrWhiteSpace(request.Notes)
+                    ? null : request.Notes.Trim()[..Math.Min(request.Notes.Trim().Length, 1000)];
+                receipt.ReceivedByStaffId = actorStaffId;
+                receipt.ReceivedAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return ServiceResult<PurchaseOrderReceiptDraftDto>.Success(
+                    await MapPurchaseOrderDraftAsync(receipt.BranchReceiptId),
+                    "Đã lưu phiếu kiểm đếm nháp; tồn kho chưa thay đổi.");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync();
+                return FailPurchaseOrderDraft("Phiếu đã được người khác cập nhật. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            }
+        }
+
         public async Task<ServiceResult<BranchReceiptDetailDto>> GetDetailAsync(
             int branchReceiptId,
             int actorStaffId,
@@ -381,16 +571,17 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.QuantityInvalid);
                 }
 
-                if (receipt.Lines.Any(x => !x.RestockRequestId.HasValue))
+                if (receipt.Lines.Any(x => !x.RestockRequestId.HasValue && !x.PurchaseOrderLineId.HasValue))
                 {
                     await transaction.RollbackAsync();
                     return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                        "Phiếu nhận restock không được chứa dòng transfer.",
+                        "Mỗi dòng nhận phải liên kết RestockRequest hoặc PurchaseOrderLine.",
                         errorCode: BranchReceiptErrorCodes.RequestNotFound);
                 }
 
                 // Lock restock requests in ascending ID order.
                 var requestIds = receipt.Lines
+                    .Where(l => l.RestockRequestId.HasValue)
                     .Select(l => l.RestockRequestId!.Value)
                     .Distinct()
                     .OrderBy(id => id)
@@ -414,29 +605,30 @@ namespace CafeChain.Application.Services.Inventories
                 // Validate each line
                 foreach (var line in receipt.Lines)
                 {
-                    var req = requests[line.RestockRequestId!.Value];
-                    if (!IsReceivableStatus(req.Status))
+                    if (line.RestockRequestId.HasValue)
                     {
-                        await transaction.RollbackAsync();
-                        return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            $"Yêu cầu #{req.RestockRequestId} không nhận hàng được (status={req.Status}).",
-                            errorCode: BranchReceiptErrorCodes.RequestStateInvalid);
-                    }
-
-                    if (req.StoreId != receipt.StoreId)
-                    {
-                        await transaction.RollbackAsync();
-                        return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            "Store không khớp giữa phiếu nhận và yêu cầu.",
-                            errorCode: BranchReceiptErrorCodes.StoreMismatch);
-                    }
-
-                    if (!IdentityMatches(req, line))
-                    {
-                        await transaction.RollbackAsync();
-                        return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
-                            $"Identity dòng nhận không khớp yêu cầu #{req.RestockRequestId}.",
-                            errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+                        var req = requests[line.RestockRequestId.Value];
+                        if (!IsReceivableStatus(req.Status))
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                $"Yêu cầu #{req.RestockRequestId} không nhận hàng được (status={req.Status}).",
+                                errorCode: BranchReceiptErrorCodes.RequestStateInvalid);
+                        }
+                        if (req.StoreId != receipt.StoreId)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                "Store không khớp giữa phiếu nhận và yêu cầu.",
+                                errorCode: BranchReceiptErrorCodes.StoreMismatch);
+                        }
+                        if (!IdentityMatches(req, line))
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                $"Identity dòng nhận không khớp yêu cầu #{req.RestockRequestId}.",
+                                errorCode: BranchReceiptErrorCodes.IdentityMismatch);
+                        }
                     }
 
                     if (line.ReceivedBaseQuantity < 0
@@ -491,11 +683,11 @@ namespace CafeChain.Application.Services.Inventories
                 var requestUpdates = new Dictionary<int, RestockFulfillmentPostingResult>();
                 foreach (var line in receipt.Lines.OrderBy(l => l.BranchReceiptLineId))
                 {
-                    if (line.ReceivedBaseQuantity > 0)
+                    if (line.ReceivedBaseQuantity > 0 && line.RestockRequestId.HasValue)
                     {
                         var posting = await _fulfillmentPostingService.RegisterAsync(new RegisterRestockFulfillmentPostingCommand
                         {
-                            RestockRequestId = line.RestockRequestId!.Value,
+                            RestockRequestId = line.RestockRequestId.Value,
                             DestinationStoreId = receipt.StoreId,
                             SourceDocumentType = RestockFulfillmentDocumentTypes.BranchReceipt,
                             SourceDocumentId = receipt.BranchReceiptId,
@@ -696,48 +888,28 @@ namespace CafeChain.Application.Services.Inventories
                 receipt.ConfirmedByStaffId = actorStaffId;
 
                 await _context.SaveChangesAsync();
-                await transaction.CommitAsync();
-
-                // Post-commit alert evaluation — failures must NOT rollback receipt.
-                var alertFailed = false;
-                string? alertMsg = null;
-                try
+                foreach (var line in receipt.Lines)
                 {
-                    foreach (var line in receipt.Lines)
+                    if (!inventoryByLine.TryGetValue(line.BranchReceiptLineId, out var inv))
+                        continue;
+                    var eval = await _stockAlertService.EvaluateStoreInventoryItemAsync(
+                        inv.StoreInventoryId,
+                        "BRANCH_RECEIPT_CONFIRM");
+                    if (!eval.IsSuccess)
                     {
-                        if (!inventoryByLine.TryGetValue(line.BranchReceiptLineId, out var inv))
-                            continue;
-
-                        var eval = await _stockAlertService.EvaluateStoreInventoryItemAsync(
-                            inv.StoreInventoryId,
-                            "BRANCH_RECEIPT_CONFIRM");
-                        if (!eval.IsSuccess)
-                        {
-                            alertFailed = true;
-                            alertMsg = eval.Message ?? "Đánh giá cảnh báo thất bại.";
-                            _logger.LogWarning(
-                                "[BranchReceipt] Alert evaluation failed after confirm ReceiptId={Id} InvId={Inv}: {Msg}",
-                                receipt.BranchReceiptId, inv.StoreInventoryId, alertMsg);
-                        }
+                        await transaction.RollbackAsync();
+                        _context.ChangeTracker.Clear();
+                        return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                            eval.Message ?? "Không cập nhật được cảnh báo tồn kho; toàn bộ xác nhận đã rollback.",
+                            errorCode: BranchReceiptErrorCodes.ConfirmFailed);
                     }
                 }
-                catch (Exception ex)
-                {
-                    alertFailed = true;
-                    alertMsg = "Đánh giá cảnh báo thất bại.";
-                    _logger.LogWarning(
-                        ex,
-                        "[BranchReceipt] Alert evaluation exception after confirm ReceiptId={Id}",
-                        receipt.BranchReceiptId);
-                }
+
+                await transaction.CommitAsync();
 
                 _logger.LogInformation(
-                    "[BranchReceipt] CONFIRMED Id={Id} Store={Store} TxCount={Count} AlertFailed={Alert}",
-                    receipt.BranchReceiptId, receipt.StoreId, createdTxIds.Count, alertFailed);
-
-                var message = alertFailed
-                    ? "Đã nhập kho nhưng cập nhật cảnh báo thất bại."
-                    : "Đã xác nhận phiếu nhận và cập nhật tồn kho.";
+                    "[BranchReceipt] CONFIRMED Id={Id} Store={Store} TxCount={Count}",
+                    receipt.BranchReceiptId, receipt.StoreId, createdTxIds.Count);
 
                 return ServiceResult<ConfirmBranchReceiptResultDto>.Success(new ConfirmBranchReceiptResultDto
                 {
@@ -745,13 +917,12 @@ namespace CafeChain.Application.Services.Inventories
                     ReceiptCode = receipt.ReceiptCode,
                     Status = BranchReceiptStatuses.Confirmed,
                     WasReplay = false,
-                    AlertEvaluationFailed = alertFailed,
-                    AlertEvaluationMessage = alertMsg,
+                    AlertEvaluationFailed = false,
                     InventoryTransactionIds = createdTxIds,
                     RequestUpdates = requestUpdates
                         .Select(x => (x.Key, x.Value.RequestStatus, x.Value.FulfilledQuantity))
                         .ToList()
-                }, message);
+                }, "Đã xác nhận phiếu nhận và cập nhật tồn kho.");
             }
             catch (DbUpdateException ex) when (IsUniqueViolation(ex))
             {
@@ -809,7 +980,7 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames)
         {
             var auth = await AuthorizeReceiptAccessAsync(
-                storeId, actorStaffId, actorStoreId, roleNames, mutation: true);
+                storeId, actorStaffId, actorStoreId, roleNames, mutation: false);
             if (!auth.IsSuccess)
             {
                 return ServiceResult<List<BranchReceiptSupplierOptionDto>>.Failure(
@@ -843,7 +1014,7 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames)
         {
             var auth = await AuthorizeReceiptAccessAsync(
-                storeId, actorStaffId, actorStoreId, roleNames, mutation: true);
+                storeId, actorStaffId, actorStoreId, roleNames, mutation: false);
             if (!auth.IsSuccess)
             {
                 return ServiceResult<List<BranchReceiptOfferOptionDto>>.Failure(
@@ -913,6 +1084,152 @@ namespace CafeChain.Application.Services.Inventories
                 row.PackageDisplay = $"{row.PackageQuantity:0.####} {row.PackageUnitName} / gói";
 
             return ServiceResult<List<BranchReceiptOfferOptionDto>>.Success(rows);
+        }
+
+        private async Task<PurchaseOrderReceiptDraftDto> MapPurchaseOrderDraftAsync(int branchReceiptId)
+        {
+            var receipt = await _context.BranchReceipts.AsNoTracking()
+                .Include(x => x.Store)
+                .Include(x => x.Supplier)
+                .Include(x => x.Lines)
+                .SingleAsync(x => x.BranchReceiptId == branchReceiptId);
+            var order = await _context.PurchaseOrders.AsNoTracking()
+                .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
+                .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
+                .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
+                .SingleAsync(x => x.PurchaseOrderId == receipt.PurchaseOrderId);
+            var savedByPoLine = receipt.Lines
+                .Where(x => x.PurchaseOrderLineId.HasValue)
+                .ToDictionary(x => x.PurchaseOrderLineId!.Value);
+
+            return new PurchaseOrderReceiptDraftDto
+            {
+                BranchReceiptId = receipt.BranchReceiptId,
+                PurchaseOrderId = order.PurchaseOrderId,
+                PurchaseOrderCode = order.Code,
+                StoreId = order.StoreId,
+                StoreName = receipt.Store.Name,
+                SupplierId = order.SupplierId,
+                SupplierName = receipt.Supplier?.Name ?? $"NCC #{order.SupplierId}",
+                ReceiptCode = receipt.ReceiptCode,
+                RowVersion = Convert.ToBase64String(receipt.RowVersion ?? Array.Empty<byte>()),
+                ReferenceNumber = receipt.ReferenceNumber,
+                Notes = receipt.Notes,
+                Lines = order.Lines
+                    .Select(x =>
+                    {
+                        savedByPoLine.TryGetValue(x.PurchaseOrderLineId, out var saved);
+                        var accepted = x.ReceiptPostings.Sum(p => p.AcceptedBaseQuantity);
+                        return new PurchaseOrderReceiptDraftLineDto
+                        {
+                            PurchaseOrderLineId = x.PurchaseOrderLineId,
+                            RestockRequestId = x.RestockRequestId,
+                            IngredientId = x.IngredientId,
+                            IngredientName = x.Ingredient.Name,
+                            PackageUnitName = x.PackageUnitSnapshot.Name,
+                            PackageQuantitySnapshot = x.PackageQuantitySnapshot,
+                            PackagePriceSnapshot = x.PackagePriceSnapshot,
+                            OrderedBaseQuantity = x.OrderedBaseQuantity,
+                            PreviouslyAcceptedBaseQuantity = accepted,
+                            ClosedRemainingQuantity = x.ClosedRemainingQuantity,
+                            RemainingBaseQuantity = Math.Max(0m, x.OrderedBaseQuantity - accepted - x.ClosedRemainingQuantity),
+                            ActualReceivedQuantity = saved?.InputQuantity,
+                            RejectedQuantity = saved == null || saved.InputQuantity <= 0
+                                || saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity <= 0
+                                ? 0m
+                                : Math.Round(
+                                    saved.InputQuantity * saved.RejectedBaseQuantity
+                                        / (saved.ReceivedBaseQuantity + saved.RejectedBaseQuantity),
+                                    3,
+                                    MidpointRounding.AwayFromZero),
+                            RejectionReason = saved?.RejectionReason,
+                            RejectionIssueType = saved?.RejectionIssueType
+                        };
+                    })
+                    .Where(x => x.RemainingBaseQuantity > 0 || savedByPoLine.ContainsKey(x.PurchaseOrderLineId))
+                    .OrderBy(x => x.PurchaseOrderLineId)
+                    .ToList()
+            };
+        }
+
+        private async Task<ServiceResult<BranchReceiptLine>> BuildPurchaseOrderReceiptLineAsync(
+            BranchReceipt receipt,
+            PurchaseOrderLine poLine,
+            SavePurchaseOrderReceiptDraftLineRequest input)
+        {
+            var actual = input.ActualReceivedQuantity.GetValueOrDefault();
+            if (actual <= 0)
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    "Số lượng Nhà cung cấp giao phải lớn hơn 0.",
+                    errorCode: BranchReceiptErrorCodes.ActualReceivedNotPositive);
+            if (input.RejectedQuantity < 0)
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    "Số lượng từ chối không được âm.",
+                    errorCode: BranchReceiptErrorCodes.RejectedQuantityNegative);
+            if (input.RejectedQuantity > actual)
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    "Số lượng từ chối không được vượt số lượng Nhà cung cấp giao.",
+                    errorCode: BranchReceiptErrorCodes.RejectedExceedsActualReceived);
+            if (input.RejectedQuantity > 0
+                && (string.IsNullOrWhiteSpace(input.RejectionReason)
+                    || string.IsNullOrWhiteSpace(input.RejectionIssueType)))
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    "Hàng bị từ chối phải có loại sự cố và lý do.",
+                    errorCode: BranchReceiptErrorCodes.RejectionReasonRequired);
+            if (!string.IsNullOrWhiteSpace(input.RejectionIssueType)
+                && !SupplierReceiptIssueTypes.All.Contains(input.RejectionIssueType))
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    "Loại sự cố hàng bị từ chối không hợp lệ.",
+                    errorCode: BranchReceiptErrorCodes.RejectionReasonRequired);
+
+            var actualBase = await _unitConversion.ConvertAsync(
+                poLine.IngredientId,
+                actual * poLine.PackageQuantitySnapshot,
+                poLine.PackageUnitIdSnapshot,
+                poLine.Ingredient.BaseUnitId);
+            if (!actualBase.IsSuccess || actualBase.Data <= 0)
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    actualBase.Message ?? "Không quy đổi được số lượng thực nhận.",
+                    errorCode: BranchReceiptErrorCodes.ConversionFailed);
+
+            var rejectedBase = Math.Round(
+                actualBase.Data * input.RejectedQuantity / actual,
+                3,
+                MidpointRounding.AwayFromZero);
+            var acceptedBase = actualBase.Data - rejectedBase;
+            var acceptedBefore = poLine.ReceiptPostings.Sum(x => x.AcceptedBaseQuantity);
+            var remaining = Math.Max(
+                0m,
+                poLine.OrderedBaseQuantity - acceptedBefore - poLine.ClosedRemainingQuantity);
+            if (acceptedBase > remaining)
+                return ServiceResult<BranchReceiptLine>.Failure(
+                    $"Số lượng chấp nhận {acceptedBase:N3} vượt phần PO còn phải giao {remaining:N3}.",
+                    errorCode: BranchReceiptErrorCodes.ReceiptExceedsRemaining);
+
+            var actualLineTotal = Math.Round(actual * poLine.PackagePriceSnapshot, 2, MidpointRounding.AwayFromZero);
+            var baseUnitCost = Math.Round(actualLineTotal / actualBase.Data, 4, MidpointRounding.AwayFromZero);
+            var acceptedLineTotal = Math.Round(acceptedBase * baseUnitCost, 2, MidpointRounding.AwayFromZero);
+            return ServiceResult<BranchReceiptLine>.Success(new BranchReceiptLine
+            {
+                PurchaseOrderLineId = poLine.PurchaseOrderLineId,
+                RestockRequestId = poLine.RestockRequestId,
+                IngredientId = poLine.IngredientId,
+                InputQuantity = actual,
+                InputUnitId = poLine.PackageUnitIdSnapshot,
+                ReceivedBaseQuantity = acceptedBase,
+                RejectedBaseQuantity = rejectedBase,
+                RejectionReason = string.IsNullOrWhiteSpace(input.RejectionReason) ? null : input.RejectionReason.Trim(),
+                RejectionIssueType = string.IsNullOrWhiteSpace(input.RejectionIssueType) ? null : input.RejectionIssueType.Trim(),
+                BaseUnitId = poLine.Ingredient.BaseUnitId,
+                SupplierId = receipt.SupplierId,
+                IngredientSupplierId = poLine.IngredientSupplierId,
+                ActualPackagePrice = poLine.PackagePriceSnapshot,
+                PackageQuantitySnapshot = poLine.PackageQuantitySnapshot,
+                PackageUnitIdSnapshot = poLine.PackageUnitIdSnapshot,
+                BaseUnitCostSnapshot = baseUnitCost,
+                LineTotalCost = acceptedLineTotal,
+                CreatedAt = DateTime.UtcNow
+            });
         }
 
         private async Task<ServiceResult<(CreateBranchReceiptLineInput Input, RestockRequest Request, decimal BaseQty, int BaseUnitId, decimal UnitCost, decimal LineTotal)>> BuildLineSnapshotAsync(
@@ -1327,6 +1644,7 @@ namespace CafeChain.Application.Services.Inventories
             var dto = new BranchReceiptDetailDto
             {
                 BranchReceiptId = r.BranchReceiptId,
+                PurchaseOrderId = r.PurchaseOrderId,
                 ReceiptCode = r.ReceiptCode,
                 ReceiptKey = r.ReceiptKey,
                 Status = r.Status,
@@ -1348,7 +1666,7 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     BranchReceiptLineId = l.BranchReceiptLineId,
                     PurchaseOrderLineId = l.PurchaseOrderLineId,
-                    RestockRequestId = l.RestockRequestId ?? 0,
+                    RestockRequestId = l.RestockRequestId,
                     IngredientId = l.IngredientId,
                     PreparedItemId = l.PreparedItemId,
                     RecipeId = l.RecipeId,
@@ -1375,6 +1693,7 @@ namespace CafeChain.Application.Services.Inventories
         private static BranchReceiptListItemDto MapListItem(BranchReceipt r) => new()
         {
             BranchReceiptId = r.BranchReceiptId,
+            PurchaseOrderId = r.PurchaseOrderId,
             ReceiptCode = r.ReceiptCode,
             ReceiptKey = r.ReceiptKey,
             Status = r.Status,
@@ -1428,8 +1747,10 @@ namespace CafeChain.Application.Services.Inventories
             IReadOnlyCollection<string> roleNames,
             bool mutation)
         {
-            if (roleNames.Contains(RoleConstants.BusinessOwner)
-                || roleNames.Contains(RoleConstants.AccountantWarehouse))
+            if (roleNames.Contains(RoleConstants.BusinessOwner))
+                return ServiceResult.Success();
+
+            if (!mutation && roleNames.Contains(RoleConstants.AccountantWarehouse))
                 return ServiceResult.Success();
 
             if (roleNames.Contains(RoleConstants.AreaManager))
@@ -1448,9 +1769,8 @@ namespace CafeChain.Application.Services.Inventories
                         errorCode: BranchReceiptErrorCodes.Unauthorized);
             }
 
-            var allowedBranchRole = !mutation && (roleNames.Contains(RoleConstants.StoreManager)
-                                   || roleNames.Contains(RoleConstants.ShiftSupervisor)
-                                   || roleNames.Contains(RoleConstants.SalesStaff));
+            var allowedBranchRole = roleNames.Contains(RoleConstants.StoreManager)
+                                   || roleNames.Contains(RoleConstants.ShiftSupervisor);
             if (allowedBranchRole)
             {
                 var staffStoreId = await _context.Staffs
@@ -1471,7 +1791,8 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanCreateOrConfirmReceipt(IReadOnlyCollection<string> roles) =>
             roles.Contains(RoleConstants.BusinessOwner)
-            || roles.Contains(RoleConstants.AccountantWarehouse);
+            || roles.Contains(RoleConstants.StoreManager)
+            || roles.Contains(RoleConstants.ShiftSupervisor);
 
         private static bool IsUniqueViolation(DbUpdateException ex)
         {
@@ -1485,5 +1806,8 @@ namespace CafeChain.Application.Services.Inventories
 
         private static ServiceResult<BranchReceiptDetailDto> FailDetail(string message, string? code = null) =>
             ServiceResult<BranchReceiptDetailDto>.Failure(message, errorCode: code);
+
+        private static ServiceResult<PurchaseOrderReceiptDraftDto> FailPurchaseOrderDraft(string message, string? code = null) =>
+            ServiceResult<PurchaseOrderReceiptDraftDto>.Failure(message, errorCode: code);
     }
 }

@@ -11,18 +11,18 @@ namespace CafeChain.Areas.Admin.Controllers
     public sealed class AdminReorderSuggestionsController : AdminBaseController
     {
         private readonly IReorderSuggestionService _suggestions;
-        private readonly IRestockRequestService _restockRequests;
+        private readonly IStockAlertService _stockAlerts;
         private readonly IAdminActorContextAccessor _actorAccessor;
         private readonly IAdminStoreScopeResolver _storeScopeResolver;
 
         public AdminReorderSuggestionsController(
             IReorderSuggestionService suggestions,
-            IRestockRequestService restockRequests,
+            IStockAlertService stockAlerts,
             IAdminActorContextAccessor actorAccessor,
             IAdminStoreScopeResolver storeScopeResolver)
         {
             _suggestions = suggestions;
-            _restockRequests = restockRequests;
+            _stockAlerts = stockAlerts;
             _actorAccessor = actorAccessor;
             _storeScopeResolver = storeScopeResolver;
         }
@@ -65,25 +65,21 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CreateDraft(int storeId, int ingredientId, string idempotencyKey)
+        public async Task<IActionResult> CreateDraft(int storeId, int ingredientId)
         {
             var actor = _actorAccessor.Get(User);
             var storeScope = await _storeScopeResolver.ResolveAsync(actor, storeId);
             if (!storeScope.IsResolved)
                 return StoreScopeFailure(storeScope);
-            var created = await _restockRequests.CreateDraftFromSuggestionAsync(
-                new CreateRestockDraftFromSuggestionDto
-                {
-                    StoreId = storeScope.StoreId!.Value,
-                    IngredientId = ingredientId,
-                    IdempotencyKey = idempotencyKey
-                },
-                actor.StaffId);
+            var created = await _stockAlerts.CreateOrOpenFromReorderSuggestionAsync(
+                storeScope.StoreId!.Value,
+                ingredientId,
+                "REORDER_SUGGESTION");
 
             TempData[created.IsSuccess ? "SuccessMessage" : "ErrorMessage"] =
-                created.Message ?? (created.IsSuccess ? "Đã tạo yêu cầu nhập nháp." : "Không tạo được yêu cầu nhập.");
-            if (created.IsSuccess && created.Data != null)
-                return RedirectToAction("Details", "AdminRestockRequests", new { id = created.Data.RestockRequestId });
+                created.Message ?? (created.IsSuccess ? "Đã mở cảnh báo tồn kho." : "Không mở được cảnh báo tồn kho.");
+            if (created.IsSuccess && created.Data > 0)
+                return RedirectToAction("Details", "AdminStockAlerts", new { id = created.Data, storeId = storeScope.StoreId });
             return RedirectToAction(nameof(Index), new { storeId = storeScope.StoreId });
         }
     }

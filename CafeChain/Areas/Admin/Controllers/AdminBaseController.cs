@@ -6,8 +6,7 @@ using CafeChain.ViewModels.Admin.StoreScope;
 namespace CafeChain.Areas.Admin.Controllers
 {
     [Area("Admin")]
-    [Authorize(Policy = "RequireAdminPanelAccess")]
-    public abstract class AdminBaseController : Controller
+    public abstract class AdminStoreScopedController : Controller
     {
         protected IActionResult StoreScopeFailure(AdminStoreScopeResolution resolution)
         {
@@ -32,5 +31,10 @@ namespace CafeChain.Areas.Admin.Controllers
                     "Cửa hàng đã chọn trước đó không còn trong phạm vi được cấp. Hệ thống đã chuyển sang cửa hàng hợp lệ.";
             }
         }
+    }
+
+    [Authorize(Policy = "RequireAdminPanelAccess")]
+    public abstract class AdminBaseController : AdminStoreScopedController
+    {
     }
 }

@@ -21,5 +21,10 @@ namespace CafeChain.Application.Interfaces.Inventories
             int? ingredientId,
             int? recipeId,
             string source);
+
+        Task<ServiceResult<int>> CreateOrOpenFromReorderSuggestionAsync(
+            int storeId,
+            int ingredientId,
+            string source);
     }
 }

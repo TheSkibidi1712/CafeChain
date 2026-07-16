@@ -79,6 +79,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class BranchReceiptListItemDto
     {
         public int BranchReceiptId { get; set; }
+        public int? PurchaseOrderId { get; set; }
         public string ReceiptCode { get; set; } = string.Empty;
         public string ReceiptKey { get; set; } = string.Empty;
         public string Status { get; set; } = string.Empty;
@@ -95,7 +96,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class BranchReceiptLineDto
     {
         public int BranchReceiptLineId { get; set; }
-        public int RestockRequestId { get; set; }
+        public int? RestockRequestId { get; set; }
         public int? PurchaseOrderLineId { get; set; }
         public int? IngredientId { get; set; }
         public int? PreparedItemId { get; set; }
@@ -169,6 +170,59 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? AlertEvaluationMessage { get; set; }
         public List<int> InventoryTransactionIds { get; set; } = new();
         public List<(int RestockRequestId, string NewStatus, decimal ReceivedQty)> RequestUpdates { get; set; } = new();
+    }
+
+    public sealed class PurchaseOrderReceiptDraftDto
+    {
+        public int BranchReceiptId { get; set; }
+        public int PurchaseOrderId { get; set; }
+        public string PurchaseOrderCode { get; set; } = string.Empty;
+        public int StoreId { get; set; }
+        public string StoreName { get; set; } = string.Empty;
+        public int SupplierId { get; set; }
+        public string SupplierName { get; set; } = string.Empty;
+        public string ReceiptCode { get; set; } = string.Empty;
+        public string RowVersion { get; set; } = string.Empty;
+        public string? ReferenceNumber { get; set; }
+        public string? Notes { get; set; }
+        public List<PurchaseOrderReceiptDraftLineDto> Lines { get; set; } = new();
+    }
+
+    public sealed class PurchaseOrderReceiptDraftLineDto
+    {
+        public int PurchaseOrderLineId { get; set; }
+        public int? RestockRequestId { get; set; }
+        public int IngredientId { get; set; }
+        public string IngredientName { get; set; } = string.Empty;
+        public string PackageUnitName { get; set; } = string.Empty;
+        public decimal PackageQuantitySnapshot { get; set; }
+        public decimal PackagePriceSnapshot { get; set; }
+        public decimal OrderedBaseQuantity { get; set; }
+        public decimal PreviouslyAcceptedBaseQuantity { get; set; }
+        public decimal ClosedRemainingQuantity { get; set; }
+        public decimal RemainingBaseQuantity { get; set; }
+        public decimal? ActualReceivedQuantity { get; set; }
+        public decimal RejectedQuantity { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionIssueType { get; set; }
+    }
+
+    public sealed class SavePurchaseOrderReceiptDraftRequest
+    {
+        public int BranchReceiptId { get; set; }
+        public string RowVersion { get; set; } = string.Empty;
+        public string? ReferenceNumber { get; set; }
+        public string? Notes { get; set; }
+        public List<SavePurchaseOrderReceiptDraftLineRequest> Lines { get; set; } = new();
+    }
+
+    public sealed class SavePurchaseOrderReceiptDraftLineRequest
+    {
+        public int PurchaseOrderLineId { get; set; }
+        public decimal? ActualReceivedQuantity { get; set; }
+        public decimal RejectedQuantity { get; set; }
+        public string? RejectionReason { get; set; }
+        public string? RejectionIssueType { get; set; }
     }
 
     public class BranchReceiptSupplierOptionDto

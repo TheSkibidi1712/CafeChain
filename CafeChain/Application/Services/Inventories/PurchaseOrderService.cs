@@ -14,13 +14,13 @@ namespace CafeChain.Application.Services.Inventories
     public sealed class PurchaseOrderService : IPurchaseOrderService
     {
         private readonly AppDbContext _context;
-        private readonly IPhysicalUnitConversionService _conversion;
+        private readonly IUnitConversionService _conversion;
         private readonly IRestockAllocationService _allocations;
         private readonly IScopeAuthorizationService? _scopeAuthorization;
 
         public PurchaseOrderService(
             AppDbContext context,
-            IPhysicalUnitConversionService conversion,
+            IUnitConversionService conversion,
             IRestockAllocationService allocations,
             IScopeAuthorizationService? scopeAuthorization = null)
         {
@@ -92,6 +92,7 @@ namespace CafeChain.Application.Services.Inventories
                         return Fail($"Số gói đặt thấp hơn MOQ {offer.MinimumOrderPackageCount:N3}.");
 
                     var converted = await _conversion.ConvertAsync(
+                        offer.IngredientId,
                         requested.PackageCount * offer.PackageQuantity.Value,
                         offer.UnitId,
                         offer.Ingredient.BaseUnitId);
@@ -183,6 +184,64 @@ namespace CafeChain.Application.Services.Inventories
             return ServiceResult<PurchaseOrderDetailDto>.Success(await MapAsync(id), "Đã hủy đơn mua hàng.");
         }
 
+        public async Task<ServiceResult<PurchaseOrderDetailDto>> CloseLineRemainingAsync(
+            ClosePurchaseOrderLineRemainingRequest input,
+            int actorStaffId,
+            IReadOnlyCollection<string> roles)
+        {
+            if (!CanCloseRemaining(roles))
+                return Fail("Chỉ Chủ doanh nghiệp được đóng phần còn lại của đơn mua hàng.");
+            if (input.PurchaseOrderLineId <= 0)
+                return Fail("Dòng đơn mua hàng không hợp lệ.");
+            if (string.IsNullOrWhiteSpace(input.Reason))
+                return Fail("Lý do không yêu cầu giao bù là bắt buộc.");
+            if (!TryParseRowVersion(input.RowVersion, out var expectedVersion))
+                return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                var line = await LoadLineForUpdateAsync(input.PurchaseOrderLineId);
+                if (line == null)
+                    return Fail("Không tìm thấy dòng đơn mua hàng.");
+                if (!await CanAccessStoreAsync(actorStaffId, line.PurchaseOrder.StoreId))
+                    return Fail("Bạn không có quyền đóng phần còn lại tại cửa hàng này.");
+                if (line.PurchaseOrder.Status is PurchaseOrderStatuses.Cancelled or PurchaseOrderStatuses.Completed)
+                    return Fail($"Không thể đóng phần còn lại khi PO ở trạng thái {line.PurchaseOrder.Status}.");
+                if (!RowVersionMatches(line.RowVersion, expectedVersion))
+                    return Fail("Dòng đơn mua đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+
+                _context.Entry(line).Property(x => x.RowVersion).OriginalValue = expectedVersion;
+                var acceptedValues = await _context.PurchaseOrderReceiptPostings
+                    .Where(x => x.PurchaseOrderLineId == line.PurchaseOrderLineId)
+                    .Select(x => x.AcceptedBaseQuantity)
+                    .ToListAsync();
+                var accepted = acceptedValues.Sum();
+                var remaining = Math.Max(0m, line.OrderedBaseQuantity - accepted - line.ClosedRemainingQuantity);
+                if (remaining <= 0)
+                    return Fail("Dòng đơn mua không còn số lượng để đóng.");
+
+                line.ClosedRemainingQuantity += remaining;
+                line.CloseRemainingReason = Trim(input.Reason, 500);
+                line.ClosedRemainingByStaffId = actorStaffId;
+                line.ClosedRemainingAtUtc = DateTime.UtcNow;
+                line.PurchaseOrder.UpdatedAtUtc = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+                await RecalculateOrderStatusAsync(line.PurchaseOrder);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return ServiceResult<PurchaseOrderDetailDto>.Success(
+                    await MapAsync(line.PurchaseOrderId),
+                    "Đã đóng phần còn lại; không phát sinh nhập kho hoặc fulfillment.");
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                await transaction.RollbackAsync();
+                return Fail("Dòng đơn mua đã được cập nhật bởi người khác. Vui lòng tải lại.", BranchReceiptErrorCodes.ResourceChanged);
+            }
+        }
+
         public async Task<ServiceResult<PurchaseOrderDetailDto>> GetDetailAsync(
             int id, int actorStaffId, IReadOnlyCollection<string> roles)
         {
@@ -235,12 +294,12 @@ namespace CafeChain.Application.Services.Inventories
             if (line.ReceivedBaseQuantity < 0 || line.RejectedBaseQuantity < 0
                 || line.ReceivedBaseQuantity + line.RejectedBaseQuantity <= 0)
                 return ServiceResult.Failure("Số lượng chấp nhận/loại bỏ không hợp lệ.");
-            var disposedRows = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
+            var acceptedRows = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
                 .Where(x => x.PurchaseOrderLineId == poLine.PurchaseOrderLineId)
-                .Select(x => new { x.AcceptedBaseQuantity, x.RejectedBaseQuantity })
+                .Select(x => x.AcceptedBaseQuantity)
                 .ToListAsync();
-            var disposed = disposedRows.Sum(x => x.AcceptedBaseQuantity + x.RejectedBaseQuantity);
-            if (disposed + line.ReceivedBaseQuantity + line.RejectedBaseQuantity > poLine.OrderedBaseQuantity)
+            var accepted = acceptedRows.Sum();
+            if (accepted + poLine.ClosedRemainingQuantity + line.ReceivedBaseQuantity > poLine.OrderedBaseQuantity)
                 return ServiceResult.Failure("Tổng số lượng nhận vượt số lượng còn lại của dòng đơn mua.");
             return ServiceResult.Success();
         }
@@ -281,21 +340,7 @@ namespace CafeChain.Application.Services.Inventories
                 await _context.SaveChangesAsync();
 
                 var order = poLine.PurchaseOrder;
-                var orderedQuantities = await _context.PurchaseOrderLines.AsNoTracking()
-                    .Where(x => x.PurchaseOrderId == order.PurchaseOrderId)
-                    .Select(x => x.OrderedBaseQuantity)
-                    .ToListAsync();
-                var postingQuantities = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
-                    .Where(x => x.PurchaseOrderLine.PurchaseOrderId == order.PurchaseOrderId)
-                    .Select(x => new { x.AcceptedBaseQuantity, x.RejectedBaseQuantity })
-                    .ToListAsync();
-                var disposedTotal = postingQuantities.Sum(x => x.AcceptedBaseQuantity + x.RejectedBaseQuantity);
-                var orderedTotal = orderedQuantities.Sum();
-                order.Status = disposedTotal >= orderedTotal
-                    ? PurchaseOrderStatuses.Completed
-                    : disposedTotal > 0 ? PurchaseOrderStatuses.PartiallyReceived : order.Status;
-                order.CompletedAtUtc = order.Status == PurchaseOrderStatuses.Completed ? DateTime.UtcNow : null;
-                order.UpdatedAtUtc = DateTime.UtcNow;
+                await RecalculateOrderStatusAsync(order);
                 await _context.SaveChangesAsync();
                 if (transaction != null) await transaction.CommitAsync();
                 return ServiceResult.Success("Đã ghi nhận số lượng nhận theo đơn mua.");
@@ -357,8 +402,16 @@ namespace CafeChain.Application.Services.Inventories
                 .Include(x => x.Lines).ThenInclude(x => x.Ingredient)
                 .Include(x => x.Lines).ThenInclude(x => x.PackageUnitSnapshot)
                 .Include(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
+                    .ThenInclude(x => x.BranchReceiptLine)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return new PurchaseOrderDetailDto();
+            var activeReceiptDraftId = await _context.BranchReceipts
+                .AsNoTracking()
+                .Where(x => x.PurchaseOrderId == order.PurchaseOrderId
+                    && x.Status == BranchReceiptStatuses.Draft)
+                .OrderBy(x => x.BranchReceiptId)
+                .Select(x => (int?)x.BranchReceiptId)
+                .FirstOrDefaultAsync();
             return new PurchaseOrderDetailDto
             {
                 PurchaseOrderId = order.PurchaseOrderId,
@@ -373,6 +426,7 @@ namespace CafeChain.Application.Services.Inventories
                 Note = order.Note,
                 TotalAmount = order.Lines.Sum(x => x.PackageCount * x.PackagePriceSnapshot),
                 RowVersion = Convert.ToBase64String(order.RowVersion ?? Array.Empty<byte>()),
+                ActiveReceiptDraftId = activeReceiptDraftId,
                 Lines = order.Lines.Select(x =>
                 {
                     var accepted = x.ReceiptPostings.Sum(p => p.AcceptedBaseQuantity);
@@ -390,7 +444,13 @@ namespace CafeChain.Application.Services.Inventories
                         OrderedBaseQuantity = x.OrderedBaseQuantity,
                         AcceptedBaseQuantity = accepted,
                         RejectedBaseQuantity = rejected,
-                        RemainingBaseQuantity = Math.Max(0m, x.OrderedBaseQuantity - accepted - rejected),
+                        ClosedRemainingQuantity = x.ClosedRemainingQuantity,
+                        CloseRemainingReason = x.CloseRemainingReason,
+                        ClosedRemainingByStaffId = x.ClosedRemainingByStaffId,
+                        ClosedRemainingAtUtc = x.ClosedRemainingAtUtc,
+                        RemainingBaseQuantity = Math.Max(0m, x.OrderedBaseQuantity - accepted - x.ClosedRemainingQuantity),
+                        ReceiptCount = x.ReceiptPostings.Select(p => p.BranchReceiptLine.BranchReceiptId).Distinct().Count(),
+                        RowVersion = Convert.ToBase64String(x.RowVersion ?? Array.Empty<byte>()),
                         PromisedLeadTimeDaysSnapshot = x.PromisedLeadTimeDaysSnapshot
                     };
                 }).ToList()
@@ -402,7 +462,7 @@ namespace CafeChain.Application.Services.Inventories
 
         private static bool CanRead(IReadOnlyCollection<string> roles) =>
             roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner
-                or RoleConstants.AreaManager or RoleConstants.StoreManager);
+                or RoleConstants.AreaManager or RoleConstants.StoreManager or RoleConstants.ShiftSupervisor);
 
         private static bool CanCreate(IReadOnlyCollection<string> roles) =>
             roles.Any(x => x is RoleConstants.AccountantWarehouse or RoleConstants.BusinessOwner);
@@ -410,6 +470,32 @@ namespace CafeChain.Application.Services.Inventories
         private static bool CanApprove(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
         private static bool CanSend(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.AccountantWarehouse);
         private static bool CanCancel(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
+        private static bool CanCloseRemaining(IReadOnlyCollection<string> roles) => roles.Contains(RoleConstants.BusinessOwner);
+
+        private async Task RecalculateOrderStatusAsync(PurchaseOrder order)
+        {
+            var lines = await _context.PurchaseOrderLines
+                .Where(x => x.PurchaseOrderId == order.PurchaseOrderId)
+                .Select(x => new { x.PurchaseOrderLineId, x.OrderedBaseQuantity, x.ClosedRemainingQuantity })
+                .ToListAsync();
+            var acceptedRows = await _context.PurchaseOrderReceiptPostings
+                .Where(x => x.PurchaseOrderLine.PurchaseOrderId == order.PurchaseOrderId)
+                .Select(x => new { x.PurchaseOrderLineId, x.AcceptedBaseQuantity })
+                .ToListAsync();
+            var acceptedByLine = acceptedRows
+                .GroupBy(x => x.PurchaseOrderLineId)
+                .ToDictionary(x => x.Key, x => x.Sum(y => y.AcceptedBaseQuantity));
+            var completed = lines.All(x =>
+                acceptedByLine.GetValueOrDefault(x.PurchaseOrderLineId) + x.ClosedRemainingQuantity >= x.OrderedBaseQuantity);
+            var progressed = lines.Any(x =>
+                acceptedByLine.GetValueOrDefault(x.PurchaseOrderLineId) > 0 || x.ClosedRemainingQuantity > 0);
+
+            order.Status = completed
+                ? PurchaseOrderStatuses.Completed
+                : progressed ? PurchaseOrderStatuses.PartiallyReceived : order.Status;
+            order.CompletedAtUtc = completed ? DateTime.UtcNow : null;
+            order.UpdatedAtUtc = DateTime.UtcNow;
+        }
 
         private static bool TryParseRowVersion(string? value, out byte[] rowVersion)
         {

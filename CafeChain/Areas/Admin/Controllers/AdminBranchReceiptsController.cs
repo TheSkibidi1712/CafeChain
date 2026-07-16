@@ -3,6 +3,7 @@ using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
 using CafeChain.Application.Interfaces.Inventories;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using CafeChain.Data;
@@ -13,7 +14,13 @@ namespace CafeChain.Areas.Admin.Controllers
     /// Issue #128 — Branch receipt draft / confirm with server-side business scope enforcement.
     /// Controller does not mutate inventory; BranchReceiptService owns posting.
     /// </summary>
-    public class AdminBranchReceiptsController : AdminBaseController
+    [Authorize(Roles =
+        RoleConstants.BusinessOwner + "," +
+        RoleConstants.AreaManager + "," +
+        RoleConstants.StoreManager + "," +
+        RoleConstants.ShiftSupervisor + "," +
+        RoleConstants.AccountantWarehouse)]
+    public class AdminBranchReceiptsController : AdminStoreScopedController
     {
         private readonly IBranchReceiptService _receiptService;
         private readonly IAdminActorContextAccessor _actor;
@@ -80,6 +87,82 @@ namespace CafeChain.Areas.Admin.Controllers
 
             ViewBag.CanConfirm = CanConfirmReceipts() && result.Data.Status == BranchReceiptStatuses.Draft;
             return View(result.Data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ReceivePurchaseOrder(int purchaseOrderId)
+        {
+            if (!CanConfirmReceipts())
+            {
+                TempData["ErrorMessage"] = "Bạn không có quyền nhận hàng tại cửa hàng.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            var ctx = _actor.Get(User);
+            var result = await _receiptService.CreateOrOpenPurchaseOrderDraftAsync(
+                purchaseOrderId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                TempData["ErrorMessage"] = result.Message ?? "Không tạo được phiếu kiểm đếm từ PO.";
+                return RedirectToAction("Details", "AdminPurchaseOrders", new { id = purchaseOrderId });
+            }
+
+            TempData["SuccessMessage"] = result.Message;
+            return RedirectToAction(nameof(EditPurchaseOrderDraft), new { id = result.Data.BranchReceiptId });
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> EditPurchaseOrderDraft(int id)
+        {
+            if (!CanConfirmReceipts())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var result = await _receiptService.GetPurchaseOrderDraftAsync(
+                id, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                TempData["ErrorMessage"] = result.Message ?? "Không tìm thấy phiếu kiểm đếm PO.";
+                return RedirectToAction(nameof(Index));
+            }
+
+            return View("PurchaseOrderDraft", result.Data);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SavePurchaseOrderDraft(SavePurchaseOrderReceiptDraftRequest model)
+        {
+            if (!CanConfirmReceipts())
+                return Forbid();
+
+            var ctx = _actor.Get(User);
+            var result = await _receiptService.SavePurchaseOrderDraftAsync(
+                model, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                TempData["ErrorMessage"] = result.Message ?? "Không lưu được phiếu kiểm đếm.";
+                var reload = await _receiptService.GetPurchaseOrderDraftAsync(
+                    model.BranchReceiptId, ctx.StaffId, ctx.StoreIdOrNull, ctx.RoleNames);
+                if (!reload.IsSuccess || reload.Data == null)
+                    return RedirectToAction(nameof(Index));
+
+                reload.Data.ReferenceNumber = model.ReferenceNumber;
+                reload.Data.Notes = model.Notes;
+                foreach (var line in reload.Data.Lines)
+                {
+                    var posted = model.Lines.FirstOrDefault(x => x.PurchaseOrderLineId == line.PurchaseOrderLineId);
+                    if (posted == null) continue;
+                    line.ActualReceivedQuantity = posted.ActualReceivedQuantity;
+                    line.RejectedQuantity = posted.RejectedQuantity;
+                    line.RejectionReason = posted.RejectionReason;
+                    line.RejectionIssueType = posted.RejectionIssueType;
+                }
+                return View("PurchaseOrderDraft", reload.Data);
+            }
+
+            TempData["SuccessMessage"] = result.Message ?? "Đã lưu phiếu kiểm đếm nháp.";
+            return RedirectToAction(nameof(Details), new { id = result.Data.BranchReceiptId });
         }
 
         [HttpGet]
@@ -242,14 +325,14 @@ namespace CafeChain.Areas.Admin.Controllers
         private bool CanViewReceipts() =>
             User.IsInRole(RoleConstants.StoreManager)
             || User.IsInRole(RoleConstants.ShiftSupervisor)
-            || User.IsInRole(RoleConstants.SalesStaff)
             || User.IsInRole(RoleConstants.AccountantWarehouse)
             || User.IsInRole(RoleConstants.BusinessOwner)
             || User.IsInRole(RoleConstants.AreaManager);
 
         private bool CanConfirmReceipts() =>
-            User.IsInRole(RoleConstants.AccountantWarehouse)
-            || User.IsInRole(RoleConstants.BusinessOwner);
+            User.IsInRole(RoleConstants.BusinessOwner)
+            || User.IsInRole(RoleConstants.StoreManager)
+            || User.IsInRole(RoleConstants.ShiftSupervisor);
 
         private IActionResult StoreScopeApiFailure(
             CafeChain.Application.DTOs.Admin.StoreScope.AdminStoreScopeResolution resolution)

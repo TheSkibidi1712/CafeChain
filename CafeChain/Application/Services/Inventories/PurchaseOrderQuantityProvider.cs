@@ -23,25 +23,28 @@ namespace CafeChain.Application.Services.Inventories
                 {
                     x.PurchaseOrderLineId,
                     x.IngredientId,
-                    x.OrderedBaseQuantity
+                    x.OrderedBaseQuantity,
+                    x.ClosedRemainingQuantity
                 })
                 .ToListAsync();
             var lineIds = rows.Select(x => x.PurchaseOrderLineId).ToArray();
             var postingRows = await _context.PurchaseOrderReceiptPostings.AsNoTracking()
                 .Where(x => lineIds.Contains(x.PurchaseOrderLineId))
-                .Select(x => new { x.PurchaseOrderLineId, x.AcceptedBaseQuantity, x.RejectedBaseQuantity })
+                .Select(x => new { x.PurchaseOrderLineId, x.AcceptedBaseQuantity })
                 .ToListAsync();
-            var disposedByLine = postingRows
+            var acceptedByLine = postingRows
                 .GroupBy(x => x.PurchaseOrderLineId)
                 .ToDictionary(
                     x => x.Key,
-                    x => x.Sum(y => y.AcceptedBaseQuantity + y.RejectedBaseQuantity));
+                    x => x.Sum(y => y.AcceptedBaseQuantity));
             return rows.GroupBy(x => x.IngredientId)
                 .ToDictionary(
                     x => x.Key,
                     x => x.Sum(y => Math.Max(
                         0m,
-                        y.OrderedBaseQuantity - disposedByLine.GetValueOrDefault(y.PurchaseOrderLineId))));
+                        y.OrderedBaseQuantity
+                        - acceptedByLine.GetValueOrDefault(y.PurchaseOrderLineId)
+                        - y.ClosedRemainingQuantity)));
         }
 
         public async Task<decimal> GetAllocatedBaseQuantityAsync(int restockRequestId, int? excludePurchaseOrderLineId = null)
@@ -50,7 +53,7 @@ namespace CafeChain.Application.Services.Inventories
                 .Where(x => x.RestockRequestId == restockRequestId
                     && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled
                     && (!excludePurchaseOrderLineId.HasValue || x.PurchaseOrderLineId != excludePurchaseOrderLineId.Value))
-                .Select(x => x.OrderedBaseQuantity)
+                .Select(x => Math.Max(0m, x.OrderedBaseQuantity - x.ClosedRemainingQuantity))
                 .ToListAsync();
             return quantities.Sum();
         }
