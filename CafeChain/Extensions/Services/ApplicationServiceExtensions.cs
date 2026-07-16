@@ -289,12 +289,13 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IStockAlertManagerService, StockAlertManagerService>();
             services.AddScoped<IRestockRequestService, RestockRequestService>();
             services.AddScoped<IReorderSuggestionService, ReorderSuggestionService>();
-            services.AddScoped<IReorderIncomingQuantityProvider, NoPurchaseOrderIncomingQuantityProvider>();
+            services.AddScoped<IReorderIncomingQuantityProvider, PurchaseOrderQuantityProvider>();
             // Issue #128 — restock workflow + branch receipt posting
             services.AddScoped<IRestockRequestWorkflowService, RestockRequestWorkflowService>();
             services.AddScoped<IRestockFulfillmentPostingService, RestockFulfillmentPostingService>();
-            services.AddScoped<IRestockPurchaseAllocationProvider, NoPurchaseOrderAllocationProvider>();
+            services.AddScoped<IRestockPurchaseAllocationProvider, PurchaseOrderQuantityProvider>();
             services.AddScoped<IRestockAllocationService, RestockAllocationService>();
+            services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 
             // Staff notifications read/mark (Issue #101)

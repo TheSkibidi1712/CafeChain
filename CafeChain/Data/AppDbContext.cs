@@ -9,6 +9,7 @@ using CafeChain.Models.Inventories.Documents;
 using CafeChain.Models.Inventories.Ingredients;
 using CafeChain.Models.Inventories.PreparedItems;
 using CafeChain.Models.Inventories.Production;
+using CafeChain.Models.Inventories.Procurement;
 using CafeChain.Models.Inventories.Stock;
 using CafeChain.Models.Inventories.StockTake;
 using CafeChain.Models.Inventories.Suppliers;
@@ -160,6 +161,9 @@ namespace CafeChain.Data
         public DbSet<RestockRequestFulfillment> RestockRequestFulfillments { get; set; }
         public DbSet<RestockFulfillmentPosting> RestockFulfillmentPostings { get; set; }
         public DbSet<RestockRequestTransition> RestockRequestTransitions { get; set; }
+        public DbSet<PurchaseOrder> PurchaseOrders { get; set; }
+        public DbSet<PurchaseOrderLine> PurchaseOrderLines { get; set; }
+        public DbSet<PurchaseOrderReceiptPosting> PurchaseOrderReceiptPostings { get; set; }
 
         // Stock Take
         public DbSet<StockTakeSession> StockTakeSessions { get; set; }

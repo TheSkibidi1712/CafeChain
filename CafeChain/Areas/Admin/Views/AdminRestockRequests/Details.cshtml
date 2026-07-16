@@ -19,6 +19,11 @@
         "COMPLETED" => "ops-badge-success", _ => "ops-badge-neutral"
     };
     string PriorityLabel(string value) => value switch { "URGENT" => "Khẩn cấp", "HIGH" => "Cao", _ => "Bình thường" };
+    string PoStatusLabel(string value) => value switch
+    {
+        "DRAFT" => "Bản nháp", "APPROVED" => "Đã duyệt", "MARKED_AS_SENT" => "Đã gửi nhà cung cấp",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần", "COMPLETED" => "Hoàn tất", "CANCELLED" => "Đã hủy", _ => value
+    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -129,6 +134,29 @@
             </section>
 
             <section class="ops-panel">
+                <div class="ops-panel-header"><h2 class="ops-panel-title">Đơn mua hàng liên kết</h2></div>
+                <div class="ops-panel-body p-0">
+                    @if (Model.PurchaseOrders.Count == 0) { <div class="p-3 ops-secondary">Chưa có đơn mua hàng liên quan.</div> }
+                    else
+                    {
+                        <div class="ops-table-scroll"><table class="ops-table" style="min-width:680px"><thead><tr><th>Đơn mua</th><th>Nhà cung cấp</th><th>Trạng thái PO</th><th>Ngày đặt</th><th class="number">Giá trị</th><th></th></tr></thead><tbody>
+                        @foreach (var order in Model.PurchaseOrders)
+                        {
+                            <tr>
+                                <td><strong>@order.Code</strong></td>
+                                <td>@order.SupplierName</td>
+                                <td><span class="ops-badge @(order.Status == "COMPLETED" ? "ops-badge-success" : order.Status == "CANCELLED" ? "ops-badge-neutral" : "ops-badge-info")">@PoStatusLabel(order.Status)</span></td>
+                                <td>@order.OrderDate.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="number">@order.TotalAmount.ToString("N0") đ</td>
+                                <td><a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@order.PurchaseOrderId">Xem PO</a></td>
+                            </tr>
+                        }
+                        </tbody></table></div>
+                    }
+                </div>
+            </section>
+
+            <section class="ops-panel">
                 <div class="ops-panel-header"><h2 class="ops-panel-title">Chứng từ nhận hàng</h2></div>
                 <div class="ops-panel-body p-0">
                     @if (Model.Receipts.Count == 0) { <div class="p-3 ops-secondary">Chưa có phiếu nhận liên quan.</div> }
@@ -173,6 +201,7 @@
                     }
                     @if (canWarehouse && Model.Status is "PROCESSING" or "PARTIALLY_RECEIVED" && Model.RemainingToReceiveQuantity > 0)
                     {
+                        <a class="ops-btn ops-btn-primary w-100 mb-2" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId"><i class="fa-solid fa-cart-flatbed" aria-hidden="true"></i> Tạo PO phần còn lại</a>
                         <a class="ops-btn w-100 mb-3" asp-area="Admin" asp-controller="AdminInventoryTransfer" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-toStoreId="@Model.StoreId"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Tạo điều chuyển phần còn lại</a>
                         <form method="post" asp-action="CloseRemaining" asp-route-id="@Model.RestockRequestId">
                             @Html.AntiForgeryToken()

@@ -1,0 +1,21 @@
+@model CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderDetailDto
+@{
+    ViewData["Title"] = "Chi tiết đơn mua";
+    Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
+    string StatusLabel(string value) => value switch
+    {
+        "DRAFT" => "Bản nháp",
+        "APPROVED" => "Đã duyệt",
+        "MARKED_AS_SENT" => "Đã gửi nhà cung cấp",
+        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
+        "COMPLETED" => "Hoàn tất",
+        "CANCELLED" => "Đã hủy",
+        _ => value
+    };
+}
+<link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
+<main class="ops-shell"><header class="ops-header"><div><div class="ops-eyebrow">@Model.Code · @Model.StoreName</div><h1 class="ops-title">@Model.SupplierName</h1><p class="ops-subtitle">Trạng thái PO: @StatusLabel(Model.Status). Trạng thái này không thay thế trạng thái RestockRequest.</p></div><a class="ops-btn" asp-action="Index"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a></header>
+@if(TempData["SuccessMessage"] != null){<div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div>} @if(TempData["ErrorMessage"] != null){<div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div>}
+<section class="ops-metrics"><div class="ops-metric"><span class="ops-metric-label">Giá trị đặt</span><strong class="ops-metric-value">@Model.TotalAmount.ToString("N0") đ</strong></div><div class="ops-metric"><span class="ops-metric-label">Ngày đặt</span><strong class="ops-metric-value">@Model.OrderDate.ToLocalTime().ToString("dd/MM/yyyy")</strong></div></section>
+<section class="ops-panel"><div class="ops-panel-body p-0"><div class="ops-table-scroll"><table class="ops-table"><thead><tr><th>Nguyên liệu</th><th>Yêu cầu</th><th class="number">Đặt</th><th class="number">Chấp nhận</th><th class="number">Loại bỏ</th><th class="number">Còn lại</th><th></th></tr></thead><tbody>@foreach(var x in Model.Lines){<tr><td><strong>@x.IngredientName</strong><div class="ops-secondary">@x.PackageCount.ToString("N3") gói · @x.PackagePriceSnapshot.ToString("N0") đ/gói</div></td><td>@(x.RestockRequestId.HasValue ? $"#{x.RestockRequestId}" : "Mua chủ động")</td><td class="number">@x.OrderedBaseQuantity.ToString("N3")</td><td class="number">@x.AcceptedBaseQuantity.ToString("N3")</td><td class="number">@x.RejectedBaseQuantity.ToString("N3")</td><td class="number">@x.RemainingBaseQuantity.ToString("N3")</td><td>@if(x.RemainingBaseQuantity > 0 && Model.Status is "APPROVED" or "MARKED_AS_SENT" or "PARTIALLY_RECEIVED"){<a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create" asp-route-purchaseOrderLineId="@x.PurchaseOrderLineId">Nhận hàng</a>}</td></tr>}</tbody></table></div></div></section>
+<section class="ops-panel"><div class="ops-panel-body"><div class="ops-inline-actions">@if(Model.Status=="DRAFT"){<form method="post" asp-action="Approve" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<button class="ops-btn ops-btn-primary">Duyệt đơn</button></form>}@if(Model.Status=="APPROVED"){<form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<button class="ops-btn ops-btn-primary">Đánh dấu đã gửi NCC</button></form>}@if(Model.Status is "APPROVED" or "MARKED_AS_SENT" or "PARTIALLY_RECEIVED"){<a class="ops-btn" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create" asp-route-storeId="@Model.StoreId">Tạo phiếu nhận</a>}</div>@if(Model.Status is "DRAFT" or "APPROVED" or "MARKED_AS_SENT"){<form method="post" asp-action="Cancel" asp-route-id="@Model.PurchaseOrderId" class="mt-3">@Html.AntiForgeryToken()<label class="ops-form-label" for="cancelReason">Lý do hủy đơn mua</label><div class="d-flex gap-2"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="Nhập lý do hủy..." /><button class="ops-btn ops-btn-danger" type="submit">Hủy đơn</button></div></form>}</div></section></main>

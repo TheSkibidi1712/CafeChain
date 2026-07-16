@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Interfaces.Security;
@@ -603,6 +604,25 @@ namespace CafeChain.Application.Services.Inventories
                 TotalLineCost = x.Lines.Sum(l => l.LineTotalCost)
             }).ToList();
 
+            var purchaseOrderEntities = await _context.PurchaseOrders
+                .AsNoTracking()
+                .Include(x => x.Store)
+                .Include(x => x.Supplier)
+                .Include(x => x.Lines)
+                .Where(x => x.Lines.Any(l => l.RestockRequestId == r.RestockRequestId))
+                .OrderByDescending(x => x.CreatedAtUtc)
+                .ToListAsync();
+            var purchaseOrders = purchaseOrderEntities.Select(x => new PurchaseOrderListItemDto
+            {
+                PurchaseOrderId = x.PurchaseOrderId,
+                Code = x.Code,
+                StoreName = x.Store.Name,
+                SupplierName = x.Supplier.Name,
+                Status = x.Status,
+                OrderDate = x.OrderDate,
+                TotalAmount = x.Lines.Sum(l => l.PackageCount * l.PackagePriceSnapshot)
+            }).ToList();
+
             var fulfillments = await _context.RestockRequestFulfillments
                 .AsNoTracking()
                 .Where(f => f.RestockRequestId == r.RestockRequestId)
@@ -681,6 +701,7 @@ namespace CafeChain.Application.Services.Inventories
                 ProcessingNote = r.ProcessingNote,
                 RemainingCloseReason = r.RemainingCloseReason,
                 Timeline = timeline,
+                PurchaseOrders = purchaseOrders,
                 Receipts = receipts,
                 Fulfillments = fulfillments,
                 FulfillmentPostings = postings

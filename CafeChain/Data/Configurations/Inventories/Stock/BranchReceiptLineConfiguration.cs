@@ -31,6 +31,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
                 .HasColumnType("decimal(18,3)")
                 .IsRequired();
 
+            entity.Property(x => x.RejectedBaseQuantity)
+                .HasColumnType("decimal(18,3)")
+                .HasDefaultValue(0m)
+                .IsRequired();
+
             entity.Property(x => x.ActualPackagePrice)
                 .HasColumnType("decimal(18,2)");
 
@@ -58,6 +63,11 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
             entity.HasOne(x => x.RestockRequest)
                 .WithMany()
                 .HasForeignKey(x => x.RestockRequestId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(x => x.PurchaseOrderLine)
+                .WithMany()
+                .HasForeignKey(x => x.PurchaseOrderLineId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(x => x.SourceInventoryTransferDetail)
@@ -123,6 +133,7 @@ namespace CafeChain.Data.Configurations.Inventories.Stock
 
             entity.HasIndex(x => x.BranchReceiptId);
             entity.HasIndex(x => x.RestockRequestId);
+            entity.HasIndex(x => x.PurchaseOrderLineId);
             entity.HasIndex(x => new { x.BranchReceiptId, x.SourceTransferCostAllocationId })
                 .IsUnique()
                 .HasFilter("[SourceTransferCostAllocationId] IS NOT NULL");

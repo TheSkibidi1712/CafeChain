@@ -30,6 +30,7 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IStockAlertService _stockAlertService;
         private readonly IScopeAuthorizationService _scopeAuthorization;
         private readonly ILogger<BranchReceiptService> _logger;
+        private readonly IPurchaseOrderService? _purchaseOrders;
 
         public BranchReceiptService(
             AppDbContext context,
@@ -40,7 +41,8 @@ namespace CafeChain.Application.Services.Inventories
             IRestockFulfillmentPostingService fulfillmentPostingService,
             IStockAlertService stockAlertService,
             IScopeAuthorizationService scopeAuthorization,
-            ILogger<BranchReceiptService> logger)
+            ILogger<BranchReceiptService> logger,
+            IPurchaseOrderService? purchaseOrders = null)
         {
             _context = context;
             _unitConversion = unitConversion;
@@ -51,6 +53,7 @@ namespace CafeChain.Application.Services.Inventories
             _stockAlertService = stockAlertService;
             _scopeAuthorization = scopeAuthorization;
             _logger = logger;
+            _purchaseOrders = purchaseOrders;
         }
 
         public async Task<ServiceResult<BranchReceiptDetailDto>> CreateDraftAsync(
@@ -163,6 +166,7 @@ namespace CafeChain.Application.Services.Inventories
                 var line = new BranchReceiptLine
                 {
                     RestockRequestId = p.Request.RestockRequestId,
+                    PurchaseOrderLineId = p.Input.PurchaseOrderLineId,
                     RestockRequestFulfillmentId = p.Input.RestockRequestFulfillmentId,
                     IngredientId = p.Request.IngredientId,
                     // New lines: PreparedItem identity only when request is PI-based (no Recipe-only).
@@ -173,6 +177,7 @@ namespace CafeChain.Application.Services.Inventories
                     InputQuantity = p.Input.InputQuantity,
                     InputUnitId = p.Input.InputUnitId,
                     ReceivedBaseQuantity = p.BaseQty,
+                    RejectedBaseQuantity = p.Input.RejectedBaseQuantity,
                     BaseUnitId = p.BaseUnitId,
                     SupplierId = p.Input.SupplierId ?? request.SupplierId,
                     IngredientSupplierId = p.Input.IngredientSupplierId,
@@ -200,6 +205,16 @@ namespace CafeChain.Application.Services.Inventories
                 }
 
                 receipt.Lines.Add(line);
+            }
+
+            if (_purchaseOrders != null)
+            {
+                foreach (var line in receipt.Lines.Where(x => x.PurchaseOrderLineId.HasValue))
+                {
+                    var poValidation = await _purchaseOrders.ValidateReceiptLineAsync(receipt, line);
+                    if (!poValidation.IsSuccess)
+                        return FailDetail(poValidation.Message);
+                }
             }
 
             try
@@ -428,6 +443,25 @@ namespace CafeChain.Application.Services.Inventories
                             "Dòng đã post — không post lại.",
                             errorCode: BranchReceiptErrorCodes.IdempotencyKeyReused);
                     }
+
+                    if (line.PurchaseOrderLineId.HasValue)
+                    {
+                        if (_purchaseOrders == null)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                "Dịch vụ đơn mua hàng chưa được cấu hình.",
+                                errorCode: BranchReceiptErrorCodes.ConfirmFailed);
+                        }
+                        var poValidation = await _purchaseOrders.ValidateReceiptLineAsync(receipt, line);
+                        if (!poValidation.IsSuccess)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                poValidation.Message,
+                                errorCode: BranchReceiptErrorCodes.RestockOverReceiptNotAllowed);
+                        }
+                    }
                 }
 
                 // RestockFulfillmentPosting is the only authority for actual fulfilled quantity.
@@ -460,6 +494,18 @@ namespace CafeChain.Application.Services.Inventories
                     }
 
                     requestUpdates[line.RestockRequestId!.Value] = posting.Data;
+
+                    if (line.PurchaseOrderLineId.HasValue)
+                    {
+                        var poPosting = await _purchaseOrders!.RegisterReceiptPostingAsync(receipt, line, actorStaffId);
+                        if (!poPosting.IsSuccess)
+                        {
+                            await transaction.RollbackAsync();
+                            return ServiceResult<ConfirmBranchReceiptResultDto>.Failure(
+                                poPosting.Message,
+                                errorCode: BranchReceiptErrorCodes.ConfirmFailed);
+                        }
+                    }
                 }
 
                 // Resolve / lock inventory rows ASC
@@ -1202,6 +1248,7 @@ namespace CafeChain.Application.Services.Inventories
                 Lines = (r.Lines ?? Enumerable.Empty<BranchReceiptLine>()).Select(l => new BranchReceiptLineDto
                 {
                     BranchReceiptLineId = l.BranchReceiptLineId,
+                    PurchaseOrderLineId = l.PurchaseOrderLineId,
                     RestockRequestId = l.RestockRequestId ?? 0,
                     IngredientId = l.IngredientId,
                     PreparedItemId = l.PreparedItemId,
@@ -1210,6 +1257,7 @@ namespace CafeChain.Application.Services.Inventories
                     InputUnitId = l.InputUnitId,
                     InputUnitName = l.InputUnit?.Name,
                     ReceivedBaseQuantity = l.ReceivedBaseQuantity,
+                    RejectedBaseQuantity = l.RejectedBaseQuantity,
                     BaseUnitId = l.BaseUnitId,
                     BaseUnitName = l.BaseUnit?.Name,
                     ActualPackagePrice = l.ActualPackagePrice,

@@ -1,3 +1,5 @@
+using CafeChain.Application.DTOs.Admin.Procurement;
+
 namespace CafeChain.Application.DTOs.Admin.RestockRequests
 {
     public class RestockTimelineItemDto
@@ -36,6 +38,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public string? RemainingCloseReason { get; set; }
         public bool StockRecoveredExternally { get; set; }
         public List<RestockTimelineItemDto> Timeline { get; set; } = new();
+        public List<PurchaseOrderListItemDto> PurchaseOrders { get; set; } = new();
         public List<BranchReceiptListItemDto> Receipts { get; set; } = new();
         public List<RestockFulfillmentDto> Fulfillments { get; set; } = new();
         public List<RestockFulfillmentPostingDto> FulfillmentPostings { get; set; } = new();
@@ -92,6 +95,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     {
         public int BranchReceiptLineId { get; set; }
         public int RestockRequestId { get; set; }
+        public int? PurchaseOrderLineId { get; set; }
         public int? IngredientId { get; set; }
         public int? PreparedItemId { get; set; }
         public int? RecipeId { get; set; }
@@ -99,6 +103,7 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
         public int InputUnitId { get; set; }
         public string? InputUnitName { get; set; }
         public decimal ReceivedBaseQuantity { get; set; }
+        public decimal RejectedBaseQuantity { get; set; }
         public int BaseUnitId { get; set; }
         public string? BaseUnitName { get; set; }
         public decimal? ActualPackagePrice { get; set; }
@@ -124,8 +129,10 @@ namespace CafeChain.Application.DTOs.Admin.RestockRequests
     public class CreateBranchReceiptLineInput
     {
         public int RestockRequestId { get; set; }
+        public int? PurchaseOrderLineId { get; set; }
         public int? RestockRequestFulfillmentId { get; set; }
         public decimal InputQuantity { get; set; }
+        public decimal RejectedBaseQuantity { get; set; }
         public int InputUnitId { get; set; }
         /// <summary>Actual package/unit price confirmed by operator (required for post).</summary>
         public decimal ActualPackagePrice { get; set; }

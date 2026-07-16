@@ -76,12 +76,17 @@
                             <div class="col-lg-3 col-md-6">
                                 <label class="ops-form-label">Yêu cầu nhập <span class="text-danger">*</span></label>
                                 <input class="ops-input w-100" asp-for="Lines[i].RestockRequestId" type="number" min="1" required />
+                                <input asp-for="Lines[i].PurchaseOrderLineId" type="hidden" />
                             </div>
                             <div class="col-lg-2 col-md-6">
                                 <label class="ops-form-label">Số gói thực nhận <span class="text-danger">*</span></label>
                                 <input class="ops-input w-100" asp-for="Lines[i].InputQuantity" type="number" step="0.001" min="0.001" required />
                             </div>
-                            <div class="col-lg-7 col-md-12">
+                            <div class="col-lg-2 col-md-6">
+                                <label class="ops-form-label">Lượng loại bỏ (base)</label>
+                                <input class="ops-input w-100" asp-for="Lines[i].RejectedBaseQuantity" type="number" step="0.001" min="0" />
+                            </div>
+                            <div class="col-lg-5 col-md-12">
                                 <label class="ops-form-label">Gói mua nguyên liệu <span class="text-danger">*</span></label>
                                 <select class="ops-select w-100 receipt-offer"
                                         asp-for="Lines[i].IngredientSupplierId"

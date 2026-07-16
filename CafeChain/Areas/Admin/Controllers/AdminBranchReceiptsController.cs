@@ -3,6 +3,8 @@ using CafeChain.Application.DTOs.Admin.RestockRequests;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using CafeChain.Data;
 
 namespace CafeChain.Areas.Admin.Controllers
 {
@@ -14,13 +16,16 @@ namespace CafeChain.Areas.Admin.Controllers
     {
         private readonly IBranchReceiptService _receiptService;
         private readonly IAdminActorContextAccessor _actor;
+        private readonly AppDbContext _context;
 
         public AdminBranchReceiptsController(
             IBranchReceiptService receiptService,
-            IAdminActorContextAccessor actor)
+            IAdminActorContextAccessor actor,
+            AppDbContext context)
         {
             _receiptService = receiptService;
             _actor = actor;
+            _context = context;
         }
 
         [HttpGet]
@@ -79,7 +84,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> Create(int? restockRequestId = null, int? storeId = null)
+        public async Task<IActionResult> Create(int? restockRequestId = null, int? storeId = null, int? purchaseOrderLineId = null)
         {
             if (!CanConfirmReceipts())
             {
@@ -88,6 +93,16 @@ namespace CafeChain.Areas.Admin.Controllers
             }
 
             var ctx = _actor.Get(User);
+            CafeChain.Models.Inventories.Procurement.PurchaseOrderLine? poLine = null;
+            if (purchaseOrderLineId.HasValue)
+            {
+                poLine = await _context.PurchaseOrderLines.AsNoTracking()
+                    .Include(x => x.PurchaseOrder)
+                    .SingleOrDefaultAsync(x => x.PurchaseOrderLineId == purchaseOrderLineId.Value);
+                if (poLine == null) return NotFound();
+                restockRequestId = poLine.RestockRequestId;
+                storeId = poLine.PurchaseOrder.StoreId;
+            }
             var targetStoreId = HasCrossStoreDocumentRole()
                 ? storeId.GetValueOrDefault()
                 : ctx.StoreId;
@@ -102,11 +117,17 @@ namespace CafeChain.Areas.Admin.Controllers
             return View(new CreateBranchReceiptRequest
             {
                 StoreId = targetStoreId,
+                SupplierId = poLine?.PurchaseOrder.SupplierId,
                 ReceiptKey = $"RCPT-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid().ToString("N")[..6]}",
                 Lines = restockRequestId.HasValue
                     ? new List<CreateBranchReceiptLineInput>
                     {
-                        new() { RestockRequestId = restockRequestId.Value }
+                        new()
+                        {
+                            RestockRequestId = restockRequestId.Value,
+                            PurchaseOrderLineId = poLine?.PurchaseOrderLineId,
+                            IngredientSupplierId = poLine?.IngredientSupplierId
+                        }
                     }
                     : new List<CreateBranchReceiptLineInput> { new() }
             });
