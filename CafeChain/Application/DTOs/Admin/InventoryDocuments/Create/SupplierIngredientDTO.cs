@@ -1,5 +1,12 @@
 ﻿namespace CafeChain.Application.DTOs.Admin.InventoryDocuments.Create
 {
+    public static class InventoryPriceSemantics
+    {
+        public const string BaseUnitCost = "BASE_UNIT_COST";
+        public const string PurchasePackage = "PURCHASE_PACKAGE";
+        public const string None = "NONE";
+    }
+
     public class SupplierIngredientDTO
     {
         public int IngredientSupplierId { get; set; }
@@ -55,23 +62,12 @@
 
         public string PriceSource { get; set; } = string.Empty;
 
+        public string PriceSemantics { get; set; } = InventoryPriceSemantics.None;
+
         public bool IsQuantityLocked { get; set; }
 
         public bool IsPriceLocked { get; set; }
 
-        public List<InventoryIngredientUnitOptionDTO> UnitOptions { get; set; } = [];
-    }
-
-    public class InventoryIngredientUnitOptionDTO
-    {
-        public int UnitId { get; set; }
-
-        public string UnitName { get; set; } = string.Empty;
-
-        public string UnitCode { get; set; } = string.Empty;
-
-        public decimal ConversionFactorToBase { get; set; }
-
-        public bool IsBaseUnit { get; set; }
+        public List<CafeChain.Application.DTOs.Inventories.InventoryUnitOptionDTO> UnitOptions { get; set; } = [];
     }
 }

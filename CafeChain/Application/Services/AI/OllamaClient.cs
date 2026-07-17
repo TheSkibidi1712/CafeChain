@@ -32,7 +32,13 @@ public sealed class OllamaClient : IOllamaClient
                 Stream = false,
                 Think = _options.Think,
                 KeepAlive = _options.KeepAlive,
-                Options = new OllamaRequestOptionsDTO { Temperature = _options.Temperature },
+                Options = new OllamaRequestOptionsDTO
+                {
+                    Temperature = _options.Temperature,
+                    TopP = _options.TopP,
+                    TopK = _options.TopK,
+                    RepeatPenalty = _options.RepeatPenalty
+                },
                 Messages =
                 [
                     new() { Role = "system", Content = systemPrompt },

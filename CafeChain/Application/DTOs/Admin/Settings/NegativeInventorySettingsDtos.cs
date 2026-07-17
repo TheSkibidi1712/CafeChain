@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using CafeChain.Application.DTOs.Inventories;
 
 namespace CafeChain.Application.DTOs.Admin.Settings;
 
@@ -30,7 +31,10 @@ public sealed class NegativeInventoryStoreItemDTO
     public int ItemId { get; init; }
     public string ItemCode { get; init; } = string.Empty;
     public string ItemName { get; init; } = string.Empty;
+    public int BaseUnitId { get; init; }
     public string BaseUnitCode { get; init; } = string.Empty;
+    public int DisplayUnitId { get; init; }
+    public IReadOnlyList<InventoryUnitOptionDTO> UnitOptions { get; init; } = [];
     public bool StoreActive { get; init; }
     public bool ItemActive { get; init; }
     public decimal AvailableQty { get; init; }
@@ -56,6 +60,7 @@ public sealed class UpdateNegativeInventorySettingsDTO
 public sealed class UpdateNegativeInventoryItemDTO
 {
     public int StoreInventoryId { get; set; }
+    public int DisplayUnitId { get; set; }
     public string LimitMode { get; set; } = NegativeInventoryLimitModes.Default;
     public decimal? MaxNegativeQuantity { get; set; }
     public string RowVersion { get; set; } = string.Empty;

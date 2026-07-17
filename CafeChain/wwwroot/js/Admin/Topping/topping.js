@@ -148,6 +148,7 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
     if (!button) return;
     const form = document.getElementById('createToppingForm');
     const idea = document.getElementById('toppingAiIdea');
+    const generationMode = document.getElementById('toppingAiGenerationMode');
     const name = form.querySelector('[name="Name"]');
     const code = form.querySelector('[name="ToppingCode"]');
     const price = form.querySelector('[name="Price"]');
@@ -173,6 +174,7 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
             defaultFileName: 'topping-ai.png',
             notify: (message, type) => showToast(message, type),
             suggestionPayload: () => ({
+                generationMode: Number(generationMode?.value || 0),
                 idea: idea.value.trim() || null,
                 currentToppingCode: code.value.trim() || null,
                 currentName: name.value.trim() || null,
@@ -188,7 +190,7 @@ document.addEventListener('DOMContentLoaded', function initFullToppingAiSuggesti
                 card.append(title, meta);
             },
             fileNamePrefix: option => option.fields?.toppingCode || 'topping_ai',
-            invalidateElements: () => [idea, name, code, price],
+            invalidateElements: () => [idea, generationMode, name, code, price],
             willOverwrite: () => Boolean(name.value.trim() || code.value.trim() || price.value || imageInput.files.length),
             apply: async (option, file) => {
                 const value = option.fields || {};

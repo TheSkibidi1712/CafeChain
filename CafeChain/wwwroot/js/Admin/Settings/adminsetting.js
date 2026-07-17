@@ -43,6 +43,46 @@
             select.addEventListener("change", () => syncCustomLimit(select));
         });
 
+        const formatQuantity = (value) => Number(value || 0).toLocaleString("vi-VN", {
+            maximumFractionDigits: 3
+        });
+
+        const applyDisplayUnit = (select) => {
+            const row = select.closest("tr");
+            const option = select.selectedOptions[0];
+            if (!row || !option) return;
+
+            const oldFactor = Number(row.dataset.currentFactor || 1);
+            const newFactor = Number(option.dataset.factor || 0);
+            if (!Number.isFinite(newFactor) || newFactor <= 0) return;
+
+            const customInput = row.querySelector(".negative-custom-limit");
+            if (customInput?.value) {
+                const currentDisplay = Number(customInput.value);
+                if (Number.isFinite(currentDisplay) && currentDisplay > 0) {
+                    const baseValue = currentDisplay * oldFactor;
+                    customInput.value = String(Math.round((baseValue / newFactor) * 1000) / 1000);
+                }
+            }
+
+            const available = Number(row.dataset.baseAvailable || 0) / newFactor;
+            const reserved = Number(row.dataset.baseReserved || 0) / newFactor;
+            const effective = Number(row.dataset.baseEffectiveLimit || 0) / newFactor;
+            row.querySelectorAll(".negative-display-unit-code").forEach(x => x.textContent = option.dataset.code || "");
+            const availableElement = row.querySelector(".negative-available-qty");
+            const reservedElement = row.querySelector(".negative-reserved-qty");
+            const effectiveElement = row.querySelector(".negative-effective-limit");
+            if (availableElement) availableElement.textContent = formatQuantity(available);
+            if (reservedElement) reservedElement.textContent = formatQuantity(reserved);
+            if (effectiveElement) effectiveElement.textContent = formatQuantity(effective);
+            row.dataset.currentFactor = String(newFactor);
+        };
+
+        document.querySelectorAll(".negative-display-unit").forEach((select) => {
+            applyDisplayUnit(select);
+            select.addEventListener("change", () => applyDisplayUnit(select));
+        });
+
         const filterItems = () => {
             const selectedStore = storeFilter?.value ?? "";
             const query = (itemSearch?.value ?? "").trim().toLocaleLowerCase("vi");

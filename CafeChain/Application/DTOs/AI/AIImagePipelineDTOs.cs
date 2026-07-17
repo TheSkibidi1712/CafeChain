@@ -14,6 +14,15 @@ public sealed class VisualSpecificationDTO
     public string CameraAngle { get; set; } = string.Empty;
     public string Lighting { get; set; } = string.Empty;
     public string ImageStyle { get; set; } = string.Empty;
+    public string StyleProfile { get; set; } = string.Empty;
+    public string Mood { get; set; } = string.Empty;
+    public string Container { get; set; } = string.Empty;
+    public string Surface { get; set; } = string.Empty;
+    public List<string> Garnishes { get; set; } = [];
+    public List<string> Props { get; set; } = [];
+    public string Lens { get; set; } = string.Empty;
+    public string DepthOfField { get; set; } = string.Empty;
+    public string ReferencePurpose { get; set; } = string.Empty;
     public string Orientation { get; set; } = "square";
     public List<string> RequiredKeywords { get; set; } = [];
     public List<string> ForbiddenKeywords { get; set; } = [];

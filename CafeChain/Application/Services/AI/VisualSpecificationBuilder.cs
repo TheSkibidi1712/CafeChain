@@ -7,6 +7,19 @@ namespace CafeChain.Application.Services.AI;
 
 public sealed class VisualSpecificationBuilder : IVisualSpecificationBuilder
 {
+    private static readonly (string Name, string Mood, string Background, string Composition, string Lighting)[] StyleProfiles =
+    [
+        ("Minimal Studio", "clean and focused", "warm off-white seamless studio", "centered hero product with generous negative space", "large softbox with subtle fill"),
+        ("Luxury Dark", "premium and dramatic", "charcoal stone cafe surface", "low-angle premium hero composition", "soft rim light and controlled highlights"),
+        ("Tropical Fresh", "fresh and energetic", "bright natural cafe setting", "diagonal ingredient-led composition", "sunlit diffused daylight"),
+        ("Japanese Cafe", "quiet and refined", "light wood Japanese cafe counter", "balanced asymmetrical composition", "soft window light"),
+        ("Vietnamese Modern", "familiar and contemporary", "modern Vietnamese cafe table", "commercial menu composition", "warm natural daylight"),
+        ("Pastel Lifestyle", "friendly and youthful", "soft pastel lifestyle backdrop", "playful centered composition", "bright diffused lighting"),
+        ("Natural Ingredient", "honest and ingredient-forward", "natural linen and wood surface", "ingredients framing the main subject", "directional natural light"),
+        ("Commercial Menu", "clear and appetizing", "neutral menu-board studio", "front-facing catalog composition", "even commercial lighting"),
+        ("Premium Advertising", "polished and aspirational", "high-end advertising studio", "dynamic hero composition", "cinematic key and rim lighting"),
+        ("Outdoor Summer", "cool and refreshing", "sunny outdoor cafe bokeh", "refreshing lifestyle product composition", "bright summer backlight")
+    ];
     private static readonly (string Token, string English, string Color)[] DrinkTokens =
     [
         ("CA PHE", "coffee", "dark brown"),
@@ -102,16 +115,23 @@ public sealed class VisualSpecificationBuilder : IVisualSpecificationBuilder
             .Take(6)
             .ToList();
 
+        var profile = StyleProfiles[Math.Abs(StringComparer.OrdinalIgnoreCase.GetHashCode(primary)) % StyleProfiles.Length];
+        var container = subjectType == "beverage" ? "clear premium cafe glass" : "small matte ceramic bowl";
+        var surface = profile.Background.Contains("wood", StringComparison.OrdinalIgnoreCase)
+            ? "light natural wood"
+            : "clean textured cafe surface";
         var positive = string.Join(", ", new[]
         {
             primary,
             string.Join(", ", ingredients),
             string.Join(", ", colors),
-            "single centered product",
-            "three-quarter front view",
-            "soft natural commercial lighting",
+            container,
+            profile.Composition,
+            "three-quarter front view, 50mm lens",
+            profile.Lighting,
             "realistic professional food photography",
-            "clean neutral cafe background"
+            profile.Background,
+            "shallow depth of field"
         }.Where(x => !string.IsNullOrWhiteSpace(x)));
         if (!string.IsNullOrWhiteSpace(proposedPrompt) && LooksEnglish(proposedPrompt))
             positive = $"{positive}, {proposedPrompt.Trim()}";
@@ -123,11 +143,22 @@ public sealed class VisualSpecificationBuilder : IVisualSpecificationBuilder
             MainIngredients = ingredients,
             SecondaryObjects = secondary,
             DominantColors = colors,
-            Background = "clean cafe table with soft neutral background",
-            Composition = "single centered product, commercial product photography",
+            Background = profile.Background,
+            Composition = profile.Composition,
             CameraAngle = "three-quarter front view",
-            Lighting = "soft natural commercial lighting",
+            Lighting = profile.Lighting,
             ImageStyle = "realistic professional food photography",
+            StyleProfile = profile.Name,
+            Mood = profile.Mood,
+            Container = container,
+            Surface = surface,
+            Garnishes = ingredients.Take(2).ToList(),
+            Props = secondary.Take(2).ToList(),
+            Lens = "50mm product photography lens",
+            DepthOfField = "shallow depth of field, product fully readable",
+            ReferencePurpose = subjectType == "beverage"
+                ? "preserve product silhouette, color palette and composition"
+                : "preserve ingredient texture and serving presentation",
             Orientation = "square",
             RequiredKeywords = required,
             ForbiddenKeywords = forbidden.Distinct(StringComparer.OrdinalIgnoreCase).ToList(),

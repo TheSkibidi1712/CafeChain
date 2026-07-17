@@ -335,6 +335,15 @@ public sealed class AIImagePipelineService : IAIImagePipelineService
             $"camera angle: {spec.CameraAngle}",
             $"lighting: {spec.Lighting}",
             $"style: {spec.ImageStyle}",
+            $"style profile: {spec.StyleProfile}",
+            $"mood: {spec.Mood}",
+            $"container: {spec.Container}",
+            $"surface: {spec.Surface}",
+            spec.Garnishes.Count > 0 ? $"garnishes: {string.Join(", ", spec.Garnishes)}" : string.Empty,
+            spec.Props.Count > 0 ? $"props: {string.Join(", ", spec.Props)}" : string.Empty,
+            $"lens: {spec.Lens}",
+            $"depth of field: {spec.DepthOfField}",
+            $"reference purpose: {spec.ReferencePurpose}",
             $"orientation: {spec.Orientation}",
             "commercial cafe menu product photography, realistic texture, clean food styling, sharp focus"
         };

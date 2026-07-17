@@ -1442,9 +1442,9 @@ const InventoryCreate = (() => {
         setValue(row, ".ingredient-id", item.ingredientId ?? item.IngredientId);
         setText(row, ".base-unit-name", `Đơn vị gốc: ${getBaseUnitLabel(item)}`);
         setText(row, ".ingredient-source", buildIngredientSourceText(item));
-        setText(row, ".available-stock-display", buildAvailableStockText(item));
+        setText(row, ".available-stock-display", buildAvailableStockText(item, row));
         setText(row, ".price-source-display", buildPriceSourceText(item));
-        setText(row, ".minimum-order-quantity", buildQuantityReferenceText(item));
+        setText(row, ".minimum-order-quantity", buildQuantityReferenceText(item, row));
 
         const ingredientSelect =
             row.querySelector(
@@ -1612,6 +1612,8 @@ const InventoryCreate = (() => {
         setValue(row, ".unit-id", unitSelect?.value || "");
         setRowPriceForSelectedUnit(row, item);
         setText(row, ".ingredient-source", buildIngredientSourceText(item, row));
+        setText(row, ".available-stock-display", buildAvailableStockText(item, row));
+        setText(row, ".minimum-order-quantity", buildQuantityReferenceText(item, row));
     }
 
     function setRowPriceForSelectedUnit(row, item) {
@@ -1695,7 +1697,7 @@ const InventoryCreate = (() => {
         return `${item.ingredientName ?? item.IngredientName} - chưa có giá đơn vị`;
     }
 
-    function buildAvailableStockText(item) {
+    function buildAvailableStockText(item, row) {
 
         const available =
             getAvailableBaseQuantity(item);
@@ -1704,7 +1706,10 @@ const InventoryCreate = (() => {
             return "Tồn: -";
         }
 
-        return `Tồn: ${formatQuantity(available)} ${getBaseUnitLabel(item)}`;
+        const factor = row ? readRowConversionFactor(row, item) : readConversionFactor(item);
+        const displayAvailable = factor > 0 ? available / factor : available;
+        const unitLabel = row ? getSelectedUnitLabel(row, item) : getUnitLabel(item);
+        return `Tồn: ${formatQuantity(displayAvailable)} ${unitLabel}`;
     }
 
     function buildPriceSourceText(item) {
@@ -1721,14 +1726,19 @@ const InventoryCreate = (() => {
             : "Nguồn giá: -";
     }
 
-    function buildQuantityReferenceText(item) {
+    function buildQuantityReferenceText(item, row) {
+
+        const factor = row ? readRowConversionFactor(row, item) : readConversionFactor(item);
+        const displayAvailable = factor > 0
+            ? getAvailableBaseQuantity(item) / factor
+            : getAvailableBaseQuantity(item);
 
         if (isStockTake()) {
-            return formatQuantity(getAvailableBaseQuantity(item));
+            return formatQuantity(displayAvailable);
         }
 
         if (usesStoreInventorySource()) {
-            return formatQuantity(getAvailableBaseQuantity(item));
+            return formatQuantity(displayAvailable);
         }
 
         const moq =
@@ -2672,6 +2682,15 @@ const InventoryCreate = (() => {
     }
 
     function getSuggestedUnitPrice(item, row) {
+        const semantics = String(item?.priceSemantics ?? item?.PriceSemantics ?? "NONE").toUpperCase();
+        if (semantics === "BASE_UNIT_COST") {
+            const baseUnitCost = readNumber(item?.suggestedBaseUnitCost ?? item?.SuggestedBaseUnitCost);
+            const conversionFactor = readRowConversionFactor(row, item);
+            return baseUnitCost > 0 && conversionFactor > 0
+                ? baseUnitCost * conversionFactor
+                : null;
+        }
+
         // Issue #111: never treat package price as per g/ml unless server allows auto-fill
         // and the selected document unit still matches the package content unit.
         const canAutoFill =
@@ -2857,13 +2876,14 @@ const InventoryCreate = (() => {
         const lines = preflight?.lines || preflight?.Lines || [];
         panel.classList.toggle("d-none", lines.length === 0);
         panel.textContent = lines.map(line => {
-            const before = line.beforeQty ?? line.BeforeQty ?? 0;
-            const issue = line.issueQty ?? line.IssueQty ?? 0;
-            const after = line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0;
-            const limit = line.effectiveMaxNegativeQty ?? line.EffectiveMaxNegativeQty ?? 0;
+            const before = line.beforeDisplayQty ?? line.BeforeDisplayQty ?? line.beforeQty ?? line.BeforeQty ?? 0;
+            const issue = line.issueDisplayQty ?? line.IssueDisplayQty ?? line.issueQty ?? line.IssueQty ?? 0;
+            const after = line.projectedAfterDisplayQty ?? line.ProjectedAfterDisplayQty ?? line.projectedAfterQty ?? line.ProjectedAfterQty ?? 0;
+            const limit = line.effectiveMaxNegativeDisplayQty ?? line.EffectiveMaxNegativeDisplayQty ?? line.effectiveMaxNegativeQty ?? line.EffectiveMaxNegativeQty ?? 0;
+            const unit = line.unitCode ?? line.UnitCode ?? "base";
             const outcome = line.outcome ?? line.Outcome ?? "";
             const reason = line.reasonCode ?? line.ReasonCode ?? "";
-            return `#${line.ingredientId ?? line.IngredientId}: Before ${before} | Issue ${issue} | Projected ${after} | Limit ${limit} | ${outcome} | ${reason}`;
+            return `#${line.ingredientId ?? line.IngredientId}: Before ${formatQuantity(before)} ${unit} | Issue ${formatQuantity(issue)} ${unit} | Projected ${formatQuantity(after)} ${unit} | Limit ${formatQuantity(limit)} ${unit} | ${outcome} | ${reason}`;
         }).join("\n");
     }
 

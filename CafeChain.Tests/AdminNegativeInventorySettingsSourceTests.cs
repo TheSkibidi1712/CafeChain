@@ -11,9 +11,11 @@ public sealed class AdminNegativeInventorySettingsSourceTests
 
         Assert.DoesNotContain("[Route(", source, StringComparison.Ordinal);
         Assert.DoesNotMatch(new Regex(@"\[HttpPost\s*\(\s*[^)]", RegexOptions.CultureInvariant), source);
+        Assert.Contains("[Authorize(Roles = RoleConstants.BusinessOwner", source, StringComparison.Ordinal);
         Assert.Matches(new Regex(
-            @"\[HttpPost\]\s*\[ValidateAntiForgeryToken\]\s*\[Authorize\(Roles\s*=.*BusinessOwner.*SystemAdmin.*\)\]\s*public\s+async\s+Task<IActionResult>\s+UpdateNegativeInventory",
+            @"\[HttpPost\]\s*\[ValidateAntiForgeryToken\]\s*public\s+async\s+Task<IActionResult>\s+UpdateNegativeInventory",
             RegexOptions.CultureInvariant | RegexOptions.Singleline), source);
+        Assert.DoesNotContain("Task<IActionResult> Update(Dictionary", source, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -23,10 +25,11 @@ public sealed class AdminNegativeInventorySettingsSourceTests
                    + Read("CafeChain", "Areas", "Admin", "Views", "AdminSetting", "Partials", "_NegativeInventorySettings.cshtml");
         var client = Read("CafeChain", "wwwroot", "js", "Admin", "Settings", "adminsetting.js");
 
-        Assert.Contains("Kho &amp; tồn âm", view, StringComparison.Ordinal);
+        Assert.Contains("Cấu hình âm kho", view, StringComparison.Ordinal);
         Assert.Contains("UpdateNegativeInventory", view, StringComparison.Ordinal);
         Assert.Contains("Cho phép gửi yêu cầu xuất âm kho", view, StringComparison.Ordinal);
         Assert.Contains("NegativeInventoryLimitModes.Custom", view, StringComparison.Ordinal);
+        Assert.Contains("negative-display-unit", view, StringComparison.Ordinal);
         Assert.DoesNotContain("/Admin/AdminSetting/", view + client, StringComparison.Ordinal);
         Assert.DoesNotContain("/Admin/Setting/", view + client, StringComparison.Ordinal);
     }

@@ -21,7 +21,7 @@ namespace CafeChain.Areas.Admin.Controllers
     /// [Task 5] Loại bỏ AppDbContext — di chuyển ResolveUserStoreAsync sang Repository
     /// </summary>
     [Area("Admin")]
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
     public class AdminPOSController : Controller
     {
         private readonly IWorkShiftService _workShiftService;
@@ -52,20 +52,6 @@ namespace CafeChain.Areas.Admin.Controllers
             if (staffId == 0)
             {
                 return RedirectToAction("Login", "Account", new { area = "" });
-            }
-
-            var isSalesStaff =
-                role == CafeChain.Application.Constants.RoleConstants.SalesStaff;
-
-            var isShiftSupervisor =
-                role == CafeChain.Application.Constants.RoleConstants.ShiftSupervisor;
-
-            var isStoreManager =
-                role == CafeChain.Application.Constants.RoleConstants.StoreManager;
-
-            if (!(isSalesStaff || isShiftSupervisor || isStoreManager))
-            {
-                return RedirectToAction("AccessDenied", "Account", new { area = "" });
             }
 
             ViewBag.StaffName = staffName;

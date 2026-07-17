@@ -72,6 +72,7 @@ namespace CafeChain.Data.Configurations.Permissions
                     Code = "Drink.View",
                     Name = "Xem đồ uống",
                     Action = "View",
+                    Description = "Xem danh sách đồ uống",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -83,6 +84,7 @@ namespace CafeChain.Data.Configurations.Permissions
                     Code = "Drink.Create",
                     Name = "Thêm đồ uống",
                     Action = "Create",
+                    Description = "Tạo mới đồ uống",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -94,6 +96,7 @@ namespace CafeChain.Data.Configurations.Permissions
                     Code = "Drink.Update",
                     Name = "Cập nhật đồ uống",
                     Action = "Update",
+                    Description = "Cập nhật thông tin đồ uống",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -105,6 +108,7 @@ namespace CafeChain.Data.Configurations.Permissions
                     Code = "Drink.Delete",
                     Name = "Xóa đồ uống",
                     Action = "Delete",
+                    Description = "Xóa hoặc vô hiệu đồ uống",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 },
@@ -116,6 +120,7 @@ namespace CafeChain.Data.Configurations.Permissions
                     Code = "System.Permission.Manage",
                     Name = "Quản lý phân quyền",
                     Action = "Manage",
+                    Description = "Xem danh sách bảng phân quyền",
                     Active = true,
                     CreatedAt = new DateTime(2025, 1, 1)
                 }

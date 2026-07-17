@@ -27,5 +27,9 @@ namespace CafeChain.Application.Constants
         public const string ToppingAssignDrink = "Topping.AssignDrink";
 
         public const string SystemPermissionManage = "System.Permission.Manage";
+
+        public const string AppAdminDashboard = "App.AdminDashboard";
+        public const string AppStaffHub = "App.StaffHub";
+        public const string AppPos = "App.POS";
     }
 }

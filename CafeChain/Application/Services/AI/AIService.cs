@@ -22,6 +22,8 @@ public sealed partial class AIService : IAIService
     private readonly IAdminToppingRepository _toppingRepository;
     private readonly IOllamaClient _ollama;
     private readonly IVisualSpecificationBuilder _visualSpecificationBuilder;
+    private readonly IAISkillCatalog _skillCatalog;
+    private readonly IAISuggestionHistoryStore _suggestionHistory;
     private readonly AIOptions _options;
     private readonly ILogger<AIService> _logger;
 
@@ -32,6 +34,8 @@ public sealed partial class AIService : IAIService
         IAdminToppingRepository toppingRepository,
         IOllamaClient ollama,
         IVisualSpecificationBuilder visualSpecificationBuilder,
+        IAISkillCatalog skillCatalog,
+        IAISuggestionHistoryStore suggestionHistory,
         IOptions<AIOptions> options,
         ILogger<AIService> logger)
     {
@@ -41,6 +45,8 @@ public sealed partial class AIService : IAIService
         _toppingRepository = toppingRepository;
         _ollama = ollama;
         _visualSpecificationBuilder = visualSpecificationBuilder;
+        _skillCatalog = skillCatalog;
+        _suggestionHistory = suggestionHistory;
         _options = options.Value;
         _logger = logger;
     }

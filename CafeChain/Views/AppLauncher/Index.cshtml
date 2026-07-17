@@ -1,0 +1,54 @@
+@model CafeChain.Application.DTOs.AppLauncher.AppLauncherVM
+@{
+    Layout = null;
+    ViewData["Title"] = "Chọn ứng dụng";
+}
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - CafeChain</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/AppLauncher/app-launcher.css" asp-append-version="true" />
+</head>
+<body>
+    <main class="launcher-shell">
+        <header class="launcher-header">
+            <div>
+                <span class="launcher-brand"><i class="bi bi-cup-hot-fill"></i> CafeChain</span>
+                <h1>Xin chào, @Model.DisplayName</h1>
+                <p>Chọn ứng dụng bạn muốn sử dụng. Danh sách được giới hạn theo quyền của tài khoản.</p>
+            </div>
+            <form asp-controller="Account" asp-action="Logout" method="post">
+                <button class="launcher-logout" type="submit"><i class="bi bi-box-arrow-right"></i> Đăng xuất</button>
+            </form>
+        </header>
+
+        @if (Model.HasAvailableApps)
+        {
+            <section class="launcher-grid" aria-label="Ứng dụng được phép truy cập">
+                @foreach (var app in Model.Apps.Where(x => x.IsAvailable))
+                {
+                    <a class="launcher-card" href="@app.Route" aria-label="Mở @app.Title">
+                        <span class="launcher-icon"><i class="bi @app.Icon"></i></span>
+                        <span class="launcher-card-body">
+                            <strong>@app.Title</strong>
+                            <span>@app.Description</span>
+                        </span>
+                        <i class="bi bi-arrow-right launcher-arrow" aria-hidden="true"></i>
+                    </a>
+                }
+            </section>
+        }
+        else
+        {
+            <section class="launcher-empty" role="status">
+                <i class="bi bi-shield-lock"></i>
+                <h2>Chưa có ứng dụng được cấp quyền</h2>
+                <p>Liên hệ quản trị viên để kiểm tra role hoặc quyền ghi đè của tài khoản.</p>
+            </section>
+        }
+    </main>
+</body>
+</html>

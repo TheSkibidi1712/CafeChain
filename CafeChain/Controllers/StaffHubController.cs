@@ -13,21 +13,24 @@ using CafeChain.Application.Constants;
 
 namespace CafeChain.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = AuthorizationPolicyConstants.StaffHubApp)]
     public class StaffHubController : Controller
     {
         private readonly IAttendanceActionService _actionService;
         private readonly IAttendanceSecurityService _securityService;
         private readonly IConfiguration _configuration;
+        private readonly IAuthorizationService _authorizationService;
 
         public StaffHubController(
             IAttendanceActionService actionService,
             IAttendanceSecurityService securityService,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            IAuthorizationService authorizationService)
         {
             _actionService = actionService;
             _securityService = securityService;
             _configuration = configuration;
+            _authorizationService = authorizationService;
         }
 
         // GET: /StaffHub/Index
@@ -42,9 +45,9 @@ namespace CafeChain.Controllers
 
             // Get user role for POS access check (SalesStaff + Ca trưởng)
             var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            bool canAccessPos =
-                role == RoleConstants.SalesStaff ||
-                role == RoleConstants.ShiftSupervisor;
+            bool canAccessPos = (await _authorizationService.AuthorizeAsync(
+                User,
+                AuthorizationPolicyConstants.PosApp)).Succeeded;
 
             // Load dashboard data via service layer (N-Tier compliant)
             var result = await _actionService.GetKioskDataAsync(accountId);
@@ -64,18 +67,9 @@ namespace CafeChain.Controllers
 
         // POST: /StaffHub/IssuePosToken
         [HttpPost]
+        [Authorize(Policy = AuthorizationPolicyConstants.PosApp)]
         public IActionResult IssuePosToken()
         {
-            var role = User.FindFirst(ClaimTypes.Role)?.Value ?? "";
-            var canAccessPos =
-                role == RoleConstants.SalesStaff ||
-                role == RoleConstants.ShiftSupervisor;
-
-            if (!canAccessPos)
-            {
-                return StatusCode(403, new { success = false, message = "Tài khoản không có quyền truy cập POS." });
-            }
-
             var staffId = User.FindFirst("StaffId")?.Value;
             var storeId = User.FindFirst("StoreId")?.Value;
             if (string.IsNullOrWhiteSpace(staffId) || string.IsNullOrWhiteSpace(storeId))

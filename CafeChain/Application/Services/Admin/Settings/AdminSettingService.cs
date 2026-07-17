@@ -3,6 +3,7 @@ using System.Text.Json;
 using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Actor;
 using CafeChain.Application.DTOs.Admin.Settings;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Admin.Settings;
 using CafeChain.Application.Results;
 using CafeChain.Application.Services.Inventories;
@@ -11,6 +12,7 @@ using CafeChain.Models.Inventories.Approvals;
 using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Stores;
 using CafeChain.Models.Systems;
+using CafeChain.Application.Interfaces.Inventories;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -39,11 +41,21 @@ public sealed class AdminSettingService : IAdminSettingService
 
     private readonly AppDbContext _context;
     private readonly IMemoryCache _cache;
+    private readonly IUnitConversionService? _unitConversionService;
 
     public AdminSettingService(AppDbContext context, IMemoryCache cache)
     {
         _context = context;
         _cache = cache;
+    }
+
+    public AdminSettingService(
+        AppDbContext context,
+        IMemoryCache cache,
+        IUnitConversionService unitConversionService)
+        : this(context, cache)
+    {
+        _unitConversionService = unitConversionService;
     }
 
     public async Task<Dictionary<string, string>> GetSettingsDictionaryAsync()
@@ -158,6 +170,9 @@ public sealed class AdminSettingService : IAdminSettingService
                 ItemCode = x.IngredientId != null ? x.Ingredient.Code : x.PreparedItem!.Code,
                 ItemName = x.IngredientId != null ? x.Ingredient.Name : x.PreparedItem!.Name,
                 ItemActive = x.IngredientId != null ? x.Ingredient.Active : x.PreparedItem!.Active,
+                BaseUnitId = x.IngredientId != null
+                    ? x.Ingredient.BaseUnitId
+                    : x.PreparedItem!.BaseUnitId,
                 BaseUnitCode = x.IngredientId != null
                     ? x.Ingredient.BaseUnit.UnitCode
                     : x.PreparedItem!.BaseUnit.UnitCode
@@ -166,6 +181,24 @@ public sealed class AdminSettingService : IAdminSettingService
             .ThenBy(x => x.ItemType)
             .ThenBy(x => x.ItemCode)
             .ToListAsync(cancellationToken);
+
+        var unitOptionsByIngredient = new Dictionary<int, IReadOnlyList<InventoryUnitOptionDTO>>();
+        foreach (var ingredientId in rawItems
+            .Where(x => x.Inventory.IngredientId.HasValue)
+            .Select(x => x.Inventory.IngredientId!.Value)
+            .Distinct())
+        {
+            if (_unitConversionService == null)
+                continue;
+            var options = await _unitConversionService.GetActiveUnitOptionsAsync(ingredientId, cancellationToken);
+            if (!options.IsSuccess)
+            {
+                return ServiceResult<NegativeInventorySettingsDTO>.Failure(
+                    options.Message,
+                    errorCode: options.ErrorCode);
+            }
+            unitOptionsByIngredient[ingredientId] = options.Data;
+        }
 
         var pendingApprovalCount = await _context.InventoryNegativeApprovals
             .AsNoTracking()
@@ -187,6 +220,21 @@ public sealed class AdminSettingService : IAdminSettingService
                             ? "Bị chặn"
                             : $"Có thể xin xuất âm tối đa {FormatQuantity(effectiveLimit)} {x.BaseUnitCode}";
 
+            var unitOptions = x.Inventory.IngredientId.HasValue
+                && unitOptionsByIngredient.TryGetValue(x.Inventory.IngredientId.Value, out var configuredOptions)
+                    ? configuredOptions
+                    : new List<InventoryUnitOptionDTO>
+                    {
+                        new()
+                        {
+                            UnitId = x.BaseUnitId,
+                            UnitCode = x.BaseUnitCode,
+                            UnitName = x.BaseUnitCode,
+                            ConversionFactorToBase = 1m,
+                            IsBaseUnit = true
+                        }
+                    };
+
             return new NegativeInventoryStoreItemDTO
             {
                 StoreInventoryId = x.Inventory.StoreInventoryId,
@@ -196,7 +244,10 @@ public sealed class AdminSettingService : IAdminSettingService
                 ItemId = x.ItemId,
                 ItemCode = x.ItemCode,
                 ItemName = x.ItemName,
+                BaseUnitId = x.BaseUnitId,
                 BaseUnitCode = x.BaseUnitCode,
+                DisplayUnitId = x.BaseUnitId,
+                UnitOptions = unitOptions,
                 StoreActive = x.StoreActive,
                 ItemActive = x.ItemActive,
                 AvailableQty = x.Inventory.AvailableQty,
@@ -268,6 +319,8 @@ public sealed class AdminSettingService : IAdminSettingService
 
         var requestedIds = request.Items.Select(x => x.StoreInventoryId).Distinct().ToList();
         var inventories = await _context.StoreInventories
+            .Include(x => x.Ingredient)
+            .Include(x => x.PreparedItem)
             .Where(x => requestedIds.Contains(x.StoreInventoryId))
             .ToDictionaryAsync(x => x.StoreInventoryId, cancellationToken);
         if (inventories.Count != requestedIds.Count)
@@ -282,6 +335,37 @@ public sealed class AdminSettingService : IAdminSettingService
 
             if (!TryResolveLimit(item, out var newLimit, out var error))
                 return ValidationFailure($"StoreInventoryId {item.StoreInventoryId}: {error}");
+
+            if (item.LimitMode?.Trim().ToUpperInvariant() == NegativeInventoryLimitModes.Custom)
+            {
+                if (inventory.IngredientId.HasValue)
+                {
+                    var selectedUnitId = item.DisplayUnitId > 0
+                        ? item.DisplayUnitId
+                        : inventory.Ingredient!.BaseUnitId;
+                    if (_unitConversionService != null)
+                    {
+                        var converted = await _unitConversionService.ConvertAsync(
+                            inventory.IngredientId.Value,
+                            newLimit!.Value,
+                            selectedUnitId,
+                            inventory.Ingredient.BaseUnitId);
+                        if (!converted.IsSuccess || !IsSupportedQuantity(converted.Data) || converted.Data <= 0m)
+                            return ValidationFailure($"StoreInventoryId {item.StoreInventoryId}: {converted.Message}");
+                        newLimit = converted.Data;
+                    }
+                    else if (selectedUnitId != inventory.Ingredient.BaseUnitId)
+                    {
+                        return ValidationFailure($"StoreInventoryId {item.StoreInventoryId}: không thể xác thực đơn vị đã chọn.");
+                    }
+                }
+                else
+                {
+                    var baseUnitId = inventory.PreparedItem!.BaseUnitId;
+                    if (item.DisplayUnitId > 0 && item.DisplayUnitId != baseUnitId)
+                        return ValidationFailure($"StoreInventoryId {item.StoreInventoryId}: bán thành phẩm chỉ hỗ trợ đơn vị cơ sở.");
+                }
+            }
 
             if (inventory.MaxNegativeQty == newLimit)
                 continue;

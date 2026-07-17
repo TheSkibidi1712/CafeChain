@@ -291,7 +291,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                     SuggestedUnitPrice = baseUnitCost,
                     UnitOptions =
                     [
-                        new InventoryIngredientUnitOptionDTO
+                        new InventoryUnitOptionDTO
                         {
                             UnitId = preparedItem.BaseUnitId,
                             UnitName = preparedItem.BaseUnit?.Name ?? string.Empty,
@@ -1369,14 +1369,14 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 : layers.Sum(x => x.RemainingQuantity * x.UnitCost) / quantity;
         }
 
-        private static List<InventoryIngredientUnitOptionDTO> BuildUnitOptions(Ingredient ingredient)
+        private static List<InventoryUnitOptionDTO> BuildUnitOptions(Ingredient ingredient)
         {
-            var options = new List<InventoryIngredientUnitOptionDTO>();
+            var options = new List<InventoryUnitOptionDTO>();
 
             if (ingredient.BaseUnit != null)
             {
                 options.Add(
-                    new InventoryIngredientUnitOptionDTO
+                    new InventoryUnitOptionDTO
                     {
                         UnitId = ingredient.BaseUnitId,
                         UnitName = ingredient.BaseUnit.Name,
@@ -1399,7 +1399,7 @@ namespace CafeChain.Application.Services.Admin.InventoryTransfers
                 }
 
                 options.Add(
-                    new InventoryIngredientUnitOptionDTO
+                    new InventoryUnitOptionDTO
                     {
                         UnitId = conversion.FromUnitId,
                         UnitName = conversion.FromUnit?.Name

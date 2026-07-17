@@ -178,6 +178,37 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
+        public async Task ActiveUnitOptions_IncludePhysicalPairWithTrustedFactor()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            var svc = CreateService(ctx);
+
+            var result = await svc.GetActiveUnitOptionsAsync(IngredientId);
+
+            Assert.True(result.IsSuccess, result.Message);
+            Assert.Contains(result.Data, x => x.UnitId == UnitG && x.IsBaseUnit && x.ConversionFactorToBase == 1m);
+            Assert.Contains(result.Data, x => x.UnitId == UnitKg && !x.IsBaseUnit && x.ConversionFactorToBase == 1000m);
+            Assert.DoesNotContain(result.Data, x => x.UnitId == UnitMl || x.UnitId == UnitL);
+        }
+
+        [Fact]
+        public async Task ActiveUnitOptions_FailClosedForConflictingPhysicalRow()
+        {
+            using var ctx = CreateDbContext();
+            SeedIngredient(ctx, IngredientId, UnitG);
+            EnsureMassVolumeUnits(ctx);
+            SeedConversion(ctx, IngredientId, UnitKg, 1m, UnitG, 999m, active: true);
+            var svc = CreateService(ctx);
+
+            var result = await svc.GetActiveUnitOptionsAsync(IngredientId);
+
+            Assert.False(result.IsSuccess);
+            Assert.Equal(UnitConversionErrorCodes.ConflictingConversion, result.ErrorCode);
+        }
+
+        [Fact]
         public async Task Inactive_Unit_IsNotHidden_ByIngredientFallback()
         {
             using var ctx = CreateDbContext();

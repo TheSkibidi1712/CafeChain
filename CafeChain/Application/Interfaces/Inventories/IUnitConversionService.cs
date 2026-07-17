@@ -1,4 +1,5 @@
 using CafeChain.Application.Results;
+using CafeChain.Application.DTOs.Inventories;
 
 namespace CafeChain.Application.Interfaces.Inventories
 {
@@ -16,5 +17,12 @@ namespace CafeChain.Application.Interfaces.Inventories
             decimal quantity,
             int fromUnitId,
             int? toUnitId = null);
+
+        /// <summary>
+        /// Returns active, server-validated units that can be converted to the ingredient base unit.
+        /// </summary>
+        Task<ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>> GetActiveUnitOptionsAsync(
+            int ingredientId,
+            CancellationToken cancellationToken = default);
     }
 }

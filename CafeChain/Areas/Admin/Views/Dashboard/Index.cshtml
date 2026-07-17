@@ -1,206 +1,77 @@
-﻿@model CafeChain.ViewModels.Admin.Dashboard.DashboardVM
-@using CafeChain.Application.DTOs.Admin.Dashboard
+@model CafeChain.Application.DTOs.Admin.Dashboard.DashboardPageDto
+@using System.Text.Json
 @{
-    ViewData["Title"] = "Dashboard";
-    var role = ViewBag.Role as string;
-
-    var fromDate = Context.Request.Query["FromDate"].ToString();
-    var toDate = Context.Request.Query["ToDate"].ToString();
-    var storeId = Context.Request.Query["StoreId"].ToString();
-    var provinceId = Context.Request.Query["ProvinceId"].ToString();
-    var districtId = Context.Request.Query["DistrictId"].ToString();
-
-    var jsonOptions = new System.Text.Json.JsonSerializerOptions
+    ViewData["Title"] = "Dashboard Analytics";
+    var jsonOptions = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
+    var storesJson = JsonSerializer.Serialize(Model.Stores, jsonOptions);
+    var tabs = new[]
     {
-        PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase
+        ("Executive", "Điều hành", "bi-speedometer2"),
+        ("Operations", "POS / WorkShift", "bi-cash-stack"),
+        ("Inventory", "Kho", "bi-box-seam"),
+        ("Procurement", "Mua hàng", "bi-truck"),
+        ("Product", "Sản phẩm", "bi-cup-straw"),
+        ("Workforce", "Nhân sự", "bi-people")
     };
-
-    var revenueJson = System.Text.Json.JsonSerializer.Serialize(Model.Revenue, jsonOptions);
-    var revenueByStoreJson = System.Text.Json.JsonSerializer.Serialize(Model.RevenueByStore, jsonOptions);
-    var topDrinksJson = System.Text.Json.JsonSerializer.Serialize(Model.TopDrinks, jsonOptions);
-    var paymentsJson = System.Text.Json.JsonSerializer.Serialize(Model.PaymentMethods, jsonOptions);
-    var staffJson = System.Text.Json.JsonSerializer.Serialize(Model.StaffPerformance, jsonOptions);
-    var toppingsJson = System.Text.Json.JsonSerializer.Serialize(Model.TopToppings, jsonOptions);
-    var inventoryJson = System.Text.Json.JsonSerializer.Serialize(
-        Model.Inventory ?? Enumerable.Empty<InventoryDto>(),
-        jsonOptions
-    );
-    var wasteJson = System.Text.Json.JsonSerializer.Serialize(
-        Model.Waste ?? Enumerable.Empty<WasteDto>(),
-        jsonOptions
-    );
-    var storesJson = System.Text.Json.JsonSerializer.Serialize(Model.Stores, jsonOptions);
 }
 
-<link rel="stylesheet" href="~/css/Admin/Dashboard/dashboard.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/Admin/Dashboard/dashboard.css" asp-append-version="true" />
+}
 
-<div class="dashboard-container">
-
-    <!-- HEADER -->
-    <div class="dashboard-header">
+<main class="analytics-page" id="dashboardRoot"
+      data-endpoint="@Url.Action("GetSection", "Dashboard", new { area = "Admin" })"
+      data-province="@Model.Filter.ProvinceId" data-district="@Model.Filter.DistrictId" data-store="@Model.Filter.StoreId">
+    <header class="analytics-header">
         <div>
-            <h2>📊 Dashboard</h2>
-            <span class="sub">
-                <b>@role</b>
-            </span>
+            <span class="analytics-eyebrow">@Model.RoleName</span>
+            <h1>Dashboard Analytics</h1>
+            <p>Dữ liệu được giới hạn theo phạm vi cửa hàng bạn được cấp quyền.</p>
         </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="analytics-button text-decoration-none" asp-area="Admin" asp-controller="Dashboard" asp-action="Guide">
+                <i class="bi bi-question-circle"></i> Hướng dẫn
+            </a>
+            <button type="button" class="analytics-button" id="dashboardApply">
+                <i class="bi bi-arrow-clockwise"></i> Áp dụng
+            </button>
+        </div>
+    </header>
 
-        <div class="filters">
-
-            <input type="date" id="fromDate" value="@fromDate" />
-            <input type="date" id="toDate" value="@toDate" />
-
-            @* ===== PROVINCE ===== *@
-            @if (Model.Stores.Any(x => x.ProvinceId.HasValue))
-            {
-                <select id="provinceId">
-                    <option value="">All Province</option>
-                    @foreach (var p in Model.Stores
-                        .Where(x => x.ProvinceId.HasValue)
-                        .GroupBy(x => x.ProvinceId))
-                    {
-                        var item = p.First();
-                        <option value="@item.ProvinceId"
-                                selected="@(provinceId == item.ProvinceId?.ToString())">
-                            @item.ProvinceName
-                        </option>
-                    }
-                </select>
-            }
-
-            @* ===== DISTRICT ===== *@
-            @if (Model.Stores.Any(x => x.DistrictId.HasValue))
-            {
-                <select id="districtId">
-                    <option value="">All District</option>
-                    @foreach (var d in Model.Stores
-                        .Where(x => x.DistrictId.HasValue)
-                        .GroupBy(x => x.DistrictId))
-                    {
-                        var item = d.First();
-                        <option value="@item.DistrictId"
-                                selected="@(districtId == item.DistrictId?.ToString())">
-                            @item.DistrictName
-                        </option>
-                    }
-                </select>
-            }
-
-            @* ===== STORE ===== *@
-            <select id="storeId">
-                <option value="">All Store</option>
-                @foreach (var s in Model.Stores)
+    <section class="analytics-filter" aria-label="Bộ lọc dashboard">
+        <label>Từ ngày<input id="dashboardFromDate" type="date" value="@Model.Filter.FromDate.ToString("yyyy-MM-dd")" /></label>
+        <label>Đến ngày<input id="dashboardToDate" type="date" value="@Model.Filter.ToDate.ToString("yyyy-MM-dd")" /></label>
+        <label>Tỉnh/Thành<select id="dashboardProvince"><option value="">Tất cả</option></select></label>
+        <label>Quận/Huyện<select id="dashboardDistrict"><option value="">Tất cả</option></select></label>
+        <label>Cửa hàng<select id="dashboardStore"><option value="">Tất cả</option></select></label>
+        <label>Độ chi tiết
+            <select id="dashboardGranularity">
+                @foreach (var item in new[] { "Hour", "Day", "Week", "Month" })
                 {
-                    <option value="@s.StoreId"
-                            selected="@(storeId == s.StoreId.ToString())">
-                        @s.StoreName
-                    </option>
+                    <option value="@item" selected="@(Model.Filter.Granularity == item)">@item</option>
                 }
             </select>
+        </label>
+        <label>Top<input id="dashboardTop" type="number" min="1" max="100" value="@Model.Filter.Top" /></label>
+    </section>
 
-            <button id="btnApply" class="btn-primary">Apply</button>
-        </div>
-    </div>
+    <nav class="analytics-tabs" role="tablist" aria-label="Nhóm analytics">
+        @foreach (var tab in tabs)
+        {
+            <button type="button" role="tab" class="analytics-tab @(tab.Item1 == "Executive" ? "is-active" : "")"
+                    data-section="@tab.Item1" aria-selected="@(tab.Item1 == "Executive" ? "true" : "false")">
+                <i class="bi @tab.Item3"></i><span>@tab.Item2</span>
+            </button>
+        }
+    </nav>
 
-    <!-- KPI -->
-    <div class="kpi-grid">
-        <div class="kpi-card revenue">
-            <div class="kpi-title">Doanh thu</div>
-            <div class="kpi-value">@Model.Summary?.Revenue.ToString("N0") ₫</div>
-        </div>
+    <div id="dashboardNotice" class="analytics-notice" role="status" hidden></div>
+    <section id="dashboardPanel" class="analytics-panel" aria-live="polite"></section>
+</main>
 
-        <div class="kpi-card">
-            <div class="kpi-title">Đơn hàng</div>
-            <div class="kpi-value">@Model.Summary?.TotalOrders</div>
-        </div>
+<script id="dashboardStores" type="application/json">@Html.Raw(storesJson)</script>
 
-        <div class="kpi-card">
-            <div class="kpi-title">Khách hàng</div>
-            <div class="kpi-value">@Model.Summary?.TotalCustomers</div>
-        </div>
-
-        <div class="kpi-card">
-            <div class="kpi-title">Đơn hôm nay</div>
-            <div class="kpi-value">@Model.Summary?.TodayOrders</div>
-        </div>
-    </div>
-
-    <!-- REVENUE -->
-    <div class="grid-12">
-        <div class="card col-8">
-            <div class="card-header">📈 Doanh thu theo thời gian</div>
-            <div id="revenueChart" class="chart"></div>
-        </div>
-    </div>
-
-    <!-- STORE -->
-    <div class="grid-12">
-        <div class="card col-12">
-            <div class="card-header">🏪 Doanh thu theo cửa hàng</div>
-            <div id="storeChart" class="chart"></div>
-        </div>
-    </div>
-
-    <!-- PRODUCT + PAYMENT -->
-    <div class="grid-12">
-        <div class="card col-6">
-            <div class="card-header">🥤 Top nước uống</div>
-            <div id="topDrinkChart" class="chart"></div>
-        </div>
-
-        <div class="card col-6">
-            <div class="card-header">💳 Top doanh thu theo phương thức thanh toán</div>
-            <div id="paymentChart" class="chart"></div>
-        </div>
-    </div>
-
-    <!-- STAFF + TOPPING -->
-    <div class="grid-12">
-        <div class="card col-6">
-            <div class="card-header">👨‍💼 Hiệu suất của nhân viên</div>
-            <div id="staffChart" class="chart"></div>
-        </div>
-
-        <div class="card col-6">
-            <div class="card-header">🧋 Top Toppings</div>
-            <div id="toppingChart" class="chart"></div>
-        </div>
-    </div>
-
-    <!-- INVENTORY + WASTE -->
-    @if (Model.Inventory != null && Model.Inventory.Any())
-    {
-        <div class="grid-12">
-            <div class="card col-6 warning">
-                <div class="card-header">📦 Tồn kho</div>
-                <div id="inventoryChart" class="chart"></div>
-            </div>
-
-            <div class="card col-6 danger">
-                <div class="card-header">⚠️ Hủy kho</div>
-                <div id="wasteChart" class="chart"></div>
-            </div>
-        </div>
-    }
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
-
-
-<script>
-    const dashboardData = {
-        revenue: @Html.Raw(revenueJson),
-        revenueByStore: @Html.Raw(revenueByStoreJson),
-        topDrinks: @Html.Raw(topDrinksJson),
-        payments: @Html.Raw(paymentsJson),
-        staff: @Html.Raw(staffJson),
-        topToppings: @Html.Raw(toppingsJson),
-        inventory: @Html.Raw(inventoryJson),
-        waste: @Html.Raw(wasteJson),
-        stores: @Html.Raw(storesJson)
-        };
-
-    console.log(dashboardData);
-</script>
-
-<script src="~/js/Admin/Dashboard/dashboard.js"></script>
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/echarts/dist/echarts.min.js"></script>
+    <script src="~/js/Admin/Dashboard/dashboard.js" asp-append-version="true"></script>
+}

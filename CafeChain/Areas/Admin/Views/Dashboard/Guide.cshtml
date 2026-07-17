@@ -1,0 +1,83 @@
+@{
+    ViewData["Title"] = "Hướng dẫn Dashboard Analytics";
+}
+
+<div class="container-fluid py-4 dashboard-guide">
+    <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <span class="text-uppercase text-muted small fw-bold">CafeChain Analytics</span>
+            <h1 class="h2 fw-bold mt-2">Hướng dẫn sử dụng Dashboard</h1>
+            <p class="text-muted mb-0">Dữ liệu luôn được giới hạn theo StaffScope và cửa hàng tài khoản được cấp quyền.</p>
+        </div>
+        <a class="btn btn-outline-secondary" asp-area="Admin" asp-controller="Dashboard" asp-action="Index">
+            <i class="bi bi-arrow-left"></i> Quay lại Dashboard
+        </a>
+    </div>
+
+    <div class="row g-4">
+        <aside class="col-xl-3">
+            <nav class="list-group position-sticky" style="top:1rem" aria-label="Mục lục">
+                <a class="list-group-item list-group-item-action" href="#filters">Bộ lọc</a>
+                <a class="list-group-item list-group-item-action" href="#tabs">Sáu nhóm dữ liệu</a>
+                <a class="list-group-item list-group-item-action" href="#formulas">Công thức</a>
+                <a class="list-group-item list-group-item-action" href="#states">Trạng thái widget</a>
+                <a class="list-group-item list-group-item-action" href="#troubleshooting">Xử lý sự cố</a>
+            </nav>
+        </aside>
+        <article class="col-xl-9">
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="filters" class="h4">1. Chọn phạm vi và bộ lọc</h2>
+                <ul>
+                    <li><strong>Từ ngày/Đến ngày:</strong> khoảng nghiệp vụ cần phân tích; hệ thống sử dụng khoảng ngày nửa mở ở backend.</li>
+                    <li><strong>Tỉnh, Quận/Huyện, Cửa hàng:</strong> lọc dần trong danh sách thuộc StaffScope.</li>
+                    <li><strong>Granularity:</strong> Hour, Day, Week hoặc Month; tuần bắt đầu vào thứ Hai.</li>
+                    <li><strong>Top:</strong> số dòng xếp hạng, từ 1 đến 100.</li>
+                </ul>
+                <p class="mb-0">Nhấn <strong>Áp dụng</strong> để hủy request cũ, xóa cache tab và tải lại tab đang mở. Các tab khác chỉ tải khi được mở lần đầu.</p>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="tabs" class="h4">2. Nội dung sáu tab</h2>
+                <dl>
+                    <dt>Điều hành</dt><dd>KPI, net sales, xếp hạng cửa hàng, payment mix, heatmap đơn hàng và cảnh báo vận hành.</dd>
+                    <dt>POS / WorkShift</dt><dd>Chênh lệch két, doanh số ca, thanh toán theo ca, đối soát offline, đơn theo giờ và KPI ca.</dd>
+                    <dt>Kho</dt><dd>Nguy cơ thiếu hàng, biến động, ngưỡng tồn, đề xuất đặt lại, hao hụt và tuổi lớp FIFO.</dd>
+                    <dt>Mua hàng</dt><dd>PO pipeline, PO quá hạn, chất lượng nhà cung cấp, xu hướng giá, chi tiêu và nhóm sự cố.</dd>
+                    <dt>Sản phẩm</dt><dd>Top sản phẩm, volume-margin, lợi nhuận theo size, topping, BOM health và hiệu quả tiêu hao.</dd>
+                    <dt>Nhân sự</dt><dd>Trạng thái ca, nhu cầu theo giờ và hiệu suất nhân viên trong phạm vi được phép.</dd>
+                </dl>
+                <p class="mb-0">Di chuột hoặc dùng bàn phím để xem tooltip; bấm legend để ẩn/hiện series. Bảng rộng có thể cuộn ngang trên màn hình nhỏ.</p>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="formulas" class="h4">3. Công thức nghiệp vụ chính</h2>
+                <ul>
+                    <li>Chỉ đơn <strong>Completed</strong> được tính vào doanh thu.</li>
+                    <li><strong>Merchandise net</strong> = Order.Total − ShippingFee.</li>
+                    <li>Full refund đảo doanh thu của đơn hoàn tất; topping revenue nhân số lượng OrderDetail.</li>
+                    <li>Gross profit chỉ được xác nhận khi COGS đầy đủ. Widget có thể báo dữ liệu một phần nếu chi phí chưa hoàn chỉnh.</li>
+                </ul>
+            </div></section>
+
+            <section class="card border-0 shadow-sm mb-4"><div class="card-body p-4">
+                <h2 id="states" class="h4">4. Trạng thái widget</h2>
+                <ul>
+                    <li><strong>Loading:</strong> skeleton đang chờ Stored Procedure trả dữ liệu.</li>
+                    <li><strong>NO_DATA:</strong> không có bản ghi trong filter hiện tại; thử mở rộng ngày hoặc cửa hàng.</li>
+                    <li><strong>PARTIAL_DATA:</strong> một widget lỗi hoặc COGS chưa đầy đủ, các widget còn lại vẫn dùng được.</li>
+                    <li><strong>ERROR:</strong> widget không tải được; dùng nút Retry thay vì tải lại toàn trang.</li>
+                </ul>
+            </div></section>
+
+            <section class="card border-0 shadow-sm"><div class="card-body p-4">
+                <h2 id="troubleshooting" class="h4">5. Xử lý sự cố và giới hạn</h2>
+                <ul class="mb-0">
+                    <li><strong>403:</strong> tài khoản thiếu App.AdminDashboard hoặc cửa hàng nằm ngoài StaffScope.</li>
+                    <li><strong>Không có dữ liệu:</strong> kiểm tra khoảng ngày, store và trạng thái nghiệp vụ đã hoàn tất.</li>
+                    <li><strong>Biểu đồ chưa đổi:</strong> nhấn Áp dụng sau khi chỉnh filter; request trước đó sẽ bị hủy.</li>
+                    <li>Dashboard chưa hỗ trợ export và không tự refresh liên tục; tải lại dữ liệu khi cần số liệu mới.</li>
+                </ul>
+            </div></section>
+        </article>
+    </div>
+</div>

@@ -1,152 +1,22 @@
 @model CafeChain.ViewModels.Admin.Settings.AdminSettingIndexVM
 @{
-    ViewData["Title"] = "Cài đặt hệ thống";
-    Layout = "_AdminLayout";
+    ViewData["Title"] = "Cấu hình âm kho";
 }
 
 <div class="container-fluid py-4">
-    <div class="row mb-4">
-        <div class="col-12">
-            <h3 class="fw-bold mb-0 text-dark">Cài đặt hệ thống</h3>
-            <p class="text-muted">Cấu hình các tham số cốt lõi cho toàn chuỗi CafeChain</p>
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
+        <div>
+            <h1 class="h3 fw-bold mb-2">Cấu hình âm kho</h1>
+            <p class="text-muted mb-0">Quản lý kill switch và hạn mức xuất âm thủ công theo từng cửa hàng, nguyên liệu hoặc bán thành phẩm.</p>
         </div>
+        <span class="badge text-bg-warning">Business Owner / System Admin</span>
     </div>
 
-    @if (TempData["SuccessMessage"] != null)
-    {
-        <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
-            <i class="fas fa-check-circle me-2"></i> @TempData["SuccessMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-    @if (TempData["ErrorMessage"] != null)
-    {
-        <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm" role="alert">
-            <i class="fas fa-exclamation-circle me-2"></i> @TempData["ErrorMessage"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    }
-
-    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-        <div class="card-header bg-white border-bottom p-0">
-            <ul class="nav nav-tabs nav-justified border-0 px-3 pt-3" id="settingsTab" role="tablist">
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link active fw-bold text-uppercase py-3 rounded-top border-0" id="biz-tab" data-bs-toggle="tab" data-bs-target="#biz" type="button" role="tab">Doanh nghiệp</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-uppercase py-3 rounded-top border-0" id="pos-tab" data-bs-toggle="tab" data-bs-target="#pos" type="button" role="tab">Vận hành POS</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-uppercase py-3 rounded-top border-0" id="time-tab" data-bs-toggle="tab" data-bs-target="#time" type="button" role="tab">Chấm công</button>
-                </li>
-                <li class="nav-item" role="presentation">
-                    <button class="nav-link fw-bold text-uppercase py-3 rounded-top border-0" id="api-tab" data-bs-toggle="tab" data-bs-target="#api" type="button" role="tab">Kết nối API</button>
-                </li>
-                @if (Model.CanManageNegativeInventory)
-                {
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-bold text-uppercase py-3 rounded-top border-0" id="negative-inventory-tab" data-bs-toggle="tab" data-bs-target="#negative-inventory" type="button" role="tab">Kho &amp; tồn âm</button>
-                    </li>
-                }
-            </ul>
-        </div>
-        <div class="card-body p-4 bg-light">
-            <form asp-action="Update" method="post">
-                <div class="tab-content" id="settingsTabContent">
-                    <div class="tab-pane fade show active" id="biz" role="tabpanel">
-                        <div class="row g-4">
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Tên thương hiệu</label>
-                                <input type="text" name="Settings[company_brand_name]" value="@Model.Settings.GetValueOrDefault("company_brand_name")" class="form-control" placeholder="CafeChain" />
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Mã số thuế CTY</label>
-                                <input type="text" name="Settings[company_tax_code]" value="@Model.Settings.GetValueOrDefault("company_tax_code")" class="form-control" placeholder="0123456789" />
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Hotline CSKH</label>
-                                <input type="text" name="Settings[company_hotline]" value="@Model.Settings.GetValueOrDefault("company_hotline")" class="form-control" placeholder="1900 xxxx" />
-                            </div>
-                            <div class="col-md-6 col-lg-3"></div>
-                            <div class="col-lg-6">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Địa chỉ trụ sở</label>
-                                <input type="text" name="Settings[company_address]" value="@Model.Settings.GetValueOrDefault("company_address")" class="form-control" placeholder="Nhập địa chỉ..." />
-                            </div>
-                            <div class="col-lg-6">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Lời chào chân hóa đơn</label>
-                                <input type="text" name="Settings[receipt_footer]" value="@Model.Settings.GetValueOrDefault("receipt_footer")" class="form-control" placeholder="Cảm ơn quý khách..." />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="pos" role="tabpanel">
-                        <div class="row g-4">
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Biên độ thuế (VAT %)</label>
-                                <input type="number" step="1" name="Settings[pos_vat_rate]" value="@Model.Settings.GetValueOrDefault("pos_vat_rate")" class="form-control" placeholder="8, 10" />
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Khóa POS tự động (phút)</label>
-                                <input type="number" step="1" name="Settings[pos_auto_lock_mins]" value="@Model.Settings.GetValueOrDefault("pos_auto_lock_mins")" class="form-control" placeholder="5" />
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Gia hạn Voucher (ngày)</label>
-                                <input type="number" step="1" name="Settings[pos_grace_period_days]" value="@Model.Settings.GetValueOrDefault("pos_grace_period_days")" class="form-control" placeholder="7" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="time" role="tabpanel">
-                        <div class="row g-4">
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Độ trễ đi muộn (phút)</label>
-                                <input type="number" step="1" name="Settings[timekeep_late_buffer]" value="@Model.Settings.GetValueOrDefault("timekeep_late_buffer")" class="form-control" placeholder="15" />
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Zero-Touch Face ID</label>
-                                <select name="Settings[timekeep_face_auth]" class="form-select">
-                                    <option value="1" selected="@(Model.Settings.GetValueOrDefault("timekeep_face_auth") == "1")">Bật (bắt buộc dùng khuôn mặt)</option>
-                                    <option value="0" selected="@(Model.Settings.GetValueOrDefault("timekeep_face_auth") == "0")">Tắt (dùng mật khẩu)</option>
-                                </select>
-                            </div>
-                            <div class="col-md-6 col-lg-3">
-                                <label class="form-label fw-bold text-muted small text-uppercase">Network Strict IP Verification</label>
-                                <select name="Settings[timekeep_ip_bypass]" class="form-select">
-                                    <option value="0" selected="@(Model.Settings.GetValueOrDefault("timekeep_ip_bypass") == "0")">Khóa nội bộ WiFi (an toàn)</option>
-                                    <option value="1" selected="@(Model.Settings.GetValueOrDefault("timekeep_ip_bypass") == "1")">Mở linh hoạt mạng dữ liệu (rủi ro)</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="tab-pane fade" id="api" role="tabpanel">
-                        <div class="row g-4">
-                            <div class="col-lg-6">
-                                <label class="form-label fw-bold text-muted small text-uppercase">MoMo API Key</label>
-                                <input type="password" name="Settings[api_momo]" value="@Model.Settings.GetValueOrDefault("api_momo")" class="form-control" placeholder="Nhập API Key MoMo" />
-                            </div>
-                            <div class="col-lg-6">
-                                <label class="form-label fw-bold text-muted small text-uppercase">VNPay API Key</label>
-                                <input type="password" name="Settings[api_vnpay]" value="@Model.Settings.GetValueOrDefault("api_vnpay")" class="form-control" placeholder="Nhập API Key VNPay" />
-                            </div>
-                        </div>
-                    </div>
-
-                    @if (Model.CanManageNegativeInventory && Model.NegativeInventory != null)
-                    {
-                        <partial name="Partials/_NegativeInventorySettings" model="Model.NegativeInventory" />
-                    }
-                </div>
-
-                <div id="generalSettingsActions" class="d-flex justify-content-end align-items-center border-top pt-4 mt-4">
-                    <button type="submit" class="btn btn-primary px-5 py-2 fw-bold rounded-3 shadow-sm" style="background:#d93d20; border:none;">
-                        <i class="fas fa-save me-2"></i>Cập nhật cấu hình
-                    </button>
-                </div>
-            </form>
-
-            @if (Model.CanManageNegativeInventory && Model.NegativeInventory != null)
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            @if (Model.NegativeInventory != null)
             {
+                <partial name="Partials/_NegativeInventorySettings" model="Model.NegativeInventory" />
                 <form id="negativeInventorySettingsForm"
                       asp-area="Admin"
                       asp-controller="AdminSetting"
@@ -158,26 +28,9 @@
 </div>
 
 <style>
-    .nav-tabs .nav-link {
-        color: #6c757d;
-        background: transparent;
-        border: none;
-        border-bottom: 3px solid transparent;
-        font-size: 14px;
-    }
-    .nav-tabs .nav-link:hover { color: #d93d20; border-color: transparent; }
-    .nav-tabs .nav-link.active {
-        color: #d93d20;
-        background: transparent;
-        border-bottom: 3px solid #d93d20;
-    }
-    .form-label { font-size: 12px; letter-spacing: 0.5px; }
     #negativeInventoryItemsTable .badge { white-space: normal; text-align: left; }
 </style>
 
 @section Scripts {
-    @if (Model.CanManageNegativeInventory)
-    {
-        <script src="~/js/Admin/Settings/adminsetting.js" asp-append-version="true"></script>
-    }
+    <script src="~/js/Admin/Settings/adminsetting.js" asp-append-version="true"></script>
 }

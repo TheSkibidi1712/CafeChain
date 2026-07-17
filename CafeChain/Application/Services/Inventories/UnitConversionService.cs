@@ -1,4 +1,5 @@
 using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Inventories;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Application.Results;
 using CafeChain.Data;
@@ -190,6 +191,87 @@ namespace CafeChain.Application.Services.Inventories
             }
 
             return MissingConversion(ingredientId, fromUnitId, targetUnitId, physical.ErrorCode);
+        }
+
+        public async Task<ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>> GetActiveUnitOptionsAsync(
+            int ingredientId,
+            CancellationToken cancellationToken = default)
+        {
+            var ingredient = await _context.Ingredients
+                .AsNoTracking()
+                .Include(x => x.BaseUnit)
+                .FirstOrDefaultAsync(x => x.IngredientId == ingredientId, cancellationToken);
+            if (ingredient == null)
+            {
+                return ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>.Failure(
+                    $"Không tìm thấy nguyên liệu #{ingredientId}.",
+                    errorCode: UnitConversionErrorCodes.InvalidIngredient);
+            }
+
+            if (ingredient.BaseUnit == null || !ingredient.BaseUnit.Active)
+            {
+                return ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>.Failure(
+                    $"Đơn vị cơ sở của nguyên liệu #{ingredientId} không hoạt động.",
+                    errorCode: UnitConversionErrorCodes.InvalidUnit);
+            }
+
+            var configuredUnitIds = await _context.UnitConversions
+                .AsNoTracking()
+                .Where(x => x.IngredientId == ingredientId && x.Active
+                    && (x.FromUnitId == ingredient.BaseUnitId || x.ToUnitId == ingredient.BaseUnitId))
+                .Select(x => x.FromUnitId == ingredient.BaseUnitId ? x.ToUnitId : x.FromUnitId)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var baseDimension = ingredient.BaseUnit.Type;
+            var physicalUnitIds = await _context.Units
+                .AsNoTracking()
+                .Where(x => x.Active && x.Type == baseDimension)
+                .Where(x => x.UnitCode == PhysicalUnitConversionRegistry.CodeGram
+                    || x.UnitCode == PhysicalUnitConversionRegistry.CodeKilogram
+                    || x.UnitCode == PhysicalUnitConversionRegistry.CodeMilliliter
+                    || x.UnitCode == PhysicalUnitConversionRegistry.CodeLiter)
+                .Select(x => x.UnitId)
+                .ToListAsync(cancellationToken);
+
+            var candidateIds = configuredUnitIds
+                .Concat(physicalUnitIds)
+                .Append(ingredient.BaseUnitId)
+                .Distinct()
+                .ToList();
+            var units = await _context.Units
+                .AsNoTracking()
+                .Where(x => candidateIds.Contains(x.UnitId) && x.Active)
+                .ToDictionaryAsync(x => x.UnitId, cancellationToken);
+
+            var options = new List<InventoryUnitOptionDTO>();
+            foreach (var unitId in candidateIds)
+            {
+                if (!units.TryGetValue(unitId, out var unit))
+                    continue;
+
+                var converted = await ConvertAsync(ingredientId, 1m, unitId, ingredient.BaseUnitId);
+                if (!converted.IsSuccess || converted.Data <= 0m)
+                {
+                    return ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>.Failure(
+                        converted.Message,
+                        errorCode: converted.ErrorCode ?? UnitConversionErrorCodes.MissingConversion);
+                }
+
+                options.Add(new InventoryUnitOptionDTO
+                {
+                    UnitId = unit.UnitId,
+                    UnitCode = unit.UnitCode,
+                    UnitName = unit.Name,
+                    ConversionFactorToBase = converted.Data,
+                    IsBaseUnit = unit.UnitId == ingredient.BaseUnitId
+                });
+            }
+
+            return ServiceResult<IReadOnlyList<InventoryUnitOptionDTO>>.Success(options
+                .OrderByDescending(x => x.IsBaseUnit)
+                .ThenBy(x => x.UnitCode, StringComparer.OrdinalIgnoreCase)
+                .ToList());
         }
 
         /// <summary>

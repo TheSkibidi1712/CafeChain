@@ -448,6 +448,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
     const button = document.getElementById('btnSizeAiSuggestion');
     if (!button) return;
     const idea = document.getElementById('sizeAiIdea');
+    const generationMode = document.getElementById('sizeAiGenerationMode');
     const name = document.getElementById('create-name');
     const code = document.getElementById('create-code');
     const description = document.getElementById('create-description');
@@ -510,6 +511,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': getSizeAntiForgeryToken() },
                 body: JSON.stringify({
+                    generationMode: Number(generationMode?.value || 0),
                     idea: idea.value.trim() || null,
                     currentSizeCode: code.value.trim() || null,
                     currentName: name.value.trim() || null,
@@ -547,6 +549,7 @@ document.addEventListener('DOMContentLoaded', function initFullSizeAiSuggestion(
     document.getElementById('btnDismissSizeAi').addEventListener('click', clear);
     const invalidate = () => { controller?.abort(); clear(); };
     [idea, name, code, description].forEach(x => x.addEventListener('input', invalidate));
+    generationMode?.addEventListener('change', invalidate);
     sizeType.addEventListener('change', invalidate);
 });
 

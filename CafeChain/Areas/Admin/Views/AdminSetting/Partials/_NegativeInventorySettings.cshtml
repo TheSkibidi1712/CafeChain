@@ -20,7 +20,7 @@
         System.Globalization.CultureInfo.InvariantCulture);
 }
 
-<div class="tab-pane fade" id="negative-inventory" role="tabpanel" aria-labelledby="negative-inventory-tab">
+<div id="negative-inventory">
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-4">
         <div>
             <div class="d-flex align-items-center gap-2 mb-2">
@@ -118,7 +118,11 @@
                 {
                     var item = Model.Items[index];
                     var searchText = $"{item.ItemId} {item.ItemCode} {item.ItemName}".ToLowerInvariant();
-                    <tr class="negative-inventory-item-row" data-store-id="@item.StoreId" data-search="@searchText">
+                    <tr class="negative-inventory-item-row" data-store-id="@item.StoreId" data-search="@searchText"
+                        data-base-available="@formatInput(item.AvailableQty)"
+                        data-base-reserved="@formatInput(item.ReservedQty)"
+                        data-base-effective-limit="@formatInput(item.EffectiveMaxNegativeQty)"
+                        data-current-factor="1">
                         <td>
                             <div class="fw-semibold">#@item.StoreId</div>
                             <div class="small text-muted">@item.StoreName</div>
@@ -128,8 +132,8 @@
                             <div class="small text-muted">@item.ItemType #@item.ItemId · base: @item.BaseUnitCode</div>
                         </td>
                         <td class="text-end">
-                            <div>@formatQuantity(item.AvailableQty) @item.BaseUnitCode</div>
-                            <div class="small text-muted">Reserved: @formatQuantity(item.ReservedQty)</div>
+                            <div><span class="negative-available-qty">@formatQuantity(item.AvailableQty)</span> <span class="negative-display-unit-code">@item.BaseUnitCode</span></div>
+                            <div class="small text-muted">Reserved: <span class="negative-reserved-qty">@formatQuantity(item.ReservedQty)</span></div>
                         </td>
                         <td>
                             <input type="hidden" name="Items[@index].StoreInventoryId" value="@item.StoreInventoryId" form="@formId" />
@@ -143,6 +147,21 @@
                             </select>
                         </td>
                         <td>
+                            <select class="form-select form-select-sm mb-2 negative-display-unit"
+                                    name="Items[@index].DisplayUnitId" form="@formId"
+                                    disabled="@(!Model.IsConfigurationValid || item.UnitOptions.Count <= 1)">
+                                @foreach (var unit in item.UnitOptions)
+                                {
+                                    <option value="@unit.UnitId"
+                                            data-factor="@unit.ConversionFactorToBase.ToString(System.Globalization.CultureInfo.InvariantCulture)"
+                                            data-code="@unit.UnitCode"
+                                            selected="@(unit.UnitId == item.DisplayUnitId)">@unit.UnitCode — @unit.UnitName</option>
+                                }
+                            </select>
+                            @if (item.UnitOptions.Count <= 1)
+                            {
+                                <input type="hidden" name="Items[@index].DisplayUnitId" value="@item.BaseUnitId" form="@formId" />
+                            }
                             <input type="number" min="0.001" max="999999999999999.999" step="0.001"
                                    class="form-control form-control-sm negative-custom-limit"
                                    name="Items[@index].MaxNegativeQuantity"
@@ -151,7 +170,8 @@
                                    disabled="@(item.LimitMode != NegativeInventoryLimitModes.Custom || !Model.IsConfigurationValid)" />
                         </td>
                         <td>
-                            <strong>@formatQuantity(item.EffectiveMaxNegativeQty)</strong> @item.BaseUnitCode
+                            <strong class="negative-effective-limit">@formatQuantity(item.EffectiveMaxNegativeQty)</strong>
+                            <span class="negative-display-unit-code">@item.BaseUnitCode</span>
                         </td>
                         <td>
                             <span class="badge @(item.CanRequestNegative ? "text-bg-success" : "text-bg-secondary")">

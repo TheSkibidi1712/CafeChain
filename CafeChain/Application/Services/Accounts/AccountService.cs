@@ -234,12 +234,20 @@ namespace CafeChain.Application.Services.Accounts
 
                 var allRoles = account.AccountRoles.Select(r => r.Role.Name).ToList();
 
-                string primaryRole =
-                    allRoles.FirstOrDefault(r => r.Contains("Admin")) ??
-                    allRoles.FirstOrDefault(r => r.Contains("Manager")) ??
-                    allRoles.FirstOrDefault(r => r.Contains("Cashier")) ??
-                    allRoles.FirstOrDefault() ??
-                    RoleConstants.Customer;
+                var rolePriority = new[]
+                {
+                    RoleConstants.SystemAdmin,
+                    RoleConstants.BusinessOwner,
+                    RoleConstants.AreaManager,
+                    RoleConstants.StoreManager,
+                    RoleConstants.ShiftSupervisor,
+                    RoleConstants.AccountantWarehouse,
+                    RoleConstants.SalesStaff,
+                    RoleConstants.Customer
+                };
+                string primaryRole = rolePriority.FirstOrDefault(allRoles.Contains)
+                    ?? allRoles.FirstOrDefault()
+                    ?? RoleConstants.Customer;
 
                 var fullName = account.Customer?.FullName
                                ?? account.Staff?.FullName

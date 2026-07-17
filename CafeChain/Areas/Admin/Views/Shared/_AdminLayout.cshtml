@@ -9,6 +9,7 @@
         ViewContext.RouteData.Values["area"]?.ToString() == "Admin";
 
     var canManagePermissions = false;
+    var canAccessDashboard = false;
 
     var currentAccountIdValue =
         User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -24,6 +25,12 @@
         canManagePermissions =
             permissionDecision.IsSuccess &&
             permissionDecision.Data?.Allowed == true;
+
+        var dashboardDecision = await PermissionService.HasPermissionAsync(
+            currentAccountId,
+            PermissionConstants.AppAdminDashboard);
+        canAccessDashboard = dashboardDecision.IsSuccess
+            && dashboardDecision.Data?.Allowed == true;
     }
 }
 
@@ -264,9 +271,12 @@
         <div style="flex: 1; overflow-y: auto; overflow-x: hidden;">
 
             <!-- ━━━ 📊 TỔNG QUAN (Direct link) ━━━ -->
-            <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="@Html.IsActive("Dashboard")">
-                <i class="fas fa-chart-pie"></i> Tổng quan
-            </a>
+            @if (canAccessDashboard)
+            {
+                <a asp-area="Admin" asp-controller="Dashboard" asp-action="Index" class="@Html.IsActive("Dashboard")">
+                    <i class="fas fa-chart-pie"></i> Tổng quan
+                </a>
+            }
 
             <div class="sidebar-divider"></div>
 
@@ -494,14 +504,11 @@
                 <i class="fas fa-user-circle"></i> Hồ sơ của tôi
             </a>
 
-            @if (User.Identity != null && User.Identity.IsAuthenticated && RoleHelper.IsAdminGroup(User))
+            @if (User.Identity?.IsAuthenticated == true && User.HasClaim(claim => claim.Type == "StaffId"))
             {
-                @if (isAdminArea)
-                {
-                    <a asp-area="" asp-controller="Home" asp-action="Index">
-                        <i class="fas fa-arrow-left"></i> Quay lại trang chủ
-                    </a>
-                }
+                <a asp-area="" asp-controller="AppLauncher" asp-action="Index">
+                    <i class="fas fa-grip"></i> Chọn ứng dụng
+                </a>
             }
 
             <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" style="padding: 4px 0;">

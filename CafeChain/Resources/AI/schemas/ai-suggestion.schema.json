@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cafechain.local/schemas/ai-suggestion.schema.json",
+  "title": "CafeChain AI suggestion response",
+  "type": "object",
+  "required": ["options"],
+  "additionalProperties": false,
+  "properties": {
+    "options": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 3,
+      "items": {
+        "oneOf": [
+          { "$ref": "#/$defs/drinkOption" },
+          { "$ref": "#/$defs/sizeOption" },
+          { "$ref": "#/$defs/toppingOption" }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "baseOption": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "maxLength": 200 }
+      }
+    },
+    "drinkOption": {
+      "allOf": [
+        { "$ref": "#/$defs/baseOption" },
+        {
+          "type": "object",
+          "required": ["categoryCode", "productTypeCode"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+            "categoryCode": { "type": "string", "minLength": 1 },
+            "productTypeCode": { "type": "string", "minLength": 1 },
+            "description": { "type": ["string", "null"], "maxLength": 1000 },
+            "imagePrompt": { "type": ["string", "null"], "maxLength": 500 },
+            "toppingCodes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "sizeOption": {
+      "allOf": [
+        { "$ref": "#/$defs/baseOption" },
+        {
+          "type": "object",
+          "required": ["sizeType"],
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 50 },
+            "description": { "type": ["string", "null"], "maxLength": 300 },
+            "sizeType": { "type": "string", "enum": ["Cup", "Volume"] }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "toppingOption": {
+      "allOf": [
+        { "$ref": "#/$defs/baseOption" },
+        {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1, "maxLength": 100 },
+            "imagePrompt": { "type": ["string", "null"], "maxLength": 500 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

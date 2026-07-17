@@ -5102,11 +5102,11 @@ namespace CafeChain.Migrations
                 columns: new[] { "PermissionId", "Action", "Active", "Code", "CreatedAt", "Description", "Name", "PermissionGroupId" },
                 values: new object[,]
                 {
-                    { 1, "View", true, "Drink.View", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Xem đồ uống", 1 },
-                    { 2, "Create", true, "Drink.Create", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Thêm đồ uống", 1 },
-                    { 3, "Update", true, "Drink.Update", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Cập nhật đồ uống", 1 },
-                    { 4, "Delete", true, "Drink.Delete", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Xóa đồ uống", 1 },
-                    { 100, "Manage", true, "System.Permission.Manage", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), null, "Quản lý phân quyền", 5 }
+                    { 1, "View", true, "Drink.View", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xem danh sách đồ uống", "Xem đồ uống", 1 },
+                    { 2, "Create", true, "Drink.Create", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Tạo mới đồ uống", "Thêm đồ uống", 1 },
+                    { 3, "Update", true, "Drink.Update", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Cập nhật thông tin đồ uống", "Cập nhật đồ uống", 1 },
+                    { 4, "Delete", true, "Drink.Delete", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xóa hoặc vô hiệu đồ uống", "Xóa đồ uống", 1 },
+                    { 100, "Manage", true, "System.Permission.Manage", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Xem danh sách bảng phân quyền", "Quản lý phân quyền", 5 }
                 });
 
             migrationBuilder.InsertData(

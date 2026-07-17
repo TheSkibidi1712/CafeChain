@@ -30,6 +30,7 @@ using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.Systems;
 using CafeChain.Application.Interfaces.AI;
 using CafeChain.Application.Interfaces.Admin.StoreScope;
+using CafeChain.Application.Interfaces.AppLauncher;
 
 // ==========================================
 // Application - Services
@@ -68,6 +69,7 @@ using CafeChain.Application.Services.Admin.Permissions;
 using CafeChain.Application.Services.Systems;
 using CafeChain.Application.Services.AI;
 using CafeChain.Application.Services.Admin.StoreScope;
+using CafeChain.Application.Services.AppLauncher;
 
 namespace CafeChain.Extensions.Services
 {
@@ -78,11 +80,14 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IUserContext, UserContext>();
             services.AddScoped<IAIService, AIService>();
             services.AddScoped<IAIImagePipelineService, AIImagePipelineService>();
+            services.AddSingleton<IAISkillCatalog, AISkillCatalog>();
+            services.AddSingleton<IAISuggestionHistoryStore, AISuggestionHistoryStore>();
             services.AddSingleton<IVisualSpecificationBuilder, VisualSpecificationBuilder>();
             services.AddSingleton<IPexelsMetadataScorer, PexelsMetadataScorer>();
 
             // Account
             services.AddScoped<IAccountService, AccountService>();
+            services.AddScoped<IAppLauncherService, AppLauncherService>();
             services.AddScoped<IPasswordResetService, PasswordResetService>();
             services.AddScoped<IEmailService, EmailService>();
 

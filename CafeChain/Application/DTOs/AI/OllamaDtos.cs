@@ -37,6 +37,9 @@ public sealed class OllamaMessageDTO
 public sealed class OllamaRequestOptionsDTO
 {
     [JsonPropertyName("temperature")] public decimal Temperature { get; set; }
+    [JsonPropertyName("top_p")] public decimal TopP { get; set; }
+    [JsonPropertyName("top_k")] public int TopK { get; set; }
+    [JsonPropertyName("repeat_penalty")] public decimal RepeatPenalty { get; set; }
 }
 
 public sealed class OllamaChatResponseDTO

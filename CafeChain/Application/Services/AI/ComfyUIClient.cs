@@ -124,7 +124,12 @@ public sealed class ComfyUIClient : IComfyUIClient
         Inputs(workflow, _options.PositivePromptNodeId)["text"] = request.PositivePrompt.Trim();
         Inputs(workflow, _options.NegativePromptNodeId)["text"] = string.Join(", ",
             new[] { _options.NegativePrompt, request.NegativePrompt }.Where(x => !string.IsNullOrWhiteSpace(x)));
-        Inputs(workflow, _options.SamplerNodeId)["seed"] = Random.Shared.NextInt64(1, long.MaxValue);
+        var sampler = Inputs(workflow, _options.SamplerNodeId);
+        sampler["seed"] = request.Seed is > 0 ? request.Seed.Value : Random.Shared.NextInt64(1, long.MaxValue);
+        sampler["steps"] = Math.Clamp(request.Steps ?? _options.Steps, 1, 100);
+        sampler["cfg"] = Math.Clamp(request.Cfg ?? _options.Cfg, 1.0, 30.0);
+        sampler["sampler_name"] = SanitizeSamplerValue(request.SamplerName ?? _options.SamplerName, "euler");
+        sampler["scheduler"] = SanitizeSamplerValue(request.Scheduler ?? _options.Scheduler, "normal");
         if (request.GenerationMode == ComfyUIGenerationMode.ReferenceImage)
         {
             Inputs(workflow, _options.ReferenceImageNodeId)["image"] = uploadedName
@@ -142,6 +147,13 @@ public sealed class ComfyUIClient : IComfyUIClient
             Inputs(workflow, _options.SamplerNodeId)["denoise"] = 1.0;
         }
         Inputs(workflow, _options.OutputImageNodeId)["filename_prefix"] = SanitizePrefix(request.FileNamePrefix);
+    }
+
+    private static string SanitizeSamplerValue(string? value, string fallback)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return fallback;
+        var clean = value.Trim().ToLowerInvariant();
+        return clean.All(x => char.IsLetterOrDigit(x) || x is '_' or '-') ? clean : fallback;
     }
 
     private async Task<List<(string FileName, string Subfolder, string Type)>> WaitForOutputsAsync(

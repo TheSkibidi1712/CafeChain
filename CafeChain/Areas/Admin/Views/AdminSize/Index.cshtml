@@ -242,6 +242,11 @@
 
                         <div class="col-12">
                             <label for="sizeAiIdea" class="form-label fw-semibold">Ý tưởng cho AI <span class="text-muted fw-normal">(không bắt buộc)</span></label>
+                            <select id="sizeAiGenerationMode" class="form-select mb-2" aria-label="Chế độ gợi ý size">
+                                <option value="0">Tạo mới</option>
+                                <option value="1">Phát triển dữ liệu đang nhập</option>
+                                <option value="2">Tạo biến thể</option>
+                            </select>
                             <input id="sizeAiIdea" class="form-control mb-2" maxlength="200" placeholder="Ví dụ: chai 330ml" autocomplete="off" />
                             <button type="button" id="btnSizeAiSuggestion" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-wand-magic-sparkles me-1"></i> AI gợi ý

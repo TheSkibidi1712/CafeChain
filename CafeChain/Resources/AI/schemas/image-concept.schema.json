@@ -1,0 +1,37 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cafechain.local/schemas/image-concept.schema.json",
+  "title": "CafeChain visual specification",
+  "type": "object",
+  "required": [
+    "primarySubject", "styleProfile", "mood", "container", "surface",
+    "background", "lighting", "cameraAngle", "lens", "depthOfField",
+    "orientation", "referencePurpose", "pexelsQueries", "negativePrompt"
+  ],
+  "properties": {
+    "primarySubject": { "type": "string", "minLength": 1 },
+    "styleProfile": { "type": "string", "minLength": 1 },
+    "mood": { "type": "string", "minLength": 1 },
+    "container": { "type": "string", "minLength": 1 },
+    "surface": { "type": "string", "minLength": 1 },
+    "background": { "type": "string", "minLength": 1 },
+    "garnishes": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "props": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "lighting": { "type": "string", "minLength": 1 },
+    "cameraAngle": { "type": "string", "minLength": 1 },
+    "lens": { "type": "string", "minLength": 1 },
+    "depthOfField": { "type": "string", "minLength": 1 },
+    "orientation": { "type": "string", "enum": ["square", "portrait", "landscape"] },
+    "colorPalette": { "type": "array", "items": { "type": "string" }, "uniqueItems": true },
+    "referencePurpose": { "type": "string", "minLength": 1 },
+    "pexelsQueries": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string", "minLength": 2 },
+      "uniqueItems": true
+    },
+    "negativePrompt": { "type": "string", "minLength": 1 },
+    "forbiddenKeywords": { "type": "array", "items": { "type": "string" }, "uniqueItems": true }
+  },
+  "additionalProperties": false
+}

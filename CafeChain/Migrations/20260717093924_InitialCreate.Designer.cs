@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260717044845_InitialCreate")]
+    [Migration("20260717093924_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -8231,6 +8231,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "Drink.View",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Xem danh sách đồ uống",
                             Name = "Xem đồ uống",
                             PermissionGroupId = 1
                         },
@@ -8241,6 +8242,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "Drink.Create",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Tạo mới đồ uống",
                             Name = "Thêm đồ uống",
                             PermissionGroupId = 1
                         },
@@ -8251,6 +8253,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "Drink.Update",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Cập nhật thông tin đồ uống",
                             Name = "Cập nhật đồ uống",
                             PermissionGroupId = 1
                         },
@@ -8261,6 +8264,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "Drink.Delete",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Xóa hoặc vô hiệu đồ uống",
                             Name = "Xóa đồ uống",
                             PermissionGroupId = 1
                         },
@@ -8271,6 +8275,7 @@ namespace CafeChain.Migrations
                             Active = true,
                             Code = "System.Permission.Manage",
                             CreatedAt = new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
+                            Description = "Xem danh sách bảng phân quyền",
                             Name = "Quản lý phân quyền",
                             PermissionGroupId = 5
                         });

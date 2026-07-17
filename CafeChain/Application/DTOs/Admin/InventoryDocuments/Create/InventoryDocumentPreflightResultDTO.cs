@@ -17,6 +17,13 @@ public sealed class InventoryDocumentPreflightLineDTO
     public decimal IssueQty { get; set; }
     public decimal ProjectedAfterQty { get; set; }
     public decimal EffectiveMaxNegativeQty { get; set; }
+    public int UnitId { get; set; }
+    public string UnitCode { get; set; } = string.Empty;
+    public decimal ConversionFactorToBase { get; set; }
+    public decimal BeforeDisplayQty { get; set; }
+    public decimal IssueDisplayQty { get; set; }
+    public decimal ProjectedAfterDisplayQty { get; set; }
+    public decimal EffectiveMaxNegativeDisplayQty { get; set; }
     public InventoryIssueOutcome Outcome { get; set; }
     public string ReasonCode { get; set; } = string.Empty;
 }

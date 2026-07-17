@@ -92,7 +92,7 @@ namespace CafeChain.Controllers
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToAction("Index", "Home");
+                return RedirectAuthenticatedUser();
             }
 
             ViewBag.IsLocked = isLocked;
@@ -119,9 +119,7 @@ namespace CafeChain.Controllers
         {
             if (User.Identity?.IsAuthenticated == true)
             {
-                return RedirectToAction(
-                    "Index",
-                    "Home");
+                return RedirectAuthenticatedUser(returnUrl);
             }
 
             if (!ModelState.IsValid)
@@ -167,7 +165,7 @@ namespace CafeChain.Controllers
 
             TempData["SuccessMessage"] = result.Message;
 
-            return RedirectByRole(result.Data.Role, returnUrl);
+            return RedirectAfterLogin(result.Data, returnUrl);
         }
 
         // ========================= LOGOUT =========================
@@ -229,53 +227,26 @@ namespace CafeChain.Controllers
                 });
         }
 
-        private IActionResult RedirectByRole(string role, string? returnUrl)
+        private IActionResult RedirectAfterLogin(LoginResponseDto login, string? returnUrl)
         {
             if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
             {
                 return Redirect(returnUrl);
             }
 
-            var adminRoles = new[]
-            {
-                RoleConstants.BusinessOwner,
-                RoleConstants.AreaManager,
-                RoleConstants.StoreManager,
-                RoleConstants.AccountantWarehouse,
-                RoleConstants.SystemAdmin
-            };
+            return login.StaffId.HasValue
+                ? RedirectToAction("Index", "AppLauncher")
+                : RedirectToAction("Index", "Home");
+        }
 
-            var staffHubRoles = new[]
-            {
-                RoleConstants.SalesStaff,
-                RoleConstants.ShiftSupervisor
-            };
+        private IActionResult RedirectAuthenticatedUser(string? returnUrl = null)
+        {
+            if (!string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl))
+                return Redirect(returnUrl);
 
-            if (adminRoles.Contains(role))
-            {
-                return RedirectToAction(
-                    "Index",
-                    "AdminStaff",
-                    new { area = "Admin" });
-            }
-
-            if (staffHubRoles.Contains(role))
-            {
-                return RedirectToAction(
-                    "Index",
-                    "StaffHub");
-            }
-
-            if (role == RoleConstants.Customer)
-            {
-                return RedirectToAction(
-                    "Index",
-                    "Home");
-            }
-
-            return RedirectToAction(
-                "Index",
-                "Home");
+            return User.HasClaim(claim => claim.Type == "StaffId")
+                ? RedirectToAction("Index", "AppLauncher")
+                : RedirectToAction("Index", "Home");
         }
 
 

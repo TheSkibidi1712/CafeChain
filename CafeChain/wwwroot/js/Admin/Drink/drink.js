@@ -867,6 +867,7 @@ $(document).ready(function () {
     if (!button) return;
     const form = document.getElementById('drinkCreateForm');
     const idea = document.getElementById('drinkAiIdea');
+    const generationMode = document.getElementById('drinkAiGenerationMode');
     const fields = {
         name: document.getElementById('DrinkCreateDTO_Name'),
         category: document.getElementById('DrinkCreateDTO_CategoryId'),
@@ -895,6 +896,7 @@ $(document).ready(function () {
             defaultFileName: 'drink-ai.png',
             notify: (message, type) => typeof toast === 'function' ? toast(message, type) : alert(message),
             suggestionPayload: () => ({
+                generationMode: Number(generationMode?.value || 0),
                 idea: idea.value.trim() || null,
                 currentDrinkCode: fields.code.value.trim() || null,
                 currentName: fields.name.value.trim() || null,
@@ -915,7 +917,7 @@ $(document).ready(function () {
                 card.append(title, meta, description);
             },
             fileNamePrefix: option => option.fields?.drinkCode || 'drink_ai',
-            invalidateElements: () => [idea, ...Object.values(fields)],
+            invalidateElements: () => [idea, generationMode, ...Object.values(fields)],
             willOverwrite: () => Object.values(fields).some(x => x.value?.trim()) ||
                 Boolean(document.querySelector('#createImagePreview .image-preview-card')),
             apply: async (option, file) => {

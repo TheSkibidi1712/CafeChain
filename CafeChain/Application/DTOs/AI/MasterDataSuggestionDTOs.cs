@@ -4,6 +4,20 @@ using CafeChain.Models.Enums.Drink;
 
 namespace CafeChain.Application.DTOs.AI;
 
+public enum AISuggestionGenerationMode
+{
+    New = 0,
+    Develop = 1,
+    Variant = 2
+}
+
+public sealed class AISuggestionHistoryItemDTO
+{
+    [StringLength(200)] public string Name { get; set; } = string.Empty;
+    [StringLength(500)] public string? Description { get; set; }
+    [StringLength(500)] public string? ImageConcept { get; set; }
+}
+
 internal sealed class AISuggestionReferenceDTO
 {
     public int Id { get; set; }
@@ -13,6 +27,8 @@ internal sealed class AISuggestionReferenceDTO
 
 public sealed class DrinkSuggestionRequestDTO
 {
+    public AISuggestionGenerationMode GenerationMode { get; set; } = AISuggestionGenerationMode.New;
+    [MaxLength(30)] public List<AISuggestionHistoryItemDTO> PreviousSuggestions { get; set; } = [];
     [StringLength(200)] public string? Idea { get; set; }
     [StringLength(50)] public string? CurrentDrinkCode { get; set; }
     [StringLength(200)] public string? CurrentName { get; set; }
@@ -52,6 +68,11 @@ public sealed class DrinkSuggestionOptionDTO
     public bool CanApply { get; set; }
     public DrinkSuggestionFieldsDTO Fields { get; set; } = new();
     public VisualSpecificationDTO VisualSpecification { get; set; } = new();
+    public string Persona { get; set; } = string.Empty;
+    public int CreativityScore { get; set; }
+    public int RelevanceScore { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public List<string> DuplicateSignals { get; set; } = [];
 }
 
 public sealed class DrinkSuggestionFieldsDTO
@@ -68,6 +89,8 @@ public sealed class DrinkSuggestionFieldsDTO
 
 public sealed class SizeSuggestionRequestDTO
 {
+    public AISuggestionGenerationMode GenerationMode { get; set; } = AISuggestionGenerationMode.New;
+    [MaxLength(30)] public List<AISuggestionHistoryItemDTO> PreviousSuggestions { get; set; } = [];
     [StringLength(200)] public string? Idea { get; set; }
     [StringLength(20)] public string? CurrentSizeCode { get; set; }
     [StringLength(50)] public string? CurrentName { get; set; }
@@ -96,6 +119,11 @@ public sealed class SizeSuggestionOptionDTO
     public string Title { get; set; } = string.Empty;
     public bool CanApply { get; set; }
     public SizeSuggestionFieldsDTO Fields { get; set; } = new();
+    public string Persona { get; set; } = string.Empty;
+    public int CreativityScore { get; set; }
+    public int RelevanceScore { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public List<string> DuplicateSignals { get; set; } = [];
 }
 
 public sealed class SizeSuggestionFieldsDTO
@@ -109,6 +137,8 @@ public sealed class SizeSuggestionFieldsDTO
 
 public sealed class ToppingSuggestionRequestDTO
 {
+    public AISuggestionGenerationMode GenerationMode { get; set; } = AISuggestionGenerationMode.New;
+    [MaxLength(30)] public List<AISuggestionHistoryItemDTO> PreviousSuggestions { get; set; } = [];
     [StringLength(200)] public string? Idea { get; set; }
     [StringLength(50)] public string? CurrentToppingCode { get; set; }
     [StringLength(100)] public string? CurrentName { get; set; }
@@ -140,6 +170,11 @@ public sealed class ToppingSuggestionOptionDTO
     public bool CanApply { get; set; }
     public ToppingSuggestionFieldsDTO Fields { get; set; } = new();
     public VisualSpecificationDTO VisualSpecification { get; set; } = new();
+    public string Persona { get; set; } = string.Empty;
+    public int CreativityScore { get; set; }
+    public int RelevanceScore { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public List<string> DuplicateSignals { get; set; } = [];
 }
 
 public sealed class ToppingSuggestionFieldsDTO

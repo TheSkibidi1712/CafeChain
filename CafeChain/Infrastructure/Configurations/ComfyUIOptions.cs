@@ -10,6 +10,10 @@ public sealed class ComfyUIOptions
     public string CheckpointName { get; set; } = string.Empty;
     public int Width { get; set; } = 1024;
     public int Height { get; set; } = 1024;
+    public int Steps { get; set; } = 28;
+    public double Cfg { get; set; } = 7.0;
+    public string SamplerName { get; set; } = "euler";
+    public string Scheduler { get; set; } = "normal";
     public int TimeoutSeconds { get; set; } = 180;
     public int PollIntervalMilliseconds { get; set; } = 1000;
     public int MaxImageBytes { get; set; } = 5 * 1024 * 1024;

@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using CafeChain.Application.DTOs.AI;
+using CafeChain.Application.Interfaces.AI;
 using CafeChain.Models.Drinks;
 using CafeChain.Models.Enums.Drink;
 
@@ -46,6 +47,10 @@ public sealed partial class AIService
         DrinkSuggestionRequestDTO request,
         CancellationToken cancellationToken = default)
     {
+        var skill = await _skillCatalog.GetContextAsync("Drink", includeImageSkills: true, cancellationToken);
+        var previous = request.PreviousSuggestions.Select(x => x.Name)
+            .Concat(_suggestionHistory.Get("Drink"))
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var drinks = (await _drinkRepository.GetAllDrinksAsync()).ToList();
         var categories = (await _drinkRepository.GetDrinkCategoriesAsync()).Where(x => x.Active).ToList();
         var productTypes = (await _drinkRepository.GetProductTypesAsync()).Where(x => x.Active).ToList();
@@ -54,7 +59,8 @@ public sealed partial class AIService
 
         var candidates = new List<(DrinkOllamaSuggestionDTO Value, bool FromOllama)>();
         var currentName = CleanSuggestionText(request.CurrentName, 200);
-        if (currentName != null)
+        DrinkOllamaSuggestionDTO? currentCandidate = null;
+        if (currentName != null && request.GenerationMode != AISuggestionGenerationMode.New)
         {
             var currentCategory = categories.FirstOrDefault(x => x.CategoryId == request.CurrentCategoryId)
                 ?? ResolveCategoryForName(categories, currentName);
@@ -62,19 +68,20 @@ public sealed partial class AIService
                 ?? ResolveProductTypeForName(productTypes, currentName);
             if (currentCategory != null && currentProductType != null)
             {
-                candidates.Add((new DrinkOllamaSuggestionDTO
+                currentCandidate = new DrinkOllamaSuggestionDTO
                 {
                     Name = currentName,
                     CategoryCode = currentCategory.CategoryCode,
                     ProductTypeCode = currentProductType.Code,
                     Description = CleanSuggestionText(request.CurrentDescription, 1000),
                     ImagePrompt = $"{currentName}, {currentCategory.Name}, {currentProductType.Name}, premium cafe product"
-                }, false));
+                };
             }
         }
 
-        var ollamaOptions = await RequestDrinkOptionsAsync(request, categories, productTypes, cancellationToken);
+        var ollamaOptions = await RequestDrinkOptionsAsync(request, categories, productTypes, skill, previous, cancellationToken);
         candidates.AddRange(ollamaOptions.Select(x => (x, true)));
+        if (currentCandidate != null) candidates.Add((currentCandidate, false));
         candidates.AddRange(DrinkFallbacks.Select(x => (new DrinkOllamaSuggestionDTO
         {
             Name = x.Name,
@@ -84,7 +91,10 @@ public sealed partial class AIService
             ImagePrompt = $"{x.Name}, premium Vietnamese cafe beverage"
         }, false)));
 
-        var existingNames = new HashSet<string>(drinks.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name)));
+        var existingNames = new HashSet<string>(drinks.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name))
+            .Concat(previous.Select(AISuggestionUniquenessPolicy.NormalizeTextKey)));
+        var comparison = drinks.Select(x => (x.Name, (string?)null))
+            .Concat(previous.Select(x => (x, (string?)null))).ToList();
         var reservedCodes = new HashSet<string>(drinks.Select(x => AISuggestionUniquenessPolicy.NormalizeCodeKey(x.DrinkCode)));
         var options = new List<DrinkSuggestionOptionDTO>();
         var usedOllama = false;
@@ -108,9 +118,16 @@ public sealed partial class AIService
             if (code.Length == 0) { rejected++; continue; }
             var description = CleanSuggestionText(candidate.Value.Description, 1000)
                 ?? $"{name} thuộc danh mục {category.Name}, phù hợp với dòng sản phẩm {productType.Name}.";
+            if (AISuggestionUniquenessPolicy.IsNearDuplicate(name, description, comparison,
+                    _options.NearNameSimilarityThreshold, _options.CompositeSimilarityThreshold, out _))
+            {
+                rejected++;
+                continue;
+            }
             var imagePrompt = CleanSuggestionText(candidate.Value.ImagePrompt, 500)
                 ?? $"{name}, {category.Name}, {productType.Name}, premium cafe product";
 
+            var persona = ResolvePersona(options.Count);
             options.Add(new DrinkSuggestionOptionDTO
             {
                 Title = name,
@@ -126,8 +143,13 @@ public sealed partial class AIService
                     ProductTypeName = productType.Name,
                     ImagePrompt = imagePrompt
                 },
-                VisualSpecification = _visualSpecificationBuilder.BuildDrink(name, description, imagePrompt)
+                VisualSpecification = _visualSpecificationBuilder.BuildDrink(name, description, imagePrompt),
+                Persona = persona.Name,
+                CreativityScore = persona.Creativity,
+                RelevanceScore = ScoreRelevance(request.Idea, name, description),
+                Reason = BuildReason(request.GenerationMode, persona.Name)
             });
+            comparison.Add((name, description));
             usedOllama |= candidate.FromOllama;
             usedFallback |= !candidate.FromOllama;
         }
@@ -142,7 +164,9 @@ public sealed partial class AIService
             UsedOllama = usedOllama,
             UsedFallback = usedFallback
         };
+        result.Warnings.AddRange(skill.Warnings);
         if (rejected > 0) result.Warnings.Add($"Đã loại {rejected} lựa chọn trùng hoặc không hợp lệ.");
+        _suggestionHistory.Add("Drink", options.Select(x => x.Fields.Name));
         return result;
     }
 
@@ -150,6 +174,10 @@ public sealed partial class AIService
         SizeSuggestionRequestDTO request,
         CancellationToken cancellationToken = default)
     {
+        var skill = await _skillCatalog.GetContextAsync("Size", includeImageSkills: false, cancellationToken);
+        var previous = request.PreviousSuggestions.Select(x => x.Name)
+            .Concat(_suggestionHistory.Get("Size"))
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var sizes = (await _sizeRepository.GetAllAsync()).ToList();
         var candidates = new List<(SizeOllamaSuggestionDTO Value, bool FromOllama)>();
         var currentName = CleanSuggestionText(request.CurrentName, 50);
@@ -165,7 +193,7 @@ public sealed partial class AIService
                 }, false));
         }
 
-        var ollamaOptions = await RequestSizeOptionsAsync(request, cancellationToken);
+        var ollamaOptions = await RequestSizeOptionsAsync(request, skill, previous, cancellationToken);
         candidates.AddRange(ollamaOptions.Select(x => (x, true)));
         candidates.AddRange(SizeFallbacks.Select(x => (new SizeOllamaSuggestionDTO
         {
@@ -174,7 +202,9 @@ public sealed partial class AIService
             SizeType = x.Type.ToString()
         }, false)));
 
-        var names = new HashSet<string>(sizes.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name)));
+        var names = new HashSet<string>(sizes.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name))
+            .Concat(previous.Select(AISuggestionUniquenessPolicy.NormalizeTextKey)));
+        var comparison = sizes.Select(x => (x.Name, x.Description)).Concat(previous.Select(x => (x, (string?)null))).ToList();
         var codes = new HashSet<string>(sizes.Select(x => AISuggestionUniquenessPolicy.NormalizeCodeKey(x.SizeCode)));
         var options = new List<SizeSuggestionOptionDTO>();
         var usedOllama = false;
@@ -192,6 +222,15 @@ public sealed partial class AIService
             }
             var code = await CreateReservedCodeAsync(BuildSizeCode(name), 20, codes, _sizeRepository.ExistsBySizeCodeAsync);
             if (code.Length == 0) { rejected++; continue; }
+            var description = CleanSuggestionText(candidate.Value.Description, 300)
+                ?? $"Kích thước {name} dành cho sản phẩm CafeChain.";
+            if (AISuggestionUniquenessPolicy.IsNearDuplicate(name, description, comparison,
+                    _options.NearNameSimilarityThreshold, _options.CompositeSimilarityThreshold, out _))
+            {
+                rejected++;
+                continue;
+            }
+            var persona = ResolvePersona(options.Count);
             options.Add(new SizeSuggestionOptionDTO
             {
                 Title = $"Size {name}",
@@ -200,12 +239,16 @@ public sealed partial class AIService
                 {
                     Name = name,
                     SizeCode = code,
-                    Description = CleanSuggestionText(candidate.Value.Description, 300)
-                        ?? $"Kích thước {name} dành cho sản phẩm CafeChain.",
+                    Description = description,
                     SizeType = sizeType.Value,
                     Active = true
-                }
+                },
+                Persona = persona.Name,
+                CreativityScore = persona.Creativity,
+                RelevanceScore = ScoreRelevance(request.Idea, name, description),
+                Reason = BuildReason(request.GenerationMode, persona.Name)
             });
+            comparison.Add((name, description));
             usedOllama |= candidate.FromOllama;
             usedFallback |= !candidate.FromOllama;
         }
@@ -218,7 +261,9 @@ public sealed partial class AIService
             UsedOllama = usedOllama,
             UsedFallback = usedFallback
         };
+        result.Warnings.AddRange(skill.Warnings);
         if (rejected > 0) result.Warnings.Add($"Đã loại {rejected} lựa chọn trùng hoặc không hợp lệ.");
+        _suggestionHistory.Add("Size", options.Select(x => x.Fields.Name));
         return result;
     }
 
@@ -226,6 +271,10 @@ public sealed partial class AIService
         ToppingSuggestionRequestDTO request,
         CancellationToken cancellationToken = default)
     {
+        var skill = await _skillCatalog.GetContextAsync("Topping", includeImageSkills: true, cancellationToken);
+        var previous = request.PreviousSuggestions.Select(x => x.Name)
+            .Concat(_suggestionHistory.Get("Topping"))
+            .Where(x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var toppings = (await _toppingRepository.GetAllAsync()).ToList();
         var price = request.CurrentPrice is >= 1000
             ? request.CurrentPrice.Value
@@ -239,7 +288,7 @@ public sealed partial class AIService
                 ImagePrompt = $"{currentName}, premium cafe topping, appetizing close-up"
             }, false));
 
-        var ollamaOptions = await RequestToppingOptionsAsync(request, cancellationToken);
+        var ollamaOptions = await RequestToppingOptionsAsync(request, skill, previous, cancellationToken);
         candidates.AddRange(ollamaOptions.Select(x => (x, true)));
         candidates.AddRange(ToppingFallbacks.Select(x => (new ToppingOllamaSuggestionDTO
         {
@@ -247,7 +296,10 @@ public sealed partial class AIService
             ImagePrompt = $"{x}, premium cafe topping, appetizing close-up"
         }, false)));
 
-        var names = new HashSet<string>(toppings.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name)));
+        var names = new HashSet<string>(toppings.Select(x => AISuggestionUniquenessPolicy.NormalizeTextKey(x.Name))
+            .Concat(previous.Select(AISuggestionUniquenessPolicy.NormalizeTextKey)));
+        var comparison = toppings.Select(x => (x.Name, (string?)null))
+            .Concat(previous.Select(x => (x, (string?)null))).ToList();
         var codes = new HashSet<string>(toppings.Select(x => AISuggestionUniquenessPolicy.NormalizeCodeKey(x.ToppingCode)));
         var options = new List<ToppingSuggestionOptionDTO>();
         var usedOllama = false;
@@ -265,6 +317,15 @@ public sealed partial class AIService
             var code = await CreateReservedCodeAsync(name, 50, codes,
                 value => _toppingRepository.ExistsByToppingCodeAsync(value));
             if (code.Length == 0) { rejected++; continue; }
+            var imagePrompt = CleanSuggestionText(candidate.Value.ImagePrompt, 500)
+                ?? $"{name}, premium cafe topping, appetizing close-up";
+            if (AISuggestionUniquenessPolicy.IsNearDuplicate(name, imagePrompt, comparison,
+                    _options.NearNameSimilarityThreshold, _options.CompositeSimilarityThreshold, out _))
+            {
+                rejected++;
+                continue;
+            }
+            var persona = ResolvePersona(options.Count);
             options.Add(new ToppingSuggestionOptionDTO
             {
                 Title = name,
@@ -275,11 +336,15 @@ public sealed partial class AIService
                     ToppingCode = code,
                     Price = price,
                     Active = true,
-                    ImagePrompt = CleanSuggestionText(candidate.Value.ImagePrompt, 500)
-                        ?? $"{name}, premium cafe topping, appetizing close-up"
+                    ImagePrompt = imagePrompt
                 },
-                VisualSpecification = _visualSpecificationBuilder.BuildTopping(name, candidate.Value.ImagePrompt)
+                VisualSpecification = _visualSpecificationBuilder.BuildTopping(name, imagePrompt),
+                Persona = persona.Name,
+                CreativityScore = persona.Creativity,
+                RelevanceScore = ScoreRelevance(request.Idea, name, imagePrompt),
+                Reason = BuildReason(request.GenerationMode, persona.Name)
             });
+            comparison.Add((name, imagePrompt));
             usedOllama |= candidate.FromOllama;
             usedFallback |= !candidate.FromOllama;
         }
@@ -293,9 +358,11 @@ public sealed partial class AIService
             UsedOllama = usedOllama,
             UsedFallback = usedFallback
         };
+        result.Warnings.AddRange(skill.Warnings);
         if (rejected > 0) result.Warnings.Add($"Đã loại {rejected} lựa chọn trùng hoặc không hợp lệ.");
         if (!toppings.Any(x => x.Active && x.Price > 0) && request.CurrentPrice is not >= 1000)
             result.Warnings.Add("Chưa có lịch sử giá; C# dùng giá fallback 7.000đ.");
+        _suggestionHistory.Add("Topping", options.Select(x => x.Fields.Name));
         return result;
     }
 
@@ -303,62 +370,105 @@ public sealed partial class AIService
         DrinkSuggestionRequestDTO request,
         IReadOnlyCollection<DrinkCategory> categories,
         IReadOnlyCollection<ProductType> productTypes,
+        AISkillContext skill,
+        IReadOnlyCollection<string> previous,
         CancellationToken cancellationToken)
     {
         if (!CanUseOllama()) return [];
         var payload = JsonSerializer.Serialize(new
         {
             idea = CleanSuggestionText(request.Idea, 200),
+            generationMode = request.GenerationMode.ToString(),
             current = new { request.CurrentName, request.CurrentDescription, request.CurrentCategoryId, request.CurrentProductTypeId },
+            previousSuggestions = previous.Take(30),
             allowedCategories = categories.Select(x => new { code = x.CategoryCode, x.Name }),
             allowedProductTypes = productTypes.Select(x => new { x.Code, x.Name })
         });
-        var response = await _ollama.ChatAsync(
-            """
+        var prompt = WithSkill("""
             Bạn là trợ lý tạo nội dung đồ uống CafeChain. Hãy tạo 3 lựa chọn khác nhau, kể cả khi idea và current trống.
+            Idea là yêu cầu ưu tiên cao nhất. New tạo khái niệm mới; Develop phát triển current; Variant giữ cốt lõi nhưng thay đổi hương vị/hình ảnh.
+            Ba lựa chọn lần lượt theo persona: safe-commercial, visual-creative, premium-trend.
             Chỉ chọn categoryCode và productTypeCode trong allow-list.
             Trả đúng JSON: {"options":[{"name":"...","categoryCode":"...","productTypeCode":"...","description":"...","imagePrompt":"..."}]}.
             Tên/mô tả viết tiếng Việt; imagePrompt viết tiếng Anh. Không tạo ID, mã, giá hoặc yêu cầu tự lưu.
-            """, payload, cancellationToken);
-        return ParseSuggestion<DrinkOllamaOptionsDTO>(response)?.Options.Take(6).ToList() ?? [];
+            """, skill);
+        return await RequestOptionsWithRetryAsync<DrinkOllamaOptionsDTO, DrinkOllamaSuggestionDTO>(
+            prompt, payload, x => x.Options, cancellationToken);
     }
 
     private async Task<List<SizeOllamaSuggestionDTO>> RequestSizeOptionsAsync(
         SizeSuggestionRequestDTO request,
+        AISkillContext skill,
+        IReadOnlyCollection<string> previous,
         CancellationToken cancellationToken)
     {
         if (!CanUseOllama()) return [];
         var payload = JsonSerializer.Serialize(new
         {
             idea = CleanSuggestionText(request.Idea, 200),
+            generationMode = request.GenerationMode.ToString(),
+            previousSuggestions = previous.Take(30),
             current = new { request.CurrentName, request.CurrentDescription, sizeType = request.CurrentSizeType?.ToString() }
         });
-        var response = await _ollama.ChatAsync(
-            """
+        var prompt = WithSkill("""
             Tạo 3 lựa chọn size khác nhau cho CafeChain, kể cả khi dữ liệu trống.
+            Idea là yêu cầu ưu tiên cao nhất. Không lặp lại previousSuggestions.
             Trả đúng JSON: {"options":[{"name":"...","description":"...","sizeType":"Cup|Volume"}]}.
             Dung tích ml/lít dùng Volume; S/M/L/XL và tên kích cỡ ly dùng Cup. Không tạo mã hoặc ID.
-            """, payload, cancellationToken);
-        return ParseSuggestion<SizeOllamaOptionsDTO>(response)?.Options.Take(6).ToList() ?? [];
+            """, skill);
+        return await RequestOptionsWithRetryAsync<SizeOllamaOptionsDTO, SizeOllamaSuggestionDTO>(
+            prompt, payload, x => x.Options, cancellationToken);
     }
 
     private async Task<List<ToppingOllamaSuggestionDTO>> RequestToppingOptionsAsync(
         ToppingSuggestionRequestDTO request,
+        AISkillContext skill,
+        IReadOnlyCollection<string> previous,
         CancellationToken cancellationToken)
     {
         if (!CanUseOllama()) return [];
         var payload = JsonSerializer.Serialize(new
         {
             idea = CleanSuggestionText(request.Idea, 200),
+            generationMode = request.GenerationMode.ToString(),
+            previousSuggestions = previous.Take(30),
             currentName = CleanSuggestionText(request.CurrentName, 100)
         });
-        var response = await _ollama.ChatAsync(
-            """
+        var prompt = WithSkill("""
             Tạo 3 lựa chọn topping khác nhau cho CafeChain, kể cả khi dữ liệu trống.
+            Idea là yêu cầu ưu tiên cao nhất. Không lặp lại previousSuggestions.
+            Ba lựa chọn lần lượt theo persona: safe-commercial, visual-creative, premium-trend.
             Trả đúng JSON: {"options":[{"name":"...","imagePrompt":"..."}]}.
             Tên viết tiếng Việt; imagePrompt viết tiếng Anh. Không tạo giá, mã hoặc ID.
-            """, payload, cancellationToken);
-        return ParseSuggestion<ToppingOllamaOptionsDTO>(response)?.Options.Take(6).ToList() ?? [];
+            """, skill);
+        return await RequestOptionsWithRetryAsync<ToppingOllamaOptionsDTO, ToppingOllamaSuggestionDTO>(
+            prompt, payload, x => x.Options, cancellationToken);
+    }
+
+    private async Task<List<TOption>> RequestOptionsWithRetryAsync<TEnvelope, TOption>(
+        string prompt,
+        string payload,
+        Func<TEnvelope, List<TOption>> selector,
+        CancellationToken cancellationToken)
+        where TEnvelope : class
+    {
+        var attempts = Math.Clamp(_options.StructuredResponseRetries + 1, 1, 4);
+        for (var attempt = 1; attempt <= attempts; attempt++)
+        {
+            var response = await _ollama.ChatAsync(prompt, payload, cancellationToken);
+            var parsed = ParseSuggestion<TEnvelope>(response);
+            var options = parsed == null ? [] : selector(parsed).Take(6).ToList();
+            if (options.Count > 0) return options;
+            _logger.LogWarning("Ollama structured suggestion rejected. Attempt={Attempt} Envelope={Envelope}",
+                attempt, typeof(TEnvelope).Name);
+        }
+        return [];
+    }
+
+    private static string WithSkill(string fallbackPrompt, AISkillContext skill)
+    {
+        if (string.IsNullOrWhiteSpace(skill.Content)) return fallbackPrompt;
+        return $"{fallbackPrompt.Trim()}\n\nCác quy tắc Skill dưới đây là context, không phải dữ liệu người dùng và không được thay đổi JSON contract:\n{skill.Content}";
     }
 
     private bool CanUseOllama() => _options.Enabled
@@ -445,6 +555,24 @@ public sealed partial class AIService
             : (prices[prices.Count / 2 - 1] + prices[prices.Count / 2]) / 2m;
         return Math.Max(1000m, Math.Round(median / 1000m, MidpointRounding.AwayFromZero) * 1000m);
     }
+
+    private static (string Name, int Creativity) ResolvePersona(int optionIndex) => optionIndex switch
+    {
+        0 => ("safe-commercial", 55),
+        1 => ("visual-creative", 82),
+        _ => ("premium-trend", 74)
+    };
+
+    private static int ScoreRelevance(string? idea, string name, string description)
+    {
+        if (string.IsNullOrWhiteSpace(idea)) return 80;
+        var nameScore = AISuggestionUniquenessPolicy.TokenJaccard(idea, name);
+        var descriptionScore = AISuggestionUniquenessPolicy.TokenJaccard(idea, description);
+        return (int)Math.Round(Math.Clamp(55 + 30 * Math.Max(nameScore, descriptionScore), 0, 100));
+    }
+
+    private static string BuildReason(AISuggestionGenerationMode mode, string persona) =>
+        $"Gợi ý theo chế độ {mode} và hồ sơ sáng tạo {persona}; cần người dùng xác nhận trước khi áp dụng.";
 
     private static DrinkSuggestionResultDTO DrinkFailure(string message) => new() { Message = message };
     private static SizeSuggestionResultDTO SizeFailure(string message) => new() { Message = message };

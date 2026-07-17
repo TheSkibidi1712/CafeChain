@@ -14,6 +14,6 @@ namespace CafeChain.Application.DTOs.Admin.InventoryTransfers
         public decimal AvailableBaseQuantity { get; set; }
         public decimal SuggestedBaseUnitCost { get; set; }
         public decimal SuggestedUnitPrice { get; set; }
-        public List<InventoryIngredientUnitOptionDTO> UnitOptions { get; set; } = [];
+        public List<CafeChain.Application.DTOs.Inventories.InventoryUnitOptionDTO> UnitOptions { get; set; } = [];
     }
 }

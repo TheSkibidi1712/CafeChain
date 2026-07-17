@@ -6,6 +6,7 @@ using CafeChain.Application.Services.Inventories;
 using CafeChain.Infrastrusture.Repositories.Systems;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace CafeChain.Tests;
 
@@ -201,5 +202,46 @@ public sealed class AdminNegativeInventorySettingsTests : IntegrationTestBase
         Assert.Equal("SETTING_KEY_NOT_ALLOWED", result.ErrorCode);
         Assert.Equal("false", (await context.SystemSettings.SingleAsync(
             x => x.SettingKey == InventoryIssueSettingsProvider.EnabledKey)).SettingValue);
+    }
+
+    [Fact]
+    public async Task Custom_limit_in_liter_is_converted_to_base_milliliter_before_save()
+    {
+        using var context = CreateDbContext();
+        using var cache = new MemoryCache(new MemoryCacheOptions());
+        var physical = new PhysicalUnitConversionService(
+            context,
+            NullLogger<PhysicalUnitConversionService>.Instance);
+        var conversion = new UnitConversionService(
+            context,
+            NullLogger<UnitConversionService>.Instance,
+            physical);
+        var service = new AdminSettingService(context, cache, conversion);
+        var before = await service.GetNegativeInventorySettingsAsync(OwnerActor);
+        var item = Assert.Single(before.Data.Items.Where(x => x.StoreInventoryId == 4));
+        var liter = Assert.Single(item.UnitOptions.Where(x => x.UnitCode == "l"));
+
+        var result = await service.UpdateNegativeInventorySettingsAsync(
+            new UpdateNegativeInventorySettingsDTO
+            {
+                Enabled = true,
+                DefaultMaxNegativeQuantity = 0,
+                Items =
+                [
+                    new UpdateNegativeInventoryItemDTO
+                    {
+                        StoreInventoryId = 4,
+                        LimitMode = NegativeInventoryLimitModes.Custom,
+                        DisplayUnitId = liter.UnitId,
+                        MaxNegativeQuantity = 1m,
+                        RowVersion = item.RowVersion
+                    }
+                ]
+            },
+            OwnerActor);
+
+        Assert.True(result.IsSuccess, result.Message);
+        Assert.Equal(1000m, (await context.StoreInventories.SingleAsync(
+            x => x.StoreInventoryId == 4)).MaxNegativeQty);
     }
 }
