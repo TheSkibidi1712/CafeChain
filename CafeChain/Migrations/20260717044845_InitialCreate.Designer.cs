@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260716055250_InitialCreate")]
+    [Migration("20260717044845_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -4462,6 +4462,22 @@ namespace CafeChain.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PurchaseOrderLineId"));
 
+                    b.Property<string>("CloseRemainingReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ClosedRemainingAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("ClosedRemainingByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("ClosedRemainingQuantity")
+                        .ValueGeneratedOnAdd()
+                        .HasPrecision(18, 3)
+                        .HasColumnType("decimal(18,3)")
+                        .HasDefaultValue(0m);
+
                     b.Property<int>("IngredientId")
                         .HasColumnType("int");
 
@@ -4508,6 +4524,8 @@ namespace CafeChain.Migrations
 
                     b.HasKey("PurchaseOrderLineId");
 
+                    b.HasIndex("ClosedRemainingByStaffId");
+
                     b.HasIndex("IngredientId");
 
                     b.HasIndex("IngredientSupplierId");
@@ -4518,7 +4536,10 @@ namespace CafeChain.Migrations
 
                     b.HasIndex("RestockRequestId");
 
-                    b.ToTable("PurchaseOrderLines", (string)null);
+                    b.ToTable("PurchaseOrderLines", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_PurchaseOrderLines_ClosedRemainingQuantity_NonNegative", "[ClosedRemainingQuantity] >= 0");
+                        });
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderReceiptPosting", b =>
@@ -5030,6 +5051,9 @@ namespace CafeChain.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<int?>("PurchaseOrderId")
+                        .HasColumnType("int");
+
                     b.Property<string>("ReceiptCode")
                         .IsRequired()
                         .HasMaxLength(40)
@@ -5075,6 +5099,11 @@ namespace CafeChain.Migrations
                     b.HasIndex("ConfirmedByStaffId");
 
                     b.HasIndex("CreatedByStaffId");
+
+                    b.HasIndex("PurchaseOrderId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_BranchReceipts_ActiveDraft_PurchaseOrder")
+                        .HasFilter("[PurchaseOrderId] IS NOT NULL AND [Status] = 'DRAFT'");
 
                     b.HasIndex("ReceiptCode")
                         .IsUnique()
@@ -5161,6 +5190,14 @@ namespace CafeChain.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasDefaultValue(0m);
 
+                    b.Property<string>("RejectionIssueType")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int?>("RestockRequestFulfillmentId")
                         .HasColumnType("int");
 
@@ -5221,6 +5258,10 @@ namespace CafeChain.Migrations
                     b.ToTable("BranchReceiptLines", null, t =>
                         {
                             t.HasCheckConstraint("CK_BranchReceiptLines_Identity", "\r\n(\r\n  ([IngredientId] IS NOT NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NULL AND [PreparedItemId] IS NOT NULL)\r\n  OR ([IngredientId] IS NULL AND [RecipeId] IS NOT NULL AND [PreparedItemId] IS NOT NULL)\r\n)");
+
+                            t.HasCheckConstraint("CK_BranchReceiptLines_Quantities", "[InputQuantity] > 0 AND [ReceivedBaseQuantity] >= 0 AND [RejectedBaseQuantity] >= 0 AND ([ReceivedBaseQuantity] + [RejectedBaseQuantity]) > 0");
+
+                            t.HasCheckConstraint("CK_BranchReceiptLines_RejectionReason", "[RejectedBaseQuantity] = 0 OR (LEN(LTRIM(RTRIM([RejectionReason]))) > 0 AND LEN(LTRIM(RTRIM([RejectionIssueType]))) > 0)");
                         });
                 });
 
@@ -11499,6 +11540,11 @@ namespace CafeChain.Migrations
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Procurement.PurchaseOrderLine", b =>
                 {
+                    b.HasOne("CafeChain.Models.Staffs.Staff", "ClosedRemainingByStaff")
+                        .WithMany()
+                        .HasForeignKey("ClosedRemainingByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Inventories.Ingredients.Ingredient", "Ingredient")
                         .WithMany()
                         .HasForeignKey("IngredientId")
@@ -11527,6 +11573,8 @@ namespace CafeChain.Migrations
                         .WithMany()
                         .HasForeignKey("RestockRequestId")
                         .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("ClosedRemainingByStaff");
 
                     b.Navigation("Ingredient");
 
@@ -11801,6 +11849,11 @@ namespace CafeChain.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("CafeChain.Models.Inventories.Procurement.PurchaseOrder", "PurchaseOrder")
+                        .WithMany()
+                        .HasForeignKey("PurchaseOrderId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("CafeChain.Models.Staffs.Staff", "ReceivedByStaff")
                         .WithMany()
                         .HasForeignKey("ReceivedByStaffId")
@@ -11825,6 +11878,8 @@ namespace CafeChain.Migrations
                     b.Navigation("ConfirmedByStaff");
 
                     b.Navigation("CreatedByStaff");
+
+                    b.Navigation("PurchaseOrder");
 
                     b.Navigation("ReceivedByStaff");
 
