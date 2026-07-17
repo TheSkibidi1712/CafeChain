@@ -6,6 +6,7 @@ using CafeChain.Application.Interfaces.POS;
 using CafeChain.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace CafeChain.Controllers.Api.v1
 {
@@ -22,6 +23,7 @@ namespace CafeChain.Controllers.Api.v1
         private readonly IDrinkSizePricingService? _pricingService;
         private readonly IPOSCatalogSnapshotService? _catalogSnapshotService;
 
+        [ActivatorUtilitiesConstructor]
         public POSCatalogController(
             AppDbContext context,
             IUnitConversionService unitConversion,
