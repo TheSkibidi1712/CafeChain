@@ -11,6 +11,9 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         [Required(ErrorMessage = "Tên NCC không được để trống")]
         public string Name { get; set; } = "";
 
+        [MaxLength(32)]
+        public string? TaxCode { get; set; }
+
         [MaxLength(500)]
         public string? Address { get; set; }
 
@@ -19,7 +22,8 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
 
         public bool Active { get; set; }
 
-        public string? RowVersion { get; set; }
+        [Required(ErrorMessage = "Phiên bản dữ liệu là bắt buộc")]
+        public string RowVersion { get; set; } = "";
     }
 
     // DTO thêm số điện thoại phụ

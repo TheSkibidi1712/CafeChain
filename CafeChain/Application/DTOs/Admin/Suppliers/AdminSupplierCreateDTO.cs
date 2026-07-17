@@ -9,6 +9,9 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         [Required(ErrorMessage = "Tên NCC không được để trống")]
         public string Name { get; set; } = "";
 
+        [MaxLength(32)]
+        public string? TaxCode { get; set; }
+
         [MaxLength(500)]
         public string? Address { get; set; }
 
@@ -34,6 +37,11 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
 
         /// <summary>Danh sách người liên hệ phụ</summary>
         public List<AdminSupplierContactItemCreateDTO> AdditionalContacts { get; set; } = new();
+
+        public Guid? DuplicateWarningId { get; set; }
+
+        [MaxLength(500)]
+        public string? DuplicateOverrideReason { get; set; }
     }
 
     /// <summary>Thông tin 1 người liên hệ phụ khi tạo NCC</summary>
@@ -43,5 +51,21 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public string? Phone { get; set; }
         public string? Email { get; set; }
         public string? Position { get; set; }
+    }
+
+    public class AdminSupplierDuplicateWarningDTO
+    {
+        public Guid WarningId { get; set; }
+        public DateTime ExpiresAtUtc { get; set; }
+        public List<AdminSupplierDuplicateMatchDTO> Matches { get; set; } = new();
+    }
+
+    public class AdminSupplierDuplicateMatchDTO
+    {
+        public int SupplierId { get; set; }
+        public string Code { get; set; } = "";
+        public string Name { get; set; } = "";
+        public bool Active { get; set; }
+        public List<string> MatchedSignals { get; set; } = new();
     }
 }

@@ -6,6 +6,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int SupplierId { get; set; }
         public string Code { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? TaxCode { get; set; }
         public string? Address { get; set; }
         public string? Note { get; set; }
         public bool Active { get; set; }
@@ -16,6 +17,16 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public List<AdminSupplierPhoneDTO> Phones { get; set; } = new();
         public List<AdminSupplierContactDTO> Contacts { get; set; } = new();
         public List<AdminSupplierStoreDTO> Stores { get; set; } = new();
+        public List<AdminSupplierAuditDTO> Audits { get; set; } = new();
+    }
+
+    public class AdminSupplierAuditDTO
+    {
+        public string Action { get; set; } = "";
+        public string? OldData { get; set; }
+        public string? NewData { get; set; }
+        public int ActorStaffId { get; set; }
+        public DateTime CreatedAt { get; set; }
     }
 
     public class AdminSupplierPhoneDTO

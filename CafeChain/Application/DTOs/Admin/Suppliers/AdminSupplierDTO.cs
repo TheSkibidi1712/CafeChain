@@ -6,6 +6,7 @@ namespace CafeChain.Application.DTOs.Admin.Suppliers
         public int SupplierId { get; set; }
         public string Code { get; set; } = "";
         public string Name { get; set; } = "";
+        public string? TaxCode { get; set; }
         public string? Address { get; set; }
         public string? Note { get; set; }
         public bool Active { get; set; }

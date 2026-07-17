@@ -9,6 +9,7 @@ namespace CafeChain.Models.Inventories.Suppliers
 
         public string? Code { get; set; }
         public string? Name { get; set; }
+        public string? TaxCode { get; set; }
 
         public string? Address { get; set; }
         public bool Active { get; set; }
