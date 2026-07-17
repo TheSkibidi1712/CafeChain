@@ -57,8 +57,8 @@
 }
 
     .sup-table thead {
-        background: #f8fafc;
-        color: #64748b;
+        background: #FAF7F4;
+        color: #475569;
     }
 
         .sup-table thead th {
@@ -67,7 +67,7 @@
             letter-spacing: 0;
             font-size: 12px;
             text-transform: uppercase;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #E5E0D8;
         }
 
     .sup-table tbody tr {
@@ -76,7 +76,7 @@
     }
 
         .sup-table tbody tr:hover {
-            background: #fff7ed;
+            background: #F5EDE3;
         }
 
     .sup-table tbody td {
@@ -87,8 +87,8 @@
 /* ---------- CODE CHIP ---------- */
 .sup-code {
     display: inline-block;
-    background: #fff7ed;
-    color: #ea580c;
+    background: #F5EDE3;
+    color: #99623B;
     padding: 2px 8px;
     border-radius: 6px;
     font-size: .78rem;
@@ -101,9 +101,9 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
-    color: #ea580c;
-    border: 1.5px solid #fed7aa;
+    background: linear-gradient(135deg, #F5EDE3 0%, #EDE0D0 100%);
+    color: #5C3F2B;
+    border: 1.5px solid #DBC4A9;
     padding: 7px 12px;
     border-radius: 8px;
     font-size: .875rem;
@@ -138,13 +138,13 @@
 }
 
 .badge-active {
-    background: #dcfce7;
-    color: #16a34a;
+    background: #D1FAE5;
+    color: #2F6F5E;
 }
 
 .badge-inactive {
-    background: #fee2e2;
-    color: #dc2626;
+    background: #FEE2E2;
+    color: #991B1B;
 }
 
 /* ---------- ICON BUTTONS ---------- */
@@ -161,19 +161,19 @@
     }
 
 .fa-pen-to-square {
-    color: #f97316;
+    color: #6F4E37;
 }
 
 .fa-list-ul {
-    color: #ea580c;
+    color: #5C3F2B;
 }
 
 .fa-lock {
-    color: #d97706;
+    color: #99623B;
 }
 
 .fa-trash-can {
-    color: #dc2626;
+    color: #991B1B;
 }
 
 /* ---------- BUTTONS ---------- */
@@ -200,28 +200,28 @@
     }
 
 .sup-btn-primary {
-    background: #f97316;
+    background: #6F4E37;
     color: #fff;
-    box-shadow: 0 10px 22px rgba(249,115,22,.18);
+    box-shadow: 0 10px 22px rgba(111,78,55,.20);
 }
 
 .sup-btn-success {
-    background: #16a34a;
+    background: #2F6F5E;
     color: #fff;
 }
 
 .sup-btn-dark {
-    background: #ea580c;
+    background: #5C3F2B;
     color: #fff;
 }
 
 .sup-btn-secondary {
-    background: #e2e8f0;
+    background: #EDE0D0;
     color: #334155;
 }
 
 .sup-btn-danger {
-    background: #dc2626;
+    background: #991B1B;
     color: #fff;
 }
 
@@ -241,8 +241,8 @@
 
     .sup-input:focus,
     .sup-select:focus {
-        border-color: #f97316;
-        box-shadow: 0 0 0 3px rgba(249,115,22,.14);
+        border-color: #6F4E37;
+        box-shadow: 0 0 0 3px rgba(111,78,55,.13);
     }
 
 .sup-filter-bar .sup-input {
@@ -334,7 +334,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 18px 22px 14px;
-    border-bottom: 1px solid #f1f5f9;
+    border-bottom: 1px solid #EEE8E1;
 }
 
     .sup-modal-header h5 {
@@ -345,7 +345,7 @@
     }
 
     .sup-modal-header h5 i {
-        color: #f97316;
+        color: #C67A45;
     }
 
 .sup-close {
@@ -356,7 +356,7 @@
 }
 
     .sup-close:hover {
-        color: #dc2626;
+        color: #991B1B;
     }
 
 .sup-modal-body {
@@ -368,7 +368,7 @@
     justify-content: flex-end;
     gap: 10px;
     padding: 14px 22px 18px;
-    border-top: 1px solid #f1f5f9;
+    border-top: 1px solid #EEE8E1;
 }
 
 .sup-modal-body label {
@@ -398,7 +398,7 @@
 }
 
 .sup-section-title i {
-    color: #f97316;
+    color: #C67A45;
 }
 
 /* ---------- TABS ---------- */
@@ -425,13 +425,13 @@
 }
 
     .sup-tab:hover {
-        color: #f97316;
+        color: #6F4E37;
     }
 
     .sup-tab.active {
-        color: #ea580c;
-        border-bottom-color: #f97316;
-        background: #fff7ed;
+        color: #5C3F2B;
+        border-bottom-color: #6F4E37;
+        background: #F5EDE3;
     }
 
 .sup-tab-panel {
@@ -479,15 +479,15 @@
 }
 
 .sup-toast-success {
-    background: #16a34a;
+    background: #2F6F5E;
 }
 
 .sup-toast-error {
-    background: #dc2626;
+    background: #991B1B;
 }
 
 .sup-toast-info {
-    background: #f97316;
+    background: #6F4E37;
 }
 
 @keyframes supToastIn {
@@ -515,13 +515,13 @@
 /* ---------- PRIMARY BADGE IN TABLES ---------- */
 .tag-primary {
     display: inline-block;
-    background: #ffedd5;
-    color: #ea580c;
+    background: #F5EDE3;
+    color: #5C3F2B;
     padding: 1px 7px;
     border-radius: 12px;
     font-size: .72rem;
     font-weight: 700;
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
 }
 
 .tag-sub {
@@ -577,13 +577,13 @@
 }
 
     .bank-picker-display:hover {
-        border-color: #fed7aa;
+        border-color: #DBC4A9;
     }
 
     .bank-picker-display:has(+ .bank-picker-dropdown.open),
     .bank-picker-display:focus {
-        border-color: #f97316;
-        box-shadow: 0 0 0 3px rgba(249,115,22,.14);
+        border-color: #6F4E37;
+        box-shadow: 0 0 0 3px rgba(111,78,55,.13);
     }
 
 .bank-picker-val {
@@ -690,8 +690,8 @@
 }
 
     .bank-picker-item:hover {
-        background: #fff7ed;
-        color: #ea580c;
+        background: #F5EDE3;
+        color: #5C3F2B;
     }
 
 .bank-picker-empty {
@@ -909,13 +909,13 @@
 }
 
 .sup-wizard-step.active .sup-step-num {
-    background: #f97316;
+    background: #6F4E37;
     color: #fff;
-    box-shadow: 0 2px 8px rgba(249,115,22,.35);
+    box-shadow: 0 2px 8px rgba(111,78,55,.28);
 }
 
 .sup-wizard-step.done .sup-step-num {
-    background: #16a34a;
+    background: #2F6F5E;
     color: #fff;
 }
 
@@ -940,7 +940,7 @@
 }
 
     .sup-wizard-line.done {
-        background: #16a34a;
+        background: #2F6F5E;
     }
 
 /* ---------- WIZARD PANELS ---------- */
@@ -999,8 +999,8 @@
 
 /* Card người liên hệ chính */
 .ct-card-primary {
-    border-color: #fed7aa;
-    background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+    border-color: #DBC4A9;
+    background: linear-gradient(135deg, #F5EDE3 0%, #EDE0D0 100%);
 }
 
 /* Card người liên hệ phụ */
@@ -1060,17 +1060,17 @@
     }
 
     .ct-card-info .fa-phone {
-        color: #f97316;
+        color: #6F4E37;
         font-size: .78rem;
     }
 
     .ct-card-info .fa-envelope {
-        color: #ea580c;
+        color: #5C3F2B;
         font-size: .78rem;
     }
 
 .ct-icon-primary {
-    color: #f97316;
+    color: #C67A45;
     font-size: .9rem;
     flex-shrink: 0;
 }
@@ -1092,15 +1092,15 @@
 /* Gợi ý "Đầu mối chính" không thể thay đổi */
 .ct-no-action-hint {
     font-size: .75rem;
-    color: #ea580c;
+    color: #5C3F2B;
     display: flex;
     align-items: center;
     gap: 5px;
     font-weight: 600;
-    background: #fff7ed;
+    background: #F5EDE3;
     padding: 4px 10px;
     border-radius: 20px;
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
 }
 
 /* Nút nhỏ "Đặt làm chính" */
@@ -1108,17 +1108,17 @@
     padding: 4px 10px !important;
     font-size: .76rem !important;
     border-radius: 6px !important;
-    background: #fff7ed !important;
-    color: #ea580c !important;
-    border: 1.5px solid #fed7aa !important;
+    background: #F5EDE3 !important;
+    color: #5C3F2B !important;
+    border: 1.5px solid #DBC4A9 !important;
     font-weight: 600 !important;
     transition: background .15s, border-color .15s !important;
     white-space: nowrap;
 }
 
     .sup-btn-xs:hover {
-        background: #ffedd5 !important;
-        border-color: #f97316 !important;
+        background: #EDE0D0 !important;
+        border-color: #6F4E37 !important;
         filter: none !important;
     }
 

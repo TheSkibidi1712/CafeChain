@@ -4,22 +4,22 @@
     <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/Admin/Ingredient/ingredient.css" asp-append-version="true" />
     <style>
-        /* Ensure orange theme inside ingredient modal (modal is outside .admin-wo-page scope) */
+        /* Ensure coffee-brown theme inside ingredient modal (modal is outside .admin-wo-page scope) */
         #ingredientModal .btn-primary {
-            background: #f97316 !important;
-            border-color: #f97316 !important;
+            background: #6F4E37 !important;
+            border-color: #6F4E37 !important;
             color: #fff !important;
             font-weight: 800;
-            box-shadow: 0 8px 20px rgba(249,115,22,.22);
+            box-shadow: 0 8px 20px rgba(111,78,55,.22);
         }
         #ingredientModal .btn-primary:hover {
-            background: #ea580c !important;
-            border-color: #ea580c !important;
+            background: #5C3F2B !important;
+            border-color: #5C3F2B !important;
         }
         #ingredientModal .form-control:focus,
         #ingredientModal .form-select:focus {
-            border-color: #f97316;
-            box-shadow: 0 0 0 3px rgba(249,115,22,.14);
+            border-color: #6F4E37;
+            box-shadow: 0 0 0 3px rgba(111,78,55,.13);
         }
         #ingredientModal label, #ingredientModal .form-label {
             font-weight: 800; font-size: 13px; color: #334155;
@@ -32,8 +32,8 @@
     
     <div class="page-header">
         <div class="d-flex align-items-center gap-3">
-            <div style="width:46px;height:46px;border-radius:12px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                <i class="fas fa-flask" style="font-size:20px;color:#f97316;"></i>
+            <div style="width:46px;height:46px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-flask" style="font-size:20px;color:#C67A45;"></i>
             </div>
             <div>
                 <h2 class="mb-0">Quản lý nguyên liệu</h2>
@@ -116,8 +116,8 @@
                                 </td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
-                                        <div style="width:34px;height:34px;border-radius:9px;background:#fff7ed;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                                            <i class="fas fa-leaf" style="color:#f97316;font-size:13px;"></i>
+                                        <div style="width:34px;height:34px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fas fa-leaf" style="color:#C67A45;font-size:13px;"></i>
                                         </div>
                                         <span class="fw-bold text-dark">@item.Name</span>
                                     </div>
@@ -157,7 +157,7 @@
                         {
                             <tr>
                                 <td colspan="5" class="admin-wo-empty py-5">
-                                    <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;color:#fed7aa;"></i>
+                                    <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;color:#DBC4A9;"></i>
                                     Chưa có nguyên liệu nào. Hãy thêm mới!
                                 </td>
                             </tr>
@@ -201,8 +201,8 @@
 
         <div class="modal-header">
             <div class="d-flex align-items-center gap-2">
-                <div style="width:36px;height:36px;border-radius:9px;background:#fff7ed;display:flex;align-items:center;justify-content:center;">
-                    <i class="fas fa-flask" style="color:#f97316;"></i>
+                <div style="width:36px;height:36px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-flask" style="color:#C67A45;"></i>
                 </div>
                 <h5 id="modalTitle">Nguyên liệu</h5>
             </div>

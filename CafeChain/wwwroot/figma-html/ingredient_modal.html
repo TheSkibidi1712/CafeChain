@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Thêm / Sửa Nguyên liệu — CafeChain Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+:root {
+  --bg:#F7F3EE; --surface:#FFFFFF; --primary:#6F4E37; --primary-h:#5C3F2B;
+  --accent:#C67A45; --text:#1F2937; --muted:#475569; --success:#2F6F5E;
+  --warning:#99623B; --danger:#991B1B; --border:#E5E0D8; --radius:10px;
+  --shadow:0 4px 24px rgba(111,78,55,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:40px 20px;}
+.modal-overlay{position:fixed;inset:0;background:rgba(31,41,55,.38);display:flex;align-items:center;justify-content:center;z-index:999;}
+.modal-box{background:var(--surface);border-radius:14px;box-shadow:0 20px 60px rgba(111,78,55,.18);width:620px;max-width:96vw;overflow:hidden;}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
+.modal-header-left{display:flex;align-items:center;gap:12px;}
+.modal-icon{width:38px;height:38px;border-radius:10px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;}
+.modal-icon i{font-size:16px;color:var(--accent);}
+.modal-header h5{font-size:17px;font-weight:800;color:var(--text);}
+.close-btn{width:30px;height:30px;border-radius:7px;border:none;background:#F5EDE3;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .15s;}
+.close-btn:hover{background:#FEE2E2;color:var(--danger);}
+.modal-body{padding:24px;}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;background:#FAF7F4;}
+.row{display:grid;gap:16px;}
+.row.cols-2{grid-template-columns:1fr 2fr;}
+.form-group{display:flex;flex-direction:column;gap:6px;}
+.form-group label{font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.4px;}
+.form-group label .req{color:var(--danger);}
+.form-control,.form-select{padding:10px 13px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .18s,box-shadow .18s;}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(111,78,55,.13);}
+.form-hint{font-size:11px;color:var(--muted);display:flex;align-items:center;gap:5px;margin-top:2px;}
+.form-hint i{color:var(--warning);}
+/* Conversion section */
+.conv-card{border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-top:20px;}
+.conv-card-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#FAF7F4;border-bottom:1px solid var(--border);}
+.conv-card-header h6{font-size:13px;font-weight:800;color:var(--text);display:flex;align-items:center;gap:7px;}
+.conv-card-header h6 i{color:var(--accent);}
+.conv-card-body{padding:0;}
+.conv-table{width:100%;border-collapse:collapse;}
+.conv-table thead th{background:#FAF7F4;border-bottom:1px solid var(--border);padding:10px 14px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;}
+.conv-table tbody td{padding:10px 14px;border-bottom:1px solid #EEE8E1;vertical-align:middle;}
+.conv-table tbody tr:last-child td{border-bottom:none;}
+.conv-table .form-control{padding:7px 10px;font-size:12px;}
+.conv-table .form-select{padding:7px 10px;font-size:12px;}
+.conv-empty{text-align:center;padding:24px;color:var(--muted);font-size:13px;}
+.conv-empty i{color:#DBC4A9;margin-right:6px;}
+.del-btn{width:28px;height:28px;border-radius:6px;border:1.5px solid #FECACA;background:#FEF2F2;color:var(--danger);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;}
+.del-btn:hover{background:var(--danger);color:#fff;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(111,78,55,.25);}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-outline{background:#fff;color:var(--muted);border:1.5px solid #D6C4B0;}
+.btn-outline:hover{background:#F5F5F5;}
+.btn-sm{padding:6px 13px;font-size:12px;}
+/* Demo wrapper */
+.demo-wrapper{width:100%;display:flex;align-items:flex-start;justify-content:center;}
+</style>
+</head>
+<body>
+<div class="demo-wrapper">
+  <div class="modal-box">
+    <!-- Header -->
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon"><i class="fas fa-flask"></i></div>
+        <h5 id="modalTitle">Thêm nguyên liệu mới</h5>
+      </div>
+      <button class="close-btn"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- Body -->
+    <div class="modal-body">
+      <div class="row cols-2" style="margin-bottom:16px;">
+        <div class="form-group">
+          <label>Mã nguyên liệu <span class="req">*</span></label>
+          <input class="form-control" placeholder="VD: NL001" id="code" />
+        </div>
+        <div class="form-group">
+          <label>Tên nguyên liệu <span class="req">*</span></label>
+          <input class="form-control" placeholder="Nhập tên nguyên liệu..." id="name" />
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-bottom:8px;">
+        <label>Đơn vị gốc <span class="req">*</span></label>
+        <select class="form-select" id="baseUnitId">
+          <option value="">-- Chọn đơn vị --</option>
+          <option value="1">gram (g)</option>
+          <option value="2">ml (ml)</option>
+          <option value="3">kg</option>
+          <option value="4">lít</option>
+          <option value="5">cái</option>
+        </select>
+        <div class="form-hint"><i class="fas fa-info-circle"></i>Đây là đơn vị cơ sở để tính toán quy đổi.</div>
+      </div>
+
+      <!-- Conversion table -->
+      <div class="conv-card">
+        <div class="conv-card-header">
+          <h6><i class="fas fa-exchange-alt"></i>Bảng quy đổi đơn vị</h6>
+          <button class="btn btn-primary btn-sm" id="btnAddRow"><i class="fas fa-plus"></i> Thêm dòng</button>
+        </div>
+        <div class="conv-card-body">
+          <table class="conv-table">
+            <thead>
+              <tr>
+                <th>Từ đơn vị</th>
+                <th style="width:90px;">Số lượng</th>
+                <th>Sang đơn vị</th>
+                <th style="width:90px;">Số lượng</th>
+                <th style="width:50px;"></th>
+              </tr>
+            </thead>
+            <tbody id="conversionTable">
+              <tr>
+                <td>
+                  <select class="form-select"><option>gram (g)</option><option>ml</option><option>kg</option></select>
+                </td>
+                <td><input class="form-control" type="number" value="1000" /></td>
+                <td>
+                  <select class="form-select"><option>kg</option><option>gram</option><option>lít</option></select>
+                </td>
+                <td><input class="form-control" type="number" value="1" /></td>
+                <td><button class="del-btn"><i class="fas fa-trash"></i></button></td>
+              </tr>
+              <tr>
+                <td>
+                  <select class="form-select"><option>gram (g)</option><option selected>ml</option></select>
+                </td>
+                <td><input class="form-control" type="number" value="500" /></td>
+                <td>
+                  <select class="form-select"><option selected>lít</option><option>ml</option></select>
+                </td>
+                <td><input class="form-control" type="number" value="0.5" /></td>
+                <td><button class="del-btn"><i class="fas fa-trash"></i></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="modal-footer">
+      <button class="btn btn-outline"><i class="fas fa-times"></i> Đóng</button>
+      <button class="btn btn-primary" id="btnSave"><i class="fas fa-save"></i> Lưu nguyên liệu</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

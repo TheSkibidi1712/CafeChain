@@ -1,18 +1,18 @@
-/* Shared white-orange admin UI polish for frontend-only form/list redesigns. */
+/* Shared coffee-brown admin UI polish for frontend-only form/list redesigns. */
 :root {
-    --admin-wo-bg: #f8fafc;
+    --admin-wo-bg: #F7F3EE;
     --admin-wo-card: #ffffff;
-    --admin-wo-text: #111827;
-    --admin-wo-muted: #64748b;
-    --admin-wo-border: #e5e7eb;
-    --admin-wo-soft: #fff7ed;
-    --admin-wo-soft-strong: #ffedd5;
-    --admin-wo-primary: #f97316;
-    --admin-wo-primary-dark: #ea580c;
-    --admin-wo-success: #16a34a;
-    --admin-wo-danger: #dc2626;
+    --admin-wo-text: #1F2937;
+    --admin-wo-muted: #475569;
+    --admin-wo-border: #E5E0D8;
+    --admin-wo-soft: #F5EDE3;
+    --admin-wo-soft-strong: #EDE0D0;
+    --admin-wo-primary: #6F4E37;
+    --admin-wo-primary-dark: #5C3F2B;
+    --admin-wo-success: #2F6F5E;
+    --admin-wo-danger: #991B1B;
     --admin-wo-radius: 8px;
-    --admin-wo-shadow: 0 18px 42px rgba(15, 23, 42, .05);
+    --admin-wo-shadow: 0 18px 42px rgba(111, 78, 55, .07);
 }
 
 .admin-wo-page {
@@ -102,7 +102,7 @@
     border-color: var(--admin-wo-primary) !important;
     color: #fff !important;
     font-weight: 800;
-    box-shadow: 0 10px 22px rgba(249, 115, 22, .18);
+    box-shadow: 0 10px 22px rgba(111, 78, 55, .20);
 }
 
 .admin-wo-page .btn-primary:hover,
@@ -121,7 +121,7 @@
 .admin-wo-page .btn-outline-primary,
 .admin-wo-page .btn-outline-info,
 .admin-wo-page .admin-wo-outline {
-    border-color: #fed7aa !important;
+    border-color: #DBC4A9 !important;
     color: var(--admin-wo-primary-dark) !important;
     font-weight: 800;
 }
@@ -137,7 +137,7 @@
 .admin-wo-page .form-control,
 .admin-wo-page .form-select,
 .admin-wo-page .select2-container--bootstrap-5 .select2-selection {
-    border: 1px solid #dbe3ef;
+    border: 1px solid #DDD6CE;
     border-radius: var(--admin-wo-radius) !important;
     min-height: 42px;
 }
@@ -146,7 +146,7 @@
 .admin-wo-page .form-select:focus,
 .admin-wo-page .select2-container--bootstrap-5.select2-container--focus .select2-selection {
     border-color: var(--admin-wo-primary);
-    box-shadow: 0 0 0 3px rgba(249, 115, 22, .14);
+    box-shadow: 0 0 0 3px rgba(111, 78, 55, .13);
 }
 
 .admin-wo-page label,
@@ -164,7 +164,7 @@
 .admin-wo-page .table thead th,
 .admin-wo-page .perm-table thead th,
 .admin-wo-page .table-custom thead th {
-    background: #f8fafc !important;
+    background: #FAF7F4 !important;
     border-bottom: 1px solid var(--admin-wo-border) !important;
     color: var(--admin-wo-muted) !important;
     font-size: 12px !important;
@@ -177,7 +177,7 @@
 .admin-wo-page .table tbody td,
 .admin-wo-page .perm-table tbody td,
 .admin-wo-page .table-custom tbody td {
-    border-bottom: 1px solid #eef2f7 !important;
+    border-bottom: 1px solid #EEE8E1 !important;
     padding: 14px 16px !important;
     vertical-align: middle;
 }
@@ -190,21 +190,21 @@
 
 .admin-wo-page .badge.bg-success,
 .admin-wo-page .badge-status-done {
-    background: #dcfce7 !important;
-    border: 1px solid #bbf7d0;
-    color: #15803d !important;
+    background: #D1FAE5 !important;
+    border: 1px solid #A7F3D0;
+    color: var(--admin-wo-success) !important;
 }
 
 .admin-wo-page .badge.bg-danger {
-    background: #fee2e2 !important;
-    border: 1px solid #fecaca;
+    background: #FEE2E2 !important;
+    border: 1px solid #FECACA;
     color: var(--admin-wo-danger) !important;
 }
 
 .admin-wo-page .badge.bg-info,
 .admin-wo-page .badge.bg-primary {
     background: var(--admin-wo-soft-strong) !important;
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
     color: var(--admin-wo-primary-dark) !important;
 }
 
@@ -230,13 +230,13 @@
 
 .admin-store-form-page .alert-info {
     background: var(--admin-wo-soft);
-    border-color: #fed7aa;
-    color: #9a3412;
+    border-color: #DBC4A9;
+    color: #5C3F2B;
 }
 
 .admin-ip-page code {
     background: var(--admin-wo-soft) !important;
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
     color: var(--admin-wo-primary-dark) !important;
 }
 
@@ -252,13 +252,13 @@
 
 .admin-unit-page .uc-badge-to {
     background: var(--admin-wo-soft-strong);
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
     color: var(--admin-wo-primary-dark);
 }
 
 .admin-unit-page .conv-formula-box {
-    background: #fffaf5;
-    border-color: #fed7aa;
+    background: #FAF7F4;
+    border-color: #DBC4A9;
 }
 
 .admin-unit-page .conv-equals {
@@ -268,7 +268,7 @@
 .admin-bom-index .badge-pos,
 .admin-bom-index .badge-sub {
     background: var(--admin-wo-soft-strong);
-    border: 1px solid #fed7aa;
+    border: 1px solid #DBC4A9;
     color: var(--admin-wo-primary-dark);
 }
 
@@ -280,7 +280,7 @@
 .admin-bom-visualize .node-content.bg-primary,
 .admin-bom-visualize .node-content.bg-primary.bg-opacity-10 {
     background: var(--admin-wo-soft) !important;
-    border-color: #fed7aa !important;
+    border-color: #DBC4A9 !important;
 }
 
 .admin-bom-visualize .text-primary {

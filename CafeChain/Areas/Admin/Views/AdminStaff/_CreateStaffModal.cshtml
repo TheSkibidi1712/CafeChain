@@ -18,12 +18,12 @@
     .staff-modal .form-control, .staff-modal .form-select { border-radius: 8px; border: 1px solid #dbe3ef; font-size: 14px; padding: 10px 12px; }
     .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: var(--admin-wo-primary); box-shadow: 0 0 0 3px rgba(249, 115, 22, .14); }
     .avatar-upload-box {
-        border: 2px dashed #fed7aa; border-radius: 12px; width: 200px; height: 200px;
+        border: 2px dashed #DBC4A9; border-radius: 12px; width: 200px; height: 200px;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background: #fff7ed; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
+        background: #F5EDE3; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
     }
-    .avatar-upload-box:hover { border-color: var(--admin-wo-primary); background: #ffedd5; }
-    .avatar-upload-box i { font-size: 36px; color: #fed7aa; margin-bottom: 8px; }
+    .avatar-upload-box:hover { border-color: var(--admin-wo-primary); background: #EDE0D0; }
+    .avatar-upload-box i { font-size: 36px; color: #DBC4A9; margin-bottom: 8px; }
     .avatar-upload-box span { font-size: 12px; color: var(--admin-wo-muted); }
     .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none; }
     .nav-tabs .nav-link { color: var(--admin-wo-muted); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; }
@@ -36,8 +36,8 @@
         <div class="modal-content admin-wo-card border-0 shadow">
             <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
                 <div class="d-flex align-items-center gap-2">
-                    <div style="width:38px;height:38px;border-radius:10px;background:#fff7ed;display:flex;align-items:center;justify-content:center;">
-                        <i class="fas fa-user-plus" style="color:#f97316;"></i>
+                    <div style="width:38px;height:38px;border-radius:10px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-user-plus" style="color:#C67A45;"></i>
                     </div>
                     <h4 class="modal-title fw-bold mb-0" style="color:var(--admin-wo-text);">Thêm nhân viên mới</h4>
                 </div>
@@ -237,7 +237,7 @@
                                     <input asp-for="TaxCode" class="form-control" />
                                 </div>
                                 <div class="col-12 mt-3">
-                                    <h6 class="fw-bold mb-3" style="color:#ea580c;"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
+                                    <h6 class="fw-bold mb-3" style="color:#99623B;"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
                                     <div class="table-responsive">
                                         <table class="table table-bordered table-sm align-middle text-center banks-table" id="banksTableModal">
                                             <thead class="table-light">
