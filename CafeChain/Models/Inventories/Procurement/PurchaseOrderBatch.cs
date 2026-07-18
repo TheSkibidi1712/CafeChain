@@ -5,7 +5,7 @@ using CafeChain.Models.Staffs;
 
 namespace CafeChain.Models.Inventories.Procurement;
 
-public sealed class PurchaseOrderBatch
+public class PurchaseOrderBatch
 {
     public int PurchaseOrderBatchId { get; set; }
     public string BatchNumber { get; set; } = string.Empty;
@@ -28,16 +28,16 @@ public sealed class PurchaseOrderBatch
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-    public Supplier Supplier { get; set; } = null!;
-    public Staff CreatedByStaff { get; set; } = null!;
-    public Staff? ApprovedByStaff { get; set; }
-    public Staff? CancelledByStaff { get; set; }
-    public ICollection<PurchaseOrderBatchLine> Lines { get; set; } = new List<PurchaseOrderBatchLine>();
-    public ICollection<PurchaseOrder> ChildPurchaseOrders { get; set; } = new List<PurchaseOrder>();
-    public ICollection<PurchaseOrderBatchDocumentRevision> DocumentRevisions { get; set; } = new List<PurchaseOrderBatchDocumentRevision>();
+    public virtual Supplier Supplier { get; set; } = null!;
+    public virtual Staff CreatedByStaff { get; set; } = null!;
+    public virtual Staff? ApprovedByStaff { get; set; }
+    public virtual Staff? CancelledByStaff { get; set; }
+    public virtual ICollection<PurchaseOrderBatchLine> Lines { get; set; } = new List<PurchaseOrderBatchLine>();
+    public virtual ICollection<PurchaseOrder> ChildPurchaseOrders { get; set; } = new List<PurchaseOrder>();
+    public virtual ICollection<PurchaseOrderBatchDocumentRevision> DocumentRevisions { get; set; } = new List<PurchaseOrderBatchDocumentRevision>();
 }
 
-public sealed class PurchaseOrderBatchLine
+public class PurchaseOrderBatchLine
 {
     public int PurchaseOrderBatchLineId { get; set; }
     public int PurchaseOrderBatchId { get; set; }
@@ -52,14 +52,14 @@ public sealed class PurchaseOrderBatchLine
     public string Currency { get; set; } = "VND";
     public string? Note { get; set; }
 
-    public PurchaseOrderBatch PurchaseOrderBatch { get; set; } = null!;
-    public Ingredient Ingredient { get; set; } = null!;
-    public IngredientSupplier IngredientSupplier { get; set; } = null!;
-    public Unit PackageUnit { get; set; } = null!;
-    public ICollection<PurchaseOrderLineAllocation> Allocations { get; set; } = new List<PurchaseOrderLineAllocation>();
+    public virtual PurchaseOrderBatch PurchaseOrderBatch { get; set; } = null!;
+    public virtual Ingredient Ingredient { get; set; } = null!;
+    public virtual IngredientSupplier IngredientSupplier { get; set; } = null!;
+    public virtual Unit PackageUnit { get; set; } = null!;
+    public virtual ICollection<PurchaseOrderLineAllocation> Allocations { get; set; } = new List<PurchaseOrderLineAllocation>();
 }
 
-public sealed class PurchaseOrderLineAllocation
+public class PurchaseOrderLineAllocation
 {
     public int PurchaseOrderLineAllocationId { get; set; }
     public int PurchaseAdviceLineId { get; set; }
@@ -73,8 +73,8 @@ public sealed class PurchaseOrderLineAllocation
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-    public PurchaseAdviceLine PurchaseAdviceLine { get; set; } = null!;
-    public PurchaseOrderBatchLine PurchaseOrderBatchLine { get; set; } = null!;
-    public PurchaseOrder PurchaseOrder { get; set; } = null!;
-    public PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
+    public virtual PurchaseAdviceLine PurchaseAdviceLine { get; set; } = null!;
+    public virtual PurchaseOrderBatchLine PurchaseOrderBatchLine { get; set; } = null!;
+    public virtual PurchaseOrder PurchaseOrder { get; set; } = null!;
+    public virtual PurchaseOrderLine PurchaseOrderLine { get; set; } = null!;
 }

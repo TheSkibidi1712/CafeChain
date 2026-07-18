@@ -9,6 +9,18 @@ internal static class PurchaseOrderBatchStatusUpdater
     public static async Task RefreshAsync(AppDbContext context, int? batchId)
     {
         if (!batchId.HasValue) return;
+
+        // Receipt confirmations for different child POs still converge on one batch.
+        // Serialize that aggregate update so concurrent stores do not race its RowVersion.
+        if (context.Database.IsSqlServer() && context.Database.CurrentTransaction != null)
+        {
+            await context.PurchaseOrderBatches
+                .FromSqlInterpolated(
+                    $@"SELECT * FROM PurchaseOrderBatches WITH (UPDLOCK, HOLDLOCK, ROWLOCK)
+                       WHERE PurchaseOrderBatchId = {batchId.Value}")
+                .SingleOrDefaultAsync();
+        }
+
         var batch = await context.PurchaseOrderBatches
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == batchId.Value);

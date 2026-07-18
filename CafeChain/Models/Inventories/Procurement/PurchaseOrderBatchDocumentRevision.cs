@@ -3,7 +3,7 @@ using CafeChain.Models.Staffs;
 
 namespace CafeChain.Models.Inventories.Procurement;
 
-public sealed class PurchaseOrderBatchDocumentRevision
+public class PurchaseOrderBatchDocumentRevision
 {
     public int PurchaseOrderBatchDocumentRevisionId { get; set; }
     public int PurchaseOrderBatchId { get; set; }
@@ -27,8 +27,8 @@ public sealed class PurchaseOrderBatchDocumentRevision
     [Timestamp]
     public byte[] RowVersion { get; set; } = Array.Empty<byte>();
 
-    public PurchaseOrderBatch PurchaseOrderBatch { get; set; } = null!;
-    public Staff GeneratedByStaff { get; set; } = null!;
-    public Staff? SentByStaff { get; set; }
-    public PurchaseOrderBatchDocumentRevision? SupersededByRevision { get; set; }
+    public virtual PurchaseOrderBatch PurchaseOrderBatch { get; set; } = null!;
+    public virtual Staff GeneratedByStaff { get; set; } = null!;
+    public virtual Staff? SentByStaff { get; set; }
+    public virtual PurchaseOrderBatchDocumentRevision? SupersededByRevision { get; set; }
 }
