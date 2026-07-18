@@ -3,6 +3,7 @@ using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Constants;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Exceptions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -65,16 +66,21 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Create([FromBody] AdminSupplierCreateDTO dto)
         {
             if (!ModelState.IsValid)
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
+                return SupplierValidationError();
 
             try
             {
-                var id = await _service.CreateAsync(dto);
+                var actor = _actorContext.Get(User);
+                var id = await _service.CreateAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Thêm nhà cung cấp thành công", data = id });
+            }
+            catch (SupplierDomainException ex)
+            {
+                return Json(new { success = false, code = ex.Code, message = ex.Message, data = ex.DataPayload });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, code = "SUPPLIER_OPERATION_FAILED", message = ex.Message });
             }
         }
 
@@ -84,16 +90,21 @@ namespace CafeChain.Areas.Admin.Controllers
         public async Task<IActionResult> Update([FromBody] AdminSupplierUpdateDTO dto)
         {
             if (!ModelState.IsValid)
-                return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
+                return SupplierValidationError();
 
             try
             {
-                await _service.UpdateAsync(dto);
+                var actor = _actorContext.Get(User);
+                await _service.UpdateAsync(dto, actor.StaffId);
                 return Json(new { success = true, message = "Cập nhật thành công" });
+            }
+            catch (SupplierDomainException ex)
+            {
+                return Json(new { success = false, code = ex.Code, message = ex.Message, data = ex.DataPayload });
             }
             catch (Exception ex)
             {
-                return Json(new { success = false, message = ex.Message });
+                return Json(new { success = false, code = "SUPPLIER_OPERATION_FAILED", message = ex.Message });
             }
         }
 
@@ -399,6 +410,18 @@ namespace CafeChain.Areas.Admin.Controllers
                 message = "Nhà cung cấp không thuộc phạm vi cửa hàng bạn được phép xem."
             });
         }
+
+        private JsonResult SupplierValidationError() => Json(new
+        {
+            success = false,
+            code = "SUPPLIER_VALIDATION_FAILED",
+            message = "Dữ liệu nhà cung cấp không hợp lệ.",
+            errors = ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    x => x.Key,
+                    x => x.Value!.Errors.Select(e => e.ErrorMessage).ToArray())
+        });
 
     }
 }

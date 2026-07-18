@@ -1,14 +1,23 @@
 using CafeChain.Application.DTOs.Admin.Suppliers;
+using CafeChain.Application.Constants;
+using CafeChain.Application.Exceptions;
 using CafeChain.Application.Interfaces.Admin.Suppliers;
 using CafeChain.Application.Interfaces.Inventories;
 using CafeChain.Data;
 using CafeChain.Infrastrusture.Interfaces.Admin.Suppliers;
 using CafeChain.Models.Inventories.Suppliers;
+using CafeChain.Models.Inventories.Auditing;
 using CafeChain.Models.Locations;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using System;
+using System.Data;
 using System.Globalization;
 using System.Linq;
+using System.Security.Cryptography;
+using System.Text;
+using System.Text.Json;
 
 namespace CafeChain.Application.Services.Admin.Suppliers
 {
@@ -45,7 +54,22 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         {
             var entity = await _repo.GetByIdAsync(id, storeScope);
             if (entity == null) return null;
-            return MapToDetailDTO(entity);
+            var dto = MapToDetailDTO(entity);
+            dto.Audits = await _context.AuditLogs
+                .AsNoTracking()
+                .Where(x => x.TableName == "Suppliers" && x.RecordId == id)
+                .OrderByDescending(x => x.CreatedAt)
+                .Take(20)
+                .Select(x => new AdminSupplierAuditDTO
+                {
+                    Action = x.Action,
+                    OldData = x.OldData,
+                    NewData = x.NewData,
+                    ActorStaffId = x.UserId,
+                    CreatedAt = x.CreatedAt
+                })
+                .ToListAsync();
+            return dto;
         }
 
         // ===== GENERATE NEXT CODE =====
@@ -55,79 +79,88 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         }
 
         // ===== CREATE =====
-        public async Task<int> CreateAsync(AdminSupplierCreateDTO dto)
+        public async Task<int> CreateAsync(AdminSupplierCreateDTO dto, int actorStaffId = 0)
         {
             dto.Name = Normalize(dto.Name);
-            var supplier = new Supplier
+            dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+            await EnsureTaxCodeAvailableAsync(dto.TaxCode);
+
+            var payloadHash = BuildPayloadHash(dto);
+            var matches = await FindSoftDuplicateMatchesAsync(dto);
+            SupplierDuplicateWarning? warning = null;
+
+            if (matches.Count > 0 && !dto.DuplicateWarningId.HasValue)
             {
-                Code = await _repo.GenerateNextCodeAsync(),
-                Name = dto.Name,
-                Address = Clean(dto.Address),
-                Note = Clean(dto.Note),
-                Active = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-
-                // Số điện thoại chính
-                Phones = new List<SupplierPhone>
-                {
-                    new SupplierPhone
-                    {
-                        PhoneNumber = dto.PrimaryPhone.Trim(),
-                        IsPrimary   = true
-                    }
-                },
-
-                // Thông tin liên hệ chính
-                Contacts = new List<SupplierContact>
-                {
-                    new SupplierContact
-                    {
-                        Name      = dto.PrimaryContactName.Trim(),
-                        PhoneNumber = Clean(dto.PrimaryContactPhone),
-                        Email     = dto.PrimaryContactEmail?.Trim(),
-                        Position  = dto.PrimaryContactPosition?.Trim(),
-                        IsPrimary = true
-                    }
-                }
-            };
-
-            // ===== SỐ ĐIỆN THOẠI PHỤ =====
-            foreach (var ph in dto.AdditionalPhones
-                .Where(p => !string.IsNullOrWhiteSpace(p)))
-            {
-                supplier.Phones.Add(new SupplierPhone
-                {
-                    PhoneNumber = ph.Trim(),
-                    IsPrimary = false
-                });
+                warning = await CreateWarningAsync(actorStaffId, payloadHash, matches);
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.PossibleDuplicate,
+                    "Có nhà cung cấp có thông tin nhận diện tương tự. Vui lòng kiểm tra trước khi tạo mới.",
+                    ToWarningDto(warning, matches));
             }
 
-            // ===== NGƯỜI LIÊN HỆ PHỤ =====
-            foreach (var ct in dto.AdditionalContacts
-                .Where(c => !string.IsNullOrWhiteSpace(c.Name)))
-            {
-                supplier.Contacts.Add(new SupplierContact
-                {
-                    Name = ct.Name.Trim(),
-                    PhoneNumber = Clean(ct.Phone),
-                    Email = ct.Email?.Trim(),
-                    Position = ct.Position?.Trim(),
-                    IsPrimary = false
-                });
-            }
+            if (dto.DuplicateWarningId.HasValue)
+                warning = await ValidateWarningAsync(dto, actorStaffId, payloadHash, matches);
 
+            var supplier = BuildSupplier(dto);
             await _repo.CreateAsync(supplier);
             for (var attempt = 0; attempt < 3; attempt++)
             {
+                await using var transaction = await BeginTransactionAsync(
+                    warning == null ? IsolationLevel.ReadCommitted : IsolationLevel.Serializable);
                 try
                 {
+                    supplier.Code = await _repo.GenerateNextCodeAsync();
                     await _repo.SaveChangesAsync();
+
+                    _context.AuditLogs.Add(NewSupplierAudit(
+                        supplier.SupplierId,
+                        "SUPPLIER_CREATED",
+                        actorStaffId,
+                        null,
+                        JsonSerializer.Serialize(new { supplier.Code, supplier.Name, supplier.TaxCode })));
+
+                    if (warning != null)
+                    {
+                        warning.Status = SupplierIdentityConstants.WarningUsed;
+                        warning.UsedAtUtc = DateTime.UtcNow;
+                        warning.OverrideReason = Clean(dto.DuplicateOverrideReason);
+                        warning.CreatedSupplierId = supplier.SupplierId;
+                        _context.AuditLogs.Add(NewSupplierAudit(
+                            supplier.SupplierId,
+                            "SUPPLIER_DUPLICATE_OVERRIDE",
+                            actorStaffId,
+                            null,
+                            JsonSerializer.Serialize(new
+                            {
+                                warningId = warning.PublicId,
+                                reason = warning.OverrideReason,
+                                warning.WarningFingerprint,
+                                warning.MatchedSupplierIdsJson,
+                                warning.MatchedSignalsJson
+                            })));
+                    }
+
+                    await _context.SaveChangesAsync();
+                    if (transaction != null) await transaction.CommitAsync();
                     return supplier.SupplierId;
                 }
-                catch (DbUpdateException ex) when (IsUniqueCodeCollision(ex) && attempt < 2)
+                catch (Exception ex)
                 {
-                    supplier.Code = await _repo.GenerateNextCodeAsync();
+                    await TryRollbackAsync(transaction);
+                    if (warning != null && ex is DbUpdateConcurrencyException)
+                    {
+                        throw new SupplierDomainException(
+                            SupplierIdentityConstants.WarningInvalid,
+                            "Cảnh báo trùng đã được sử dụng bởi yêu cầu khác. Vui lòng kiểm tra lại.");
+                    }
+                    if (IsTaxCodeCollision(ex))
+                        throw TaxCodeDuplicate(dto.TaxCode, null);
+                    if ((IsUniqueCodeCollision(ex) || IsSqlDeadlock(ex)) && attempt < 2)
+                    {
+                        await Task.Delay(40 * (attempt + 1));
+                        continue;
+                    }
+                    throw;
                 }
             }
 
@@ -135,21 +168,36 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         }
 
         // ===== UPDATE =====
-        public async Task UpdateAsync(AdminSupplierUpdateDTO dto)
+        public async Task UpdateAsync(AdminSupplierUpdateDTO dto, int actorStaffId = 0)
         {
             var entity = await _repo.GetByIdAsync(dto.SupplierId);
             if (entity == null)
                 throw new Exception("Không tìm thấy nhà cung cấp");
 
             dto.Name = Normalize(dto.Name);
+            dto.TaxCode = SupplierTaxCodeNormalizer.Normalize(dto.TaxCode);
+            await EnsureTaxCodeAvailableAsync(dto.TaxCode, dto.SupplierId);
 
-            if (!string.IsNullOrWhiteSpace(dto.RowVersion))
+            if (string.IsNullOrWhiteSpace(dto.RowVersion))
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.StaleVersion,
+                    "Phiên bản dữ liệu là bắt buộc. Vui lòng tải lại nhà cung cấp.");
+
+            try
             {
                 _context.Entry(entity).Property(x => x.RowVersion).OriginalValue =
                     Convert.FromBase64String(dto.RowVersion);
             }
+            catch (FormatException)
+            {
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.StaleVersion,
+                    "Phiên bản dữ liệu không hợp lệ. Vui lòng tải lại nhà cung cấp.");
+            }
 
+            var oldTaxCode = entity.TaxCode;
             entity.Name = dto.Name;
+            entity.TaxCode = dto.TaxCode;
             entity.Address = Clean(dto.Address);
             entity.Note = Clean(dto.Note);
             entity.Active = dto.Active;
@@ -157,12 +205,26 @@ namespace CafeChain.Application.Services.Admin.Suppliers
 
             try
             {
+                if (!string.Equals(oldTaxCode, entity.TaxCode, StringComparison.Ordinal))
+                {
+                    _context.AuditLogs.Add(NewSupplierAudit(
+                        entity.SupplierId,
+                        "SUPPLIER_TAX_CODE_UPDATED",
+                        actorStaffId,
+                        JsonSerializer.Serialize(new { taxCode = oldTaxCode }),
+                        JsonSerializer.Serialize(new { taxCode = entity.TaxCode })));
+                }
                 await _repo.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                throw new InvalidOperationException(
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.StaleVersion,
                     "Nhà cung cấp vừa được người khác cập nhật. Vui lòng tải lại dữ liệu.");
+            }
+            catch (DbUpdateException ex) when (IsTaxCodeCollision(ex))
+            {
+                throw TaxCodeDuplicate(dto.TaxCode, dto.SupplierId);
             }
         }
 
@@ -267,6 +329,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
+                TaxCode = x.TaxCode,
                 Address = x.Address,
                 Note = x.Note,
                 Active = x.Active,
@@ -285,6 +348,7 @@ namespace CafeChain.Application.Services.Admin.Suppliers
                 SupplierId = x.SupplierId,
                 Code = x.Code ?? "",
                 Name = x.Name ?? "",
+                TaxCode = x.TaxCode,
                 Address = x.Address,
                 Note = x.Note,
                 Active = x.Active,
@@ -334,15 +398,338 @@ namespace CafeChain.Application.Services.Admin.Suppliers
         private static string? Clean(string? text) =>
             string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
-        private static bool IsUniqueCodeCollision(DbUpdateException ex)
+        private async Task EnsureTaxCodeAvailableAsync(string? taxCode, int? excludeSupplierId = null)
         {
-            var message = ex.InnerException?.Message ?? ex.Message;
-            return message.Contains("IX_Suppliers_Code", StringComparison.OrdinalIgnoreCase)
-                   || message.Contains("duplicate", StringComparison.OrdinalIgnoreCase)
-                   || message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase)
-                   || message.Contains("2601", StringComparison.OrdinalIgnoreCase)
-                   || message.Contains("2627", StringComparison.OrdinalIgnoreCase);
+            if (taxCode == null) return;
+
+            var owner = await _context.Suppliers
+                .AsNoTracking()
+                .Where(x => x.TaxCode == taxCode
+                            && (!excludeSupplierId.HasValue || x.SupplierId != excludeSupplierId.Value))
+                .Select(x => new { x.SupplierId, x.Code, x.Name, x.Active })
+                .FirstOrDefaultAsync();
+
+            if (owner != null)
+            {
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.TaxCodeDuplicate,
+                    "Mã số thuế này đã được sử dụng bởi Nhà cung cấp khác.",
+                    new { existingSupplier = owner });
+            }
         }
+
+        private static SupplierDomainException TaxCodeDuplicate(string? taxCode, int? supplierId) =>
+            new(
+                SupplierIdentityConstants.TaxCodeDuplicate,
+                "Mã số thuế này đã được sử dụng bởi Nhà cung cấp khác.",
+                new { taxCode, supplierId });
+
+        private async Task<List<SoftDuplicateMatch>> FindSoftDuplicateMatchesAsync(AdminSupplierCreateDTO dto)
+        {
+            var candidates = await _context.Suppliers
+                .AsNoTracking()
+                .Include(x => x.Phones)
+                .Include(x => x.Contacts)
+                .OrderBy(x => x.SupplierId)
+                .ToListAsync();
+
+            var incomingName = NormalizeIdentityText(dto.Name);
+            var incomingAddress = NormalizeIdentityText(dto.Address);
+            var incomingHotlines = dto.AdditionalPhones
+                .Append(dto.PrimaryPhone)
+                .Select(NormalizePhone)
+                .Where(x => x.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+            var incomingContactPhones = dto.AdditionalContacts
+                .Select(x => x.Phone)
+                .Append(dto.PrimaryContactPhone)
+                .Select(NormalizePhone)
+                .Where(x => x.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+            var incomingEmails = dto.AdditionalContacts
+                .Select(x => NormalizeEmail(x.Email))
+                .Append(NormalizeEmail(dto.PrimaryContactEmail))
+                .Where(x => x.Length > 0)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var matches = new List<SoftDuplicateMatch>();
+            foreach (var supplier in candidates)
+            {
+                var signals = new List<string>();
+                if (incomingName.Length > 0 && NormalizeIdentityText(supplier.Name) == incomingName)
+                    signals.Add("Tên nhà cung cấp");
+                if (incomingHotlines.Count > 0 && supplier.Phones.Any(x => incomingHotlines.Contains(NormalizePhone(x.PhoneNumber))))
+                    signals.Add("Hotline");
+                if (incomingContactPhones.Count > 0 && supplier.Contacts.Any(x => incomingContactPhones.Contains(NormalizePhone(x.PhoneNumber))))
+                    signals.Add("Số điện thoại liên hệ");
+                if (incomingAddress.Length > 0 && NormalizeIdentityText(supplier.Address) == incomingAddress)
+                    signals.Add("Địa chỉ");
+                if (incomingEmails.Count > 0 && supplier.Contacts.Any(x => incomingEmails.Contains(NormalizeEmail(x.Email))))
+                    signals.Add("Email liên hệ");
+
+                if (signals.Count > 0)
+                {
+                    matches.Add(new SoftDuplicateMatch(
+                        supplier.SupplierId,
+                        supplier.Code ?? "",
+                        supplier.Name ?? "",
+                        supplier.Active,
+                        signals.OrderBy(x => x, StringComparer.Ordinal).ToList()));
+                }
+            }
+
+            return matches;
+        }
+
+        private async Task<SupplierDuplicateWarning> CreateWarningAsync(
+            int actorStaffId,
+            string payloadHash,
+            List<SoftDuplicateMatch> matches)
+        {
+            var now = DateTime.UtcNow;
+            var warning = new SupplierDuplicateWarning
+            {
+                PublicId = Guid.NewGuid(),
+                RequestedByStaffId = actorStaffId,
+                Status = SupplierIdentityConstants.WarningPending,
+                PayloadHash = payloadHash,
+                WarningFingerprint = BuildWarningFingerprint(matches),
+                MatchedSupplierIdsJson = JsonSerializer.Serialize(matches.Select(x => x.SupplierId)),
+                MatchedSignalsJson = JsonSerializer.Serialize(matches.Select(x => new { x.SupplierId, x.Signals })),
+                CreatedAtUtc = now,
+                ExpiresAtUtc = now.AddMinutes(10)
+            };
+            _context.SupplierDuplicateWarnings.Add(warning);
+            await _context.SaveChangesAsync();
+            return warning;
+        }
+
+        private async Task<SupplierDuplicateWarning> ValidateWarningAsync(
+            AdminSupplierCreateDTO dto,
+            int actorStaffId,
+            string payloadHash,
+            List<SoftDuplicateMatch> matches)
+        {
+            if (string.IsNullOrWhiteSpace(dto.DuplicateOverrideReason))
+            {
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.OverrideReasonRequired,
+                    "Vui lòng nhập lý do vẫn tạo nhà cung cấp mới.");
+            }
+
+            var warning = await _context.SupplierDuplicateWarnings
+                .SingleOrDefaultAsync(x => x.PublicId == dto.DuplicateWarningId);
+            if (warning == null
+                || warning.RequestedByStaffId != actorStaffId
+                || warning.Status != SupplierIdentityConstants.WarningPending
+                || warning.ExpiresAtUtc <= DateTime.UtcNow)
+            {
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.WarningInvalid,
+                    "Cảnh báo trùng không còn hợp lệ. Vui lòng kiểm tra lại dữ liệu.");
+            }
+
+            if (!CryptographicOperations.FixedTimeEquals(
+                    Convert.FromHexString(warning.PayloadHash),
+                    Convert.FromHexString(payloadHash))
+                || !string.Equals(
+                    warning.WarningFingerprint,
+                    BuildWarningFingerprint(matches),
+                    StringComparison.Ordinal))
+            {
+                throw new SupplierDomainException(
+                    SupplierIdentityConstants.WarningStale,
+                    "Dữ liệu hoặc kết quả kiểm tra trùng đã thay đổi. Vui lòng kiểm tra lại.");
+            }
+
+            return warning;
+        }
+
+        private static Supplier BuildSupplier(AdminSupplierCreateDTO dto)
+        {
+            var now = DateTime.UtcNow;
+            var supplier = new Supplier
+            {
+                Name = dto.Name,
+                TaxCode = dto.TaxCode,
+                Address = Clean(dto.Address),
+                Note = Clean(dto.Note),
+                Active = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+                Phones = new List<SupplierPhone>
+                {
+                    new() { PhoneNumber = dto.PrimaryPhone.Trim(), IsPrimary = true }
+                },
+                Contacts = new List<SupplierContact>
+                {
+                    new()
+                    {
+                        Name = dto.PrimaryContactName.Trim(),
+                        PhoneNumber = Clean(dto.PrimaryContactPhone),
+                        Email = Clean(dto.PrimaryContactEmail),
+                        Position = Clean(dto.PrimaryContactPosition),
+                        IsPrimary = true
+                    }
+                }
+            };
+
+            foreach (var phone in dto.AdditionalPhones.Where(x => !string.IsNullOrWhiteSpace(x)))
+                supplier.Phones.Add(new SupplierPhone { PhoneNumber = phone.Trim(), IsPrimary = false });
+
+            foreach (var contact in dto.AdditionalContacts.Where(x => !string.IsNullOrWhiteSpace(x.Name)))
+            {
+                supplier.Contacts.Add(new SupplierContact
+                {
+                    Name = contact.Name.Trim(),
+                    PhoneNumber = Clean(contact.Phone),
+                    Email = Clean(contact.Email),
+                    Position = Clean(contact.Position),
+                    IsPrimary = false
+                });
+            }
+
+            return supplier;
+        }
+
+        private static string BuildPayloadHash(AdminSupplierCreateDTO dto) => Hash(JsonSerializer.Serialize(new
+        {
+            name = NormalizeIdentityText(dto.Name),
+            taxCode = dto.TaxCode,
+            address = NormalizeIdentityText(dto.Address),
+            note = Clean(dto.Note),
+            primaryPhone = NormalizePhone(dto.PrimaryPhone),
+            primaryContactName = NormalizeIdentityText(dto.PrimaryContactName),
+            primaryContactPhone = NormalizePhone(dto.PrimaryContactPhone),
+            primaryContactEmail = NormalizeEmail(dto.PrimaryContactEmail),
+            primaryContactPosition = NormalizeIdentityText(dto.PrimaryContactPosition),
+            additionalPhones = dto.AdditionalPhones.Select(NormalizePhone).OrderBy(x => x).ToArray(),
+            additionalContacts = dto.AdditionalContacts.Select(x => new
+            {
+                name = NormalizeIdentityText(x.Name),
+                phone = NormalizePhone(x.Phone),
+                email = NormalizeEmail(x.Email),
+                position = NormalizeIdentityText(x.Position)
+            }).OrderBy(x => x.name).ThenBy(x => x.phone).ThenBy(x => x.email).ToArray()
+        }));
+
+        private static string BuildWarningFingerprint(List<SoftDuplicateMatch> matches) => Hash(
+            JsonSerializer.Serialize(matches
+                .OrderBy(x => x.SupplierId)
+                .Select(x => new { x.SupplierId, Signals = x.Signals.OrderBy(s => s).ToArray() })));
+
+        private static AdminSupplierDuplicateWarningDTO ToWarningDto(
+            SupplierDuplicateWarning warning,
+            List<SoftDuplicateMatch> matches) => new()
+        {
+            WarningId = warning.PublicId,
+            ExpiresAtUtc = warning.ExpiresAtUtc,
+            Matches = matches.Select(x => new AdminSupplierDuplicateMatchDTO
+            {
+                SupplierId = x.SupplierId,
+                Code = x.Code,
+                Name = x.Name,
+                Active = x.Active,
+                MatchedSignals = x.Signals
+            }).ToList()
+        };
+
+        private static string NormalizeIdentityText(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return "";
+            var decomposed = value.Trim().Normalize(NormalizationForm.FormD);
+            var builder = new StringBuilder(decomposed.Length);
+            var pendingSpace = false;
+            foreach (var character in decomposed)
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(character) == UnicodeCategory.NonSpacingMark)
+                    continue;
+                if (char.IsLetterOrDigit(character))
+                {
+                    if (pendingSpace && builder.Length > 0) builder.Append(' ');
+                    builder.Append(char.ToUpperInvariant(character));
+                    pendingSpace = false;
+                }
+                else
+                {
+                    pendingSpace = true;
+                }
+            }
+            return builder.ToString();
+        }
+
+        private static string NormalizePhone(string? value) =>
+            new((value ?? "").Where(char.IsDigit).ToArray());
+
+        private static string NormalizeEmail(string? value) =>
+            string.IsNullOrWhiteSpace(value) ? "" : value.Trim().ToLowerInvariant();
+
+        private static string Hash(string value) =>
+            Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(value)));
+
+        private static AuditLog NewSupplierAudit(
+            int supplierId,
+            string action,
+            int actorStaffId,
+            string? oldData,
+            string? newData) => new()
+        {
+            TableName = "Suppliers",
+            RecordId = supplierId,
+            Action = action,
+            OldData = oldData,
+            NewData = newData,
+            UserId = actorStaffId,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        private async Task<IDbContextTransaction?> BeginTransactionAsync(IsolationLevel isolationLevel) =>
+            _context.Database.IsRelational()
+                ? await _context.Database.BeginTransactionAsync(isolationLevel)
+                : null;
+
+        private static async Task TryRollbackAsync(IDbContextTransaction? transaction)
+        {
+            if (transaction == null) return;
+            try { await transaction.RollbackAsync(); }
+            catch { /* SQL Server already rolls back a deadlock victim. */ }
+        }
+
+        private static bool IsUniqueCodeCollision(Exception ex)
+        {
+            var message = FlattenExceptionMessages(ex);
+            return message.Contains("UX_Suppliers_Code", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("Suppliers.Code", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsTaxCodeCollision(Exception ex)
+        {
+            var message = FlattenExceptionMessages(ex);
+            return message.Contains("UX_Suppliers_TaxCode", StringComparison.OrdinalIgnoreCase)
+                   || message.Contains("Suppliers.TaxCode", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool IsSqlDeadlock(Exception exception)
+        {
+            for (var current = exception; current != null; current = current.InnerException)
+                if (current is SqlException { Number: 1205 }) return true;
+            return false;
+        }
+
+        private static string FlattenExceptionMessages(Exception exception)
+        {
+            var messages = new StringBuilder();
+            for (var current = exception; current != null; current = current.InnerException)
+                messages.Append(' ').Append(current.Message);
+            return messages.ToString();
+        }
+
+        private sealed record SoftDuplicateMatch(
+            int SupplierId,
+            string Code,
+            string Name,
+            bool Active,
+            List<string> Signals);
 
         // ===== INGREDIENT SUPPLIER OFFERS (#111) =====
 

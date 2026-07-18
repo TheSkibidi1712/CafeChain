@@ -23,6 +23,9 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
                 .IsRequired()
                 .HasMaxLength(200);
 
+            entity.Property(x => x.TaxCode)
+                .HasMaxLength(14);
+
             entity.Property(x => x.Address)
                 .HasMaxLength(500);
 
@@ -44,7 +47,13 @@ namespace CafeChain.Data.Configurations.Inventories.Suppliers
             // ================= INDEX =================
 
             entity.HasIndex(x => x.Code)
+                .HasDatabaseName("UX_Suppliers_Code")
                 .IsUnique();
+
+            entity.HasIndex(x => x.TaxCode)
+                .HasDatabaseName("UX_Suppliers_TaxCode")
+                .IsUnique()
+                .HasFilter("[TaxCode] IS NOT NULL");
 
             entity.HasIndex(x => x.Name);
 

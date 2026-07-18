@@ -37,7 +37,7 @@
     <section class="supplier-toolbar" aria-label="Bộ lọc nhà cung cấp">
         <label class="supplier-search">
             <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-            <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, số điện thoại" autocomplete="off" />
+            <input id="supplierSearch" type="search" placeholder="Tìm theo mã, tên, mã số thuế, số điện thoại" autocomplete="off" />
         </label>
         <select id="supplierStatusFilter" aria-label="Lọc trạng thái">
             <option value="all">Tất cả trạng thái</option>
@@ -54,6 +54,7 @@
                     <thead>
                         <tr>
                             <th>Nhà cung cấp</th>
+                            <th>Mã số thuế</th>
                             <th>Đầu mối</th>
                             <th>Gói mua</th>
                             <th>Cửa hàng</th>
@@ -66,12 +67,13 @@
                         {
                             <tr data-supplier-id="@item.SupplierId"
                                 data-status="@(item.Active ? "active" : "inactive")"
-                                data-search="@($"{item.Code} {item.Name} {item.PrimaryPhone} {item.PrimaryContactName} {item.PrimaryContactPhone}".ToLowerInvariant())">
+                                data-search="@($"{item.Code} {item.Name} {item.TaxCode} {item.PrimaryPhone} {item.PrimaryContactName} {item.PrimaryContactPhone}".ToLowerInvariant())">
                                 <td>
                                     <span class="supplier-code">@item.Code</span>
                                     <strong>@item.Name</strong>
                                     <small>@(string.IsNullOrWhiteSpace(item.Address) ? "Chưa cập nhật địa chỉ" : item.Address)</small>
                                 </td>
+                                <td><span class="supplier-tax-code">@(string.IsNullOrWhiteSpace(item.TaxCode) ? "—" : item.TaxCode)</span></td>
                                 <td>
                                     <span>@(item.PrimaryContactName ?? "Chưa có đầu mối")</span>
                                     <small>@(item.PrimaryContactPhone ?? item.PrimaryPhone ?? "Chưa có số điện thoại")</small>
@@ -127,6 +129,7 @@
                             <input type="hidden" id="overviewRowVersion" />
                             <div class="supplier-form-grid">
                                 <label><span>Tên nhà cung cấp</span><input id="overviewName" required maxlength="200" /></label>
+                                <label><span>Mã số thuế</span><input id="overviewTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="overviewTaxCodeError" /><small class="supplier-field-error is-hidden" id="overviewTaxCodeError"></small></label>
                                 <label><span>Trạng thái</span><select id="overviewActive"><option value="true">Đang hoạt động</option><option value="false">Ngừng hoạt động</option></select></label>
                                 <label class="is-wide"><span>Địa chỉ</span><input id="overviewAddress" maxlength="500" /></label>
                                 <label class="is-wide"><span>Ghi chú</span><textarea id="overviewNote" rows="4" maxlength="1000"></textarea></label>
@@ -233,6 +236,7 @@
                     <section class="supplier-tab" data-tab-panel="audit">
                         <div class="supplier-section-heading"><div><h3>Dấu vết cập nhật</h3><p>Mốc thời gian của hồ sơ nhà cung cấp.</p></div></div>
                         <dl class="supplier-audit-list"><div><dt>Khởi tạo</dt><dd id="auditCreatedAt"></dd></div><div><dt>Cập nhật gần nhất</dt><dd id="auditUpdatedAt"></dd></div><div><dt>Phiên bản dữ liệu</dt><dd id="auditVersion"></dd></div></dl>
+                        <div class="supplier-history" id="supplierAuditEvents"></div>
                     </section>
                 </div>
             </div>
@@ -248,6 +252,7 @@
             <form class="supplier-form" id="createSupplierForm">
                 <div class="supplier-form-grid">
                     <label><span>Tên nhà cung cấp</span><input id="createName" required maxlength="200" /></label>
+                    <label><span>Mã số thuế</span><input id="createTaxCode" maxlength="32" inputmode="numeric" placeholder="Ví dụ: 0312345679 hoặc 0312345679-001" aria-describedby="createTaxCodeError" /><small class="supplier-field-error is-hidden" id="createTaxCodeError"></small></label>
                     <label><span>Điện thoại chính</span><input id="createPhone" required maxlength="20" /></label>
                     <label><span>Người liên hệ chính</span><input id="createContactName" required maxlength="200" /></label>
                     <label><span>Điện thoại đầu mối</span><input id="createContactPhone" maxlength="20" /></label>
@@ -256,6 +261,20 @@
                     <label class="is-wide"><span>Địa chỉ</span><input id="createAddress" maxlength="500" /></label>
                     <label class="is-wide"><span>Ghi chú</span><textarea id="createNote" rows="3" maxlength="1000"></textarea></label>
                 </div>
+                <section class="supplier-duplicate-panel is-hidden" id="supplierDuplicatePanel" aria-live="polite">
+                    <div>
+                        <strong id="duplicatePanelTitle"></strong>
+                        <p id="duplicatePanelMessage"></p>
+                    </div>
+                    <div class="supplier-duplicate-list" id="duplicateSupplierList"></div>
+                    <label class="is-hidden" id="duplicateReasonGroup"><span>Lý do vẫn tạo mới</span><textarea id="duplicateReason" maxlength="500" rows="2"></textarea><small class="supplier-field-error is-hidden" id="duplicateReasonError"></small></label>
+                    <div class="supplier-form-actions">
+                        <button type="button" class="supplier-btn supplier-btn-quiet" id="cancelDuplicateWarning">Hủy cảnh báo</button>
+                        <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="openDuplicateSupplier">Mở nhà cung cấp hiện có</button>
+                        <button type="button" class="supplier-btn supplier-btn-light is-hidden" id="reactivateDuplicateSupplier">Kích hoạt lại</button>
+                        <button type="button" class="supplier-btn supplier-btn-primary is-hidden" id="confirmDuplicateCreate">Xác nhận vẫn tạo mới</button>
+                    </div>
+                </section>
                 <div class="supplier-form-actions"><button type="button" class="supplier-btn supplier-btn-quiet" data-close-modal>Hủy</button><button class="supplier-btn supplier-btn-primary" type="submit">Tạo nhà cung cấp</button></div>
             </form>
         </div>

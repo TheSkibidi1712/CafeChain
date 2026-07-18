@@ -41,7 +41,8 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.Suppliers
                 search = search.Trim().ToLower();
                 query = query.Where(x =>
                     x.Code.ToLower().Contains(search) ||
-                    x.Name.ToLower().Contains(search));
+                    x.Name.ToLower().Contains(search) ||
+                    (x.TaxCode != null && x.TaxCode.Contains(search)));
             }
 
             if (status.HasValue)

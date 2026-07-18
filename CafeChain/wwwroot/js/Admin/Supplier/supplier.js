@@ -13,7 +13,9 @@
         stores: [],
         ingredients: [],
         units: [],
-        pricingOffer: null
+        pricingOffer: null,
+        duplicateWarningId: null,
+        duplicateMatches: []
     };
 
     const $ = (selector, root = document) => root.querySelector(selector);
@@ -45,7 +47,9 @@
         try { payload = await response.json(); }
         catch { throw new Error('Máy chủ trả về dữ liệu không hợp lệ.'); }
         if (!response.ok || payload.success === false) {
-            throw new Error(payload.message || `Yêu cầu thất bại (HTTP ${response.status}).`);
+            const error = new Error(payload.message || `Yêu cầu thất bại (HTTP ${response.status}).`);
+            error.payload = payload;
+            throw error;
         }
         return payload;
     }
@@ -73,6 +77,33 @@
 
     function emptyStack(message) {
         return `<div class="supplier-empty-inline">${escapeHtml(message)}</div>`;
+    }
+
+    function normalizeTaxCode(value) {
+        if (!value || !value.trim()) return null;
+        let compact = value.trim().replace(/\s+/g, '').replace(/[‐‑‒–−]/g, '-');
+        if (/^\d{13}$/.test(compact)) compact = `${compact.slice(0, 10)}-${compact.slice(10)}`;
+        return /^\d{10}(-\d{3})?$/.test(compact) ? compact : undefined;
+    }
+
+    function setFieldError(input, error, message) {
+        if (!input || !error) return;
+        input.classList.toggle('is-invalid', Boolean(message));
+        input.setAttribute('aria-invalid', String(Boolean(message)));
+        error.textContent = message || '';
+        error.classList.toggle('is-hidden', !message);
+    }
+
+    function validateTaxCodeInput(input, error) {
+        const normalized = normalizeTaxCode(input?.value || '');
+        if (normalized === undefined) {
+            setFieldError(input, error, 'Mã số thuế phải gồm 10 chữ số hoặc 10 chữ số, dấu gạch ngang và 3 chữ số.');
+            input?.focus();
+            return undefined;
+        }
+        if (input) input.value = normalized || '';
+        setFieldError(input, error, '');
+        return normalized;
     }
 
     function applyFilters() {
@@ -181,14 +212,37 @@
         $('#overviewSupplierId').value = d.supplierId;
         $('#overviewRowVersion').value = d.rowVersion || '';
         $('#overviewName').value = d.name || '';
+        $('#overviewTaxCode').value = d.taxCode || '';
         $('#overviewAddress').value = d.address || '';
         $('#overviewNote').value = d.note || '';
         $('#overviewActive').value = String(Boolean(d.active));
         $('#auditCreatedAt').textContent = formatDate(d.createdAt);
         $('#auditUpdatedAt').textContent = formatDate(d.updatedAt);
         $('#auditVersion').textContent = d.rowVersion || 'Chưa có dữ liệu';
+        renderSupplierAudits();
         renderPhones();
         renderContacts();
+    }
+
+    function renderSupplierAudits() {
+        const root = $('#supplierAuditEvents');
+        const rows = state.detail?.audits || [];
+        if (!root) return;
+        if (!rows.length) {
+            root.innerHTML = emptyStack('Chưa có thay đổi mã số thuế hoặc xác nhận trùng được ghi nhận.');
+            return;
+        }
+        const labels = {
+            SUPPLIER_CREATED: 'Tạo nhà cung cấp',
+            SUPPLIER_TAX_CODE_UPDATED: 'Cập nhật mã số thuế',
+            SUPPLIER_DUPLICATE_OVERRIDE: 'Xác nhận tạo dù có dấu hiệu trùng'
+        };
+        root.innerHTML = rows.map(item => `
+            <div class="supplier-history-row">
+                <span>${escapeHtml(formatDate(item.createdAt))}</span>
+                <div><strong>${escapeHtml(labels[item.action] || item.action)}</strong><small>Nhân viên #${escapeHtml(item.actorStaffId)}</small></div>
+                <span>${escapeHtml(item.newData || '')}</span>
+            </div>`).join('');
     }
 
     function applyReadOnlyMode() {
@@ -239,11 +293,14 @@
         event.preventDefault();
         if (!canMutate) return;
         const form = event.currentTarget;
+        const taxCode = validateTaxCodeInput($('#overviewTaxCode'), $('#overviewTaxCodeError'));
+        if (taxCode === undefined) return;
         setBusy(form, true);
         try {
             await api('/Update', { method: 'POST', body: {
                 supplierId: state.supplierId,
                 name: $('#overviewName').value.trim(),
+                taxCode,
                 address: $('#overviewAddress').value.trim() || null,
                 note: $('#overviewNote').value.trim() || null,
                 active: $('#overviewActive').value === 'true',
@@ -251,7 +308,13 @@
             }});
             toast('Đã lưu thông tin nhà cung cấp.');
             window.location.reload();
-        } catch (error) { toast(error.message, 'error'); }
+        } catch (error) {
+            if (error.payload?.code === 'SUPPLIER_TAX_CODE_INVALID' || error.payload?.code === 'SUPPLIER_TAX_CODE_DUPLICATE') {
+                setFieldError($('#overviewTaxCode'), $('#overviewTaxCodeError'), error.message);
+                $('#overviewTaxCode')?.focus();
+            }
+            toast(error.message, 'error');
+        }
         finally { setBusy(form, false); }
     });
 
@@ -557,38 +620,146 @@
     });
 
     const modal = $('#createSupplierModal');
+    const duplicatePanel = $('#supplierDuplicatePanel');
+
+    function resetDuplicateWarning() {
+        state.duplicateWarningId = null;
+        state.duplicateMatches = [];
+        duplicatePanel?.classList.add('is-hidden');
+        $('#duplicateReasonGroup')?.classList.add('is-hidden');
+        $('#confirmDuplicateCreate')?.classList.add('is-hidden');
+        $('#openDuplicateSupplier')?.classList.add('is-hidden');
+        $('#reactivateDuplicateSupplier')?.classList.add('is-hidden');
+        if ($('#duplicateReason')) $('#duplicateReason').value = '';
+        setFieldError($('#duplicateReason'), $('#duplicateReasonError'), '');
+    }
+
+    function showDuplicatePanel(error) {
+        const payload = error.payload || {};
+        const isSoft = payload.code === 'SUPPLIER_POSSIBLE_DUPLICATE';
+        const softData = payload.data || {};
+        const hardMatch = payload.data?.existingSupplier;
+        const matches = isSoft ? (softData.matches || []) : (hardMatch ? [{
+            supplierId: hardMatch.supplierId,
+            code: hardMatch.code,
+            name: hardMatch.name,
+            active: hardMatch.active,
+            matchedSignals: ['Mã số thuế']
+        }] : []);
+
+        state.duplicateWarningId = isSoft ? softData.warningId : null;
+        state.duplicateMatches = matches;
+        $('#duplicatePanelTitle').textContent = isSoft ? 'Có thể trùng nhà cung cấp' : 'Mã số thuế đã tồn tại';
+        $('#duplicatePanelMessage').textContent = error.message;
+        $('#duplicateSupplierList').innerHTML = matches.map(item => `
+            <div class="supplier-duplicate-item">
+                <strong>${escapeHtml(item.code)} · ${escapeHtml(item.name)}</strong>
+                <span>${item.active ? 'Đang hoạt động' : 'Ngừng hoạt động'} · Khớp: ${escapeHtml((item.matchedSignals || []).join(', '))}</span>
+            </div>`).join('');
+
+        duplicatePanel?.classList.remove('is-hidden');
+        $('#openDuplicateSupplier')?.classList.toggle('is-hidden', matches.length === 0);
+        $('#reactivateDuplicateSupplier')?.classList.toggle('is-hidden', !hardMatch || hardMatch.active);
+        $('#duplicateReasonGroup')?.classList.toggle('is-hidden', !isSoft);
+        $('#confirmDuplicateCreate')?.classList.toggle('is-hidden', !isSoft);
+        duplicatePanel?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     function setModalOpen(open) {
         if (!modal) return;
         modal.classList.toggle('is-open', open);
         modal.setAttribute('aria-hidden', String(!open));
         document.body.style.overflow = open ? 'hidden' : '';
         if (open) window.setTimeout(() => $('#createName')?.focus(), 50);
+        else resetDuplicateWarning();
     }
     $('#createSupplierButton')?.addEventListener('click', () => setModalOpen(true));
     $$('[data-close-modal]').forEach(button => button.addEventListener('click', () => setModalOpen(false)));
     modal?.addEventListener('click', event => { if (event.target === modal) setModalOpen(false); });
 
-    $('#createSupplierForm')?.addEventListener('submit', async event => {
-        event.preventDefault();
-        const form = event.currentTarget;
-        setBusy(form, true);
+    $('#cancelDuplicateWarning')?.addEventListener('click', resetDuplicateWarning);
+    $('#openDuplicateSupplier')?.addEventListener('click', () => {
+        const match = state.duplicateMatches[0];
+        if (!match) return;
+        setModalOpen(false);
+        openSupplier(match.supplierId);
+    });
+    $('#reactivateDuplicateSupplier')?.addEventListener('click', async () => {
+        const match = state.duplicateMatches[0];
+        if (!match || match.active) return;
         try {
-            await api('/Create', { method: 'POST', body: {
-                name: $('#createName').value.trim(),
-                address: $('#createAddress').value.trim() || null,
-                note: $('#createNote').value.trim() || null,
-                primaryPhone: $('#createPhone').value.trim(),
-                primaryContactName: $('#createContactName').value.trim(),
-                primaryContactPhone: $('#createContactPhone').value.trim() || null,
-                primaryContactEmail: $('#createContactEmail').value.trim() || null,
-                primaryContactPosition: $('#createContactPosition').value.trim() || null,
-                additionalPhones: [],
-                additionalContacts: []
-            }});
-            toast('Đã tạo nhà cung cấp.');
+            await api(`/ToggleStatus?id=${match.supplierId}`, { method: 'POST' });
+            toast('Đã kích hoạt lại nhà cung cấp hiện có.');
             window.location.reload();
         } catch (error) { toast(error.message, 'error'); }
-        finally { setBusy(form, false); }
+    });
+
+    function buildCreateBody(confirmDuplicate) {
+        const taxCode = validateTaxCodeInput($('#createTaxCode'), $('#createTaxCodeError'));
+        if (taxCode === undefined) return null;
+        return {
+            name: $('#createName').value.trim(),
+            taxCode,
+            address: $('#createAddress').value.trim() || null,
+            note: $('#createNote').value.trim() || null,
+            primaryPhone: $('#createPhone').value.trim(),
+            primaryContactName: $('#createContactName').value.trim(),
+            primaryContactPhone: $('#createContactPhone').value.trim() || null,
+            primaryContactEmail: $('#createContactEmail').value.trim() || null,
+            primaryContactPosition: $('#createContactPosition').value.trim() || null,
+            additionalPhones: [],
+            additionalContacts: [],
+            duplicateWarningId: confirmDuplicate ? state.duplicateWarningId : null,
+            duplicateOverrideReason: confirmDuplicate ? $('#duplicateReason').value.trim() : null
+        };
+    }
+
+    async function submitCreate(confirmDuplicate) {
+        const form = $('#createSupplierForm');
+        const body = buildCreateBody(confirmDuplicate);
+        if (!body) return;
+        if (confirmDuplicate && !body.duplicateOverrideReason) {
+            setFieldError($('#duplicateReason'), $('#duplicateReasonError'), 'Vui lòng nhập lý do vẫn tạo nhà cung cấp mới.');
+            $('#duplicateReason')?.focus();
+            return;
+        }
+        setFieldError($('#duplicateReason'), $('#duplicateReasonError'), '');
+        setBusy(form, true);
+        try {
+            await api('/Create', { method: 'POST', body });
+            toast('Đã tạo nhà cung cấp.');
+            window.location.reload();
+        } catch (error) {
+            if (error.payload?.code === 'SUPPLIER_TAX_CODE_INVALID') {
+                setFieldError($('#createTaxCode'), $('#createTaxCodeError'), error.message);
+                $('#createTaxCode')?.focus();
+            } else if (error.payload?.code === 'SUPPLIER_TAX_CODE_DUPLICATE'
+                || error.payload?.code === 'SUPPLIER_POSSIBLE_DUPLICATE') {
+                showDuplicatePanel(error);
+            } else if (error.payload?.code === 'SUPPLIER_DUPLICATE_OVERRIDE_REASON_REQUIRED') {
+                setFieldError($('#duplicateReason'), $('#duplicateReasonError'), error.message);
+                $('#duplicateReason')?.focus();
+            } else if (error.payload?.code === 'SUPPLIER_DUPLICATE_WARNING_INVALID'
+                || error.payload?.code === 'SUPPLIER_DUPLICATE_WARNING_STALE') {
+                resetDuplicateWarning();
+                toast(error.message, 'error');
+            } else {
+                toast(error.message, 'error');
+            }
+        } finally { setBusy(form, false); }
+    }
+
+    $('#createSupplierForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        await submitCreate(false);
+    });
+    $('#confirmDuplicateCreate')?.addEventListener('click', () => submitCreate(true));
+
+    $$('#createSupplierForm input, #createSupplierForm textarea').forEach(control => {
+        if (control.id === 'duplicateReason') return;
+        control.addEventListener('input', () => {
+            if (duplicatePanel && !duplicatePanel.classList.contains('is-hidden')) resetDuplicateWarning();
+        });
     });
 
     document.addEventListener('keydown', event => {

@@ -15,8 +15,8 @@ namespace CafeChain.Application.Interfaces.Admin.Suppliers
 
         // ===== CRUD MAIN =====
         Task<string> GenerateNextCodeAsync();   // Trả về mã NCC tiếp theo (NCC00001)
-        Task<int> CreateAsync(AdminSupplierCreateDTO dto);
-        Task UpdateAsync(AdminSupplierUpdateDTO dto);
+        Task<int> CreateAsync(AdminSupplierCreateDTO dto, int actorStaffId = 0);
+        Task UpdateAsync(AdminSupplierUpdateDTO dto, int actorStaffId = 0);
         Task ToggleStatusAsync(int id);
 
         // ===== PHONES =====
