@@ -328,12 +328,12 @@
 
                 <!-- ━━━ 📦 KHO & CUNG ỨNG ━━━ -->
                 <a href="#collapseInventory" data-bs-toggle="collapse"
-                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseOrders,AdminSupplierQuality") != "" ? "true" : "false")"
-                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseOrders,AdminSupplierQuality")">
+                   aria-expanded="@(Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrders,AdminSupplierQuality") != "" ? "true" : "false")"
+                   class="sidebar-section-header @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrders,AdminSupplierQuality")">
                     <i class="fas fa-warehouse section-icon"></i> Kho & Cung ứng
                     <i class="fas fa-chevron-down chevron"></i>
                 </a>
-                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseOrders,AdminSupplierQuality", cssClass: "show")" id="collapseInventory">
+                <div class="collapse @Html.IsActive("AdminStoreInventory,AdminInventoryThresholds,AdminIngredient,AdminUnitConversion,AdminSupplier,AdminNotifications,AdminStockAlerts,AdminRestockRequests,AdminReorderSuggestions,AdminPurchaseAdvices,AdminPurchaseAdviceConsolidation,AdminPurchaseOrders,AdminSupplierQuality", cssClass: "show")" id="collapseInventory">
                     <div class="sidebar-sub">
                         <a asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" class="@Html.IsActive("AdminStoreInventory")"><i class="fas fa-circle"></i> Tồn kho cửa hàng</a>
                         <a asp-area="Admin" asp-controller="AdminInventoryThresholds" asp-action="Index" class="@Html.IsActive("AdminInventoryThresholds")"><i class="fas fa-circle"></i> Ngưỡng tồn kho</a>
@@ -341,6 +341,7 @@
                         <a asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" class="@Html.IsActive("AdminRestockRequests")"><i class="fas fa-circle"></i> Yêu cầu nhập hàng</a>
                         <a asp-area="Admin" asp-controller="AdminReorderSuggestions" asp-action="Index" class="@Html.IsActive("AdminReorderSuggestions")"><i class="fas fa-circle"></i> Gợi ý nhập hàng</a>
                         <a asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdvices")"><i class="fas fa-circle"></i> Đề nghị mua hàng</a>
+                        <a asp-area="Admin" asp-controller="AdminPurchaseAdviceConsolidation" asp-action="Index" class="@Html.IsActive("AdminPurchaseAdviceConsolidation")"><i class="fas fa-circle"></i> PA chờ tổng hợp</a>
                         <a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Index" class="@Html.IsActive("AdminPurchaseOrders")"><i class="fas fa-circle"></i> Đơn mua hàng</a>
                         <a asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Index" class="@Html.IsActive("AdminSupplierQuality")"><i class="fas fa-circle"></i> Chất lượng nhà cung cấp</a>
                         <a asp-area="Admin" asp-controller="AdminNotifications" asp-action="Index" class="@Html.IsActive("AdminNotifications")"><i class="fas fa-circle"></i> Thông báo kho</a>

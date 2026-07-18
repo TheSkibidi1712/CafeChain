@@ -1,0 +1,345 @@
+using System.Data;
+using CafeChain.Application.Constants;
+using CafeChain.Application.DTOs.Admin.Actor;
+using CafeChain.Application.DTOs.Admin.Procurement;
+using CafeChain.Application.Interfaces.Inventories;
+using CafeChain.Application.Interfaces.Security;
+using CafeChain.Application.Results;
+using CafeChain.Data;
+using CafeChain.Models.Inventories.Procurement;
+using CafeChain.Models.Inventories.Suppliers;
+using Microsoft.EntityFrameworkCore;
+
+namespace CafeChain.Application.Services.Inventories;
+
+public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolidationService
+{
+    private readonly AppDbContext _context;
+    private readonly IScopeAuthorizationService _scopeAuthorization;
+    private readonly IPhysicalUnitConversionService _physicalConversion;
+
+    public PurchaseAdviceConsolidationService(
+        AppDbContext context,
+        IScopeAuthorizationService scopeAuthorization,
+        IPhysicalUnitConversionService physicalConversion)
+    {
+        _context = context;
+        _scopeAuthorization = scopeAuthorization;
+        _physicalConversion = physicalConversion;
+    }
+
+    public async Task<ServiceResult<PurchaseAdviceConsolidationPageDto>> GetQueueAsync(
+        PurchaseAdviceConsolidationFilterDto filter,
+        AdminActorContext actor)
+    {
+        var stores = await ResolveReadableStoresAsync(actor);
+        if (stores.Count == 0)
+            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền xem hàng đợi tổng hợp PA.");
+
+        var storeIds = stores.Select(x => x.Id).ToArray();
+        if (filter.StoreId.HasValue && !storeIds.Contains(filter.StoreId.Value))
+            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.StoreScopeMismatch, "Cửa hàng không thuộc phạm vi truy cập của bạn.");
+
+        var statuses = new[] { PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview };
+        var query = _context.PurchaseAdviceLines.AsNoTracking()
+            .Where(x => storeIds.Contains(x.PurchaseAdvice.StoreId)
+                && x.IsActiveReservation
+                && statuses.Contains(x.PurchaseAdvice.Status));
+        if (filter.StoreId.HasValue) query = query.Where(x => x.PurchaseAdvice.StoreId == filter.StoreId.Value);
+        if (filter.AreaId.HasValue) query = query.Where(x => x.PurchaseAdvice.Store.ProvinceId == filter.AreaId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.Status) && statuses.Contains(filter.Status))
+            query = query.Where(x => x.PurchaseAdvice.Status == filter.Status);
+        if (filter.NeededByDate.HasValue) query = query.Where(x => x.NeededByDate.Date <= filter.NeededByDate.Value.Date);
+        if (filter.IngredientId.HasValue) query = query.Where(x => x.IngredientId == filter.IngredientId.Value);
+        if (!string.IsNullOrWhiteSpace(filter.Priority)) query = query.Where(x => x.PurchaseAdvice.Priority == filter.Priority);
+
+        var rows = await query
+            .OrderBy(x => x.NeededByDate)
+            .ThenByDescending(x => x.PurchaseAdvice.Priority)
+            .ThenBy(x => x.PurchaseAdvice.AdviceNumber)
+            .Select(x => new PurchaseAdviceConsolidationLineDto
+            {
+                PurchaseAdviceLineId = x.PurchaseAdviceLineId,
+                PurchaseAdviceId = x.PurchaseAdviceId,
+                AdviceNumber = x.PurchaseAdvice.AdviceNumber,
+                AdviceStatus = x.PurchaseAdvice.Status,
+                StoreId = x.PurchaseAdvice.StoreId,
+                StoreName = x.PurchaseAdvice.Store.Name,
+                AreaId = x.PurchaseAdvice.Store.ProvinceId,
+                IngredientId = x.IngredientId,
+                IngredientName = x.Ingredient.Name,
+                RequestedPurchaseBaseQuantity = x.RequestedPurchaseBaseQuantity,
+                AllocatedToPoBaseQuantity = x.AllocatedToPoBaseQuantity,
+                ClosedBaseQuantity = x.ClosedBaseQuantity,
+                BaseUnitId = x.BaseUnitId,
+                BaseUnitName = x.BaseUnit.Name,
+                NeededByDate = x.NeededByDate,
+                Priority = x.PurchaseAdvice.Priority,
+                RestockRequestId = x.RestockRequestId,
+                RowVersion = Convert.ToBase64String(x.RowVersion)
+            })
+            .ToListAsync();
+
+        foreach (var row in rows)
+            row.RemainingToOrderBaseQuantity = Remaining(row.RequestedPurchaseBaseQuantity, row.AllocatedToPoBaseQuantity, row.ClosedBaseQuantity);
+        rows = rows.Where(x => x.RemainingToOrderBaseQuantity > 0).ToList();
+
+        var ingredientIds = rows.Select(x => x.IngredientId).Distinct().ToArray();
+        var offers = await LoadOfferDtosAsync(ingredientIds);
+        var supplierStorePairs = await _context.SupplierStores.AsNoTracking()
+            .Where(x => x.Active && storeIds.Contains(x.StoreId))
+            .Select(x => new { x.SupplierId, x.StoreId })
+            .ToListAsync();
+        var compatiblePairs = supplierStorePairs.Select(x => (x.SupplierId, x.StoreId)).ToHashSet();
+        foreach (var row in rows)
+        {
+            row.CompatibleSupplierIds = offers
+                .Where(x => x.IngredientId == row.IngredientId && compatiblePairs.Contains((x.SupplierId, row.StoreId)))
+                .Select(x => x.SupplierId)
+                .Distinct()
+                .OrderBy(x => x)
+                .ToArray();
+        }
+        if (filter.SupplierId.HasValue)
+            rows = rows.Where(x => x.CompatibleSupplierIds.Contains(filter.SupplierId.Value)).ToList();
+
+        var areas = stores.Where(x => x.AreaId.HasValue)
+            .GroupBy(x => new { Id = x.AreaId!.Value, x.AreaName })
+            .Select(x => new PurchaseAdviceConsolidationOptionDto { Id = x.Key.Id, Label = x.Key.AreaName ?? $"Khu vực #{x.Key.Id}" })
+            .OrderBy(x => x.Label).ToArray();
+        var suppliers = offers.GroupBy(x => new { x.SupplierId, x.SupplierName })
+            .Select(x => new PurchaseAdviceConsolidationOptionDto { Id = x.Key.SupplierId, Label = x.Key.SupplierName })
+            .OrderBy(x => x.Label).ToArray();
+
+        return ServiceResult<PurchaseAdviceConsolidationPageDto>.Success(new PurchaseAdviceConsolidationPageDto
+        {
+            Filter = filter,
+            Lines = rows,
+            Stores = stores.Select(x => new PurchaseAdviceConsolidationOptionDto { Id = x.Id, Label = x.Name }).ToArray(),
+            Areas = areas,
+            Ingredients = rows.GroupBy(x => new { x.IngredientId, x.IngredientName })
+                .Select(x => new PurchaseAdviceConsolidationOptionDto { Id = x.Key.IngredientId, Label = x.Key.IngredientName })
+                .OrderBy(x => x.Label).ToArray(),
+            Suppliers = suppliers,
+            Offers = offers,
+            Actor = actor
+        });
+    }
+
+    public async Task<ServiceResult<PurchaseAdviceConsolidationPreviewDto>> PreviewAsync(
+        PurchaseAdviceConsolidationPreviewRequest request,
+        AdminActorContext actor)
+    {
+        if (!CanConsolidate(actor))
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tổng hợp PA.");
+        if (request.SupplierId <= 0 || request.Lines.Count == 0)
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn nhà cung cấp và ít nhất một dòng PA.");
+        if (request.Lines.Any(x => x.PackageCount <= 0)
+            || request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != request.Lines.Count)
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Số kiện phải lớn hơn 0 và mỗi dòng PA chỉ được chọn một lần.");
+
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var supplier = await _context.Suppliers.AsNoTracking().SingleOrDefaultAsync(x => x.SupplierId == request.SupplierId);
+        if (supplier == null || !supplier.Active)
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.SupplierInvalid, "Nhà cung cấp không tồn tại hoặc đã ngưng hoạt động.");
+
+        var ids = request.Lines.Select(x => x.PurchaseAdviceLineId).OrderBy(x => x).ToArray();
+        var lines = new List<PurchaseAdviceLine>();
+        foreach (var id in ids)
+        {
+            IQueryable<PurchaseAdviceLine> lineQuery = _context.Database.IsSqlServer()
+                ? _context.PurchaseAdviceLines.FromSqlInterpolated(
+                    $"SELECT * FROM PurchaseAdviceLines WITH (UPDLOCK, HOLDLOCK, ROWLOCK) WHERE PurchaseAdviceLineId = {id}")
+                : _context.PurchaseAdviceLines;
+            var line = await lineQuery
+                .Include(x => x.PurchaseAdvice).ThenInclude(x => x.Store)
+                .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
+                .SingleOrDefaultAsync(x => x.PurchaseAdviceLineId == id);
+            if (line != null) lines.Add(line);
+        }
+        if (lines.Count != ids.Length)
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.NotFound, "Một hoặc nhiều dòng PA không còn tồn tại.");
+
+        var offerIds = request.Lines.Select(x => x.IngredientSupplierId).Distinct().ToArray();
+        var offers = await _context.IngredientSuppliers.AsNoTracking()
+            .Include(x => x.Unit)
+            .Where(x => offerIds.Contains(x.IngredientSupplierId))
+            .ToDictionaryAsync(x => x.IngredientSupplierId);
+        var supplierStores = (await _context.SupplierStores.AsNoTracking()
+            .Where(x => x.SupplierId == request.SupplierId && x.Active)
+            .Select(x => x.StoreId).ToListAsync()).ToHashSet();
+
+        var allocations = new List<(PurchaseAdviceConsolidationAllocationDto Allocation, PurchaseAdviceOfferDto Offer)>();
+        foreach (var selected in request.Lines)
+        {
+            var line = lines.Single(x => x.PurchaseAdviceLineId == selected.PurchaseAdviceLineId);
+            if (!PurchaseAdviceStatuses.ActiveReservationStatuses.Contains(line.PurchaseAdvice.Status)
+                || (line.PurchaseAdvice.Status != PurchaseAdviceStatuses.Submitted && line.PurchaseAdvice.Status != PurchaseAdviceStatuses.UnderReview))
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, $"PA {line.PurchaseAdvice.AdviceNumber} không ở trạng thái chờ tổng hợp.");
+            if (!VersionMatches(line.RowVersion, selected.RowVersion))
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.StaleVersion, $"Dòng PA {line.PurchaseAdvice.AdviceNumber} đã thay đổi. Hãy tải lại.");
+            if (!supplierStores.Contains(line.PurchaseAdvice.StoreId))
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.SupplierStoreMismatch, $"Nhà cung cấp không phục vụ cửa hàng {line.PurchaseAdvice.Store.Name}.");
+            if (!offers.TryGetValue(selected.IngredientSupplierId, out var offer)
+                || !offer.Active || offer.SupplierId != request.SupplierId || offer.IngredientId != line.IngredientId
+                || !offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0 || offer.CurrentPrice <= 0)
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.OfferInvalid, $"Offer cho {line.Ingredient.Name} không hợp lệ hoặc đã hết hiệu lực.");
+
+            var conversion = await _physicalConversion.ConvertAsync(offer.PackageQuantity.Value, offer.UnitId, line.BaseUnitId);
+            if (!conversion.IsSuccess || conversion.Data <= 0)
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.PackageMismatch, $"Gói mua của {line.Ingredient.Name} không quy đổi được sang {line.BaseUnit.Name}.");
+            var remaining = Remaining(line.RequestedPurchaseBaseQuantity, line.AllocatedToPoBaseQuantity, line.ClosedBaseQuantity);
+            var allocated = conversion.Data * selected.PackageCount;
+            if (allocated > remaining)
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ExceedsRemaining, $"Phân bổ {line.Ingredient.Name} vượt số lượng còn lại ({remaining:N3} {line.BaseUnit.Name}).");
+
+            allocations.Add((new PurchaseAdviceConsolidationAllocationDto
+            {
+                PurchaseAdviceLineId = line.PurchaseAdviceLineId,
+                AdviceNumber = line.PurchaseAdvice.AdviceNumber,
+                StoreId = line.PurchaseAdvice.StoreId,
+                StoreName = line.PurchaseAdvice.Store.Name,
+                RestockRequestId = line.RestockRequestId,
+                PackageCount = selected.PackageCount,
+                AllocatedBaseQuantity = allocated,
+                RemainingBeforeAllocation = remaining,
+                NeededByDate = line.NeededByDate,
+                LineRowVersion = Convert.ToBase64String(line.RowVersion)
+            }, new PurchaseAdviceOfferDto
+            {
+                IngredientSupplierId = offer.IngredientSupplierId,
+                SupplierId = offer.SupplierId,
+                SupplierName = supplier.Name ?? $"Supplier #{supplier.SupplierId}",
+                IngredientId = offer.IngredientId,
+                PackageUnitId = offer.UnitId,
+                PackageUnitName = offer.Unit.Name,
+                PackageQuantity = offer.PackageQuantity.Value,
+                PackageBaseQuantity = conversion.Data,
+                MinimumOrderPackageCount = offer.MinimumOrderPackageCount ?? 1,
+                LeadTimeDays = offer.LeadTimeDays ?? 0,
+                CurrentPackagePrice = offer.CurrentPrice,
+                Specification = offer.Note
+            }));
+        }
+
+        var groups = allocations
+            .GroupBy(x => new
+            {
+                x.Offer.IngredientId,
+                x.Offer.IngredientSupplierId,
+                x.Offer.PackageUnitId,
+                x.Offer.PackageUnitName,
+                x.Offer.PackageQuantity,
+                x.Offer.PackageBaseQuantity,
+                x.Offer.CurrentPackagePrice,
+                x.Offer.Currency,
+                x.Offer.Specification,
+                x.Offer.MinimumOrderPackageCount
+            })
+            .Select(group =>
+            {
+                var count = group.Sum(x => x.Allocation.PackageCount);
+                return new PurchaseAdviceConsolidationGroupDto
+                {
+                    IngredientId = group.Key.IngredientId,
+                    IngredientName = lines.First(x => x.IngredientId == group.Key.IngredientId).Ingredient.Name,
+                    IngredientSupplierId = group.Key.IngredientSupplierId,
+                    PackageUnitId = group.Key.PackageUnitId,
+                    PackageUnitName = group.Key.PackageUnitName,
+                    PackageQuantity = group.Key.PackageQuantity,
+                    PackageBaseQuantity = group.Key.PackageBaseQuantity,
+                    PackagePriceSnapshot = group.Key.CurrentPackagePrice,
+                    Currency = group.Key.Currency,
+                    Specification = group.Key.Specification,
+                    PackageCount = count,
+                    AllocatedBaseQuantity = group.Sum(x => x.Allocation.AllocatedBaseQuantity),
+                    LineTotal = count * group.Key.CurrentPackagePrice,
+                    Allocations = group.Select(x => x.Allocation).OrderBy(x => x.StoreName).ToArray()
+                };
+            }).ToArray();
+        var moqFailure = groups.FirstOrDefault(group =>
+            group.PackageCount < allocations.First(x => x.Offer.IngredientSupplierId == group.IngredientSupplierId).Offer.MinimumOrderPackageCount);
+        if (moqFailure != null)
+        {
+            var moq = allocations.First(x => x.Offer.IngredientSupplierId == moqFailure.IngredientSupplierId).Offer.MinimumOrderPackageCount;
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.MoqViolation, $"{moqFailure.IngredientName} yêu cầu tối thiểu {moq} kiện.");
+        }
+
+        var warnings = allocations
+            .Where(x => DateTime.UtcNow.Date.AddDays(x.Offer.LeadTimeDays) > x.Allocation.NeededByDate.Date)
+            .Select(x => $"{x.Allocation.AdviceNumber}: lead time dự kiến vượt ngày cần hàng.")
+            .Distinct().ToArray();
+        await transaction.CommitAsync();
+        return ServiceResult<PurchaseAdviceConsolidationPreviewDto>.Success(new PurchaseAdviceConsolidationPreviewDto
+        {
+            SupplierId = supplier.SupplierId,
+            SupplierName = supplier.Name ?? $"Supplier #{supplier.SupplierId}",
+            Groups = groups,
+            TotalAmount = groups.Sum(x => x.LineTotal),
+            StoreCount = allocations.Select(x => x.Allocation.StoreId).Distinct().Count(),
+            LineCount = allocations.Count,
+            Warnings = warnings
+        });
+    }
+
+    private async Task<List<PurchaseAdviceOfferDto>> LoadOfferDtosAsync(int[] ingredientIds)
+    {
+        var offers = await _context.IngredientSuppliers.AsNoTracking()
+            .Where(x => ingredientIds.Contains(x.IngredientId) && x.Active && x.Supplier.Active
+                && x.PackageQuantity.HasValue && x.PackageQuantity > 0 && x.CurrentPrice > 0 && x.Unit.Active)
+            .Include(x => x.Supplier).Include(x => x.Unit).Include(x => x.Ingredient)
+            .OrderBy(x => x.Supplier.Name).ThenBy(x => x.Ingredient.Name)
+            .ToListAsync();
+        var result = new List<PurchaseAdviceOfferDto>();
+        foreach (var offer in offers)
+        {
+            var conversion = await _physicalConversion.ConvertAsync(offer.PackageQuantity!.Value, offer.UnitId, offer.Ingredient.BaseUnitId);
+            if (!conversion.IsSuccess || conversion.Data <= 0) continue;
+            result.Add(new PurchaseAdviceOfferDto
+            {
+                IngredientSupplierId = offer.IngredientSupplierId,
+                SupplierId = offer.SupplierId,
+                SupplierName = offer.Supplier.Name ?? $"Supplier #{offer.SupplierId}",
+                IngredientId = offer.IngredientId,
+                PackageUnitId = offer.UnitId,
+                PackageUnitName = offer.Unit.Name,
+                PackageQuantity = offer.PackageQuantity.Value,
+                PackageBaseQuantity = conversion.Data,
+                MinimumOrderPackageCount = offer.MinimumOrderPackageCount ?? 1,
+                LeadTimeDays = offer.LeadTimeDays ?? 0,
+                CurrentPackagePrice = offer.CurrentPrice,
+                Specification = offer.Note
+            });
+        }
+        return result;
+    }
+
+    private async Task<List<ReadableStore>> ResolveReadableStoresAsync(AdminActorContext actor)
+    {
+        var storeRows = await _context.Stores.AsNoTracking().Where(x => x.Active)
+            .OrderBy(x => x.Name)
+            .Select(x => new { x.StoreId, x.Name, x.ProvinceId, AreaName = x.Province != null ? x.Province.Name : null })
+            .ToListAsync();
+        var stores = storeRows.Select(x => new ReadableStore(x.StoreId, x.Name, x.ProvinceId, x.AreaName)).ToList();
+        if (HasRole(actor, RoleConstants.BusinessOwner) || HasRole(actor, RoleConstants.AccountantWarehouse)) return stores;
+        if (HasRole(actor, RoleConstants.StoreManager)) return stores.Where(x => x.Id == actor.StoreId).ToList();
+        if (!HasRole(actor, RoleConstants.AreaManager)) return new();
+        var allowed = new List<ReadableStore>();
+        foreach (var store in stores)
+            if (await _scopeAuthorization.CanAccessStoreAsync(actor.StaffId, store.Id)) allowed.Add(store);
+        return allowed;
+    }
+
+    private static decimal Remaining(decimal requested, decimal allocated, decimal closed) => Math.Max(0m, requested - allocated - closed);
+    private static bool CanConsolidate(AdminActorContext actor) => HasRole(actor, RoleConstants.AccountantWarehouse) || HasRole(actor, RoleConstants.BusinessOwner);
+    private static bool HasRole(AdminActorContext actor, string role) => actor.RoleNames.Contains(role, StringComparer.OrdinalIgnoreCase);
+    private static bool VersionMatches(byte[] current, string? provided)
+    {
+        if (current.Length == 0 && string.IsNullOrWhiteSpace(provided)) return true;
+        if (string.IsNullOrWhiteSpace(provided)) return false;
+        try { return current.SequenceEqual(Convert.FromBase64String(provided)); }
+        catch (FormatException) { return false; }
+    }
+    private static ServiceResult<T> Failure<T>(string code, string message) => ServiceResult<T>.Failure(message, errorCode: code);
+    private sealed record ReadableStore(int Id, string Name, int? AreaId, string? AreaName);
+}

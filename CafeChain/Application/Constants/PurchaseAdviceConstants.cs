@@ -41,5 +41,12 @@ namespace CafeChain.Application.Constants
         public const string StaleVersion = "PURCHASE_ADVICE_STALE_VERSION";
         public const string Forbidden = "PURCHASE_ADVICE_FORBIDDEN";
         public const string RejectionReasonRequired = "PURCHASE_ADVICE_REJECTION_REASON_REQUIRED";
+        public const string ConsolidationInvalid = "PURCHASE_ADVICE_CONSOLIDATION_INVALID";
+        public const string SupplierInvalid = "PURCHASE_ADVICE_SUPPLIER_INVALID";
+        public const string SupplierStoreMismatch = "PURCHASE_ADVICE_SUPPLIER_STORE_MISMATCH";
+        public const string OfferInvalid = "PURCHASE_ADVICE_OFFER_INVALID";
+        public const string PackageMismatch = "PURCHASE_ADVICE_PACKAGE_MISMATCH";
+        public const string MoqViolation = "PURCHASE_ADVICE_MOQ_VIOLATION";
+        public const string ExceedsRemaining = "PURCHASE_ADVICE_EXCEEDS_REMAINING";
     }
 }
