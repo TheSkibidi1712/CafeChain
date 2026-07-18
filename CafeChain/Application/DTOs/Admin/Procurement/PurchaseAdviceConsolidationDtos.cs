@@ -72,7 +72,7 @@ public sealed class PurchaseAdviceOfferDto
     public string? Specification { get; set; }
 }
 
-public sealed class PurchaseAdviceConsolidationPreviewRequest
+public class PurchaseAdviceConsolidationPreviewRequest
 {
     public int SupplierId { get; set; }
     public List<PurchaseAdviceConsolidationSelectionRequest> Lines { get; set; } = new();
@@ -109,6 +109,7 @@ public sealed class PurchaseAdviceConsolidationGroupDto
     public decimal PackagePriceSnapshot { get; set; }
     public string Currency { get; set; } = "VND";
     public string? Specification { get; set; }
+    public int LeadTimeDays { get; set; }
     public int PackageCount { get; set; }
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal LineTotal { get; set; }

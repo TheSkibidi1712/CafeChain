@@ -313,6 +313,7 @@ namespace CafeChain.Extensions.Services
             services.AddScoped<IPurchaseOrderService, PurchaseOrderService>();
             services.AddScoped<IPurchaseAdviceService, PurchaseAdviceService>();
             services.AddScoped<IPurchaseAdviceConsolidationService, PurchaseAdviceConsolidationService>();
+            services.AddScoped<IPurchaseOrderBatchService, PurchaseOrderBatchService>();
             services.AddScoped<ISupplierQualityService, SupplierQualityService>();
             services.AddScoped<IBranchReceiptService, BranchReceiptService>();
 

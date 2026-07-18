@@ -138,7 +138,10 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             || request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != request.Lines.Count)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Số kiện phải lớn hơn 0 và mỗi dòng PA chỉ được chọn một lần.");
 
-        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var ownsTransaction = _context.Database.CurrentTransaction == null;
+        await using var transaction = ownsTransaction
+            ? await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable)
+            : null;
         var supplier = await _context.Suppliers.AsNoTracking().SingleOrDefaultAsync(x => x.SupplierId == request.SupplierId);
         if (supplier == null || !supplier.Active)
             return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.SupplierInvalid, "Nhà cung cấp không tồn tại hoặc đã ngưng hoạt động.");
@@ -234,7 +237,8 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                 x.Offer.CurrentPackagePrice,
                 x.Offer.Currency,
                 x.Offer.Specification,
-                x.Offer.MinimumOrderPackageCount
+                x.Offer.MinimumOrderPackageCount,
+                x.Offer.LeadTimeDays
             })
             .Select(group =>
             {
@@ -251,6 +255,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     PackagePriceSnapshot = group.Key.CurrentPackagePrice,
                     Currency = group.Key.Currency,
                     Specification = group.Key.Specification,
+                    LeadTimeDays = group.Key.LeadTimeDays,
                     PackageCount = count,
                     AllocatedBaseQuantity = group.Sum(x => x.Allocation.AllocatedBaseQuantity),
                     LineTotal = count * group.Key.CurrentPackagePrice,
@@ -269,7 +274,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             .Where(x => DateTime.UtcNow.Date.AddDays(x.Offer.LeadTimeDays) > x.Allocation.NeededByDate.Date)
             .Select(x => $"{x.Allocation.AdviceNumber}: lead time dự kiến vượt ngày cần hàng.")
             .Distinct().ToArray();
-        await transaction.CommitAsync();
+        if (transaction != null) await transaction.CommitAsync();
         return ServiceResult<PurchaseAdviceConsolidationPreviewDto>.Success(new PurchaseAdviceConsolidationPreviewDto
         {
             SupplierId = supplier.SupplierId,

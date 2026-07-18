@@ -10,6 +10,7 @@ namespace CafeChain.Models.Inventories.Procurement
     public class PurchaseOrder
     {
         public int PurchaseOrderId { get; set; }
+        public int? PurchaseOrderBatchId { get; set; }
         public string Code { get; set; } = string.Empty;
         public int StoreId { get; set; }
         public int SupplierId { get; set; }
@@ -36,6 +37,8 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual Staff? ApprovedByStaff { get; set; }
         public virtual Staff? SentByStaff { get; set; }
         public virtual ICollection<PurchaseOrderLine> Lines { get; set; } = new List<PurchaseOrderLine>();
+        public virtual PurchaseOrderBatch? PurchaseOrderBatch { get; set; }
+        public virtual ICollection<PurchaseOrderLineAllocation> BatchAllocations { get; set; } = new List<PurchaseOrderLineAllocation>();
     }
 
     public class PurchaseOrderLine
@@ -67,6 +70,7 @@ namespace CafeChain.Models.Inventories.Procurement
         public virtual Unit PackageUnitSnapshot { get; set; } = null!;
         public virtual Staff? ClosedRemainingByStaff { get; set; }
         public virtual ICollection<PurchaseOrderReceiptPosting> ReceiptPostings { get; set; } = new List<PurchaseOrderReceiptPosting>();
+        public virtual ICollection<PurchaseOrderLineAllocation> BatchAllocations { get; set; } = new List<PurchaseOrderLineAllocation>();
     }
 
     public class PurchaseOrderReceiptPosting

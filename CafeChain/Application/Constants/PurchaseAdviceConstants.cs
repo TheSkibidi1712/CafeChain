@@ -7,6 +7,7 @@ namespace CafeChain.Application.Constants
         public const string UnderReview = "UNDER_REVIEW";
         public const string Rejected = "REJECTED";
         public const string Cancelled = "CANCELLED";
+        public const string Allocated = "ALLOCATED";
 
         public static readonly IReadOnlySet<string> ActiveReservationStatuses =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)

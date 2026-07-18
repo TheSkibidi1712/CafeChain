@@ -16,11 +16,13 @@ namespace CafeChain.Data.Configurations.Inventories.Procurement
             b.Property(x => x.Note).HasMaxLength(1000);
             b.Property(x => x.RowVersion).IsRowVersion();
             b.HasIndex(x => new { x.StoreId, x.Status });
+            b.HasIndex(x => x.PurchaseOrderBatchId);
             b.HasOne(x => x.Store).WithMany().HasForeignKey(x => x.StoreId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.Supplier).WithMany().HasForeignKey(x => x.SupplierId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.CreatedByStaff).WithMany().HasForeignKey(x => x.CreatedByStaffId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.ApprovedByStaff).WithMany().HasForeignKey(x => x.ApprovedByStaffId).OnDelete(DeleteBehavior.Restrict);
             b.HasOne(x => x.SentByStaff).WithMany().HasForeignKey(x => x.SentByStaffId).OnDelete(DeleteBehavior.Restrict);
+            b.HasOne(x => x.PurchaseOrderBatch).WithMany(x => x.ChildPurchaseOrders).HasForeignKey(x => x.PurchaseOrderBatchId).OnDelete(DeleteBehavior.Restrict);
         }
     }
 

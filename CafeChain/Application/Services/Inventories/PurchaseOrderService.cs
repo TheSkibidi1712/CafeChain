@@ -341,6 +341,7 @@ namespace CafeChain.Application.Services.Inventories
 
                 var order = poLine.PurchaseOrder;
                 await RecalculateOrderStatusAsync(order);
+                await PurchaseOrderBatchStatusUpdater.RefreshAsync(_context, order.PurchaseOrderBatchId);
                 await _context.SaveChangesAsync();
                 if (transaction != null) await transaction.CommitAsync();
                 return ServiceResult.Success("Đã ghi nhận số lượng nhận theo đơn mua.");
@@ -361,6 +362,8 @@ namespace CafeChain.Application.Services.Inventories
                 return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
             var order = await _context.PurchaseOrders.SingleOrDefaultAsync(x => x.PurchaseOrderId == id);
             if (order == null) return Fail("Không tìm thấy đơn mua hàng.");
+            if (next == PurchaseOrderStatuses.Approved && order.PurchaseOrderBatchId.HasValue)
+                return Fail("PO con được duyệt theo batch; không duyệt lại từng PO.");
             if (!await CanAccessStoreAsync(actorStaffId, order.StoreId))
                 return Fail("Bạn không có quyền cập nhật đơn mua hàng của cửa hàng này.");
             if (order.Status != expected) return Fail($"Chỉ chuyển {next} từ {expected}. Trạng thái hiện tại: {order.Status}.");
