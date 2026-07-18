@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../db/CafeChainPOSDB'
 import type { Category, MenuItem } from '../db/CafeChainPOSDB'
@@ -28,6 +28,7 @@ import { getPosSession, type PosSession } from '../services/posSession'
  */
 export function usePOSData() {
   const [isLoading, setIsLoading] = useState(true)
+  const [catalogError, setCatalogError] = useState<string | null>(null)
   const [isOnline, setIsOnline] = useState(navigator.onLine)
   const [pendingCount, setPendingCount] = useState(0)
   const [storeId, setStoreId] = useState<number | null>(() => getPosSession().storeId)
@@ -42,22 +43,28 @@ export function usePOSData() {
     [storeId]
   ) ?? []
 
+  const refreshCatalog = useCallback(async () => {
+    setIsLoading(true)
+    setCatalogError(null)
+    try {
+      await syncCatalog()
+    } catch (error) {
+      console.error('[POS Catalog] Không thể đồng bộ catalog:', error)
+      setCatalogError(error instanceof Error
+        ? error.message
+        : 'Không tải được catalog cửa hàng.')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
   // ─── Khởi tạo: Sync + Listeners ───
   useEffect(() => {
     let mounted = true
 
-    const init = async () => {
-      try {
-        // Sync catalog nếu online, fallback IndexedDB cache nếu offline
-        await syncCatalog()
-      } catch {
-        // Offline hoặc API error — dùng cache cũ
-      } finally {
-        if (mounted) setIsLoading(false)
-      }
-    }
-
-    init()
+    queueMicrotask(() => {
+      if (mounted) void refreshCatalog()
+    })
 
     // Đăng ký online/offline listeners
     const cleanupConnectivity = registerConnectivityListeners()
@@ -70,10 +77,7 @@ export function usePOSData() {
     const handleSessionChanged = (event: Event) => {
       const session = (event as CustomEvent<PosSession>).detail ?? getPosSession()
       setStoreId(session.storeId)
-      setIsLoading(true)
-      syncCatalog().finally(() => {
-        if (mounted) setIsLoading(false)
-      })
+      refreshCatalog()
     }
     window.addEventListener('pos-session-changed', handleSessionChanged)
 
@@ -93,7 +97,7 @@ export function usePOSData() {
       window.removeEventListener('pos-session-changed', handleSessionChanged)
       clearInterval(interval)
     }
-  }, [])
+  }, [refreshCatalog])
 
   return {
     /** Danh sách danh mục (reactive từ IndexedDB) */
@@ -106,5 +110,9 @@ export function usePOSData() {
     isOnline,
     /** Số đơn hàng đang chờ đồng bộ */
     pendingOrders: pendingCount,
+    /** Lỗi sync catalog gần nhất; cache cũ vẫn được giữ nếu đọc được. */
+    catalogError,
+    /** Thử đồng bộ lại catalog theo yêu cầu của thu ngân. */
+    refreshCatalog,
   }
 }

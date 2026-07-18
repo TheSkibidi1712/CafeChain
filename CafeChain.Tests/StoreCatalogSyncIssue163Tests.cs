@@ -64,6 +64,10 @@ public sealed class StoreCatalogSyncIssue163Tests : IntegrationTestBase
         var hookSource = File.ReadAllText(Path.Combine(root, "CafeChain.Frontend", "src", "hooks", "usePOSData.ts"));
 
         Assert.Contains("[storeId+id]", dbSource);
+        Assert.Contains("this.version(2).stores({", dbSource);
+        Assert.Contains("categories: null", dbSource);
+        Assert.Contains("menuItems: null", dbSource);
+        Assert.Contains("this.version(3).stores({", dbSource);
         Assert.Contains("catalogStates", dbSource);
         Assert.Contains("db.transaction('rw', db.categories, db.menuItems, db.catalogStates", syncSource);
         Assert.Contains("/api/v1/pos/catalog", syncSource);

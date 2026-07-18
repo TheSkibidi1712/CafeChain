@@ -240,14 +240,22 @@ export class CafeChainPOSDB extends Dexie {
       cartSyncQueue: '++queueId, clientOrderId, syncStatus, createdAt',
     })
 
+    // IndexedDB does not allow changing an object store primary key in place.
+    // Version 2 removes only the disposable catalog cache; the offline order
+    // queue is intentionally preserved. Version 3 recreates the cache with
+    // store-scoped compound keys.
     this.version(2).stores({
+      categories: null,
+      menuItems: null,
+      catalogStates: 'storeId, version',
+      cartSyncQueue: '++queueId, clientOrderId, syncStatus, createdAt',
+    })
+
+    this.version(3).stores({
       categories: '[storeId+id], storeId, [storeId+name]',
       menuItems: '[storeId+id], storeId, [storeId+categoryId], name, isAvailable',
       catalogStates: 'storeId, version',
       cartSyncQueue: '++queueId, clientOrderId, syncStatus, createdAt',
-    }).upgrade(async (transaction) => {
-      await transaction.table('categories').clear()
-      await transaction.table('menuItems').clear()
     })
   }
 }

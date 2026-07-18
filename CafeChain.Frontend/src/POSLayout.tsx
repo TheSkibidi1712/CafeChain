@@ -176,7 +176,15 @@ function ProductImage({ src, name, fallbackIcon }: ProductImageProps) {
 }
 
 export default function POSLayout() {
-  const { categories, menuItems, isLoading, isOnline, pendingOrders } = usePOSData()
+  const {
+    categories,
+    menuItems,
+    isLoading,
+    isOnline,
+    pendingOrders,
+    catalogError,
+    refreshCatalog,
+  } = usePOSData()
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null)
   const [cart, setCart] = useState<CartItem[]>([])
   const [orderType, setOrderType] = useState<'dine-in' | 'take-away'>('dine-in')
@@ -1220,6 +1228,18 @@ export default function POSLayout() {
           {isLoading ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
               Đang tải menu...
+            </div>
+          ) : catalogError && categories.length === 0 && menuItems.length === 0 ? (
+            <div className="h-full flex flex-col items-center justify-center gap-3 px-6 text-center">
+              <p className="text-sm font-bold text-danger">Không tải được menu cửa hàng</p>
+              <p className="max-w-md text-xs text-text-secondary">{catalogError}</p>
+              <button
+                type="button"
+                onClick={() => void refreshCatalog()}
+                className="px-4 py-2 rounded-lg bg-brand-orange text-white text-xs font-bold hover:bg-brand-orange-hover transition-colors"
+              >
+                Thử tải lại
+              </button>
             </div>
           ) : filteredItems.length === 0 ? (
             <div className="h-full flex items-center justify-center text-xs font-semibold text-text-muted">
