@@ -49,13 +49,17 @@ namespace CafeChain.Application.Services.Inventories
 
         public async Task<decimal> GetAllocatedBaseQuantityAsync(int restockRequestId, int? excludePurchaseOrderLineId = null)
         {
-            var quantities = await _context.PurchaseOrderLines.AsNoTracking()
+            var purchaseOrderQuantities = await _context.PurchaseOrderLines.AsNoTracking()
                 .Where(x => x.RestockRequestId == restockRequestId
                     && x.PurchaseOrder.Status != PurchaseOrderStatuses.Cancelled
                     && (!excludePurchaseOrderLineId.HasValue || x.PurchaseOrderLineId != excludePurchaseOrderLineId.Value))
                 .Select(x => Math.Max(0m, x.OrderedBaseQuantity - x.ClosedRemainingQuantity))
                 .ToListAsync();
-            return quantities.Sum();
+            var purchaseAdviceQuantities = await _context.PurchaseAdviceLines.AsNoTracking()
+                .Where(x => x.RestockRequestId == restockRequestId && x.IsActiveReservation)
+                .Select(x => Math.Max(0m, x.RequestedPurchaseBaseQuantity - x.ClosedBaseQuantity))
+                .ToListAsync();
+            return purchaseOrderQuantities.Sum() + purchaseAdviceQuantities.Sum();
         }
     }
 }

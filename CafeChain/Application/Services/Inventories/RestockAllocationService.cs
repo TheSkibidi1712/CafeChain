@@ -60,7 +60,10 @@ namespace CafeChain.Application.Services.Inventories
                 ClosedRemainingQuantity = request.ClosedRemainingQuantity,
                 RemainingUnallocatedQuantity = Math.Max(
                     0m,
-                    request.RequestedQuantity - transferAllocated - purchaseAllocated),
+                    request.RequestedQuantity
+                    - transferAllocated
+                    - purchaseAllocated
+                    - request.ClosedRemainingQuantity),
                 RemainingToReceiveQuantity = Math.Max(
                     0m,
                     request.RequestedQuantity - fulfilled - request.ClosedRemainingQuantity)

@@ -1,0 +1,26 @@
+@using CafeChain.Application.Constants
+@model CafeChain.Application.DTOs.Admin.Procurement.PurchaseAdviceDetailDto
+@{
+    ViewData["Title"] = Model.AdviceNumber;
+}
+@section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
+<div class="pa-page">
+    <header class="pa-header"><div><div class="pa-eyebrow">Đề nghị mua</div><h1>@Model.AdviceNumber</h1><p class="pa-subtitle">@Model.StoreName · tạo bởi @Model.RequestedByName</p></div><div class="pa-actions"><a class="pa-action" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách</a>@if (Model.CanEdit) { <a class="pa-action" asp-action="Edit" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-pen"></i> Sửa</a> }</div></header>
+    @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success">@success</div> }
+    @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
+    <section class="pa-band"><div class="pa-summary-grid"><div class="pa-kpi"><span>Trạng thái</span><strong>@Model.Status</strong></div><div class="pa-kpi"><span>Ưu tiên</span><strong>@Model.Priority</strong></div><div class="pa-kpi"><span>Ngày cần hàng</span><strong>@Model.NeededByDate.ToString("dd/MM/yyyy")</strong></div><div class="pa-kpi"><span>Số dòng</span><strong>@Model.Lines.Count</strong></div></div>@if (!string.IsNullOrWhiteSpace(Model.Note)) { <p style="margin:1rem 0 0"><strong>Ghi chú:</strong> @Model.Note</p> }@if (!string.IsNullOrWhiteSpace(Model.RejectionReason)) { <div class="pa-alert" style="margin-top:1rem;margin-bottom:0"><strong>Lý do từ chối:</strong> @Model.RejectionReason</div> }</section>
+    <section class="pa-table-wrap"><table class="pa-table"><thead><tr><th>Nguồn / nguyên liệu</th><th>Quantity breakdown</th><th>Đề nghị mua</th><th>Ngày cần</th></tr></thead><tbody>
+    @foreach (var line in Model.Lines)
+    {
+        <tr><td><strong>@line.IngredientName</strong><div class="pa-muted">Restock #@line.RestockRequestId · @line.BaseUnitName</div></td><td><div class="pa-quantity-grid"><div><span>Restock</span><strong>@line.RestockRequestedQuantity.ToString("N3")</strong></div><div><span>Transfer</span><strong>@line.TransferAllocatedQuantity.ToString("N3")</strong></div><div><span>PA khác</span><strong>@line.ExistingPurchaseAdviceQuantity.ToString("N3")</strong></div><div><span>PO</span><strong>@line.ExistingPurchaseOrderQuantity.ToString("N3")</strong></div><div><span>Đã đóng</span><strong>@line.ExplicitlyClosedQuantity.ToString("N3")</strong></div></div></td><td><strong>@line.RequestedPurchaseBaseQuantity.ToString("N3") @line.BaseUnitName</strong>@if (!string.IsNullOrWhiteSpace(line.Note)) { <div class="pa-muted">@line.Note</div> }</td><td>@line.NeededByDate.ToString("dd/MM/yyyy")</td></tr>
+    }
+    </tbody></table></section>
+    <section class="pa-band" style="margin-top:1rem"><h2 class="pa-section-title">Thao tác</h2><div class="pa-actions">
+        @if (Model.CanSubmit) { <form asp-action="Submit" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-paper-plane"></i> Gửi duyệt</button></form> }
+        @if (Model.CanReview) { <form asp-action="StartReview" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-search"></i> Bắt đầu duyệt</button></form> }
+        @if (Model.CanReject) { <form asp-action="Reject" asp-route-id="@Model.PurchaseAdviceId" method="post" class="pa-actions">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><div class="pa-field"><label>Lý do từ chối</label><input name="Reason" maxlength="500" required /></div><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-times"></i> Từ chối</button></form> }
+        @if (Model.CanCancel) { <form asp-action="Cancel" asp-route-id="@Model.PurchaseAdviceId" method="post">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@Model.RowVersion" /><button class="pa-action pa-action-danger" type="submit"><i class="fas fa-ban"></i> Hủy đề nghị</button></form> }
+        @if (!Model.CanSubmit && !Model.CanReview && !Model.CanReject && !Model.CanCancel) { <span class="pa-muted">Không có thao tác phù hợp với quyền và trạng thái hiện tại.</span> }
+    </div></section>
+    <section class="pa-band"><h2 class="pa-section-title">Lịch sử trạng thái</h2><div class="pa-timeline">@foreach (var transition in Model.Transitions) { <div class="pa-timeline-item"><strong>@transition.NewStatus</strong><div class="pa-muted">@transition.ActorName · @transition.OccurredAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</div>@if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }</div> }</div></section>
+</div>

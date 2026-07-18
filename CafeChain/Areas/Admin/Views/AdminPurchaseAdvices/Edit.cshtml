@@ -1,0 +1,24 @@
+@using CafeChain.Application.DTOs.Admin.Procurement
+@model UpdatePurchaseAdviceRequest
+@{
+    ViewData["Title"] = "Sửa đề nghị mua";
+    var detail = (PurchaseAdviceDetailDto)ViewBag.Detail;
+}
+@section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
+<div class="pa-page">
+    <header class="pa-header"><div><div class="pa-eyebrow">@detail.AdviceNumber</div><h1>Sửa đề nghị mua DRAFT</h1><p class="pa-subtitle">Nguồn Restock được giữ nguyên; backend kiểm tra lại remaining khi lưu.</p></div><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId"><i class="fas fa-arrow-left"></i> Quay lại</a></header>
+    <div asp-validation-summary="All" class="pa-alert"></div>
+    <form method="post">
+        @Html.AntiForgeryToken()<input type="hidden" asp-for="PurchaseAdviceId" /><input type="hidden" asp-for="RowVersion" />
+        <section class="pa-band"><div class="pa-filter-grid" style="grid-template-columns:repeat(3,minmax(0,1fr));"><div class="pa-field"><label>Ngày cần hàng</label><input asp-for="NeededByDate" type="date" required /></div><div class="pa-field"><label>Ưu tiên</label><select asp-for="Priority"><option value="NORMAL">Bình thường</option><option value="HIGH">Cao</option><option value="URGENT">Khẩn</option></select></div><div class="pa-field"><label>Ghi chú</label><input asp-for="Note" maxlength="1000" /></div></div></section>
+        <div class="pa-table-wrap"><table class="pa-table"><thead><tr><th>Nguồn</th><th>Phân bổ</th><th>Còn khả dụng khi sửa</th><th>Số lượng</th><th>Ngày cần / ghi chú</th></tr></thead><tbody>
+        @for (var i = 0; i < Model.Lines.Count; i++)
+        {
+            var source = detail.Lines.Single(x => x.PurchaseAdviceLineId == Model.Lines[i].PurchaseAdviceLineId);
+            var available = source.RemainingToPurchaseQuantity;
+            <tr><td><strong>@source.IngredientName</strong><div class="pa-muted">Restock #@source.RestockRequestId</div><input type="hidden" asp-for="Lines[i].PurchaseAdviceLineId" /><input type="hidden" asp-for="Lines[i].RowVersion" /></td><td><div class="pa-muted">Transfer @source.TransferAllocatedQuantity.ToString("N3") · PA khác @source.ExistingPurchaseAdviceQuantity.ToString("N3") · PO @source.ExistingPurchaseOrderQuantity.ToString("N3")</div></td><td><strong>@available.ToString("N3") @source.BaseUnitName</strong></td><td class="pa-field"><input asp-for="Lines[i].RequestedPurchaseBaseQuantity" type="number" min="0.001" max="@available" step="0.001" /></td><td><div class="pa-field"><input asp-for="Lines[i].NeededByDate" type="date" /></div><div class="pa-field" style="margin-top:.35rem"><input asp-for="Lines[i].Note" maxlength="500" /></div></td></tr>
+        }
+        </tbody></table></div>
+        <div class="pa-actions" style="margin-top:1rem"><button class="pa-action pa-action-primary" type="submit"><i class="fas fa-save"></i> Lưu thay đổi</button><a class="pa-action" asp-action="Details" asp-route-id="@Model.PurchaseAdviceId">Hủy</a></div>
+    </form>
+</div>

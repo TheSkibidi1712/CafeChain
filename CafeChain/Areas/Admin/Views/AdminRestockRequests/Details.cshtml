@@ -6,6 +6,9 @@
     var canCreateReceipt = ViewBag.CanCreateReceipt as bool? ?? false;
     var canCancel = ViewBag.CanCancel as bool? ?? false;
     var canSubmit = ViewBag.CanSubmit as bool? ?? false;
+    var canCreatePurchaseAdvice = User.IsInRole(CafeChain.Application.Constants.RoleConstants.StoreManager)
+        && Model.IngredientId.HasValue
+        && Model.Status is "PROCESSING" or "PARTIALLY_RECEIVED";
     var target = Model.TargetQuantity > 0 ? Model.TargetQuantity : Model.RequestedQuantity;
     var progress = target <= 0 ? 0m : Math.Min(100m, Math.Max(0m, Model.ReceivedQuantity / target * 100m));
     string StatusLabel(string value) => value switch
@@ -55,6 +58,10 @@
             @if (canCreateReceipt && Model.Status is "PROCESSING" or "PARTIALLY_RECEIVED")
             {
                 <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-box-open" aria-hidden="true"></i> Tạo phiếu nhận</a>
+            }
+            @if (canCreatePurchaseAdvice)
+            {
+                <a class="ops-btn ops-btn-primary" asp-area="Admin" asp-controller="AdminPurchaseAdvices" asp-action="Create" asp-route-restockRequestId="@Model.RestockRequestId" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-clipboard-list" aria-hidden="true"></i> Tạo đề nghị mua</a>
             }
         </div>
     </header>
