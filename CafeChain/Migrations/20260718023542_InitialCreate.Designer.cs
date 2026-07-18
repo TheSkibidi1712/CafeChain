@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CafeChain.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260717093924_InitialCreate")]
+    [Migration("20260718023542_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -6285,6 +6285,10 @@ namespace CafeChain.Migrations
                         .ValueGeneratedOnAddOrUpdate()
                         .HasColumnType("rowversion");
 
+                    b.Property<string>("TaxCode")
+                        .HasMaxLength(14)
+                        .HasColumnType("nvarchar(14)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
@@ -6295,9 +6299,15 @@ namespace CafeChain.Migrations
                     b.HasIndex("Active");
 
                     b.HasIndex("Code")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasDatabaseName("UX_Suppliers_Code");
 
                     b.HasIndex("Name");
+
+                    b.HasIndex("TaxCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Suppliers_TaxCode")
+                        .HasFilter("[TaxCode] IS NOT NULL");
 
                     b.ToTable("Suppliers", (string)null);
 
@@ -6477,6 +6487,79 @@ namespace CafeChain.Migrations
                             Position = "Manager",
                             SupplierId = 5
                         });
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierDuplicateWarning", b =>
+                {
+                    b.Property<long>("SupplierDuplicateWarningId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("SupplierDuplicateWarningId"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("CreatedSupplierId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("ExpiresAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("MatchedSignalsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MatchedSupplierIdsJson")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("OverrideReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("PayloadHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.Property<Guid>("PublicId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("RequestedByStaffId")
+                        .HasColumnType("int");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("UsedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WarningFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nchar(64)")
+                        .IsFixedLength();
+
+                    b.HasKey("SupplierDuplicateWarningId");
+
+                    b.HasIndex("CreatedSupplierId");
+
+                    b.HasIndex("PublicId")
+                        .IsUnique();
+
+                    b.HasIndex("RequestedByStaffId", "Status", "ExpiresAtUtc");
+
+                    b.ToTable("SupplierDuplicateWarnings", (string)null);
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierPhone", b =>
@@ -12325,6 +12408,20 @@ namespace CafeChain.Migrations
                         .IsRequired();
 
                     b.Navigation("Supplier");
+                });
+
+            modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierDuplicateWarning", b =>
+                {
+                    b.HasOne("CafeChain.Models.Inventories.Suppliers.Supplier", null)
+                        .WithMany()
+                        .HasForeignKey("CreatedSupplierId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("CafeChain.Models.Staffs.Staff", null)
+                        .WithMany()
+                        .HasForeignKey("RequestedByStaffId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("CafeChain.Models.Inventories.Suppliers.SupplierPhone", b =>

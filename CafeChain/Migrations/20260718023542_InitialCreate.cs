@@ -423,6 +423,7 @@ namespace CafeChain.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    TaxCode = table.Column<string>(type: "nvarchar(14)", maxLength: 14, nullable: true),
                     Address = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "GETUTCDATE()"),
@@ -2752,6 +2753,43 @@ namespace CafeChain.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "SupplierDuplicateWarnings",
+                columns: table => new
+                {
+                    SupplierDuplicateWarningId = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PublicId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RequestedByStaffId = table.Column<int>(type: "int", nullable: false),
+                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    PayloadHash = table.Column<string>(type: "nchar(64)", fixedLength: true, maxLength: 64, nullable: false),
+                    WarningFingerprint = table.Column<string>(type: "nchar(64)", fixedLength: true, maxLength: 64, nullable: false),
+                    MatchedSupplierIdsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    MatchedSignalsJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    OverrideReason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    CreatedSupplierId = table.Column<int>(type: "int", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ExpiresAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UsedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_SupplierDuplicateWarnings", x => x.SupplierDuplicateWarningId);
+                    table.ForeignKey(
+                        name: "FK_SupplierDuplicateWarnings_Staffs_RequestedByStaffId",
+                        column: x => x.RequestedByStaffId,
+                        principalTable: "Staffs",
+                        principalColumn: "StaffId",
+                        onDelete: ReferentialAction.Restrict);
+                    table.ForeignKey(
+                        name: "FK_SupplierDuplicateWarnings_Suppliers_CreatedSupplierId",
+                        column: x => x.CreatedSupplierId,
+                        principalTable: "Suppliers",
+                        principalColumn: "SupplierId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "WorkShifts",
                 columns: table => new
                 {
@@ -4980,14 +5018,14 @@ namespace CafeChain.Migrations
 
             migrationBuilder.InsertData(
                 table: "Suppliers",
-                columns: new[] { "SupplierId", "Active", "Address", "Code", "CreatedAt", "Name", "Note", "UpdatedAt" },
+                columns: new[] { "SupplierId", "Active", "Address", "Code", "CreatedAt", "Name", "Note", "TaxCode", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, true, "Bình Dương", "SUP001", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp A", "Nhà cung cấp nguyên liệu chính", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 2, true, "TP HCM", "SUP002", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp B", "Nhà cung cấp sữa và kem", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 3, true, "Đồng Nai", "SUP003", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp C", "Nhà cung cấp cà phê", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 4, true, "Hà Nội", "SUP004", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp D", "Nhà cung cấp syrup và trà", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
-                    { 5, true, "Đà Nẵng", "SUP005", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp E", "Nhà cung cấp matcha", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
+                    { 1, true, "Bình Dương", "SUP001", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp A", "Nhà cung cấp nguyên liệu chính", null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 2, true, "TP HCM", "SUP002", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp B", "Nhà cung cấp sữa và kem", null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 3, true, "Đồng Nai", "SUP003", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp C", "Nhà cung cấp cà phê", null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 4, true, "Hà Nội", "SUP004", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp D", "Nhà cung cấp syrup và trà", null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) },
+                    { 5, true, "Đà Nẵng", "SUP005", new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified), "Nhà cung cấp E", "Nhà cung cấp matcha", null, new DateTime(2025, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified) }
                 });
 
             migrationBuilder.InsertData(
@@ -7887,6 +7925,22 @@ namespace CafeChain.Migrations
                 columns: new[] { "SupplierId", "PhoneNumber" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_SupplierDuplicateWarnings_CreatedSupplierId",
+                table: "SupplierDuplicateWarnings",
+                column: "CreatedSupplierId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierDuplicateWarnings_PublicId",
+                table: "SupplierDuplicateWarnings",
+                column: "PublicId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_SupplierDuplicateWarnings_RequestedByStaffId_Status_ExpiresAtUtc",
+                table: "SupplierDuplicateWarnings",
+                columns: new[] { "RequestedByStaffId", "Status", "ExpiresAtUtc" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_SupplierPhones_SupplierId",
                 table: "SupplierPhones",
                 column: "SupplierId");
@@ -7958,15 +8012,22 @@ namespace CafeChain.Migrations
                 column: "Active");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Suppliers_Code",
+                name: "IX_Suppliers_Name",
+                table: "Suppliers",
+                column: "Name");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_Suppliers_Code",
                 table: "Suppliers",
                 column: "Code",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Suppliers_Name",
+                name: "UX_Suppliers_TaxCode",
                 table: "Suppliers",
-                column: "Name");
+                column: "TaxCode",
+                unique: true,
+                filter: "[TaxCode] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
                 name: "IX_SupplierStores_StoreId_Active",
@@ -8598,6 +8659,9 @@ namespace CafeChain.Migrations
 
             migrationBuilder.DropTable(
                 name: "SupplierContacts");
+
+            migrationBuilder.DropTable(
+                name: "SupplierDuplicateWarnings");
 
             migrationBuilder.DropTable(
                 name: "SupplierPhones");
