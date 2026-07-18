@@ -2,6 +2,7 @@ using CafeChain.Application.Constants;
 using CafeChain.Application.DTOs.Admin.Procurement;
 using CafeChain.Application.Interfaces.Admin.Actor;
 using CafeChain.Application.Interfaces.Inventories;
+using System.Globalization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,15 +36,27 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     {
         var result = await _service.ListAsync(status, supplierId, _actorAccessor.Get(User));
         if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
+        ViewBag.Actor = _actorAccessor.Get(User);
+        ViewBag.Status = status;
+        ViewBag.SupplierId = supplierId;
         return View(result.Data);
     }
 
     [HttpGet]
     public async Task<IActionResult> Details(int id)
     {
-        var result = await _service.GetDetailAsync(id, _actorAccessor.Get(User));
+        var actor = _actorAccessor.Get(User);
+        var result = await _service.GetDetailAsync(id, actor);
         if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
-        return View(result.Data);
+        var revisions = await _documentService.ListAsync(id, actor);
+        if (!revisions.IsSuccess) return Failure(revisions.ErrorCode, revisions.Message);
+        return View(new PurchaseOrderBatchDetailPageDto
+        {
+            Batch = result.Data!,
+            DocumentRevisions = revisions.Data!,
+            Actor = actor,
+            ZaloMessage = BuildZaloMessage(result.Data!)
+        });
     }
 
     [HttpPost]
@@ -101,7 +114,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkRevisionSent(int id, int revisionId, MarkPurchaseOrderBatchDocumentSentRequest request)
     {
-        var result = await _documentService.MarkSentAsync(revisionId, request, _actorAccessor.Get(User));
+        var result = await _documentService.MarkSentAsync(id, revisionId, request, _actorAccessor.Get(User));
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
             ? "Đã ghi nhận gửi tài liệu cho nhà cung cấp."
             : $"{result.ErrorCode}: {result.Message}";
@@ -114,5 +127,19 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         if (code == PurchaseOrderBatchErrorCodes.NotFound) return NotFound(message);
         TempData["Error"] = $"{code}: {message}";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static string BuildZaloMessage(PurchaseOrderBatchDetailDto batch)
+    {
+        var amount = batch.TotalAmount.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"));
+        var deliveryRange = batch.ExpectedDeliveryFrom.Date == batch.ExpectedDeliveryTo.Date
+            ? batch.ExpectedDeliveryFrom.ToString("dd/MM/yyyy")
+            : $"{batch.ExpectedDeliveryFrom:dd/MM/yyyy} - {batch.ExpectedDeliveryTo:dd/MM/yyyy}";
+        return $"CafeChain gửi Đơn đặt hàng {batch.BatchNumber}.\n\n" +
+               $"Nhà cung cấp: {batch.SupplierName}\n" +
+               $"Tổng giá trị dự kiến: {amount} đ\n" +
+               $"Số chi nhánh giao hàng: {batch.StoreCount}\n" +
+               $"Ngày giao mong muốn: {deliveryRange}\n\n" +
+               "Chi tiết vui lòng xem file PDF đính kèm.";
     }
 }

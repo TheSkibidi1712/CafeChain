@@ -8,26 +8,32 @@
     var preview = ViewBag.Preview as PurchaseAdviceConsolidationPreviewDto;
     var selectedIds = ViewBag.SelectedLineIds as int[] ?? Array.Empty<int>();
     var selectedSupplierId = ViewBag.SelectedSupplierId as int?;
+    var submittedSelections = ViewBag.SubmittedSelections as IReadOnlyDictionary<int, PurchaseAdviceConsolidationSelectionRequest>
+        ?? new Dictionary<int, PurchaseAdviceConsolidationSelectionRequest>();
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
-<div class="pa-page">
+<main class="pa-page">
     <header class="pa-header">
         <div>
             <div class="pa-eyebrow">Kho &amp; Cung ứng / Mua ngoài</div>
-            <h1>PA chờ tổng hợp</h1>
-            <p class="pa-subtitle">Đối chiếu nhu cầu còn lại với nhà cung cấp và gói mua hiện hành. Bước này chỉ tạo bản xem trước, chưa tạo PO.</p>
+            <h1>Không gian tổng hợp PA</h1>
+            <p class="pa-subtitle">Chọn nhu cầu theo nhà cung cấp, kiểm tra gói mua rồi tạo một batch có PO con cho từng cửa hàng.</p>
         </div>
-        <a class="pa-action" asp-controller="AdminPurchaseAdvices" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách PA</a>
+        <div class="pa-actions">
+            <a class="pa-action" asp-controller="AdminPurchaseOrderBatches" asp-action="Index"><i class="fas fa-boxes-stacked"></i> Batch đơn mua</a>
+            <a class="pa-action" asp-controller="AdminPurchaseAdvices" asp-action="Index"><i class="fas fa-arrow-left"></i> Danh sách PA</a>
+        </div>
     </header>
 
-    @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
-    @if (ViewBag.PreviewError is string previewError) { <div class="pa-alert">@previewError</div> }
+    @if (TempData["Error"] is string error) { <div class="pa-alert" role="alert">@error</div> }
+    @if (TempData["Success"] is string success) { <div class="pa-alert pa-alert-success" role="status">@success</div> }
+    @if (ViewBag.PreviewError is string previewError) { <div class="pa-alert" role="alert">@previewError <span class="pa-alert-help">Các giá trị vừa nhập vẫn được giữ để bạn điều chỉnh.</span></div> }
 
     <form method="get" class="pa-band pa-filter-grid pa-filter-grid-wide">
         <div class="pa-field"><label>Cửa hàng</label><select name="storeId"><option value="">Tất cả</option>@foreach (var item in Model.Stores) { <option value="@item.Id" selected="@(Model.Filter.StoreId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Khu vực</label><select name="areaId"><option value="">Tất cả</option>@foreach (var item in Model.Areas) { <option value="@item.Id" selected="@(Model.Filter.AreaId == item.Id)">@item.Label</option> }</select></div>
-        <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">SUBMITTED + REVIEW</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">Đã gửi</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">Đang xem xét</option></select></div>
+        <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Đã gửi + Đang xem xét</option><option value="@PurchaseAdviceStatuses.Submitted" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.Submitted)">Đã gửi</option><option value="@PurchaseAdviceStatuses.UnderReview" selected="@(Model.Filter.Status == PurchaseAdviceStatuses.UnderReview)">Đang xem xét</option></select></div>
         <div class="pa-field"><label>Cần trước ngày</label><input type="date" name="neededByDate" value="@Model.Filter.NeededByDate?.ToString("yyyy-MM-dd")" /></div>
         <div class="pa-field"><label>Nguyên liệu</label><select name="ingredientId"><option value="">Tất cả</option>@foreach (var item in Model.Ingredients) { <option value="@item.Id" selected="@(Model.Filter.IngredientId == item.Id)">@item.Label</option> }</select></div>
         <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var value in PurchaseAdvicePriorities.All) { <option value="@value" selected="@(Model.Filter.Priority == value)">@value</option> }</select></div>
@@ -35,84 +41,152 @@
         <button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button>
     </form>
 
-    <form asp-action="Preview" method="post" id="consolidation-form">
-        @Html.AntiForgeryToken()
-        <section class="pa-band pa-actions pa-consolidation-toolbar">
-            <div class="pa-field pa-grow">
-                <label>Nhà cung cấp cho bản tổng hợp</label>
-                <select name="SupplierId" id="supplier-select" required disabled="@(!canConsolidate)">
-                    <option value="">Chọn nhà cung cấp</option>
-                    @foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(selectedSupplierId == item.Id)">@item.Label</option> }
-                </select>
-            </div>
-            <div class="pa-muted">Giá, MOQ, quy đổi và khả năng giao Store sẽ được backend tải lại.</div>
-            <button class="pa-action pa-action-primary" type="submit" disabled="@(!canConsolidate)"><i class="fas fa-layer-group"></i> Kiểm tra bản tổng hợp</button>
+    <div class="pa-workspace">
+        <section class="pa-queue-pane" aria-labelledby="pa-queue-title">
+            <form asp-action="Preview" method="post" id="consolidation-form" data-loading-form>
+                @Html.AntiForgeryToken()
+                <div class="pa-band pa-actions pa-consolidation-toolbar">
+                    <div class="pa-field pa-grow">
+                        <label for="supplier-select">Nhà cung cấp</label>
+                        <select name="SupplierId" id="supplier-select" required disabled="@(!canConsolidate)">
+                            <option value="">Chọn nhà cung cấp</option>
+                            @foreach (var item in Model.Suppliers) { <option value="@item.Id" selected="@(selectedSupplierId == item.Id)">@item.Label</option> }
+                        </select>
+                    </div>
+                    <div class="pa-toolbar-copy"><strong id="pa-queue-title">Hàng đợi PA</strong><span>Backend sẽ tải lại giá, MOQ, quy đổi và phạm vi Store.</span></div>
+                    <button class="pa-action pa-action-primary" type="submit" disabled="@(!canConsolidate)" data-submit-label="Đang kiểm tra..."><i class="fas fa-layer-group"></i> Kiểm tra bản tổng hợp</button>
+                </div>
+
+                <div class="pa-table-wrap">
+                    <table class="pa-table pa-consolidation-table">
+                        <thead><tr><th>Chọn</th><th>PA / Store</th><th>Nguyên liệu</th><th>Còn đặt</th><th>Ngày cần</th><th>Offer / quy cách / MOQ</th><th>Số kiện</th></tr></thead>
+                        <tbody>
+                        @if (Model.Lines.Count == 0) { <tr><td colspan="7" class="pa-empty"><i class="fas fa-inbox"></i><strong>Không có PA sẵn sàng tổng hợp</strong><span>Hãy kiểm tra bộ lọc hoặc trạng thái PA.</span></td></tr> }
+                        @for (var i = 0; i < Model.Lines.Count; i++)
+                        {
+                            var line = Model.Lines[i];
+                            var offers = Model.Offers.Where(x => x.IngredientId == line.IngredientId && line.CompatibleSupplierIds.Contains(x.SupplierId)).ToList();
+                            submittedSelections.TryGetValue(line.PurchaseAdviceLineId, out var submitted);
+                            var isSelected = selectedIds.Contains(line.PurchaseAdviceLineId);
+                            <tr data-line data-compatible="@string.Join(',', line.CompatibleSupplierIds)" class="@(isSelected ? "pa-row-selected" : string.Empty)">
+                                <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@isSelected" disabled="@(!canConsolidate || offers.Count == 0)" aria-label="Chọn @line.IngredientName từ @line.StoreName" /></td>
+                                <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · Restock #@line.RestockRequestId</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
+                                <td><strong>@line.IngredientName</strong><div class="pa-muted">@line.BaseUnitName · @line.Priority</div></td>
+                                <td><strong>@line.RemainingToOrderBaseQuantity.ToString("N3")</strong><div class="pa-muted">Đã phân bổ @line.AllocatedToPoBaseQuantity.ToString("N3")</div></td>
+                                <td>@line.NeededByDate.ToString("dd/MM/yyyy")</td>
+                                <td>
+                                    <select class="offer-select" name="Lines[@i].IngredientSupplierId" disabled="@(!canConsolidate)">
+                                        <option value="">Chọn offer</option>
+                                        @foreach (var offer in offers)
+                                        {
+                                            <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId" selected="@(submitted?.IngredientSupplierId == offer.IngredientSupplierId)">@offer.SupplierName · @offer.PackageQuantity.ToString("N3") @offer.PackageUnitName · @offer.CurrentPackagePrice.ToString("N0")đ · MOQ @offer.MinimumOrderPackageCount · @offer.LeadTimeDays ngày</option>
+                                        }
+                                    </select>
+                                    @if (offers.Count == 0) { <div class="pa-inline-warning">Chưa có offer hoặc NCC chưa phục vụ cửa hàng này.</div> }
+                                </td>
+                                <td><input type="number" name="Lines[@i].PackageCount" value="@(submitted?.PackageCount ?? 1)" min="1" step="1" disabled="@(!canConsolidate)" aria-label="Số kiện @line.IngredientName" /></td>
+                            </tr>
+                        }
+                        </tbody>
+                    </table>
+                </div>
+            </form>
         </section>
 
-        <div class="pa-table-wrap">
-            <table class="pa-table pa-consolidation-table">
-                <thead><tr><th>Chọn</th><th>PA / Store</th><th>Nguyên liệu</th><th>Nhu cầu</th><th>Đã phân bổ</th><th>Còn đặt</th><th>Ngày cần</th><th>Offer</th><th>Số kiện</th></tr></thead>
-                <tbody>
-                @if (Model.Lines.Count == 0) { <tr><td colspan="9" class="pa-empty">Không có PA SUBMITTED/UNDER_REVIEW còn số lượng cần đặt.</td></tr> }
-                @for (var i = 0; i < Model.Lines.Count; i++)
-                {
-                    var line = Model.Lines[i];
-                    var offers = Model.Offers.Where(x => x.IngredientId == line.IngredientId && line.CompatibleSupplierIds.Contains(x.SupplierId)).ToList();
-                    <tr data-line data-compatible="@string.Join(',', line.CompatibleSupplierIds)">
-                        <td><input class="pa-check line-check" type="checkbox" name="selectedLineIds" value="@line.PurchaseAdviceLineId" checked="@(selectedIds.Contains(line.PurchaseAdviceLineId))" disabled="@(!canConsolidate || offers.Count == 0)" /></td>
-                        <td><a class="pa-code" asp-controller="AdminPurchaseAdvices" asp-action="Details" asp-route-id="@line.PurchaseAdviceId">@line.AdviceNumber</a><div class="pa-muted">@line.StoreName · Restock #@line.RestockRequestId</div><input type="hidden" name="Lines[@i].PurchaseAdviceLineId" value="@line.PurchaseAdviceLineId" /><input type="hidden" name="Lines[@i].RowVersion" value="@line.RowVersion" /></td>
-                        <td><strong>@line.IngredientName</strong><div class="pa-muted">@line.BaseUnitName · @line.Priority</div></td>
-                        <td>@line.RequestedPurchaseBaseQuantity.ToString("N3")</td>
-                        <td>@line.AllocatedToPoBaseQuantity.ToString("N3")</td>
-                        <td><strong>@line.RemainingToOrderBaseQuantity.ToString("N3")</strong></td>
-                        <td>@line.NeededByDate.ToString("dd/MM/yyyy")</td>
-                        <td><select class="offer-select" name="Lines[@i].IngredientSupplierId" disabled="@(!canConsolidate)"><option value="">Chọn offer</option>@foreach (var offer in offers) { <option value="@offer.IngredientSupplierId" data-supplier="@offer.SupplierId">@offer.SupplierName · @offer.PackageQuantity.ToString("N3") @offer.PackageUnitName · @offer.CurrentPackagePrice.ToString("N0")đ · MOQ @offer.MinimumOrderPackageCount</option> }</select>@if (offers.Count == 0) { <div class="pa-inline-warning">Chưa có offer/NCC phục vụ Store.</div> }</td>
-                        <td><input type="number" name="Lines[@i].PackageCount" value="1" min="1" step="1" disabled="@(!canConsolidate)" /></td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-    </form>
-
-    @if (preview != null)
-    {
-        <section class="pa-band pa-preview">
-            <div class="pa-preview-heading"><div><div class="pa-eyebrow">Bản xem trước hợp lệ</div><h2>@preview.SupplierName</h2></div><div class="pa-preview-total">@preview.TotalAmount.ToString("N0") đ</div></div>
-            <div class="pa-summary-grid"><div class="pa-kpi"><span>Cửa hàng</span><strong>@preview.StoreCount</strong></div><div class="pa-kpi"><span>Dòng PA</span><strong>@preview.LineCount</strong></div><div class="pa-kpi"><span>Nhóm mua tương thích</span><strong>@preview.Groups.Count</strong></div><div class="pa-kpi"><span>Trạng thái</span><strong>Chưa tạo PO</strong></div></div>
-            @foreach (var warning in preview.Warnings) { <div class="pa-inline-warning">@warning</div> }
-            @foreach (var group in preview.Groups)
+        <aside class="pa-draft-pane" aria-live="polite">
+            @if (preview == null)
             {
-                <div class="pa-preview-group"><div><strong>@group.IngredientName</strong><div class="pa-muted">@group.PackageQuantity.ToString("N3") @group.PackageUnitName/kiện · @group.PackagePriceSnapshot.ToString("N0") đ · @group.PackageCount kiện</div></div><strong>@group.LineTotal.ToString("N0") đ</strong></div>
+                <div class="pa-band pa-draft-empty">
+                    <i class="fas fa-file-circle-plus"></i>
+                    <h2>Bản nháp batch</h2>
+                    <p>Chọn PA, nhà cung cấp và offer để xem phân bổ theo cửa hàng trước khi tạo đơn mua.</p>
+                </div>
             }
-            <p class="pa-muted">Bản xem trước này không lưu allocation. #186 sẽ khóa/revalidate lại trước khi tạo batch và child PO trong một transaction.</p>
-        </section>
-    }
-</div>
+            else
+            {
+                <div class="pa-band pa-preview">
+                    <div class="pa-preview-heading"><div><div class="pa-eyebrow">Bản tổng hợp hợp lệ</div><h2>@preview.SupplierName</h2></div><div class="pa-preview-total">@preview.TotalAmount.ToString("N0") đ</div></div>
+                    <div class="pa-summary-grid"><div class="pa-kpi"><span>Cửa hàng</span><strong>@preview.StoreCount</strong></div><div class="pa-kpi"><span>Dòng PA</span><strong>@preview.LineCount</strong></div><div class="pa-kpi"><span>Nhóm mua</span><strong>@preview.Groups.Count</strong></div><div class="pa-kpi"><span>Trạng thái</span><strong>Chờ tạo</strong></div></div>
+                    @foreach (var warning in preview.Warnings) { <div class="pa-inline-warning"><i class="fas fa-triangle-exclamation"></i> @warning</div> }
+                    @foreach (var group in preview.Groups)
+                    {
+                        <div class="pa-preview-group">
+                            <div class="pa-preview-group-head"><div><strong>@group.IngredientName</strong><div class="pa-muted">@group.PackageQuantity.ToString("N3") @group.PackageUnitName/kiện · MOQ @group.MinimumOrderPackageCount · lead time @group.LeadTimeDays ngày</div></div><strong>@group.LineTotal.ToString("N0") đ</strong></div>
+                            <div class="pa-package-line"><span>@group.PackageCount kiện</span><span>@group.PackagePriceSnapshot.ToString("N0") đ/kiện</span><span>@group.AllocatedBaseQuantity.ToString("N3") đơn vị cơ sở</span></div>
+                            <div class="pa-allocation-list">
+                                @foreach (var allocation in group.Allocations)
+                                {
+                                    <div><span>@allocation.StoreName</span><strong>@allocation.PackageCount kiện · @allocation.AllocatedBaseQuantity.ToString("N3")</strong></div>
+                                }
+                            </div>
+                        </div>
+                    }
+
+                    <form asp-controller="AdminPurchaseOrderBatches" asp-action="Create" method="post" class="pa-create-form" data-loading-form>
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="SupplierId" value="@preview.SupplierId" />
+                        <input type="hidden" name="RequestKey" value="@Guid.NewGuid().ToString("N")" />
+                        @{ var selectionIndex = 0; }
+                        @foreach (var group in preview.Groups)
+                        {
+                            @foreach (var allocation in group.Allocations)
+                            {
+                                <input type="hidden" name="Lines[@selectionIndex].PurchaseAdviceLineId" value="@allocation.PurchaseAdviceLineId" />
+                                <input type="hidden" name="Lines[@selectionIndex].IngredientSupplierId" value="@group.IngredientSupplierId" />
+                                <input type="hidden" name="Lines[@selectionIndex].PackageCount" value="@allocation.PackageCount" />
+                                <input type="hidden" name="Lines[@selectionIndex].RowVersion" value="@allocation.LineRowVersion" />
+                                selectionIndex++;
+                            }
+                        }
+                        <div class="pa-delivery-grid">
+                            <div class="pa-field"><label>Giao từ ngày</label><input type="date" name="ExpectedDeliveryFrom" value="@preview.Groups.SelectMany(x => x.Allocations).Min(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /></div>
+                            <div class="pa-field"><label>Đến ngày</label><input type="date" name="ExpectedDeliveryTo" value="@preview.Groups.SelectMany(x => x.Allocations).Max(x => x.NeededByDate).ToString("yyyy-MM-dd")" required /></div>
+                        </div>
+                        <div class="pa-field"><label>Ghi chú cho batch</label><textarea name="Note" rows="2" maxlength="1000" placeholder="Điều kiện giao hàng hoặc lưu ý chung..."></textarea></div>
+                        <div class="pa-create-warning"><i class="fas fa-lock"></i> Khi tạo, hệ thống khóa và kiểm tra lại remaining, giá, MOQ và quyền phục vụ Store.</div>
+                        <button class="pa-action pa-action-primary pa-action-block" type="submit" data-submit-label="Đang tạo batch..."><i class="fas fa-boxes-stacked"></i> Tạo batch và PO theo cửa hàng</button>
+                    </form>
+                </div>
+            }
+        </aside>
+    </div>
+</main>
 
 @section Scripts {
 <script>
 (() => {
     const supplier = document.getElementById('supplier-select');
-    if (!supplier) return;
-    const syncOffers = () => {
-        const supplierId = supplier.value;
-        document.querySelectorAll('[data-line]').forEach(row => {
-            const select = row.querySelector('.offer-select');
-            if (!select) return;
-            let first = null;
-            Array.from(select.options).forEach(option => {
-                if (!option.value) return;
-                const visible = !supplierId || option.dataset.supplier === supplierId;
-                option.hidden = !visible;
-                option.disabled = !visible;
-                if (visible && !first) first = option;
+    if (supplier) {
+        const syncOffers = () => {
+            const supplierId = supplier.value;
+            document.querySelectorAll('[data-line]').forEach(row => {
+                const select = row.querySelector('.offer-select');
+                if (!select) return;
+                let first = null;
+                Array.from(select.options).forEach(option => {
+                    if (!option.value) return;
+                    const visible = !supplierId || option.dataset.supplier === supplierId;
+                    option.hidden = !visible;
+                    option.disabled = !visible;
+                    if (visible && !first) first = option;
+                });
+                if (select.selectedOptions[0]?.disabled) select.value = first?.value ?? '';
             });
-            if (select.selectedOptions[0]?.disabled) select.value = first?.value ?? '';
-        });
-    };
-    supplier.addEventListener('change', syncOffers);
-    syncOffers();
+        };
+        supplier.addEventListener('change', syncOffers);
+        syncOffers();
+    }
+
+    document.querySelectorAll('.line-check').forEach(check => check.addEventListener('change', () => {
+        check.closest('tr')?.classList.toggle('pa-row-selected', check.checked);
+    }));
+    document.querySelectorAll('[data-loading-form]').forEach(form => form.addEventListener('submit', () => {
+        const button = form.querySelector('button[type="submit"]');
+        if (!button || button.disabled) return;
+        button.disabled = true;
+        button.dataset.originalText = button.innerHTML;
+        button.textContent = button.dataset.submitLabel || 'Đang xử lý...';
+    }));
 })();
 </script>
 }

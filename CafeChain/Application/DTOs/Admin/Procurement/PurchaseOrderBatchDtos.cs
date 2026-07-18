@@ -60,6 +60,7 @@ public sealed class PurchaseOrderBatchAllocationDto
 {
     public int PurchaseOrderLineAllocationId { get; set; }
     public int PurchaseAdviceLineId { get; set; }
+    public int PurchaseAdviceId { get; set; }
     public string AdviceNumber { get; set; } = string.Empty;
     public int PurchaseOrderId { get; set; }
     public int PurchaseOrderLineId { get; set; }
@@ -80,4 +81,12 @@ public sealed class PurchaseOrderBatchChildDto
     public decimal OrderedBaseQuantity { get; set; }
     public decimal AcceptedBaseQuantity { get; set; }
     public decimal RemainingBaseQuantity { get; set; }
+}
+
+public sealed class PurchaseOrderBatchDetailPageDto
+{
+    public PurchaseOrderBatchDetailDto Batch { get; set; } = new();
+    public IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto> DocumentRevisions { get; set; } = Array.Empty<PurchaseOrderBatchDocumentRevisionDto>();
+    public CafeChain.Application.DTOs.Admin.Actor.AdminActorContext Actor { get; set; } = new();
+    public string ZaloMessage { get; set; } = string.Empty;
 }

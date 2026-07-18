@@ -110,6 +110,7 @@ public sealed class PurchaseAdviceConsolidationGroupDto
     public string Currency { get; set; } = "VND";
     public string? Specification { get; set; }
     public int LeadTimeDays { get; set; }
+    public int MinimumOrderPackageCount { get; set; }
     public int PackageCount { get; set; }
     public decimal AllocatedBaseQuantity { get; set; }
     public decimal LineTotal { get; set; }

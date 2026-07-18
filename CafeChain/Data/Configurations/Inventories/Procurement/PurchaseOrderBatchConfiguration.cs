@@ -96,10 +96,13 @@ public sealed class PurchaseOrderBatchDocumentRevisionConfiguration : IEntityTyp
         b.Property(x => x.SnapshotJson).IsRequired();
         b.Property(x => x.Status).HasMaxLength(24).IsRequired();
         b.Property(x => x.SentChannel).HasMaxLength(32);
+        b.Property(x => x.SentNote).HasMaxLength(500);
+        b.Property(x => x.SentIdempotencyKey).HasMaxLength(64);
         b.Property(x => x.RowVersion).IsRowVersion();
         b.HasIndex(x => new { x.PurchaseOrderBatchId, x.RevisionNumber }).IsUnique();
         b.HasIndex(x => new { x.PurchaseOrderBatchId, x.ContentHash }).IsUnique();
         b.HasIndex(x => new { x.PurchaseOrderBatchId, x.Status });
+        b.HasIndex(x => new { x.PurchaseOrderBatchId, x.SentIdempotencyKey }).IsUnique();
         b.HasOne(x => x.PurchaseOrderBatch)
             .WithMany(x => x.DocumentRevisions)
             .HasForeignKey(x => x.PurchaseOrderBatchId)

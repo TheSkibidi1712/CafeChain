@@ -362,6 +362,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                 {
                     PurchaseOrderLineAllocationId = a.PurchaseOrderLineAllocationId,
                     PurchaseAdviceLineId = a.PurchaseAdviceLineId,
+                    PurchaseAdviceId = a.PurchaseAdviceLine.PurchaseAdviceId,
                     AdviceNumber = a.PurchaseAdviceLine.PurchaseAdvice.AdviceNumber,
                     PurchaseOrderId = a.PurchaseOrderId,
                     PurchaseOrderLineId = a.PurchaseOrderLineId,

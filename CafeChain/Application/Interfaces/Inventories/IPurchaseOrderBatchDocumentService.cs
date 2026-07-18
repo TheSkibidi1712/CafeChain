@@ -10,6 +10,7 @@ public interface IPurchaseOrderBatchDocumentService
     Task<ServiceResult<IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto>>> ListAsync(int batchId, AdminActorContext actor);
     Task<ServiceResult<PurchaseOrderBatchDocumentDownloadDto>> DownloadAsync(int revisionId, AdminActorContext actor);
     Task<ServiceResult<PurchaseOrderBatchDocumentRevisionDto>> MarkSentAsync(
+        int batchId,
         int revisionId,
         MarkPurchaseOrderBatchDocumentSentRequest request,
         AdminActorContext actor);

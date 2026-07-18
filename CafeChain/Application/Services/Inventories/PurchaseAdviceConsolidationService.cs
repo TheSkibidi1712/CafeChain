@@ -256,6 +256,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
                     Currency = group.Key.Currency,
                     Specification = group.Key.Specification,
                     LeadTimeDays = group.Key.LeadTimeDays,
+                    MinimumOrderPackageCount = group.Key.MinimumOrderPackageCount,
                     PackageCount = count,
                     AllocatedBaseQuantity = group.Sum(x => x.Allocation.AllocatedBaseQuantity),
                     LineTotal = count * group.Key.CurrentPackagePrice,

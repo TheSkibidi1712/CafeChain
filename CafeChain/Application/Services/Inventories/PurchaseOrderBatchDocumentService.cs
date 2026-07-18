@@ -151,6 +151,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             return Failure<IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem PDF batch này.");
         var revisions = await _context.PurchaseOrderBatchDocumentRevisions.AsNoTracking()
             .Include(x => x.GeneratedByStaff)
+            .Include(x => x.SentByStaff)
             .Where(x => x.PurchaseOrderBatchId == batchId)
             .OrderByDescending(x => x.RevisionNumber)
             .ToListAsync();
@@ -183,6 +184,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
     }
 
     public async Task<ServiceResult<PurchaseOrderBatchDocumentRevisionDto>> MarkSentAsync(
+        int batchId,
         int revisionId,
         MarkPurchaseOrderBatchDocumentSentRequest request,
         AdminActorContext actor)
@@ -192,27 +194,83 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         var channel = request.Channel?.Trim().ToUpperInvariant() ?? string.Empty;
         if (!PurchaseOrderBatchDocumentChannels.All.Contains(channel))
             return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Kênh gửi tài liệu không hợp lệ.");
-        var revision = await _context.PurchaseOrderBatchDocumentRevisions
-            .Include(x => x.GeneratedByStaff)
-            .Include(x => x.PurchaseOrderBatch)
-            .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId);
-        if (revision == null)
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy revision PDF.");
-        if (revision.Status == PurchaseOrderBatchDocumentStatuses.Sent)
-            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Revision đã được ghi nhận gửi trước đó.");
-        if (revision.Status != PurchaseOrderBatchDocumentStatuses.Generated)
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ revision đang GENERATED mới được ghi nhận gửi.");
+        var idempotencyKey = Clean(request.IdempotencyKey, 64);
+        if (string.IsNullOrWhiteSpace(idempotencyKey))
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Thiếu khóa chống gửi lặp. Hãy tải lại trang.");
 
-        var now = DateTime.UtcNow;
-        revision.Status = PurchaseOrderBatchDocumentStatuses.Sent;
-        revision.SentChannel = channel;
-        revision.SentAtUtc = now;
-        revision.SentByStaffId = actor.StaffId;
-        if (revision.PurchaseOrderBatch.Status == PurchaseOrderBatchStatuses.PdfGenerated)
-            revision.PurchaseOrderBatch.Status = PurchaseOrderBatchStatuses.SentToSupplier;
-        revision.PurchaseOrderBatch.UpdatedAtUtc = now;
-        await _context.SaveChangesAsync();
-        return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Đã ghi nhận gửi revision PDF.");
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        try
+        {
+            if (_context.Database.IsSqlServer())
+            {
+                var lockResource = $"PurchaseOrderBatchSend:{batchId}";
+                await _context.Database.ExecuteSqlInterpolatedAsync($@"
+                    DECLARE @result int;
+                    EXEC @result = sp_getapplock
+                        @Resource = {lockResource},
+                        @LockMode = 'Exclusive',
+                        @LockOwner = 'Transaction',
+                        @LockTimeout = 15000;
+                    IF @result < 0 THROW 51000, 'Không thể khóa batch để ghi nhận gửi.', 1;");
+            }
+
+            var replay = await _context.PurchaseOrderBatchDocumentRevisions
+                .AsNoTracking()
+                .Include(x => x.GeneratedByStaff)
+                .Include(x => x.SentByStaff)
+                .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == batchId && x.SentIdempotencyKey == idempotencyKey);
+            if (replay != null)
+            {
+                if (replay.PurchaseOrderBatchDocumentRevisionId != revisionId ||
+                    !string.Equals(replay.SentChannel, channel, StringComparison.OrdinalIgnoreCase))
+                    return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Khóa gửi đã được dùng cho một revision hoặc kênh khác.");
+                await transaction.CommitAsync();
+                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(replay), "Yêu cầu gửi đã được ghi nhận trước đó.");
+            }
+
+            var revision = await _context.PurchaseOrderBatchDocumentRevisions
+                .Include(x => x.GeneratedByStaff)
+                .Include(x => x.SentByStaff)
+                .Include(x => x.PurchaseOrderBatch)
+                .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId && x.PurchaseOrderBatchId == batchId);
+            if (revision == null)
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy revision PDF thuộc batch này.");
+            if (revision.Status == PurchaseOrderBatchDocumentStatuses.Sent)
+            {
+                if (!string.Equals(revision.SentChannel, channel, StringComparison.OrdinalIgnoreCase))
+                    return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Revision đã được ghi nhận qua một kênh gửi khác.");
+                await transaction.CommitAsync();
+                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Revision đã được ghi nhận gửi trước đó.");
+            }
+            if (revision.Status != PurchaseOrderBatchDocumentStatuses.Generated)
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ revision đang GENERATED mới được ghi nhận gửi.");
+            if (!VersionMatches(revision.RowVersion, request.RowVersion))
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Revision đã thay đổi. Hãy tải lại trước khi ghi nhận gửi.");
+
+            var now = DateTime.UtcNow;
+            revision.Status = PurchaseOrderBatchDocumentStatuses.Sent;
+            revision.SentChannel = channel;
+            revision.SentAtUtc = now;
+            revision.SentByStaffId = actor.StaffId;
+            revision.SentNote = Clean(request.Note, 500);
+            revision.SentIdempotencyKey = idempotencyKey;
+            if (revision.PurchaseOrderBatch.Status == PurchaseOrderBatchStatuses.PdfGenerated)
+                revision.PurchaseOrderBatch.Status = PurchaseOrderBatchStatuses.SentToSupplier;
+            revision.PurchaseOrderBatch.UpdatedAtUtc = now;
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Đã ghi nhận gửi revision PDF qua Zalo thủ công.");
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            await transaction.RollbackAsync();
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Revision đã thay đổi. Hãy tải lại trước khi thử lại.");
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Yêu cầu gửi bị trùng hoặc xung đột. Hãy tải lại.");
+        }
     }
 
     private async Task<PurchaseOrderBatch?> LoadBatchAsync(int batchId) =>
@@ -364,8 +422,24 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         SentChannel = revision.SentChannel,
         SentAtUtc = revision.SentAtUtc,
         SentByStaffId = revision.SentByStaffId,
+        SentByName = revision.SentByStaff?.FullName,
+        SentNote = revision.SentNote,
         SupersededAtUtc = revision.SupersededAtUtc,
-        SupersededByRevisionId = revision.SupersededByRevisionId
+        SupersededByRevisionId = revision.SupersededByRevisionId,
+        RowVersion = Convert.ToBase64String(revision.RowVersion)
     };
+    private static bool VersionMatches(byte[] current, string? provided)
+    {
+        if (current.Length == 0 && string.IsNullOrWhiteSpace(provided)) return true;
+        if (string.IsNullOrWhiteSpace(provided)) return false;
+        try { return current.SequenceEqual(Convert.FromBase64String(provided)); }
+        catch (FormatException) { return false; }
+    }
+    private static string? Clean(string? value, int maxLength)
+    {
+        var clean = value?.Trim();
+        if (string.IsNullOrWhiteSpace(clean)) return null;
+        return clean.Length <= maxLength ? clean : clean[..maxLength];
+    }
     private static ServiceResult<T> Failure<T>(string code, string message) => ServiceResult<T>.Failure(message, errorCode: code);
 }

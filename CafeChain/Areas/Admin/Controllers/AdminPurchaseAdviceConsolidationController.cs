@@ -56,6 +56,10 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         PurchaseAdviceConsolidationPreviewRequest request,
         int[] selectedLineIds)
     {
+        var submittedSelections = request.Lines
+            .Where(x => selectedLineIds.Contains(x.PurchaseAdviceLineId))
+            .GroupBy(x => x.PurchaseAdviceLineId)
+            .ToDictionary(x => x.Key, x => x.First());
         request.Lines = request.Lines
             .Where(x => selectedLineIds.Contains(x.PurchaseAdviceLineId))
             .ToList();
@@ -69,6 +73,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         ViewBag.PreviewError = preview.IsSuccess ? null : $"{preview.ErrorCode}: {preview.Message}";
         ViewBag.SelectedLineIds = selectedLineIds;
         ViewBag.SelectedSupplierId = request.SupplierId;
+        ViewBag.SubmittedSelections = submittedSelections;
         return View("Index", page.Data);
     }
 

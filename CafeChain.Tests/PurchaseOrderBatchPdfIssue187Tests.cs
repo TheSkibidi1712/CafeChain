@@ -123,8 +123,13 @@ public sealed class PurchaseOrderBatchPdfIssue187Tests : IDisposable
         var seed = await SeedAsync();
         var generated = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
         var before = _storage.Files.Single().Value.ToArray();
-        var sent = await Service().MarkSentAsync(generated.Data!.RevisionId,
-            new() { Channel = PurchaseOrderBatchDocumentChannels.ZaloManual }, Owner(seed.StaffId));
+        var sent = await Service().MarkSentAsync(seed.BatchId, generated.Data!.RevisionId,
+            new()
+            {
+                Channel = PurchaseOrderBatchDocumentChannels.ZaloManual,
+                RowVersion = generated.Data.RowVersion,
+                IdempotencyKey = Guid.NewGuid().ToString("N")
+            }, Owner(seed.StaffId));
         var replay = await Service().GenerateAsync(seed.BatchId, Owner(seed.StaffId));
         Assert.True(sent.IsSuccess && replay.IsSuccess);
         Assert.Equal(PurchaseOrderBatchDocumentStatuses.Sent, replay.Data!.Status);

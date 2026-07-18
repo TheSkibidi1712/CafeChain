@@ -18,6 +18,8 @@ public sealed class PurchaseOrderBatchDocumentRevision
     public string? SentChannel { get; set; }
     public DateTime? SentAtUtc { get; set; }
     public int? SentByStaffId { get; set; }
+    public string? SentNote { get; set; }
+    public string? SentIdempotencyKey { get; set; }
     public DateTime? SupersededAtUtc { get; set; }
     public int? SupersededByRevisionId { get; set; }
     public DateTime CreatedAtUtc { get; set; }

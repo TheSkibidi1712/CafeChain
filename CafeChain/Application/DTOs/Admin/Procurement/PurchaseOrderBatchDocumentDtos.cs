@@ -14,8 +14,11 @@ public sealed class PurchaseOrderBatchDocumentRevisionDto
     public string? SentChannel { get; set; }
     public DateTime? SentAtUtc { get; set; }
     public int? SentByStaffId { get; set; }
+    public string? SentByName { get; set; }
+    public string? SentNote { get; set; }
     public DateTime? SupersededAtUtc { get; set; }
     public int? SupersededByRevisionId { get; set; }
+    public string RowVersion { get; set; } = string.Empty;
 }
 
 public sealed class PurchaseOrderBatchDocumentDownloadDto
@@ -28,6 +31,9 @@ public sealed class PurchaseOrderBatchDocumentDownloadDto
 public sealed class MarkPurchaseOrderBatchDocumentSentRequest
 {
     public string Channel { get; set; } = string.Empty;
+    public string RowVersion { get; set; } = string.Empty;
+    public string IdempotencyKey { get; set; } = string.Empty;
+    public string? Note { get; set; }
 }
 
 public sealed class PurchaseOrderBatchDocumentSnapshot
