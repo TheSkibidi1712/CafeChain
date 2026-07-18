@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quản lý Nguyên liệu — CafeChain Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+:root {
+  --bg:#F7F3EE; --surface:#FFFFFF; --primary:#6F4E37; --primary-h:#5C3F2B;
+  --accent:#C67A45; --text:#1F2937; --muted:#475569; --success:#2F6F5E;
+  --warning:#99623B; --danger:#991B1B; --border:#E5E0D8; --radius:10px;
+  --shadow:0 4px 24px rgba(111,78,55,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:32px 24px;}
+.page-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;}
+.page-header-left{display:flex;align-items:center;gap:14px;}
+.header-icon{width:48px;height:48px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-icon i{font-size:20px;color:var(--accent);}
+.page-header h2{font-size:20px;font-weight:800;color:var(--text);}
+.page-header p{font-size:13px;color:var(--muted);margin-top:2px;}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(111,78,55,.25);}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-outline{background:#fff;color:var(--primary);border:1.5px solid #D6C4B0;}
+.btn-outline:hover{background:#F5EDE3;border-color:var(--accent);}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.card-body{padding:24px;}
+.filter-row{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;margin-bottom:20px;align-items:end;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.form-control,.form-select{width:100%;padding:9px 13px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .18s,box-shadow .18s;}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(111,78,55,.13);}
+.input-group{display:flex;}
+.input-group .input-icon{padding:9px 12px;background:#fff;border:1.5px solid #DDD6CE;border-right:none;border-radius:8px 0 0 8px;color:var(--muted);font-size:13px;display:flex;align-items:center;}
+.input-group .form-control{border-radius:0 8px 8px 0;border-left:none;}
+.result-count{font-size:13px;color:var(--muted);margin-bottom:14px;}
+.result-count strong{color:var(--primary);font-weight:800;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#FAF7F4;border-bottom:1.5px solid var(--border);padding:12px 16px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+tbody td{padding:13px 16px;border-bottom:1px solid #EEE8E1;font-size:13px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FDF9F5;}
+.ing-code{display:inline-block;padding:3px 10px;background:#F5EDE3;color:var(--warning);border:1px solid #DBC4A9;border-radius:6px;font-size:11px;font-weight:700;}
+.unit-badge{display:inline-block;padding:3px 10px;background:#EEF0FF;color:#3730A3;border:1px solid #C7D2FE;border-radius:6px;font-size:11px;font-weight:700;}
+.name-cell{display:flex;align-items:center;gap:10px;}
+.name-icon{width:34px;height:34px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.name-icon i{font-size:13px;color:var(--accent);}
+.badge-success{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#D1FAE5;color:var(--success);border:1px solid #A7F3D0;font-size:11px;font-weight:700;}
+.badge-danger{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#FEE2E2;color:var(--danger);border:1px solid #FECACA;font-size:11px;font-weight:700;}
+.badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.badge-success .badge-dot{background:var(--success);}
+.badge-danger .badge-dot{background:var(--danger);}
+.action-btn{width:32px;height:32px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all .15s;}
+.action-btn:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.action-btn.danger:hover{background:#FEE2E2;border-color:var(--danger);color:var(--danger);}
+.action-btn.success:hover{background:#D1FAE5;border-color:var(--success);color:var(--success);}
+.pagination{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin-top:20px;}
+.page-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:none;transition:all .15s;}
+.page-btn:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.page-btn.disabled{opacity:.4;pointer-events:none;}
+</style>
+</head>
+<body>
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="header-icon"><i class="fas fa-flask"></i></div>
+    <div>
+      <h2>Quản lý nguyên liệu</h2>
+      <p>Danh mục nguyên liệu, đơn vị và quy đổi của hệ thống CafeChain.</p>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="btnCreate"><i class="fas fa-plus"></i> Thêm nguyên liệu</button>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <div class="filter-row">
+      <div class="form-group">
+        <label>Tìm kiếm</label>
+        <div class="input-group">
+          <span class="input-icon"><i class="fas fa-search"></i></span>
+          <input class="form-control" placeholder="Nhập mã hoặc tên nguyên liệu..." id="searchBox" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Trạng thái</label>
+        <select class="form-select" id="statusFilter">
+          <option value="">Tất cả trạng thái</option>
+          <option value="true">Hoạt động</option>
+          <option value="false">Ngưng hoạt động</option>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <button class="btn btn-primary" id="btnFilter"><i class="fas fa-filter"></i> Lọc</button>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <button class="btn btn-outline" id="btnReset"><i class="fas fa-undo"></i> Đặt lại</button>
+      </div>
+    </div>
+
+    <div class="result-count"><i class="fas fa-list-ul" style="margin-right:5px;"></i>Hiển thị <strong>12</strong> nguyên liệu</div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px;">Mã NL</th>
+            <th>Tên nguyên liệu</th>
+            <th>Đơn vị gốc</th>
+            <th style="width:140px;">Trạng thái</th>
+            <th style="width:110px;text-align:center;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody id="ingredientTable">
+          <tr>
+            <td><span class="ing-code">NL001</span></td>
+            <td><div class="name-cell"><div class="name-icon"><i class="fas fa-leaf"></i></div><span style="font-weight:700;">Cà phê Arabica</span></div></td>
+            <td><span class="unit-badge">gram</span></td>
+            <td><span class="badge-success"><span class="badge-dot"></span>Hoạt động</span></td>
+            <td style="text-align:center;">
+              <button class="action-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>
+              <button class="action-btn danger" title="Tắt" style="margin-left:4px;"><i class="fas fa-power-off"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="ing-code">NL002</span></td>
+            <td><div class="name-cell"><div class="name-icon"><i class="fas fa-leaf"></i></div><span style="font-weight:700;">Sữa tươi nguyên chất</span></div></td>
+            <td><span class="unit-badge">ml</span></td>
+            <td><span class="badge-success"><span class="badge-dot"></span>Hoạt động</span></td>
+            <td style="text-align:center;">
+              <button class="action-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>
+              <button class="action-btn danger" title="Tắt" style="margin-left:4px;"><i class="fas fa-power-off"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="ing-code">NL003</span></td>
+            <td><div class="name-cell"><div class="name-icon"><i class="fas fa-leaf"></i></div><span style="font-weight:700;">Đường phèn</span></div></td>
+            <td><span class="unit-badge">gram</span></td>
+            <td><span class="badge-danger"><span class="badge-dot"></span>Ngưng</span></td>
+            <td style="text-align:center;">
+              <button class="action-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>
+              <button class="action-btn success" title="Bật" style="margin-left:4px;"><i class="fas fa-power-off"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="ing-code">NL004</span></td>
+            <td><div class="name-cell"><div class="name-icon"><i class="fas fa-leaf"></i></div><span style="font-weight:700;">Trà xanh Nhật Bản</span></div></td>
+            <td><span class="unit-badge">gram</span></td>
+            <td><span class="badge-success"><span class="badge-dot"></span>Hoạt động</span></td>
+            <td style="text-align:center;">
+              <button class="action-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>
+              <button class="action-btn danger" title="Tắt" style="margin-left:4px;"><i class="fas fa-power-off"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="ing-code">NL005</span></td>
+            <td><div class="name-cell"><div class="name-icon"><i class="fas fa-leaf"></i></div><span style="font-weight:700;">Kem béo Anchor</span></div></td>
+            <td><span class="unit-badge">ml</span></td>
+            <td><span class="badge-success"><span class="badge-dot"></span>Hoạt động</span></td>
+            <td style="text-align:center;">
+              <button class="action-btn" title="Chỉnh sửa"><i class="fas fa-pen"></i></button>
+              <button class="action-btn danger" title="Tắt" style="margin-left:4px;"><i class="fas fa-power-off"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pagination">
+      <a class="page-btn disabled" href="#"><i class="fas fa-chevron-left" style="font-size:10px;"></i></a>
+      <a class="page-btn active" href="#">1</a>
+      <a class="page-btn" href="#">2</a>
+      <a class="page-btn" href="#">3</a>
+      <a class="page-btn" href="#"><i class="fas fa-chevron-right" style="font-size:10px;"></i></a>
+    </div>
+  </div>
+</div>
+</body>
+</html>

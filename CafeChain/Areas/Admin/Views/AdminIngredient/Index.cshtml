@@ -1,159 +1,276 @@
 @model List<CafeChain.Application.DTOs.Admin.Ingredients.AdminIngredientDTO>
 
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-<link rel="stylesheet" href="~/css/Admin/Ingredient/ingredient.css" />
+@section Styles {
+    <link rel="stylesheet" href="~/css/admin-white-orange-forms.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Admin/Ingredient/ingredient.css" asp-append-version="true" />
+    <style>
+        /* Ensure coffee-brown theme inside ingredient modal (modal is outside .admin-wo-page scope) */
+        #ingredientModal .btn-primary {
+            background: #6F4E37 !important;
+            border-color: #6F4E37 !important;
+            color: #fff !important;
+            font-weight: 800;
+            box-shadow: 0 8px 20px rgba(111,78,55,.22);
+        }
+        #ingredientModal .btn-primary:hover {
+            background: #5C3F2B !important;
+            border-color: #5C3F2B !important;
+        }
+        #ingredientModal .form-control:focus,
+        #ingredientModal .form-select:focus {
+            border-color: #6F4E37;
+            box-shadow: 0 0 0 3px rgba(111,78,55,.13);
+        }
+        #ingredientModal label, #ingredientModal .form-label {
+            font-weight: 800; font-size: 13px; color: #334155;
+        }
+    </style>
+}
 
-<div class="container mt-4">
+<div class="admin-wo-page">
 
-    <div class="d-flex justify-content-between mb-3">
-        <h3>Quản lý nguyên liệu</h3>
-        <button type="button" class="btn btn-primary" id="btnCreate">+ Thêm</button>
+    
+    <div class="page-header">
+        <div class="d-flex align-items-center gap-3">
+            <div style="width:46px;height:46px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="fas fa-flask" style="font-size:20px;color:#C67A45;"></i>
+            </div>
+            <div>
+                <h2 class="mb-0">Quản lý nguyên liệu</h2>
+                <p class="mb-0">Danh mục nguyên liệu, đơn vị và quy đổi của hệ thống CafeChain.</p>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary d-flex align-items-center gap-2" id="btnCreate">
+            <i class="fas fa-plus"></i> Thêm nguyên liệu
+        </button>
     </div>
 
-    <!-- FILTER -->
-    <div class="row mb-3">
-        <div class="col-md-4">
-            <input id="searchBox"
-                   class="form-control"
-                   placeholder="Tìm..."
-                   value="@ViewBag.Search" />
-        </div>
+    
+    <div class="card admin-wo-card">
+        <div class="card-body p-4">
 
-        <div class="col-md-3">
-            <select id="statusFilter" class="form-select">
-                <option value="">-- Trạng thái --</option>
-
-                <option value="true"
-                        selected="@(ViewBag.Status?.ToString() == "True")">
-                    Hoạt động
-                </option>
-
-                <option value="false"
-                        selected="@(ViewBag.Status?.ToString() == "False")">
-                    Ngưng
-                </option>
-            </select>
-        </div>
-
-        <div class="col-md-2">
-            <button class="btn btn-dark w-100" id="btnFilter">
-                Lọc
-            </button>
-        </div>
-    </div>
-
-    <!-- TABLE -->
-    <table class="table table-bordered">
-        <thead class="table-dark">
-            <tr>
-                <th>Mã</th>
-                <th>Tên</th>
-                <th>Đơn vị</th>
-                <th>Trạng thái</th>
-                <th width="120"></th>
-            </tr>
-        </thead>
-        <tbody id="ingredientTable">
-            @foreach (var item in Model)
-            {
-                <tr data-id="@item.IngredientId">
-                    <td>@item.Code</td>
-                    <td>@item.Name</td>
-                    <td>@item.BaseUnitName</td>
-                    <td>
-                        <span class="badge @(item.Active ? "bg-success" : "bg-danger")">
-                            @(item.Active ? "Hoạt động" : "Ngưng")
+            
+            <div class="row g-2 mb-4 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label mb-1">Tìm kiếm</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0 text-muted">
+                            <i class="fas fa-search" style="font-size:13px;"></i>
                         </span>
-                    </td>
-                    <td class="text-center">
-                        <i class="fa fa-edit text-primary action-icon edit-btn"
-                           data-id="@item.IngredientId"></i>
+                        <input id="searchBox"
+                               class="form-control border-start-0 ps-0"
+                               placeholder="Nhập mã hoặc tên nguyên liệu..."
+                               value="@ViewBag.Search" />
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Trạng thái</label>
+                    <select id="statusFilter" class="form-select">
+                        <option value="">Tất cả trạng thái</option>
+                        <option value="true"  selected="@(ViewBag.Status?.ToString() == "True")">Hoạt động</option>
+                        <option value="false" selected="@(ViewBag.Status?.ToString() == "False")">Ngưng hoạt động</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-primary w-100 d-flex align-items-center justify-content-center gap-2" id="btnFilter">
+                        <i class="fas fa-filter"></i> Lọc
+                    </button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-outline-secondary w-100" id="btnReset" title="Xóa bộ lọc">
+                        <i class="fas fa-undo me-1"></i> Đặt lại
+                    </button>
+                </div>
+            </div>
 
-                        <i class="fa fa-lock text-warning action-icon toggle-btn"
-                           data-id="@item.IngredientId"></i>
-                    </td>
-                </tr>
+            
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="text-muted" style="font-size:13px;">
+                    <i class="fas fa-list-ul me-1"></i>
+                    Hiển thị <strong>@Model.Count</strong> nguyên liệu
+                    @if (!string.IsNullOrEmpty(ViewBag.Search?.ToString()))
+                    {
+                        <span> cho "<em>@ViewBag.Search</em>"</span>
+                    }
+                </span>
+            </div>
+
+            
+            <div class="table-responsive">
+                <table class="table table-custom">
+                    <thead>
+                        <tr>
+                            <th style="width:120px;">Mã NL</th>
+                            <th>Tên nguyên liệu</th>
+                            <th>Đơn vị gốc</th>
+                            <th style="width:130px;">Trạng thái</th>
+                            <th style="width:110px;" class="text-center">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ingredientTable">
+                        @foreach (var item in Model)
+                        {
+                            <tr data-id="@item.IngredientId">
+                                <td>
+                                    <span class="ing-code">@item.Code</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div style="width:34px;height:34px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                                            <i class="fas fa-leaf" style="color:#C67A45;font-size:13px;"></i>
+                                        </div>
+                                        <span class="fw-bold text-dark">@item.Name</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="unit-badge">@item.BaseUnitName</span>
+                                </td>
+                                <td>
+                                    @if (item.Active)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-circle me-1" style="font-size:7px;"></i> Hoạt động
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-circle me-1" style="font-size:7px;"></i> Ngưng
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <button class="action-btn edit-btn me-1"
+                                            data-id="@item.IngredientId"
+                                            title="Chỉnh sửa">
+                                        <i class="fas fa-pen"></i>
+                                    </button>
+                                    <button class="action-btn @(item.Active ? "danger" : "success") toggle-btn"
+                                            data-id="@item.IngredientId"
+                                            title="@(item.Active ? "Tắt hoạt động" : "Bật hoạt động")">
+                                        <i class="fas fa-power-off"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="admin-wo-empty py-5">
+                                    <i class="fas fa-box-open d-block mb-2" style="font-size:2rem;color:#DBC4A9;"></i>
+                                    Chưa có nguyên liệu nào. Hãy thêm mới!
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            
+            @if (ViewBag.TotalPages > 1)
+            {
+                <div class="d-flex justify-content-end mt-4">
+                    <div class="pagination gap-1">
+                        @if (ViewBag.Page > 1)
+                        {
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)" title="Trang trước">
+                                <i class="fas fa-chevron-left" style="font-size:11px;"></i>
+                            </a>
+                        }
+                        @for (int i = 1; i <= ViewBag.TotalPages; i++)
+                        {
+                            <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
+                               href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i">@i</a>
+                        }
+                        @if (ViewBag.Page < ViewBag.TotalPages)
+                        {
+                            <a class="page-btn" href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)" title="Trang sau">
+                                <i class="fas fa-chevron-right" style="font-size:11px;"></i>
+                            </a>
+                        }
+                    </div>
+                </div>
             }
-        </tbody>
-    </table>
-    <div class="pagination">
-
-        @if (ViewBag.Page > 1)
-        {
-            <a class="page-btn"
-                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page - 1)">
-                ←
-            </a>
-        }
-
-        @for (int i = 1; i <= ViewBag.TotalPages; i++)
-        {
-            <a class="page-btn @(i == ViewBag.Page ? "active" : "")"
-                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@i">
-                @i
-            </a>
-        }
-
-        @if (ViewBag.Page < ViewBag.TotalPages)
-        {
-            <a class="page-btn"
-                   href="?search=@ViewBag.Search&status=@ViewBag.Status&page=@(ViewBag.Page + 1)">
-                →
-            </a>
-        }
-
+        </div>
     </div>
 </div>
 
-<!-- MODAL -->
+
 <div id="ingredientModal" class="custom-modal">
     <div class="modal-box">
 
         <div class="modal-header">
-            <h5 id="modalTitle"></h5>
-            <span class="close-btn" id="btnClose">✖</span>
+            <div class="d-flex align-items-center gap-2">
+                <div style="width:36px;height:36px;border-radius:9px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
+                    <i class="fas fa-flask" style="color:#C67A45;"></i>
+                </div>
+                <h5 id="modalTitle">Nguyên liệu</h5>
+            </div>
+            <span class="close-btn" id="btnClose"><i class="fas fa-times"></i></span>
         </div>
 
-        <div class="modal-body">
-
+        <div class="modal-body admin-wo-page">
             <input type="hidden" id="ingredientId" />
 
-            <label>Mã</label>
-            <input id="code" class="form-control mb-2" />
-
-            <label>Tên</label>
-            <input id="name" class="form-control mb-2" />
-
-            <label>Đơn vị gốc</label>
-            <select id="baseUnitId" class="form-control mb-3"></select>
-
-            <div class="d-flex justify-content-between">
-                <b>Quy đổi</b>
-                <button class="btn btn-sm btn-success" id="btnAddRow">+</button>
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <label class="form-label">Mã nguyên liệu <span class="text-danger">*</span></label>
+                    <input id="code" class="form-control" placeholder="VD: NL001" />
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Tên nguyên liệu <span class="text-danger">*</span></label>
+                    <input id="name" class="form-control" placeholder="Nhập tên nguyên liệu..." />
+                </div>
             </div>
 
-            <table class="table mt-2">
-                <thead>
-                    <tr>
-                        <th>From</th>
-                        <th>SL</th>
-                        <th>To</th>
-                        <th>SL</th>
-                        <th></th>
-                    </tr>
-                </thead>
-                <tbody id="conversionTable"></tbody>
-            </table>
+            <div class="mb-3">
+                <label class="form-label">Đơn vị gốc <span class="text-danger">*</span></label>
+                <select id="baseUnitId" class="form-select">
+                    <option value="">-- Chọn đơn vị --</option>
+                </select>
+                <div class="form-text"><i class="fas fa-info-circle me-1 text-warning"></i>Đây là đơn vị cơ sở để tính toán quy đổi.</div>
+            </div>
+
+            
+            <div class="ingredient-conv-section card admin-wo-card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h6><i class="fas fa-exchange-alt me-2"></i>Bảng quy đổi đơn vị</h6>
+                    <button class="btn btn-sm btn-primary d-flex align-items-center gap-1" id="btnAddRow">
+                        <i class="fas fa-plus"></i> Thêm dòng
+                    </button>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table m-0">
+                            <thead>
+                                <tr>
+                                    <th>Từ đơn vị</th>
+                                    <th style="width:90px;">Số lượng</th>
+                                    <th>Sang đơn vị</th>
+                                    <th style="width:90px;">Số lượng</th>
+                                    <th style="width:50px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="conversionTable"></tbody>
+                        </table>
+                    </div>
+                    <div id="convEmptyMsg" class="text-center py-3" style="color:#94a3b8;font-size:13px;">
+                        <i class="fas fa-plus-circle me-1"></i> Nhấn "Thêm dòng" để cấu hình quy đổi
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="modal-footer">
-            <button type="button" id="btnSave" class="btn btn-success">Lưu</button>
-            <button id="btnClose2" class="btn btn-secondary">Đóng</button>
+            <button id="btnClose2" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-1"></i> Đóng
+            </button>
+            <button type="button" id="btnSave" class="btn btn-primary px-4">
+                <i class="fas fa-save me-1"></i> Lưu nguyên liệu
+            </button>
         </div>
     </div>
 </div>
-
-
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="~/js/Admin/Ingredient/ingredient.js"></script>

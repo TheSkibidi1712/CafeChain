@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Cập nhật nhân viên — CafeChain Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+:root{--bg:#F7F3EE;--surface:#FFFFFF;--primary:#6F4E37;--primary-h:#5C3F2B;--accent:#C67A45;--text:#1F2937;--muted:#475569;--success:#2F6F5E;--warning:#99623B;--danger:#991B1B;--border:#E5E0D8;--radius:10px;--shadow:0 4px 24px rgba(111,78,55,.08);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:32px 24px;}
+/* Header */
+.page-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px 26px;display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;}
+.page-header-left{display:flex;align-items:center;gap:14px;}
+.header-icon{width:46px;height:46px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-icon i{font-size:19px;color:var(--accent);}
+.page-header h3{font-size:19px;font-weight:800;color:var(--text);}
+.page-header p{font-size:13px;color:var(--muted);margin-top:2px;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(111,78,55,.25);}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-outline{background:#fff;color:var(--muted);border:1.5px solid #D6C4B0;}
+.btn-outline:hover{background:#F5F5F5;}
+.btn-sm{padding:6px 13px;font-size:12px;}
+.btn-danger-sm{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:7px;border:1.5px solid #FECACA;background:#FEF2F2;color:var(--danger);font-size:12px;font-weight:700;cursor:pointer;}
+/* Main Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+/* Tabs */
+.card-tab-header{background:#FAF7F4;border-bottom:1px solid var(--border);padding:0 24px;}
+.nav-tabs{display:flex;gap:4px;}
+.nav-tab{padding:14px 20px;background:none;border:none;cursor:pointer;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:3px solid transparent;transition:all .18s;}
+.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary);}
+.nav-tab:hover{color:var(--primary);}
+/* Tab content */
+.tab-content{display:none;padding:28px;}
+.tab-content.active{display:block;}
+/* Avatar upload */
+.avatar-upload-box{border:2px dashed #DBC4A9;border-radius:12px;width:180px;height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#FAF7F4;cursor:pointer;transition:all .3s;overflow:hidden;}
+.avatar-upload-box:hover{border-color:var(--accent);background:#F5EDE3;}
+.avatar-upload-box img{width:100%;height:100%;object-fit:cover;border-radius:10px;}
+/* Form layout */
+.row{display:grid;gap:14px;}
+.cols-2{grid-template-columns:1fr 1fr;}
+.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.col-span-2{grid-column:span 2;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-group label{font-size:12px;font-weight:800;color:#334155;text-transform:uppercase;letter-spacing:.4px;}
+.req{color:var(--danger);}
+.form-control,.form-select{padding:10px 13px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;transition:border-color .18s,box-shadow .18s;}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(111,78,55,.13);}
+.form-hint{font-size:11px;color:var(--muted);margin-top:3px;}
+.label-warning{color:var(--warning);}
+/* Section title */
+.section-title{font-size:10px;font-weight:800;color:#94A3B8;text-transform:uppercase;letter-spacing:.6px;padding:14px 0 8px;border-top:1px dashed var(--border);margin-top:6px;display:flex;align-items:center;gap:6px;}
+/* Dynamic rows */
+.dynamic-row{display:flex;gap:8px;margin-bottom:8px;}
+.dynamic-row .form-control{flex:1;}
+.del-btn{width:34px;height:34px;flex-shrink:0;border-radius:7px;border:1.5px solid #FECACA;background:#FEF2F2;color:var(--danger);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;}
+.del-btn:hover{background:var(--danger);color:#fff;}
+.add-more-btn{display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:6px;border:1.5px solid #D6C4B0;background:#fff;color:var(--primary);font-size:12px;font-weight:700;cursor:pointer;margin-top:4px;}
+/* tab1 layout */
+.tab1-layout{display:grid;grid-template-columns:200px 1fr;gap:24px;}
+/* Banks/Dependents tables */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{background:#FAF7F4;border-bottom:1.5px solid var(--border);padding:10px 12px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;}
+.data-table td{padding:8px 12px;border-bottom:1px solid #EEE8E1;vertical-align:middle;}
+.data-table .form-control,.data-table .form-select{padding:7px 10px;font-size:12px;}
+/* Card footer */
+.card-footer{background:#FAF7F4;border-top:1px solid var(--border);padding:16px 28px;display:flex;justify-content:flex-end;gap:10px;}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="header-icon"><i class="fas fa-user-edit"></i></div>
+    <div>
+      <h3>Cập nhật nhân viên</h3>
+      <p>Thiết lập thông tin, vai trò và quyền hạn</p>
+    </div>
+  </div>
+  <a href="#" class="btn btn-outline"><i class="fas fa-arrow-left"></i> Quay lại danh sách</a>
+</div>
+
+<!-- Main Card with Tabs -->
+<div class="card">
+  <!-- Tab Nav -->
+  <div class="card-tab-header">
+    <div class="nav-tabs">
+      <button class="nav-tab active" onclick="switchTab('general',this)">Thông tin chung</button>
+      <button class="nav-tab" onclick="switchTab('job',this)">Công việc &amp; Lương</button>
+      <button class="nav-tab" onclick="switchTab('ot',this)">OT &amp; Ca</button>
+      <button class="nav-tab" onclick="switchTab('dependent',this)">Người phụ thuộc</button>
+    </div>
+  </div>
+
+  <!-- TAB 1: THÔNG TIN CHUNG -->
+  <div id="tab-general" class="tab-content active">
+    <div class="tab1-layout">
+      <!-- Avatar -->
+      <div>
+        <div class="form-group"><label>Ảnh đại diện</label></div>
+        <div class="avatar-upload-box" style="margin-top:6px;">
+          <img src="https://ui-avatars.com/api/?name=Nguyen+Van+An&background=6F4E37&color=fff&size=180" alt="avatar" />
+        </div>
+        <div style="font-size:11px;color:var(--muted);margin-top:8px;text-align:center;">Click để thay đổi</div>
+      </div>
+      <!-- Fields -->
+      <div>
+        <div class="row cols-2" style="margin-bottom:14px;">
+          <div class="form-group">
+            <label>Vai trò hệ thống <span class="req">*</span></label>
+            <select class="form-select">
+              <option>-- Chọn vai trò --</option>
+              <option selected>Admin HQ</option>
+              <option>Kế toán</option>
+              <option>Quản lý vùng</option>
+              <option>Quản lý cửa hàng</option>
+              <option>Nhân viên</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Họ và tên <span class="req">*</span></label>
+            <input class="form-control" value="Nguyễn Văn An" />
+          </div>
+          <div class="form-group">
+            <label>Email đăng nhập <span class="req">*</span></label>
+            <input class="form-control" value="an.nguyen@cafechain.vn" type="email" />
+            <div class="form-hint">Email dùng để đăng nhập và nhận OTP ca trưởng.</div>
+          </div>
+          <div class="form-group">
+            <label class="label-warning">Đổi mật khẩu (Tuỳ chọn)</label>
+            <input class="form-control" placeholder="Để trống nếu không đổi..." type="password" />
+          </div>
+          <div class="form-group">
+            <label>Căn cước công dân</label>
+            <input class="form-control" value="012345678901" />
+          </div>
+          <div class="form-group">
+            <label>Ngày sinh</label>
+            <input class="form-control" type="date" value="1995-06-15" />
+          </div>
+          <div class="form-group">
+            <label>Giới tính</label>
+            <select class="form-select"><option>Nữ</option><option selected>Nam</option><option>Khác</option></select>
+          </div>
+        </div>
+
+        <div class="row cols-2" style="margin-bottom:8px;">
+          <div class="form-group">
+            <label>Số điện thoại</label>
+            <div class="dynamic-row">
+              <input class="form-control" value="0901234567" />
+              <button class="del-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            <button class="add-more-btn"><i class="fas fa-plus"></i> Thêm SĐT</button>
+          </div>
+          <div class="form-group">
+            <label>Địa chỉ liên hệ</label>
+            <div class="dynamic-row">
+              <input class="form-control" value="123 Nguyễn Văn Linh, Q.7" />
+              <button class="del-btn"><i class="fas fa-trash"></i></button>
+            </div>
+            <button class="add-more-btn"><i class="fas fa-plus"></i> Thêm địa chỉ</button>
+          </div>
+        </div>
+
+        <div class="section-title"><i class="fas fa-shield-alt"></i>Nhóm phân quyền</div>
+        <div class="row cols-3" style="margin-top:10px;">
+          <div class="form-group">
+            <label>Loại phạm vi <span class="req">*</span></label>
+            <select class="form-select" disabled>
+              <option selected>Trụ sở (HQ)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mã tham chiếu <span class="req">*</span></label>
+            <select class="form-select" disabled><option selected>Trụ sở chính</option></select>
+          </div>
+          <div class="form-group">
+            <label>Cửa hàng đồng bộ</label>
+            <select class="form-select" disabled>
+              <option>-- Tự động --</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: CÔNG VIỆC & LƯƠNG -->
+  <div id="tab-job" class="tab-content">
+    <hr style="border-color:var(--border);margin-bottom:18px;" />
+    <div class="row cols-3" style="margin-bottom:14px;">
+      <div class="form-group">
+        <label>Hình thức trả lương</label>
+        <select class="form-select"><option selected>Cố định</option><option>Theo giờ</option></select>
+      </div>
+      <div class="form-group">
+        <label>Lương gốc (VNĐ)</label>
+        <input class="form-control" type="number" value="12000000" />
+      </div>
+      <div class="form-group">
+        <label>Phụ cấp (VNĐ)</label>
+        <input class="form-control" type="number" value="500000" />
+      </div>
+      <div class="form-group">
+        <label>Sổ BHXH</label>
+        <input class="form-control" value="SBH001234" />
+      </div>
+      <div class="form-group">
+        <label>Sổ BHYT</label>
+        <input class="form-control" value="HYT001234" />
+      </div>
+      <div class="form-group">
+        <label>Mã số thuế cá nhân</label>
+        <input class="form-control" value="8123456789" />
+      </div>
+    </div>
+    <div>
+      <h6 style="font-size:13px;font-weight:800;color:var(--warning);margin-bottom:12px;display:flex;align-items:center;gap:8px;"><i class="fas fa-university"></i>Tài khoản ngân hàng</h6>
+      <div style="overflow-x:auto;">
+        <table class="data-table">
+          <thead><tr><th>Chính</th><th>Ngân Hàng</th><th>Số Tài Khoản</th><th>Chủ Tài Khoản</th><th style="width:50px;"></th></tr></thead>
+          <tbody>
+            <tr>
+              <td><input type="radio" name="PrimaryBankIndex" value="0" checked /></td>
+              <td><input class="form-control" value="MBBank" /></td>
+              <td><input class="form-control" value="0123456789" /></td>
+              <td><input class="form-control" value="NGUYEN VAN AN" style="text-transform:uppercase;" /></td>
+              <td><button class="del-btn"><i class="fas fa-trash"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <button class="btn btn-outline btn-sm" style="margin-top:10px;"><i class="fas fa-plus"></i> Thêm tài khoản</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: OT & CA -->
+  <div id="tab-ot" class="tab-content">
+    <div class="row cols-2">
+      <div class="form-group">
+        <label>Hệ số Thử việc</label>
+        <input class="form-control" type="number" step="0.01" value="0.85" />
+        <div class="form-hint">Tỷ lệ nhân lương trong giai đoạn thử việc</div>
+      </div>
+      <div class="form-group">
+        <label>Hệ số Nhân lương OT</label>
+        <input class="form-control" type="number" step="0.1" value="1.5" />
+        <div class="form-hint">Hệ số nhân cho giờ làm thêm</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 4: NGƯỜI PHỤ THUỘC -->
+  <div id="tab-dependent" class="tab-content">
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead>
+          <tr><th>Họ và Tên</th><th>Ngày sinh</th><th>Mã số Thuế</th><th>Quan hệ</th><th style="width:80px;text-align:center;"><i class="fas fa-cog"></i></th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><input class="form-control" value="Nguyễn Văn Bình" /></td>
+            <td><input class="form-control" type="date" value="2018-03-12" /></td>
+            <td><input class="form-control" value="" placeholder="--" /></td>
+            <td><select class="form-select"><option selected>Con</option><option>Vợ/Chồng</option><option>Bố/Mẹ</option><option>Khác</option></select></td>
+            <td style="text-align:center;"><button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px;"><i class="fas fa-trash-alt"></i></button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="text-align:right;margin-top:10px;">
+      <button class="btn btn-outline btn-sm"><i class="fas fa-plus"></i> Thêm Người phụ thuộc</button>
+    </div>
+  </div>
+
+  <!-- Card Footer -->
+  <div class="card-footer">
+    <a href="#" class="btn btn-outline"><i class="fas fa-times"></i> Hủy</a>
+    <button class="btn btn-primary"><i class="fas fa-save"></i> Lưu thay đổi</button>
+  </div>
+</div>
+
+<script>
+function switchTab(id, btn) {
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

@@ -14,33 +14,36 @@
 }
 
 <style>
-    .staff-modal .form-label { font-weight: 600; font-size: 11px; text-transform: uppercase; color: #868e96; margin-bottom: 5px; }
-    .staff-modal .form-control, .staff-modal .form-select { border-radius: 6px; border: 1px solid #ced4da; font-size: 14px; padding: 10px 12px; }
-    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: #d93d20; box-shadow: 0 0 0 0.2rem rgba(217, 61, 32, 0.25); }
-    .staff-modal .btn-submit { background-color: #d93d20; color: white; border: none; padding: 10px 24px; border-radius: 6px; font-weight: 600; }
-    .staff-modal .btn-submit:hover { background-color: #b52f16; }
+    .staff-modal .form-label { font-weight: 800; font-size: 13px; color: #334155; margin-bottom: 5px; }
+    .staff-modal .form-control, .staff-modal .form-select { border-radius: 8px; border: 1px solid #dbe3ef; font-size: 14px; padding: 10px 12px; }
+    .staff-modal .form-control:focus, .staff-modal .form-select:focus { border-color: var(--admin-wo-primary); box-shadow: 0 0 0 3px rgba(249, 115, 22, .14); }
     .avatar-upload-box {
-        border: 2px dashed #ced4da; border-radius: 8px; width: 200px; height: 200px;
+        border: 2px dashed #DBC4A9; border-radius: 12px; width: 200px; height: 200px;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        background-color: #f8f9fa; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
+        background: #F5EDE3; cursor: pointer; transition: all 0.3s; text-align: center; overflow: hidden;
     }
-    .avatar-upload-box:hover { border-color: #d93d20; background-color: #fffaf9; }
-    .avatar-upload-box i { font-size: 36px; color: #adb5bd; margin-bottom: 8px; }
-    .avatar-upload-box span { font-size: 12px; color: #6c757d; }
-    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 6px; display: none; }
-    .nav-tabs .nav-link { color: #6c757d; font-weight: 600; font-size: 13px; text-transform: uppercase; border: none; border-bottom: 3px solid transparent; padding: 12px 20px; }
-    .nav-tabs .nav-link.active { color: #d93d20; border-color: #d93d20; background-color: transparent; }
-    .scope-picker { display: none; }
+    .avatar-upload-box:hover { border-color: var(--admin-wo-primary); background: #EDE0D0; }
+    .avatar-upload-box i { font-size: 36px; color: #DBC4A9; margin-bottom: 8px; }
+    .avatar-upload-box span { font-size: 12px; color: var(--admin-wo-muted); }
+    .avatar-upload-box img { width: 100%; height: 100%; object-fit: cover; border-radius: 10px; display: none; }
+    .nav-tabs .nav-link { color: var(--admin-wo-muted); font-weight: 800; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; border: none; border-bottom: 3px solid transparent; padding: 10px 18px; }
+    .nav-tabs .nav-link.active { color: var(--admin-wo-primary-dark); border-color: var(--admin-wo-primary); background-color: transparent; }
+    .scope-section-title { font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; padding: 10px 0 6px; border-top: 1px dashed #e5e7eb; margin-top: 8px; }
 </style>
 
 <div class="modal fade staff-modal" id="createStaffModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-            <div class="modal-header border-bottom-0 pb-0">
-                <h4 class="modal-title fw-bold" style="color: #212529;">Thêm nhân viên mới</h4>
+        <div class="modal-content admin-wo-card border-0 shadow">
+            <div class="modal-header" style="border-bottom:1px solid #f0f0f0;">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="width:38px;height:38px;border-radius:10px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;">
+                        <i class="fas fa-user-plus" style="color:#C67A45;"></i>
+                    </div>
+                    <h4 class="modal-title fw-bold mb-0" style="color:var(--admin-wo-text);">Thêm nhân viên mới</h4>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <div class="modal-body pt-3">
+            <div class="modal-body admin-wo-page pt-3">
                 <form asp-action="Create" method="post" enctype="multipart/form-data" id="createStaffForm">
                     <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
 
@@ -144,9 +147,9 @@
                                             <button type="button" class="btn btn-sm btn-outline-secondary text-primary border-primary fw-bold" onclick="addDynamicInput('addressesContainerModal', 'Addresses', 3, 'Nhập địa chỉ')"><i class="fas fa-plus"></i></button>
                                         </div>
                                         
-                                        <!-- NHÓM PHÂN QUYỀN (3-COLUMN FLEXIBLE SCOPE) -->
+                                        <!-- NHÓM PHÂN QUYỀN -->
                                         <div class="col-12 mt-2">
-                                            <h6 class="fw-bold text-uppercase mb-3" style="color: #6c757d; font-size: 11px;">Nhóm phân quyền</h6>
+                                            <h6 class="scope-section-title"><i class="fas fa-shield-alt me-1"></i> Nhóm phân quyền</h6>
                                         </div>
                                         
                                         <div class="col-lg-4 mb-3">
@@ -234,9 +237,9 @@
                                     <input asp-for="TaxCode" class="form-control" />
                                 </div>
                                 <div class="col-12 mt-3">
-                                    <h6 class="text-primary fw-bold mb-3"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
+                                    <h6 class="fw-bold mb-3" style="color:#99623B;"><i class="fas fa-university me-2"></i>Tài khoản ngân hàng</h6>
                                     <div class="table-responsive">
-                                        <table class="table table-bordered table-sm align-middle text-center" id="banksTableModal">
+                                        <table class="table table-bordered table-sm align-middle text-center banks-table" id="banksTableModal">
                                             <thead class="table-light">
                                                 <tr>
                                                     <th>Chính</th>
@@ -305,9 +308,13 @@
                         </div>
                     </div>
 
-                    <div class="d-flex justify-content-end gap-3 mt-4 pt-3 border-top">
-                        <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Hủy</button>
-                        <button type="button" class="btn-submit px-5" onclick="validateAndSubmit(this)">Tạo tài khoản</button>
+                    <div class="d-flex justify-content-end gap-3 mt-4 pt-3" style="border-top:1px solid #e5e7eb;">
+                        <button type="button" class="btn btn-outline-secondary px-4" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-1"></i> Hủy
+                        </button>
+                        <button type="button" class="btn btn-primary px-5" onclick="validateAndSubmit(this)">
+                            <i class="fas fa-user-plus me-1"></i> Tạo tài khoản
+                        </button>
                     </div>
                 </form>
             </div>

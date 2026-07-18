@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quản lý Nhân sự — CafeChain Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+:root {
+  --bg:#F7F3EE; --surface:#FFFFFF; --primary:#6F4E37; --primary-h:#5C3F2B;
+  --accent:#C67A45; --text:#1F2937; --muted:#475569; --success:#2F6F5E;
+  --warning:#99623B; --danger:#991B1B; --border:#E5E0D8; --radius:10px;
+  --shadow:0 4px 24px rgba(111,78,55,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:32px 24px;}
+.page-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;}
+.page-header-left{display:flex;align-items:center;gap:14px;}
+.header-icon{width:48px;height:48px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-icon i{font-size:20px;color:var(--accent);}
+.page-header h2{font-size:20px;font-weight:800;color:var(--text);}
+.page-header p{font-size:13px;color:var(--muted);margin-top:2px;}
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:22px;}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;display:flex;align-items:center;gap:16px;}
+.kpi-icon{width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.kpi-icon.total{background:#F5EDE3;color:var(--accent);}
+.kpi-icon.active{background:#D1FAE5;color:var(--success);}
+.kpi-icon.inactive{background:#FEE2E2;color:var(--danger);}
+.kpi-info h4{font-size:24px;font-weight:800;color:var(--text);}
+.kpi-info span{font-size:12px;color:var(--muted);font-weight:600;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(111,78,55,.25);}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-outline{background:#fff;color:var(--primary);border:1.5px solid #D6C4B0;}
+.btn-outline:hover{background:#F5EDE3;border-color:var(--accent);}
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.card-body{padding:24px;}
+/* Filter */
+.filter-form{display:grid;grid-template-columns:1fr auto auto auto;gap:10px;margin-bottom:20px;align-items:end;}
+.form-group label{display:block;font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.4px;}
+.form-control,.form-select{width:100%;padding:9px 13px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;}
+.form-control:focus,.form-select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(111,78,55,.13);}
+.input-group{display:flex;}
+.input-group .input-icon{padding:9px 12px;background:#fff;border:1.5px solid #DDD6CE;border-right:none;border-radius:8px 0 0 8px;color:var(--muted);font-size:13px;display:flex;align-items:center;}
+.input-group .form-control{border-radius:0 8px 8px 0;border-left:none;}
+/* Result count */
+.result-count{font-size:13px;color:var(--muted);margin-bottom:14px;}
+.result-count strong{color:var(--primary);font-weight:800;}
+/* Table */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#FAF7F4;border-bottom:1.5px solid var(--border);padding:12px 16px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+tbody td{padding:13px 16px;border-bottom:1px solid #EEE8E1;font-size:13px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FDF9F5;}
+/* Staff cell */
+.staff-cell{display:flex;align-items:center;gap:10px;}
+.staff-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--border);}
+.staff-name{font-weight:700;font-size:13px;}
+/* Role badge */
+.role-badge{display:inline-block;padding:3px 9px;border-radius:6px;background:#F5EDE3;color:var(--warning);border:1px solid #DBC4A9;font-size:11px;font-weight:700;margin-right:4px;}
+/* Status badge */
+.status-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:11px;font-weight:700;}
+.status-badge.active{background:#D1FAE5;color:var(--success);border:1px solid #A7F3D0;}
+.status-badge.inactive{background:#FEE2E2;color:var(--danger);border:1px solid #FECACA;}
+.status-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.status-badge.active .status-dot{background:var(--success);}
+.status-badge.inactive .status-dot{background:var(--danger);}
+/* Action buttons */
+.action-btn{width:32px;height:32px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all .15s;text-decoration:none;}
+.action-btn:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.action-btn.danger:hover{background:#FEE2E2;border-color:var(--danger);color:var(--danger);}
+/* Pagination */
+.pager{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid var(--border);}
+.pager-info{font-size:13px;color:var(--muted);}
+.pager-btns{display:flex;gap:6px;}
+.page-btn{width:34px;height:34px;border-radius:8px;border:1.5px solid var(--border);background:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;text-decoration:none;transition:all .15s;}
+.page-btn:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.page-btn.active{background:var(--primary);border-color:var(--primary);color:#fff;}
+.page-btn.disabled{opacity:.4;pointer-events:none;}
+</style>
+</head>
+<body>
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="header-icon"><i class="fas fa-users"></i></div>
+    <div>
+      <h2>Quản lý nhân sự</h2>
+      <p>Quản lý thông tin, vai trò và quyền hạn của đội ngũ nhân viên CafeChain.</p>
+    </div>
+  </div>
+  <button class="btn btn-primary"><i class="fas fa-user-plus"></i> Thêm nhân viên</button>
+</div>
+
+<!-- KPI Cards -->
+<div class="kpi-row">
+  <div class="kpi-card">
+    <div class="kpi-icon total"><i class="fas fa-users"></i></div>
+    <div class="kpi-info"><h4>24</h4><span>Tổng nhân sự</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon active"><i class="fas fa-user-check"></i></div>
+    <div class="kpi-info"><h4>20</h4><span>Đang làm việc</span></div>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-icon inactive"><i class="fas fa-user-lock"></i></div>
+    <div class="kpi-info"><h4>4</h4><span>Đã khóa</span></div>
+  </div>
+</div>
+
+<!-- Table Card -->
+<div class="card">
+  <div class="card-body">
+    <!-- Filter -->
+    <div class="filter-form">
+      <div class="form-group">
+        <label>Tìm kiếm nhân viên</label>
+        <div class="input-group">
+          <span class="input-icon"><i class="fas fa-search"></i></span>
+          <input class="form-control" placeholder="Tên hoặc email nhân viên..." />
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Vai trò</label>
+        <select class="form-select">
+          <option>Tất cả vai trò</option>
+          <option>Admin HQ</option>
+          <option>Quản lý cửa hàng</option>
+          <option>Nhân viên</option>
+        </select>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <button class="btn btn-primary"><i class="fas fa-filter"></i> Lọc</button>
+      </div>
+      <div class="form-group" style="display:flex;align-items:flex-end;">
+        <button class="btn btn-outline"><i class="fas fa-undo"></i> Đặt lại</button>
+      </div>
+    </div>
+
+    <div class="result-count"><i class="fas fa-list-ul" style="margin-right:5px;"></i>Tìm thấy <strong>20</strong> nhân viên</div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nhân viên</th>
+            <th>Email</th>
+            <th>Vai trò</th>
+            <th>Cửa hàng</th>
+            <th style="width:140px;">Trạng thái</th>
+            <th style="width:100px;text-align:center;">Thao tác</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="staff-cell">
+                <img src="https://ui-avatars.com/api/?name=Nguyen+Van+A&background=6F4E37&color=fff&size=64" class="staff-avatar" alt="NVA" />
+                <span class="staff-name">Nguyễn Văn An</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px;">an.nguyen@cafechain.vn</td>
+            <td><span class="role-badge">Admin HQ</span></td>
+            <td style="font-size:13px;">Trụ sở chính</td>
+            <td><span class="status-badge active"><span class="status-dot"></span>Đang làm việc</span></td>
+            <td style="text-align:center;">
+              <a class="action-btn" title="Chỉnh sửa" href="#"><i class="fas fa-pen"></i></a>
+              <button class="action-btn danger" title="Khóa" style="margin-left:4px;"><i class="fas fa-lock"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="staff-cell">
+                <img src="https://ui-avatars.com/api/?name=Tran+Thi+Bich&background=C67A45&color=fff&size=64" class="staff-avatar" alt="TTB" />
+                <span class="staff-name">Trần Thị Bích</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px;">bich.tran@cafechain.vn</td>
+            <td><span class="role-badge">Quản lý CH</span></td>
+            <td style="font-size:13px;">CafeChain Q1</td>
+            <td><span class="status-badge active"><span class="status-dot"></span>Đang làm việc</span></td>
+            <td style="text-align:center;">
+              <a class="action-btn" title="Chỉnh sửa" href="#"><i class="fas fa-pen"></i></a>
+              <button class="action-btn danger" title="Khóa" style="margin-left:4px;"><i class="fas fa-lock"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="staff-cell">
+                <img src="https://ui-avatars.com/api/?name=Le+Van+Cuong&background=2F6F5E&color=fff&size=64" class="staff-avatar" alt="LVC" />
+                <span class="staff-name">Lê Văn Cường</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px;">cuong.le@cafechain.vn</td>
+            <td><span class="role-badge">Nhân viên</span></td>
+            <td style="font-size:13px;">CafeChain Q3</td>
+            <td><span class="status-badge inactive"><span class="status-dot"></span>Đã khóa</span></td>
+            <td style="text-align:center;">
+              <a class="action-btn" title="Chỉnh sửa" href="#"><i class="fas fa-pen"></i></a>
+              <button class="action-btn" title="Mở khóa" style="margin-left:4px;color:var(--success);"><i class="fas fa-unlock"></i></button>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="staff-cell">
+                <img src="https://ui-avatars.com/api/?name=Pham+Thi+Dung&background=99623B&color=fff&size=64" class="staff-avatar" alt="PTD" />
+                <span class="staff-name">Phạm Thị Dung</span>
+              </div>
+            </td>
+            <td style="color:var(--muted);font-size:13px;">dung.pham@cafechain.vn</td>
+            <td><span class="role-badge">Kế toán</span></td>
+            <td style="font-size:13px;">Trụ sở chính</td>
+            <td><span class="status-badge active"><span class="status-dot"></span>Đang làm việc</span></td>
+            <td style="text-align:center;">
+              <a class="action-btn" title="Chỉnh sửa" href="#"><i class="fas fa-pen"></i></a>
+              <button class="action-btn danger" title="Khóa" style="margin-left:4px;"><i class="fas fa-lock"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div class="pager">
+      <span class="pager-info">Hiển thị 4 / 20 nhân viên</span>
+      <div class="pager-btns">
+        <a class="page-btn disabled" href="#"><i class="fas fa-chevron-left" style="font-size:10px;"></i></a>
+        <a class="page-btn active" href="#">1</a>
+        <a class="page-btn" href="#">2</a>
+        <a class="page-btn" href="#">3</a>
+        <a class="page-btn" href="#"><i class="fas fa-chevron-right" style="font-size:10px;"></i></a>
+      </div>
+    </div>
+  </div>
+</div>
+</body>
+</html>

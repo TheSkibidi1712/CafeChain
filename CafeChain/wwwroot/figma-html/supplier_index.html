@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Quản lý Nhà cung cấp — CafeChain Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<style>
+:root{--bg:#F7F3EE;--surface:#FFFFFF;--primary:#6F4E37;--primary-h:#5C3F2B;--accent:#C67A45;--text:#1F2937;--muted:#475569;--success:#2F6F5E;--warning:#99623B;--danger:#991B1B;--border:#E5E0D8;--radius:10px;--shadow:0 4px 24px rgba(111,78,55,.08);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Inter','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:32px 24px;}
+/* Header */
+.page-header{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px 26px;display:flex;align-items:center;justify-content:space-between;margin-bottom:22px;gap:16px;}
+.page-header-left{display:flex;align-items:center;gap:14px;}
+.header-icon{width:48px;height:48px;border-radius:12px;background:#F5EDE3;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.header-icon i{font-size:20px;color:var(--accent);}
+.page-header h2{font-size:20px;font-weight:800;color:var(--text);}
+.page-header p{font-size:13px;color:var(--muted);margin-top:2px;}
+/* Buttons */
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;border:none;text-decoration:none;transition:all .18s;}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 4px 14px rgba(111,78,55,.25);}
+.btn-primary:hover{background:var(--primary-h);}
+.btn-outline{background:#fff;color:var(--primary);border:1.5px solid #D6C4B0;}
+.btn-outline:hover{background:#F5EDE3;border-color:var(--accent);}
+/* Filter bar */
+.filter-bar{display:flex;gap:10px;align-items:center;margin-bottom:22px;flex-wrap:wrap;}
+.filter-input{padding:9px 14px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;flex:1;min-width:220px;}
+.filter-input:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(111,78,55,.13);}
+.filter-select{padding:9px 14px;border:1.5px solid #DDD6CE;border-radius:8px;font-size:13px;color:var(--text);background:var(--surface);outline:none;min-width:160px;}
+/* Table wrapper card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden;}
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;}
+thead th{background:#FAF7F4;border-bottom:1.5px solid var(--border);padding:12px 16px;font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+tbody td{padding:13px 16px;border-bottom:1px solid #EEE8E1;font-size:13px;vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover{background:#FDF9F5;}
+/* Code badge */
+.sup-code{display:inline-block;padding:3px 10px;background:#F5EDE3;color:var(--warning);border:1px solid #DBC4A9;border-radius:6px;font-size:11px;font-weight:700;}
+/* Status badge */
+.badge-active{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#D1FAE5;color:var(--success);border:1px solid #A7F3D0;font-size:11px;font-weight:700;}
+.badge-inactive{display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;background:#FEE2E2;color:var(--danger);border:1px solid #FECACA;font-size:11px;font-weight:700;}
+.badge-dot{width:6px;height:6px;border-radius:50%;display:inline-block;}
+.badge-active .badge-dot{background:var(--success);}
+.badge-inactive .badge-dot{background:var(--danger);}
+/* Icon action buttons */
+.icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:#fff;color:var(--muted);display:inline-flex;align-items:center;justify-content:center;cursor:pointer;font-size:12px;transition:all .15s;}
+.icon-btn:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.icon-btn.edit:hover{background:#F5EDE3;border-color:var(--accent);color:var(--primary);}
+.icon-btn.detail:hover{background:#EEF0FF;border-color:#C7D2FE;color:#3730A3;}
+.icon-btn.toggle:hover{background:#FEE2E2;border-color:var(--danger);color:var(--danger);}
+/* Debt amount */
+.debt-amount{font-weight:700;color:var(--warning);}
+</style>
+</head>
+<body>
+
+<!-- Page Header -->
+<div class="page-header">
+  <div class="page-header-left">
+    <div class="header-icon"><i class="fas fa-truck-field"></i></div>
+    <div>
+      <h2>Quản lý Nhà cung cấp</h2>
+      <p>Quản lý thông tin NCC, số điện thoại, ngân hàng và liên hệ</p>
+    </div>
+  </div>
+  <button class="btn btn-primary" id="btnCreate"><i class="fas fa-plus"></i> Thêm NCC</button>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <input class="filter-input" placeholder="🔍 Tìm mã, tên nhà cung cấp..." id="searchBox" />
+  <select class="filter-select" id="statusFilter">
+    <option value="">Tất cả trạng thái</option>
+    <option value="true">Hoạt động</option>
+    <option value="false">Ngưng</option>
+  </select>
+  <button class="btn btn-primary" id="btnFilter"><i class="fas fa-filter"></i> Lọc</button>
+</div>
+
+<!-- Table -->
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Mã</th>
+          <th>Tên NCC</th>
+          <th>SĐT chính</th>
+          <th>Người liên hệ</th>
+          <th>Ngân hàng</th>
+          <th style="text-align:right;">Công nợ</th>
+          <th>Trạng thái</th>
+          <th style="width:120px;"></th>
+        </tr>
+      </thead>
+      <tbody id="supplierTable">
+        <tr>
+          <td><span class="sup-code">NCC001</span></td>
+          <td>
+            <strong>Công ty CP Thực phẩm Hoà Lộc</strong>
+            <br><small style="color:var(--muted);">123 Lê Văn Việt, Q.9, TP.HCM</small>
+          </td>
+          <td>0908 123 456</td>
+          <td>
+            <span>Nguyễn Minh Tú</span><br>
+            <small style="color:var(--muted);">0909 111 222</small>
+          </td>
+          <td>
+            <span>MBBank</span><br>
+            <small style="color:var(--muted);">0123456789</small>
+          </td>
+          <td style="text-align:right;"><span class="debt-amount">12,500,000 ₫</span></td>
+          <td><span class="badge-active"><span class="badge-dot"></span>Hoạt động</span></td>
+          <td style="text-align:center;">
+            <button class="icon-btn edit" title="Sửa"><i class="fas fa-pen-to-square"></i></button>
+            <button class="icon-btn detail" title="Chi tiết" style="margin:0 4px;"><i class="fas fa-list-ul"></i></button>
+            <button class="icon-btn toggle" title="Tắt/Bật"><i class="fas fa-lock"></i></button>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="sup-code">NCC002</span></td>
+          <td>
+            <strong>Trang trại Cà phê Trung Nguyên</strong>
+            <br><small style="color:var(--muted);">456 Quốc lộ 14, Đắk Lắk</small>
+          </td>
+          <td>0262 388 999</td>
+          <td>
+            <span>Trần Bảo Long</span><br>
+            <small style="color:var(--muted);">0933 222 333</small>
+          </td>
+          <td>
+            <span>Vietcombank</span><br>
+            <small style="color:var(--muted);">9876543210</small>
+          </td>
+          <td style="text-align:right;"><span class="debt-amount">0 ₫</span></td>
+          <td><span class="badge-active"><span class="badge-dot"></span>Hoạt động</span></td>
+          <td style="text-align:center;">
+            <button class="icon-btn edit" title="Sửa"><i class="fas fa-pen-to-square"></i></button>
+            <button class="icon-btn detail" title="Chi tiết" style="margin:0 4px;"><i class="fas fa-list-ul"></i></button>
+            <button class="icon-btn toggle" title="Tắt/Bật"><i class="fas fa-lock"></i></button>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="sup-code">NCC003</span></td>
+          <td>
+            <strong>Cty TNHH Bao bì Sao Việt</strong>
+            <br><small style="color:var(--muted);">789 Bình Dương</small>
+          </td>
+          <td>0274 777 888</td>
+          <td><span>—</span></td>
+          <td><span>—</span></td>
+          <td style="text-align:right;"><span class="debt-amount">3,200,000 ₫</span></td>
+          <td><span class="badge-inactive"><span class="badge-dot"></span>Ngưng</span></td>
+          <td style="text-align:center;">
+            <button class="icon-btn edit" title="Sửa"><i class="fas fa-pen-to-square"></i></button>
+            <button class="icon-btn detail" title="Chi tiết" style="margin:0 4px;"><i class="fas fa-list-ul"></i></button>
+            <button class="icon-btn toggle" title="Bật lại" style="color:var(--success);"><i class="fas fa-lock-open"></i></button>
+          </td>
+        </tr>
+        <tr>
+          <td><span class="sup-code">NCC004</span></td>
+          <td>
+            <strong>Vinamilk Distribution</strong>
+            <br><small style="color:var(--muted);">10 Tân Trào, Q.7, TP.HCM</small>
+          </td>
+          <td>028 5411 0000</td>
+          <td>
+            <span>Lê Thu Hương</span><br>
+            <small style="color:var(--muted);">0987 654 321</small>
+          </td>
+          <td>
+            <span>ACB</span><br>
+            <small style="color:var(--muted);">1122334455</small>
+          </td>
+          <td style="text-align:right;"><span class="debt-amount">28,000,000 ₫</span></td>
+          <td><span class="badge-active"><span class="badge-dot"></span>Hoạt động</span></td>
+          <td style="text-align:center;">
+            <button class="icon-btn edit" title="Sửa"><i class="fas fa-pen-to-square"></i></button>
+            <button class="icon-btn detail" title="Chi tiết" style="margin:0 4px;"><i class="fas fa-list-ul"></i></button>
+            <button class="icon-btn toggle" title="Tắt/Bật"><i class="fas fa-lock"></i></button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+</body>
+</html>
