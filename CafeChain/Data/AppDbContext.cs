@@ -170,6 +170,7 @@ namespace CafeChain.Data
         public DbSet<PurchaseOrderBatch> PurchaseOrderBatches { get; set; }
         public DbSet<PurchaseOrderBatchLine> PurchaseOrderBatchLines { get; set; }
         public DbSet<PurchaseOrderLineAllocation> PurchaseOrderLineAllocations { get; set; }
+        public DbSet<PurchaseOrderBatchDocumentRevision> PurchaseOrderBatchDocumentRevisions { get; set; }
         public DbSet<SupplierReceiptIssue> SupplierReceiptIssues { get; set; }
         public DbSet<SupplierReceiptIssueTransition> SupplierReceiptIssueTransitions { get; set; }
 

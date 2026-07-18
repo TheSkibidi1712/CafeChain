@@ -34,6 +34,7 @@ public sealed class PurchaseOrderBatch
     public Staff? CancelledByStaff { get; set; }
     public ICollection<PurchaseOrderBatchLine> Lines { get; set; } = new List<PurchaseOrderBatchLine>();
     public ICollection<PurchaseOrder> ChildPurchaseOrders { get; set; } = new List<PurchaseOrder>();
+    public ICollection<PurchaseOrderBatchDocumentRevision> DocumentRevisions { get; set; } = new List<PurchaseOrderBatchDocumentRevision>();
 }
 
 public sealed class PurchaseOrderBatchLine

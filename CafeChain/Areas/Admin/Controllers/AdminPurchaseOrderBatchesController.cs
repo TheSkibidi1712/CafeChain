@@ -17,11 +17,16 @@ namespace CafeChain.Areas.Admin.Controllers;
 public sealed class AdminPurchaseOrderBatchesController : Controller
 {
     private readonly IPurchaseOrderBatchService _service;
+    private readonly IPurchaseOrderBatchDocumentService _documentService;
     private readonly IAdminActorContextAccessor _actorAccessor;
 
-    public AdminPurchaseOrderBatchesController(IPurchaseOrderBatchService service, IAdminActorContextAccessor actorAccessor)
+    public AdminPurchaseOrderBatchesController(
+        IPurchaseOrderBatchService service,
+        IPurchaseOrderBatchDocumentService documentService,
+        IAdminActorContextAccessor actorAccessor)
     {
         _service = service;
+        _documentService = documentService;
         _actorAccessor = actorAccessor;
     }
 
@@ -70,6 +75,36 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     {
         var result = await _service.CancelAsync(id, request, _actorAccessor.Get(User));
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "Đã hủy batch." : $"{result.ErrorCode}: {result.Message}";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> GeneratePdf(int id)
+    {
+        var result = await _documentService.GenerateAsync(id, _actorAccessor.Get(User));
+        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
+            ? $"Đã sẵn sàng {result.Data!.FileName}."
+            : $"{result.ErrorCode}: {result.Message}";
+        return RedirectToAction(nameof(Details), new { id });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> DownloadRevision(int revisionId)
+    {
+        var result = await _documentService.DownloadAsync(revisionId, _actorAccessor.Get(User));
+        if (!result.IsSuccess) return Failure(result.ErrorCode, result.Message);
+        return File(result.Data!.Content, result.Data.ContentType, result.Data.FileName);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> MarkRevisionSent(int id, int revisionId, MarkPurchaseOrderBatchDocumentSentRequest request)
+    {
+        var result = await _documentService.MarkSentAsync(revisionId, request, _actorAccessor.Get(User));
+        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
+            ? "Đã ghi nhận gửi tài liệu cho nhà cung cấp."
+            : $"{result.ErrorCode}: {result.Message}";
         return RedirectToAction(nameof(Details), new { id });
     }
 

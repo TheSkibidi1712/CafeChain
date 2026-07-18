@@ -24,4 +24,25 @@ public static class PurchaseOrderBatchErrorCodes
     public const string Invalid = "PURCHASE_ORDER_BATCH_INVALID";
     public const string StaleVersion = "PURCHASE_ORDER_BATCH_STALE_VERSION";
     public const string Conflict = "PURCHASE_ORDER_BATCH_CONFLICT";
+    public const string DocumentNotFound = "PURCHASE_ORDER_BATCH_DOCUMENT_NOT_FOUND";
+    public const string DocumentStorageFailure = "PURCHASE_ORDER_BATCH_DOCUMENT_STORAGE_FAILURE";
+}
+
+public static class PurchaseOrderBatchDocumentStatuses
+{
+    public const string Generated = "GENERATED";
+    public const string Sent = "SENT";
+    public const string Superseded = "SUPERSEDED";
+}
+
+public static class PurchaseOrderBatchDocumentChannels
+{
+    public const string ZaloManual = "ZALO_MANUAL";
+    public const string EmailManual = "EMAIL_MANUAL";
+
+    public static readonly IReadOnlySet<string> All = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ZaloManual,
+        EmailManual
+    };
 }

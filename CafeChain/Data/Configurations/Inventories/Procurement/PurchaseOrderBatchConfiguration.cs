@@ -77,3 +77,44 @@ public sealed class PurchaseOrderLineAllocationConfiguration : IEntityTypeConfig
         b.HasOne(x => x.PurchaseOrderLine).WithMany(x => x.BatchAllocations).HasForeignKey(x => x.PurchaseOrderLineId).OnDelete(DeleteBehavior.Restrict);
     }
 }
+
+public sealed class PurchaseOrderBatchDocumentRevisionConfiguration : IEntityTypeConfiguration<PurchaseOrderBatchDocumentRevision>
+{
+    public void Configure(EntityTypeBuilder<PurchaseOrderBatchDocumentRevision> b)
+    {
+        b.ToTable("PurchaseOrderBatchDocumentRevisions", table =>
+        {
+            table.HasCheckConstraint("CK_PurchaseOrderBatchDocumentRevisions_RevisionPositive", "[RevisionNumber] > 0");
+            table.HasCheckConstraint(
+                "CK_PurchaseOrderBatchDocumentRevisions_Status",
+                "[Status] IN ('GENERATED','SENT','SUPERSEDED')");
+        });
+        b.HasKey(x => x.PurchaseOrderBatchDocumentRevisionId);
+        b.Property(x => x.FileName).HasMaxLength(255).IsRequired();
+        b.Property(x => x.StorageReference).HasMaxLength(500).IsRequired();
+        b.Property(x => x.ContentHash).HasMaxLength(64).IsRequired();
+        b.Property(x => x.SnapshotJson).IsRequired();
+        b.Property(x => x.Status).HasMaxLength(24).IsRequired();
+        b.Property(x => x.SentChannel).HasMaxLength(32);
+        b.Property(x => x.RowVersion).IsRowVersion();
+        b.HasIndex(x => new { x.PurchaseOrderBatchId, x.RevisionNumber }).IsUnique();
+        b.HasIndex(x => new { x.PurchaseOrderBatchId, x.ContentHash }).IsUnique();
+        b.HasIndex(x => new { x.PurchaseOrderBatchId, x.Status });
+        b.HasOne(x => x.PurchaseOrderBatch)
+            .WithMany(x => x.DocumentRevisions)
+            .HasForeignKey(x => x.PurchaseOrderBatchId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.HasOne(x => x.GeneratedByStaff)
+            .WithMany()
+            .HasForeignKey(x => x.GeneratedByStaffId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.SentByStaff)
+            .WithMany()
+            .HasForeignKey(x => x.SentByStaffId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.HasOne(x => x.SupersededByRevision)
+            .WithMany()
+            .HasForeignKey(x => x.SupersededByRevisionId)
+            .OnDelete(DeleteBehavior.Restrict);
+    }
+}
