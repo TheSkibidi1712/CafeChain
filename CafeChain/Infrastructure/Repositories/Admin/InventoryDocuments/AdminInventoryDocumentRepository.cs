@@ -580,22 +580,29 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
             return $"{prefix}-{today:yyyyMMdd}-{next:000}";
         }
 
-        public async Task<List<SupplierDropdownVM>>GetSupplierDropdownAsync()
+        public async Task<List<SupplierDropdownVM>> GetSupplierDropdownAsync(int storeId)
         {
-            return await _context.Suppliers
+            return await _context.SupplierStores
                 .AsNoTracking()
-                .Where(x => x.Active)
-                .OrderBy(x => x.Name)
+                .Where(x => x.StoreId == storeId
+                    && x.Active
+                    && x.Store.Active
+                    && x.Supplier.Active)
+                .OrderBy(x => x.Supplier.Name)
                 .Select(x =>
                     new SupplierDropdownVM
                     {
                         SupplierId = x.SupplierId,
-                        SupplierName = x.Name!
+                        SupplierName = x.Supplier.Name!
                     })
+                .Distinct()
                 .ToListAsync();
         }
 
-        public async Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId, CancellationToken cancellationToken = default)
+        public async Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(
+            int supplierId,
+            int storeId,
+            CancellationToken cancellationToken = default)
         {
             return await _context.IngredientSuppliers
                 .Include(x => x.Ingredient)
@@ -607,7 +614,13 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .Include(x => x.PriceHistories)
                 .Where(x =>
                     x.SupplierId == supplierId &&
-                    x.Active)
+                    x.Active &&
+                    x.Supplier.Active &&
+                    x.Ingredient.Active &&
+                    x.Unit.Active &&
+                    x.Supplier.SupplierStores.Any(ss =>
+                        ss.StoreId == storeId && ss.Active && ss.Store.Active) &&
+                    x.PriceHistories.Count(h => h.IsCurrent) == 1)
                 .ToListAsync(cancellationToken);
         }
 
@@ -661,9 +674,14 @@ namespace CafeChain.Infrastrusture.Repositories.Admin.InventoryDocuments
                 .AsNoTracking()
                 .Include(x => x.Supplier)
                 .Include(x => x.Unit)
+                .Include(x => x.PriceHistories)
                 .Include(x => x.Ingredient).ThenInclude(x => x.BaseUnit)
                 .Include(x => x.Ingredient).ThenInclude(x => x.UnitConversions).ThenInclude(x => x.FromUnit)
-                .Where(x => ids.Contains(x.IngredientSupplierId) && x.Active)
+                .Where(x => ids.Contains(x.IngredientSupplierId)
+                    && x.Active
+                    && x.Supplier.Active
+                    && x.Ingredient.Active
+                    && x.Unit.Active)
                 .ToListAsync();
         }
 

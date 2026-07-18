@@ -22,9 +22,9 @@ public sealed class AppLauncherService : IAppLauncherService
         cancellationToken.ThrowIfCancellationRequested();
         var definitions = new[]
         {
-            new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/Admin/Dashboard", 10, PermissionConstants.AppAdminDashboard),
-            new AppDefinition(AppCode.StaffHub, "StaffHub", "Chấm công, theo dõi ca và tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub),
-            new AppDefinition(AppCode.Pos, "POS", "Mở màn hình bán hàng tại cửa hàng được phân công.", "bi-cash-register", "/Admin/AdminPOS", 30, PermissionConstants.AppPos)
+            new AppDefinition(AppCode.AdminDashboard, "Admin Dashboard", "Theo dõi vận hành, doanh thu và các chỉ số quản trị.", "bi-speedometer2", "/Admin/Dashboard", 10, PermissionConstants.AppAdminDashboard, false),
+            new AppDefinition(AppCode.StaffHub, "StaffHub", "Chấm công, theo dõi ca và tác vụ hằng ngày của nhân viên.", "bi-people", "/StaffHub", 20, PermissionConstants.AppStaffHub, false),
+            new AppDefinition(AppCode.Pos, "POS", "Khởi chạy PrintBridge và giao diện bán hàng mới.", "bi-cash-register", "#", 30, PermissionConstants.AppPos, true)
         };
 
         var cards = new List<AppLauncherCardDTO>();
@@ -44,7 +44,8 @@ public sealed class AppLauncherService : IAppLauncherService
                 Icon = app.Icon,
                 Route = app.Route,
                 DisplayOrder = app.DisplayOrder,
-                IsAvailable = true
+                IsAvailable = true,
+                RequiresLaunch = app.RequiresLaunch
             });
         }
 
@@ -62,5 +63,6 @@ public sealed class AppLauncherService : IAppLauncherService
         string Icon,
         string Route,
         int DisplayOrder,
-        string PermissionCode);
+        string PermissionCode,
+        bool RequiresLaunch);
 }

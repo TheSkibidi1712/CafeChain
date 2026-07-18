@@ -103,7 +103,9 @@ namespace CafeChain.Controllers
                 expires: expiresAt,
                 signingCredentials: new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256));
 
-            var posUrl = _configuration["PosFrontend:Url"] ?? "http://localhost:5173/order";
+            var posUrl = _configuration["AppLauncher:Pos:PosUrl"]
+                ?? _configuration["PosFrontend:Url"]
+                ?? "http://127.0.0.1:5173/order";
 
             return Ok(new
             {

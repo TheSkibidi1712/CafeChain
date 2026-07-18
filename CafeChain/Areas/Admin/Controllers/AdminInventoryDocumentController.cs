@@ -84,9 +84,17 @@ namespace CafeChain.Areas.Admin.Controllers
         // =====================================================
 
         [HttpGet]
-        public async Task<IActionResult> SupplierIngredients(int supplierId)
+        public async Task<IActionResult> Suppliers(int storeId)
         {
-            var data = await _serviceCreate.GetSupplierIngredientsAsync(supplierId);
+            var data = await _serviceCreate.GetSuppliersAsync(storeId);
+
+            return Json(data);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SupplierIngredients(int supplierId, int storeId)
+        {
+            var data = await _serviceCreate.GetSupplierIngredientsAsync(supplierId, storeId);
 
             return Json(data);
         }

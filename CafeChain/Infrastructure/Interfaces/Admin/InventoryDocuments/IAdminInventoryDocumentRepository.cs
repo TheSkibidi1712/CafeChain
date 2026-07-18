@@ -155,9 +155,12 @@ namespace CafeChain.Infrastrusture.Interfaces.Admin.InventoryDocuments
 
         Task<Staff?> GetStaffAsync(int staffId);
 
-        Task<List<SupplierDropdownVM>> GetSupplierDropdownAsync();
+        Task<List<SupplierDropdownVM>> GetSupplierDropdownAsync(int storeId);
 
-        Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(int supplierId, CancellationToken cancellationToken = default);
+        Task<List<IngredientSupplier>> GetSupplierIngredientsAsync(
+            int supplierId,
+            int storeId,
+            CancellationToken cancellationToken = default);
 
         Task<List<Ingredient>> GetActiveIngredientsAsync();
 

@@ -29,6 +29,9 @@ public sealed class AppLauncherServiceTests
         Assert.Equal("Lan", result.DisplayName);
         Assert.Equal([AppCode.StaffHub, AppCode.Pos], result.Apps.Select(x => x.Code));
         Assert.DoesNotContain(result.Apps, x => x.Code == AppCode.AdminDashboard);
+        var pos = Assert.Single(result.Apps, x => x.Code == AppCode.Pos);
+        Assert.True(pos.RequiresLaunch);
+        Assert.Equal("#", pos.Route);
     }
 
     [Fact]

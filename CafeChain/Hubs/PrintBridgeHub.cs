@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using CafeChain.Application.Interfaces.AppLauncher;
 
 namespace CafeChain.Hubs
 {
@@ -27,11 +28,16 @@ namespace CafeChain.Hubs
     {
         private readonly IConfiguration _configuration;
         private readonly ILogger<PrintBridgeHub> _logger;
+        private readonly IPrintBridgePresenceTracker _presenceTracker;
 
-        public PrintBridgeHub(IConfiguration configuration, ILogger<PrintBridgeHub> logger)
+        public PrintBridgeHub(
+            IConfiguration configuration,
+            ILogger<PrintBridgeHub> logger,
+            IPrintBridgePresenceTracker presenceTracker)
         {
             _configuration = configuration;
             _logger = logger;
+            _presenceTracker = presenceTracker;
         }
 
         /// <summary>
@@ -59,6 +65,7 @@ namespace CafeChain.Hubs
             await Groups.AddToGroupAsync(Context.ConnectionId, $"PrintBridge_Store_{storeId}");
             // Cũng join group POS để broadcast status cho iPad cùng quán
             await Groups.AddToGroupAsync(Context.ConnectionId, $"POS_Store_{storeId}");
+            _presenceTracker.MarkConnected(storeId, Context.ConnectionId);
 
             _logger.LogInformation(
                 "[PrintBridgeHub] Worker đã join PrintBridge_Store_{StoreId}. ConnectionId={ConnectionId}",
@@ -82,6 +89,11 @@ namespace CafeChain.Hubs
         /// <param name="isOnline">true = printer online, false = offline</param>
         public async Task ReportPrinterStatus(int storeId, bool isOnline)
         {
+            if (isOnline)
+                _presenceTracker.MarkHeartbeat(storeId, Context.ConnectionId);
+            else
+                _presenceTracker.MarkDisconnected(Context.ConnectionId);
+
             await Clients.Group($"POS_Store_{storeId}").SendAsync("PrinterStatusChanged", new
             {
                 storeId,
@@ -96,6 +108,7 @@ namespace CafeChain.Hubs
         /// </summary>
         public override async Task OnDisconnectedAsync(Exception? exception)
         {
+            _presenceTracker.MarkDisconnected(Context.ConnectionId);
             // Note: Không biết storeId ở đây — iPad POS sẽ detect qua timeout
             // của heartbeat (không nhận PrinterStatusChanged trong 60s → coi là offline)
             _logger.LogInformation(

@@ -47,6 +47,11 @@ public sealed class DashboardAnalyticsScriptTests
         Assert.DoesNotContain("AttendanceQuality", sql, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("OrderStatusId=5", sql.Replace(" ", string.Empty), StringComparison.OrdinalIgnoreCase);
         Assert.Contains("ShippingFee", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ufn_AnalyticsBucketStart", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("ufn_AnalyticsNextBucket", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHEN 'HOUR'", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHEN 'WEEK'", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("WHEN 'MONTH'", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

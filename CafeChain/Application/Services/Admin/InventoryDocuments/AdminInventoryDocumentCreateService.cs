@@ -92,14 +92,27 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 DocumentDate = DateTime.Now,
                 Code = await _repository.GenerateDocumentCodeAsync( effectiveType, purpose == InventoryDocumentPurpose.NONE ? null : purpose),
                 Stores = stores,
-                Suppliers = await _repository.GetSupplierDropdownAsync(),
+                Suppliers = [],
                 Summary = new InventoryCreateSummaryDTO()
             };
         }
 
-        public async Task<List<SupplierIngredientDTO>> GetSupplierIngredientsAsync(int supplierId)
+        public async Task<List<CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown.SupplierDropdownVM>> GetSuppliersAsync(int storeId)
         {
-            var ingredients = await _repository.GetSupplierIngredientsAsync(supplierId);
+            if (storeId <= 0)
+                return [];
+
+            await EnsureStoreScopeAsync(storeId);
+            return await _repository.GetSupplierDropdownAsync(storeId);
+        }
+
+        public async Task<List<SupplierIngredientDTO>> GetSupplierIngredientsAsync(int supplierId, int storeId)
+        {
+            if (supplierId <= 0 || storeId <= 0)
+                return [];
+
+            await EnsureStoreScopeAsync(storeId);
+            var ingredients = await _repository.GetSupplierIngredientsAsync(supplierId, storeId);
             var result = new List<SupplierIngredientDTO>();
             foreach (var ingredient in ingredients)
                 result.Add(await MapSupplierIngredientDtoAsync(ingredient));
@@ -1028,11 +1041,13 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 && x.Unit != null
                 && x.Unit.Active;
             var canAutoFill = hasCompletePackage
-                && x.PackageQuantity == 1m
+                && conversionFactor > 0
                 && packagePrice > 0m;
-            var suggestedUnitPrice = canAutoFill ? packagePrice : (decimal?)null;
-            var suggestedBaseUnitCost = canAutoFill && conversionFactor > 0
-                ? packagePrice / conversionFactor.Value
+            var suggestedUnitPrice = canAutoFill
+                ? packagePrice / x.PackageQuantity!.Value
+                : (decimal?)null;
+            var suggestedBaseUnitCost = canAutoFill
+                ? packagePrice / (x.PackageQuantity!.Value * conversionFactor!.Value)
                 : (decimal?)null;
 
             return new SupplierIngredientDTO
@@ -1079,23 +1094,18 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                 && x.Unit != null
                 && x.Unit.Active;
 
-            // Auto-fill unit price only when package content is exactly 1 of the package content unit
-            // and document entry unit will match PackageUnitId (default UnitId = package unit).
-            // JS re-checks selected document UnitId vs PackageUnitId on unit change.
             var canAutoFill =
                 hasCompletePackage
-                && x.PackageQuantity == 1m
+                && conversionFactor.HasValue
+                && conversionFactor.Value > 0
                 && packagePrice > 0m;
 
-            decimal? suggestedUnitPrice = canAutoFill ? packagePrice : null;
-
-            // Temporary: only when PackageQuantity == 1, old per-import-unit / convert factor is usable.
-            // Full package-normalized base cost is #117.
-            decimal? suggestedBaseUnitCost = null;
-            if (canAutoFill && conversionFactor.HasValue && conversionFactor.Value > 0)
-            {
-                suggestedBaseUnitCost = packagePrice / conversionFactor.Value;
-            }
+            decimal? suggestedUnitPrice = canAutoFill
+                ? packagePrice / x.PackageQuantity!.Value
+                : null;
+            decimal? suggestedBaseUnitCost = canAutoFill
+                ? packagePrice / (x.PackageQuantity!.Value * conversionFactor!.Value)
+                : null;
 
             return new SupplierIngredientDTO
             {
@@ -1170,9 +1180,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     continue;
                 }
 
-                // Only use supplier package as base-cost hint when PackageQuantity == 1
-                // (full package-normalized cost is #117).
-                if (!supplier.PackageQuantity.HasValue || supplier.PackageQuantity.Value != 1m)
+                if (!supplier.PackageQuantity.HasValue || supplier.PackageQuantity.Value <= 0m)
                 {
                     continue;
                 }
@@ -1182,7 +1190,7 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                     supplier.UnitId,
                     throwIfMissing: false);
                 var baseCost = factor.HasValue && factor.Value > 0
-                    ? GetCurrentSupplierPrice(supplier) / factor.Value
+                    ? GetCurrentSupplierPrice(supplier) / (supplier.PackageQuantity.Value * factor.Value)
                     : 0;
 
                 if (baseCost <= 0)
@@ -1358,10 +1366,8 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
 
             foreach (var item in dto.Details)
             {
-                if (item.Quantity <= 0 && !isStockTake)
-                {
-                    continue;
-                }
+                if ((!isStockTake && item.Quantity <= 0) || (isStockTake && item.Quantity < 0))
+                    throw new InvalidOperationException("INVALID_QUANTITY: Số lượng phải lớn hơn 0; kiểm kê chỉ cho phép giá trị từ 0 trở lên.");
 
                 var ingredient =
                     await _repository.GetIngredientAsync(item.IngredientId)
@@ -1393,10 +1399,21 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         || !offer.Ingredient.Active
                         || !offer.Unit.Active
                         || !offer.PackageQuantity.HasValue
-                        || offer.PackageQuantity <= 0
-                        || offer.CurrentPrice <= 0)
+                        || offer.PackageQuantity <= 0)
                     {
                         throw new InvalidOperationException("INGREDIENT_SUPPLIER_INACTIVE: Gói mua không hợp lệ hoặc đã ngừng hoạt động.");
+                    }
+
+                    var currentPrices = offer.PriceHistories.Where(x => x.IsCurrent).ToList();
+                    if (currentPrices.Count != 1)
+                        throw new InvalidOperationException("SUPPLIER_PRICE_CURRENT_INVALID: Gói mua phải có đúng một giá hiện tại.");
+
+                    var currentPrice = currentPrices[0];
+                    if (currentPrice.Price <= 0
+                        || currentPrice.PackageQuantity != offer.PackageQuantity
+                        || currentPrice.PackageUnitId != offer.UnitId)
+                    {
+                        throw new InvalidOperationException("SUPPLIER_PRICE_SNAPSHOT_MISMATCH: Giá hiện tại không khớp quy cách gói mua.");
                     }
 
                     var packageUnitToBase = await GetConversionFactorToBaseAsync(
@@ -1410,11 +1427,11 @@ namespace CafeChain.Application.Services.Admin.InventoryDocuments
                         throw new InvalidOperationException($"MINIMUM_ORDER_NOT_MET: Số lượng nhập thấp hơn MOQ {offer.MinimumOrderPackageCount:N3} gói.");
 
                     item.UnitPrice = Math.Round(
-                        offer.CurrentPrice * conversionFactor / packageBaseQuantity,
+                        currentPrice.Price * conversionFactor / packageBaseQuantity,
                         4,
                         MidpointRounding.AwayFromZero);
                     item.CostPrice = Math.Round(
-                        offer.CurrentPrice / packageBaseQuantity,
+                        currentPrice.Price / packageBaseQuantity,
                         4,
                         MidpointRounding.AwayFromZero);
                 }

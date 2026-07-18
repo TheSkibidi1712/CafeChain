@@ -389,10 +389,35 @@
 
                         </label>
 
-                        <input type="text"
-                               name="Icon"
-                               class="form-control category-input"
-                               placeholder="Ví dụ: ☕ 🍹 🥤 🍰" />
+                        <div class="category-icon-picker" data-category-icon-picker>
+                            <div class="input-group category-icon-toolbar">
+                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="Xem trước icon">—</span>
+                                <input type="text"
+                                       id="createCategoryIcon"
+                                       name="Icon"
+                                       maxlength="10"
+                                       autocomplete="off"
+                                       class="form-control category-input"
+                                       data-icon-input
+                                       aria-describedby="createCategoryIconHelp"
+                                       placeholder="Ví dụ: ☕" />
+                                <button type="button" class="btn btn-outline-secondary" data-icon-toggle aria-expanded="false">
+                                    <i class="fas fa-icons me-1"></i>Chọn biểu tượng
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="Xóa icon" aria-label="Xóa icon">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <small id="createCategoryIconHelp" class="text-muted">Chọn hoặc nhập một biểu tượng Unicode.</small>
+                            <div class="category-icon-picker-panel d-none" data-icon-panel>
+                                <input type="search"
+                                       class="form-control form-control-sm mb-2"
+                                       data-icon-search
+                                       placeholder="Tìm cà phê, trà, trái cây..."
+                                       aria-label="Tìm biểu tượng" />
+                                <div class="category-icon-groups" data-icon-groups></div>
+                            </div>
+                        </div>
 
                     </div>
 
@@ -524,11 +549,35 @@
 
                         </label>
 
-                        <input type="text"
-                               id="editCategoryIcon"
-                               name="Icon"
-                               class="form-control category-input"
-                               placeholder="Ví dụ: ☕ 🍵 🥤 🍰" />
+                        <div class="category-icon-picker" data-category-icon-picker>
+                            <div class="input-group category-icon-toolbar">
+                                <span class="input-group-text category-icon-preview" data-icon-preview aria-label="Xem trước icon">—</span>
+                                <input type="text"
+                                       id="editCategoryIcon"
+                                       name="Icon"
+                                       maxlength="10"
+                                       autocomplete="off"
+                                       class="form-control category-input"
+                                       data-icon-input
+                                       aria-describedby="editCategoryIconHelp"
+                                       placeholder="Ví dụ: ☕" />
+                                <button type="button" class="btn btn-outline-secondary" data-icon-toggle aria-expanded="false">
+                                    <i class="fas fa-icons me-1"></i>Chọn biểu tượng
+                                </button>
+                                <button type="button" class="btn btn-outline-danger" data-icon-clear title="Xóa icon" aria-label="Xóa icon">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <small id="editCategoryIconHelp" class="text-muted">Chọn hoặc nhập một biểu tượng Unicode.</small>
+                            <div class="category-icon-picker-panel d-none" data-icon-panel>
+                                <input type="search"
+                                       class="form-control form-control-sm mb-2"
+                                       data-icon-search
+                                       placeholder="Tìm cà phê, trà, trái cây..."
+                                       aria-label="Tìm biểu tượng" />
+                                <div class="category-icon-groups" data-icon-groups></div>
+                            </div>
+                        </div>
 
                     </div>
 

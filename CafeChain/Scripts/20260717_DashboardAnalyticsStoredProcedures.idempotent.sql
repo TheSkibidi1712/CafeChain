@@ -21,6 +21,38 @@ RETURN
 );
 GO
 
+CREATE OR ALTER FUNCTION dbo.ufn_AnalyticsBucketStart(
+    @Value datetime2,
+    @Granularity varchar(10))
+RETURNS datetime2
+AS
+BEGIN
+    DECLARE @Mode varchar(10)=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
+    RETURN CASE @Mode
+        WHEN 'HOUR' THEN DATEADD(hour,DATEDIFF(hour,CONVERT(datetime2,'19000101'),@Value),CONVERT(datetime2,'19000101'))
+        WHEN 'WEEK' THEN DATEADD(day,-(DATEDIFF(day,CONVERT(date,'19000101'),CONVERT(date,@Value)) % 7),CONVERT(datetime2,CONVERT(date,@Value)))
+        WHEN 'MONTH' THEN CONVERT(datetime2,DATEFROMPARTS(YEAR(@Value),MONTH(@Value),1))
+        ELSE CONVERT(datetime2,CONVERT(date,@Value))
+    END;
+END;
+GO
+
+CREATE OR ALTER FUNCTION dbo.ufn_AnalyticsNextBucket(
+    @BucketStart datetime2,
+    @Granularity varchar(10))
+RETURNS datetime2
+AS
+BEGIN
+    DECLARE @Mode varchar(10)=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
+    RETURN CASE @Mode
+        WHEN 'HOUR' THEN DATEADD(hour,1,@BucketStart)
+        WHEN 'WEEK' THEN DATEADD(day,7,@BucketStart)
+        WHEN 'MONTH' THEN DATEADD(month,1,@BucketStart)
+        ELSE DATEADD(day,1,@BucketStart)
+    END;
+END;
+GO
+
 CREATE OR ALTER PROCEDURE dbo.usp_Dashboard_NetSalesTrend
     @FromDate date, @ToDate date, @StoreIds nvarchar(max),
     @Granularity varchar(10) = 'Day', @Top int = 10
@@ -28,20 +60,28 @@ AS
 BEGIN
     SET NOCOUNT ON;
     IF @FromDate IS NULL OR @ToDate IS NULL OR @FromDate > @ToDate THROW 50001, 'Invalid date range.', 1;
+    IF DATEDIFF(day,@FromDate,@ToDate)>3660 THROW 50003, 'Date range cannot exceed 3660 days.', 1;
+    SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
     DECLARE @ToExclusive datetime2 = DATEADD(day, 1, CONVERT(datetime2, @ToDate));
-    ;WITH Dates AS
+    DECLARE @FirstBucket datetime2=dbo.ufn_AnalyticsBucketStart(CONVERT(datetime2,@FromDate),@Granularity);
+    DECLARE @LastBucket datetime2=dbo.ufn_AnalyticsBucketStart(DATEADD(second,-1,@ToExclusive),@Granularity);
+    ;WITH Buckets AS
     (
-        SELECT @FromDate AS BucketDate
-        UNION ALL SELECT DATEADD(day, 1, BucketDate) FROM Dates WHERE BucketDate < @ToDate
+        SELECT @FirstBucket AS BucketDate
+        UNION ALL
+        SELECT dbo.ufn_AnalyticsNextBucket(BucketDate,@Granularity)
+        FROM Buckets
+        WHERE BucketDate < @LastBucket
     ), Events AS
     (
-        SELECT CONVERT(date, o.CreatedAt) AS EventDate, 1 AS OrderCount,
+        SELECT dbo.ufn_AnalyticsBucketStart(o.CreatedAt,@Granularity) AS EventDate, 1 AS OrderCount,
                CONVERT(decimal(19,2), o.Total - o.ShippingFee) AS NetSales
         FROM dbo.Orders AS o
         INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId = o.StoreId
         WHERE o.OrderStatusId = 5 AND o.CreatedAt >= @FromDate AND o.CreatedAt < @ToExclusive
         UNION ALL
-        SELECT CONVERT(date, r.CompletedAtUtc), 0,
+        SELECT dbo.ufn_AnalyticsBucketStart(r.CompletedAtUtc,@Granularity), 0,
                -CONVERT(decimal(19,2), o.Total - o.ShippingFee)
         FROM dbo.OrderRefunds AS r
         INNER JOIN dbo.Orders AS o ON o.OrderId = r.OrderId AND o.OrderStatusId = 5
@@ -51,11 +91,11 @@ BEGIN
     SELECT d.BucketDate, COALESCE(SUM(e.OrderCount), 0) AS TotalOrders,
            COALESCE(SUM(e.NetSales), 0) AS NetSales,
            CASE WHEN SUM(CASE WHEN e.EventDate IS NOT NULL THEN 1 ELSE 0 END) = 0 THEN 'NO_DATA' ELSE 'AVAILABLE' END AS DataStatus
-    FROM Dates AS d
+    FROM Buckets AS d
     LEFT JOIN Events AS e ON e.EventDate = d.BucketDate
     GROUP BY d.BucketDate
     ORDER BY d.BucketDate
-    OPTION (MAXRECURSION 32767);
+    OPTION (MAXRECURSION 0);
 END;
 GO
 
@@ -83,14 +123,16 @@ CREATE OR ALTER PROCEDURE dbo.usp_Inventory_MovementByType
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CONVERT(date,it.CreatedAt) AS MovementDate, it.Type AS TransactionType,
+    SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
+    SELECT dbo.ufn_AnalyticsBucketStart(it.CreatedAt,@Granularity) AS MovementDate, it.Type AS TransactionType,
            COUNT_BIG(it.InventoryTransactionId) AS TransactionCount,
            SUM(it.Quantity) AS Quantity, COALESCE(SUM(it.TotalCost),0) AS TotalCost, 'AVAILABLE' AS DataStatus
     FROM dbo.InventoryTransactions AS it
     INNER JOIN dbo.StoreInventories AS si ON si.StoreInventoryId=it.StoreInventoryId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=si.StoreId
     WHERE it.CreatedAt>=@FromDate AND it.CreatedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-    GROUP BY CONVERT(date,it.CreatedAt),it.Type ORDER BY MovementDate,it.Type;
+    GROUP BY dbo.ufn_AnalyticsBucketStart(it.CreatedAt,@Granularity),it.Type ORDER BY MovementDate,it.Type;
 END;
 GO
 
@@ -209,13 +251,15 @@ CREATE OR ALTER PROCEDURE dbo.usp_Procurement_PurchasePriceTrend
 AS
 BEGIN
     SET NOCOUNT ON;
-    SELECT CONVERT(date,br.ReceivedAt) AS ReceiptDate,brl.IngredientId,i.Name AS IngredientName,
+    SET @Granularity=UPPER(LTRIM(RTRIM(COALESCE(@Granularity,'DAY'))));
+    IF @Granularity NOT IN ('HOUR','DAY','WEEK','MONTH') THROW 50002, 'Invalid granularity.', 1;
+    SELECT dbo.ufn_AnalyticsBucketStart(br.ReceivedAt,@Granularity) AS ReceiptDate,brl.IngredientId,i.Name AS IngredientName,
            AVG(brl.BaseUnitCostSnapshot) AS AverageBaseUnitCost,MIN(brl.BaseUnitCostSnapshot) AS MinimumBaseUnitCost,
            MAX(brl.BaseUnitCostSnapshot) AS MaximumBaseUnitCost,SUM(brl.ReceivedBaseQuantity) AS ReceivedBaseQuantity,'AVAILABLE' AS DataStatus
     FROM dbo.BranchReceipts AS br INNER JOIN dbo.BranchReceiptLines AS brl ON brl.BranchReceiptId=br.BranchReceiptId
     INNER JOIN dbo.ufn_AnalyticsStoreScope(@StoreIds) AS scope ON scope.StoreId=br.StoreId LEFT JOIN dbo.Ingredients AS i ON i.IngredientId=brl.IngredientId
     WHERE br.Status='CONFIRMED' AND brl.IngredientId IS NOT NULL AND br.ReceivedAt>=@FromDate AND br.ReceivedAt<DATEADD(day,1,CONVERT(datetime2,@ToDate))
-    GROUP BY CONVERT(date,br.ReceivedAt),brl.IngredientId,i.Name ORDER BY ReceiptDate,brl.IngredientId;
+    GROUP BY dbo.ufn_AnalyticsBucketStart(br.ReceivedAt,@Granularity),brl.IngredientId,i.Name ORDER BY ReceiptDate,brl.IngredientId;
 END;
 GO
 

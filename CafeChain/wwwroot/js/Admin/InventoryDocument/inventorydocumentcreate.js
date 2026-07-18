@@ -96,6 +96,7 @@ const InventoryCreate = (() => {
     let supplierIngredients = [];
     let isIngredientSourceLoading = false;
     let isSupplierIngredientFallback = false;
+    let loadedSupplierStoreId = "";
     let summaryTimer = null;
     let currentRequestKey = null;
 
@@ -222,6 +223,7 @@ const InventoryCreate = (() => {
         supplierIngredients = [];
         isIngredientSourceLoading = false;
         isSupplierIngredientFallback = false;
+        loadedSupplierStoreId = "";
 
         const form =
             document.querySelector(
@@ -271,6 +273,11 @@ const InventoryCreate = (() => {
                 async () => {
 
                     updateEntryGuards();
+
+                    if (isImportPurchase()) {
+                        await loadSuppliers(storeSelect.value);
+                        return;
+                    }
 
                     if (isImportAdjustment()) {
                         await loadActiveIngredients(
@@ -419,6 +426,9 @@ const InventoryCreate = (() => {
             );
 
         applyPurposeMode();
+        if (isImportPurchase() && storeSelect?.value) {
+            loadSuppliers(storeSelect.value);
+        }
         renumberRows();
         requestSummary();
     }
@@ -434,6 +444,13 @@ const InventoryCreate = (() => {
 
         if (isImportPurchase()) {
             syncPartnerFromSupplier();
+
+            const storeId =
+                document.querySelector(selector.store)?.value;
+
+            if (storeId && loadedSupplierStoreId !== String(storeId)) {
+                loadSuppliers(storeId);
+            }
 
             const supplierId =
                 document.querySelector(selector.supplier)?.value;
@@ -972,8 +989,13 @@ const InventoryCreate = (() => {
 
         try {
 
+            const storeId = document.querySelector(selector.store)?.value;
+            if (!storeId) {
+                throw new Error("Chọn cửa hàng trước khi tải nguyên liệu nhà cung cấp.");
+            }
+
             const response =
-                await fetch(appendQuery(getEndpoint("supplierIngredientsUrl"), { supplierId }));
+                await fetch(appendQuery(getEndpoint("supplierIngredientsUrl"), { supplierId, storeId }));
 
             if (!response.ok) {
                 throw new Error(await response.text());
@@ -1008,6 +1030,59 @@ const InventoryCreate = (() => {
 
         }
 
+    }
+
+    async function loadSuppliers(storeId) {
+
+        const supplierSelect = document.querySelector(selector.supplier);
+        if (!supplierSelect) {
+            return;
+        }
+
+        loadedSupplierStoreId = String(storeId || "");
+        supplierSelect.disabled = true;
+        supplierSelect.innerHTML = "";
+        supplierSelect.append(new Option(storeId ? "Đang tải nhà cung cấp..." : "Chọn cửa hàng trước", ""));
+
+        supplierIngredients = [];
+        isSupplierIngredientFallback = false;
+        resetRows();
+        renderIngredientOptions(false, "Chọn nhà cung cấp trước");
+        updateSummary(emptySummary());
+
+        if (!storeId) {
+            supplierSelect.disabled = false;
+            syncPartnerFromSupplier();
+            updateEntryGuards();
+            return;
+        }
+
+        try {
+            const response = await fetch(appendQuery(getEndpoint("suppliersUrl"), { storeId }));
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            const suppliers = await response.json();
+            supplierSelect.innerHTML = "";
+            supplierSelect.append(new Option("Chọn nhà cung cấp", ""));
+            suppliers.forEach(item => {
+                supplierSelect.append(new Option(
+                    item.supplierName ?? item.SupplierName,
+                    item.supplierId ?? item.SupplierId));
+            });
+        }
+        catch (error) {
+            loadedSupplierStoreId = "";
+            supplierSelect.innerHTML = "";
+            supplierSelect.append(new Option("Không tải được nhà cung cấp", ""));
+            showError(error.message || "Không tải được nhà cung cấp của cửa hàng.");
+        }
+        finally {
+            supplierSelect.disabled = false;
+            syncPartnerFromSupplier();
+            updateEntryGuards();
+        }
     }
 
     function syncPartnerFromSupplier() {

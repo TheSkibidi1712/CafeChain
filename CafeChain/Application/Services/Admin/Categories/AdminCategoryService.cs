@@ -6,6 +6,7 @@ using CafeChain.ViewModels.Admin.Categories;
 using CafeChain.ViewModels.Shared;
 using CafeChain.Application.Services.AI;
 using CafeChain.Application.Exceptions;
+using CafeChain.Application.Validation;
 
 namespace CafeChain.Application.Services.Admin.Categories
 {
@@ -176,7 +177,7 @@ namespace CafeChain.Application.Services.Admin.Categories
             {
                 CategoryCode = Normalize(dto.CategoryCode),
                 Name = Normalize(dto.Name),
-                Icon = NormalizeOptional(dto.Icon),
+                Icon = CategoryIconPolicy.NormalizeOrThrow(dto.Icon),
                 Active = dto.Active
             };
         }
@@ -187,7 +188,7 @@ namespace CafeChain.Application.Services.Admin.Categories
 
             category.Name = Normalize(dto.Name);
 
-            category.Icon = NormalizeOptional(dto.Icon);
+            category.Icon = CategoryIconPolicy.NormalizeOrThrow(dto.Icon);
 
             category.Active = dto.Active;
         }
@@ -196,13 +197,6 @@ namespace CafeChain.Application.Services.Admin.Categories
         {
             return string.IsNullOrWhiteSpace(value)
                 ? string.Empty
-                : value.Trim();
-        }
-
-        private static string? NormalizeOptional(string? value)
-        {
-            return string.IsNullOrWhiteSpace(value)
-                ? null
                 : value.Trim();
         }
 

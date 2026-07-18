@@ -4,6 +4,7 @@ using CafeChain.Application.DTOs.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Categories;
 using CafeChain.Application.Interfaces.Admin.Permissions;
 using CafeChain.Application.Interfaces.AI;
+using CafeChain.Application.DTOs.AI;
 using Microsoft.AspNetCore.Mvc;
 using CafeChain.Application.Exceptions;
 using CafeChain.ViewModels.Admin.Categories;
@@ -89,17 +90,38 @@ namespace CafeChain.Areas.Admin.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> AiSuggestions()
+        public async Task<IActionResult> AiSuggestions([FromBody] CategorySuggestionRequestDTO? request)
         {
             var guard = await EnsureCategoryPermissionAsync(PermissionConstants.CategoryCreate);
             if (guard != null) return guard;
 
-            var result = await _aiService.SuggestCategoriesAsync(HttpContext.RequestAborted);
-            Response.StatusCode = result.Success ? StatusCodes.Status200OK : StatusCodes.Status400BadRequest;
+            if (!ModelState.IsValid)
+            {
+                Response.StatusCode = StatusCodes.Status400BadRequest;
+                return Json(new
+                {
+                    success = false,
+                    message = "Dữ liệu yêu cầu AI không hợp lệ.",
+                    errorCode = "AI_INVALID_REQUEST"
+                });
+            }
+
+            request ??= new CategorySuggestionRequestDTO();
+            var result = await _aiService.SuggestCategoriesAsync(request, HttpContext.RequestAborted);
+            Response.StatusCode = result.Success
+                ? StatusCodes.Status200OK
+                : result.ErrorCode switch
+                {
+                    "AI_TIMEOUT" => StatusCodes.Status504GatewayTimeout,
+                    "AI_UNAVAILABLE" => StatusCodes.Status503ServiceUnavailable,
+                    "AI_INVALID_RESPONSE" => StatusCodes.Status422UnprocessableEntity,
+                    _ => StatusCodes.Status400BadRequest
+                };
             return Json(new
             {
                 success = result.Success,
                 message = result.Message,
+                errorCode = result.ErrorCode,
                 data = result,
                 usedOllama = result.UsedOllama,
                 usedFallback = result.UsedFallback
@@ -137,6 +159,10 @@ namespace CafeChain.Areas.Admin.Controllers
             catch (DuplicateDataException ex)
             {
                 return Error(ex.Message, StatusCodes.Status409Conflict);
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message);
             }
 
             return Success("Thêm danh mục thành công.");
@@ -178,6 +204,10 @@ namespace CafeChain.Areas.Admin.Controllers
             catch (DuplicateDataException ex)
             {
                 return Error(ex.Message, StatusCodes.Status409Conflict);
+            }
+            catch (ArgumentException ex)
+            {
+                return Error(ex.Message);
             }
 
             if (result == null)

@@ -47,6 +47,187 @@ function buildCategoryFormData(form) {
     return formData;
 }
 
+const categoryIconCatalog = [
+    {
+        name: "Đồ uống",
+        items: [
+            ["☕", "Cà phê"], ["🧋", "Trà sữa"], ["🍵", "Trà"],
+            ["🥤", "Nước uống"], ["🥛", "Sữa"], ["🧃", "Nước ép"],
+            ["🍹", "Nước trái cây"], ["🍸", "Mocktail"], ["🍺", "Đồ uống lạnh"]
+        ]
+    },
+    {
+        name: "Trái cây",
+        items: [
+            ["🍓", "Dâu"], ["🍊", "Cam"], ["🍋", "Chanh"], ["🍎", "Táo"],
+            ["🍉", "Dưa hấu"], ["🥭", "Xoài"], ["🍑", "Đào"], ["🍒", "Anh đào"],
+            ["🍍", "Dứa"], ["🥑", "Bơ"], ["🥥", "Dừa"]
+        ]
+    },
+    {
+        name: "Đồ ăn",
+        items: [
+            ["🥐", "Bánh sừng bò"], ["🥪", "Bánh mì kẹp"], ["🍞", "Bánh mì"],
+            ["🥨", "Bánh xoắn"], ["🍫", "Sô-cô-la"], ["🥜", "Hạt"]
+        ]
+    },
+    {
+        name: "Bánh và kem",
+        items: [
+            ["🍨", "Kem ly"], ["🍦", "Kem"], ["🍰", "Bánh ngọt"],
+            ["🧁", "Bánh cupcake"], ["🍪", "Bánh quy"], ["🍩", "Bánh vòng"]
+        ]
+    },
+    {
+        name: "Phổ biến",
+        items: [
+            ["⭐", "Nổi bật"], ["🔥", "Bán chạy"], ["🌿", "Thảo mộc"],
+            ["❤️", "Yêu thích"], ["✨", "Theo mùa"], ["💚", "Tốt cho sức khỏe"],
+            ["🧊", "Đá xay"], ["♨️", "Đồ uống nóng"]
+        ]
+    }
+];
+
+function normalizeIconSearch(value) {
+    return String(value || "")
+        .normalize("NFD")
+        .replace(/\p{M}/gu, "")
+        .toLocaleLowerCase("vi-VN");
+}
+
+function validateCategoryIcon(icon, showMessage = true) {
+    const value = String(icon || "").trim();
+    let message = "";
+
+    if (!value) return true;
+    if (value.length > 10) message = "Icon tối đa 10 ký tự.";
+    else if (/[<>&]/u.test(value)) message = "Icon không được chứa HTML.";
+    else {
+        const segments = typeof Intl.Segmenter === "function"
+            ? Array.from(new Intl.Segmenter("vi", { granularity: "grapheme" }).segment(value), item => item.segment)
+            : Array.from(value);
+        if (segments.length !== 1) message = "Chỉ được chọn một biểu tượng Unicode.";
+        else {
+            let containsSymbol = false;
+            for (const character of value) {
+                if (/\p{S}/u.test(character)) containsSymbol = true;
+                else if (!/[\p{M}\u200D]/u.test(character)) {
+                    message = "Icon phải là một biểu tượng Unicode, không phải chữ hoặc số.";
+                    break;
+                }
+            }
+            if (!message && !containsSymbol) message = "Icon phải là một biểu tượng Unicode hợp lệ.";
+        }
+    }
+
+    if (message && showMessage) toast(message, "error");
+    return !message;
+}
+
+function closeCategoryIconPickers(exceptRoot = null) {
+    document.querySelectorAll("[data-category-icon-picker]").forEach(root => {
+        if (root === exceptRoot) return;
+        root.querySelector("[data-icon-panel]")?.classList.add("d-none");
+        root.querySelector("[data-icon-toggle]")?.setAttribute("aria-expanded", "false");
+    });
+}
+
+function initializeCategoryIconPicker(root) {
+    const input = root.querySelector("[data-icon-input]");
+    const preview = root.querySelector("[data-icon-preview]");
+    const toggle = root.querySelector("[data-icon-toggle]");
+    const clear = root.querySelector("[data-icon-clear]");
+    const panel = root.querySelector("[data-icon-panel]");
+    const search = root.querySelector("[data-icon-search]");
+    const groups = root.querySelector("[data-icon-groups]");
+    if (!input || !preview || !toggle || !clear || !panel || !search || !groups) return;
+
+    const updatePreview = () => {
+        const icon = input.value.trim();
+        preview.textContent = icon || "—";
+        preview.classList.toggle("is-empty", !icon);
+    };
+
+    const close = () => {
+        panel.classList.add("d-none");
+        toggle.setAttribute("aria-expanded", "false");
+    };
+
+    const render = () => {
+        const keyword = normalizeIconSearch(search.value);
+        groups.replaceChildren();
+        categoryIconCatalog.forEach(group => {
+            const items = group.items.filter(([icon, label]) =>
+                !keyword || normalizeIconSearch(`${group.name} ${label} ${icon}`).includes(keyword));
+            if (!items.length) return;
+
+            const section = document.createElement("section");
+            section.className = "category-icon-group";
+            const title = document.createElement("div");
+            title.className = "category-icon-group-title";
+            title.textContent = group.name;
+            const grid = document.createElement("div");
+            grid.className = "category-icon-grid";
+            items.forEach(([icon, label]) => {
+                const option = document.createElement("button");
+                option.type = "button";
+                option.className = "category-icon-option";
+                option.dataset.icon = icon;
+                option.title = label;
+                option.setAttribute("aria-label", `${label}: ${icon}`);
+                option.textContent = icon;
+                grid.appendChild(option);
+            });
+            section.append(title, grid);
+            groups.appendChild(section);
+        });
+
+        if (!groups.children.length) {
+            const empty = document.createElement("div");
+            empty.className = "category-icon-no-result";
+            empty.textContent = "Không tìm thấy biểu tượng phù hợp.";
+            groups.appendChild(empty);
+        }
+    };
+
+    toggle.addEventListener("click", () => {
+        const willOpen = panel.classList.contains("d-none");
+        closeCategoryIconPickers(willOpen ? root : null);
+        panel.classList.toggle("d-none", !willOpen);
+        toggle.setAttribute("aria-expanded", String(willOpen));
+        if (willOpen) {
+            render();
+            search.focus();
+        }
+    });
+    clear.addEventListener("click", () => {
+        input.value = "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.focus();
+    });
+    search.addEventListener("input", render);
+    groups.addEventListener("click", event => {
+        const option = event.target.closest("[data-icon]");
+        if (!option) return;
+        input.value = option.dataset.icon || "";
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        close();
+        input.focus();
+    });
+    input.addEventListener("input", updatePreview);
+    input.addEventListener("blur", () => validateCategoryIcon(input.value, Boolean(input.value.trim())));
+    document.addEventListener("click", event => {
+        if (!root.contains(event.target)) close();
+    });
+    root.addEventListener("keydown", event => {
+        if (event.key === "Escape") {
+            close();
+            toggle.focus();
+        }
+    });
+    updatePreview();
+}
+
 // =====================================================
 // VALIDATION
 // =====================================================
@@ -137,11 +318,17 @@ async function createCategory(form) {
     const name =
         form.querySelector('[name="Name"]').value;
 
+    const icon = form.querySelector('[name="Icon"]')?.value;
+
     if (!validateCategoryCode(code)) {
         return;
     }
 
     if (!validateCategoryName(name)) {
+        return;
+    }
+
+    if (!validateCategoryIcon(icon)) {
         return;
     }
 
@@ -217,21 +404,37 @@ async function createCategory(form) {
     }
 }
 
+let categorySuggestionInFlight = false;
+let categorySuggestionController = null;
+
 async function suggestCategories() {
     const form = document.getElementById("createCategoryForm");
     const button = document.getElementById("btnSuggestCategories");
     const panel = document.getElementById("categoryAiSuggestions");
     const list = document.getElementById("categoryAiSuggestionList");
-    if (!form || !button || !panel || !list) return;
+    if (!form || !button || !panel || !list || categorySuggestionInFlight) return;
 
     const originalHtml = button.innerHTML;
+    const controller = new AbortController();
+    categorySuggestionController = controller;
+    categorySuggestionInFlight = true;
     lockButton(button, "Đang gợi ý...");
     try {
+        const payload = {
+            currentName: form.querySelector('[name="Name"]')?.value.trim() || null,
+            currentCategoryCode: form.querySelector('[name="CategoryCode"]')?.value.trim() || null,
+            currentIcon: form.querySelector('[name="Icon"]')?.value.trim() || null
+        };
         const response = await fetch("/Admin/AdminCategory/AiSuggestions", {
             method: "POST",
-            headers: { "RequestVerificationToken": form.querySelector('[name="__RequestVerificationToken"]')?.value || "" }
+            headers: {
+                "Content-Type": "application/json",
+                "RequestVerificationToken": form.querySelector('[name="__RequestVerificationToken"]')?.value || ""
+            },
+            body: JSON.stringify(payload),
+            signal: controller.signal
         });
-        const result = await response.json();
+        const result = await response.json().catch(() => ({}));
         if (!response.ok || !result.success) throw new Error(result.message || "Không thể tạo gợi ý.");
 
         const suggestionMessage = document.getElementById("categoryAiSuggestionMessage");
@@ -252,7 +455,9 @@ async function suggestCategories() {
                 const option = result.data.options[Number(optionButton.dataset.categoryOption)];
                 form.querySelector('[name="Name"]').value = option.name;
                 form.querySelector('[name="CategoryCode"]').value = option.categoryCode;
-                form.querySelector('[name="Icon"]').value = option.icon;
+                const iconInput = form.querySelector('[name="Icon"]');
+                iconInput.value = option.icon;
+                iconInput.dispatchEvent(new Event("input", { bubbles: true }));
                 const active = form.querySelector('input[type="checkbox"][name="Active"]');
                 if (active) active.checked = true;
                 panel.classList.add("d-none");
@@ -263,10 +468,16 @@ async function suggestCategories() {
         panel.classList.remove("d-none");
     }
     catch (error) {
-        toast(error.message || "Không thể tạo gợi ý danh mục.", "error");
+        if (error.name !== "AbortError") {
+            toast(error.message || "Không thể tạo gợi ý danh mục.", "error");
+        }
     }
     finally {
-        unlockButton(button, originalHtml);
+        if (categorySuggestionController === controller) {
+            categorySuggestionController = null;
+            categorySuggestionInFlight = false;
+            unlockButton(button, originalHtml);
+        }
     }
 }
 
@@ -288,11 +499,17 @@ async function editCategory(form) {
     const name =
         document.getElementById("editCategoryName").value;
 
+    const icon = document.getElementById("editCategoryIcon").value;
+
     if (!validateCategoryCode(code)) {
         return;
     }
 
     if (!validateCategoryName(name)) {
+        return;
+    }
+
+    if (!validateCategoryIcon(icon)) {
         return;
     }
 
@@ -408,9 +625,11 @@ async function openEditModal(categoryId) {
             "editCategoryName"
         ).value = category.name;
 
-        document.getElementById(
+        const iconInput = document.getElementById(
             "editCategoryIcon"
-        ).value = category.icon ?? "";
+        );
+        iconInput.value = category.icon ?? "";
+        iconInput.dispatchEvent(new Event("input", { bubbles: true }));
 
         document.getElementById(
             "editCategoryActive"
@@ -514,6 +733,14 @@ document.addEventListener(
         }
 
         document.getElementById("btnSuggestCategories")?.addEventListener("click", suggestCategories);
+
+        document.querySelectorAll("[data-category-icon-picker]")
+            .forEach(initializeCategoryIconPicker);
+
+        document.getElementById("createCategoryModal")?.addEventListener("hidden.bs.modal", () => {
+            categorySuggestionController?.abort();
+            closeCategoryIconPickers();
+        });
 
         const editForm =
             document.getElementById(

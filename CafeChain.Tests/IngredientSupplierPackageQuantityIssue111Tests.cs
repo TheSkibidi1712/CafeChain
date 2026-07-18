@@ -343,15 +343,15 @@ namespace CafeChain.Tests.POS
         }
 
         [Fact]
-        public void SupplierIngredientDto_PackageQty750_DoesNotAutoFillUnitPrice()
+        public void SupplierIngredientDto_PackageQty750_NormalizesPackagePriceToContentUnit()
         {
             var supplier = BuildOffer(packageQty: 750m, unitId: UnitMl, price: 250000m, baseUnitId: UnitMl);
             var dto = InvokeMapSupplierIngredientDto(supplier);
 
             Assert.Equal(250000m, dto.PackagePrice);
-            Assert.Null(dto.SuggestedUnitPrice);
-            Assert.False(dto.CanAutoFillUnitPrice);
-            Assert.Null(dto.SuggestedBaseUnitCost);
+            Assert.Equal(250000m / 750m, dto.SuggestedUnitPrice);
+            Assert.True(dto.CanAutoFillUnitPrice);
+            Assert.Equal(250000m / 750m, dto.SuggestedBaseUnitCost);
         }
 
         [Fact]

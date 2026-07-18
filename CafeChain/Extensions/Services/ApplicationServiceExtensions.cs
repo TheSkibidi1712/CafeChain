@@ -70,6 +70,7 @@ using CafeChain.Application.Services.Systems;
 using CafeChain.Application.Services.AI;
 using CafeChain.Application.Services.Admin.StoreScope;
 using CafeChain.Application.Services.AppLauncher;
+using CafeChain.Application.Options;
 
 namespace CafeChain.Extensions.Services
 {
@@ -88,6 +89,11 @@ namespace CafeChain.Extensions.Services
             // Account
             services.AddScoped<IAccountService, AccountService>();
             services.AddScoped<IAppLauncherService, AppLauncherService>();
+            services.AddSingleton<IPrintBridgePresenceTracker, PrintBridgePresenceTracker>();
+            services.AddSingleton<IPosLaunchCoordinator, PosLaunchCoordinator>();
+            services.AddHttpClient();
+            services.AddOptions<PosLauncherOptions>()
+                .BindConfiguration(PosLauncherOptions.SectionName);
             services.AddScoped<IPasswordResetService, PasswordResetService>();
             services.AddScoped<IEmailService, EmailService>();
 

@@ -1,6 +1,7 @@
 ﻿using CafeChain.Application.DTOs.Admin.InventoryDocuments.Create;
 using CafeChain.Models.Enums.Inventory;
 using CafeChain.ViewModels.Admin.InventoryDocuments.Create;
+using CafeChain.ViewModels.Admin.InventoryDocuments.Dropdown;
 
 namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 {
@@ -12,7 +13,9 @@ namespace CafeChain.Application.Interfaces.Admin.InventoryDocuments
 
         Task<AdminInventoryDocumentCreateVM> GetCreateDataAsync(InventoryDocumentType type);
 
-        Task<List<SupplierIngredientDTO>> GetSupplierIngredientsAsync(int supplierId);
+        Task<List<SupplierDropdownVM>> GetSuppliersAsync(int storeId);
+
+        Task<List<SupplierIngredientDTO>> GetSupplierIngredientsAsync(int supplierId, int storeId);
 
         Task<List<SupplierIngredientDTO>> GetActiveIngredientsAsync(int storeId, InventoryDocumentPurpose purpose);
 

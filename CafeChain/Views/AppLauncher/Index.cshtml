@@ -13,7 +13,12 @@
     <link rel="stylesheet" href="~/css/AppLauncher/app-launcher.css" asp-append-version="true" />
 </head>
 <body>
-    <main class="launcher-shell">
+    <main class="launcher-shell"
+          id="appLauncher"
+          data-launch-pos-url="@Url.Action("LaunchPos", "AppLauncher")"
+          data-pos-status-url="@Url.Action("PosStatus", "AppLauncher")"
+          data-pos-token-url="@Url.Action("IssuePosToken", "StaffHub")">
+        @Html.AntiForgeryToken()
         <header class="launcher-header">
             <div>
                 <span class="launcher-brand"><i class="bi bi-cup-hot-fill"></i> CafeChain</span>
@@ -30,7 +35,10 @@
             <section class="launcher-grid" aria-label="Ứng dụng được phép truy cập">
                 @foreach (var app in Model.Apps.Where(x => x.IsAvailable))
                 {
-                    <a class="launcher-card" href="@app.Route" aria-label="Mở @app.Title">
+                    <a class="launcher-card @(app.RequiresLaunch ? "launcher-card-pos" : string.Empty)"
+                       href="@app.Route"
+                       data-requires-launch="@app.RequiresLaunch.ToString().ToLowerInvariant()"
+                       aria-label="Mở @app.Title">
                         <span class="launcher-icon"><i class="bi @app.Icon"></i></span>
                         <span class="launcher-card-body">
                             <strong>@app.Title</strong>
@@ -40,6 +48,7 @@
                     </a>
                 }
             </section>
+            <div id="posLaunchStatus" class="launcher-status" role="status" aria-live="polite" hidden></div>
         }
         else
         {
@@ -50,5 +59,6 @@
             </section>
         }
     </main>
+    <script src="~/js/AppLauncher/app-launcher.js" asp-append-version="true"></script>
 </body>
 </html>

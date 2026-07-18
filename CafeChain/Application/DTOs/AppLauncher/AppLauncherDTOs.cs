@@ -16,6 +16,7 @@ public sealed class AppLauncherCardDTO
     public string Route { get; init; } = string.Empty;
     public int DisplayOrder { get; init; }
     public bool IsAvailable { get; init; }
+    public bool RequiresLaunch { get; init; }
     public string? DenialReason { get; init; }
 }
 

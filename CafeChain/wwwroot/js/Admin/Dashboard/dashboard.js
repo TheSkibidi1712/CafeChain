@@ -19,55 +19,110 @@
     let activeSection = "Executive";
     let activeRequest = null;
 
+    const fieldMeta = {
+        bucketDate: ["Thời gian", "date"], movementDate: ["Thời gian", "date"], receiptDate: ["Thời gian", "date"],
+        storeId: ["Mã cửa hàng", "id"], storeName: ["Cửa hàng", "text"], staffId: ["Mã nhân viên", "id"],
+        fullName: ["Nhân viên", "text"], workShiftId: ["Mã ca", "id"], staffShiftId: ["Mã phân ca", "id"],
+        totalOrders: ["Số đơn", "count"], totalTransactions: ["Số giao dịch", "count"], transactionCount: ["Số giao dịch", "count"],
+        netSales: ["Doanh số thuần", "currency"], amount: ["Số tiền", "currency"], averageOrderValue: ["Giá trị đơn trung bình", "currency"],
+        cashDiscrepancy: ["Chênh lệch két", "currency"], absoluteDiscrepancy: ["Chênh lệch tuyệt đối", "currency"],
+        absoluteCashDiscrepancy: ["Tổng chênh lệch két", "currency"], startingCash: ["Tiền đầu ca", "currency"],
+        expectedEndingCash: ["Tiền cuối ca dự kiến", "currency"], actualEndingCash: ["Tiền cuối ca thực tế", "currency"],
+        offlineEstimatedTotalAtClose: ["Doanh số offline dự kiến", "currency"], offlineCashTotalAtClose: ["Tiền mặt offline", "currency"],
+        paymentMethodName: ["Phương thức thanh toán", "text"], share: ["Tỷ trọng", "percent"],
+        hourOfDay: ["Giờ", "hour"], isoWeekday: ["Thứ", "count"],
+        severity: ["Mức độ", "status"], alertType: ["Loại cảnh báo", "status"], alertValue: ["Giá trị cảnh báo", "number"], message: ["Nội dung", "text"],
+        totalWorkShifts: ["Tổng số ca", "count"], openWorkShifts: ["Ca đang mở", "count"],
+        exceptionClosedCount: ["Ngoại lệ đã đóng", "count"], reconciliationCount: ["Ca cần đối soát", "count"],
+        offlineOrderCountAtClose: ["Số đơn offline", "count"], requiresReconciliation: ["Cần đối soát", "boolean"],
+        hasLateOfflineSync: ["Có đồng bộ trễ", "boolean"], isExceptionClosed: ["Ngoại lệ đã đóng", "boolean"],
+        discrepancyReason: ["Lý do chênh lệch", "text"], endTime: ["Kết thúc lúc", "dateTime"],
+        ingredientId: ["Mã nguyên liệu", "id"], ingredientName: ["Nguyên liệu", "text"],
+        availableQty: ["Tồn khả dụng", "quantity"], reservedQty: ["Đang giữ chỗ", "quantity"],
+        minStockLevel: ["Ngưỡng tối thiểu", "quantity"], maxNegativeQty: ["Âm kho tối đa", "quantity"],
+        requestedQuantity: ["Số lượng yêu cầu", "quantity"], suggestedQuantity: ["Số lượng đề xuất", "quantity"],
+        priority: ["Ưu tiên", "status"], status: ["Trạng thái", "status"], statusCode: ["Trạng thái", "status"],
+        quantity: ["Số lượng", "quantity"], wasteValue: ["Giá trị hao hụt", "currency"], wasteQuantity: ["Lượng hao hụt", "quantity"],
+        remainingQuantity: ["Số lượng còn lại", "quantity"], remainingValue: ["Giá trị còn lại", "currency"], ageDays: ["Tuổi lớp FIFO (ngày)", "count"],
+        preparedItemId: ["Mã bán thành phẩm", "id"],
+        code: ["Mã", "text"], supplierName: ["Nhà cung cấp", "text"], expectedDeliveryAtUtc: ["Dự kiến giao", "dateTime"], overdueDays: ["Quá hạn (ngày)", "count"],
+        orderedValue: ["Giá trị đặt mua", "currency"], rejectionRate: ["Tỷ lệ từ chối", "percent"],
+        averageBaseUnitCost: ["Giá đơn vị cơ sở", "currency"], spend: ["Chi tiêu", "currency"],
+        issueType: ["Loại sự cố", "status"], issueCount: ["Số sự cố", "count"],
+        drinkCode: ["Mã sản phẩm", "text"], drinkName: ["Sản phẩm", "text"], productRevenue: ["Doanh thu sản phẩm", "currency"],
+        revenue: ["Doanh thu", "currency"], confirmedCogs: ["COGS đã xác nhận", "currency"],
+        confirmedGrossProfit: ["Lợi nhuận gộp", "currency"], confirmedMarginRate: ["Biên lợi nhuận", "percent"],
+        volume: ["Sản lượng", "count"], totalSold: ["Số lượng bán", "count"], sizeName: ["Kích cỡ", "text"],
+        toppingName: ["Topping", "text"], recipeCount: ["Số công thức", "count"], recipeLineCount: ["Số dòng BOM", "count"], invalidLineCount: ["Dòng BOM lỗi", "count"],
+        payrollHours: ["Giờ công", "number"], salesPerPayrollHour: ["Doanh số/giờ công", "currency"], ordersPerStaff: ["Đơn/nhân sự", "number"]
+    };
+
+    const codeLabels = {
+        DRAFT: "Nháp", APPROVED: "Đã duyệt", MARKED_AS_SENT: "Đã gửi nhà cung cấp", PARTIALLY_RECEIVED: "Nhận một phần",
+        COMPLETED: "Hoàn tất", CANCELLED: "Đã hủy", PLANNED: "Đã lên lịch", CHECKED_IN: "Đã vào ca", ABSENT: "Vắng mặt",
+        OPEN: "Đang mở", CLOSED: "Đã đóng", UNDER_REVIEW: "Đang xem xét", RESOLVED: "Đã xử lý", DISMISSED: "Đã bỏ qua",
+        CRITICAL: "Nghiêm trọng", WARNING: "Cảnh báo", HIGH: "Cao", NORMAL: "Bình thường", URGENT: "Khẩn cấp", LOW: "Thấp",
+        SUBMITTED: "Đã gửi", PROCESSING: "Đang xử lý", REJECTED: "Đã từ chối",
+        LOW_STOCK: "Tồn kho thấp", CASH_DISCREPANCY: "Chênh lệch két", OVERDUE_PO: "Đơn mua quá hạn",
+        LATE_DELIVERY: "Giao trễ", SHORT_DELIVERY: "Giao thiếu", WRONG_ITEM: "Sai hàng", DAMAGED: "Hư hỏng", EXPIRED: "Hết hạn",
+        QUALITY_FAILURE: "Không đạt chất lượng", PACKAGING_FAILURE: "Lỗi bao bì", DOCUMENT_MISMATCH: "Sai chứng từ", OTHER: "Khác"
+    };
+
+    const inventoryTransactionLabels = {
+        1: "Nhập kho", 2: "Xuất kho", 3: "Hao hụt", 4: "Kiểm kê", 5: "Nhập từ sản xuất", 6: "Xuất cho sản xuất",
+        7: "Khấu trừ bán hàng", 8: "Điều chỉnh tăng", 9: "Điều chỉnh giảm", 10: "Chuyển kho đi", 11: "Chuyển kho đến",
+        12: "Hợp nhất giảm", 13: "Hợp nhất tăng", 14: "Nhập từ phiếu nhận", 15: "Hoàn trả bán hàng"
+    };
+
     const sections = {
         Executive: [
-            chart("netSalesTrend", "Doanh số thuần", "line", "bucketDate", "netSales", true),
-            chart("storeRanking", "Xếp hạng cửa hàng", "bar", "storeName", "netSales"),
-            chart("paymentMethodMix", "Cơ cấu thanh toán", "donut", "paymentMethodName", "amount"),
-            chart("orderHeatmap", "Mật độ đơn theo giờ", "heatmap", "hourOfDay", "totalOrders", true),
+            chart("netSalesTrend", "Doanh số thuần", "line", "bucketDate", "netSales", { wide: true, axis: "time", valueFormat: "currency" }),
+            chart("storeRanking", "Xếp hạng cửa hàng", "bar", "storeName", "netSales", { entity: "store", valueFormat: "currency" }),
+            chart("paymentMethodMix", "Cơ cấu thanh toán", "donut", "paymentMethodName", "amount", { valueFormat: "currency" }),
+            chart("orderHeatmap", "Mật độ đơn theo giờ", "heatmap", "hourOfDay", "totalOrders", { wide: true, valueFormat: "count" }),
             table("operationalAlerts", "Cảnh báo vận hành", ["severity", "alertType", "storeId", "alertValue", "message"], true)
         ],
         Operations: [
             kpi("kpis", "KPI ca làm việc", ["totalWorkShifts", "openWorkShifts", "exceptionClosedCount", "reconciliationCount", "absoluteCashDiscrepancy"], true),
-            chart("cashDiscrepancy", "Chênh lệch két", "bar", "workShiftId", "cashDiscrepancy"),
-            chart("shiftSales", "Doanh số theo ca", "bar", "workShiftId", "netSales"),
-            chart("paymentMix", "Thanh toán theo ca", "bar", "paymentMethodName", "amount"),
-            chart("hourlyOrders", "Đơn hàng theo giờ", "line", "hourOfDay", "totalOrders"),
+            chart("cashDiscrepancy", "Chênh lệch két", "bar", row => shiftLabel(row, true), "cashDiscrepancy", { valueFormat: "currency" }),
+            chart("shiftSales", "Doanh số theo ca", "bar", row => shiftLabel(row), "netSales", { valueFormat: "currency" }),
+            chart("paymentMix", "Thanh toán theo ca", "bar", row => shiftLabel(row), "amount", { seriesBy: "paymentMethodName", stack: true, valueFormat: "currency", missingValue: 0 }),
+            chart("hourlyOrders", "Đơn hàng theo giờ", "line", row => hourLabel(row.hourOfDay), "totalOrders", { valueFormat: "count" }),
             table("offlineReconciliation", "Đối soát offline", ["workShiftId", "storeId", "offlineOrderCountAtClose", "offlineEstimatedTotalAtClose", "requiresReconciliation", "hasLateOfflineSync"]),
             table("topDiscrepancies", "Ca chênh lệch lớn", ["workShiftId", "storeId", "staffId", "cashDiscrepancy", "discrepancyReason", "endTime"])
         ],
         Inventory: [
-            chart("shortageRisk", "Nguy cơ thiếu hàng", "bar", "ingredientName", "availableQty"),
-            chart("movement", "Biến động kho", "line", "movementDate", "quantity"),
+            chart("shortageRisk", "Nguy cơ thiếu hàng", "bar", row => ingredientStoreLabel(row), "availableQty", { valueFormat: "quantity" }),
+            chart("movement", "Biến động kho", "line", "movementDate", "quantity", { axis: "time", seriesBy: "transactionType", seriesLabel: inventoryTransactionLabel, valueFormat: "quantity", missingValue: 0 }),
             table("thresholdRisk", "Rủi ro ngưỡng tồn", ["storeId", "ingredientName", "availableQty", "minStockLevel", "maxNegativeQty"]),
             table("reorderSuggestions", "Đề xuất đặt lại", ["storeId", "ingredientName", "requestedQuantity", "suggestedQuantity", "priority", "status"]),
-            chart("waste", "Hao hụt", "bar", "ingredientName", "wasteValue"),
+            chart("waste", "Hao hụt", "bar", row => ingredientStoreLabel(row), "wasteValue", { valueFormat: "currency" }),
             table("fifoAge", "Tuổi lớp giá FIFO", ["storeId", "ingredientId", "preparedItemId", "remainingQuantity", "ageDays", "remainingValue"])
         ],
         Procurement: [
-            chart("purchaseOrderPipeline", "Pipeline đơn mua", "donut", "status", "orderedValue"),
+            chart("purchaseOrderPipeline", "Pipeline đơn mua", "donut", row => translateCode(row.status), "orderedValue", { valueFormat: "currency" }),
             table("overduePurchaseOrders", "Đơn mua quá hạn", ["code", "storeId", "supplierName", "status", "expectedDeliveryAtUtc", "overdueDays"]),
-            chart("supplierQuality", "Chất lượng nhà cung cấp", "bar", "supplierName", "rejectionRate"),
-            chart("purchasePriceTrend", "Xu hướng giá mua", "line", "receiptDate", "averageBaseUnitCost"),
-            chart("spendBreakdown", "Chi tiêu nhà cung cấp", "bar", "supplierName", "spend"),
-            chart("supplierIssueMix", "Cơ cấu sự cố", "donut", "issueType", "issueCount")
+            chart("supplierQuality", "Chất lượng nhà cung cấp", "bar", "supplierName", "rejectionRate", { entity: "supplier", valueFormat: "percent" }),
+            chart("purchasePriceTrend", "Xu hướng giá mua", "line", "receiptDate", "averageBaseUnitCost", { axis: "time", seriesBy: "ingredientName", seriesEntity: "ingredient", valueFormat: "currency", missingValue: null }),
+            chart("spendBreakdown", "Chi tiêu nhà cung cấp", "bar", row => supplierStoreLabel(row), "spend", { valueFormat: "currency" }),
+            chart("supplierIssueMix", "Cơ cấu sự cố", "donut", row => `${translateCode(row.issueType)} – ${translateCode(row.status)}`, "issueCount", { valueFormat: "count" })
         ],
         Product: [
-            chart("topProducts", "Top sản phẩm", "bar", "drinkName", "productRevenue"),
-            chart("volumeMargin", "Sản lượng và biên lợi nhuận", "scatter", "volume", "confirmedMarginRate"),
-            chart("sizeMargin", "Lợi nhuận theo size", "bar", "sizeName", "confirmedGrossProfit"),
-            chart("topToppings", "Top topping", "bar", "toppingName", "revenue"),
+            chart("topProducts", "Top sản phẩm", "bar", "drinkName", "productRevenue", { entity: "drink", valueFormat: "currency" }),
+            chart("volumeMargin", "Sản lượng và biên lợi nhuận", "scatter", "volume", "confirmedMarginRate", { valueFormat: "percent" }),
+            chart("sizeMargin", "Lợi nhuận theo size", "bar", "sizeName", "confirmedGrossProfit", { entity: "size", valueFormat: "currency" }),
+            chart("topToppings", "Top topping", "bar", "toppingName", "revenue", { entity: "topping", valueFormat: "currency" }),
             table("bomHealth", "Sức khỏe BOM", ["drinkCode", "drinkName", "recipeCount", "recipeLineCount", "invalidLineCount"]),
             table("lowEfficiency", "Tiêu hao cao / hiệu quả thấp", ["drinkName", "totalSold", "confirmedCogs", "confirmedGrossProfit"])
         ],
         Workforce: [
-            chart("shiftStatus", "Trạng thái phân ca", "bar", "statusCode", "staffShiftId"),
-            chart("hourlyDemand", "Nhu cầu nhân sự theo giờ", "line", "hourOfDay", "ordersPerStaff"),
+            chart("shiftStatus", "Trạng thái phân ca", "bar", "statusCode", "staffShiftId", { aggregate: "count", valueFormat: "count", valueLabel: "Số ca" }),
+            chart("hourlyDemand", "Nhu cầu nhân sự theo giờ", "line", row => hourLabel(row.hourOfDay), "ordersPerStaff", { valueFormat: "number" }),
             table("staffPerformance", "Hiệu suất nhân viên", ["fullName", "storeId", "totalOrders", "netSales", "payrollHours", "salesPerPayrollHour"], true)
         ]
     };
 
-    function chart(key, title, kind, label, value, wide = false) { return { key, title, kind, label, value, wide }; }
+    function chart(key, title, kind, label, value, options = {}) { return { key, title, kind, label, value, ...options, wide: Boolean(options.wide) }; }
     function table(key, title, columns, wide = false) { return { key, title, kind: "table", columns, wide }; }
     function kpi(key, title, columns, wide = false) { return { key, title, kind: "kpi", columns, wide }; }
 
@@ -75,16 +130,84 @@
         return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" })[character]);
     }
 
-    function friendlyName(value) {
-        return value.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, x => x.toUpperCase());
+    function friendlyName(value) { return String(value).replace(/([a-z])([A-Z])/g, "$1 $2").replace(/^./, x => x.toUpperCase()); }
+    function fieldLabel(key) { return fieldMeta[key]?.[0] || friendlyName(key); }
+    function fieldFormat(key) { return fieldMeta[key]?.[1]; }
+
+    function format(value, type) {
+        if (value === null || value === undefined || value === "") return "—";
+        if (type === "status") return translateCode(value);
+        if (type === "boolean" || typeof value === "boolean") return value ? "Có" : "Không";
+        if (type === "currency") return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value) || 0)} ₫`;
+        if (type === "percent") return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format((Number(value) || 0) * 100)}%`;
+        if (type === "count") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 0 }).format(Number(value) || 0);
+        if (type === "quantity") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 3 }).format(Number(value) || 0);
+        if (type === "number" || typeof value === "number") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(Number(value) || 0);
+        if (type === "hour") return hourLabel(value);
+        if (type === "id") return `#${value}`;
+        if (type === "dateTime" || /^\d{4}-\d{2}-\d{2}T/.test(String(value))) return new Date(value).toLocaleString("vi-VN");
+        if (type === "date" || /^\d{4}-\d{2}-\d{2}$/.test(String(value))) return new Date(value).toLocaleDateString("vi-VN");
+        return String(value);
     }
 
-    function format(value) {
-        if (value === null || value === undefined || value === "") return "—";
-        if (typeof value === "boolean") return value ? "Có" : "Không";
-        if (typeof value === "number") return new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2 }).format(value);
-        if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return new Date(value).toLocaleString("vi-VN");
-        return String(value);
+    function translateCode(value) {
+        const normalized = String(value ?? "").trim();
+        if (!normalized) return "Không xác định";
+        return codeLabels[normalized.toUpperCase()] || normalized.replaceAll("_", " ");
+    }
+
+    function inventoryTransactionLabel(value) { return inventoryTransactionLabels[Number(value)] || `Loại giao dịch #${value}`; }
+    function hourLabel(value) { return `${String(Number(value) || 0).padStart(2, "0")}h`; }
+
+    function entityLabel(row, entity, preferred) {
+        const definitions = {
+            store: ["storeName", "storeId", "Cửa hàng"], supplier: ["supplierName", "supplierId", "Nhà cung cấp"],
+            ingredient: ["ingredientName", "ingredientId", "Nguyên liệu"], drink: ["drinkName", "drinkId", "Sản phẩm"],
+            topping: ["toppingName", "toppingId", "Topping"], size: ["sizeName", "sizeId", "Kích cỡ"]
+        };
+        const definition = definitions[entity];
+        const name = String(preferred ?? (definition ? row[definition[0]] : "") ?? "").trim();
+        if (name) return name;
+        const id = definition ? row[definition[1]] : null;
+        return id === null || id === undefined || id === "" ? (definition?.[2] || "Không xác định") : `${definition[2]} #${id}`;
+    }
+
+    function shiftLabel(row, detailed = false) {
+        const shift = `Ca #${row.workShiftId ?? "?"}`;
+        if (!detailed) return shift;
+        const owner = String(row.fullName || row.storeName || "").trim() || (row.storeId ? `Cửa hàng #${row.storeId}` : "Chưa xác định");
+        return `${shift} – ${owner}`;
+    }
+
+    function ingredientStoreLabel(row) {
+        const ingredient = entityLabel(row, "ingredient");
+        const store = entityLabel(row, "store");
+        return row.storeId || row.storeName ? `${ingredient} – ${store}` : ingredient;
+    }
+
+    function supplierStoreLabel(row) {
+        const supplier = entityLabel(row, "supplier");
+        const store = entityLabel(row, "store");
+        return row.storeId || row.storeName ? `${supplier} – ${store}` : supplier;
+    }
+
+    function resolveLabel(row, widget) {
+        if (typeof widget.label === "function") return nonEmptyLabel(widget.label(row));
+        const raw = row[widget.label];
+        if (widget.entity) return nonEmptyLabel(entityLabel(row, widget.entity, raw));
+        return nonEmptyLabel(raw, fieldLabel(widget.label));
+    }
+
+    function resolveSeriesLabel(row, widget) {
+        const raw = row[widget.seriesBy];
+        if (widget.seriesLabel) return nonEmptyLabel(widget.seriesLabel(raw));
+        if (widget.seriesEntity) return nonEmptyLabel(entityLabel(row, widget.seriesEntity, raw));
+        return nonEmptyLabel(raw, fieldLabel(widget.seriesBy));
+    }
+
+    function nonEmptyLabel(value, fallback = "Không xác định") {
+        const normalized = String(value ?? "").trim();
+        return normalized || fallback;
     }
 
     function distinct(items, id, name, selected) {
@@ -147,7 +270,7 @@
             (result.warnings || []).forEach(item => warnings.push(`${widget.title}: ${item}`));
             return widgetShell(widget, result);
         }).join("");
-        sections[section].forEach(widget => renderWidget(widget, data[widget.key]));
+        sections[section].forEach(widget => renderWidget(widget, data[widget.key], response?.granularity));
         showNotice(warnings.length ? `Dữ liệu một phần: ${warnings.join(" · ")}` : "");
     }
 
@@ -156,7 +279,7 @@
         return `<article class="analytics-widget ${widget.wide ? "is-wide" : ""} ${widget.kind === "kpi" ? "is-compact" : ""}" data-widget="${widget.key}"><div class="analytics-widget__header"><h2>${widget.title}</h2>${badge}</div><div class="analytics-widget__body" id="widget-${widget.key}"></div></article>`;
     }
 
-    function renderWidget(widget, result) {
+    function renderWidget(widget, result, granularity) {
         const target = document.getElementById(`widget-${widget.key}`);
         if (!target) return;
         if (!result || result.status === "ERROR") {
@@ -168,7 +291,7 @@
         if (result.status === "NO_DATA" || rows.length === 0) { target.innerHTML = state("Chưa có dữ liệu", "Hãy thử đổi thời gian hoặc phạm vi cửa hàng."); return; }
         if (widget.kind === "table") renderTable(target, rows, widget.columns);
         else if (widget.kind === "kpi") renderKpis(target, rows[0], widget.columns);
-        else renderChart(target, rows, widget);
+        else renderChart(target, rows, widget, granularity);
     }
 
     function state(title, message, retry = false) {
@@ -176,34 +299,245 @@
     }
 
     function renderTable(target, rows, columns) {
-        target.innerHTML = `<div class="analytics-table-wrap"><table class="analytics-table"><thead><tr>${columns.map(x => `<th>${friendlyName(x)}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(x => `<td>${escapeHtml(format(row[x]))}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+        target.innerHTML = `<div class="analytics-table-wrap"><table class="analytics-table"><thead><tr>${columns.map(key => `<th title="${escapeHtml(fieldLabel(key))}">${escapeHtml(fieldLabel(key))}</th>`).join("")}</tr></thead><tbody>${rows.map(row => `<tr>${columns.map(key => tableCell(row[key], key)).join("")}</tr>`).join("")}</tbody></table></div>`;
+    }
+
+    function tableCell(value, key) {
+        const type = fieldFormat(key);
+        const display = format(value, type);
+        const compact = ["currency", "percent", "count", "quantity", "number", "boolean", "date", "dateTime", "id", "hour"].includes(type);
+        return `<td class="${compact ? "is-compact-value" : ""}" title="${escapeHtml(display)}">${escapeHtml(display)}</td>`;
     }
 
     function renderKpis(target, row, columns) {
-        target.innerHTML = `<div class="analytics-kpis">${columns.map(key => `<div class="analytics-kpi"><span>${friendlyName(key)}</span><strong>${escapeHtml(format(row[key]))}</strong></div>`).join("")}</div>`;
+        target.innerHTML = `<div class="analytics-kpis">${columns.map(key => `<div class="analytics-kpi"><span>${escapeHtml(fieldLabel(key))}</span><strong title="${escapeHtml(format(row[key], fieldFormat(key)))}">${escapeHtml(format(row[key], fieldFormat(key)))}</strong></div>`).join("")}</div>`;
     }
 
-    function renderChart(target, rows, widget) {
+    const chartResizeObserver = typeof ResizeObserver === "function"
+        ? new ResizeObserver(entries => entries.forEach(entry => refreshChartLayout(entry.target)))
+        : null;
+
+    function renderChart(target, rows, widget, granularity) {
         if (!window.echarts) { target.innerHTML = state("Thiếu ECharts", "Không thể khởi tạo biểu đồ."); return; }
         const element = document.createElement("div");
         element.className = "analytics-chart";
         target.appendChild(element);
         const instance = window.echarts.init(element);
-        charts.set(widget.key, instance);
-        instance.setOption(chartOption(rows, widget));
+        const context = { instance, element, rows, widget, granularity, capacity: categoryCapacity(element.clientWidth) };
+        charts.set(widget.key, context);
+        chartResizeObserver?.observe(element);
+        instance.setOption(chartOption(rows, widget, granularity, context.capacity), { notMerge: true });
     }
 
-    function chartOption(rows, widget) {
-        const base = { animationDuration: 350, textStyle: { fontFamily: "Segoe UI, sans-serif" }, tooltip: { trigger: "axis" }, grid: { left: 58, right: 22, top: 28, bottom: 62, containLabel: true } };
-        if (widget.kind === "donut") return { ...base, tooltip: { trigger: "item" }, legend: { bottom: 0, type: "scroll" }, series: [{ type: "pie", radius: ["45%", "70%"], data: rows.map(row => ({ name: format(row[widget.label]), value: Number(row[widget.value] || 0) })), itemStyle: { borderColor: "#fff", borderWidth: 2 } }] };
-        if (widget.kind === "scatter") return { ...base, xAxis: { type: "value", name: friendlyName(widget.label) }, yAxis: { type: "value", name: friendlyName(widget.value) }, series: [{ type: "scatter", symbolSize: 14, data: rows.map(row => [Number(row[widget.label] || 0), Number(row[widget.value] || 0), row.drinkName]), tooltip: { formatter: params => `${escapeHtml(params.data[2])}<br>${format(params.data[0])} · ${format(params.data[1])}` } }] };
-        if (widget.kind === "heatmap") {
-            const values = rows.map(row => [Number(row.hourOfDay), Number(row.isoWeekday) - 1, Number(row[widget.value] || 0)]);
-            const max = Math.max(1, ...values.map(x => x[2]));
-            return { ...base, tooltip: { position: "top", formatter: x => `Thứ ${x.data[1] + 1}, ${x.data[0]}h: ${format(x.data[2])}` }, xAxis: { type: "category", data: Array.from({ length: 24 }, (_, x) => `${x}h`), splitArea: { show: true } }, yAxis: { type: "category", data: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"], splitArea: { show: true } }, visualMap: { min: 0, max, calculable: true, orient: "horizontal", left: "center", bottom: 0 }, series: [{ type: "heatmap", data: values }] };
+    function refreshChartLayout(element) {
+        const context = [...charts.values()].find(item => item.element === element);
+        if (!context) return;
+        context.instance.resize();
+        const capacity = categoryCapacity(element.clientWidth);
+        if (capacity === context.capacity) return;
+        context.capacity = capacity;
+        context.instance.setOption(chartOption(context.rows, context.widget, context.granularity, capacity), { notMerge: true, lazyUpdate: true });
+    }
+
+    function categoryCapacity(width) {
+        if (width <= 430) return 6;
+        if (width <= 700) return 8;
+        if (width <= 980) return 10;
+        return 12;
+    }
+
+    function chartOption(rows, widget, granularity, capacity) {
+        const base = { animationDuration: 350, textStyle: { fontFamily: "Segoe UI, sans-serif" }, tooltip: { trigger: "axis", confine: true }, aria: { enabled: true }, grid: { left: 66, right: 34, top: 42, bottom: 82, containLabel: true } };
+        if (widget.kind === "donut") return donutOption(rows, widget, base);
+        if (widget.kind === "scatter") return scatterOption(rows, widget, base);
+        if (widget.kind === "heatmap") return heatmapOption(rows, widget, base);
+        if (widget.aggregate === "count") return aggregateOption(rows, widget, base, granularity, capacity);
+        if (widget.seriesBy) return multiSeriesOption(rows, widget, base, granularity, capacity);
+        return singleSeriesOption(rows, widget, base, granularity, capacity);
+    }
+
+    function donutOption(rows, widget, base) {
+        return {
+            ...base,
+            tooltip: { trigger: "item", confine: true, formatter: params => `${escapeHtml(params.name)}<br>${escapeHtml(format(params.value, widget.valueFormat))} (${format(params.percent / 100, "percent")})` },
+            legend: { bottom: 0, type: "scroll", formatter: name => truncateLabel(name, 28) },
+            series: [{ type: "pie", radius: ["43%", "68%"], avoidLabelOverlap: true, data: rows.map(row => ({ name: resolveLabel(row, widget), value: Number(row[widget.value] || 0) })), itemStyle: { borderColor: "#fff", borderWidth: 2 } }]
+        };
+    }
+
+    function scatterOption(rows, widget, base) {
+        return {
+            ...base,
+            grid: { ...base.grid, left: 76, right: 48, bottom: 68 },
+            tooltip: {
+                trigger: "item", confine: true,
+                formatter: params => {
+                    const row = params.data.raw;
+                    return `<strong>${escapeHtml(entityLabel(row, "drink"))}</strong><br>Sản lượng: ${escapeHtml(format(row.volume, "count"))}<br>Doanh thu: ${escapeHtml(format(row.revenue, "currency"))}<br>COGS: ${escapeHtml(format(row.confirmedCogs, "currency"))}<br>Biên lợi nhuận: ${escapeHtml(format(row.confirmedMarginRate, "percent"))}`;
+                }
+            },
+            xAxis: { type: "value", name: "Sản lượng", nameLocation: "middle", nameGap: 34, minInterval: 1 },
+            yAxis: { type: "value", name: "Biên lợi nhuận", nameLocation: "middle", nameGap: 48, axisLabel: { formatter: value => format(value, "percent") } },
+            series: [{
+                type: "scatter", symbolSize: 16,
+                data: rows.map(row => ({ name: entityLabel(row, "drink"), value: [Number(row.volume || 0), Number(row.confirmedMarginRate || 0)], raw: row })),
+                label: { show: rows.length <= 12, position: "top", formatter: params => wrapAxisLabel(params.data.name, 14) },
+                labelLayout: { hideOverlap: rows.length > 12 }, itemStyle: { color: "#2563eb", opacity: .75 }
+            }]
+        };
+    }
+
+    function heatmapOption(rows, widget, base) {
+        const values = rows.map(row => [Number(row.hourOfDay), Number(row.isoWeekday) - 1, Number(row[widget.value] || 0)]);
+        const max = Math.max(1, ...values.map(item => item[2]));
+        return {
+            ...base, grid: { ...base.grid, top: 20, bottom: 76 },
+            tooltip: { position: "top", confine: true, formatter: item => `${["T2", "T3", "T4", "T5", "T6", "T7", "CN"][item.data[1]]}, ${hourLabel(item.data[0])}: ${format(item.data[2], widget.valueFormat)}` },
+            xAxis: { type: "category", data: Array.from({ length: 24 }, (_, hour) => hourLabel(hour)), splitArea: { show: true }, axisLabel: { interval: 1 } },
+            yAxis: { type: "category", data: ["T2", "T3", "T4", "T5", "T6", "T7", "CN"], splitArea: { show: true } },
+            visualMap: { min: 0, max, calculable: true, orient: "horizontal", left: "center", bottom: 0 },
+            series: [{ type: "heatmap", data: values }]
+        };
+    }
+
+    function aggregateOption(rows, widget, base, granularity, capacity) {
+        const grouped = new Map();
+        rows.forEach(row => {
+            const label = translateCode(resolveLabel(row, widget));
+            grouped.set(label, (grouped.get(label) || 0) + 1);
+        });
+        const aggregated = [...grouped].map(([label, value]) => ({ label, value }));
+        return cartesianOption(base, aggregated.map(row => row.label), [{ name: "Số ca", type: "bar", data: aggregated.map(row => row.value) }], widget, granularity, capacity, false);
+    }
+
+    function multiSeriesOption(rows, widget, base, granularity, capacity) {
+        const labels = unique(rows.map(row => resolveLabel(row, widget)));
+        const seriesNames = unique(rows.map(row => resolveSeriesLabel(row, widget)));
+        const values = new Map();
+        rows.forEach(row => {
+            const key = `${resolveLabel(row, widget)}\u0000${resolveSeriesLabel(row, widget)}`;
+            values.set(key, (values.get(key) ?? 0) + Number(row[widget.value] || 0));
+        });
+        const series = seriesNames.map(name => ({
+            name, type: widget.kind, stack: widget.stack ? "total" : undefined, smooth: widget.kind === "line", connectNulls: false,
+            showSymbol: labels.length <= 20, data: labels.map(label => values.has(`${label}\u0000${name}`) ? values.get(`${label}\u0000${name}`) : widget.missingValue)
+        }));
+        return cartesianOption(base, labels, series, widget, granularity, capacity, widget.axis === "time");
+    }
+
+    function singleSeriesOption(rows, widget, base, granularity, capacity) {
+        const labels = rows.map(row => resolveLabel(row, widget));
+        const series = [{
+            name: widget.title, type: widget.kind, smooth: widget.kind === "line", showSymbol: rows.length <= 20,
+            areaStyle: widget.kind === "line" ? { opacity: .08 } : undefined,
+            data: rows.map(row => Number(row[widget.value] || 0)), itemStyle: { color: "#166534" }, lineStyle: { color: "#166534", width: 3 }
+        }];
+        return cartesianOption(base, labels, series, widget, granularity, capacity, widget.axis === "time");
+    }
+
+    function cartesianOption(base, labels, series, widget, granularity, capacity, dateAxis) {
+        const visibleCapacity = dateAxis ? 30 : capacity;
+        const useZoom = labels.length > visibleCapacity;
+        const zoomEnd = useZoom ? Math.max(2, Math.min(100, visibleCapacity / labels.length * 100)) : 100;
+        const categoryAxis = !dateAxis;
+        return {
+            ...base,
+            color: ["#166534", "#2563eb", "#d97706", "#7c3aed", "#dc2626", "#0891b2", "#4d7c0f"],
+            grid: { ...base.grid, bottom: useZoom ? 114 : 82 },
+            legend: series.length > 1 ? { type: "scroll", top: 0, left: 10, right: 10 } : undefined,
+            tooltip: { ...base.tooltip, formatter: parameters => chartTooltip(parameters, widget, dateAxis, granularity) },
+            dataZoom: useZoom ? [
+                { type: "inside", start: 0, end: zoomEnd, filterMode: "none", zoomOnMouseWheel: true, moveOnMouseMove: true },
+                { type: "slider", start: 0, end: zoomEnd, height: 18, bottom: 10, brushSelect: false }
+            ] : undefined,
+            xAxis: {
+                type: "category", data: labels, boundaryGap: series.some(item => item.type === "bar"),
+                axisLabel: {
+                    interval: categoryAxis ? 0 : "auto", hideOverlap: dateAxis, rotate: 0,
+                    width: categoryAxis ? 104 : 82, lineHeight: 16, overflow: "truncate", ellipsis: "…",
+                    formatter: value => dateAxis ? formatAxisLabel(value, true, granularity) : wrapAxisLabel(value, 14)
+                },
+                axisPointer: { label: { formatter: params => fullAxisLabel(params.value, dateAxis, granularity) } }
+            },
+            yAxis: {
+                type: "value", name: widget.valueLabel || fieldLabel(widget.value), nameTextStyle: { padding: [0, 0, 6, 0] },
+                axisLabel: { formatter: value => compactNumber(value, widget.valueFormat) }
+            },
+            series
+        };
+    }
+
+    function chartTooltip(parameters, widget, dateAxis, granularity) {
+        const points = Array.isArray(parameters) ? parameters : [parameters];
+        const heading = fullAxisLabel(points[0]?.axisValue, dateAxis, granularity);
+        const lines = points.filter(point => point.value !== null && point.value !== undefined).map(point => {
+            const value = Array.isArray(point.value) ? point.value.at(-1) : point.value;
+            return `${point.marker || ""} ${escapeHtml(point.seriesName || widget.title)}: <strong>${escapeHtml(format(Number(value || 0), widget.valueFormat))}</strong>`;
+        });
+        return `<strong>${escapeHtml(heading)}</strong><br>${lines.join("<br>")}`;
+    }
+
+    function wrapAxisLabel(value, maxLength) {
+        const text = nonEmptyLabel(value);
+        if (text.length <= maxLength) return text;
+        const words = text.split(/\s+/);
+        const lines = [""];
+        for (const word of words) {
+            const current = lines.at(-1);
+            if (!current || `${current} ${word}`.length <= maxLength) lines[lines.length - 1] = current ? `${current} ${word}` : word;
+            else if (lines.length < 2) lines.push(word);
+            else { lines[1] = truncateLabel(`${lines[1]} ${word}`, maxLength); break; }
         }
-        const labels = rows.map(row => format(row[widget.label]));
-        return { ...base, xAxis: { type: "category", data: labels, axisLabel: { interval: 0, rotate: labels.length > 8 ? 25 : 0, width: 100, overflow: "truncate" } }, yAxis: { type: "value" }, series: [{ type: widget.kind, smooth: widget.kind === "line", showSymbol: rows.length < 20, areaStyle: widget.kind === "line" ? { opacity: .08 } : undefined, data: rows.map(row => Number(row[widget.value] || 0)), itemStyle: { color: "#166534" }, lineStyle: { color: "#166534", width: 3 } }] };
+        if (lines.length === 1 && lines[0].length > maxLength) return `${lines[0].slice(0, maxLength - 1)}…`;
+        return lines.map(line => truncateLabel(line, maxLength)).join("\n");
+    }
+
+    function truncateLabel(value, maxLength) {
+        const text = nonEmptyLabel(value);
+        return text.length <= maxLength ? text : `${text.slice(0, Math.max(1, maxLength - 1)).trim()}…`;
+    }
+
+    function compactNumber(value, type) {
+        if (type === "percent") return format(value, "percent");
+        const number = Number(value) || 0;
+        if (Math.abs(number) >= 1_000_000_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000_000_000)} tỷ`;
+        if (Math.abs(number) >= 1_000_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000_000)} tr`;
+        if (Math.abs(number) >= 1_000) return `${new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 }).format(number / 1_000)}k`;
+        return format(number, type === "currency" ? "count" : type);
+    }
+
+    function formatAxisLabel(value, dateAxis, granularity) {
+        if (!dateAxis) return nonEmptyLabel(value);
+        const date = toValidDate(value);
+        if (!date) return nonEmptyLabel(value);
+        const mode = String(granularity || "Day").toUpperCase();
+        if (mode === "HOUR") return `${twoDigits(date.getHours())}:00\n${twoDigits(date.getDate())}/${twoDigits(date.getMonth() + 1)}`;
+        if (mode === "WEEK") return `T${twoDigits(isoWeek(date))}\n${date.getFullYear()}`;
+        if (mode === "MONTH") return `${twoDigits(date.getMonth() + 1)}/${date.getFullYear()}`;
+        return `${twoDigits(date.getDate())}/${twoDigits(date.getMonth() + 1)}`;
+    }
+
+    function fullAxisLabel(value, dateAxis, granularity) {
+        if (!dateAxis) return nonEmptyLabel(value);
+        const date = toValidDate(value);
+        if (!date) return nonEmptyLabel(value);
+        const mode = String(granularity || "Day").toUpperCase();
+        if (mode === "HOUR") return date.toLocaleString("vi-VN");
+        if (mode === "WEEK") return `Tuần ${isoWeek(date)}, từ ${date.toLocaleDateString("vi-VN")}`;
+        if (mode === "MONTH") return `Tháng ${date.getMonth() + 1}/${date.getFullYear()}`;
+        return date.toLocaleDateString("vi-VN");
+    }
+
+    function unique(values) { return [...new Set(values)]; }
+    function toValidDate(value) { const date = new Date(value); return Number.isNaN(date.getTime()) ? null : date; }
+    function twoDigits(value) { return String(value).padStart(2, "0"); }
+
+    function isoWeek(value) {
+        const date = new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()));
+        const weekday = date.getUTCDay() || 7;
+        date.setUTCDate(date.getUTCDate() + 4 - weekday);
+        const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
+        return Math.ceil((((date - yearStart) / 86400000) + 1) / 7);
     }
 
     function renderSectionError(section, message) {
@@ -213,7 +547,10 @@
     }
 
     function showNotice(message) { notice.hidden = !message; notice.textContent = message; }
-    function disposeCharts() { charts.forEach(chartInstance => chartInstance.dispose()); charts.clear(); }
+    function disposeCharts() {
+        charts.forEach(context => { chartResizeObserver?.unobserve(context.element); context.instance.dispose(); });
+        charts.clear();
+    }
 
     document.querySelectorAll(".analytics-tab").forEach(button => button.addEventListener("click", () => {
         document.querySelectorAll(".analytics-tab").forEach(item => { item.classList.toggle("is-active", item === button); item.setAttribute("aria-selected", item === button ? "true" : "false"); });
@@ -225,7 +562,7 @@
         if (fields.from.value && fields.to.value && fields.from.value > fields.to.value) { showNotice("Từ ngày không được lớn hơn đến ngày."); return; }
         cache.clear(); activeRequest?.abort(); loadSection(activeSection, true);
     });
-    window.addEventListener("resize", () => charts.forEach(chartInstance => chartInstance.resize()));
+    window.addEventListener("resize", () => charts.forEach(context => refreshChartLayout(context.element)));
 
     populateFilters(true);
     loadSection(activeSection);

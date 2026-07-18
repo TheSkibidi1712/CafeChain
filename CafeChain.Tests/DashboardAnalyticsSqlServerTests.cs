@@ -64,6 +64,43 @@ public sealed class DashboardAnalyticsSqlServerTests : IAsyncLifetime
         Assert.Equal(3, count);
     }
 
+    [Theory]
+    [InlineData("Hour", "2026-01-01", "2026-01-01", 24)]
+    [InlineData("Day", "2026-01-01", "2026-01-03", 3)]
+    [InlineData("Week", "2026-01-01", "2026-01-15", 3)]
+    [InlineData("Month", "2026-01-01", "2026-03-31", 3)]
+    public async Task Net_sales_trend_returns_one_zero_filled_row_per_requested_bucket(
+        string granularity,
+        string from,
+        string to,
+        int expectedRows)
+    {
+        var script = File.ReadAllText(Path.Combine(FindRepoRoot(), "CafeChain", "Scripts",
+            "20260717_DashboardAnalyticsStoredProcedures.idempotent.sql"));
+        await ExecuteBatchesAsync(script);
+        await using var connection = new SqlConnection(ConnectionString);
+        await connection.OpenAsync();
+        await using var command = connection.CreateCommand();
+        command.CommandText = "dbo.usp_Dashboard_NetSalesTrend";
+        command.CommandType = System.Data.CommandType.StoredProcedure;
+        command.Parameters.AddWithValue("@FromDate", DateTime.Parse(from, System.Globalization.CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("@ToDate", DateTime.Parse(to, System.Globalization.CultureInfo.InvariantCulture));
+        command.Parameters.AddWithValue("@StoreIds", "1");
+        command.Parameters.AddWithValue("@Granularity", granularity);
+        command.Parameters.AddWithValue("@Top", 10);
+
+        var rows = 0;
+        await using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            rows++;
+            Assert.Equal(0L, Convert.ToInt64(reader.GetValue(reader.GetOrdinal("TotalOrders"))));
+            Assert.Equal(0m, Convert.ToDecimal(reader.GetValue(reader.GetOrdinal("NetSales"))));
+        }
+
+        Assert.Equal(expectedRows, rows);
+    }
+
     private static AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseSqlServer(ConnectionString).Options);
 

@@ -8,6 +8,7 @@ public sealed class DashboardAnalyticsViewTests
         var root = FindRepoRoot();
         var view = File.ReadAllText(Path.Combine(root, "CafeChain", "Areas", "Admin", "Views", "Dashboard", "Index.cshtml"));
         var script = File.ReadAllText(Path.Combine(root, "CafeChain", "wwwroot", "js", "Admin", "Dashboard", "dashboard.js"));
+        var stylesheet = File.ReadAllText(Path.Combine(root, "CafeChain", "wwwroot", "css", "Admin", "Dashboard", "dashboard.css"));
 
         foreach (var section in new[] { "Executive", "Operations", "Inventory", "Procurement", "Product", "Workforce" })
             Assert.Contains($"data-section=\"@tab.Item1\"", view);
@@ -16,7 +17,22 @@ public sealed class DashboardAnalyticsViewTests
         Assert.Contains("AbortController", script);
         Assert.Contains("cache.clear()", script);
         Assert.Contains("NO_DATA", script);
-        Assert.Contains("chartInstance.resize()", script);
+        Assert.Contains("context.instance.resize()", script);
+        Assert.Contains("ResizeObserver", script);
+        Assert.Contains("interval: categoryAxis ? 0 : \"auto\"", script);
+        Assert.Contains("hideOverlap: dateAxis", script);
+        Assert.Contains("categoryCapacity", script);
+        Assert.Contains("wrapAxisLabel", script);
+        Assert.Contains("nonEmptyLabel", script);
+        Assert.Contains("dataZoom", script);
+        Assert.Contains("chartTooltip", script);
+        Assert.Contains("seriesBy: \"transactionType\"", script);
+        Assert.Contains("seriesBy: \"ingredientName\"", script);
+        Assert.Contains("aggregate: \"count\"", script);
+        Assert.Contains("stack: true", script);
+        Assert.Contains("overflow-wrap: anywhere", stylesheet);
+        Assert.Contains("word-break: break-word", stylesheet);
+        Assert.Contains("white-space: normal", stylesheet);
         Assert.DoesNotContain("Model.Revenue", view);
         Assert.DoesNotContain("dashboardData", view);
     }
