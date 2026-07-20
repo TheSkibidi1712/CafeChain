@@ -101,7 +101,7 @@ namespace CafeChain.Application.Services.Inventories
             AdminActorContext actor)
         {
             if (!CanCreateForStore(actor, storeId))
-                return Failure<IReadOnlyList<PurchaseAdviceSourceDto>>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho cửa hàng của mình.");
+                return Failure<IReadOnlyList<PurchaseAdviceSourceDto>>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho chi nhánh của mình.");
 
             var requestIds = await _context.RestockRequests.AsNoTracking()
                 .Where(x => x.StoreId == storeId
@@ -141,7 +141,7 @@ namespace CafeChain.Application.Services.Inventories
             AdminActorContext actor)
         {
             if (!CanCreateForStore(actor, request.StoreId))
-                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho cửa hàng của mình.");
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Quản lý chi nhánh được tạo đề nghị mua cho chi nhánh của mình.");
             if (request.Lines.Count == 0)
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Empty, "Đề nghị mua phải có ít nhất một dòng.");
             if (request.Lines.Select(x => x.RestockRequestId).Distinct().Count() != request.Lines.Count)
@@ -240,10 +240,10 @@ namespace CafeChain.Application.Services.Inventories
             var advice = await LoadAdviceAsync(request.PurchaseAdviceId, true);
             if (advice == null) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotFound, "Không tìm thấy đề nghị mua hàng.");
             if (!CanManageStoreAdvice(actor, advice.StoreId)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền sửa đề nghị mua này.");
-            if (advice.Status != PurchaseAdviceStatuses.Draft) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Chỉ đề nghị mua ở trạng thái DRAFT được sửa.");
+            if (advice.Status != PurchaseAdviceStatuses.Draft) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Chỉ đề nghị mua ở trạng thái Nháp được sửa.");
             if (!VersionMatches(advice.RowVersion, request.RowVersion)) return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StaleVersion, "Đề nghị mua đã được người khác cập nhật. Vui lòng tải lại.");
             if (request.Lines.Count == 0 || request.Lines.Count != advice.Lines.Count)
-                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Empty, "Không được xóa hoặc thêm nguồn Restock trong màn hình sửa. Hãy tạo đề nghị mới nếu cần.");
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.Empty, "Không được xóa hoặc thêm nguồn yêu cầu nhập trong màn hình sửa. Hãy tạo đề nghị mới nếu cần.");
 
             foreach (var input in request.Lines)
             {
@@ -315,7 +315,7 @@ namespace CafeChain.Application.Services.Inventories
                 return await GetDetailAsync(id, actor);
             }
             if (advice.Status != expected)
-                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, $"Không thể chuyển đề nghị từ {advice.Status} sang {target}.");
+                return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.NotEditable, "Không thể chuyển trạng thái đề nghị mua trong trạng thái hiện tại.");
             if (!VersionMatches(advice.RowVersion, request.RowVersion))
                 return Failure<PurchaseAdviceDetailDto>(PurchaseAdviceErrorCodes.StaleVersion, "Đề nghị mua đã thay đổi. Vui lòng tải lại.");
             if (target == PurchaseAdviceStatuses.Submitted)
@@ -369,15 +369,15 @@ namespace CafeChain.Application.Services.Inventories
             if (quantity <= 0) return (false, PurchaseAdviceErrorCodes.QuantityInvalid, "Số lượng đề nghị mua phải lớn hơn 0.", null);
             var source = await LoadRestockAsync(restockRequestId, lockSource);
             if (source == null || !source.IngredientId.HasValue)
-                return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Nguồn Restock không tồn tại hoặc chưa hỗ trợ mua ngoài cho BTP.", null);
+                return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Nguồn yêu cầu nhập không tồn tại hoặc chưa hỗ trợ mua ngoài cho bán thành phẩm.", null);
             if (source.StoreId != storeId)
-                return (false, PurchaseAdviceErrorCodes.StoreScopeMismatch, "Nguồn Restock không thuộc cửa hàng của đề nghị mua.", null);
+                return (false, PurchaseAdviceErrorCodes.StoreScopeMismatch, "Nguồn yêu cầu nhập không thuộc chi nhánh của đề nghị mua.", null);
             if (source.Status is not (RestockRequestStatuses.Processing or RestockRequestStatuses.PartiallyReceived))
-                return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Chỉ tạo đề nghị mua từ Restock đang PROCESSING hoặc PARTIALLY_RECEIVED.", null);
+                return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Chỉ tạo đề nghị mua từ yêu cầu nhập đang xử lý hoặc đã nhận một phần.", null);
             if (!string.IsNullOrWhiteSpace(restockRowVersion) && !VersionMatches(source.RowVersion, restockRowVersion))
                 return (false, PurchaseAdviceErrorCodes.StaleVersion, "Yêu cầu nhập đã thay đổi. Vui lòng tải lại số lượng còn lại.", null);
             var breakdown = await BuildSourceAsync(restockRequestId, excludeAdviceLineId, false);
-            if (breakdown == null) return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Không tải được số liệu nguồn Restock.", null);
+            if (breakdown == null) return (false, PurchaseAdviceErrorCodes.SourceInvalid, "Không tải được số liệu nguồn yêu cầu nhập.", null);
             if (quantity > breakdown.RemainingToPurchaseQuantity)
                 return (false, PurchaseAdviceErrorCodes.ExceedsRestockRemaining,
                     $"Số lượng {quantity:N3} vượt phần còn có thể đề nghị mua {breakdown.RemainingToPurchaseQuantity:N3}.", null);

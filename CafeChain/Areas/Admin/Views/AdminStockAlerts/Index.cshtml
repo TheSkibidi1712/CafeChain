@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertListResultDto
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -11,34 +12,6 @@
     var manualCount = Model.Items.Count(x => x.Source == "SALES_REPORT");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
-    string StatusLabel(string value) => value switch
-    {
-        "OPEN" => "Chờ quản lý",
-        "CONFIRMED" => "Đã xác nhận",
-        "REJECTED" => "Đã báo sai",
-        "RESOLVED" => "Đã khôi phục",
-        "CLOSED" => "Đã đóng",
-        _ => value
-    };
-    string StatusClass(string value) => value switch
-    {
-        "OPEN" => "ops-badge-warning",
-        "CONFIRMED" => "ops-badge-info",
-        "REJECTED" => "ops-badge-neutral",
-        "RESOLVED" => "ops-badge-success",
-        "CLOSED" => "ops-badge-neutral",
-        _ => "ops-badge-neutral"
-    };
-    string AlertLabel(string value) => value == "OUT_OF_STOCK" ? "Hết hàng" : "Sắp hết";
-    string SourceLabel(string value) => value switch
-    {
-        "SALES_REPORT" => "Nhân viên báo thiếu",
-        "POS_SALE" => "Bán hàng POS",
-        "OFFLINE_SYNC" => "Đồng bộ offline",
-        "MANUAL_CHECK" => "Kiểm tra thủ công",
-        "INVENTORY_TRANSACTION" => "Biến động kho",
-        _ => "Tự động"
-    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -48,7 +21,7 @@
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</h1>
-            <p class="ops-subtitle">Theo dõi thiếu hụt tại cửa hàng #@Model.StoreId. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</p>
+            <p class="ops-subtitle">Theo dõi thiếu hụt tại chi nhánh #@Model.StoreId. Trạng thái tồn kho và trạng thái xử lý được hiển thị riêng để quản lý ra quyết định rõ ràng.</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStoreInventory" asp-action="Index" asp-route-storeId="@Model.StoreId">
@@ -75,10 +48,10 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="stockAlertStoreId">Cửa hàng</label>
+                <label class="ops-form-label mb-0" for="stockAlertStoreId">Chi nhánh</label>
                 <select id="stockAlertStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
                     @foreach (var store in stores)
                     {
@@ -102,7 +75,7 @@
         {
             <a class="ops-tab @(statusFilter == status ? "active" : "")"
                asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"
-               asp-route-status="@status">@(string.IsNullOrEmpty(status) ? "Tất cả" : StatusLabel(status))</a>
+               asp-route-status="@status">@(string.IsNullOrEmpty(status) ? "Tất cả" : AdminStatusDisplay.StockAlert(status).Label)</a>
         }
     </nav>
 
@@ -144,15 +117,15 @@
                             <td>
                                 <span class="ops-badge @(item.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
                                     <i class="fa-solid @(item.AlertType == "OUT_OF_STOCK" ? "fa-circle-xmark" : "fa-arrow-trend-down")" aria-hidden="true"></i>
-                                    @AlertLabel(item.AlertType)
+                                    @AdminStatusDisplay.StockAlertType(item.AlertType)
                                 </span>
                             </td>
-                            <td class="number">@(item.OnHandQty?.ToString("N3") ?? "—")</td>
-                            <td class="number">@(item.ReservedQty?.ToString("N3") ?? "—")</td>
-                            <td class="number fw-bold @(item.AvailableQty.HasValue && item.AvailableQty.Value <= 0 ? "text-danger" : "")">@(item.AvailableQty?.ToString("N3") ?? item.CurrentQtySnapshot.ToString("N3"))</td>
-                            <td class="number">@(item.ThresholdSnapshot?.ToString("N3") ?? "—")</td>
-                            <td><span class="ops-badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
-                            <td><span class="ops-secondary">@SourceLabel(item.Source)</span></td>
+                            <td class="number">@(item.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(item.OnHandQty.Value) : "—")</td>
+                            <td class="number">@(item.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(item.ReservedQty.Value) : "—")</td>
+                            <td class="number fw-bold @(item.AvailableQty.HasValue && item.AvailableQty.Value <= 0 ? "text-danger" : "")">@(item.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(item.AvailableQty.Value) : AdminStatusDisplay.Quantity(item.CurrentQtySnapshot))</td>
+                            <td class="number">@(item.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(item.ThresholdSnapshot.Value) : "—")</td>
+                            <td><span class="ops-badge @AdminStatusDisplay.StockAlert(item.Status).CssClass">@AdminStatusDisplay.StockAlert(item.Status).Label</span></td>
+                            <td><span class="ops-secondary">@AdminStatusDisplay.StockAlertSource(item.Source)</span></td>
                             <td class="text-nowrap"><span class="ops-secondary">@item.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
                             <td class="text-end">
                                 <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Details" asp-route-id="@item.StockAlertId" asp-route-storeId="@item.StoreId">

@@ -96,8 +96,8 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         Assert.Contains("canApprove", view);
         Assert.Contains("canGenerate", view);
         Assert.Contains("canCancel", view);
-        Assert.Contains("Sao chép nội dung Zalo", view);
-        Assert.Contains("Đánh dấu đã gửi NCC qua Zalo", view);
+        Assert.Contains("Sao chép nội dung gửi Zalo", view);
+        Assert.Contains("Đánh dấu đã gửi Nhà cung cấp", view);
         Assert.Contains("không đồng nghĩa nhà cung cấp đã xác nhận", view);
     }
 
@@ -107,7 +107,7 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         var view = ReadRepoFile("CafeChain/Areas/Admin/Views/AdminPurchaseOrderBatches/Details.cshtml");
         Assert.Contains("Tiến độ giao theo chi nhánh", view);
         Assert.Contains("child.AcceptedBaseQuantity", view);
-        Assert.Contains("Lịch sử revision", view);
+        Assert.Contains("Lịch sử PDF và gửi Nhà cung cấp", view);
         Assert.Contains("revision.SentAtUtc", view);
     }
 
@@ -118,8 +118,8 @@ public sealed class PurchaseOrderBatchUiIssue188Tests : IDisposable
         Assert.Contains("submitted?.IngredientSupplierId", view);
         Assert.Contains("submitted?.PackageCount", view);
         Assert.Contains("Các giá trị vừa nhập vẫn được giữ", view);
-        Assert.Contains("MOQ", view);
-        Assert.Contains("lead time", view);
+        Assert.Contains("tối thiểu", view);
+        Assert.Contains("giao trong", view);
         Assert.Contains("PackagePriceSnapshot", view);
         Assert.Contains("group.Allocations", view);
     }

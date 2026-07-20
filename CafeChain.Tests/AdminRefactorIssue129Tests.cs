@@ -387,7 +387,7 @@ namespace CafeChain.Tests.POS
             var active = AdminStatusDisplay.RecipeActive(true);
             Assert.Equal("Hoạt động", active.Label);
             var restock = AdminStatusDisplay.RestockRequest("PARTIALLY_RECEIVED");
-            Assert.Equal("Nhận một phần", restock.Label);
+            Assert.Equal("Đã nhận một phần", restock.Label);
             var receipt = AdminStatusDisplay.BranchReceipt("CONFIRMED");
             Assert.Equal("Đã xác nhận", receipt.Label);
         }

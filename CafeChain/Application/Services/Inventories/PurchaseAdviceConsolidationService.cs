@@ -34,11 +34,11 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
     {
         var stores = await ResolveReadableStoresAsync(actor);
         if (stores.Count == 0)
-            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền xem hàng đợi tổng hợp PA.");
+            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.Forbidden, "Bạn không có quyền xem danh sách tổng hợp đề nghị mua.");
 
         var storeIds = stores.Select(x => x.Id).ToArray();
         if (filter.StoreId.HasValue && !storeIds.Contains(filter.StoreId.Value))
-            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.StoreScopeMismatch, "Cửa hàng không thuộc phạm vi truy cập của bạn.");
+            return Failure<PurchaseAdviceConsolidationPageDto>(PurchaseAdviceErrorCodes.StoreScopeMismatch, "Chi nhánh không thuộc phạm vi truy cập của bạn.");
 
         var statuses = new[] { PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview };
         var query = _context.PurchaseAdviceLines.AsNoTracking()
@@ -131,12 +131,12 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
         AdminActorContext actor)
     {
         if (!CanConsolidate(actor))
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tổng hợp PA.");
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tổng hợp đề nghị mua.");
         if (request.SupplierId <= 0 || request.Lines.Count == 0)
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn nhà cung cấp và ít nhất một dòng PA.");
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Hãy chọn Nhà cung cấp và ít nhất một dòng đề nghị mua.");
         if (request.Lines.Any(x => x.PackageCount <= 0)
             || request.Lines.Select(x => x.PurchaseAdviceLineId).Distinct().Count() != request.Lines.Count)
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Số kiện phải lớn hơn 0 và mỗi dòng PA chỉ được chọn một lần.");
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, "Số kiện phải lớn hơn 0 và mỗi dòng đề nghị mua chỉ được chọn một lần.");
 
         var ownsTransaction = _context.Database.CurrentTransaction == null;
         await using var transaction = ownsTransaction
@@ -161,7 +161,7 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             if (line != null) lines.Add(line);
         }
         if (lines.Count != ids.Length)
-            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.NotFound, "Một hoặc nhiều dòng PA không còn tồn tại.");
+            return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.NotFound, "Một hoặc nhiều dòng đề nghị mua không còn tồn tại.");
 
         var offerIds = request.Lines.Select(x => x.IngredientSupplierId).Distinct().ToArray();
         var offers = await _context.IngredientSuppliers.AsNoTracking()
@@ -178,11 +178,11 @@ public sealed class PurchaseAdviceConsolidationService : IPurchaseAdviceConsolid
             var line = lines.Single(x => x.PurchaseAdviceLineId == selected.PurchaseAdviceLineId);
             if (!PurchaseAdviceStatuses.ActiveReservationStatuses.Contains(line.PurchaseAdvice.Status)
                 || (line.PurchaseAdvice.Status != PurchaseAdviceStatuses.Submitted && line.PurchaseAdvice.Status != PurchaseAdviceStatuses.UnderReview))
-                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, $"PA {line.PurchaseAdvice.AdviceNumber} không ở trạng thái chờ tổng hợp.");
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.ConsolidationInvalid, $"Đề nghị {line.PurchaseAdvice.AdviceNumber} không ở trạng thái chờ tổng hợp.");
             if (!VersionMatches(line.RowVersion, selected.RowVersion))
-                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.StaleVersion, $"Dòng PA {line.PurchaseAdvice.AdviceNumber} đã thay đổi. Hãy tải lại.");
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.StaleVersion, $"Dòng đề nghị {line.PurchaseAdvice.AdviceNumber} đã thay đổi. Hãy tải lại.");
             if (!supplierStores.Contains(line.PurchaseAdvice.StoreId))
-                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.SupplierStoreMismatch, $"Nhà cung cấp không phục vụ cửa hàng {line.PurchaseAdvice.Store.Name}.");
+                return Failure<PurchaseAdviceConsolidationPreviewDto>(PurchaseAdviceErrorCodes.SupplierStoreMismatch, $"Nhà cung cấp không phục vụ chi nhánh {line.PurchaseAdvice.Store.Name}.");
             if (!offers.TryGetValue(selected.IngredientSupplierId, out var offer)
                 || !offer.Active || offer.SupplierId != request.SupplierId || offer.IngredientId != line.IngredientId
                 || !offer.PackageQuantity.HasValue || offer.PackageQuantity <= 0 || offer.CurrentPrice <= 0)

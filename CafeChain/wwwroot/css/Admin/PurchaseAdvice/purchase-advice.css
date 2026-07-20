@@ -28,6 +28,12 @@
 .pa-badge-submitted { background:#eff8ff; color:#175cd3; }
 .pa-badge-review { background:#f4f3ff; color:#5925dc; }
 .pa-badge-rejected,.pa-badge-cancelled { background:#fef3f2; color:#b42318; }
+.pa-badge-complete { background:#ecfdf3; color:#067647; }
+.pa-badge-partial { background:#f4f3ff; color:#5925dc; }
+.pa-badge-unknown { background:#f2f4f7; color:#475467; }
+.pa-priority-low,.pa-priority-normal { color:#475467; }
+.pa-priority-high { color:#b54708; }
+.pa-priority-urgent { color:#b42318; }
 .pa-alert { padding:.75rem .9rem; border:1px solid #fecdca; background:#fef3f2; color:#b42318; border-radius:5px; margin-bottom:1rem; }
 .pa-alert-success { border-color:#abefc6; background:#ecfdf3; color:#067647; }
 .pa-section-title { font-size:1rem; font-weight:750; margin:0 0 .8rem; }
@@ -95,6 +101,8 @@
 .pa-batch-status-partially_received { background:#fffaeb; color:#b54708; }
 .pa-batch-status-completed { background:#ecfdf3; color:#067647; }
 .pa-batch-status-cancelled { background:#fef3f2; color:#b42318; }
+.pa-batch-status-draft,.pa-batch-status-unknown { background:#f2f4f7; color:#475467; }
+.pa-batch-status-supplier_confirmed { background:#ecfdf3; color:#067647; }
 .pa-info-band { display:flex; align-items:flex-start; gap:.7rem; padding:.8rem 1rem; margin-bottom:1rem; background:#eff8ff; border-left:3px solid #2e90fa; color:#175cd3; }
 .pa-info-band div { display:flex; flex-direction:column; gap:.15rem; }
 .pa-info-band span { font-size:.84rem; }

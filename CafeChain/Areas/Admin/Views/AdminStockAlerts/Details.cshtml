@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.StockAlerts.StockAlertDetailDto
 @using CafeChain.Application.DTOs.Admin.RestockRequests
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Chi tiết cảnh báo kho";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -10,25 +11,6 @@
         ? Math.Max(0m, Model.ThresholdSnapshot.Value - Model.CurrentQtySnapshot)
         : (decimal?)null;
     var defaultPriority = Model.AlertType == "OUT_OF_STOCK" ? "URGENT" : "HIGH";
-    string StatusLabel(string value) => value switch
-    {
-        "OPEN" => "Chờ quản lý",
-        "CONFIRMED" => "Đã xác nhận",
-        "REJECTED" => "Đã báo sai",
-        "RESOLVED" => "Đã khôi phục",
-        "CLOSED" => "Đã đóng",
-        _ => value
-    };
-    string RestockStatusLabel(string value) => value switch
-    {
-        "SUBMITTED" => "Chờ tiếp nhận",
-        "PROCESSING" => "Đang xử lý",
-        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "COMPLETED" => "Hoàn tất",
-        "REJECTED" => "Đã từ chối",
-        "CANCELLED" => "Đã hủy",
-        _ => value
-    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -38,7 +20,7 @@
         <div>
             <div class="ops-eyebrow">Cảnh báo #@Model.StockAlertId · @Model.ItemTypeLabel</div>
             <h1 class="ops-title">@Model.ItemName</h1>
-            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm"). Số liệu hiện tại được tách riêng khỏi snapshot để tránh nhầm lẫn khi kho đã thay đổi.</p>
+            <p class="ops-subtitle">Cảnh báo ghi nhận lúc @AdminStatusDisplay.DateTime(Model.CreatedAt.ToLocalTime()). Số liệu hiện tại được tách riêng khỏi dữ liệu tại thời điểm cảnh báo để tránh nhầm lẫn khi kho đã thay đổi.</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId">
@@ -64,10 +46,10 @@
     }
 
     <section class="ops-metrics" aria-label="Số liệu tồn kho">
-        <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty?.ToString("N3") ?? "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty?.ToString("N3") ?? "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty?.ToString("N3") ?? "—")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu</span><strong class="ops-metric-value">@(Model.ThresholdSnapshot?.ToString("N3") ?? "Chưa đặt")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tồn vật lý hiện tại</span><strong class="ops-metric-value">@(Model.OnHandQty.HasValue ? AdminStatusDisplay.Quantity(Model.OnHandQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đang giữ chỗ</span><strong class="ops-metric-value warning">@(Model.ReservedQty.HasValue ? AdminStatusDisplay.Quantity(Model.ReservedQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Khả dụng hiện tại</span><strong class="ops-metric-value @(Model.AvailableQty.HasValue && Model.AvailableQty.Value <= 0 ? "danger" : "success")">@(Model.AvailableQty.HasValue ? AdminStatusDisplay.Quantity(Model.AvailableQty.Value) : "—")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Ngưỡng tối thiểu</span><strong class="ops-metric-value">@(Model.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value) : "Chưa đặt")</strong></div>
     </section>
 
     <div class="ops-detail-grid">
@@ -78,17 +60,17 @@
                     <div class="ops-inline-actions mb-3">
                         <span class="ops-badge @(Model.AlertType == "OUT_OF_STOCK" ? "ops-badge-danger" : "ops-badge-warning")">
                             <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-                            @(Model.AlertType == "OUT_OF_STOCK" ? "Hết hàng" : "Sắp hết")
+                            @AdminStatusDisplay.StockAlertType(Model.AlertType)
                         </span>
-                        <span class="ops-badge @(Model.Status == "RESOLVED" ? "ops-badge-success" : Model.Status == "CONFIRMED" ? "ops-badge-info" : "ops-badge-warning")">@StatusLabel(Model.Status)</span>
+                        <span class="ops-badge @AdminStatusDisplay.StockAlert(Model.Status).CssClass">@AdminStatusDisplay.StockAlert(Model.Status).Label</span>
                     </div>
                     <div class="ops-data-grid">
-                        <div><span class="ops-data-label">Khả dụng lúc cảnh báo</span><span class="ops-data-value">@Model.CurrentQtySnapshot.ToString("N3")</span></div>
-                        <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot?.ToString("N3") ?? "Chưa cấu hình")</span></div>
-                        <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@(Model.Source == "SALES_REPORT" ? "Nhân viên báo thiếu" : "Hệ thống đánh giá tồn")</span></div>
+                        <div><span class="ops-data-label">Khả dụng lúc cảnh báo</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</span></div>
+                        <div><span class="ops-data-label">Ngưỡng lúc cảnh báo</span><span class="ops-data-value">@(Model.ThresholdSnapshot.HasValue ? AdminStatusDisplay.Quantity(Model.ThresholdSnapshot.Value) : "Chưa cấu hình")</span></div>
+                        <div><span class="ops-data-label">Nguồn phát hiện</span><span class="ops-data-value">@AdminStatusDisplay.StockAlertSource(Model.Source)</span></div>
                         <div><span class="ops-data-label">Cập nhật gần nhất</span><span class="ops-data-value">@Model.UpdatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></div>
                         <div><span class="ops-data-label">Người báo</span><span class="ops-data-value">@(Model.ReporterName ?? "Hệ thống")</span></div>
-                        <div><span class="ops-data-label">Mã định danh kho</span><span class="ops-data-value">@(Model.IngredientId.HasValue ? $"Ingredient #{Model.IngredientId}" : Model.PreparedItemId.HasValue ? $"PreparedItem #{Model.PreparedItemId}" : $"Recipe legacy #{Model.RecipeId}")</span></div>
+                        <div><span class="ops-data-label">Mã định danh kho</span><span class="ops-data-value">@(Model.IngredientId.HasValue ? $"Nguyên liệu #{Model.IngredientId}" : Model.PreparedItemId.HasValue ? $"Bán thành phẩm #{Model.PreparedItemId}" : $"Công thức cũ #{Model.RecipeId}")</span></div>
                     </div>
                     @if (!string.IsNullOrWhiteSpace(Model.ReporterNote))
                     {
@@ -103,20 +85,20 @@
                     <ol class="ops-timeline">
                         @if (Model.Transitions.Count == 0)
                         {
-                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@Model.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · Khả dụng @Model.CurrentQtySnapshot.ToString("N3")</div></li>
+                            <li><strong>Phát hiện cảnh báo</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(Model.CreatedAt.ToLocalTime()) · Khả dụng @AdminStatusDisplay.Quantity(Model.CurrentQtySnapshot)</div></li>
                         }
                         @foreach (var transition in Model.Transitions)
                         {
                             <li>
-                                <strong>@StatusLabel(transition.NewStatus) · @transition.NewAlertType.Replace("_", " ")</strong>
+                                <strong>@AdminStatusDisplay.StockAlert(transition.NewStatus).Label · @AdminStatusDisplay.StockAlertType(transition.NewAlertType)</strong>
                                 <div class="ops-secondary">@transition.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @(transition.ActorName ?? (transition.ActorStaffId.HasValue ? $"Nhân viên #{transition.ActorStaffId}" : "Hệ thống"))</div>
-                                <div>On hand @transition.OnHandSnapshot.ToString("N3") · Reserved @transition.ReservedSnapshot.ToString("N3") · Available @transition.AvailableSnapshot.ToString("N3")</div>
+                                <div>Tồn vật lý @AdminStatusDisplay.Quantity(transition.OnHandSnapshot) · Giữ chỗ @AdminStatusDisplay.Quantity(transition.ReservedSnapshot) · Khả dụng @AdminStatusDisplay.Quantity(transition.AvailableSnapshot)</div>
                                 @if (!string.IsNullOrWhiteSpace(transition.Reason)) { <div>@transition.Reason</div> }
                             </li>
                         }
                         @if (openRestock != null)
                         {
-                            <li><strong>Đã tạo yêu cầu nhập #@openRestock.RestockRequestId</strong><div class="ops-secondary">@openRestock.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @RestockStatusLabel(openRestock.Status)</div></li>
+                            <li><strong>Đã tạo yêu cầu nhập hàng #@openRestock.RestockRequestId</strong><div class="ops-secondary">@AdminStatusDisplay.DateTime(openRestock.CreatedAt.ToLocalTime()) · @AdminStatusDisplay.RestockRequest(openRestock.Status).Label</div></li>
                         }
                         @if (Model.ResolvedAt.HasValue)
                         {
@@ -143,11 +125,11 @@
                                 {
                                     var reference = movement.BranchReceiptLineId.HasValue ? $"Phiếu nhận · dòng #{movement.BranchReceiptLineId}" : movement.InventoryTransferId.HasValue ? $"Điều chuyển #{movement.InventoryTransferId}" : movement.ReferenceOrderId.HasValue ? $"Đơn hàng #{movement.ReferenceOrderId}" : movement.ProductionRunId.HasValue ? $"Lệnh sơ chế #{movement.ProductionRunId}" : movement.InventoryDocumentId.HasValue ? $"Chứng từ kho #{movement.InventoryDocumentId}" : "Biến động trực tiếp";
                                     <tr>
-                                        <td class="text-nowrap">@movement.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                        <td>@movement.Type.Replace("_", " ")</td>
-                                        <td class="number fw-bold @(movement.Quantity < 0 ? "text-danger" : "text-success")">@(movement.Quantity > 0 ? "+" : "")@movement.Quantity.ToString("N3")</td>
-                                        <td class="number">@movement.BeforeQty.ToString("N3")</td>
-                                        <td class="number">@movement.AfterQty.ToString("N3")</td>
+                                        <td class="text-nowrap">@AdminStatusDisplay.DateTime(movement.CreatedAt.ToLocalTime())</td>
+                                        <td>@AdminStatusDisplay.InventoryTransactionType(movement.Type)</td>
+                                        <td class="number fw-bold @(movement.Quantity < 0 ? "text-danger" : "text-success")">@(movement.Quantity > 0 ? "+" : "")@AdminStatusDisplay.Quantity(movement.Quantity)</td>
+                                        <td class="number">@AdminStatusDisplay.Quantity(movement.BeforeQty)</td>
+                                        <td class="number">@AdminStatusDisplay.Quantity(movement.AfterQty)</td>
                                         <td><span class="ops-secondary">@reference</span></td>
                                     </tr>
                                 }
@@ -207,9 +189,9 @@
                     <div class="ops-panel-body">
                         <div class="ops-data-grid">
                             <div><span class="ops-data-label">Mã yêu cầu</span><span class="ops-data-value">#@openRestock.RestockRequestId</span></div>
-                            <div><span class="ops-data-label">Trạng thái</span><span class="ops-data-value">@RestockStatusLabel(openRestock.Status)</span></div>
-                            <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@openRestock.RequestedQuantity.ToString("N3")</span></div>
-                            <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@openRestock.Priority</span></div>
+                            <div><span class="ops-data-label">Trạng thái</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequest(openRestock.Status).Label</span></div>
+                            <div><span class="ops-data-label">Số lượng</span><span class="ops-data-value">@AdminStatusDisplay.Quantity(openRestock.RequestedQuantity)</span></div>
+                            <div><span class="ops-data-label">Ưu tiên</span><span class="ops-data-value">@AdminStatusDisplay.RestockRequestPriority(openRestock.Priority).Label</span></div>
                         </div>
                         <a class="ops-btn ops-btn-primary w-100 text-center mt-3" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@openRestock.RestockRequestId" asp-route-storeId="@Model.StoreId">Mở yêu cầu nhập</a>
                     </div>
@@ -228,7 +210,7 @@
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="requestedQuantity">Số lượng yêu cầu <span class="text-danger">*</span></label>
                                 <input id="requestedQuantity" type="number" name="requestedQuantity" class="ops-input w-100" step="0.001" min="0.001" required value="@(suggested is > 0 ? suggested.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "")" />
-                                <div class="ops-help">Gợi ý có thể kiểm chứng: max(0, ngưỡng − khả dụng) = @(suggested?.ToString("N3") ?? "chưa đủ dữ liệu").</div>
+                                <div class="ops-help">Gợi ý có thể kiểm chứng: giá trị lớn hơn giữa 0 và (ngưỡng − khả dụng) = @(suggested.HasValue ? AdminStatusDisplay.Quantity(suggested.Value) : "chưa đủ dữ liệu").</div>
                             </div>
                             <div class="ops-form-group">
                                 <label class="ops-form-label" for="priority">Mức ưu tiên</label>

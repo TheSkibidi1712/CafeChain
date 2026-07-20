@@ -1,5 +1,6 @@
 @model List<CafeChain.Application.DTOs.Admin.RestockRequests.BranchReceiptListItemDto>
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Phiếu nhận hàng chi nhánh";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -8,12 +9,6 @@
     var canCreate = ViewBag.CanCreate as bool? ?? false;
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
-    string StatusLabel(string value) => value switch
-    {
-        "DRAFT" => "Bản nháp",
-        "CONFIRMED" => "Đã xác nhận",
-        _ => value
-    };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -21,7 +16,7 @@
 <main class="ops-shell">
     <header class="ops-header">
         <div>
-            <div class="ops-eyebrow">Chứng từ nhập kho · Cửa hàng #@storeId</div>
+            <div class="ops-eyebrow">Chứng từ nhập kho · Chi nhánh #@storeId</div>
             <h1 class="ops-title">Phiếu nhận hàng</h1>
             <p class="ops-subtitle">Theo dõi hàng thực nhận và chi phí đã chốt. Chỉ phiếu đã xác nhận mới cập nhật tồn kho.</p>
         </div>
@@ -44,10 +39,10 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="receiptStoreId">Cửa hàng</label>
+                <label class="ops-form-label mb-0" for="receiptStoreId">Chi nhánh</label>
                 <select id="receiptStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
                     @foreach (var store in stores)
                     {
@@ -79,18 +74,18 @@
             <div class="ops-table-scroll">
                 <table class="ops-table" style="min-width:850px">
                     <caption class="visually-hidden">Danh sách phiếu nhận hàng chi nhánh</caption>
-                    <thead><tr><th>Mã phiếu</th><th>Khóa chống trùng</th><th>Trạng thái</th><th class="number">Số dòng</th><th class="number">SL quy đổi</th><th class="number">Giá trị</th><th>Thời gian nhận</th><th></th></tr></thead>
+                    <thead><tr><th>Mã phiếu</th><th>Trạng thái</th><th class="number">Số dòng</th><th class="number">Số lượng quy đổi</th><th class="number">Giá trị</th><th>Thời gian nhận</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var item in Model)
                     {
                         <tr>
-                            <td><strong>@item.ReceiptCode</strong><div class="ops-secondary">Cửa hàng #@item.StoreId</div></td>
-                            <td><code>@item.ReceiptKey</code></td>
-                            <td><span class="ops-badge @(item.Status == "CONFIRMED" ? "ops-badge-success" : "ops-badge-neutral")">@StatusLabel(item.Status)</span></td>
+                            @{ var receiptStatus = AdminStatusDisplay.BranchReceipt(item.Status); }
+                            <td><strong>@item.ReceiptCode</strong><div class="ops-secondary">Chi nhánh #@item.StoreId</div></td>
+                            <td><span class="ops-badge @(item.Status == "CONFIRMED" ? "ops-badge-success" : "ops-badge-neutral")">@receiptStatus.Label</span></td>
                             <td class="number">@item.LineCount</td>
-                            <td class="number">@item.TotalBaseQuantity.ToString("N3")</td>
-                            <td class="number">@item.TotalLineCost.ToString("N0") đ</td>
-                            <td class="text-nowrap">@item.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(item.TotalBaseQuantity)</td>
+                            <td class="number">@AdminStatusDisplay.Currency(item.TotalLineCost)</td>
+                            <td class="text-nowrap">@AdminStatusDisplay.DateTime(item.ReceivedAt.ToLocalTime())</td>
                             <td class="text-end"><a class="ops-btn" asp-action="Details" asp-route-id="@item.BranchReceiptId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
                         </tr>
                     }

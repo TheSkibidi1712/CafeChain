@@ -1,4 +1,5 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.BranchReceiptDetailDto
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Chi tiết phiếu nhận";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -11,14 +12,14 @@
 <main class="ops-shell">
     <header class="ops-header">
         <div>
-            <div class="ops-eyebrow">Phiếu nhận #@Model.BranchReceiptId · Cửa hàng #@Model.StoreId</div>
+            <div class="ops-eyebrow">Phiếu nhận #@Model.BranchReceiptId · Chi nhánh #@Model.StoreId</div>
             <h1 class="ops-title">@Model.ReceiptCode</h1>
-            <p class="ops-subtitle">Khóa chống trùng <code>@Model.ReceiptKey</code> · Nhận lúc @Model.ReceivedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p>
+            <p class="ops-subtitle">Nhận lúc @AdminStatusDisplay.DateTime(Model.ReceivedAt.ToLocalTime())</p>
         </div>
         <div class="ops-actions">
             @if (Model.PurchaseOrderId.HasValue)
             {
-                <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@Model.PurchaseOrderId"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Xem PO</a>
+                <a class="ops-btn" asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@Model.PurchaseOrderId"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> Xem đơn đặt hàng</a>
             }
             <a class="ops-btn" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-arrow-left" aria-hidden="true"></i> Danh sách</a>
             @if (canConfirm)
@@ -39,8 +40,8 @@
     <section class="ops-metrics" aria-label="Tóm tắt phiếu nhận">
         <div class="ops-metric"><span class="ops-metric-label">Trạng thái</span><strong class="ops-metric-value fs-5"><span class="ops-badge @(isConfirmed ? "ops-badge-success" : "ops-badge-neutral")">@(isConfirmed ? "Đã xác nhận" : "Bản nháp")</span></strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Số dòng</span><strong class="ops-metric-value">@Model.LineCount</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Số lượng quy đổi</span><strong class="ops-metric-value">@Model.TotalBaseQuantity.ToString("N3")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Tổng giá trị</span><strong class="ops-metric-value">@Model.TotalLineCost.ToString("N0") đ</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Số lượng quy đổi</span><strong class="ops-metric-value">@AdminStatusDisplay.Quantity(Model.TotalBaseQuantity)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Tổng giá trị</span><strong class="ops-metric-value">@AdminStatusDisplay.Currency(Model.TotalLineCost)</strong></div>
     </section>
 
     <div class="ops-detail-grid">
@@ -48,7 +49,7 @@
             <div class="ops-panel-header"><h2 class="ops-panel-title">Các dòng hàng thực nhận</h2></div>
             <div class="ops-table-scroll">
                 <table class="ops-table" style="min-width:900px">
-                    <thead><tr><th>Yêu cầu nhập</th><th>Mặt hàng</th><th class="number">SL nhập</th><th class="number">Chấp nhận</th><th class="number">Loại bỏ</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
+                    <thead><tr><th>Nguồn yêu cầu nhập</th><th>Mặt hàng</th><th class="number">Số lượng thực giao</th><th class="number">Số lượng chấp nhận</th><th class="number">Số lượng từ chối</th><th class="number">Giá vốn cơ sở</th><th class="number">Thành tiền</th><th>Giao dịch kho</th><th></th></tr></thead>
                     <tbody>
                     @foreach (var line in Model.Lines)
                     {
@@ -61,15 +62,15 @@
                                 }
                                 else
                                 {
-                                    <span class="ops-secondary">Mua chủ động theo PO</span>
+                                    <span class="ops-secondary">Mua chủ động theo đơn đặt hàng</span>
                                 }
                             </td>
                             <td><strong>@identity</strong><div class="ops-secondary">Dòng #@line.BranchReceiptLineId</div></td>
-                            <td class="number">@line.InputQuantity.ToString("N3") @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
-                            <td class="number">@line.ReceivedBaseQuantity.ToString("N3") @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
-                            <td class="number">@line.RejectedBaseQuantity.ToString("N3")</td>
-                            <td class="number">@line.BaseUnitCostSnapshot.ToString("N4")</td>
-                            <td class="number fw-bold">@line.LineTotalCost.ToString("N0") đ</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.InputQuantity) @(line.InputUnitName ?? $"u{line.InputUnitId}")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.ReceivedBaseQuantity) @(line.BaseUnitName ?? $"u{line.BaseUnitId}")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedBaseQuantity)</td>
+                            <td class="number">@AdminStatusDisplay.Currency(line.BaseUnitCostSnapshot)</td>
+                            <td class="number fw-bold">@AdminStatusDisplay.Currency(line.LineTotalCost)</td>
                             <td>@(line.InventoryTransactionId.HasValue ? $"#{line.InventoryTransactionId}" : "Chưa ghi kho")</td>
                             <td>@if(isConfirmed && line.PurchaseOrderLineId.HasValue){<a class="ops-btn" asp-area="Admin" asp-controller="AdminSupplierQuality" asp-action="Create" asp-route-branchReceiptLineId="@line.BranchReceiptLineId">Ghi sự cố</a>}</td>
                         </tr>
@@ -89,7 +90,7 @@
                         <div><span class="ops-data-label">Người tạo</span><span class="ops-data-value">Nhân viên #@Model.CreatedByStaffId</span></div>
                         <div><span class="ops-data-label">Người nhận</span><span class="ops-data-value">@(Model.ReceivedByStaffId.HasValue ? $"Nhân viên #{Model.ReceivedByStaffId}" : "—")</span></div>
                         <div><span class="ops-data-label">Người xác nhận</span><span class="ops-data-value">@(Model.ConfirmedByStaffId.HasValue ? $"Nhân viên #{Model.ConfirmedByStaffId}" : "—")</span></div>
-                        <div><span class="ops-data-label">Xác nhận lúc</span><span class="ops-data-value">@(Model.ConfirmedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm") ?? "—")</span></div>
+                        <div><span class="ops-data-label">Xác nhận lúc</span><span class="ops-data-value">@(Model.ConfirmedAt.HasValue ? AdminStatusDisplay.DateTime(Model.ConfirmedAt.Value.ToLocalTime()) : "—")</span></div>
                     </div>
                     <div class="mt-3"><span class="ops-data-label">Ghi chú</span><div class="ops-notice mt-1 mb-0" style="white-space:pre-wrap">@(Model.Notes ?? "Không có ghi chú")</div></div>
                 </div>
@@ -100,7 +101,7 @@
                 <div class="ops-panel-body">
                     @if (isConfirmed)
                     {
-                        <div class="ops-notice ops-notice-success mb-0"><strong>Đã ghi nhận tồn kho.</strong><br />Mỗi dòng đã post giao dịch nhập và lớp giá vốn tương ứng.</div>
+                        <div class="ops-notice ops-notice-success mb-0"><strong>Đã ghi nhận tồn kho.</strong><br />Mỗi dòng đã tạo giao dịch nhập và lớp giá vốn tương ứng.</div>
                     }
                     else
                     {

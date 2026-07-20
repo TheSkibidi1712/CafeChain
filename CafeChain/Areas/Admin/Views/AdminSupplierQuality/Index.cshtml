@@ -1,6 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.SupplierQualityDashboardDto
 @using CafeChain.Models.Inventories.Suppliers
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Chất lượng nhà cung cấp";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -9,17 +10,6 @@
     var days = ViewBag.Days as int? ?? 90;
     var customFrom = ViewBag.CustomFrom as DateTime?;
     var customTo = ViewBag.CustomTo as DateTime?;
-    string StatusLabel(string value) => value switch
-    {
-        "OPEN" => "Đang mở", "UNDER_REVIEW" => "Đang xem xét", "RESOLVED" => "Đã xử lý",
-        "DISMISSED" => "Đã bỏ qua", "CLOSED" => "Đã đóng", _ => value
-    };
-    string IssueLabel(string value) => value switch
-    {
-        "LATE_DELIVERY" => "Giao trễ", "SHORT_DELIVERY" => "Giao thiếu", "WRONG_ITEM" => "Sai mặt hàng",
-        "DAMAGED" => "Hư hỏng", "EXPIRED" => "Hết hạn", "QUALITY_FAILURE" => "Không đạt chất lượng",
-        "PACKAGING_FAILURE" => "Lỗi bao bì", "DOCUMENT_MISMATCH" => "Sai chứng từ", _ => "Khác"
-    };
     string PerformanceLabel(string value) => value switch
     {
         "GOOD" => "Tốt", "WATCH" => "Cần theo dõi", "RISK" => "Rủi ro", _ => "Chưa đủ dữ liệu"
@@ -27,15 +17,15 @@
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 <main class="ops-shell">
-    <header class="ops-header"><div><div class="ops-eyebrow">Mua hàng / Bằng chứng nhận hàng</div><h1 class="ops-title">Chất lượng nhà cung cấp</h1><p class="ops-subtitle">Chỉ số được tính từ PO hoàn tất và phiếu nhận đã xác nhận; hệ thống không tự khóa nhà cung cấp.</p></div></header>
+    <header class="ops-header"><div><div class="ops-eyebrow">Mua hàng / Bằng chứng nhận hàng</div><h1 class="ops-title">Chất lượng nhà cung cấp</h1><p class="ops-subtitle">Chỉ số được tính từ đơn đặt hàng hoàn thành và phiếu nhận đã xác nhận; hệ thống không tự khóa nhà cung cấp.</p></div></header>
     @if (TempData["SuccessMessage"] != null) { <div class="ops-notice ops-notice-success">@TempData["SuccessMessage"]</div> }
     @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
     <form method="get" class="ops-panel"><div class="ops-panel-body"><div class="row g-3 align-items-end">
-        <div class="col-md-2"><label class="ops-form-label">Cửa hàng</label><select class="ops-select w-100" name="storeId" required>@foreach(var store in stores){<option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>}</select></div>
+        <div class="col-md-2"><label class="ops-form-label">Chi nhánh</label><select class="ops-select w-100" name="storeId" required>@foreach(var store in stores){<option value="@store.StoreId" selected="@(store.StoreId == Model.StoreId)">@store.StoreName</option>}</select></div>
         <div class="col-md-2"><label class="ops-form-label">Nhà cung cấp</label><select class="ops-select w-100" name="supplierId"><option value="">Tất cả nhà cung cấp</option>@foreach(var supplier in suppliers){<option value="@supplier.SupplierId" selected="@(supplier.SupplierId == Model.SupplierId)">@supplier.Code · @supplier.Name</option>}</select></div>
         <div class="col-md-2"><label class="ops-form-label">Khoảng mặc định</label><select class="ops-select w-100" name="days"><option value="30" selected="@(days == 30)">30 ngày</option><option value="90" selected="@(days == 90)">90 ngày</option><option value="180" selected="@(days == 180)">180 ngày</option></select></div>
-        <div class="col-md-2"><label class="ops-form-label">Từ ngày (tùy chọn)</label><input class="ops-input w-100" name="from" type="date" value="@(customFrom?.ToString("yyyy-MM-dd"))" /></div>
-        <div class="col-md-2"><label class="ops-form-label">Đến ngày (tùy chọn)</label><input class="ops-input w-100" name="to" type="date" value="@(customTo?.ToString("yyyy-MM-dd"))" /></div>
+        <div class="col-md-2"><label class="ops-form-label">Từ ngày (tùy chọn)</label><input class="ops-input w-100" name="from" type="date" lang="vi" value="@(customFrom?.ToString("yyyy-MM-dd"))" /><div class="ops-help">Ngày/tháng/năm</div></div>
+        <div class="col-md-2"><label class="ops-form-label">Đến ngày (tùy chọn)</label><input class="ops-input w-100" name="to" type="date" lang="vi" value="@(customTo?.ToString("yyyy-MM-dd"))" /><div class="ops-help">Ngày/tháng/năm</div></div>
         <div class="col-md-2"><button class="ops-btn ops-btn-primary w-100" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> Áp dụng</button></div>
     </div></div></form>
 
@@ -57,7 +47,7 @@
     }
 
     <section class="ops-panel">
-        <div class="ops-panel-header"><div><h2 class="ops-panel-title">Sự cố từ phiếu nhận</h2><div class="ops-secondary">Sự cố bị bỏ qua không tham gia IssueRate.</div></div></div>
+        <div class="ops-panel-header"><div><h2 class="ops-panel-title">Sự cố từ phiếu nhận</h2><div class="ops-secondary">Sự cố bị bỏ qua không được tính vào tỷ lệ phiếu có sự cố.</div></div></div>
         <div class="ops-panel-body p-0">
         @if (Model.Issues.Count == 0) { <div class="p-4 text-center ops-secondary">Không có sự cố trong khoảng đã chọn.</div> }
         else
@@ -66,12 +56,12 @@
             @foreach (var issue in Model.Issues)
             {
                 <tr>
-                    <td><strong>@IssueLabel(issue.IssueType)</strong><div>@issue.Description</div><div class="ops-secondary">@issue.ReportedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @issue.ReportedByName</div></td>
+                    <td><strong>@AdminStatusDisplay.SupplierReceiptIssueType(issue.IssueType)</strong><div>@issue.Description</div><div class="ops-secondary">@AdminStatusDisplay.DateTime(issue.ReportedAtUtc.ToLocalTime()) · @issue.ReportedByName</div></td>
                     <td>@issue.SupplierName</td>
                     <td><a asp-area="Admin" asp-controller="AdminPurchaseOrders" asp-action="Details" asp-route-id="@issue.PurchaseOrderId">@issue.PurchaseOrderCode</a><div><a asp-area="Admin" asp-controller="AdminBranchReceipts" asp-action="Details" asp-route-id="@issue.BranchReceiptId">@issue.BranchReceiptCode</a></div></td>
                     <td>@issue.IngredientName</td>
-                    <td class="number">@issue.AffectedBaseQuantity.ToString("N3")</td>
-                    <td><span class="ops-badge @(issue.Status == "RESOLVED" ? "ops-badge-success" : issue.Status == "OPEN" ? "ops-badge-warning" : "ops-badge-neutral")">@StatusLabel(issue.Status)</span>
+                    <td class="number">@AdminStatusDisplay.Quantity(issue.AffectedBaseQuantity)</td>
+                    <td><span class="ops-badge @AdminStatusDisplay.SupplierReceiptIssue(issue.Status).CssClass">@AdminStatusDisplay.SupplierReceiptIssue(issue.Status).Label</span>
                         @if (issue.Status is "OPEN" or "UNDER_REVIEW")
                         {
                             <form method="post" asp-action="Transition" asp-route-id="@issue.SupplierReceiptIssueId" class="mt-2">@Html.AntiForgeryToken()<input type="hidden" name="RowVersion" value="@issue.RowVersion" /><div class="d-flex gap-2"><input class="ops-input flex-grow-1" name="Reason" maxlength="1000" required placeholder="Lý do / kết quả xử lý" /><select class="ops-select" name="TargetStatus">@if(issue.Status == "OPEN"){<option value="UNDER_REVIEW">Xem xét</option>}<option value="RESOLVED">Đã xử lý</option><option value="DISMISSED">Bỏ qua</option></select><button class="ops-btn" type="submit">Cập nhật</button></div></form>

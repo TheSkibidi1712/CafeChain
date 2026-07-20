@@ -70,7 +70,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
         }, _actorAccessor.Get(User));
         if (!page.IsSuccess) return Failure(page.ErrorCode, page.Message);
         ViewBag.Preview = preview.Data;
-        ViewBag.PreviewError = preview.IsSuccess ? null : $"{preview.ErrorCode}: {preview.Message}";
+        ViewBag.PreviewError = preview.IsSuccess ? null : preview.Message;
         ViewBag.SelectedLineIds = selectedLineIds;
         ViewBag.SelectedSupplierId = request.SupplierId;
         ViewBag.SubmittedSelections = submittedSelections;
@@ -81,7 +81,7 @@ public sealed class AdminPurchaseAdviceConsolidationController : Controller
     {
         if (code is PurchaseAdviceErrorCodes.Forbidden or PurchaseAdviceErrorCodes.StoreScopeMismatch)
             return Forbid();
-        TempData["Error"] = $"{code}: {message}";
+        TempData["Error"] = message;
         return RedirectToAction(nameof(Index));
     }
 }

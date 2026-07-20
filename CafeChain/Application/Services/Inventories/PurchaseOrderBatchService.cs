@@ -34,7 +34,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         CreatePurchaseOrderBatchRequest request,
         AdminActorContext actor)
     {
-        if (!CanCreate(actor)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho được tạo batch đơn mua.");
+        if (!CanCreate(actor)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho được tạo đơn đặt hàng gộp.");
         request.RequestKey = Clean(request.RequestKey, 64) ?? Guid.NewGuid().ToString("N");
         var replay = await _context.PurchaseOrderBatches.AsNoTracking().SingleOrDefaultAsync(x => x.RequestKey == request.RequestKey);
         if (replay != null) return await GetDetailAsync(replay.PurchaseOrderBatchId, actor);
@@ -125,7 +125,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                             CreatedByStaffId = actor.StaffId,
                             CreatedAtUtc = now,
                             UpdatedAtUtc = now,
-                            Note = $"Child PO của batch {batch.BatchNumber}",
+                            Note = $"Đơn đặt hàng chi nhánh thuộc đơn gộp {batch.BatchNumber}",
                             PurchaseOrderBatch = batch
                         };
                         childByStore.Add(allocation.StoreId, child);
@@ -181,7 +181,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
                         NewStatus = PurchaseAdviceStatuses.Allocated,
                         ActorStaffId = actor.StaffId,
                         OccurredAtUtc = now,
-                        Reason = $"Đã phân bổ vào batch {batch.BatchNumber}."
+                        Reason = $"Đã đưa vào đơn đặt hàng gộp {batch.BatchNumber}."
                     });
                 }
             }
@@ -209,9 +209,9 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> GetDetailAsync(int id, AdminActorContext actor)
     {
         var dto = await MapAsync(id);
-        if (dto == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy batch đơn mua.");
+        if (dto == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
         if (!await CanReadAsync(actor, dto.ChildPurchaseOrders.Select(x => x.StoreId).ToArray()))
-            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem batch đơn mua này.");
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem đơn đặt hàng gộp này.");
         return ServiceResult<PurchaseOrderBatchDetailDto>.Success(dto);
     }
 
@@ -223,7 +223,7 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
         if (!HasRole(actor, RoleConstants.AccountantWarehouse) && !HasRole(actor, RoleConstants.BusinessOwner))
         {
             var allowed = await ResolveAllowedStoreIdsAsync(actor);
-            if (allowed.Count == 0) return Failure<IReadOnlyList<PurchaseOrderBatchListItemDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem batch đơn mua.");
+            if (allowed.Count == 0) return Failure<IReadOnlyList<PurchaseOrderBatchListItemDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem đơn đặt hàng gộp.");
             query = query.Where(x => x.ChildPurchaseOrders.Any(po => allowed.Contains(po.StoreId)));
         }
         var items = await query.OrderByDescending(x => x.CreatedAtUtc).Select(x => new PurchaseOrderBatchListItemDto
@@ -244,13 +244,13 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> ApproveAsync(int id, PurchaseOrderBatchTransitionRequest request, AdminActorContext actor)
     {
-        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được duyệt batch.");
+        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được duyệt đơn đặt hàng gộp.");
         var batch = await _context.PurchaseOrderBatches.Include(x => x.ChildPurchaseOrders).SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
-        if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy batch đơn mua.");
+        if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
         if (batch.Status == PurchaseOrderBatchStatuses.Approved) return await GetDetailAsync(id, actor);
         if (batch.Status != PurchaseOrderBatchStatuses.PendingApproval)
-            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, $"Không thể duyệt batch ở trạng thái {batch.Status}.");
-        if (!VersionMatches(batch.RowVersion, request.RowVersion)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Batch đã thay đổi. Hãy tải lại.");
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Không thể duyệt đơn đặt hàng gộp trong trạng thái hiện tại.");
+        if (!VersionMatches(batch.RowVersion, request.RowVersion)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Đơn đặt hàng gộp đã thay đổi. Hãy tải lại.");
         var now = DateTime.UtcNow;
         batch.Status = PurchaseOrderBatchStatuses.Approved;
         batch.ApprovedByStaffId = actor.StaffId;
@@ -269,19 +269,19 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
 
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> CancelAsync(int id, PurchaseOrderBatchTransitionRequest request, AdminActorContext actor)
     {
-        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được hủy batch.");
-        if (string.IsNullOrWhiteSpace(request.Reason)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Bắt buộc nhập lý do hủy batch.");
+        if (!HasRole(actor, RoleConstants.BusinessOwner)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Chủ doanh nghiệp được hủy đơn đặt hàng gộp.");
+        if (string.IsNullOrWhiteSpace(request.Reason)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Bắt buộc nhập lý do hủy đơn đặt hàng gộp.");
         await using var tx = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         var batch = await _context.PurchaseOrderBatches
             .Include(x => x.ChildPurchaseOrders).ThenInclude(x => x.Lines).ThenInclude(x => x.ReceiptPostings)
             .Include(x => x.Lines).ThenInclude(x => x.Allocations).ThenInclude(x => x.PurchaseAdviceLine).ThenInclude(x => x.PurchaseAdvice)
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchId == id);
-        if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy batch đơn mua.");
-        if (!VersionMatches(batch.RowVersion, request.RowVersion)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Batch đã thay đổi. Hãy tải lại.");
+        if (batch == null) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
+        if (!VersionMatches(batch.RowVersion, request.RowVersion)) return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Đơn đặt hàng gộp đã thay đổi. Hãy tải lại.");
         if (batch.ChildPurchaseOrders.SelectMany(x => x.Lines).SelectMany(x => x.ReceiptPostings).Any())
-            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Không thể hủy batch đã phát sinh nhận hàng.");
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Không thể hủy đơn đặt hàng gộp đã phát sinh nhận hàng.");
         if (batch.Status is PurchaseOrderBatchStatuses.Completed or PurchaseOrderBatchStatuses.Cancelled)
-            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, $"Không thể hủy batch ở trạng thái {batch.Status}.");
+            return Failure<PurchaseOrderBatchDetailDto>(PurchaseOrderBatchErrorCodes.Invalid, "Không thể hủy đơn đặt hàng gộp trong trạng thái hiện tại.");
 
         var now = DateTime.UtcNow;
         batch.Status = PurchaseOrderBatchStatuses.Cancelled;

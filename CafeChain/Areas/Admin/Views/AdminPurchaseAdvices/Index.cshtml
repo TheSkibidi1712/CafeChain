@@ -1,17 +1,9 @@
 @using CafeChain.Application.Constants
+@using CafeChain.ViewModels.Admin.Shared
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseAdvicePageDto
 @{
     ViewData["Title"] = "Đề nghị mua hàng";
     var canCreate = Model.Actor.RoleNames.Contains(RoleConstants.StoreManager) && Model.Actor.StoreId > 0;
-    string Badge(string status) => status switch
-    {
-        PurchaseAdviceStatuses.Draft => "pa-badge-draft",
-        PurchaseAdviceStatuses.Submitted => "pa-badge-submitted",
-        PurchaseAdviceStatuses.UnderReview => "pa-badge-review",
-        PurchaseAdviceStatuses.Rejected => "pa-badge-rejected",
-        PurchaseAdviceStatuses.Cancelled => "pa-badge-cancelled",
-        _ => ""
-    };
 }
 @section Styles { <link rel="stylesheet" href="~/css/Admin/PurchaseAdvice/purchase-advice.css" asp-append-version="true" /> }
 
@@ -20,7 +12,7 @@
         <div>
             <div class="pa-eyebrow">Kho & Cung ứng</div>
             <h1>Đề nghị mua hàng theo chi nhánh</h1>
-            <p class="pa-subtitle">Chọn phần nhu cầu Restock cần mua ngoài, trước bước tổng hợp nhà cung cấp.</p>
+            <p class="pa-subtitle">Chọn phần còn thiếu của yêu cầu nhập hàng cần mua từ Nhà cung cấp, trước khi Kế toán tổng hợp.</p>
         </div>
         @if (canCreate)
         {
@@ -32,29 +24,30 @@
     @if (TempData["Error"] is string error) { <div class="pa-alert">@error</div> }
 
     <form method="get" class="pa-band pa-filter-grid">
-        <div class="pa-field"><label>Cửa hàng</label><select name="storeId"><option value="">Tất cả trong phạm vi</option>@foreach (var store in Model.Stores) { <option value="@store.StoreId" selected="@(Model.Filter.StoreId == store.StoreId)">@store.StoreName</option> }</select></div>
-        <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option>@foreach (var s in new[] { PurchaseAdviceStatuses.Draft, PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview, PurchaseAdviceStatuses.Rejected, PurchaseAdviceStatuses.Cancelled }) { <option value="@s" selected="@(Model.Filter.Status == s)">@s</option> }</select></div>
-        <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var p in new[] { PurchaseAdvicePriorities.Normal, PurchaseAdvicePriorities.High, PurchaseAdvicePriorities.Urgent }) { <option value="@p" selected="@(Model.Filter.Priority == p)">@p</option> }</select></div>
-        <div class="pa-field"><label>Từ ngày</label><input type="date" name="fromDate" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /></div>
-        <div class="pa-field"><label>Đến ngày</label><input type="date" name="toDate" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /></div>
+        <div class="pa-field"><label>Chi nhánh</label><select name="storeId"><option value="">Tất cả trong phạm vi</option>@foreach (var store in Model.Stores) { <option value="@store.StoreId" selected="@(Model.Filter.StoreId == store.StoreId)">@store.StoreName</option> }</select></div>
+        <div class="pa-field"><label>Trạng thái</label><select name="status"><option value="">Tất cả</option>@foreach (var s in new[] { PurchaseAdviceStatuses.Draft, PurchaseAdviceStatuses.Submitted, PurchaseAdviceStatuses.UnderReview, PurchaseAdviceStatuses.Allocated, PurchaseAdviceStatuses.Rejected, PurchaseAdviceStatuses.Cancelled }) { <option value="@s" selected="@(Model.Filter.Status == s)">@AdminStatusDisplay.PurchaseAdvice(s).Label</option> }</select></div>
+        <div class="pa-field"><label>Ưu tiên</label><select name="priority"><option value="">Tất cả</option>@foreach (var p in new[] { PurchaseAdvicePriorities.Normal, PurchaseAdvicePriorities.High, PurchaseAdvicePriorities.Urgent }) { <option value="@p" selected="@(Model.Filter.Priority == p)">@AdminStatusDisplay.PurchaseAdvicePriority(p).Label</option> }</select></div>
+        <div class="pa-field"><label>Từ ngày</label><input type="date" name="fromDate" lang="vi" value="@Model.Filter.FromDate?.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div>
+        <div class="pa-field"><label>Đến ngày</label><input type="date" name="toDate" lang="vi" value="@Model.Filter.ToDate?.ToString("yyyy-MM-dd")" /><span class="pa-muted">Ngày/tháng/năm</span></div>
         <button class="pa-action" type="submit"><i class="fas fa-filter"></i> Lọc</button>
     </form>
 
     <div class="pa-table-wrap">
         <table class="pa-table">
-            <thead><tr><th>Mã PA</th><th>Cửa hàng / nguồn</th><th>Người đề nghị</th><th>Ngày cần</th><th>Ưu tiên</th><th>Trạng thái</th><th>Dòng</th><th>Tổng SL</th></tr></thead>
+            <thead><tr><th>Mã đề nghị</th><th>Chi nhánh / nguồn yêu cầu</th><th>Người đề nghị</th><th>Ngày cần hàng</th><th>Ưu tiên</th><th>Trạng thái</th><th>Số dòng đề nghị</th></tr></thead>
             <tbody>
             @if (Model.Items.Count == 0)
             {
-                <tr><td colspan="8" class="pa-empty">Chưa có đề nghị mua phù hợp bộ lọc.</td></tr>
+                <tr><td colspan="7" class="pa-empty">Chưa có đề nghị mua phù hợp bộ lọc.</td></tr>
             }
             @foreach (var item in Model.Items)
             {
                 <tr>
-                    <td><a class="pa-code" asp-action="Details" asp-route-id="@item.PurchaseAdviceId">@item.AdviceNumber</a><div class="pa-muted">@item.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</div></td>
-                    <td><strong>@item.StoreName</strong><div class="pa-muted">Restock @item.SourceRestockSummary</div></td>
-                    <td>@item.RequestedByName</td><td>@item.NeededByDate.ToString("dd/MM/yyyy")</td><td>@item.Priority</td>
-                    <td><span class="pa-badge @Badge(item.Status)">@item.Status</span></td><td>@item.LineCount</td><td>@item.TotalRequestedBaseQuantity.ToString("N3")</td>
+                    @{ var status = AdminStatusDisplay.PurchaseAdvice(item.Status); var priority = AdminStatusDisplay.PurchaseAdvicePriority(item.Priority); }
+                    <td><a class="pa-code" asp-action="Details" asp-route-id="@item.PurchaseAdviceId">@item.AdviceNumber</a><div class="pa-muted">@AdminStatusDisplay.DateTime(item.CreatedAtUtc.ToLocalTime())</div></td>
+                    <td><strong>@item.StoreName</strong><div class="pa-muted">Yêu cầu nhập hàng @item.SourceRestockSummary</div></td>
+                    <td>@item.RequestedByName</td><td>@AdminStatusDisplay.Date(item.NeededByDate)</td><td><span class="@priority.CssClass">@priority.Label</span></td>
+                    <td><span class="pa-badge @status.CssClass">@status.Label</span></td><td>@item.LineCount</td>
                 </tr>
             }
             </tbody>

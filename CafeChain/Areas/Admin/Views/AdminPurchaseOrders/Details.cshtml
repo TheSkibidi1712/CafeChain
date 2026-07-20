@@ -1,6 +1,7 @@
 @model CafeChain.Application.DTOs.Admin.Procurement.PurchaseOrderDetailDto
+@using CafeChain.ViewModels.Admin.Shared
 @{
-    ViewData["Title"] = "Chi tiết đơn mua";
+    ViewData["Title"] = "Chi tiết đơn đặt hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var canReceive = (bool?)ViewBag.CanReceive == true;
     var canCloseRemaining = (bool?)ViewBag.CanCloseRemaining == true;
@@ -10,16 +11,10 @@
     var totalClosed = Model.Lines.Sum(x => x.ClosedRemainingQuantity);
     var totalRemaining = Model.Lines.Sum(x => x.RemainingBaseQuantity);
     var completedWithShortfall = Model.Status == "COMPLETED" && totalClosed > 0;
-    string StatusLabel(string value) => value switch
-    {
-        "DRAFT" => "Bản nháp",
-        "APPROVED" => "Đã duyệt",
-        "MARKED_AS_SENT" => "Đã gửi nhà cung cấp",
-        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "COMPLETED" => completedWithShortfall ? "Hoàn tất có phần không giao bù" : "Đã nhận đủ",
-        "CANCELLED" => "Đã hủy",
-        _ => value
-    };
+    var orderStatus = AdminStatusDisplay.PurchaseOrder(Model.Status);
+    var orderStatusLabel = completedWithShortfall
+        ? "Hoàn thành có phần không giao bù"
+        : orderStatus.Label;
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -29,7 +24,7 @@
         <div>
             <div class="ops-eyebrow">@Model.Code · @Model.StoreName</div>
             <h1 class="ops-title">@Model.SupplierName</h1>
-            <p class="ops-subtitle">@StatusLabel(Model.Status). Số lượng còn phải giao chỉ trừ phần đã chấp nhận hoặc phần được đóng rõ ràng.</p>
+            <p class="ops-subtitle">@orderStatusLabel. Số lượng còn phải giao chỉ trừ phần đã nhận hợp lệ hoặc phần được đóng rõ ràng.</p>
         </div>
         <div class="ops-actions">
             @if (canReceive && canReceiveStatus && totalRemaining > 0)
@@ -53,14 +48,14 @@
     }
     @if (completedWithShortfall)
     {
-        <div class="ops-notice ops-notice-info">PO đã hoàn tất với @totalClosed.ToString("N3") đơn vị cơ sở được đóng theo quyết định không yêu cầu giao bù. Phần này không nhập kho và không hoàn tất RestockRequest.</div>
+        <div class="ops-notice ops-notice-info">Đơn đặt hàng đã hoàn thành với @AdminStatusDisplay.Quantity(totalClosed) đơn vị cơ sở được đóng theo quyết định không yêu cầu giao bù. Phần này không nhập kho và không hoàn thành yêu cầu nhập hàng.</div>
     }
 
     <section class="ops-metrics">
-        <div class="ops-metric"><span class="ops-metric-label">Giá trị đặt</span><strong class="ops-metric-value">@Model.TotalAmount.ToString("N0") đ</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã chấp nhận</span><strong class="ops-metric-value success">@totalAccepted.ToString("N3")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Đã từ chối</span><strong class="ops-metric-value danger">@totalRejected.ToString("N3")</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Còn phải giao</span><strong class="ops-metric-value warning">@totalRemaining.ToString("N3")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Giá trị đặt</span><strong class="ops-metric-value">@AdminStatusDisplay.Currency(Model.TotalAmount)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đã nhận hợp lệ</span><strong class="ops-metric-value success">@AdminStatusDisplay.Quantity(totalAccepted)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Đã từ chối</span><strong class="ops-metric-value danger">@AdminStatusDisplay.Quantity(totalRejected)</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Còn phải giao</span><strong class="ops-metric-value warning">@AdminStatusDisplay.Quantity(totalRemaining)</strong></div>
     </section>
 
     <section class="ops-panel">
@@ -71,12 +66,12 @@
                     <thead>
                         <tr>
                             <th>Nguyên liệu</th>
-                            <th>Yêu cầu</th>
+                            <th>Nguồn yêu cầu nhập</th>
                             <th class="number">Đặt</th>
-                            <th class="number">Chấp nhận</th>
-                            <th class="number">Từ chối</th>
-                            <th class="number">Đóng không giao bù</th>
-                            <th class="number">Còn lại</th>
+                            <th class="number">Số lượng chấp nhận</th>
+                            <th class="number">Số lượng từ chối</th>
+                            <th class="number">Phần còn lại đã đóng</th>
+                            <th class="number">Còn phải giao</th>
                             <th>Lịch sử</th>
                         </tr>
                     </thead>
@@ -86,20 +81,20 @@
                         <tr>
                             <td>
                                 <strong class="ops-item-name">@line.IngredientName</strong>
-                                <div class="ops-secondary">@line.PackageCount.ToString("N3") gói · @line.PackagePriceSnapshot.ToString("N0") đ/gói · @line.PackageUnitName</div>
+                                <div class="ops-secondary">@AdminStatusDisplay.Quantity(line.PackageCount) gói · @AdminStatusDisplay.Currency(line.PackagePriceSnapshot)/gói · @line.PackageUnitName</div>
                             </td>
-                            <td>@(line.RestockRequestId.HasValue ? $"#{line.RestockRequestId}" : "Mua chủ động")</td>
-                            <td class="number">@line.OrderedBaseQuantity.ToString("N3")</td>
-                            <td class="number">@line.AcceptedBaseQuantity.ToString("N3")</td>
-                            <td class="number">@line.RejectedBaseQuantity.ToString("N3")</td>
+                            <td>@(line.RestockRequestId.HasValue ? $"Yêu cầu nhập hàng #{line.RestockRequestId}" : "Mua chủ động")</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.OrderedBaseQuantity)</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.AcceptedBaseQuantity)</td>
+                            <td class="number">@AdminStatusDisplay.Quantity(line.RejectedBaseQuantity)</td>
                             <td class="number">
-                                @line.ClosedRemainingQuantity.ToString("N3")
+                                @AdminStatusDisplay.Quantity(line.ClosedRemainingQuantity)
                                 @if (!string.IsNullOrWhiteSpace(line.CloseRemainingReason))
                                 {
                                     <div class="ops-secondary" title="@line.CloseRemainingReason">@line.CloseRemainingReason</div>
                                 }
                             </td>
-                            <td class="number"><strong>@line.RemainingBaseQuantity.ToString("N3")</strong></td>
+                            <td class="number"><strong>@AdminStatusDisplay.Quantity(line.RemainingBaseQuantity)</strong></td>
                             <td>
                                 <span class="ops-badge ops-badge-neutral">@line.ReceiptCount lần nhận</span>
                                 @if (canCloseRemaining && canReceiveStatus && line.RemainingBaseQuantity > 0)
@@ -131,7 +126,7 @@
                 }
                 @if (Model.Status == "APPROVED")
                 {
-                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Đánh dấu đã gửi NCC</button></form>
+                    <form method="post" asp-action="MarkSent" asp-route-id="@Model.PurchaseOrderId">@Html.AntiForgeryToken()<input type="hidden" name="rowVersion" value="@Model.RowVersion" /><button class="ops-btn ops-btn-primary">Đánh dấu đã gửi Nhà cung cấp</button></form>
                 }
                 @if (Model.ActiveReceiptDraftId.HasValue)
                 {
@@ -143,7 +138,7 @@
                 <form method="post" asp-action="Cancel" asp-route-id="@Model.PurchaseOrderId" class="mt-3">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
-                    <label class="ops-form-label" for="cancelReason">Lý do hủy đơn mua</label>
+                    <label class="ops-form-label" for="cancelReason">Lý do hủy đơn đặt hàng</label>
                     <div class="d-flex gap-2"><input id="cancelReason" name="reason" class="ops-input flex-grow-1" maxlength="500" required placeholder="Nhập lý do hủy..." /><button class="ops-btn ops-btn-danger" type="submit">Hủy đơn</button></div>
                 </form>
             }

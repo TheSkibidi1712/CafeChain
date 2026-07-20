@@ -44,7 +44,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
     public async Task<ServiceResult<PurchaseOrderBatchDocumentRevisionDto>> GenerateAsync(int batchId, AdminActorContext actor)
     {
         if (!CanGenerate(actor))
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tạo PDF batch.");
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Chỉ Kế toán/kho hoặc Chủ doanh nghiệp được tạo PDF cho đơn đặt hàng gộp.");
 
         await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable);
         string? storedReference = null;
@@ -65,9 +65,9 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
 
             var batch = await LoadBatchAsync(batchId);
             if (batch == null)
-                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy batch đơn mua.");
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.NotFound, "Không tìm thấy đơn đặt hàng gộp.");
             if (!PurchaseOrderBatchStatuses.ApprovedOrLater.Contains(batch.Status))
-                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ batch đã duyệt mới được tạo PDF chính thức.");
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ đơn đặt hàng gộp đã duyệt mới được tạo PDF chính thức.");
 
             var snapshot = await BuildSnapshotAsync(batch);
             var snapshotJson = JsonSerializer.Serialize(snapshot, SnapshotJsonOptions);
@@ -79,7 +79,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             if (existing != null)
             {
                 await transaction.CommitAsync();
-                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(existing), "Snapshot không đổi; sử dụng lại revision hiện có.");
+                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(existing), "Nội dung không đổi; sử dụng lại phiên bản PDF hiện có.");
             }
 
             var previous = await _context.PurchaseOrderBatchDocumentRevisions
@@ -129,26 +129,26 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 .SingleAsync();
             return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(
                 Map(revision, generatedByName),
-                $"Đã tạo PDF revision R{revisionNumber}.");
+                $"Đã tạo phiên bản PDF R{revisionNumber}.");
         }
         catch (DbUpdateException)
         {
             await transaction.RollbackAsync();
             if (storedReference != null) await SafeDeleteAsync(storedReference);
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Có xung đột khi cấp revision PDF. Hãy tải lại.");
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Có xung đột khi tạo phiên bản PDF. Hãy tải lại.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
             await transaction.RollbackAsync();
             if (storedReference != null) await SafeDeleteAsync(storedReference);
-            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentStorageFailure, "Không thể tạo hoặc lưu PDF batch.");
+            return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentStorageFailure, "Không thể tạo hoặc lưu PDF của đơn đặt hàng gộp.");
         }
     }
 
     public async Task<ServiceResult<IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto>>> ListAsync(int batchId, AdminActorContext actor)
     {
         if (!await CanReadBatchAsync(batchId, actor))
-            return Failure<IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem PDF batch này.");
+            return Failure<IReadOnlyList<PurchaseOrderBatchDocumentRevisionDto>>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền xem PDF của đơn đặt hàng gộp này.");
         var revisions = await _context.PurchaseOrderBatchDocumentRevisions.AsNoTracking()
             .Include(x => x.GeneratedByStaff)
             .Include(x => x.SentByStaff)
@@ -163,9 +163,9 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         var revision = await _context.PurchaseOrderBatchDocumentRevisions.AsNoTracking()
             .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId);
         if (revision == null)
-            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy revision PDF.");
+            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy phiên bản PDF.");
         if (!await CanReadBatchAsync(revision.PurchaseOrderBatchId, actor))
-            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền tải PDF batch này.");
+            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.Forbidden, "Bạn không có quyền tải PDF của đơn đặt hàng gộp này.");
         try
         {
             var content = await _storage.ReadAsync(revision.StorageReference);
@@ -179,7 +179,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException)
         {
-            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.DocumentStorageFailure, "Không thể đọc file PDF batch.");
+            return Failure<PurchaseOrderBatchDocumentDownloadDto>(PurchaseOrderBatchErrorCodes.DocumentStorageFailure, "Không thể đọc PDF của đơn đặt hàng gộp.");
         }
     }
 
@@ -223,7 +223,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             {
                 if (replay.PurchaseOrderBatchDocumentRevisionId != revisionId ||
                     !string.Equals(replay.SentChannel, channel, StringComparison.OrdinalIgnoreCase))
-                    return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Khóa gửi đã được dùng cho một revision hoặc kênh khác.");
+                    return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Conflict, "Yêu cầu gửi đã được dùng cho một phiên bản PDF hoặc kênh khác.");
                 await transaction.CommitAsync();
                 return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(replay), "Yêu cầu gửi đã được ghi nhận trước đó.");
             }
@@ -234,16 +234,16 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
                 .Include(x => x.PurchaseOrderBatch)
                 .SingleOrDefaultAsync(x => x.PurchaseOrderBatchDocumentRevisionId == revisionId && x.PurchaseOrderBatchId == batchId);
             if (revision == null)
-                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy revision PDF thuộc batch này.");
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.DocumentNotFound, "Không tìm thấy phiên bản PDF thuộc đơn đặt hàng gộp này.");
             if (revision.Status == PurchaseOrderBatchDocumentStatuses.Sent)
             {
                 if (!string.Equals(revision.SentChannel, channel, StringComparison.OrdinalIgnoreCase))
                     return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Revision đã được ghi nhận qua một kênh gửi khác.");
                 await transaction.CommitAsync();
-                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Revision đã được ghi nhận gửi trước đó.");
+                return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Phiên bản PDF đã được ghi nhận gửi trước đó.");
             }
             if (revision.Status != PurchaseOrderBatchDocumentStatuses.Generated)
-                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ revision đang GENERATED mới được ghi nhận gửi.");
+                return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.Invalid, "Chỉ phiên bản PDF sẵn sàng gửi mới được ghi nhận gửi.");
             if (!VersionMatches(revision.RowVersion, request.RowVersion))
                 return Failure<PurchaseOrderBatchDocumentRevisionDto>(PurchaseOrderBatchErrorCodes.StaleVersion, "Revision đã thay đổi. Hãy tải lại trước khi ghi nhận gửi.");
 
@@ -259,7 +259,7 @@ public sealed class PurchaseOrderBatchDocumentService : IPurchaseOrderBatchDocum
             revision.PurchaseOrderBatch.UpdatedAtUtc = now;
             await _context.SaveChangesAsync();
             await transaction.CommitAsync();
-            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Đã ghi nhận gửi revision PDF qua Zalo thủ công.");
+            return ServiceResult<PurchaseOrderBatchDocumentRevisionDto>.Success(Map(revision), "Đã ghi nhận gửi phiên bản PDF qua Zalo.");
         }
         catch (DbUpdateConcurrencyException)
         {

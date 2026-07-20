@@ -66,10 +66,10 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         var result = await _service.CreateAsync(request, _actorAccessor.Get(User));
         if (!result.IsSuccess)
         {
-            TempData["Error"] = $"{result.ErrorCode}: {result.Message}";
+            TempData["Error"] = result.Message;
             return RedirectToAction("Index", "AdminPurchaseAdviceConsolidation");
         }
-        TempData["Success"] = "Đã tạo batch và các PO con theo cửa hàng.";
+        TempData["Success"] = "Đã tạo đơn đặt hàng gộp và các đơn đặt hàng chi nhánh.";
         return RedirectToAction(nameof(Details), new { id = result.Data!.PurchaseOrderBatchId });
     }
 
@@ -78,7 +78,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     public async Task<IActionResult> Approve(int id, PurchaseOrderBatchTransitionRequest request)
     {
         var result = await _service.ApproveAsync(id, request, _actorAccessor.Get(User));
-        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "Đã duyệt batch và các PO con." : $"{result.ErrorCode}: {result.Message}";
+        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "Đã duyệt đơn đặt hàng gộp và các đơn đặt hàng chi nhánh." : result.Message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -87,7 +87,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     public async Task<IActionResult> Cancel(int id, PurchaseOrderBatchTransitionRequest request)
     {
         var result = await _service.CancelAsync(id, request, _actorAccessor.Get(User));
-        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "Đã hủy batch." : $"{result.ErrorCode}: {result.Message}";
+        TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess ? "Đã hủy đơn đặt hàng gộp." : result.Message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -98,7 +98,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         var result = await _documentService.GenerateAsync(id, _actorAccessor.Get(User));
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
             ? $"Đã sẵn sàng {result.Data!.FileName}."
-            : $"{result.ErrorCode}: {result.Message}";
+            : result.Message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -117,7 +117,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
         var result = await _documentService.MarkSentAsync(id, revisionId, request, _actorAccessor.Get(User));
         TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
             ? "Đã ghi nhận gửi tài liệu cho nhà cung cấp."
-            : $"{result.ErrorCode}: {result.Message}";
+            : result.Message;
         return RedirectToAction(nameof(Details), new { id });
     }
 
@@ -125,7 +125,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
     {
         if (code == PurchaseOrderBatchErrorCodes.Forbidden) return Forbid();
         if (code == PurchaseOrderBatchErrorCodes.NotFound) return NotFound(message);
-        TempData["Error"] = $"{code}: {message}";
+        TempData["Error"] = message;
         return RedirectToAction(nameof(Index));
     }
 
@@ -137,7 +137,7 @@ public sealed class AdminPurchaseOrderBatchesController : Controller
             : $"{batch.ExpectedDeliveryFrom:dd/MM/yyyy} - {batch.ExpectedDeliveryTo:dd/MM/yyyy}";
         return $"CafeChain gửi Đơn đặt hàng {batch.BatchNumber}.\n\n" +
                $"Nhà cung cấp: {batch.SupplierName}\n" +
-               $"Tổng giá trị dự kiến: {amount} đ\n" +
+               $"Tổng giá trị dự kiến: {amount} ₫\n" +
                $"Số chi nhánh giao hàng: {batch.StoreCount}\n" +
                $"Ngày giao mong muốn: {deliveryRange}\n\n" +
                "Chi tiết vui lòng xem file PDF đính kèm.";

@@ -85,10 +85,10 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await _service.CreateAsync(model, _actorAccessor.Get(User));
             if (result.IsSuccess)
             {
-                TempData["Success"] = "Đã tạo đề nghị mua hàng DRAFT.";
+                TempData["Success"] = "Đã tạo đề nghị mua hàng ở trạng thái nháp.";
                 return RedirectToAction(nameof(Details), new { id = result.Data!.PurchaseAdviceId });
             }
-            ModelState.AddModelError(string.Empty, $"{result.ErrorCode}: {result.Message}");
+            ModelState.AddModelError(string.Empty, result.Message);
             var sources = await _service.GetAvailableSourcesAsync(model.StoreId, _actorAccessor.Get(User));
             ViewBag.Sources = sources.Data ?? Array.Empty<PurchaseAdviceSourceDto>();
             ViewBag.SelectedRestockIds = selectedRestockIds;
@@ -138,7 +138,7 @@ namespace CafeChain.Areas.Admin.Controllers
                 TempData["Success"] = "Đã cập nhật đề nghị mua hàng.";
                 return RedirectToAction(nameof(Details), new { id = model.PurchaseAdviceId });
             }
-            ModelState.AddModelError(string.Empty, $"{result.ErrorCode}: {result.Message}");
+            ModelState.AddModelError(string.Empty, result.Message);
             var detail = await _service.GetDetailAsync(model.PurchaseAdviceId, _actorAccessor.Get(User));
             if (!detail.IsSuccess) return Failure(detail.ErrorCode, detail.Message);
             ViewBag.Detail = detail.Data;
@@ -173,7 +173,7 @@ namespace CafeChain.Areas.Admin.Controllers
             var result = await action();
             TempData[result.IsSuccess ? "Success" : "Error"] = result.IsSuccess
                 ? successMessage
-                : $"{result.ErrorCode}: {result.Message}";
+                : result.Message;
             return RedirectToAction(nameof(Details), new { id });
         }
 
@@ -182,7 +182,7 @@ namespace CafeChain.Areas.Admin.Controllers
             if (code == PurchaseAdviceErrorCodes.Forbidden || code == PurchaseAdviceErrorCodes.StoreScopeMismatch)
                 return Forbid();
             if (code == PurchaseAdviceErrorCodes.NotFound) return NotFound(message);
-            TempData["Error"] = $"{code}: {message}";
+            TempData["Error"] = message;
             return RedirectToAction(nameof(Index));
         }
     }

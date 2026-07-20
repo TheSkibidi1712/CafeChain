@@ -2,7 +2,7 @@
 @using CafeChain.Models.Inventories.Suppliers
 @using CafeChain.Models.Stores
 @{
-    ViewData["Title"] = "Tạo đơn mua hàng";
+    ViewData["Title"] = "Tạo đơn đặt hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
     var stores = ViewBag.Stores as IReadOnlyList<Store> ?? Array.Empty<Store>();
     var suppliers = ViewBag.Suppliers as IReadOnlyList<Supplier> ?? Array.Empty<Supplier>();
@@ -10,13 +10,13 @@
 }
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
 <main class="ops-shell" style="max-width:1100px">
-<header class="ops-header"><div><div class="ops-eyebrow">Mua hàng nhà cung cấp</div><h1 class="ops-title">Tạo đơn mua hàng</h1><p class="ops-subtitle">Snapshot quy cách, giá và lead time được lấy từ hợp đồng nguyên liệu hiện hành.</p></div><a class="ops-btn" asp-action="Index">Quay lại</a></header>
+<header class="ops-header"><div><div class="ops-eyebrow">Mua hàng từ Nhà cung cấp</div><h1 class="ops-title">Tạo đơn đặt hàng</h1><p class="ops-subtitle">Quy cách, giá và thời gian giao được lấy từ thông tin cung cấp hiện hành.</p></div><a class="ops-btn" asp-action="Index">Quay lại</a></header>
 @if (TempData["ErrorMessage"] != null) { <div class="ops-notice ops-notice-error">@TempData["ErrorMessage"]</div> }
 <form method="post">@Html.AntiForgeryToken()
-<section class="ops-panel"><div class="ops-panel-body"><div class="row g-3"><div class="col-md-4"><label class="ops-form-label">Cửa hàng</label><select asp-for="StoreId" class="ops-select w-100" required><option value="">Chọn cửa hàng</option>@foreach(var x in stores){<option value="@x.StoreId">@x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Nhà cung cấp</label><select asp-for="SupplierId" class="ops-select w-100" required><option value="">Chọn nhà cung cấp</option>@foreach(var x in suppliers){<option value="@x.SupplierId">@x.Code · @x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Ngày giao dự kiến</label><input asp-for="ExpectedDeliveryAtUtc" type="datetime-local" class="ops-input w-100" /></div><div class="col-12"><label class="ops-form-label">Ghi chú</label><textarea asp-for="Note" class="ops-textarea"></textarea></div><div class="col-md-4"><label class="ops-form-label d-flex align-items-center gap-2"><input asp-for="AllowOverallocationOverride" type="checkbox" /> Cho phép vượt phân bổ</label><div class="ops-help">Chỉ Business Owner được duyệt và phải ghi rõ lý do.</div></div><div class="col-md-8"><label class="ops-form-label">Lý do vượt phân bổ</label><input asp-for="OverallocationOverrideReason" class="ops-input w-100" maxlength="500" placeholder="Bắt buộc khi bật cho phép vượt phân bổ" /></div></div></div></section>
+<section class="ops-panel"><div class="ops-panel-body"><div class="row g-3"><div class="col-md-4"><label class="ops-form-label">Chi nhánh</label><select asp-for="StoreId" class="ops-select w-100" required><option value="">Chọn chi nhánh</option>@foreach(var x in stores){<option value="@x.StoreId">@x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Nhà cung cấp</label><select asp-for="SupplierId" class="ops-select w-100" required><option value="">Chọn Nhà cung cấp</option>@foreach(var x in suppliers){<option value="@x.SupplierId">@x.Code · @x.Name</option>}</select></div><div class="col-md-4"><label class="ops-form-label">Ngày giao dự kiến</label><input asp-for="ExpectedDeliveryAtUtc" type="datetime-local" lang="vi" class="ops-input w-100" /><div class="ops-help">Ngày/tháng/năm, giờ:phút</div></div><div class="col-12"><label class="ops-form-label">Ghi chú</label><textarea asp-for="Note" class="ops-textarea"></textarea></div><div class="col-md-4"><label class="ops-form-label d-flex align-items-center gap-2"><input asp-for="AllowOverallocationOverride" type="checkbox" /> Cho phép vượt phân bổ</label><div class="ops-help">Chỉ Chủ doanh nghiệp được duyệt và phải ghi rõ lý do.</div></div><div class="col-md-8"><label class="ops-form-label">Lý do vượt phân bổ</label><input asp-for="OverallocationOverrideReason" class="ops-input w-100" maxlength="500" placeholder="Bắt buộc khi bật cho phép vượt phân bổ" /></div></div></div></section>
 <section class="ops-panel">
     <div class="ops-panel-header">
-        <div><h2 class="ops-panel-title">Dòng đặt hàng</h2><div class="ops-secondary">Mỗi yêu cầu nhập chỉ liên kết một lần; mọi dòng phải cùng cửa hàng và nhà cung cấp.</div></div>
+        <div><h2 class="ops-panel-title">Dòng đặt hàng</h2><div class="ops-secondary">Mỗi yêu cầu nhập chỉ liên kết một lần; mọi dòng phải cùng chi nhánh và Nhà cung cấp.</div></div>
         <button class="ops-btn" id="addPoLine" type="button"><i class="fa-solid fa-plus" aria-hidden="true"></i> Thêm dòng</button>
     </div>
     <div class="ops-panel-body" id="poLines">
@@ -24,8 +24,8 @@
         {
             <div class="ops-line-editor po-line mb-3" data-index="@i">
                 <div class="row g-3 align-items-end">
-                    <div class="col-md-2"><label class="ops-form-label">RestockRequest</label><input asp-for="Lines[i].RestockRequestId" class="ops-input w-100" /></div>
-                    <div class="col-md-5"><label class="ops-form-label">Gói mua nguyên liệu</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn gói mua</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId">@x.Ingredient.Name · @x.Supplier.Name · @x.PackageQuantity @x.Unit.Name · @x.CurrentPrice.ToString("N0") đ</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /></div>
+                    <div class="col-md-2"><label class="ops-form-label">Yêu cầu nhập hàng</label><input asp-for="Lines[i].RestockRequestId" class="ops-input w-100" placeholder="Mã yêu cầu" /></div>
+                    <div class="col-md-5"><label class="ops-form-label">Quy cách và giá cung cấp</label><select asp-for="Lines[i].IngredientSupplierId" class="ops-select w-100 po-offer" data-index="@i" required><option value="">Chọn quy cách cung cấp</option>@foreach(var x in offers){<option value="@x.IngredientSupplierId" data-ingredient="@x.IngredientId" data-supplier="@x.SupplierId">@x.Ingredient.Name · @x.Supplier.Name · @x.PackageQuantity @x.Unit.Name · @x.CurrentPrice.ToString("N0") ₫</option>}</select><input asp-for="Lines[i].IngredientId" type="hidden" /></div>
                     <div class="col-md-2"><label class="ops-form-label">Số gói</label><input asp-for="Lines[i].PackageCount" type="number" min="0.001" step="0.001" class="ops-input w-100" required /></div>
                     <div class="col-md-2"><label class="ops-form-label">Ghi chú dòng</label><input asp-for="Lines[i].Note" class="ops-input w-100" /></div>
                     <div class="col-md-1"><button class="ops-btn po-remove-line" type="button" title="Xóa dòng" aria-label="Xóa dòng"><i class="fa-solid fa-trash" aria-hidden="true"></i></button></div>

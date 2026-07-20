@@ -410,8 +410,17 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             "AdminPurchaseOrders",
             "Details.cshtml"));
 
-        Assert.Contains("Đã nhận đủ", view);
-        Assert.Contains("Hoàn tất có phần không giao bù", view);
+        var statusDisplay = File.ReadAllText(Path.Combine(
+            root,
+            "CafeChain",
+            "ViewModels",
+            "Admin",
+            "Shared",
+            "AdminStatusDescriptor.cs"));
+
+        Assert.Contains("AdminStatusDisplay.PurchaseOrder(Model.Status)", view);
+        Assert.Contains("Hoàn thành", statusDisplay);
+        Assert.Contains("Hoàn thành có phần không giao bù", view);
         Assert.Contains("ClosedRemainingQuantity", view);
     }
 

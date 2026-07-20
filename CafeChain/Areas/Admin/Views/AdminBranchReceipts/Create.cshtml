@@ -12,7 +12,7 @@
 <main class="ops-shell" style="max-width:1100px">
     <header class="ops-header">
         <div>
-            <div class="ops-eyebrow">Phiếu nhận mới · Cửa hàng #@Model.StoreId</div>
+            <div class="ops-eyebrow">Phiếu nhận mới · Chi nhánh #@Model.StoreId</div>
             <h1 class="ops-title">Ghi nhận hàng thực nhận</h1>
             <p class="ops-subtitle">Lưu bản nháp để kiểm tra số lượng và chi phí. Tồn kho chỉ thay đổi sau bước xác nhận riêng.</p>
         </div>
@@ -30,17 +30,13 @@
     <form method="post" asp-action="Create" id="branchReceiptForm">
         @Html.AntiForgeryToken()
         <input type="hidden" asp-for="StoreId" />
+        <input type="hidden" asp-for="ReceiptKey" />
 
         <section class="ops-panel">
             <div class="ops-panel-header"><h2 class="ops-panel-title">Thông tin chứng từ</h2></div>
             <div class="ops-panel-body">
                 <div class="row g-3">
                     <div class="col-md-6">
-                        <label class="ops-form-label" asp-for="ReceiptKey">Khóa chống ghi trùng <span class="text-danger">*</span></label>
-                        <input class="ops-input w-100" asp-for="ReceiptKey" required maxlength="100" readonly />
-                        <div class="ops-help">Khóa hệ thống dùng để nhận diện thao tác gửi lại; không chỉnh sửa.</div>
-                    </div>
-                    <div class="col-md-3">
                         <label class="ops-form-label" asp-for="SupplierId">Nhà cung cấp</label>
                         <select class="ops-select w-100" asp-for="SupplierId" id="receiptSupplier" required>
                             <option value="">Chọn nhà cung cấp</option>
@@ -49,9 +45,9 @@
                                 <option value="@supplier.SupplierId">@supplier.SupplierCode · @supplier.SupplierName</option>
                             }
                         </select>
-                        <div class="ops-help">Chỉ hiển thị nhà cung cấp đang được gán cho cửa hàng.</div>
+                        <div class="ops-help">Chỉ hiển thị Nhà cung cấp đang phục vụ chi nhánh.</div>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-6">
                         <label class="ops-form-label" asp-for="ReferenceNumber">Số tham chiếu</label>
                         <input class="ops-input w-100" asp-for="ReferenceNumber" maxlength="100" placeholder="Hóa đơn / vận đơn" />
                     </div>
@@ -105,7 +101,7 @@
                                 <span asp-validation-for="Lines[i].RejectionReason" class="text-danger"></span>
                             </div>
                             <div class="col-lg-5 col-md-12">
-                                <label class="ops-form-label">Gói mua nguyên liệu <span class="text-danger">*</span></label>
+                                <label class="ops-form-label">Quy cách và giá cung cấp <span class="text-danger">*</span></label>
                                 <select class="ops-select w-100 receipt-offer"
                                         asp-for="Lines[i].IngredientSupplierId"
                                         data-line-index="@i"
@@ -113,7 +109,7 @@
                                         required>
                                     <option value="">Nhập mã yêu cầu và chọn nhà cung cấp trước</option>
                                 </select>
-                                <div class="ops-help offer-summary" data-line-index="@i">Giá và quy cách được lấy từ offer hiện hành rồi lưu snapshot trên phiếu.</div>
+                                <div class="ops-help offer-summary" data-line-index="@i">Giá và quy cách hiện hành được lưu cùng phiếu để phục vụ đối chiếu.</div>
                                 <input asp-for="Lines[i].InputUnitId" type="hidden" />
                                 <input asp-for="Lines[i].ActualPackagePrice" type="hidden" />
                                 <input asp-for="Lines[i].PackageQuantity" type="hidden" />
@@ -123,7 +119,7 @@
                         </div>
                     </div>
                 }
-                <div class="ops-notice ops-notice-info mb-0"><strong>Kiểm soát dữ liệu:</strong> hệ thống nhân số gói × lượng trong gói, quy đổi về đơn vị tồn kho và lưu giá gói làm snapshot. Tổng nhận không được vượt yêu cầu còn lại.</div>
+                <div class="ops-notice ops-notice-info mb-0"><strong>Kiểm soát dữ liệu:</strong> hệ thống nhân số gói với lượng trong gói, quy đổi về đơn vị tồn kho và lưu giá gói tại thời điểm nhận. Tổng nhận không được vượt yêu cầu còn lại.</div>
             </div>
         </section>
 
@@ -208,7 +204,7 @@
             setValue('PackageQuantity', option.dataset.packageQuantity);
             setValue('ActualPackagePrice', option.dataset.packagePrice);
             setValue('SupplierId', supplier.value);
-            summary.textContent = `${option.dataset.packageDisplay} · ${money.format(Number(option.dataset.packagePrice))} đ/gói · MOQ ${option.dataset.moq} gói`;
+            summary.textContent = `${option.dataset.packageDisplay} · ${money.format(Number(option.dataset.packagePrice))} ₫/gói · Tối thiểu ${option.dataset.moq} gói`;
         };
 
         const loadOffers = async (select) => {
@@ -236,7 +232,7 @@
                 for (const offer of payload.data ?? []) {
                     const option = document.createElement('option');
                     option.value = offer.ingredientSupplierId;
-                    option.textContent = `${offer.ingredientName} · ${offer.packageDisplay} · ${money.format(offer.packagePrice)} đ`;
+                    option.textContent = `${offer.ingredientName} · ${offer.packageDisplay} · ${money.format(offer.packagePrice)} ₫`;
                     option.dataset.offerId = offer.ingredientSupplierId;
                     option.dataset.unitId = offer.packageUnitId;
                     option.dataset.packageQuantity = offer.packageQuantity;
@@ -246,7 +242,7 @@
                     select.appendChild(option);
                 }
                 if ((payload.data ?? []).length === 0) {
-                    select.innerHTML = '<option value="">Không có gói mua active cho nguyên liệu này</option>';
+                    select.innerHTML = '<option value="">Không có quy cách mua đang hoạt động cho nguyên liệu này</option>';
                 } else if (select.dataset.currentOffer) {
                     select.value = select.dataset.currentOffer;
                 }

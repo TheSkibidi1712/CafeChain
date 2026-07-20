@@ -1,5 +1,6 @@
 @model CafeChain.Application.DTOs.Admin.RestockRequests.RestockRequestListResultDto
 @using CafeChain.Application.DTOs.Admin.StoreScope
+@using CafeChain.ViewModels.Admin.Shared
 @{
     ViewData["Title"] = "Yêu cầu nhập hàng";
     Layout = "~/Areas/Admin/Views/Shared/_AdminLayout.cshtml";
@@ -10,25 +11,6 @@
     var high = Model.Items.Count(x => x.Priority == "HIGH");
     var stores = ViewBag.StoreOptions as IReadOnlyList<AdminStoreOptionDto>
         ?? Array.Empty<AdminStoreOptionDto>();
-    string StatusLabel(string value) => value switch
-    {
-        "SUBMITTED" => "Chờ tiếp nhận",
-        "PROCESSING" => "Đang xử lý",
-        "PARTIALLY_RECEIVED" => "Đã nhận một phần",
-        "COMPLETED" => "Hoàn tất",
-        "REJECTED" => "Đã từ chối",
-        "CANCELLED" => "Đã hủy",
-        _ => value
-    };
-    string StatusClass(string value) => value switch
-    {
-        "SUBMITTED" => "ops-badge-warning",
-        "PROCESSING" => "ops-badge-info",
-        "PARTIALLY_RECEIVED" => "ops-badge-warning",
-        "COMPLETED" => "ops-badge-success",
-        _ => "ops-badge-neutral"
-    };
-    string PriorityLabel(string value) => value switch { "URGENT" => "Khẩn cấp", "HIGH" => "Cao", _ => "Bình thường" };
 }
 
 <link rel="stylesheet" href="~/css/Admin/InventoryOperations/inventory-operations.css" />
@@ -38,7 +20,7 @@
         <div>
             <div class="ops-eyebrow">Kho &amp; Cung ứng</div>
             <h1 class="ops-title"><i class="fa-solid fa-truck-ramp-box" aria-hidden="true"></i> Yêu cầu nhập hàng</h1>
-            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho cửa hàng #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
+            <p class="ops-subtitle">Theo dõi yêu cầu bổ sung hàng cho chi nhánh #@Model.StoreId. Yêu cầu chỉ ghi nhận nhu cầu; tồn kho chỉ thay đổi từ phiếu nhận hoặc điều chuyển đã xác nhận.</p>
         </div>
         <div class="ops-actions">
             <a class="ops-btn" asp-area="Admin" asp-controller="AdminStockAlerts" asp-action="Index" asp-route-storeId="@Model.StoreId"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i> Cảnh báo kho</a>
@@ -52,10 +34,10 @@
 
     @if (stores.Count > 1)
     {
-        <form method="get" class="ops-filterbar" aria-label="Chọn cửa hàng">
+        <form method="get" class="ops-filterbar" aria-label="Chọn chi nhánh">
             <input type="hidden" name="status" value="@statusFilter" />
             <div class="ops-filter-group">
-                <label class="ops-form-label mb-0" for="restockStoreId">Cửa hàng</label>
+                <label class="ops-form-label mb-0" for="restockStoreId">Chi nhánh</label>
                 <select id="restockStoreId" name="storeId" class="ops-select" onchange="this.form.submit()">
                     @foreach (var store in stores)
                     {
@@ -71,13 +53,13 @@
         <div class="ops-metric"><span class="ops-metric-label">Kết quả theo bộ lọc</span><strong class="ops-metric-value">@Model.Total</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Khẩn cấp trên trang</span><strong class="ops-metric-value danger">@urgent</strong></div>
         <div class="ops-metric"><span class="ops-metric-label">Ưu tiên cao trên trang</span><strong class="ops-metric-value warning">@high</strong></div>
-        <div class="ops-metric"><span class="ops-metric-label">Tổng lượng yêu cầu</span><strong class="ops-metric-value">@Model.Items.Sum(x => x.RequestedQuantity).ToString("N3")</strong></div>
+        <div class="ops-metric"><span class="ops-metric-label">Số yêu cầu trên trang</span><strong class="ops-metric-value">@Model.Items.Count</strong></div>
     </section>
 
     <nav class="ops-status-tabs" aria-label="Lọc trạng thái yêu cầu nhập">
         @foreach (var status in new[] { "SUBMITTED", "PROCESSING", "PARTIALLY_RECEIVED", "COMPLETED", "REJECTED", "CANCELLED", "" })
         {
-            <a class="ops-tab @(statusFilter == status ? "active" : "")" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@status" asp-route-storeId="@Model.StoreId">@(string.IsNullOrEmpty(status) ? "Tất cả" : StatusLabel(status))</a>
+            <a class="ops-tab @(statusFilter == status ? "active" : "")" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Index" asp-route-status="@status" asp-route-storeId="@Model.StoreId">@(string.IsNullOrEmpty(status) ? "Tất cả" : AdminStatusDisplay.RestockRequest(status).Label)</a>
         }
     </nav>
 
@@ -97,9 +79,9 @@
                         <tr>
                             <td><span class="ops-item-name">#@item.RestockRequestId</span><div class="ops-secondary">Cảnh báo #@item.StockAlertId</div></td>
                             <td><div class="ops-item-name">@item.ItemName</div><div class="ops-secondary">@item.ItemTypeLabel</div></td>
-                            <td class="number"><strong>@item.RequestedQuantity.ToString("N3")</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @item.SuggestedQuantity.Value.ToString("N3")</div> }</td>
-                            <td><span class="ops-badge @(item.Priority == "URGENT" ? "ops-badge-danger" : item.Priority == "HIGH" ? "ops-badge-warning" : "ops-badge-neutral")">@PriorityLabel(item.Priority)</span></td>
-                            <td><span class="ops-badge @StatusClass(item.Status)">@StatusLabel(item.Status)</span></td>
+                            <td class="number"><strong>@AdminStatusDisplay.Quantity(item.RequestedQuantity)</strong>@if (item.SuggestedQuantity.HasValue) { <div class="ops-secondary">Gợi ý @AdminStatusDisplay.Quantity(item.SuggestedQuantity.Value)</div> }</td>
+                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequestPriority(item.Priority).CssClass">@AdminStatusDisplay.RestockRequestPriority(item.Priority).Label</span></td>
+                            <td><span class="ops-badge @AdminStatusDisplay.RestockRequest(item.Status).CssClass">@AdminStatusDisplay.RestockRequest(item.Status).Label</span></td>
                             <td>@(item.CreatedByName ?? "—")</td>
                             <td class="text-nowrap"><span class="ops-secondary">@item.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</span></td>
                             <td class="text-end"><a class="ops-btn" asp-area="Admin" asp-controller="AdminRestockRequests" asp-action="Details" asp-route-id="@item.RestockRequestId" asp-route-storeId="@item.StoreId">Chi tiết <i class="fa-solid fa-chevron-right ms-1" aria-hidden="true"></i></a></td>
