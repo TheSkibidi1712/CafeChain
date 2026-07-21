@@ -28,7 +28,7 @@ public sealed class AdminRbacRefactorSourceTests
         Assert.True(start >= 0);
         var catalog = seed[start..];
 
-        Assert.Contains("20260721171943_InitialCreate", seed, StringComparison.Ordinal);
+        Assert.Contains("20260721173046_InitialCreate", seed, StringComparison.Ordinal);
         Assert.Contains("(28,", catalog, StringComparison.Ordinal);
         Assert.Contains("PermissionId=100", catalog, StringComparison.Ordinal);
         Assert.Contains("24 groups / 125 permissions / 345 role grants", catalog, StringComparison.Ordinal);
