@@ -123,6 +123,10 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public decimal AllocatedToPoBaseQuantity { get; set; }
         public decimal AcceptedBaseQuantity { get; set; }
         public decimal ClosedBaseQuantity { get; set; }
+        public decimal RemainingToOrderQuantity { get; set; }
+        public decimal RemainingToReceiveQuantity { get; set; }
+        public decimal UnresolvedQuantity { get; set; }
+        public string LineStatus { get; set; } = string.Empty;
         public DateTime NeededByDate { get; set; }
         public string? Note { get; set; }
         public string RowVersion { get; set; } = string.Empty;

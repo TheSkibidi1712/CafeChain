@@ -19,15 +19,19 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
     private readonly AppDbContext _context;
     private readonly IPurchaseAdviceConsolidationService _consolidation;
     private readonly IScopeAuthorizationService _scopeAuthorization;
+    private readonly IPurchaseAdviceFulfillmentService _purchaseAdviceFulfillment;
 
     public PurchaseOrderBatchService(
         AppDbContext context,
         IPurchaseAdviceConsolidationService consolidation,
-        IScopeAuthorizationService scopeAuthorization)
+        IScopeAuthorizationService scopeAuthorization,
+        IPurchaseAdviceFulfillmentService? purchaseAdviceFulfillment = null)
     {
         _context = context;
         _consolidation = consolidation;
         _scopeAuthorization = scopeAuthorization;
+        _purchaseAdviceFulfillment = purchaseAdviceFulfillment
+            ?? new PurchaseAdviceFulfillmentService(context);
     }
 
     public async Task<ServiceResult<PurchaseOrderBatchDetailDto>> CreateAsync(
@@ -170,20 +174,10 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             foreach (var advice in _context.ChangeTracker.Entries<PurchaseAdvice>().Select(x => x.Entity).DistinctBy(x => x.PurchaseAdviceId))
             {
                 await _context.Entry(advice).Collection(x => x.Lines).LoadAsync();
-                if (advice.Lines.All(x => Math.Max(0m, x.RequestedPurchaseBaseQuantity - x.AllocatedToPoBaseQuantity - x.ClosedBaseQuantity) == 0))
-                {
-                    var previous = advice.Status;
-                    advice.Status = PurchaseAdviceStatuses.Allocated;
-                    advice.UpdatedAtUtc = now;
-                    advice.Transitions.Add(new PurchaseAdviceTransition
-                    {
-                        PreviousStatus = previous,
-                        NewStatus = PurchaseAdviceStatuses.Allocated,
-                        ActorStaffId = actor.StaffId,
-                        OccurredAtUtc = now,
-                        Reason = $"Đã đưa vào đơn đặt hàng gộp {batch.BatchNumber}."
-                    });
-                }
+                await _purchaseAdviceFulfillment.RecomputeHeaderStatusAsync(
+                    advice.PurchaseAdviceId,
+                    actor.StaffId,
+                    $"Cập nhật phân bổ từ đơn đặt hàng gộp {batch.BatchNumber}.");
             }
 
             _context.PurchaseOrderBatches.Add(batch);
@@ -300,6 +294,17 @@ public sealed class PurchaseOrderBatchService : IPurchaseOrderBatchService
             var line = allocation.PurchaseAdviceLine;
             line.AllocatedToPoBaseQuantity = Math.Max(0m, line.AllocatedToPoBaseQuantity - allocation.AllocatedBaseQuantity);
             line.IsActiveReservation = true;
+            if (line.PurchaseAdvice.Status != PurchaseAdviceStatuses.UnderReview)
+            {
+                line.PurchaseAdvice.Transitions.Add(new PurchaseAdviceTransition
+                {
+                    PreviousStatus = line.PurchaseAdvice.Status,
+                    NewStatus = PurchaseAdviceStatuses.UnderReview,
+                    ActorStaffId = actor.StaffId,
+                    OccurredAtUtc = now,
+                    Reason = $"Hoàn phân bổ do hủy đơn đặt hàng gộp {batch.BatchNumber}."
+                });
+            }
             line.PurchaseAdvice.Status = PurchaseAdviceStatuses.UnderReview;
             line.PurchaseAdvice.UpdatedAtUtc = now;
         }

@@ -153,7 +153,7 @@ namespace CafeChain.Areas.Admin.Controllers
         }
 
         [HttpPost, ValidateAntiForgeryToken]
-        public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason)
+        public async Task<IActionResult> CloseLineRemaining(int id, int lineId, string rowVersion, string reason, string requestKey)
         {
             if (!User.IsInRole(RoleConstants.BusinessOwner)) return Forbid();
             var actor = _actor.Get(User);
@@ -161,7 +161,8 @@ namespace CafeChain.Areas.Admin.Controllers
             {
                 PurchaseOrderLineId = lineId,
                 RowVersion = rowVersion,
-                Reason = reason
+                Reason = reason,
+                RequestKey = requestKey
             }, actor.StaffId, actor.RoleNames);
             TempData[result.IsSuccess ? "SuccessMessage" : "ErrorMessage"] = result.Message;
             return RedirectToAction(nameof(Details), new { id });

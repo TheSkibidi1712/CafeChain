@@ -339,19 +339,22 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
         {
             PurchaseOrderLineId = line.PurchaseOrderLineId,
             RowVersion = rowVersion,
-            Reason = "Không yêu cầu giao bù"
+            Reason = "Không yêu cầu giao bù",
+            RequestKey = "issue178-unauthorized"
         }, StaffId, new[] { RoleConstants.AccountantWarehouse });
         var missingReason = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
         {
             PurchaseOrderLineId = line.PurchaseOrderLineId,
             RowVersion = rowVersion,
-            Reason = " "
+            Reason = " ",
+            RequestKey = "issue178-missing-reason"
         }, StaffId, new[] { RoleConstants.BusinessOwner });
         var closed = await service.CloseLineRemainingAsync(new ClosePurchaseOrderLineRemainingRequest
         {
             PurchaseOrderLineId = line.PurchaseOrderLineId,
             RowVersion = rowVersion,
-            Reason = "NCC ngừng giao phần thiếu; Owner chấp thuận"
+            Reason = "NCC ngừng giao phần thiếu; Owner chấp thuận",
+            RequestKey = "issue178-close-remaining"
         }, StaffId, new[] { RoleConstants.BusinessOwner });
 
         Assert.False(unauthorized.IsSuccess);
@@ -387,7 +390,8 @@ public sealed class PurchaseOrderPartialReceiptIssue178Tests : IntegrationTestBa
             {
                 PurchaseOrderLineId = line.PurchaseOrderLineId,
                 RowVersion = Convert.ToBase64String(line.RowVersion),
-                Reason = "Không còn phần nào phải giao"
+                Reason = "Không còn phần nào phải giao",
+                RequestKey = "issue178-no-remaining"
             },
             StaffId,
             new[] { RoleConstants.BusinessOwner });

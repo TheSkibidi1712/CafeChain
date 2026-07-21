@@ -469,6 +469,10 @@ namespace CafeChain.Application.Services.Inventories
                     AllocatedToPoBaseQuantity = line.AllocatedToPoBaseQuantity,
                     AcceptedBaseQuantity = line.AcceptedBaseQuantity,
                     ClosedBaseQuantity = line.ClosedBaseQuantity,
+                    RemainingToOrderQuantity = Math.Max(0m, line.RequestedPurchaseBaseQuantity - line.AllocatedToPoBaseQuantity),
+                    RemainingToReceiveQuantity = Math.Max(0m, line.AllocatedToPoBaseQuantity - line.AcceptedBaseQuantity - line.ClosedBaseQuantity),
+                    UnresolvedQuantity = Math.Max(0m, line.RequestedPurchaseBaseQuantity - line.AcceptedBaseQuantity - line.ClosedBaseQuantity),
+                    LineStatus = PurchaseAdviceStatusPolicy.DeriveLineStatus(line, advice.Status),
                     NeededByDate = line.NeededByDate,
                     Note = line.Note,
                     RowVersion = Convert.ToBase64String(line.RowVersion)

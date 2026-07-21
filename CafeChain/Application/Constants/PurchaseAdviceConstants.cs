@@ -8,6 +8,10 @@ namespace CafeChain.Application.Constants
         public const string Rejected = "REJECTED";
         public const string Cancelled = "CANCELLED";
         public const string Allocated = "ALLOCATED";
+        public const string PartiallyAllocated = "PARTIALLY_ALLOCATED";
+        public const string FullyAllocated = "FULLY_ALLOCATED";
+        public const string PartiallyFulfilled = "PARTIALLY_FULFILLED";
+        public const string Completed = "COMPLETED";
 
         public static readonly IReadOnlySet<string> ActiveReservationStatuses =
             new HashSet<string>(StringComparer.OrdinalIgnoreCase)
@@ -49,5 +53,13 @@ namespace CafeChain.Application.Constants
         public const string PackageMismatch = "PURCHASE_ADVICE_PACKAGE_MISMATCH";
         public const string MoqViolation = "PURCHASE_ADVICE_MOQ_VIOLATION";
         public const string ExceedsRemaining = "PURCHASE_ADVICE_EXCEEDS_REMAINING";
+        public const string AllocationNotFound = "PURCHASE_ADVICE_ALLOCATION_NOT_FOUND";
+        public const string AcceptedExceedsAllocation = "PURCHASE_ADVICE_ACCEPTED_EXCEEDS_ALLOCATION";
+        public const string ClosedExceedsAllocation = "PURCHASE_ADVICE_CLOSED_EXCEEDS_ALLOCATION";
+        public const string BackPostAlreadyApplied = "PURCHASE_ADVICE_BACKPOST_ALREADY_APPLIED";
+        public const string BackPostConflict = "PURCHASE_ADVICE_BACKPOST_CONFLICT";
+        public const string BackPostTraceMissing = "PURCHASE_ADVICE_BACKPOST_TRACE_MISSING";
+        public const string BackPostRequestKeyRequired = "PURCHASE_ADVICE_BACKPOST_REQUEST_KEY_REQUIRED";
+        public const string StatusInconsistent = "PURCHASE_ADVICE_STATUS_INCONSISTENT";
     }
 }

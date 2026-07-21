@@ -272,7 +272,8 @@ public sealed class PurchaseOrderSqlServerIssue178Tests : IAsyncLifetime
             {
                 PurchaseOrderLineId = seeded.PurchaseOrderLineId,
                 RowVersion = rowVersion,
-                Reason = reason
+                Reason = reason,
+                RequestKey = $"sql178-{Guid.NewGuid():N}"
             },
             seeded.StaffId,
             new[] { RoleConstants.BusinessOwner });

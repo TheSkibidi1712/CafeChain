@@ -17,17 +17,21 @@ namespace CafeChain.Application.Services.Inventories
         private readonly IUnitConversionService _conversion;
         private readonly IRestockAllocationService _allocations;
         private readonly IScopeAuthorizationService? _scopeAuthorization;
+        private readonly IPurchaseAdviceFulfillmentService _purchaseAdviceFulfillment;
 
         public PurchaseOrderService(
             AppDbContext context,
             IUnitConversionService conversion,
             IRestockAllocationService allocations,
-            IScopeAuthorizationService? scopeAuthorization = null)
+            IScopeAuthorizationService? scopeAuthorization = null,
+            IPurchaseAdviceFulfillmentService? purchaseAdviceFulfillment = null)
         {
             _context = context;
             _conversion = conversion;
             _allocations = allocations;
             _scopeAuthorization = scopeAuthorization;
+            _purchaseAdviceFulfillment = purchaseAdviceFulfillment
+                ?? new PurchaseAdviceFulfillmentService(context);
         }
 
         public async Task<ServiceResult<PurchaseOrderDetailDto>> CreateDraftAsync(
@@ -195,15 +199,74 @@ namespace CafeChain.Application.Services.Inventories
                 return Fail("Dòng đơn mua hàng không hợp lệ.");
             if (string.IsNullOrWhiteSpace(input.Reason))
                 return Fail("Lý do không yêu cầu giao bù là bắt buộc.");
+            if (string.IsNullOrWhiteSpace(input.RequestKey) || input.RequestKey.Trim().Length > 100)
+                return Fail("RequestKey ổn định là bắt buộc và không được vượt quá 100 ký tự.", PurchaseAdviceErrorCodes.BackPostRequestKeyRequired);
             if (!TryParseRowVersion(input.RowVersion, out var expectedVersion))
                 return Fail("Thiếu hoặc sai RowVersion.", BranchReceiptErrorCodes.ValidationRowVersionRequired);
+
+            var requestKey = input.RequestKey.Trim();
+            var payloadHash = PurchaseAdviceFulfillmentService.ComputeClosePayloadHash(
+                input.PurchaseOrderLineId,
+                input.RowVersion,
+                input.Reason);
 
             await using var transaction = await _context.Database.BeginTransactionAsync();
             try
             {
+                if (_context.Database.IsSqlServer())
+                {
+                    var lockResource = $"PurchaseOrderCloseRemaining:{requestKey}";
+                    await _context.Database.ExecuteSqlInterpolatedAsync(
+                        $@"DECLARE @lockResult int;
+                           EXEC @lockResult = sp_getapplock
+                               @Resource={lockResource},
+                               @LockMode='Exclusive',
+                               @LockOwner='Transaction',
+                               @LockTimeout=15000;
+                           IF @lockResult < 0 THROW 51000, 'Không thể khóa RequestKey đóng phần còn lại.', 1;");
+                }
+
+                var replay = await _purchaseAdviceFulfillment.FindClosedReplayAsync(requestKey);
+                if (replay != null)
+                {
+                    if (replay.PurchaseOrderLineId != input.PurchaseOrderLineId
+                        || replay.PayloadHash != payloadHash)
+                    {
+                        await transaction.RollbackAsync();
+                        return Fail("RequestKey đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
+                    }
+
+                    var replayPurchaseOrderId = await _context.PurchaseOrderLines
+                        .Where(x => x.PurchaseOrderLineId == input.PurchaseOrderLineId)
+                        .Select(x => x.PurchaseOrderId)
+                        .SingleOrDefaultAsync();
+                    if (replayPurchaseOrderId <= 0)
+                        return Fail("Không tìm thấy đơn mua hàng của thao tác đã xử lý trước đó.");
+
+                    await transaction.CommitAsync();
+                    return ServiceResult<PurchaseOrderDetailDto>.Success(
+                        await MapAsync(replayPurchaseOrderId),
+                        "Thao tác đóng phần còn lại đã được xử lý trước đó.");
+                }
+
                 var line = await LoadLineForUpdateAsync(input.PurchaseOrderLineId);
                 if (line == null)
                     return Fail("Không tìm thấy dòng đơn mua hàng.");
+                var replayAfterLock = await _purchaseAdviceFulfillment.FindClosedReplayAsync(requestKey);
+                if (replayAfterLock != null)
+                {
+                    if (replayAfterLock.PurchaseOrderLineId != input.PurchaseOrderLineId
+                        || replayAfterLock.PayloadHash != payloadHash)
+                    {
+                        await transaction.RollbackAsync();
+                        return Fail("RequestKey đã được dùng cho một thao tác đóng phần còn lại khác.", PurchaseAdviceErrorCodes.BackPostConflict);
+                    }
+
+                    await transaction.CommitAsync();
+                    return ServiceResult<PurchaseOrderDetailDto>.Success(
+                        await MapAsync(line.PurchaseOrderId),
+                        "Thao tác đóng phần còn lại đã được xử lý trước đó.");
+                }
                 if (!await CanAccessStoreAsync(actorStaffId, line.PurchaseOrder.StoreId))
                     return Fail("Bạn không có quyền đóng phần còn lại tại cửa hàng này.");
                 if (line.PurchaseOrder.Status is PurchaseOrderStatuses.Cancelled or PurchaseOrderStatuses.Completed)
@@ -220,6 +283,18 @@ namespace CafeChain.Application.Services.Inventories
                 var remaining = Math.Max(0m, line.OrderedBaseQuantity - accepted - line.ClosedRemainingQuantity);
                 if (remaining <= 0)
                     return Fail("Dòng đơn mua không còn số lượng để đóng.");
+
+                var backPost = await _purchaseAdviceFulfillment.BackPostClosedAsync(
+                    line.PurchaseOrderLineId,
+                    remaining,
+                    requestKey,
+                    payloadHash,
+                    actorStaffId);
+                if (!backPost.IsSuccess)
+                {
+                    await transaction.RollbackAsync();
+                    return Fail(backPost.Message, backPost.ErrorCode);
+                }
 
                 line.ClosedRemainingQuantity += remaining;
                 line.CloseRemainingReason = Trim(input.Reason, 500);
@@ -338,6 +413,17 @@ namespace CafeChain.Application.Services.Inventories
                     CreatedAtUtc = DateTime.UtcNow
                 });
                 await _context.SaveChangesAsync();
+
+                if (line.ReceivedBaseQuantity > 0)
+                {
+                    var backPost = await _purchaseAdviceFulfillment.BackPostAcceptedAsync(
+                        poLine.PurchaseOrderLineId,
+                        line.BranchReceiptLineId,
+                        line.ReceivedBaseQuantity,
+                        actorStaffId);
+                    if (!backPost.IsSuccess)
+                        return backPost;
+                }
 
                 var order = poLine.PurchaseOrder;
                 await RecalculateOrderStatusAsync(order);

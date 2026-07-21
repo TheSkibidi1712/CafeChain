@@ -66,6 +66,7 @@ namespace CafeChain.Application.DTOs.Admin.Procurement
         public int PurchaseOrderLineId { get; set; }
         public string RowVersion { get; set; } = string.Empty;
         public string Reason { get; set; } = string.Empty;
+        public string RequestKey { get; set; } = string.Empty;
     }
 
     public sealed class PurchaseOrderListItemDto

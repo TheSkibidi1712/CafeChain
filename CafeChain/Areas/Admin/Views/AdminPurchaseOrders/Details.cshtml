@@ -103,6 +103,7 @@
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="lineId" value="@line.PurchaseOrderLineId" />
                                         <input type="hidden" name="rowVersion" value="@line.RowVersion" />
+                                        <input type="hidden" name="requestKey" value="@Guid.NewGuid().ToString("N")" />
                                         <label class="ops-form-label" for="closeReason-@line.PurchaseOrderLineId">Lý do không yêu cầu giao bù</label>
                                         <input id="closeReason-@line.PurchaseOrderLineId" class="ops-input w-100" name="reason" maxlength="500" required placeholder="Nhập lý do..." />
                                         <button class="ops-btn ops-btn-danger mt-2" type="submit">Đóng phần còn lại</button>
